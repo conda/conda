@@ -14,11 +14,15 @@ from typing import TYPE_CHECKING
 
 import pluggy
 
+from ..base.constants import APP_NAME
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
@@ -36,22 +40,23 @@ if TYPE_CHECKING:
         CondaVirtualPackage,
     )
 
-spec_name = "conda"
-"""Name used for organizing conda hook specifications"""
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "spec_name",
+    APP_NAME,
+    addendum="Use `conda.base.constants.APP_NAME` instead.",
+)
 
-_hookspec = pluggy.HookspecMarker(spec_name)
-"""
-The conda plugin hook specifications, to be used by developers
-"""
+#: Decorator to mark conda plugin hook specifications, used to register plugin hook types
+_hookspec = pluggy.HookspecMarker(APP_NAME)
 
-hookimpl = pluggy.HookimplMarker(spec_name)
-"""
-Decorator used to mark plugin hook implementations
-"""
+#: Decorator to mark plugin hook implementations, used to register plugins
+hookimpl = pluggy.HookimplMarker(APP_NAME)
 
 
 class CondaSpecs:
-    """The conda plugin hookspecs, to be used by developers."""
+    """Collection of all supported conda plugin hookspecs."""
 
     @_hookspec
     def conda_solvers(self) -> Iterable[CondaSolver]:
@@ -614,6 +619,7 @@ class CondaSpecs:
     @_hookspec
     def conda_environment_specifiers(self) -> Iterable[CondaEnvironmentSpecifier]:
         """
+        **EXPERIMENTAL**
         Register new conda env spec type
 
         The example below defines a type of conda env file called "random". It
@@ -656,7 +662,7 @@ class CondaSpecs:
                         for spec_ext in RandomSpec.extensions
                     )
 
-                def environment(self):
+                def env(self):
                     return Environment(
                         name="".join(random.choice("0123456789abcdef") for i in range(6)),
                         dependencies=[random.choice(packages) for i in range(6)],
@@ -668,6 +674,63 @@ class CondaSpecs:
                 yield plugins.CondaEnvSpec(
                     name="random",
                     environment_spec=RandomSpec,
+                )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
+        """
+        Register new conda environment exporter
+
+        Environment exporters serialize conda Environment objects to different
+        output formats (JSON, TOML, XML, etc.) for the 'conda export' command.
+        This is separate from environment specifiers which parse input files.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import tomlkit
+            from conda import plugins
+            from conda.exceptions import CondaValueError
+            from conda.models.environment import Environment
+            from conda.plugins.types import CondaEnvironmentExporter
+
+
+            def export_toml(env: Environment) -> str:
+                # Export Environment to TOML format
+                # For formats that use the standard dictionary structure,
+                # you can use the shared utility:
+                from conda.plugins.environment_exporters.standard import to_dict
+
+                env_dict = to_dict(env)
+
+                # Create TOML document
+                toml_doc = tomlkit.document()
+
+                if env_dict.get("name"):
+                    toml_doc["name"] = env_dict["name"]
+
+                if env_dict.get("channels"):
+                    toml_doc["channels"] = env_dict["channels"]
+
+                if env_dict.get("dependencies"):
+                    toml_doc["dependencies"] = env_dict["dependencies"]
+
+                if env_dict.get("variables"):
+                    toml_doc["variables"] = env_dict["variables"]
+
+                return tomlkit.dumps(toml_doc)
+
+
+            @plugins.hookimpl
+            def conda_environment_exporters():
+                yield CondaEnvironmentExporter(
+                    name="environment-toml",
+                    aliases=("toml",),
+                    default_filenames=("environment.toml",),
+                    export=export_toml,
                 )
         """
         yield from ()

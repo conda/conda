@@ -321,16 +321,26 @@ def test_conda_config_describe_includes_plugin_settings(
 
     assert not err
     assert section_banner in out
-    assert f"plugins.{STRING_PARAMETER_NAME}:" in out
-    assert f"plugins.{SEQ_PARAMETER_NAME}:" in out
-    assert f"plugins.{MAP_PARAMETER_NAME}:" in out
+
+    # Headers display dotted notation for settings, as it's easier to
+    # read. The YAML representation uses nested notation.
+
+    assert f"# # plugins.{STRING_PARAMETER_NAME}" in out
+    assert f"# # plugins.{SEQ_PARAMETER_NAME}" in out
+    assert f"# # plugins.{MAP_PARAMETER_NAME}" in out
+
+    assert f"# plugins:\n#   {STRING_PARAMETER_NAME}:" in out
+    assert f"# plugins:\n#   {SEQ_PARAMETER_NAME}:" in out
+    assert f"# plugins:\n#   {MAP_PARAMETER_NAME}:" in out
 
 
-def test_conda_config_describe_not_included_without_plugins(conda_cli):
+def test_conda_config_describe_not_included_without_plugins(conda_cli, mocker):
     """
     Ensure that the describe command does not include the section banner
     for plugins when no additional settings are provided by plugins
     """
+    mock = mocker.patch("conda.plugins.manager.CondaPluginManager.get_hook_results")
+    mock.return_value = []
     out, err, _ = conda_cli("config", "--describe")
 
     section_banner = (

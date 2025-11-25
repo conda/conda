@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.common.url import urlparse
-from conda.plugins import CondaRequestHeader, hookimpl
+from conda.plugins import hookimpl
+from conda.plugins.types import CondaRequestHeader
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

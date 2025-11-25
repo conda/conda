@@ -19,7 +19,7 @@ from conda.trust.constants import KEY_MGR_FILE
 from conda.trust.signature_verification import SignatureError, _SignatureVerification
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from collections.abc import Callable
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture

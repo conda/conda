@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib
-import re
 import sys
 from inspect import isclass, isfunction
 from logging import getLogger
@@ -16,34 +15,14 @@ from conda.cli.conda_argparse import (
     _GreedySubParsersAction,
     generate_parser,
 )
-from conda.exceptions import EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
-    from typing import Any, Callable
+    from collections.abc import Callable
+    from typing import Any
 
     from conda.testing.fixtures import CondaCLIFixture
 
 log = getLogger(__name__)
-
-
-def test_list_through_python_api(conda_cli: CondaCLIFixture):
-    with pytest.raises(EnvironmentLocationNotFound, match="Not a conda environment"):
-        conda_cli("list", "--prefix", "not-a-real-path")
-
-    # cover argument variations
-    # mutually exclusive: --canonical, --export, --explicit, (default human readable)
-    for args1 in [[], ["--json"]]:
-        for args2 in [[], ["--revisions"]]:
-            for args3 in [
-                ["--canonical"],
-                ["--export"],
-                ["--explicit", "--md5"],
-                ["--full-name"],
-            ]:
-                args = (*args1, *args2, *args3)
-                stdout, _, _ = conda_cli("list", *args)
-                if "--md5" in args and "--revisions" not in args:
-                    assert re.search(r"#[0-9a-f]{32}", stdout)
 
 
 def test_parser_basics():
@@ -138,10 +117,18 @@ def test_sorted_commands_in_error(capsys):
     except SystemExit:
         stderr = capsys.readouterr().err
         # ...but the suggestions here are sorted
+
+        # Linux Python 3.12.3 and possibly other 3.12 builds appear to use the
+        # quoted style:
+        old_style = "invalid choice: 'd' (choose from 'a', 'b', 'c')"
+        new_style = "invalid choice: 'd' (choose from a, b, c)"
+
         if sys.version_info < (3, 12):
             # FUTURE: Python 3.12+: remove this test case
-            assert "invalid choice: 'd' (choose from 'a', 'b', 'c')" in stderr
+            assert old_style in stderr
+        elif sys.version_info[:2] == (3, 12):
+            assert old_style in stderr or new_style in stderr
         else:
-            assert "invalid choice: 'd' (choose from a, b, c)" in stderr
+            assert new_style in stderr
     else:
         pytest.fail("Did not raise")

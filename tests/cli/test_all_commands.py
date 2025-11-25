@@ -44,3 +44,31 @@ def test_denylist_channels(
         monkeypatch.setenv("CONDA_CHANNEL", denylist_channel)
     with pytest.raises(ChannelDenied):
         conda_cli(*command)
+
+
+@pytest.mark.parametrize(
+    ("command", "err_message"),
+    (
+        (
+            ("env", "create", "--environment-specifier", "idontexist"),
+            "error: argument --environment-specifier/--env-spec: invalid choice: 'idontexist'",
+        ),
+        (
+            ("install", "--solver", "idontexist"),
+            "error: argument --solver: invalid choice: 'idontexist'",
+        ),
+    ),
+)
+def test_commands_with_plugin_backed_options(
+    conda_cli: CondaCLIFixture,
+    command: tuple[str, ...],
+    err_message: str,
+    capsys,
+):
+    """Ensure that conda raises an error when a plugin-backed option
+    is used with an invalid value.
+    """
+    with pytest.raises(SystemExit):
+        conda_cli(*command)
+    captured = capsys.readouterr()
+    assert err_message in captured.err

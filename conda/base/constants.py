@@ -76,8 +76,7 @@ CONDA_HOMEPAGE_URL: Final = "https://conda.io"
 ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
 DEFAULTS_CHANNEL_NAME: Final = "defaults"
 
-KNOWN_SUBDIRS: Final = (
-    "noarch",
+PLATFORMS: Final = (
     "emscripten-wasm32",
     "wasi-wasm32",
     "freebsd-64",
@@ -97,6 +96,7 @@ KNOWN_SUBDIRS: Final = (
     "win-arm64",
     "zos-z",
 )
+KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
@@ -120,6 +120,10 @@ DEFAULT_CUSTOM_CHANNELS: Final = {
 DEFAULT_CHANNELS: Final = DEFAULT_CHANNELS_WIN if on_win else DEFAULT_CHANNELS_UNIX
 
 ROOT_ENV_NAME: Final = "base"
+RESERVED_ENV_NAMES: Final = (
+    ROOT_ENV_NAME,
+    "root",
+)
 UNUSED_ENV_NAME: Final = "unused-env-name"
 
 ROOT_NO_RM: Final = (
@@ -189,7 +193,7 @@ NOTICES_CACHE_FN: Final = "notices.cache"
 #: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR: Final = "notices"
 
-#: Determines the subdir for notices cache
+#: Determines how often notices are displayed while running commands
 NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400  # in seconds
 
 DRY_RUN_PREFIX: Final = "Dry run action:"
@@ -329,11 +333,13 @@ class NoticeLevel(ValueEnum):
 PACKAGE_CACHE_MAGIC_FILE: Final[PathType] = "urls.txt"
 PREFIX_MAGIC_FILE: Final[PathType] = join("conda-meta", "history")
 PREFIX_FROZEN_FILE: Final[PathType] = join("conda-meta", "frozen")
+PREFIX_CREATION_TIMESTAMP_FILE: Final[PathType] = join("conda-meta", "created_at")
 
 PREFIX_STATE_FILE: Final[PathType] = join("conda-meta", "state")
+PREFIX_PINNED_FILE: Final[PathType] = join("conda-meta", "pinned")
 PACKAGE_ENV_VARS_DIR: Final[PathType] = join("etc", "conda", "env_vars.d")
 CONDA_ENV_VARS_UNSET_VAR: Final = "***unset***"
-
+RESERVED_ENV_VARS: Final = ("PATH",)
 
 # TODO: should be frozendict(), but I don't want to import frozendict from auxlib here.
 NAMESPACES_MAP: Final = {  # base package name, namespace
@@ -382,3 +388,14 @@ NAMESPACES: Final = frozenset(NAMESPACES_MAP.values())
 # Indicates whether or not external plugins (i.e., plugins that aren't shipped
 # with conda) are enabled
 NO_PLUGINS: Final = False
+
+# When this string is present in an environment file, it indicates that the file
+# describes an explicit environment spec.
+EXPLICIT_MARKER: Final = "@EXPLICIT"
+
+# These variables describe the various sources for config that are supported by conda.
+# In addition to these sources, conda also supports configuration from condarc config
+# files (these are referred to in the context object by their full path as a pathlib.Path).
+CMD_LINE_SOURCE: Final = "cmd_line"
+ENV_VARS_SOURCE: Final = "envvars"
+CONFIGURATION_SOURCES: Final = (CMD_LINE_SOURCE, ENV_VARS_SOURCE)

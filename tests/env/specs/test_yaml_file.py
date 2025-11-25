@@ -25,12 +25,12 @@ def test_environment_file_not_yaml():
 
 def test_get_environment():
     spec = YamlFileSpec(name=None, filename=support_file("simple.yml"))
-    assert spec.environment is not None
+    assert spec.env is not None
 
 
 def test_filename():
     filename = support_file("simple.yml")
     with mock.patch.object(env, "from_file") as from_file:
         spec = YamlFileSpec(filename=filename)
-        spec.environment
+        spec.env
     from_file.assert_called_with(filename)

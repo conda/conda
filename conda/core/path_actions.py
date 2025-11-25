@@ -8,9 +8,8 @@ import re
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from itertools import chain
-from json import JSONDecodeError
 from logging import getLogger
-from os.path import basename, dirname, getsize, isdir, join
+from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -30,6 +29,7 @@ from ..common.path import (
     url_to_path,
     win_path_ok,
 )
+from ..common.serialize import json
 from ..common.url import has_platform, path_to_url
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -570,7 +570,9 @@ class PrefixReplaceLinkAction(LinkPathAction):
                 self.source_full_path,
             )
             # return
-            assert False, "I don't think this is the right place to ignore this"
+            raise RuntimeError(
+                f"Ignoring prefix update for symlink with source path {self.source_full_path}"
+            )
 
         mkdir_p(self.transaction_context["temp_dir"])
         self.intermediate_path = join(
@@ -1065,6 +1067,8 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
             copy(self.target_full_path, self.hold_path)
 
         h = History(self.target_prefix)
+        if not isfile(h.path):
+            PrefixData(self.target_prefix).set_creation_time()
         h.update()
         h.write_specs(self.remove_specs, self.update_specs, self.neutered_specs)
 
@@ -1072,6 +1076,8 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
+        if isfile(hpath := History(self.target_prefix).path):
+            rm_rf(hpath)
 
     def cleanup(self):
         rm_rf(self.hold_path)
@@ -1268,7 +1274,8 @@ class CacheUrlAction(PathAction):
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def verify(self):
-        assert "::" not in self.url
+        if "::" in self.url:
+            raise ValueError("URL cannot contain '::'")
         self._verified = True
 
     def execute(self, progress_update_callback=None):
@@ -1431,7 +1438,7 @@ class ExtractPackageAction(PathAction):
 
         try:
             raw_index_json = read_index_json(self.target_full_path)
-        except (OSError, JSONDecodeError, FileNotFoundError):
+        except (OSError, json.JSONDecodeError, FileNotFoundError):
             # At this point, we can assume the package tarball is bad.
             # Remove everything and move on.
             print(
@@ -1443,7 +1450,8 @@ class ExtractPackageAction(PathAction):
 
         if isinstance(self.record_or_spec, MatchSpec):
             url = self.record_or_spec.get_raw_value("url")
-            assert url
+            if not url:
+                raise ValueError("URL cannot be empty.")
             channel = (
                 Channel(url)
                 if has_platform(url, context.known_subdirs)
@@ -1452,8 +1460,10 @@ class ExtractPackageAction(PathAction):
             fn = basename(url)
             sha256 = self.sha256 or compute_sum(self.source_full_path, "sha256")
             size = getsize(self.source_full_path)
-            if self.size is not None:
-                assert size == self.size, (size, self.size)
+            if self.size is not None and size != self.size:
+                raise RuntimeError(
+                    f"Computed size ({size}) does not match expected value {self.size}"
+                )
             md5 = self.md5 or compute_sum(self.source_full_path, "md5")
             repodata_record = PackageRecord.from_objects(
                 raw_index_json,

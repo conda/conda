@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
+from os.path import isdir
+from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.base.constants import PREFIX_FROZEN_FILE
 from conda.base.context import context
 from conda.cli.main_info import get_info_components, iter_info_components
 from conda.common.path import paths_equal
@@ -103,6 +106,18 @@ def test_info_envs(conda_cli: CondaCLIFixture):
     assert not err
 
 
+def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env, test_recipes_channel):
+    with tmp_env() as prefix:
+        Path(prefix, PREFIX_FROZEN_FILE).touch()
+        prefixes = list_all_known_prefixes()
+
+        stdout, stderr, err = conda_cli("info", "--envs")
+        assert stdout == ConsoleReporterRenderer.envs_list(prefixes)
+        assert " + " in stdout
+        assert not stderr
+        assert not err
+
+
 # conda info --system [--json]
 def test_info_system(conda_cli: CondaCLIFixture):
     stdout, stderr, err = conda_cli("info", "--system")
@@ -174,6 +189,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "conda_version",
         "default_prefix",
         "envs",
+        "envs_details",
         "envs_dirs",
         "pkgs_dirs",
         "platform",
@@ -183,6 +199,42 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "root_writable",
         "solver",
     } <= set(parsed)
+
+    # assert all envs_details keys are present
+    keys_and_types = {
+        "name": str,
+        "created": (str, type(None)),
+        "last_modified": str,
+        "active": bool,
+        "base": bool,
+        "frozen": bool,
+        "writable": bool,
+    }
+    for prefix, details in parsed["envs_details"].items():
+        assert isinstance(prefix, str)
+        assert set(keys_and_types.keys()) == set(details.keys())
+        for key, type_ in keys_and_types.items():
+            assert isinstance(details[key], type_)
+
+
+# conda info --envs --json
+def test_info_envs_json(conda_cli: CondaCLIFixture):
+    stdout, _, _ = conda_cli("info", "--envs", "--json")
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+
+    # assert only 'envs' is present
+    assert {"envs", "envs_details"} == set(parsed)
+    assert parsed["envs"]
+    assert isinstance(parsed["envs"], list)
+    assert isinstance(parsed["envs"][0], str)
+    assert isdir(parsed["envs"][0])
+    assert parsed["envs_details"]
+    assert isinstance(parsed["envs_details"], dict)
+    first_env = next(iter(parsed["envs_details"].keys()))
+    assert isdir(first_env)
+    first_envs_details = parsed["envs_details"][first_env]
+    assert isinstance(first_envs_details, dict)
 
 
 # conda info --license
@@ -209,7 +261,7 @@ def test_iter_info_components() -> None:
         context=SimpleNamespace(json=False),
     )
     assert isinstance(components, Iterable)
-    assert tuple(components) == ("base", "channels", "envs", "system")
+    assert tuple(components) == ("base", "channels", "envs", "envs_details", "system")
 
 
 def test_get_info_components() -> None:
@@ -225,4 +277,4 @@ def test_get_info_components() -> None:
             context=SimpleNamespace(json=False),
         )
     assert isinstance(components, set)
-    assert components == {"base", "channels", "envs", "system"}
+    assert components == {"base", "channels", "envs", "envs_details", "system"}

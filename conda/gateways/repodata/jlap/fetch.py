@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import io
-import json
 import logging
 import pprint
 import re
@@ -18,9 +17,9 @@ import jsonpatch
 import zstandard
 from requests import HTTPError
 
-from conda.common.url import mask_anaconda_token
-
 from ....base.context import context
+from ....common.serialize import json
+from ....common.url import mask_anaconda_token
 from .. import ETAG_KEY, LAST_MODIFIED_KEY, RepodataState
 from .core import JLAP
 
@@ -122,7 +121,8 @@ def request_jlap(
 
     log.debug("%s %s", mask_anaconda_token(url), headers)
 
-    assert session is not None
+    if session is None:
+        raise RuntimeError("session cannot be None")
 
     timeout = context.remote_connect_timeout_secs, context.remote_read_timeout_secs
     response = session.get(url, stream=True, headers=headers, timeout=timeout)
@@ -464,7 +464,10 @@ def request_url_jlap_state(
                     # avoid duplicate parsing
                     return repodata_json
             else:
-                assert state[NOMINAL_HASH] == want
+                if state[NOMINAL_HASH] != want:
+                    raise RuntimeError(
+                        f"{NOMINAL_HASH} mismatch. Expected {want}, got {state[NOMINAL_HASH]}."
+                    )
 
         except (JlapPatchNotFound, json.JSONDecodeError) as e:
             if isinstance(e, JlapPatchNotFound):
@@ -476,7 +479,8 @@ def request_url_jlap_state(
                     "Current repodata.json %s not found in patchset. Re-download repodata.json"
                 )
 
-            assert not full_download, "Recursion error"  # pragma: no cover
+            if full_download:
+                raise RecursionError()
 
             return request_url_jlap_state(
                 url,

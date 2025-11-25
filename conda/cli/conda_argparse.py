@@ -17,10 +17,9 @@ from logging import getLogger
 from subprocess import Popen
 
 from .. import __version__
-from ..auxlib.compat import isiterable
 from ..auxlib.ish import dals
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import on_win
+from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
 from ..deprecations import deprecated
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401

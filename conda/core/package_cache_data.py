@@ -11,7 +11,6 @@ from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
-from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
@@ -34,6 +33,7 @@ from ..common.constants import NULL, TRACE
 from ..common.io import IS_INTERACTIVE, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
+from ..common.serialize import json
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
@@ -145,8 +145,9 @@ class PackageCacheData(metaclass=PackageCacheType):
         self.load()
         return self
 
-    def get(self, package_ref, default=NULL):
-        assert isinstance(package_ref, PackageRecord)
+    def get(self, package_ref: PackageRecord, default=NULL):
+        if not isinstance(package_ref, PackageRecord):
+            raise TypeError("`package_ref` must be a PackageRecord instance.")
         try:
             return self._package_cache_records[package_ref]
         except KeyError:
@@ -173,7 +174,8 @@ class PackageCacheData(metaclass=PackageCacheType):
                 if param.match(pcrec)
             )
         else:
-            assert isinstance(param, PackageRecord)
+            if not isinstance(param, PackageRecord):
+                raise TypeError("`package_ref` must be a PackageRecord instance.")
             return (
                 pcrec
                 for pcrec in self._package_cache_records.values()
@@ -385,10 +387,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
-            # EnvironmentError if info/repodata_record.json doesn't exists
-            # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
-            #   python 2.7 raises ValueError instead of JsonDecodeError
+        except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+            # EnvironmentError: info/repodata_record.json doesn't exists
+            # json.JSONDecodeError: info/repodata_record.json is partially extracted or corrupted
+            #   python 2.7 raises ValueError instead of json.JSONDecodeError
             #   ValueError("No JSON object could be decoded")
             log.debug(
                 "unable to read %s\n  because %r",
@@ -399,10 +401,10 @@ class PackageCacheData(metaclass=PackageCacheType):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
-                # EnvironmentError if info/index.json doesn't exist
-                # JsonDecodeError if info/index.json is partially extracted or corrupted
-                #   python 2.7 raises ValueError instead of JsonDecodeError
+            except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+                # EnvironmentError: info/index.json doesn't exist
+                # json.JSONDecodeError: info/index.json is partially extracted or corrupted
+                #   python 2.7 raises ValueError instead of json.JSONDecodeError
                 #   ValueError("No JSON object could be decoded")
                 log.debug(
                     "unable to read %s\n  because %r",
@@ -439,7 +441,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                                 return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
-                        except (OSError, JSONDecodeError, FileNotFoundError):
+                        except (OSError, json.JSONDecodeError, FileNotFoundError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
                             rm_rf(package_tarball_full_path)
@@ -579,7 +581,8 @@ class UrlsData:
 class ProgressiveFetchExtract:
     @staticmethod
     def make_actions_for_record(pref_or_spec):
-        assert pref_or_spec is not None
+        if pref_or_spec is None:
+            raise TypeError("`pref_or_spec` cannot be None.")
         # returns a cache_action and extract_action
 
         # if the pref or spec has an md5 value
@@ -702,7 +705,8 @@ class ProgressiveFetchExtract:
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get("url")
-        assert url
+        if not url:
+            raise ValueError(".url field is required and must be non-empty.")
 
         cache_action = CacheUrlAction(
             url=url,
@@ -783,7 +787,8 @@ class ProgressiveFetchExtract:
         if not self._prepared:
             self.prepare()
 
-        assert not context.dry_run
+        if context.dry_run:
+            raise RuntimeError("Cannot run .execute() in dry-run mode.")
 
         with get_progress_bar_context_manager() as pbar_context:
             if self._executed:

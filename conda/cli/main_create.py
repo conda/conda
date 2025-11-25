@@ -94,7 +94,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
     from ..reporters import confirm_yn
-    from .common import print_activate, validate_subdir_config
+    from .common import (
+        print_activate,
+        validate_environment_files_consistency,
+        validate_subdir_config,
+    )
     from .install import install, install_clone
 
     # Ensure provided combination of command line argments are valid
@@ -108,14 +112,24 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
-    # Only one of the arguments --clone and packages is allowed
-    if args.clone and args.packages:
-        raise TooManyArgumentsError(
-            0,
-            len(args.packages),
-            list(args.packages),
-            "did not expect any arguments for --clone",
-        )
+    # If the --clone argument is provided, users must not provide any other
+    # package specification. That includes providing the --file argument or
+    # a list of packages
+    if args.clone:
+        if args.packages:
+            raise TooManyArgumentsError(
+                0,
+                len(args.packages),
+                list(args.packages),
+                "Did not expect any new packages or arguments for `--clone`.",
+            )
+        elif args.file:
+            raise TooManyArgumentsError(
+                0,
+                len(args.file),
+                list(args.file),
+                "`--file` and `--clone` arguments are mutually exclusive.",
+            )
     prefix_data = PrefixData.from_context(validate=True)
 
     if prefix_data.is_environment():
@@ -145,6 +159,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Ensure the subdir config is valid
     validate_subdir_config()
+
+    # Validate that input files are of the same format type
+    validate_environment_files_consistency(args.file)
 
     # Run appropriate install
     if args.clone:

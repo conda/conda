@@ -135,11 +135,11 @@ class PythonDistribution:
     def _check_path_data(self, path, checksum, size):
         """Normalizes record data content and format."""
         if checksum:
-            assert checksum.startswith("sha256="), (
-                self._metadata_dir_full_path,
-                path,
-                checksum,
-            )
+            if not checksum.startswith("sha256="):
+                raise ValueError(
+                    f"Invalid checksum {checksum} at {path}. "
+                    f"Check {self._metadata_dir_full_path}."
+                )
             checksum = checksum[7:]
         else:
             checksum = None
@@ -264,11 +264,11 @@ class PythonDistribution:
                     if len(row) == 3:
                         checksum, size = row[1:]
                         if checksum:
-                            assert checksum.startswith("sha256="), (
-                                self._metadata_dir_full_path,
-                                cleaned_path,
-                                checksum,
-                            )
+                            if not checksum.startswith("sha256="):
+                                raise ValueError(
+                                    f"Invalid checksum {checksum} at {cleaned_path}. "
+                                    f"Check {self._metadata_dir_full_path}."
+                                )
                             checksum = checksum[7:]
                             pad = "=" * (4 - (len(checksum) & 3))
                             checksum = urlsafe_b64decode(checksum + pad).hex()
@@ -552,7 +552,8 @@ class PythonDistributionMetadata:
                 filenames = [".egg-info"]
                 if metadata_filenames:
                     filenames.extend(metadata_filenames)
-                assert any(path.endswith(filename) for filename in filenames)
+                if not any(path.endswith(filename) for filename in filenames):
+                    raise RuntimeError("Mismatched paths in dist-info folder")
                 metadata_path = path
             else:
                 # `path` does not exist
@@ -1129,7 +1130,8 @@ class Evaluator:
                     raise SyntaxError(f"unknown variable: {expr}")
                 result = context[expr]
         else:
-            assert isinstance(expr, dict)
+            if not isinstance(expr, dict):
+                raise TypeError("'expr' must be a dict.")
             op = expr["op"]
             if op not in self.operations:
                 raise NotImplementedError(f"op not implemented: {op}")

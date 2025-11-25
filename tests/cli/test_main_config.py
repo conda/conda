@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda.exceptions
+from conda.base.constants import SafetyChecks
 from conda.base.context import context, reset_context
 from conda.cli.main_config import (
     _get_key,
@@ -20,6 +21,7 @@ from conda.cli.main_config import (
     _write_rc,
     set_keys,
 )
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
@@ -228,21 +230,30 @@ def test_config_remove_key() -> None:
 
 
 def test_config_read_rc(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
     condarc.write_text("changeps1: false\nauto_stack: 5\n")
 
     assert _read_rc(path=condarc) == {"changeps1": False, "auto_stack": 5}
 
 
 def test_config_write_rc(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
-    _write_rc(condarc, {"changeps1": False, "auto_stack": 5})
-    assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
+    _write_rc(
+        condarc,
+        {
+            "changeps1": False,
+            "auto_stack": 5,
+            "safety_checks": SafetyChecks.disabled,
+        },
+    )
+    assert condarc.read_text() == (
+        "changeps1: false\nauto_stack: 5\nsafety_checks: disabled\n"
+    )
 
 
 def test_config_set_keys(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
     set_keys(("changeps1", True), path=condarc)
     assert condarc.read_text() == "changeps1: true\n"
@@ -252,6 +263,37 @@ def test_config_set_keys(tmp_path: Path) -> None:
 
     set_keys(("auto_stack", 5), path=condarc)
     assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
+
+
+def test_config_set_keys_aliases(tmp_path: Path, conda_cli) -> None:
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
+
+    set_keys(("auto_activate_base", True), path=condarc)
+    assert condarc.read_text() == "auto_activate: true\n"
+
+    set_keys(("auto_activate", True), path=condarc)
+    assert condarc.read_text() == "auto_activate: true\n"
+
+    out, err, rc = conda_cli(
+        "config", "--show", "auto_activate_base", "--file", condarc
+    )
+    assert not rc
+    assert "auto_activate: True\n" == out
+
+    out, err, rc = conda_cli("config", "--get", "auto_activate_base", "--file", condarc)
+    assert not rc
+    assert "--set auto_activate True\n" == out
+
+    out, err, rc = conda_cli(
+        "config", "--describe", "auto_activate_base", "--file", condarc
+    )
+    assert not rc
+    assert "auto_activate: true" in out
+
+    out, err, rc = conda_cli(
+        "config", "--remove-key", "auto_activate_base", "--file", condarc
+    )
+    assert not rc
 
 
 def test_config_set_and_get_key_for_env(
@@ -390,7 +432,8 @@ def test_config_describe(
         "# # plugins.bar (str)",
         "# #   Test plugins.bar",
         "# # ",
-        "# plugins.bar: ''",
+        "# plugins:",
+        "#   bar: ''",
         "",
         "",
     )
@@ -407,7 +450,8 @@ def test_config_describe(
         "# # plugins.bar (str)",
         "# #   Test plugins.bar",
         "# # ",
-        "# plugins.bar: ''",
+        "# plugins:",
+        "#   bar: ''",
         "",
         "",
     )
@@ -483,3 +527,31 @@ def test_config_describe_json(
             "parameter_type": "primitive",
         },
     ]
+
+
+def test_config_describe_plugins_yaml_format(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    plugin_config: tuple[type[Configuration], str],
+):
+    """
+    Regression test for the issue described in https://github.com/conda/conda/issues/15339.
+
+    Ensure that plugin configuration examples in `conda config --describe`
+    use valid nested YAML format. which is (plugins:\n  setting_name: value),
+    instead of dotted notation (plugins.setting_name: value), which is
+    syntactically invalid in YAML.
+    """
+    mock_context, app_name = plugin_config
+    mock_context = mock_context(search_path=())
+    mocker.patch("conda.base.context.context", mock_context)
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+
+    out, err, rc = conda_cli("config", "--describe", "plugins.bar")
+
+    assert "plugins:" in out
+    assert "  bar: ''" in out
+
+    assert "plugins.bar: ''" not in out

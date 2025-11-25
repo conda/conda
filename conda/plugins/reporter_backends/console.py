@@ -11,18 +11,25 @@ from __future__ import annotations
 import sys
 from errno import EPIPE, ESHUTDOWN
 from itertools import cycle
-from os.path import basename, dirname
 from threading import Event, Thread
 from time import sleep
 from typing import TYPE_CHECKING
 
-from ...base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND, ROOT_ENV_NAME
+from ...base.constants import (
+    DEFAULT_CONSOLE_REPORTER_BACKEND,
+)
 from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
+from ...core.prefix_data import PrefixData
 from ...exceptions import CondaError
-from .. import CondaReporterBackend, hookimpl
-from ..types import ProgressBarBase, ReporterRendererBase, SpinnerBase
+from .. import hookimpl
+from ..types import (
+    CondaReporterBackend,
+    ProgressBarBase,
+    ReporterRendererBase,
+    SpinnerBase,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -189,25 +196,33 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         return "\n".join(table_parts)
 
     @staticmethod
-    def envs_list(prefixes: Iterable[PathType], output=True, **kwargs) -> str:
+    def envs_list(
+        prefixes: Iterable[PathType | PrefixData], output=True, **kwargs
+    ) -> str:
         if not output:
             return ""
 
-        output = ["", "# conda environments:", "#"]
+        output = [
+            "",
+            "# conda environments:",
+            "#",
+            "# * -> active",
+            "# + -> frozen",
+        ]
 
-        def disp_env(prefix):
-            active = "*" if prefix == context.active_prefix else " "
-            if prefix == context.root_prefix:
-                name = ROOT_ENV_NAME
-            elif any(
-                paths_equal(envs_dir, dirname(prefix)) for envs_dir in context.envs_dirs
-            ):
-                name = basename(prefix)
-            else:
-                name = ""
-            return f"{name:20} {active} {prefix}"
+        def disp_env(prefix: PrefixData) -> str:
+            active = (
+                "*"
+                if context.active_prefix
+                and paths_equal(prefix.prefix_path, context.active_prefix)
+                else " "
+            )
+            frozen = "+" if prefix.is_frozen() else " "
+            return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
 
         for env_prefix in prefixes:
+            if not isinstance(env_prefix, PrefixData):
+                env_prefix = PrefixData(env_prefix)
             output.append(disp_env(env_prefix))
 
         output.append("\n")
@@ -240,7 +255,8 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         """
         Implementation of a prompt dialog
         """
-        assert default in choices, default
+        if default not in choices:
+            raise ValueError(f"Default value '{default}' must be part of `choices`")
         options = []
 
         for option in choices:

@@ -11,6 +11,7 @@ import os
 import re
 import sys
 from argparse import SUPPRESS, _StoreTrueAction
+from functools import cached_property
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
@@ -66,7 +67,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "-e",
         "--envs",
         action="store_true",
-        help="List all known conda environments.",
+        help="List all known conda environments. Combine with `--json` to obtain more details.",
     )
     p.add_argument(
         "-l",
@@ -210,7 +211,7 @@ def get_info_dict() -> dict[str, Any]:
     )
     from ..common.compat import on_win
     from ..common.url import mask_anaconda_token
-    from ..core.index import _supplement_index_with_system
+    from ..core.index import Index
     from ..models.channel import all_channel_urls, offline_keep
 
     try:
@@ -223,8 +224,7 @@ def get_info_dict() -> dict[str, Any]:
         log.error("Error importing conda-build: %s", err)
         conda_build_version = "error"
 
-    virtual_pkg_index = {}
-    _supplement_index_with_system(virtual_pkg_index)
+    virtual_pkg_index = Index().system_packages
     virtual_pkgs = [[p.name, p.version, p.build] for p in virtual_pkg_index.values()]
 
     channels = list(all_channel_urls(context.channels))
@@ -418,11 +418,7 @@ class InfoRenderer:
     """
 
     def __init__(self, context):
-        from ..core.envs_manager import list_all_known_prefixes
-
         self._context = context
-        self._info_dict = get_info_dict()
-        self._info_dict["envs"] = list_all_known_prefixes()
         self._component_style_map = {
             "base": None,
             "channels": None,
@@ -431,6 +427,45 @@ class InfoRenderer:
             "system": None,
             "json_all": None,
         }
+
+    @cached_property
+    def _info_dict(self):
+        info_dict = get_info_dict()
+        info_dict["envs"] = self._info_dict_envs
+        info_dict["envs_details"] = self._info_dict_envs_details
+        return info_dict
+
+    @cached_property
+    def _info_dict_envs(self) -> list[str]:
+        from ..core.envs_manager import list_all_known_prefixes
+
+        return list_all_known_prefixes()
+
+    @cached_property
+    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None]]:
+        from ..core.prefix_data import PrefixData
+
+        result = {}
+        if active_prefix := self._context.active_prefix:
+            active_prefix_data = PrefixData(active_prefix)
+        else:
+            active_prefix_data = None
+        for prefix in self._info_dict_envs:
+            prefix_data = PrefixData(prefix)
+            if created := prefix_data.created:
+                created = created.isoformat()
+            if last_modified := prefix_data.last_modified:
+                last_modified = last_modified.isoformat()
+            result[prefix] = {
+                "name": prefix_data.name,
+                "created": created,
+                "last_modified": last_modified,
+                "active": prefix_data == active_prefix_data,
+                "base": prefix_data.is_base(),
+                "frozen": prefix_data.is_frozen(),
+                "writable": prefix_data.is_writable,
+            }
+        return result
 
     def render(self, components: Iterable[InfoComponents]):
         """
@@ -468,8 +503,12 @@ class InfoRenderer:
         return get_main_info_display(self._info_dict)
 
     def _envs_component(self):
-        if not self._context.json:
-            return self._info_dict["envs"]
+        if self._context.json:
+            return {
+                "envs": self._info_dict_envs,
+                "envs_details": self._info_dict_envs_details,
+            }
+        return self._info_dict_envs
 
     def _system_component(self) -> str:
         from .find_commands import find_commands, find_executable
@@ -537,13 +576,14 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
     ):
         yield "detail"
 
-    if (args.envs or args.all) and not context.json:
+    if args.envs or (args.all and not context.json):
         yield "envs"
+        yield "envs_details"
 
     if (args.system or args.all) and not context.json:
         yield "system"
 
-    if context.json and not args.base and not args.unsafe_channels:
+    if context.json and not args.base and not args.unsafe_channels and not args.envs:
         yield "json_all"
 
 

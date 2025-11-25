@@ -9,18 +9,17 @@ import os
 from argparse import (
     ArgumentParser,
     Namespace,
-    _StoreAction,
     _SubParsersAction,
 )
 
 from .. import CondaError
-from ..deprecations import deprecated
 from ..notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
+        add_parser_environment_specifier,
         add_parser_frozen_env,
         add_parser_json,
         add_parser_prefix,
@@ -49,6 +48,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
+
+    # Add environment spec plugin args
+    add_parser_environment_specifier(p)
+
     add_parser_frozen_env(p)
     add_parser_prefix(p)
     p.add_argument(
@@ -64,18 +67,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=False,
         help="remove installed packages not defined in environment.yml",
     )
-    p.add_argument(
-        "remote_definition",
-        help="remote environment definition / IPython notebook",
-        action=deprecated.action(
-            "24.7",
-            "25.9",
-            _StoreAction,
-            addendum="Use `conda env create --file=URL` instead.",
-        ),
-        default=None,
-        nargs="?",
-    )
+
     add_parser_json(p)
     add_parser_solver(p)
     p.set_defaults(func="conda.cli.main_env_update.execute")
@@ -88,7 +80,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
-    from ..env import specs as install_specs
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller
@@ -98,8 +89,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_file_exists(args.file)
 
     # detect the file format and get the env representation
-    spec = install_specs.detect(filename=args.file)
-    env = spec.environment
+    spec_hook = context.plugin_manager.get_environment_specifier(
+        source=args.file,
+        name=context.environment_specifier,
+    )
+    spec = spec_hook.environment_spec(args.file)
+    env = spec.env
 
     if not (args.name or args.prefix):
         if not env.name:
@@ -145,7 +140,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # e.g. due to conda_env being upgraded or Python version switched.
     installers = {}
 
-    for installer_type in env.dependencies:
+    if env.requested_packages:
+        installers["conda"] = get_installer("conda")
+
+    for installer_type in env.external_packages:
         try:
             installers[installer_type] = get_installer(installer_type)
         except InvalidInstaller:
@@ -165,7 +163,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             return -1
 
     result = {"conda": None, "pip": None}
-    for installer_type, specs in env.dependencies.items():
+    # install conda packages
+    installer_type = "conda"
+    installer = installers[installer_type]
+    result[installer_type] = installer.install(
+        prefix, env.requested_packages, args, env
+    )
+    # install all other external packages
+    for installer_type, specs in env.external_packages.items():
         installer = installers[installer_type]
         result[installer_type] = installer.install(prefix, specs, args, env)
 

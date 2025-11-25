@@ -4,12 +4,13 @@
 
 from __future__ import annotations
 
-import json
 import os
+import subprocess
 import uuid
 import warnings
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
+from itertools import chain
 from logging import getLogger
 from pathlib import Path
 from shutil import copyfile
@@ -21,20 +22,19 @@ import pytest
 from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
-from ..auxlib.entity import EntityEncoder
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
-from ..common.io import env_vars
-from ..common.serialize import yaml_round_trip_load
+from ..common.serialize import json, yaml_round_trip_load
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
 from ..exceptions import CondaExitZero
 from ..gateways.disk.create import TemporaryDirectory
 from ..models.records import PackageRecord
+from .integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -49,8 +49,49 @@ if TYPE_CHECKING:
     )
     from pytest_mock import MockerFixture
 
+    from ..common.path import PathType
+
 
 log = getLogger(__name__)
+
+
+TEST_CONDARC = dals(
+    """
+    custom_channels:
+      darwin: https://some.url.somewhere/stuff
+      chuck: http://another.url:8080/with/path
+    custom_multichannels:
+      michele:
+        - https://do.it.with/passion
+        - learn_from_every_thing
+      steve:
+        - more-downloads
+    channel_settings:
+      - channel: darwin
+        param_one: value_one
+        param_two: value_two
+      - channel: "http://localhost"
+        param_one: value_one
+        param_two: value_two
+    migrated_custom_channels:
+      darwin: s3://just/cant
+      chuck: file:///var/lib/repo/
+    migrated_channel_aliases:
+      - https://conda.anaconda.org
+    channel_alias: ftp://new.url:8082
+    conda-build:
+      root-dir: /some/test/path
+    proxy_servers:
+      http: http://user:pass@corp.com:8080
+      https: none
+      ftp:
+      sftp: ''
+      ftps: false
+      rsync: 'false'
+    aggressive_update_packages: []
+    channel_priority: false
+    """
+)
 
 
 @pytest.fixture(autouse=True)
@@ -78,32 +119,6 @@ def clear_subdir_cache():
 
 
 @pytest.fixture(scope="function")
-def disable_channel_notices():
-    """
-    Fixture that will set "context.number_channel_notices" to 0 and then set
-    it back to its original value.
-
-    This is also a good example of how to override values in the context object.
-    """
-    yaml_str = dals(
-        """
-        number_channel_notices: 0
-        """
-    )
-    reset_context(())
-    rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(yaml_str)
-        )
-    }
-    context._set_raw_data(rd)
-
-    yield
-
-    reset_context(())
-
-
-@pytest.fixture(scope="function")
 def reset_conda_context():
     """Resets the context object after each test function is run."""
     yield
@@ -112,15 +127,14 @@ def reset_conda_context():
 
 
 @pytest.fixture()
-def temp_package_cache(tmp_path_factory):
+def temp_package_cache(tmp_path_factory, monkeypatch: MonkeyPatch) -> Iterator[Path]:
     """
     Used to isolate package or index cache from other tests.
     """
     pkgs_dir = tmp_path_factory.mktemp("pkgs")
-    with env_vars(
-        {"CONDA_PKGS_DIRS": str(pkgs_dir)}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        yield pkgs_dir
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(pkgs_dir))
+    reset_context()
+    yield pkgs_dir
 
 
 @pytest.fixture(
@@ -129,7 +143,6 @@ def temp_package_cache(tmp_path_factory):
 )
 def parametrized_solver_fixture(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["libmamba", "classic"]]:
     """
     A parameterized fixture that sets the solver backend to (1) libmamba
@@ -153,23 +166,21 @@ def parametrized_solver_fixture(
                 pytest.skip("...")
             ...
     """
-    yield from _solver_helper(request, monkeypatch, request.param)
+    yield from _solver_helper(request, request.param)
 
 
 @pytest.fixture
 def solver_classic(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["classic"]]:
-    yield from _solver_helper(request, monkeypatch, "classic")
+    yield from _solver_helper(request, "classic")
 
 
 @pytest.fixture
 def solver_libmamba(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["libmamba"]]:
-    yield from _solver_helper(request, monkeypatch, "libmamba")
+    yield from _solver_helper(request, "libmamba")
 
 
 Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
@@ -177,14 +188,15 @@ Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
 
 def _solver_helper(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
     solver: Solver,
 ) -> Iterable[Solver]:
     # clear cached solver backends before & after each test
     context.plugin_manager.get_cached_solver_backend.cache_clear()
     request.addfinalizer(context.plugin_manager.get_cached_solver_backend.cache_clear)
 
-    monkeypatch.setenv("CONDA_SOLVER", solver)
+    mp = request.getfixturevalue("monkeypatch")
+
+    mp.setenv("CONDA_SOLVER", solver)
     reset_context()
     assert context.solver == solver
 
@@ -207,19 +219,19 @@ class CondaCLIFixture:
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
         raises: type[Exception] | tuple[type[Exception], ...],
     ) -> tuple[str, str, ExceptionInfo]: ...
 
     @overload
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
     ) -> tuple[str, str, int]: ...
 
     def __call__(
         self,
-        *argv: str | os.PathLike[str] | Path,
+        *argv: PathType,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
     ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
@@ -251,7 +263,7 @@ class CondaCLIFixture:
         return out, err, exception if raises else code
 
     @staticmethod
-    def _cast_args(argv: tuple[str | os.PathLike[str] | Path, ...]) -> Iterable[str]:
+    def _cast_args(argv: tuple[PathType, ...]) -> Iterable[str]:
         """Cast args to string and inspect for `conda run`.
 
         `conda run` is a unique case that requires `--dev` to use the src shell scripts
@@ -292,6 +304,87 @@ def session_conda_cli() -> Iterator[CondaCLIFixture]:
     conda environment shared across tests, `conda info`, etc.).
     """
     yield CondaCLIFixture(None)
+
+
+@dataclass
+class PipCLIFixture:
+    """Fixture for calling pip in specific conda environments."""
+
+    @overload
+    def __call__(
+        self,
+        *argv: PathType,
+        prefix: PathType,
+        raises: type[Exception] | tuple[type[Exception], ...],
+    ) -> tuple[str, str, ExceptionInfo]: ...
+
+    @overload
+    def __call__(
+        self,
+        *argv: PathType,
+        prefix: PathType,
+    ) -> tuple[str, str, int]: ...
+
+    def __call__(
+        self,
+        *argv: PathType,
+        prefix: PathType,
+        raises: type[Exception] | tuple[type[Exception], ...] | None = None,
+    ) -> tuple[str | None, str | None, int | ExceptionInfo]:
+        """Test pip CLI in a specific conda environment.
+
+        `pip ...` in environment == `pip_cli(..., prefix=env_path)`
+
+        :param argv: Arguments to pass to pip.
+        :param prefix: Path to the conda environment containing pip.
+        :param raises: Expected exception to intercept. If provided, the raised exception
+            will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
+        :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
+        """
+        # build command using python -m pip (more reliable than finding pip executable)
+        prefix_path = Path(prefix)
+        python_exe = prefix_path / PYTHON_BINARY
+        cmd = [str(python_exe), "-m", "pip"] + [str(arg) for arg in argv]
+
+        # run command
+        with pytest.raises(raises) if raises else nullcontext() as exception:
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                code = result.returncode
+                stdout = result.stdout
+                stderr = result.stderr
+            except subprocess.CalledProcessError as e:
+                code = e.returncode
+                stdout = e.stdout
+                stderr = e.stderr
+            except FileNotFoundError:
+                # python executable not found
+                raise RuntimeError(
+                    f"Python not found in environment {prefix_path}: {python_exe}"
+                )
+
+        return stdout, stderr, exception if raises else code
+
+
+@pytest.fixture(scope="session")
+def pip_cli() -> Iterator[PipCLIFixture]:
+    """A function scoped fixture returning PipCLIFixture instance.
+
+    Use this for calling pip commands in specific conda environments during tests.
+    Uses `python -m pip` for reliable cross-platform execution.
+
+    Example:
+        def test_pip_install(tmp_env, pip_cli):
+            with tmp_env("python=3.10", "pip") as prefix:
+                stdout, stderr, code = pip_cli("install", "requests", prefix=prefix)
+                assert code == 0
+    """
+    yield PipCLIFixture()
 
 
 @dataclass
@@ -393,12 +486,12 @@ class TmpChannelFixture:
     conda_cli: CondaCLIFixture
 
     @contextmanager
-    def __call__(self, *packages: str) -> Iterator[tuple[Path, str]]:
+    def __call__(self, *specs: str) -> Iterator[tuple[Path, str]]:
         # download packages
         self.conda_cli(
             "create",
             f"--prefix={self.path_factory()}",
-            *packages,
+            *specs,
             "--yes",
             "--quiet",
             "--download-only",
@@ -424,11 +517,19 @@ class TmpChannelFixture:
             "packages": {},
             "packages.conda": {},
         }
-        for package in packages:
-            for pkg_data in pkgs_cache.query(package):
-                fname = pkg_data["fn"]
+        iter_specs = list(specs)
+        seen: dict[str, set[str]] = {}
+        while iter_specs:
+            spec = iter_specs.pop(0)
 
-                if pkg_data["subdir"] == "noarch":
+            for package_record in pkgs_cache.query(spec):
+                # track which packages have already been copied to the channel
+                fname = package_record["fn"]
+                if fname in seen:
+                    seen[fname].add(spec)
+                seen[fname] = {spec}
+
+                if package_record["subdir"] == "noarch":
                     target_repodata = repodata_noarch
                     target_directory = noarch
                 else:
@@ -441,20 +542,17 @@ class TmpChannelFixture:
                 target_repodata[key][fname] = PackageRecord(
                     **{
                         field: value
-                        for field, value in pkg_data.dump().items()
+                        for field, value in package_record.dump().items()
                         if field not in ("url", "channel", "schannel", "channel_name")
                     }
                 )
 
-        (subdir / "repodata.json").write_text(
-            json.dumps(repodata_subdir, cls=EntityEncoder)
-        )
-        (noarch / "repodata.json").write_text(
-            json.dumps(repodata_noarch, cls=EntityEncoder)
-        )
+        (subdir / "repodata.json").write_text(json.dumps(repodata_subdir))
+        (noarch / "repodata.json").write_text(json.dumps(repodata_noarch))
 
-        for package in packages:
-            assert any(PackageCacheData.query_all(package))
+        # ensure all packages were copied to the channel
+        for spec in chain.from_iterable(seen.values()):
+            assert any(PackageCacheData(pkgs_dir).query(spec))
 
         yield channel, path_to_url(str(channel))
 
@@ -544,3 +642,15 @@ def PYTHONPATH():
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setenv("PYTHONPATH", CONDA_SOURCE_ROOT)
             yield
+
+
+@pytest.fixture
+def context_testdata() -> None:
+    reset_context()
+    context._set_raw_data(
+        {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml_round_trip_load(TEST_CONDARC)
+            )
+        }
+    )

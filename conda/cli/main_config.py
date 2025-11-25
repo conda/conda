@@ -7,7 +7,6 @@ Allows for programmatically interacting with conda's configuration files (e.g., 
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from argparse import SUPPRESS
@@ -19,13 +18,15 @@ from pathlib import Path
 from textwrap import wrap
 from typing import TYPE_CHECKING
 
-from ..base.constants import DEFAULTS_CHANNEL_NAME
+from ..common.configuration import DEFAULT_CONDARC_FILENAME
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from typing import Any
 
     from ..base.context import Context
+
+log = getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -265,8 +266,7 @@ def format_dict(d):
 
 
 def parameter_description_builder(name, context=None, plugins=False):
-    from ..auxlib.entity import EntityEncoder
-    from ..common.serialize import yaml_round_trip_dump
+    from ..common.serialize import json, yaml_round_trip_dump
 
     # Keeping this for backward-compatibility, in case no context instance is provided
     if context is None:
@@ -279,7 +279,7 @@ def parameter_description_builder(name, context=None, plugins=False):
     aliases = details["aliases"]
     string_delimiter = details.get("string_delimiter")
     element_types = details["element_types"]
-    default_value_str = json.dumps(details["default_value"], cls=EntityEncoder)
+    default_value_str = json.dumps(details["default_value"])
 
     if details["parameter_type"] == "primitive":
         builder.append(
@@ -307,11 +307,16 @@ def parameter_description_builder(name, context=None, plugins=False):
     builder.append("")
     builder = ["# " + line for line in builder]
 
-    builder.extend(
-        yaml_round_trip_dump({f"{name_prefix}{name}": json.loads(default_value_str)})
-        .strip()
-        .split("\n")
-    )
+    # If we are dealing with a plugin parameter, we need to nest it
+    # instead of having it at the top level (YAML-wise).
+    if plugins:
+        yaml_content = yaml_round_trip_dump(
+            {"plugins": {name: json.loads(default_value_str)}}
+        )
+    else:
+        yaml_content = yaml_round_trip_dump({name: json.loads(default_value_str)})
+
+    builder.extend(yaml_content.strip().split("\n"))
 
     builder = ["# " + line for line in builder]
     builder.append("")
@@ -394,6 +399,8 @@ def _key_exists(key: str, warnings: list[str], context=None) -> bool:
         return True
 
     if first not in context.list_parameters():
+        if context.name_for_alias(first):
+            return True
         if context.json:
             warnings.append(f"Unknown key: {key!r}")
         else:
@@ -419,6 +426,10 @@ def _get_key(
     if not _key_exists(key, warnings, context):
         return
 
+    if alias := context.name_for_alias(key):
+        key = alias
+        key_parts = alias.split(".")
+
     sub_config = config
     try:
         for part in key_parts:
@@ -440,6 +451,10 @@ def _set_key(key: str, item: Any, config: dict) -> None:
         from ..exceptions import CondaKeyError
 
         raise CondaKeyError(key, "unknown parameter")
+
+    if aliased := context.name_for_alias(key):
+        log.warning("Key %s is an alias of %s; setting value with latter", key, aliased)
+        key = aliased
 
     first, *rest = key.split(".")
 
@@ -523,9 +538,15 @@ def _remove_key(key: str, config: dict) -> None:
             sub_config = sub_config[part]
         del sub_config[key_parts[-1]]
     except KeyError:
-        # KeyError: part not found, nothing to remove
+        # KeyError: part not found, nothing to remove, but maybe user passed an alias?
+        from ..base.context import context
         from ..exceptions import CondaKeyError
 
+        if alias := context.name_for_alias(key):
+            try:
+                return _remove_key(alias, config)
+            except CondaKeyError:
+                pass  # raise with originally passed key
         raise CondaKeyError(key, "undefined in config")
 
 
@@ -540,6 +561,8 @@ def _read_rc(path: str | os.PathLike | Path) -> dict:
 
 
 def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
+    from ruamel.yaml.representer import RoundTripRepresenter
+
     from .. import CondaError
     from ..base.constants import (
         ChannelPriority,
@@ -549,7 +572,7 @@ def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
         SatSolverChoice,
         UpdateModifier,
     )
-    from ..common.serialize import yaml, yaml_round_trip_dump
+    from ..common.serialize import yaml_round_trip_dump
 
     # Add representers for enums.
     # Because a representer cannot be added for the base Enum class (it must be added for
@@ -558,24 +581,12 @@ def _write_rc(path: str | os.PathLike | Path, config: dict) -> None:
     def enum_representer(dumper, data):
         return dumper.represent_str(str(data))
 
-    yaml.representer.RoundTripRepresenter.add_representer(
-        SafetyChecks, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        PathConflict, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        DepsModifier, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        UpdateModifier, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        ChannelPriority, enum_representer
-    )
-    yaml.representer.RoundTripRepresenter.add_representer(
-        SatSolverChoice, enum_representer
-    )
+    RoundTripRepresenter.add_representer(SafetyChecks, enum_representer)
+    RoundTripRepresenter.add_representer(PathConflict, enum_representer)
+    RoundTripRepresenter.add_representer(DepsModifier, enum_representer)
+    RoundTripRepresenter.add_representer(UpdateModifier, enum_representer)
+    RoundTripRepresenter.add_representer(ChannelPriority, enum_representer)
+    RoundTripRepresenter.add_representer(SatSolverChoice, enum_representer)
 
     try:
         Path(path).write_text(yaml_round_trip_dump(config))
@@ -595,7 +606,7 @@ def _validate_provided_parameters(
     from ..common.io import dashlist
     from ..exceptions import ArgumentError
 
-    all_names = context.list_parameters()
+    all_names = context.list_parameters(aliases=True)
     all_plugin_names = context.plugins.list_parameters()
 
     not_params = set(parameters) - set(all_names)
@@ -618,17 +629,21 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike | Path) -> None:
 
 def execute_config(args, parser):
     from .. import CondaError
-    from ..auxlib.entity import EntityEncoder
     from ..base.context import (
-        _warn_defaults_deprecation,
         context,
         sys_rc_path,
         user_rc_path,
     )
     from ..common.io import timeout
     from ..common.iterators import groupby_to_dict as groupby
-    from ..common.serialize import yaml_round_trip_load
+    from ..common.serialize import json, yaml_round_trip_load
     from ..core.prefix_data import PrefixData
+
+    # Override context for --file operations with --show/--describe
+    if args.file and (args.show is not None or args.describe is not None):
+        from ..base.context import Context
+
+        context = Context(search_path=(args.file,), argparse_args=args)
 
     stdout_write = getLogger("conda.stdout").info
     stderr_write = getLogger("conda.stderr").info
@@ -644,9 +659,6 @@ def execute_config(args, parser):
                         for source, values in context.collect_all().items()
                     },
                     sort_keys=True,
-                    indent=2,
-                    separators=(",", ": "),
-                    cls=EntityEncoder,
                 )
             )
         else:
@@ -671,6 +683,11 @@ def execute_config(args, parser):
 
             _validate_provided_parameters(
                 provided_parameters, provided_plugin_parameters, context
+            )
+            provided_parameters = tuple(
+                dict.fromkeys(
+                    context.name_for_alias(name) or name for name in provided_parameters
+                )
             )
 
         else:
@@ -697,15 +714,7 @@ def execute_config(args, parser):
             del d["plugins"]
 
         if context.json:
-            stdout_write(
-                json.dumps(
-                    d,
-                    sort_keys=True,
-                    indent=2,
-                    separators=(",", ": "),
-                    cls=EntityEncoder,
-                )
-            )
+            stdout_write(json.dumps(d, sort_keys=True))
         else:
             # Add in custom formatting
             if "custom_channels" in d:
@@ -745,6 +754,11 @@ def execute_config(args, parser):
             _validate_provided_parameters(
                 provided_parameters, provided_plugin_parameters, context
             )
+            provided_parameters = tuple(
+                dict.fromkeys(
+                    context.name_for_alias(name) or name for name in provided_parameters
+                )
+            )
 
             if context.json:
                 json_descriptions = [
@@ -757,9 +771,6 @@ def execute_config(args, parser):
                     json.dumps(
                         json_descriptions,
                         sort_keys=True,
-                        indent=2,
-                        separators=(",", ": "),
-                        cls=EntityEncoder,
                     )
                 )
             else:
@@ -796,9 +807,6 @@ def execute_config(args, parser):
                             for name in provided_parameters
                         ],
                         sort_keys=True,
-                        indent=2,
-                        separators=(",", ": "),
-                        cls=EntityEncoder,
                     )
                 )
             else:
@@ -814,7 +822,7 @@ def execute_config(args, parser):
         rc_path = sys_rc_path
     elif args.env:
         if context.active_prefix:
-            rc_path = join(context.active_prefix, ".condarc")
+            rc_path = join(context.active_prefix, DEFAULT_CONDARC_FILENAME)
         else:
             rc_path = user_rc_path
     elif args.file:
@@ -822,7 +830,7 @@ def execute_config(args, parser):
     elif args.prefix or args.name:
         prefix_data = PrefixData.from_context()
         prefix_data.assert_environment()
-        rc_path = str(prefix_data.prefix_path / ".condarc")
+        rc_path = str(prefix_data.prefix_path / DEFAULT_CONDARC_FILENAME)
     else:
         rc_path = user_rc_path
 
@@ -894,15 +902,6 @@ def execute_config(args, parser):
         for key, item in arg:
             key, subkey = key.split(".", 1) if "." in key else (key, None)
 
-            channels_is_unpopulated = key == "channels" and key not in rc_config
-
-            if channels_is_unpopulated:
-                # don't warn if users are literally trying to remove the warning
-                # by explicitly adding the defaults channel to the channels list
-                if item != DEFAULTS_CHANNEL_NAME:
-                    _warn_defaults_deprecation()
-                rc_config[key] = [DEFAULTS_CHANNEL_NAME]
-
             if key in sequence_parameters:
                 arglist = rc_config.setdefault(key, [])
             elif key == "plugins" and subkey in plugin_sequence_parameters:
@@ -923,9 +922,6 @@ def execute_config(args, parser):
                 raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
 
             if item in arglist:
-                # don't warn if users are literally trying to remove the warning
-                if channels_is_unpopulated and item == DEFAULTS_CHANNEL_NAME:
-                    continue
                 message_key = key + "." + subkey if subkey is not None else key
                 # Right now, all list keys should not contain duplicates
                 location = "top" if prepend else "bottom"

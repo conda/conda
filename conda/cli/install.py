@@ -17,20 +17,15 @@ from pathlib import Path
 
 from boltons.setutils import IndexedSet
 
-from .. import CondaError
 from ..base.constants import (
     REPODATA_FN,
-    ROOT_ENV_NAME,
+    RESERVED_ENV_NAMES,
     UpdateModifier,
 )
 from ..base.context import context
+from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..common.constants import NULL
-from ..common.path import is_package_file
-from ..core.index import (
-    _supplement_index_with_prefix,
-    calculate_channel_urls,
-    get_index,
-)
+from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
@@ -41,6 +36,7 @@ from ..exceptions import (
     CondaImportError,
     CondaIndexError,
     CondaSystemExit,
+    CondaUpdatePackageError,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DryRunExit,
@@ -53,7 +49,13 @@ from ..exceptions import (
 )
 from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
-from ..misc import _get_best_prec_match, clone_env, explicit
+from ..misc import (
+    _get_best_prec_match,
+    clone_env,
+    install_explicit_packages,
+)
+from ..models.channel import all_channel_urls
+from ..models.environment import Environment
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
@@ -109,7 +111,7 @@ def check_prefix(prefix: str, json=False):
         )
     name = basename(prefix)
     error = None
-    if name == ROOT_ENV_NAME:
+    if name in RESERVED_ENV_NAMES:
         error = f"'{name}' is a reserved environment name"
     if exists(prefix):
         if isdir(prefix) and "conda-meta" not in tuple(
@@ -225,17 +227,11 @@ class TryRepodata:
         ):
             return True
         elif isinstance(exc_value, ResolvePackageNotFound):
-            # transform a ResolvePackageNotFound into PackagesNotFoundError
-            channels_urls = tuple(
-                calculate_channel_urls(
-                    channel_urls=self.index_args["channel_urls"],
-                    prepend=self.index_args["prepend"],
-                    platform=None,
-                    use_local=self.index_args["use_local"],
-                )
-            )
             # convert the ResolvePackageNotFound into PackagesNotFoundError
-            raise PackagesNotFoundError(exc_value._formatted_chains, channels_urls)
+            raise PackagesNotFoundError(
+                exc_value._formatted_chains,
+                all_channel_urls(context.channels),
+            )
 
 
 class Repodatas:
@@ -309,89 +305,18 @@ def ensure_update_specs_exist(prefix: str, specs: list[str]):
     for spec in specs:
         spec = MatchSpec(spec)
         if not spec.is_name_only_spec:
-            raise CondaError(
-                f"Invalid spec for 'conda update': {spec}\nUse 'conda install' instead."
-            )
+            raise CondaUpdatePackageError(spec)
         if not prefix_data.get(spec.name, None):
             raise PackageNotInstalledError(prefix, spec.name)
 
 
-def install_clone(args, parser):
-    """Executes an install of a new conda environment by cloning."""
-    prefix = context.target_prefix
-    index_args = get_index_args(args)
-
-    # common validations for all types of installs
-    validate_install_command(prefix=prefix, command="create")
-
-    clone(
-        args.clone,
-        prefix,
-        json=context.json,
-        quiet=context.quiet,
-        index_args=index_args,
-    )
-
-
 def install(args, parser, command="install"):
-    """Logic for `conda install`, `conda update`, `conda remove`, and `conda create`."""
-    prefix = context.target_prefix
-
-    # common validations for all types of installs
-    validate_install_command(prefix=prefix, command=command)
-
-    if context.use_only_tar_bz2:
-        args.repodata_fns = ("repodata.json",)
-
+    """Logic for `conda install`, `conda update`, and `conda create`."""
     newenv = command == "create"
     isupdate = command == "update"
     isinstall = command == "install"
-    isremove = command == "remove"
 
-    # collect packages provided from the command line
-    args_packages = [s.strip("\"'") for s in args.packages]
-    if newenv and not args.no_default_packages:
-        # Override defaults if they are specified at the command line
-        names = [MatchSpec(pkg).name for pkg in args_packages]
-        for default_package in context.create_default_packages:
-            if MatchSpec(default_package).name not in names:
-                args_packages.append(default_package)
-
-    index_args = get_index_args(args=args)
-    context_channels = context.channels
-
-    num_cp = sum(is_package_file(s) for s in args_packages)
-    if num_cp:
-        if num_cp == len(args_packages):
-            # short circuit to installing explicit if all specs are direct files
-            explicit(args_packages, prefix, verbose=not context.quiet)
-            return
-        else:
-            raise CondaValueError(
-                "cannot mix specifications with conda package filenames"
-            )
-
-    # collect specs provided by --file arguments
-    specs = []
-    if args.file:
-        for fpath in args.file:
-            try:
-                specs.extend(common.specs_from_url(fpath, json=context.json))
-            except UnicodeError:
-                raise CondaError(
-                    "Error reading file, file should be a text file containing"
-                    " packages \nconda create --help for details"
-                )
-        if "@EXPLICIT" in specs:
-            # short circuit to installing explicit if explicit specs are provided
-            explicit(specs, prefix, verbose=not context.quiet)
-            return
-    specs.extend(common.specs_from_args(args_packages, json=context.json))
-
-    # for 'conda update', make sure the requested specs actually exist in the prefix
-    # and that they are name-only specs
-    if isupdate and context.update_modifier != UpdateModifier.UPDATE_ALL:
-        ensure_update_specs_exist(prefix=prefix, specs=specs)
+    # fail early if using a deprecated option
     if newenv and args.clone:
         deprecated.topic(
             "25.9",
@@ -401,25 +326,52 @@ def install(args, parser, command="install"):
         )
         return install_clone(args, parser)
 
+    prefix = context.target_prefix
+    index_args = get_index_args(args=args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, command=command)
+
+    if context.use_only_tar_bz2:
+        args.repodata_fns = ("repodata.json",)
+
+    env = Environment.from_cli(
+        args=args,
+        add_default_packages=command == "create" and not args.no_default_packages,
+    )
+
+    # for 'conda update' make sure:
+    # 1) there are no explicit_packages specified
+    # 2) the requested specs actually exist in the prefix
+    #    and that they are name-only specs
+    if isupdate:
+        if env.explicit_packages:
+            raise CondaUpdatePackageError(env.explicit_packages)
+        if env.config.update_modifier != UpdateModifier.UPDATE_ALL:
+            ensure_update_specs_exist(prefix=env.prefix, specs=env.requested_packages)
+
+    # install explicit specs
+    if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
+        return install_explicit_packages(env.explicit_packages, env.prefix)
+
     repodata_fns = args.repodata_fns
     if not repodata_fns:
-        repodata_fns = list(context.repodata_fns)
+        repodata_fns = list(env.config.repodata_fns)
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
-    args_set_update_modifier = getattr(args, "update_modifier", NULL) != NULL
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
     _should_retry_unfrozen = (
-        not args_set_update_modifier
-        or args.update_modifier
+        getattr(args, "update_modifier", NULL)
         not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
     ) and not newenv
 
-    update_modifier = context.update_modifier
-    if (isinstall or isremove) and args.update_modifier == NULL:
+    if isinstall and args.update_modifier == NULL:
         update_modifier = UpdateModifier.FREEZE_INSTALLED
-    deps_modifier = context.deps_modifier
+    else:
+        update_modifier = env.config.update_modifier
+    deps_modifier = env.config.deps_modifier
 
     for repodata_fn in Repodatas(
         repodata_fns,
@@ -430,9 +382,9 @@ def install(args, parser, command="install"):
             solver_backend = context.plugin_manager.get_cached_solver_backend()
             solver = solver_backend(
                 prefix,
-                context_channels,
+                env.config.channels,
                 context.subdirs,
-                specs_to_add=specs,
+                specs_to_add=env.requested_packages,
                 repodata_fn=repodata,
                 command=args.cmd,
             )
@@ -467,6 +419,23 @@ def install(args, parser, command="install"):
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
 
+def install_clone(args, parser):
+    """Executes an install of a new conda environment by cloning."""
+    prefix = context.target_prefix
+    index_args = get_index_args(args)
+
+    # common validations for all types of installs
+    validate_install_command(prefix=prefix, command="create")
+
+    clone(
+        args.clone,
+        prefix,
+        json=context.json,
+        quiet=context.quiet,
+        index_args=index_args,
+    )
+
+
 def install_revision(args, parser):
     """Install a previous version of a conda environment"""
     prefix = context.target_prefix
@@ -493,13 +462,16 @@ def install_revision(args, parser):
     for repodata_fn in Repodatas(repodata_fns, index_args):
         with repodata_fn as repodata:
             with get_spinner(f"Collecting package metadata ({repodata})"):
-                index = get_index(
-                    channel_urls=index_args["channel_urls"],
+                index = Index(
+                    channels=index_args["channel_urls"],
                     prepend=index_args["prepend"],  # --override-channels
                     platform=None,
-                    use_local=index_args["use_local"],  # --use-local
+                    # these options were commented out in the version of this
+                    # code bit that used the now-deprecated `get_index` function
+                    # we have left them here so that this information is not lost
                     # use_cache=index_args["use_cache"],  # --use-index-cache
                     # unknown=index_args["unknown"],  # --unknown
+                    use_local=index_args["use_local"],
                     prefix=prefix,
                     repodata_fn=repodata,
                 )
@@ -510,7 +482,7 @@ def install_revision(args, parser):
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
 
 
-def revert_actions(prefix, revision=-1, index=None):
+def revert_actions(prefix, revision=-1, index: Index | None = None):
     # TODO: If revision raise a revision error, should always go back to a safe revision
     h = History(prefix)
     # TODO: need a History method to get user-requested specs for revision number
@@ -526,7 +498,8 @@ def revert_actions(prefix, revision=-1, index=None):
     except IndexError:
         raise CondaIndexError("no such revision: %d" % revision)
 
-    _supplement_index_with_prefix(index, prefix)
+    if index is not None:
+        index.reload(prefix=True)
 
     not_found_in_index_specs = set()
     link_precs = set()
@@ -587,7 +560,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
         if context.subdir != context._native_subdir():
             set_keys(
                 ("subdir", context.subdir),
-                path=Path(prefix, ".condarc"),
+                path=Path(prefix, DEFAULT_CONDARC_FILENAME),
             )
 
     if context.json:

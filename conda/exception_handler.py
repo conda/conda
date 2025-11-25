@@ -13,8 +13,9 @@ from typing import TYPE_CHECKING
 from .common.compat import ensure_text_type, on_win
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import TracebackType
-    from typing import Any, Callable, TypeVar
+    from typing import Any, TypeVar
 
     T = TypeVar("T")
 
@@ -317,9 +318,8 @@ class ExceptionHandler:
 
     def _execute_upload(self, error_report: dict[str, Any]) -> None:
         import getpass
-        import json
 
-        from .auxlib.entity import EntityEncoder
+        from .common.serialize import json
 
         headers = {
             "User-Agent": self.user_agent,
@@ -330,7 +330,7 @@ class ExceptionHandler:
             True if all(ord(c) < 128 for c in username) else False
         )
         error_report["has_spaces"] = True if " " in str(username) else False
-        data = json.dumps(error_report, sort_keys=True, cls=EntityEncoder) + "\n"
+        data = json.dumps(error_report, sort_keys=True) + "\n"
         data = data.replace(str(username), "USERNAME_REMOVED")
         response = None
         try:

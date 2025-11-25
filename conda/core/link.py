@@ -47,6 +47,7 @@ from ..exceptions import (
     LinkError,
     RemoveError,
     SharedLinkPathClobberError,
+    SpecNotFoundInPackageCache,
     UnknownPackageClobberError,
     maybe_raise,
 )
@@ -78,10 +79,7 @@ from .path_actions import (
     UnregisterEnvironmentLocationAction,
     UpdateHistoryAction,
 )
-from .prefix_data import (
-    PrefixData,
-    python_record_for_prefix,
-)
+from .prefix_data import PrefixData
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
@@ -329,7 +327,8 @@ class UnlinkLinkTransaction:
         if not self._prepared:
             self.prepare()
 
-        assert not context.dry_run
+        if context.dry_run:
+            raise RuntimeError("Cannot execute .verify() with dry-run enabled.")
 
         if context.safety_checks == SafetyChecks.disabled:
             self._verified = True
@@ -382,7 +381,9 @@ class UnlinkLinkTransaction:
         if not self._verified:
             self.verify()
 
-        assert not context.dry_run
+        if context.dry_run:
+            raise RuntimeError("Cannot run .execute() with dry-run enabled.")
+
         try:
             # innermost dict.values() is an iterable of PrefixActions
             # instances; zip() is an iterable of each PrefixActions
@@ -440,7 +441,8 @@ class UnlinkLinkTransaction:
         pkg_cache_recs_to_link = tuple(
             PackageCacheData.get_entry_to_link(prec) for prec in link_precs
         )
-        assert all(pkg_cache_recs_to_link)
+        if not all(pkg_cache_recs_to_link):
+            raise SpecNotFoundInPackageCache("Some records cannot be found in cache.")
         packages_info_to_link = tuple(
             read_package_info(prec, pcrec)
             for prec, pcrec in zip(link_precs, pkg_cache_recs_to_link)
@@ -1166,7 +1168,8 @@ class UnlinkLinkTransaction:
         """
 
         def version_and_sp(python_record) -> tuple[str | None, str | None]:
-            assert python_record.version
+            if not python_record.version:
+                raise ValueError("Python record version is required.")
             python_version = get_major_minor_version(python_record.version)
             python_site_packages = python_record.python_site_packages_path
             if python_site_packages is None:
@@ -1187,7 +1190,7 @@ class UnlinkLinkTransaction:
             python_record = linking_new_python.repodata_record
             log.debug(f"found in current transaction python: {python_record}")
             return version_and_sp(python_record)
-        python_record = python_record_for_prefix(target_prefix)
+        python_record = PrefixData(target_prefix).get("python", None)
         if python_record:
             unlinking_python = next(
                 (

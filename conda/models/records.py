@@ -183,7 +183,8 @@ class FilenameField(StringField):
                     raise AttributeError()
             except AttributeError:
                 fn = f"{instance.name}-{instance.version}-{instance.build}"
-            assert fn
+            if not fn:
+                raise ValueError("Filename cannot be empty.")
             return self.unbox(instance, instance_type, fn)
 
 
@@ -475,6 +476,16 @@ class PackageRecord(DictSafeMixin, Entity):
     @property
     def namekey(self):
         return "global:" + self.name
+
+    @property
+    def spec(self):
+        """Return package spec: name=version=build"""
+        return f"{self.name}={self.version}={self.build}"
+
+    @property
+    def spec_no_build(self):
+        """Return package spec without build: name=version"""
+        return f"{self.name}={self.version}"
 
     def record_id(self):
         # WARNING: This is right now only used in link.py _change_report_str(). It is not

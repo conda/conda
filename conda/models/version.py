@@ -349,7 +349,8 @@ def treeify(spec_str):
     """
     # Converts a VersionSpec expression string into a tuple-based
     # expression tree.
-    assert isinstance(spec_str, str)
+    if not isinstance(spec_str, str):
+        raise TypeError("`spec_str` must be a string.")
     tokens = re.findall(VSPEC_TOKENS, f"({spec_str})")
     output = []
     stack = []
@@ -613,13 +614,19 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
         return vspec_str, matcher, is_exact
 
     def merge(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f"Can only combine objects of the same type. Received {type(other)}."
+            )
         if self.raw_value == other.raw_value:
             return self
         return self.__class__(",".join(sorted((self.raw_value, other.raw_value))))
 
     def union(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f"Can only combine objects of the same type. Received {type(other)}."
+            )
         options = {self.raw_value, other.raw_value}
         # important: we only return a string here because the parens get gobbled otherwise
         #    this info is for visual display only, not for feeding into actual matches

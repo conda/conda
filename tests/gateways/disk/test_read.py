@@ -7,8 +7,8 @@ from pprint import pprint
 
 from conda.common.compat import on_win
 from conda.common.path import get_python_site_packages_short_path
-from conda.common.serialize import json_dump, json_load
-from conda.gateways.disk.read import read_python_record
+from conda.common.serialize import json
+from conda.plugins.prefix_data_loaders.pypi.pkg_format import read_python_record
 
 ENV_METADATA_DIR = Path(__file__).parent.parent.parent / "data" / "env_metadata"
 
@@ -18,10 +18,10 @@ def test_scrapy_py36_osx_whl():
     prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     files = dumped_rec.pop("files")
     paths_data = dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,
@@ -46,8 +46,8 @@ def test_scrapy_py36_osx_whl():
         "subdir": "pypi",
         "version": "1.5.1",
     }
-    print(json_dump(files))
-    print(json_dump(paths_data["paths"]))
+    print(json.dumps(files))
+    print(json.dumps(paths_data["paths"]))
     sp_dir = get_python_site_packages_short_path("3.6")
     assert sp_dir + "/scrapy/core/scraper.py" in files
     assert sp_dir + "/scrapy/core/__pycache__/scraper.cpython-36.pyc" in files
@@ -81,10 +81,10 @@ def test_twilio_py36_osx_whl():
     pprint(prefix_rec.depends)
     pprint(prefix_rec.constrains)
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     files = dumped_rec.pop("files")
     paths_data = dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,
@@ -104,8 +104,8 @@ def test_twilio_py36_osx_whl():
         "subdir": "pypi",
         "version": "6.16.1",
     }
-    print(json_dump(files))
-    print(json_dump(paths_data["paths"]))
+    print(json.dumps(files))
+    print(json.dumps(paths_data["paths"]))
     sp_dir = get_python_site_packages_short_path("3.6")
     assert sp_dir + "/twilio/compat.py" in files
     assert sp_dir + "/twilio/__pycache__/compat.cpython-36.pyc" in files
@@ -130,10 +130,10 @@ def test_pyjwt_py36_osx_whl():
     prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     files = dumped_rec.pop("files")
     paths_data = dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,
@@ -146,8 +146,8 @@ def test_pyjwt_py36_osx_whl():
         "subdir": "pypi",
         "version": "1.6.4",
     }
-    print(json_dump(files))
-    print(json_dump(paths_data["paths"]))
+    print(json.dumps(files))
+    print(json.dumps(paths_data["paths"]))
     sp_dir = get_python_site_packages_short_path("3.6")
     assert ("../bin/pyjwt" if on_win else "bin/pyjwt") in files
     assert sp_dir + "/jwt/__pycache__/__init__.cpython-36.pyc" in files
@@ -172,10 +172,10 @@ def test_cherrypy_py36_osx_whl():
     prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     dumped_rec.pop("files")
     dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     constrains = dumped_rec.pop("constrains")
     depends = dumped_rec.pop("depends")
     assert dumped_rec == {
@@ -221,10 +221,10 @@ def test_scrapy_py27_osx_no_binary():
     prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     files = dumped_rec.pop("files")
     paths_data = dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,
@@ -249,8 +249,8 @@ def test_scrapy_py27_osx_no_binary():
         "subdir": "pypi",
         "version": "1.5.1",
     }
-    print(json_dump(files))
-    print(json_dump(paths_data["paths"]))
+    print(json.dumps(files))
+    print(json.dumps(paths_data["paths"]))
     sp_dir = get_python_site_packages_short_path("2.7")
     assert sp_dir + "/scrapy/contrib/downloadermiddleware/decompression.py" in files
     assert sp_dir + "/scrapy/downloadermiddlewares/decompression.pyc" in files
@@ -279,10 +279,10 @@ def test_twilio_py27_osx_no_binary():
     pprint(prefix_rec.depends)
     pprint(prefix_rec.constrains)
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     files = dumped_rec.pop("files")
     paths_data = dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,
@@ -295,8 +295,8 @@ def test_twilio_py27_osx_no_binary():
         "subdir": "pypi",
         "version": "6.16.1",
     }
-    print(json_dump(files))
-    print(json_dump(paths_data["paths"]))
+    print(json.dumps(files))
+    print(json.dumps(paths_data["paths"]))
     sp_dir = get_python_site_packages_short_path("2.7")
     assert sp_dir + "/twilio/compat.py" in files
     assert sp_dir + "/twilio/compat.pyc" in files
@@ -311,10 +311,10 @@ def test_pyjwt_py27_osx_no_binary():
     prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     files = dumped_rec.pop("files")
     paths_data = dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,
@@ -327,8 +327,8 @@ def test_pyjwt_py27_osx_no_binary():
         "subdir": "pypi",
         "version": "1.6.4",
     }
-    print(json_dump(files))
-    print(json_dump(paths_data["paths"]))
+    print(json.dumps(files))
+    print(json.dumps(paths_data["paths"]))
     sp_dir = get_python_site_packages_short_path("2.7")
     assert ("../bin/pyjwt" if on_win else "bin/pyjwt") in files
     assert sp_dir + "/jwt/__init__.pyc" in files
@@ -343,10 +343,10 @@ def test_cherrypy_py27_osx_no_binary():
     prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     dumped_rec.pop("files")
     dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     constrains = dumped_rec.pop("constrains")
     depends = dumped_rec.pop("depends")
     assert dumped_rec == {
@@ -390,10 +390,10 @@ def test_six_py27_osx_no_binary_unmanageable():
     prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
-    dumped_rec = json_load(json_dump(prefix_rec.dump()))
+    dumped_rec = json.loads(json.dumps(prefix_rec.dump()))
     files = dumped_rec.pop("files")
     dumped_rec.pop("paths_data")
-    print(json_dump(dumped_rec))
+    print(json.dumps(dumped_rec))
     assert dumped_rec == {
         "build": "pypi_0",
         "build_number": 0,

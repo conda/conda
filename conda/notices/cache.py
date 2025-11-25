@@ -9,7 +9,6 @@ Handles all caching logic including:
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from datetime import datetime, timezone
@@ -19,7 +18,13 @@ from typing import TYPE_CHECKING
 
 from platformdirs import user_cache_dir
 
-from ..base.constants import APP_NAME, NOTICES_CACHE_FN, NOTICES_CACHE_SUBDIR
+from ..base.constants import (
+    APP_NAME,
+    NOTICES_CACHE_FN,
+    NOTICES_CACHE_SUBDIR,
+    NOTICES_DECORATOR_DISPLAY_INTERVAL,
+)
+from ..common.serialize import json
 from ..utils import ensure_dir_exists
 from .types import ChannelNoticeResponse
 
@@ -81,13 +86,25 @@ def get_notices_cache_dir() -> Path:
 
 
 def get_notices_cache_file() -> Path:
-    """Returns the location of the notices cache file as a Path object"""
+    """
+    Return path of notices cache
+
+    If the file does not exist, we create it with natural filesystem timestamps,
+    then set only the modification time to be in the past. This ensures notices
+    are checked and displayed immediately rather than waiting for the full
+    display interval.
+    """
     cache_dir = get_notices_cache_dir()
     cache_file = cache_dir.joinpath(NOTICES_CACHE_FN)
 
     if not cache_file.is_file():
         with open(cache_file, "w") as fp:
             fp.write("")
+
+        # Keep natural access time, set only mtime to past for immediate notice display
+        stat = cache_file.stat()
+        past_mtime = stat.st_mtime - NOTICES_DECORATOR_DISPLAY_INTERVAL
+        os.utime(cache_file, (stat.st_atime, past_mtime))
 
     return cache_file
 
@@ -148,3 +165,14 @@ def get_viewed_channel_notice_ids(
     contents_unique = set(filter(None, set(contents.splitlines())))
 
     return notice_ids.intersection(contents_unique)
+
+
+def clear_cache() -> None:
+    """
+    Removes all files in notices cache
+    """
+    cache_dir = Path(get_notices_cache_dir())
+
+    for cache_file in cache_dir.iterdir():
+        if cache_file.is_file():
+            cache_file.unlink()

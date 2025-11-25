@@ -1,0 +1,4 @@
+name: nlp
+channels:
+  - anaconda
+dependencies:

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add "environment consistency" health check to `conda doctor`. (#14715 via #14799)
+* Defer `PrefixData` record instantiation until they are accessed for faster query performance. (#14811)
 
 ### Bug fixes
 

@@ -10,7 +10,7 @@ import pytest
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import PackagesNotFoundError
+from conda.exceptions import CondaValueError, PackagesNotFoundError
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from pytest import MonkeyPatch
 
-    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
 
 
 def test_install_freezes_env_by_default(
@@ -51,7 +51,10 @@ def test_install_freezes_env_by_default(
 
 
 def test_conda_pip_interop_dependency_satisfied_by_pip(
-    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    pip_cli: PipCLIFixture,
 ):
     monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
@@ -59,12 +62,8 @@ def test_conda_pip_interop_dependency_satisfied_by_pip(
     with tmp_env("python=3.10", "pip") as prefix:
         assert package_is_installed(prefix, "python=3.10")
         assert package_is_installed(prefix, "pip")
-        conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            "--dev",
-            *("python", "-m", "pip", "install", "itsdangerous"),
-        )
+        stdout, stderr, code = pip_cli("install", "itsdangerous", prefix=prefix)
+        assert code == 0, f"pip install failed: {stderr}"
 
         PrefixData._cache_.clear()
         output, error, _ = conda_cli("list", f"--prefix={prefix}")
@@ -136,3 +135,18 @@ def test_build_version_shows_as_changed(
         assert "The following packages will be UPDATED" in out
         assert "The following packages will be REVISED" in out
         assert "The following packages will be DOWNGRADED" not in out
+
+
+def test_too_many_arguments(
+    conda_cli: CondaCLIFixture,
+):
+    with pytest.raises(CondaValueError) as excinfo:
+        conda_cli(
+            "install",
+            "--revision",
+            "0",
+            "another_dependent",
+            "--freeze-installed",
+            "--yes",
+        )
+    assert "too many arguments" in excinfo.value.message

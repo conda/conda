@@ -5,7 +5,7 @@ dependencies:
   - Pillow==10.1.0
   - Sphinx<9
   - boltons>=23.0.0
-  - conda-sphinx-theme==0.2.3
+  - conda-sphinx-theme==0.3.0
   - frozendict>=2.4.2
   - linkify-it-py==2.0.2
   - myst-parser==2.0.0
@@ -28,7 +28,7 @@ dependencies:
   - sphinxcontrib-qthelp==1.0.6
   - sphinxcontrib-serializinghtml==1.1.9
   - tqdm>=4
-  - conda-libmamba-solver>=24.11.0
+  - conda-libmamba-solver>=25.4.0
   - pip>25
   - pip:
       - sphinxcontrib-plantuml==0.21
