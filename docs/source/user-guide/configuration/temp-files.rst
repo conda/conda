@@ -4,10 +4,6 @@ Configuring Temporary File Locations
 
 Conda creates various temporary files during its operations. You can control where these temporary files are stored using standard operating system environment variables.
 
-.. contents:: On this page
-   :local:
-   :depth: 2
-
 Why configure temporary file locations?
 ========================================
 
@@ -30,7 +26,7 @@ Conda respects the standard operating system environment variables for temporary
 
 If none of these environment variables are set, Python falls back to platform-specific default locations:
 
-* **Windows**: ``C:\TEMP``, ``C:\TMP``, ``\TEMP``, ``\TMP`` (in that order), then ``C:\Windows\Temp``
+* **Windows**: ``C:\TEMP``, ``C:\TMP``, ``\TEMP``, ``\TMP`` (in that order)
 * **Unix/Linux/macOS**: ``/tmp``, ``/var/tmp``, ``/usr/tmp`` (in that order)
 * **All platforms**: As a last resort, the current working directory
 
@@ -45,7 +41,7 @@ Setting temporary directories
    export TMPDIR=/path/to/writable/tmp
    mkdir -p $TMPDIR
 
-   # To make permanent, add to ~/.bashrc, ~/.bash_profile, or equivalent shell profile file
+   # To make permanent, add to ~/.bashrc or equivalent shell profile file
    echo 'export TMPDIR=/path/to/writable/tmp' >> ~/.bashrc
 
    # For a single command
@@ -67,43 +63,9 @@ Setting temporary directories
    # - Edit the system environment variables or
    # - Edit environment variables for your account
 
-Temporary files created by conda
-=================================
+**Container/Docker environments:**
 
-Conda creates temporary files in the following situations:
-
-Activation and execution scripts
----------------------------------
-
-* **conda activate**: Creates temporary shell scripts to set up the environment
-* **conda run**: Creates temporary wrapper scripts to execute commands in an environment
-
-These scripts are automatically cleaned up after use (unless ``CONDA_TEST_SAVE_TEMPS`` is set for debugging).
-
-Package installation
---------------------
-
-* **Pip integration**: Creates temporary ``requirements.txt`` files when installing pip dependencies from environment files
-* **Python compilation**: Creates temporary files when compiling ``.py`` files to ``.pyc`` bytecode
-
-System operations
------------------
-
-* **Windows Unicode handling**: Creates temporary batch files for directory operations with Unicode paths
-* **Windows elevated permissions**: Creates temporary JSON files when running with administrator privileges
-* **Package extraction**: Uses temporary directories when extracting package archives
-* **Repodata operations**: Creates temporary cache files during repository data updates
-
-.. note::
-   Package downloads and extracted package caches (in ``pkgs_dirs``) are **not** temporary files—they are persistent caches. To configure their location, see :doc:`custom-env-and-pkg-locations`.
-
-Examples
-========
-
-Container/Docker environments
------------------------------
-
-When running conda in a container where the default ``/tmp`` might be small or read-only:
+In your ``Dockerfile`` or ``docker-compose.yml``:
 
 .. code-block:: dockerfile
 
@@ -112,30 +74,6 @@ When running conda in a container where the default ``/tmp`` might be small or r
    # Set temporary directory to a writable location with more space
    ENV TMPDIR=/opt/conda/tmp
    RUN mkdir -p /opt/conda/tmp
-
-HPC/shared computing
---------------------
-
-On HPC systems, you might want to use scratch space:
-
-.. code-block:: bash
-
-   # In your job script or ~/.bashrc
-   export TMPDIR=$SCRATCH/tmp
-   mkdir -p $TMPDIR
-
-Limited disk space
-------------------
-
-If your home directory has limited space but you have access to another volume:
-
-.. code-block:: bash
-
-   # Create temporary directory on larger volume
-   mkdir -p /mnt/large-volume/tmp
-
-   # Set for all future sessions
-   echo 'export TMPDIR=/mnt/large-volume/tmp' >> ~/.bashrc
 
 Verifying temporary directory location
 =======================================
