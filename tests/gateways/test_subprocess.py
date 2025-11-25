@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 import signal
-import sys
 import threading
 import time
 from textwrap import dedent
@@ -97,10 +96,9 @@ def test_subprocess_call_with_capture_output():
 
 def test_subprocess_call_forwards_interrupt_signals():
     """Test that interrupt signals are forwarded to subprocess groups."""
-    ON_WINDOWS = sys.platform == "win32"
-    script = (
-        _SIGNAL_HANDLER_SCRIPT_WINDOWS if ON_WINDOWS else _SIGNAL_HANDLER_SCRIPT_UNIX
-    )
+    from conda.common.compat import on_win
+
+    script = _SIGNAL_HANDLER_SCRIPT_WINDOWS if on_win else _SIGNAL_HANDLER_SCRIPT_UNIX
 
     def run_subprocess_and_signal():
         from subprocess import CalledProcessError
@@ -133,7 +131,7 @@ def test_subprocess_call_forwards_interrupt_signals():
 
     if ACTIVE_SUBPROCESSES:
         proc = list(ACTIVE_SUBPROCESSES)[0]
-        if ON_WINDOWS:
+        if on_win:
             os.kill(proc.pid, signal.CTRL_BREAK_EVENT)  # type: ignore
         else:
             os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
