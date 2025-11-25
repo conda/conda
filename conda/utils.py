@@ -203,6 +203,7 @@ def wrap_subprocess_call(
     arguments: Sequence[str],
     use_system_tmp_path=False,
 ):
+    arguments = tuple(map(str, arguments))
     if not use_system_tmp_path:
         tmp_prefix = abspath(join(prefix, ".tmp"))
     else:
