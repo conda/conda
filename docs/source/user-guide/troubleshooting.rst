@@ -331,6 +331,84 @@ If the repository is signed by a private certificate authority (CA), the file ne
 the root certificate and any intermediate certificates.
 
 
+.. _temp-file-errors:
+
+Temporary file errors during conda operations
+==============================================
+
+Conda creates temporary files during various operations including environment activation, package installation, and running commands. These errors typically occur when the temporary directory is read-only, has insufficient space, or has permission issues.
+
+.. seealso::
+   For a complete guide on configuring temporary file locations and understanding which temporary files conda creates, see :doc:`configuration/temp-files`.
+
+Common error messages
+---------------------
+
+You may see errors like:
+
+.. code-block::
+
+   PermissionError: [Errno 13] Permission denied: '/tmp/...'
+   OSError: [Errno 30] Read-only file system: '/tmp/...'
+   OSError: [Errno 28] No space left on device: '/tmp/...'
+
+Cause
+-----
+
+* The default temporary directory (``/tmp`` on Unix/Linux/macOS or ``C:\Windows\Temp`` on Windows) is read-only
+* Insufficient disk space in the temporary directory
+* Restrictive permissions on the temporary directory
+* Running in containers or HPC environments with limited or read-only temporary directories
+
+Solution
+--------
+
+Configure conda to use a different temporary directory by setting the appropriate environment variable:
+
+**Unix/Linux/macOS:**
+
+.. code-block:: bash
+
+   # For current session
+   export TMPDIR=/path/to/writable/tmp
+   mkdir -p $TMPDIR
+
+   # To make permanent, add to ~/.bashrc, ~/.bash_profile, or equivalent shell profile file
+   echo 'export TMPDIR=/path/to/writable/tmp' >> ~/.bashrc
+
+**Windows:**
+
+.. code-block:: bat
+
+   # For current session (Command Prompt)
+   set TEMP=C:\path\to\writable\tmp
+   md %TEMP%
+
+   # For current session (PowerShell)
+   $env:TEMP = "C:\path\to\writable\tmp"
+   New-Item -ItemType Directory -Path $env:TEMP -Force
+
+   # To make permanent, add to Environment Variables in Control Panel
+
+**Container/Docker environments:**
+
+In your Dockerfile or docker-compose.yml:
+
+.. code-block:: dockerfile
+
+   ENV TMPDIR=/opt/conda/tmp
+   RUN mkdir -p /opt/conda/tmp
+
+**Verification:**
+
+To verify where conda will create temporary files:
+
+.. code-block:: bash
+
+   conda info
+
+For more details on configuring temporary file locations, see :doc:`configuration/temp-files`.
+
 .. _permission-denied:
 
 Permission denied errors during installation
