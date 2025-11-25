@@ -22,96 +22,50 @@ You may need to configure temporary file locations when:
 Environment variables
 =====================
 
-Conda respects the standard operating system environment variables for temporary file locations. Python's ``tempfile`` module, which conda uses internally, automatically checks these variables in order of preference:
-
-Unix/Linux/macOS
-----------------
-
-The following variables are checked in order:
+Conda respects the standard operating system environment variables for temporary file locations. Python's ``tempfile`` `module <https://docs.python.org/3/library/tempfile.html#tempfile.gettempdir>`_, which conda uses internally, checks these variables in the following order on **all platforms**:
 
 1. ``TMPDIR``
 2. ``TEMP``
 3. ``TMP``
 
-If none are set, the system falls back to these locations (in order):
+If none of these environment variables are set, Python falls back to platform-specific default locations:
 
-* ``/tmp``
-* ``/var/tmp``
-* ``/usr/tmp``
-
-Windows
--------
-
-The following variables are checked in order:
-
-1. ``TEMP``
-2. ``TMP``
-3. ``TMP_DIR``
-
-If none are set, the system falls back to:
-
-* ``C:\Windows\Temp``
+* **Windows**: ``C:\TEMP``, ``C:\TMP``, ``\TEMP``, ``\TMP`` (in that order), then ``C:\Windows\Temp``
+* **Unix/Linux/macOS**: ``/tmp``, ``/var/tmp``, ``/usr/tmp`` (in that order)
+* **All platforms**: As a last resort, the current working directory
 
 Setting temporary directories
 ==============================
 
-Unix/Linux/macOS
-----------------
-
-**For the current session:**
+**Unix/Linux/macOS:**
 
 .. code-block:: bash
 
-   export TMPDIR=/path/to/custom/tmp
+   # For current session
+   export TMPDIR=/path/to/writable/tmp
+   mkdir -p $TMPDIR
 
-**Permanently (in your shell profile):**
+   # To make permanent, add to ~/.bashrc, ~/.bash_profile, or equivalent shell profile file
+   echo 'export TMPDIR=/path/to/writable/tmp' >> ~/.bashrc
 
-Add to ``~/.bashrc``, ``~/.bash_profile``, or ``~/.zshrc``:
+   # For a single command
+   TMPDIR=/path/to/writable/tmp conda install package_name
 
-.. code-block:: bash
-
-   export TMPDIR=/path/to/custom/tmp
-
-**For a single conda command:**
-
-.. code-block:: bash
-
-   TMPDIR=/path/to/custom/tmp conda install package_name
-
-Windows (Command Prompt)
--------------------------
-
-**For the current session:**
+**Windows:**
 
 .. code-block:: bat
 
-   set TEMP=C:\path\to\custom\tmp
-   set TMP=C:\path\to\custom\tmp
+   # For current session (Command Prompt)
+   set TEMP=C:\path\to\writable\tmp
+   md %TEMP%
 
-**Permanently:**
+   # For current session (PowerShell)
+   $env:TEMP = "C:\path\to\writable\tmp"
+   New-Item -ItemType Directory -Path $env:TEMP -Force
 
-Use the System Properties dialog:
-
-1. Open Control Panel → System → Advanced system settings
-2. Click "Environment Variables"
-3. Set ``TEMP`` and ``TMP`` to your desired location
-
-Windows (PowerShell)
---------------------
-
-**For the current session:**
-
-.. code-block:: powershell
-
-   $env:TEMP = "C:\path\to\custom\tmp"
-   $env:TMP = "C:\path\to\custom\tmp"
-
-**Permanently:**
-
-.. code-block:: powershell
-
-   [System.Environment]::SetEnvironmentVariable('TEMP', 'C:\path\to\custom\tmp', 'User')
-   [System.Environment]::SetEnvironmentVariable('TMP', 'C:\path\to\custom\tmp', 'User')
+   # To make permanent, use the System Properties dialog:
+   # - Edit the system environment variables or
+   # - Edit environment variables for your account
 
 Temporary files created by conda
 =================================

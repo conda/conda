@@ -355,10 +355,13 @@ You may see errors like:
 Cause
 -----
 
-* The default temporary directory (``/tmp`` on Unix/Linux/macOS or ``C:\Windows\Temp`` on Windows) is read-only
+* The default temporary directory is read-only (typically ``/tmp`` on Unix/Linux/macOS or ``C:\Windows\Temp`` on Windows)
 * Insufficient disk space in the temporary directory
 * Restrictive permissions on the temporary directory
 * Running in containers or HPC environments with limited or read-only temporary directories
+
+.. note::
+   Python checks for temporary directories using the ``TMPDIR``, ``TEMP``, and ``TMP`` environment variables (in that order) on all platforms. See the Python ``tempfile`` `module documentation <https://docs.python.org/3/library/tempfile.html#tempfile.gettempdir>`_ for details.
 
 Solution
 --------
@@ -388,7 +391,9 @@ Configure conda to use a different temporary directory by setting the appropriat
    $env:TEMP = "C:\path\to\writable\tmp"
    New-Item -ItemType Directory -Path $env:TEMP -Force
 
-   # To make permanent, add to Environment Variables in Control Panel
+   # To make permanent, use the System Properties dialog:
+   # - Edit the system environment variables or
+   # - Edit environment variables for your account
 
 **Container/Docker environments:**
 
