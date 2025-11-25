@@ -203,11 +203,17 @@ def wrap_subprocess_call(
     arguments: Sequence[str],
     use_system_tmp_path=False,
 ):
+    # Ensure arguments is a tuple of strings
+    if not isiterable(arguments):
+        raise TypeError("`arguments` must be iterable")
     arguments = tuple(map(str, arguments))
+
+    # Determine the temporary prefix
     if not use_system_tmp_path:
         tmp_prefix = abspath(join(prefix, ".tmp"))
     else:
         tmp_prefix = None
+
     script_caller = None
     multiline = False
     if len(arguments) == 1 and "\n" in arguments[0]:
