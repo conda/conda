@@ -6,57 +6,77 @@ Collection of helper functions to standardize reused CLI arguments.
 
 from __future__ import annotations
 
-from argparse import SUPPRESS, _HelpAction
+from argparse import (
+    SUPPRESS,
+    Action,
+    BooleanOptionalAction,
+    _HelpAction,
+    _StoreAction,
+    _StoreTrueAction,
+)
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
 
-try:
-    from argparse import BooleanOptionalAction
-except ImportError:
-    # Python < 3.9
-    from argparse import Action
 
-    class BooleanOptionalAction(Action):
-        # from Python 3.9+ argparse.py
-        def __init__(
-            self,
-            option_strings,
-            dest,
-            default=None,
-            type=None,
-            choices=None,
-            required=False,
-            help=None,
-            metavar=None,
-        ):
-            _option_strings = []
-            for option_string in option_strings:
-                _option_strings.append(option_string)
+class LazyChoicesAction(Action):
+    def __init__(self, option_strings, dest, choices_func, **kwargs):
+        self.choices_func = choices_func
+        self._cached_choices = None
+        super().__init__(option_strings, dest, **kwargs)
 
-                if option_string.startswith("--"):
-                    option_string = "--no-" + option_string[2:]
-                    _option_strings.append(option_string)
+    @property
+    def choices(self):
+        """Dynamically evaluate choices for help generation and validation."""
+        if self._cached_choices is None:
+            self._cached_choices = self.choices_func()
+        return self._cached_choices
 
-            super().__init__(
-                option_strings=_option_strings,
-                dest=dest,
-                nargs=0,
-                default=default,
-                type=type,
-                choices=choices,
-                required=required,
-                help=help,
-                metavar=metavar,
+    @choices.setter
+    def choices(self, value):
+        """Ignore attempts to set choices since we use choices_func."""
+        # argparse tries to set self.choices during __init__, but we ignore it
+        # since we dynamically generate choices via choices_func
+        pass
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        valid_choices = self.choices
+        if values not in valid_choices:
+            choices_string = ", ".join(f"'{val}'" for val in valid_choices)
+            # Use the same format as argparse for consistency
+            option_display = "/".join(self.option_strings)
+            parser.error(
+                f"argument {option_display}: invalid choice: {values!r} (choose from {choices_string})"
             )
+        setattr(namespace, self.dest, values)
 
-        def __call__(self, parser, namespace, values, option_string=None):
-            if option_string in self.option_strings:
-                setattr(namespace, self.dest, not option_string.startswith("--no-"))
 
-        def format_usage(self):
-            return " | ".join(self.option_strings)
+class _ValidatePackages(_StoreAction):
+    """
+    Used to validate match specs of packages
+    """
+
+    @staticmethod
+    def _validate_no_denylist_channels(packages_specs):
+        """
+        Ensure the packages do not contain denylist_channels
+        """
+        from ..base.context import validate_channels
+        from ..models.match_spec import MatchSpec
+
+        if not isinstance(packages_specs, (list, tuple)):
+            packages_specs = [packages_specs]
+
+        validate_channels(
+            channel
+            for spec in map(MatchSpec, packages_specs)
+            if (channel := spec.get_exact_value("channel"))
+        )
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        self._validate_no_denylist_channels(values)
+        super().__call__(parser, namespace, values, option_string)
 
 
 def add_parser_create_install_update(p, prefix_required=False):
@@ -84,6 +104,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
+        # "-f",  # FUTURE: 26.3: Enable this after deprecating alias in --force
         "--file",
         default=[],
         action="append",
@@ -93,7 +114,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     p.add_argument(
         "packages",
         metavar="package_spec",
-        action="store",
+        action=_ValidatePackages,
         nargs="*",
         help="List of packages to install or update in the conda environment.",
     )
@@ -147,21 +168,25 @@ def add_parser_prefix(
     npgroup = target_environment_group.add_mutually_exclusive_group(
         required=prefix_required
     )
-    npgroup.add_argument(
+    add_parser_prefix_to_group(npgroup)
+    return npgroup
+
+
+def add_parser_prefix_to_group(m: _MutuallyExclusiveGroup) -> None:
+    m.add_argument(
         "-n",
         "--name",
         action="store",
         help="Name of environment.",
         metavar="ENVIRONMENT",
     )
-    npgroup.add_argument(
+    m.add_argument(
         "-p",
         "--prefix",
         action="store",
         help="Full path to environment location (i.e. prefix).",
         metavar="PATH",
     )
-    return npgroup
 
 
 def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
@@ -175,6 +200,11 @@ def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
         action="store_true",
         default=NULL,
         help="Report all output as json. Suitable for using conda programmatically.",
+    )
+    output_and_prompt_options.add_argument(
+        "--console",
+        default=NULL,
+        help="Select the backend to use for normal output rendering.",
     )
     add_parser_verbose(output_and_prompt_options)
     output_and_prompt_options.add_argument(
@@ -206,6 +236,18 @@ def add_output_and_prompt_options(p: ArgumentParser) -> _ArgumentGroup:
         "Users will not be asked to confirm any adding, deleting, backups, etc.",
     )
     return output_and_prompt_options
+
+
+def add_parser_frozen_env(p: ArgumentParser):
+    from ..common.constants import NULL
+
+    p.add_argument(
+        "--override-frozen",
+        action="store_false",
+        default=NULL,
+        help="DANGEROUS. Use at your own risk. Ignore protections if the environment is frozen.",
+        dest="protect_frozen_envs",
+    )
 
 
 def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
@@ -414,7 +456,8 @@ def add_parser_solver(p: ArgumentParser) -> None:
     group.add_argument(
         "--solver",
         dest="solver",
-        choices=context.plugin_manager.get_solvers(),
+        action=LazyChoicesAction,
+        choices_func=context.plugin_manager.get_solvers,
         help="Choose which solver backend to use.",
         default=NULL,
     )
@@ -453,12 +496,24 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
+    from ..deprecations import deprecated
 
     package_install_options = p.add_argument_group(
         "Package Linking and Install-time Options"
     )
     package_install_options.add_argument(
         "-f",
+        dest="force",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            _StoreTrueAction,
+            addendum="Use `--force` instead.",
+        ),
+        default=NULL,
+        help=SUPPRESS,
+    )
+    package_install_options.add_argument(
         "--force",
         action="store_true",
         default=NULL,
@@ -556,3 +611,24 @@ def add_parser_verbose(parser: ArgumentParser | _ArgumentGroup) -> None:
         help=SUPPRESS,
         default=NULL,
     )
+
+
+def add_parser_environment_specifier(p: ArgumentParser) -> None:
+    from ..base.context import context
+    from ..common.constants import NULL
+
+    p.add_argument(
+        "--environment-specifier",
+        "--env-spec",  # for brevity
+        action=LazyChoicesAction,
+        choices_func=context.plugin_manager.get_environment_specifiers,
+        default=NULL,
+        help="(EXPERIMENTAL) Specify the environment specifier plugin to use.",
+    )
+
+
+def comma_separated_stripped(value: str) -> list[str]:
+    """
+    Custom type for argparse to handle comma-separated strings with stripping
+    """
+    return [item.strip() for item in value.split(",")]

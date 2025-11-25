@@ -20,13 +20,13 @@ class HealthCheckPlugin:
 
 
 @pytest.fixture()
-def plugin_manager_with_doctor_command(plugin_manager):
+def plugin_manager_with_doctor_command(plugin_manager_with_reporter_backends):
     """
     Registers the `conda doctor` subcommand
     """
-    plugin_manager.load_plugins(doctor)
+    plugin_manager_with_reporter_backends.load_plugins(doctor)
 
-    return plugin_manager
+    return plugin_manager_with_reporter_backends
 
 
 @pytest.fixture()

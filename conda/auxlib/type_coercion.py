@@ -1,14 +1,22 @@
 """Collection of functions to coerce conversion of types with an intelligent guess."""
+
+from __future__ import annotations
+
 from collections.abc import Mapping
+from enum import Enum
 from itertools import chain
 from re import IGNORECASE, compile
-
-from enum import Enum
+from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
-from .compat import isiterable
+from ..common.compat import isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
+
+if TYPE_CHECKING:
+    from typing import Callable, TypeVar
+
+    T = TypeVar("T")
 
 __all__ = ["boolify", "typify", "maybecall", "numberify"]
 
@@ -260,6 +268,5 @@ def typify_data_structure(value, type_hint=None):
     else:
         return typify(value, type_hint)
 
-
-def maybecall(value):
+def maybecall(value: Callable[[], T] | T) -> T:
     return value() if callable(value) else value

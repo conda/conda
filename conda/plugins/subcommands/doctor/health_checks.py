@@ -4,19 +4,25 @@
 
 from __future__ import annotations
 
-import json
 import os
 from logging import getLogger
 from pathlib import Path
 
 from requests.exceptions import RequestException
 
+from ....base.constants import PREFIX_PINNED_FILE
 from ....base.context import context
+from ....common.io import dashlist
+from ....common.serialize import json, yaml_safe_dump
 from ....core.envs_manager import get_user_environments_txt_file
+from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
 from ....gateways.connection.session import get_session
+from ....gateways.disk.lock import locking_supported
 from ....gateways.disk.read import compute_sum
-from ... import CondaHealthCheck, hookimpl
+from ....models.match_spec import MatchSpec
+from ... import hookimpl
+from ...types import CondaHealthCheck
 
 logger = getLogger(__name__)
 
@@ -94,6 +100,9 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
 
         for path in paths:
             _path = path.get("_path")
+            if excluded_files_check(_path):
+                continue
+
             old_sha256 = path.get("sha256_in_prefix")
             if _path is None or old_sha256 is None:
                 continue
@@ -175,6 +184,121 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
             )
 
 
+def consistent_env_check(prefix: str, verbose: bool) -> None:
+    # get the plugin manager from context
+    pm = context.plugin_manager
+
+    # get prefix data
+    pd = PrefixData(prefix)
+
+    # get virtual packages record
+    virtual_packages = {
+        record.name: record for record in pm.get_virtual_package_records()
+    }
+
+    # collect missing dependency issues in a list
+    issues = {}
+
+    # check if dependencies are present
+    for record in pd.iter_records():
+        for dependency in record.depends:
+            match_spec = MatchSpec(dependency)
+            dependency_record = pd.get(
+                match_spec.name, default=virtual_packages.get(match_spec.name, None)
+            )
+            if dependency_record is None:
+                issues.setdefault(record.name, {}).setdefault("missing", []).append(
+                    str(match_spec)
+                )
+            elif not match_spec.match(dependency_record):
+                inconsistent = {
+                    "expected": str(match_spec),
+                    "installed": str(dependency_record),
+                }
+                issues.setdefault(record.name, {}).setdefault(
+                    "inconsistent", []
+                ).append(inconsistent)
+
+        for constrain in record.constrains:
+            package_found = pd.get(
+                MatchSpec(constrain).name,
+                default=virtual_packages.get(MatchSpec(constrain).name, None),
+            )
+            if package_found is not None:
+                if not MatchSpec(constrain).match(package_found):
+                    inconsistent_constrain = {
+                        "expected": str(MatchSpec(constrain)),
+                        "installed": f"{package_found.name}[version='{package_found.version}']",
+                    }
+                    issues.setdefault(record.name, {}).setdefault(
+                        "inconsistent", []
+                    ).append(inconsistent_constrain)
+
+    if issues:
+        print(f"{X_MARK} The environment is not consistent.\n")
+        if verbose:
+            print(yaml_safe_dump(issues))
+    else:
+        print(f"{OK_MARK} The environment is consistent.\n")
+
+
+def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
+    prefix_data = PrefixData(prefix_path=prefix)
+
+    try:
+        pinned_specs = prefix_data.get_pinned_specs()
+    except OSError as err:
+        print(
+            f"{X_MARK} Unable to open pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
+        )
+    except Exception as err:
+        print(
+            f"{X_MARK} An error occurred trying to read pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
+        )
+        return
+
+    # If there are no pinned specs, exit early
+    if not pinned_specs:
+        print(
+            f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}."
+        )
+        return
+
+    # If there is a pinned package that does not exist in the prefix, that
+    # is an indication that it might be a typo.
+    maybe_malformed = [
+        pinned for pinned in pinned_specs if not any(prefix_data.query(pinned.name))
+    ]
+
+    # Inform the user of any packages that might be malformed
+    if maybe_malformed:
+        print(
+            f"{X_MARK} The following specs in {prefix_data.prefix_path / PREFIX_PINNED_FILE} are maybe malformed:"
+        )
+        print(dashlist((spec.name for spec in maybe_malformed), indent=4))
+        return
+
+    # If there are no malformed packages, the pinned file is well formatted
+    print(
+        f"{OK_MARK} The pinned file in {prefix_data.prefix_path / PREFIX_PINNED_FILE} seems well formatted."
+    )
+
+
+def file_locking_check(prefix: str, verbose: bool):
+    """
+    Report if file locking is supported or not.
+    """
+    if locking_supported():
+        if context.no_lock:
+            print(
+                f"{X_MARK} File locking is supported but currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+            )
+        else:
+            print(f"{OK_MARK} File locking is supported.\n")
+    else:
+        print(f"{X_MARK} File locking is not supported.\n")
+
+
 @hookimpl
 def conda_health_checks():
     yield CondaHealthCheck(name="Missing Files", action=missing_files)
@@ -182,4 +306,15 @@ def conda_health_checks():
     yield CondaHealthCheck(name="Environment.txt File Check", action=env_txt_check)
     yield CondaHealthCheck(
         name="REQUESTS_CA_BUNDLE Check", action=requests_ca_bundle_check
+    )
+    yield CondaHealthCheck(
+        name="Consistent Environment Check", action=consistent_env_check
+    )
+    yield CondaHealthCheck(
+        name=f"{PREFIX_PINNED_FILE} Well Formatted Check",
+        action=pinned_well_formatted_check,
+    )
+    yield CondaHealthCheck(
+        name="File Locking Supported Check",
+        action=file_locking_check,
     )

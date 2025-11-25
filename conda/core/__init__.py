@@ -9,7 +9,6 @@ and return values.
 
 Conda modules importable from ``conda.core`` are
 
-- ``conda._vendor``
 - ``conda.common``
 - ``conda.core``
 - ``conda.models``

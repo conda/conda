@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING, NamedTuple
 from ..base.constants import NoticeLevel
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
-    from typing import Sequence
 
 #: Value to use for message ID when it is not provided
 UNDEFINED_MESSAGE_ID = "undefined"

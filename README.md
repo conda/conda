@@ -5,6 +5,7 @@
 [release-badge]: https://img.shields.io/github/v/release/conda/conda?logo=github
 [anaconda-badge]: https://img.shields.io/conda/vn/anaconda/conda?logo=anaconda
 [conda-forge-badge]: https://img.shields.io/conda/vn/conda-forge/conda?logo=conda-forge
+[calver-badge]: https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg
 [gitpod]: https://gitpod.io/button/open-in-gitpod.svg
 
 [![Conda Logo][conda-logo]](https://github.com/conda/conda)
@@ -12,6 +13,7 @@
 [![GitHub Scheduled Tests][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml?query=branch%3Amain+event%3Aschedule)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
 [![CodSpeed Performance Benchmarks][codspeed-badge]](https://codspeed.io/conda/conda)
+[![CalVer Versioning][calver-badge]](https://calver.org)
 <br>
 [![GitHub Release][release-badge]](https://github.com/conda/conda/releases)
 [![Anaconda Package][anaconda-badge]](https://anaconda.org/anaconda/conda)
@@ -41,7 +43,7 @@ Conda is also included in the [Anaconda Distribution](https://repo.anaconda.com)
 To update `conda` to the newest version, use the following command:
 
 ```
-$ conda update -n base conda
+$ conda update --name base conda
 ```
 
 > [!TIP]
@@ -53,7 +55,7 @@ $ conda update -n base conda
 > `conda 22.11.1` needs to be installed first:
 >
 > ```
-> $ conda install -n base conda=22.11.1
+> $ conda install --name base conda=22.11.1
 > $ conda update conda
 > ```
 
@@ -147,15 +149,12 @@ to add).
 ## Getting Help
 
 - [Documentation](https://docs.conda.io/projects/conda/en/latest)
-- [Twitter](https://twitter.com/condaproject)
-- [Slack](https://conda.slack.com)
+- [Zulip chat](https://conda.zulipchat.com/)
+- [Bluesky](https://bsky.app/profile/conda.org)
 - [Bug Reports/Feature Requests](https://github.com/conda/conda/issues)
 - [Installer/Package Issues](https://github.com/ContinuumIO/anaconda-issues/issues)
-- [Discourse](https://conda.discourse.group/)
 
 ## Contributing
-
-[![open in gitpod for one-click development][gitpod]](https://gitpod.io/#https://github.com/conda/conda)
 
 Contributions to conda are welcome. See the [contributing](CONTRIBUTING.md) documentation
 for instructions on setting up a development environment.

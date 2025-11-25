@@ -3,6 +3,7 @@
 import pytest
 
 from conda import plugins
+from conda.plugins.reporter_backends import plugins as reporter_backends_plugins
 from conda.plugins.types import CondaPostCommand
 
 
@@ -25,6 +26,7 @@ def post_command_plugin(mocker, plugin_manager):
 
     post_command_plugin = PostCommandPlugin()
     plugin_manager.register(post_command_plugin)
+    plugin_manager.load_plugins(*reporter_backends_plugins)
 
     return post_command_plugin
 

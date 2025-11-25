@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from argparse import ArgumentParser, _StoreTrueAction
+from argparse import ArgumentParser, _StoreAction, _StoreTrueAction
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
@@ -141,9 +141,16 @@ def test_action(
             "--foo",
             action=deprecated.action("2.0", "3.0", _StoreTrueAction),
         )
+        parser.add_argument(
+            "bar",
+            action=deprecated.action("2.0", "3.0", _StoreAction),
+        )
 
         with pytest.warns(warning, match=message):
-            parser.parse_args(["--foo"])
+            parser.parse_args(["--foo", "some_value"])
+
+        with pytest.warns(warning, match=message):
+            parser.parse_args(["bar"])
 
 
 @parametrize_dev

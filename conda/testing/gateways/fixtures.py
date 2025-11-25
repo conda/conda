@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of pytest fixtures used in conda.gateways tests."""
 
-import json
 import os
 import socket
 from pathlib import Path
@@ -10,6 +9,8 @@ from shutil import which
 
 import pytest
 from xprocess import ProcessStarter
+
+from ...common.serialize import json
 
 MINIO_EXE = which("minio")
 

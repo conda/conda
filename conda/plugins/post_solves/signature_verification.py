@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Register signature verification as a post-solve plugin."""
 
-from .. import CondaPostSolve, hookimpl
+from .. import hookimpl
+from ..types import CondaPostSolve
 
 
 @hookimpl
