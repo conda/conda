@@ -349,7 +349,7 @@ You may see errors like:
 Cause
 -----
 
-* The default temporary directory is read-only (typically ``/tmp`` on Unix/Linux/macOS or ``C:\Windows\Temp`` on Windows)
+* The default temporary directory is read-only
 * Insufficient disk space in the temporary directory
 * Restrictive permissions on the temporary directory
 * Running in containers or HPC environments with limited or read-only temporary directories
