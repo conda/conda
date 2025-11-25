@@ -715,7 +715,8 @@ def _parse_spec_str(spec_str):
         spec_str.strip()
 
     # Step 1.b save '; if ...' conditions
-    if condition := re.match(r"(.*)\s*;\s*if\s+(.*)\s*", spec_str):
+    # NOTE: Conditional specs are experimental and subject to changes in syntax
+    if condition := re.match(r"(.*?)\s*;\s*if\s+(.*)\s*", spec_str):
         spec_str = condition.group(1)
         condition = condition.group(2)
     else:
