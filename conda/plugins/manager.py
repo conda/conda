@@ -859,9 +859,6 @@ def get_pkg_extraction_function_from_plugin(source_full_path: str) -> Callable:
             if source_full_path.lower().endswith(ext.lower()):
                 return hook.pkg_extraction_function
 
-    if not extractor:
-        raise PluginError(
-            f"No registered 'supported extensions' plugin found for package: {source_full_path}"
+    raise PluginError(
+        f"No registered 'supported extensions' plugin found for package: {source_full_path}"
         )
-
-    return extractor
