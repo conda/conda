@@ -99,23 +99,27 @@ def test_get_index_no_platform_with_offline_cache(
     monkeypatch.setenv("CONDA_OFFLINE", "yes")
     monkeypatch.setenv("CONDA_PLATFORM", platform)
     reset_context()
+    SubdirData._cache_.clear()
 
     local_channel = Channel(join(CHANNEL_DIR_V1, platform))
-    sd = SubdirData(channel=local_channel)
-    assert len(sd.query_all("zlib", channels=[local_channel])) > 0
-    assert len(sd.query_all("zlib", channels=context.channels or ["defaults"])) == 0
+    offline_channels = [local_channel]
+    online_channels = context.channels or ["defaults"]
+    assert len(SubdirData.query_all("zlib", channels=offline_channels)) > 0
+    assert len(SubdirData.query_all("zlib", channels=online_channels)) == 0
 
     monkeypatch.delenv("CONDA_PLATFORM")
     monkeypatch.delenv("CONDA_OFFLINE")
     reset_context()
+    SubdirData._cache_.clear()
 
-    assert len(sd.query_all("zlib", channels=context.channels or ["defaults"])) > 1
+    assert len(SubdirData.query_all("zlib", channels=online_channels)) > 1
 
     # test load from cache
     monkeypatch.setenv("CONDA_USE_INDEX_CACHE", "true")
     reset_context()
+    SubdirData._cache_.clear()
 
-    sd.clear_cached_local_channel_data()
+    sd = SubdirData(channel=local_channel)
     sd._load()
 
 

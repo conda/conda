@@ -256,7 +256,7 @@ class Context(Configuration):
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
     prefix_data_interoperability = ParameterLoader(
-        PrimitiveParameter(False), aliases="pip_interop_enabled"
+        PrimitiveParameter(False), aliases=("pip_interop_enabled",)
     )
 
     @property
@@ -2213,7 +2213,8 @@ def locate_prefix_by_name(name: str, envs_dirs: PathsType | None = None) -> Path
     """Find the location of a prefix given a conda env name.  If the location does not exist, an
     error is raised.
     """
-    assert name
+    if not name:
+        raise ValueError("'name' cannot be empty.")
     if name in RESERVED_ENV_NAMES:
         return context.root_prefix
     if envs_dirs is None:

@@ -34,6 +34,7 @@ from ..exceptions import (
     EnvironmentFileTypeMismatchError,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
+    InvalidSpec,
     OperationNotAllowed,
 )
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -120,10 +121,12 @@ def spec_from_line(line: str) -> str:
         return name + cc.replace("=", " ")
     elif pc:
         if pc.startswith("~= "):
-            assert pc.count("~=") == 1, (
-                f"Overly complex 'Compatible release' spec not handled {line}"
-            )
-            assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
+            if pc.count("~=") > 1:
+                raise InvalidSpec(
+                    f"Overly complex 'Compatible release' spec not handled {line}."
+                )
+            if not pc.count("."):
+                raise InvalidSpec(f"No '.' in 'Compatible release' version {line}")
             ver = pc.replace("~= ", "")
             ver2 = ".".join(ver.split(".")[:-1]) + ".*"
             return name + " >=" + ver + ",==" + ver2

@@ -161,7 +161,7 @@ class NoarchType(Enum):
                 val = NoarchType.generic
             else:
                 try:
-                    val = NoarchType.generic if boolify(val) else None
+                    val = NoarchType.generic if boolify(val, nullable=True) else None
                 except TypeCoercionError:
                     raise CondaUpgradeError(
                         dals(

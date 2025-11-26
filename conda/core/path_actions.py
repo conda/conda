@@ -570,7 +570,9 @@ class PrefixReplaceLinkAction(LinkPathAction):
                 self.source_full_path,
             )
             # return
-            assert False, "I don't think this is the right place to ignore this"
+            raise RuntimeError(
+                f"Ignoring prefix update for symlink with source path {self.source_full_path}"
+            )
 
         mkdir_p(self.transaction_context["temp_dir"])
         self.intermediate_path = join(
@@ -1272,7 +1274,8 @@ class CacheUrlAction(PathAction):
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def verify(self):
-        assert "::" not in self.url
+        if "::" in self.url:
+            raise ValueError("URL cannot contain '::'")
         self._verified = True
 
     def execute(self, progress_update_callback=None):
@@ -1447,7 +1450,8 @@ class ExtractPackageAction(PathAction):
 
         if isinstance(self.record_or_spec, MatchSpec):
             url = self.record_or_spec.get_raw_value("url")
-            assert url
+            if not url:
+                raise ValueError("URL cannot be empty.")
             channel = (
                 Channel(url)
                 if has_platform(url, context.known_subdirs)
@@ -1456,8 +1460,10 @@ class ExtractPackageAction(PathAction):
             fn = basename(url)
             sha256 = self.sha256 or compute_sum(self.source_full_path, "sha256")
             size = getsize(self.source_full_path)
-            if self.size is not None:
-                assert size == self.size, (size, self.size)
+            if self.size is not None and size != self.size:
+                raise RuntimeError(
+                    f"Computed size ({size}) does not match expected value {self.size}"
+                )
             md5 = self.md5 or compute_sum(self.source_full_path, "md5")
             repodata_record = PackageRecord.from_objects(
                 raw_index_json,

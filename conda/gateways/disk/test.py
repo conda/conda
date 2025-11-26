@@ -43,11 +43,14 @@ def file_path_is_writable(path) -> bool:
 @cache
 def hardlink_supported(source_file, dest_dir):
     test_file = join(dest_dir, f".tmp.{basename(source_file)}.{str(uuid4())[:8]}")
-    assert isfile(source_file), source_file
-    assert isdir(dest_dir), dest_dir
+    if not isfile(source_file):
+        raise OSError(f"Path {source_file} is not a file")
+    if not isdir(dest_dir):
+        raise OSError(f"Path {dest_dir} is not a directory")
     if lexists(test_file):
         rm_rf(test_file)
-    assert not lexists(test_file), test_file
+    if lexists(test_file):
+        raise OSError(f"{test_file} should not exist anymore")
     try:
         # BeeGFS is a file system that does not support hard links between files in different
         # directories. Sometimes a soft link will be created with the hard link system call.
@@ -73,9 +76,12 @@ def softlink_supported(source_file, dest_dir):
     # optionally be enabled for non-admin users through explicit registry modification.
     log.log(TRACE, "checking soft link capability for %s => %s", source_file, dest_dir)
     test_path = join(dest_dir, ".tmp." + basename(source_file))
-    assert isfile(source_file), source_file
-    assert isdir(dest_dir), dest_dir
-    assert not lexists(test_path), test_path
+    if not isfile(source_file):
+        raise OSError(f"Path {source_file} is not a file")
+    if not isdir(dest_dir):
+        raise OSError(f"Path {dest_dir} is not a directory")
+    if lexists(test_path):
+        raise OSError(f"{test_path} should not exist")
     try:
         create_link(source_file, test_path, LinkType.softlink, force=True)
         return islink(test_path)

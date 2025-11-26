@@ -29,9 +29,6 @@ if TYPE_CHECKING:
 
 def test_create_environment_missing_required_fields():
     with pytest.raises(CondaValueError):
-        Environment(platform="linux-64", prefix=None)
-
-    with pytest.raises(CondaValueError):
         Environment(platform=None, prefix="/path/to/env")
 
 

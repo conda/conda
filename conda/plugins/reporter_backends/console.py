@@ -255,7 +255,8 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         """
         Implementation of a prompt dialog
         """
-        assert default in choices, default
+        if default not in choices:
+            raise ValueError(f"Default value '{default}' must be part of `choices`")
         options = []
 
         for option in choices:

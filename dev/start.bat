@@ -65,7 +65,7 @@
 @IF "%_INSTALLER_TYPE%"=="" @CALL :INSTALLER_TYPE_CONDARC
 
 :: prompt for installer type if not set
-@IF NOT "%_INSTALLER_TYPE%"=="" @GOTO SKIP_PROMPT
+@IF NOT "%_INSTALLER_TYPE%"=="" @GOTO :SKIP_PROMPT
 @ECHO Choose conda installer:
 @ECHO   1^) miniconda ^(default - Anaconda defaults channel^)
 @ECHO   2^) miniforge ^(conda-forge channel^)
@@ -95,19 +95,17 @@
 @IF "%_DRYRUN%"=="" @SET "_DRYRUN=1"
 
 :: validate installer type
-@IF "%_INSTALLER_TYPE%"=="miniconda" @GOTO INSTALLER_VALID
-@IF "%_INSTALLER_TYPE%"=="miniforge" @GOTO INSTALLER_VALID
+@IF "%_INSTALLER_TYPE%"=="miniconda" @GOTO :INSTALLER_VALID
+@IF "%_INSTALLER_TYPE%"=="miniforge" @GOTO :INSTALLER_VALID
 @ECHO Error: invalid installer type '%_INSTALLER_TYPE%'. Must be 'miniconda' or 'miniforge'. 1>&2
 @EXIT /B 1
 :INSTALLER_VALID
 
+:: installer location is root devenv directory
+@SET "_INSTALLER=%_DEVENV%\installers\Windows"
+
 :: devenv include OS
 @SET "_DEVENV=%_DEVENV%\Windows"
-:: devenv exists
-@IF %_DRYRUN%==1 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
-
-:: installer location
-@SET "_INSTALLER=%_DEVENV%"
 
 :: other environment variables
 @SET "_NAME=devenv-%_PYTHON%-%_INSTALLER_TYPE%"
@@ -119,36 +117,38 @@
 @SET "_CONDABAT=%_ENV%\condabin\conda.bat"
 @SET "_CONDAHOOK=%_ENV%\condabin\conda_hook.bat"
 
+:: set installer-specific values
+@IF "%_INSTALLER_TYPE%"=="miniconda" (
+    @SET "_INSTALLER_FILE=%_INSTALLER%\miniconda.exe"
+    @SET "_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+) ELSE IF "%_INSTALLER_TYPE%"=="miniforge" (
+    @SET "_INSTALLER_FILE=%_INSTALLER%\miniforge.exe"
+    @SET "_DOWNLOAD_URL=https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
+)
+
 :: dryrun printout
 @IF %_DRYRUN%==0 @GOTO :DRYRUN
 
+:: ensure installer and devenv directories exist
+@IF NOT EXIST "%_INSTALLER%" @MKDIR "%_INSTALLER%"
+@IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
+
 :: deactivate any prior envs
-@IF "%CONDA_SHLVL%"=="" @GOTO DEACTIVATED
-@IF %CONDA_SHLVL%==0 @GOTO DEACTIVATED
+@IF "%CONDA_SHLVL%"=="" @GOTO :DEACTIVATED
+@IF %CONDA_SHLVL%==0 @GOTO :DEACTIVATED
 @ECHO Deactivating %CONDA_SHLVL% environment(s)...
 :DEACTIVATING
-@IF "%CONDA_SHLVL%"=="0" @GOTO DEACTIVATED
+@IF "%CONDA_SHLVL%"=="0" @GOTO :DEACTIVATED
 @CALL conda deactivate
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to deactivate environment^(s^) 1>&2
     @EXIT /B 1
 )
-@GOTO DEACTIVATING
+@GOTO :DEACTIVATING
 :DEACTIVATED
 
 :: does conda install exist?
-@IF EXIST "%_DEVENV%\conda-meta\history" @GOTO INSTALLED
-
-:: set installer-specific values
-@IF "%_INSTALLER_TYPE%"=="miniconda" (
-    @SET "_INSTALLER_FILE=%_INSTALLER%\miniconda.exe"
-    @SET "_INSTALLER_DISPLAY=miniconda"
-    @SET "_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
-) ELSE IF "%_INSTALLER_TYPE%"=="miniforge" (
-    @SET "_INSTALLER_FILE=%_INSTALLER%\miniforge.exe"
-    @SET "_INSTALLER_DISPLAY=miniforge"
-    @SET "_DOWNLOAD_URL=https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
-)
+@IF EXIST "%_DEVENV%\conda-meta\history" @GOTO :INSTALLED
 
 :: Remove zero-byte installer files before download
 @IF EXIST "%_INSTALLER_FILE%" (
@@ -162,14 +162,14 @@
     )
 )
 
-@IF EXIST "%_INSTALLER_FILE%" @GOTO DOWNLOADED
-@ECHO Downloading %_INSTALLER_DISPLAY%...
+@IF EXIST "%_INSTALLER_FILE%" @GOTO :DOWNLOADED
+@ECHO Downloading %_INSTALLER_TYPE%...
 @powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%_DOWNLOAD_URL%' -OutFile '%_INSTALLER_FILE%' | Out-Null"
 @FOR %%F IN ("%_INSTALLER_FILE%") DO @IF NOT EXIST "%%F" (
-    @ECHO Error: failed to download %_INSTALLER_DISPLAY% (file missing) 1>&2
+    @ECHO Error: failed to download %_INSTALLER_TYPE% (file missing) 1>&2
     @EXIT /B 1
 ) ELSE IF %%~zF EQU 0 (
-    @ECHO Error: failed to download %_INSTALLER_DISPLAY% (file empty) 1>&2
+    @ECHO Error: failed to download %_INSTALLER_TYPE% (file empty) 1>&2
     @EXIT /B 1
 )
 :DOWNLOADED
@@ -187,7 +187,7 @@
 :INSTALLED
 
 :: create empty env if it doesn't exist
-@IF EXIST "%_ENV%" @GOTO ENVEXISTS
+@IF EXIST "%_ENV%" @GOTO :ENVEXISTS
 @ECHO Creating %_NAME%...
 
 @CALL :CONDA "%_BASEEXE%" create --yes --quiet "--prefix=%_ENV%" > NUL
@@ -199,7 +199,7 @@
 
 :: check if explicitly updating or if 24 hrs since last update
 @CALL :UPDATING
-@IF NOT %ErrorLevel%==0 @GOTO UPTODATE
+@IF NOT %ErrorLevel%==0 @GOTO :UP_TO_DATE
 @ECHO Updating %_NAME%...
 
 @CALL :CONDA "%_BASEEXE%" update --yes --quiet --all "--prefix=%_ENV%" > NUL
@@ -233,7 +233,7 @@
 :: update timestamp
 @IF EXIST "%_UPDATED%" @DEL "%_UPDATED%"
 @ECHO > "%_UPDATED%"
-:UPTODATE
+:UP_TO_DATE
 
 :: "install" conda
 :: trick conda into importing from our source code and not from site-packages
@@ -286,7 +286,6 @@
 @SET _ENV=
 @SET _ENVEXE=
 @SET _INSTALLER=
-@SET _INSTALLER_DISPLAY=
 @SET _INSTALLER_FILE=
 @SET _INSTALLER_INITIAL=
 @SET _INSTALLER_TYPE=
@@ -348,17 +347,21 @@
 :DRYRUN
 :: dry-run printout
 @ECHO Python: %_PYTHON%
-@ECHO Installer: %_INSTALLER_TYPE%
-@CALL :UPDATING
-@IF %ErrorLevel%==0 (
-    @ECHO Updating: [yes]
+@IF EXIST "%_INSTALLER_FILE%" (
+    @ECHO Installer [%_INSTALLER_TYPE%]: %_INSTALLER_FILE% [exists]
 ) ELSE (
-    @ECHO Updating: [no]
+    @ECHO Installer [%_INSTALLER_TYPE%]: %_INSTALLER_FILE% [pending]
 )
 @IF EXIST "%_DEVENV%" (
     @ECHO Devenv: %_DEVENV% [exists]
 ) ELSE (
     @ECHO Devenv: %_DEVENV% [pending]
+)
+@CALL :UPDATING
+@IF %ErrorLevel%==0 (
+    @ECHO Updating: [yes]
+) ELSE (
+    @ECHO Updating: [no]
 )
 @ECHO.
 @ECHO Name: %_NAME%

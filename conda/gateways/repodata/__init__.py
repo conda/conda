@@ -896,8 +896,7 @@ class RepodataFetch:
                         raw_repodata = "{}"
                     cache.save(raw_repodata)
                 else:  # pragma: no cover
-                    # it can be a dict?
-                    assert False, f"Unreachable {raw_repodata}"
+                    raise RuntimeError(f"Unreachable {raw_repodata}")
             except OSError as e:
                 if e.errno in (errno.EACCES, errno.EPERM, errno.EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)

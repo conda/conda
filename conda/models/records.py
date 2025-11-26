@@ -183,7 +183,8 @@ class FilenameField(StringField):
                     raise AttributeError()
             except AttributeError:
                 fn = f"{instance.name}-{instance.version}-{instance.build}"
-            assert fn
+            if not fn:
+                raise ValueError("Filename cannot be empty.")
             return self.unbox(instance, instance_type, fn)
 
 

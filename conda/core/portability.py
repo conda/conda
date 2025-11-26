@@ -233,7 +233,8 @@ def binary_replace(
         re.escape(search) + b"(?:(?!(?:" + zeros + b")).)*" + zeros, flags=re.DOTALL
     )
     data = pat.sub(replace, data)
-    assert len(data) == original_data_len
+    if len(data) != original_data_len:
+        raise RuntimeError("Replaced data has different length than original.")
 
     return data
 

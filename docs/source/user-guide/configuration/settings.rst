@@ -649,6 +649,38 @@ or specify it on the command line with the ``--console`` option
 
    conda info --console=colors
 
+.. _override-virtual-packages:
+
+``override_virtual_packages``: Set version or build variables for virtual packages
+----------------------------------------------------------------------------------
+
+.. note::
+   You can also use ``virtual_packages`` for this setting.
+
+The ``override_virtual_packages`` setting is a dictionary that allows you set
+specific version or build overrides for virtual package installs.
+
+Conda sets virtual package version and/or build numbers in three ways:
+
+1. By passing an enviroment variable with the ``conda install`` command (highest priority)
+
+   For example: ``CONDA_OVERRIDE_CUDA="12.0" conda install -c conda-forge tensorflow``
+
+1. The ``override_virtual_packages`` dictionary in the ``.condarc`` file
+
+1. The variables set up in the virtual package's code (lowest priority)
+
+For more information on virtual packages, see :ref:`Managing virtual packages <manage-virtual>`.
+
+Your ``override_virtual_packages`` dictionary could look like the following:
+
+.. code-block:: yaml
+
+    override_virtual_packages:
+      cuda: "12.8"
+      glbc: "2.17"
+      osx: "11.0"
+      archspec: "x86_64"
 
 Conda-build configuration
 =========================

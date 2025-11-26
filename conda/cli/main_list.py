@@ -179,6 +179,7 @@ def list_packages(
     show_channel_urls=None,
     reload_records=True,
     fields=None,
+    regex_is_full_name=False,
 ) -> tuple[int, list[str] | list[dict[str, Any]]]:
     from ..base.constants import (
         CONDA_LIST_FIELDS,
@@ -187,7 +188,7 @@ def list_packages(
     )
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..exceptions import CondaValueError
+    from ..exceptions import CondaValueError, PackageNotInstalledError
     from .common import disp_features
 
     exitcode = 0
@@ -195,7 +196,17 @@ def list_packages(
     prefix_data = PrefixData(prefix, interoperability=True)
     if reload_records:
         prefix_data.load()
-    installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
+    if regex:
+        if regex_is_full_name:
+            record = prefix_data.get(regex, None)
+            prefix_records = (record,) if record else ()
+        else:
+            prefix_records = sorted(
+                get_packages(prefix_data.iter_records(), regex),
+                key=lambda x: x.name,
+            )
+    else:
+        prefix_records = sorted(prefix_data.iter_records(), key=lambda x: x.name)
     show_channel_urls = show_channel_urls or context.show_channel_urls
     fields = fields or context.list_fields
     if invalid_fields := set(fields).difference(CONDA_LIST_FIELDS):
@@ -209,7 +220,7 @@ def list_packages(
         widths = [23, 15, 15, 1]
     else:
         widths = [len(title) for title in titles]
-    for prec in get_packages(installed, regex) if regex else installed:
+    for prec in prefix_records:
         if format == "canonical":
             packages.append(
                 prec.dist_fields_dump() if context.json else prec.dist_str()
@@ -246,6 +257,8 @@ def list_packages(
         packages.append(row)
 
     if regex and not packages:
+        if regex_is_full_name:
+            raise PackageNotInstalledError(prefix, regex)
         raise CondaValueError(f"No packages match '{regex}'.")
 
     if reverse:
@@ -275,6 +288,7 @@ def print_packages(
     json=False,
     show_channel_urls=None,
     fields=None,
+    regex_is_full_name=False,
 ) -> int:
     from ..base.context import context
     from .common import stdout_json
@@ -295,6 +309,7 @@ def print_packages(
         reverse=reverse,
         show_channel_urls=show_channel_urls,
         fields=fields,
+        regex_is_full_name=regex_is_full_name,
     )
     if context.json:
         stdout_json(output)
@@ -352,8 +367,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     regex = args.regex
-    if regex and args.full_name:
-        regex = rf"^{regex}$"
 
     if args.revisions:
         h = History(prefix)
@@ -390,4 +403,5 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         piplist=args.pip,
         json=context.json,
         show_channel_urls=context.show_channel_urls,
+        regex_is_full_name=args.full_name,
     )
