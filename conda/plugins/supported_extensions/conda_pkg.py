@@ -3,7 +3,7 @@
 
 """plugin for .tar.bz2"""
 
-from conda.cli.install import install
+from conda.gateways.disk.create import extract_tarball
 
 from ... import hookimpl
 from ..types import CondaSupportedExtensions
@@ -11,8 +11,10 @@ from ..types import CondaSupportedExtensions
 
 @hookimpl
 def conda_supported_extensions():
-    yield CondaSupportedExtensions(name="Tarball Packages Support", action=install)
+    yield CondaSupportedExtensions(
+        name="Conda Package", extensions=[".tar.bz2", ".conda"], action=extract_tarball
+    )
 
 
 # TODO
-# import the appropriate install function that would be passed as the "action" of the plugin
+# add a verification/parsing function also

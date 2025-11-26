@@ -37,6 +37,7 @@ from ..exceptions import (
     CondaVerificationError,
     NotWritableError,
     PaddingError,
+    PluginError,
     SafetyError,
 )
 from ..gateways.connection.download import download
@@ -46,7 +47,6 @@ from ..gateways.disk.create import (
     create_hard_link_or_copy,
     create_link,
     create_python_entry_point,
-    extract_tarball,
     make_menu,
     mkdir_p,
     write_as_json_to_file,
@@ -1430,7 +1430,25 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        extract_tarball(
+        # find the right extractor function from registered plugins
+        extractor = None
+        # This will raise `PluginError`` if plugin discovery fails.
+        hooks = context.plugin_manager.get_hook_results("supported_extensions")
+        for hook in hooks:
+            for ext in hook.extensions:
+                if self.source_full_path.lower().endswith(ext.lower()):
+                    extractor = getattr(hook, "action", None)
+                    break
+            if extractor:
+                break
+
+        if not extractor:
+            raise PluginError(
+                f"No registered 'supported extensions' plugin found for package: {self.source_full_path}"
+            )
+
+        # Call the extractor function
+        extractor(
             self.source_full_path,
             self.target_full_path,
             progress_update_callback=progress_update_callback,

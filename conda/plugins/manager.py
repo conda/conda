@@ -38,6 +38,7 @@ from . import (
     reporter_backends,
     solvers,
     subcommands,
+    supported_extensions,
     virtual_packages,
 )
 from .config import PluginConfig
@@ -842,6 +843,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *supported_extensions.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,

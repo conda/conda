@@ -37,6 +37,7 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
+        CondaSupportedExtensions,
         CondaVirtualPackage,
     )
 
@@ -732,5 +733,29 @@ class CondaSpecs:
                     default_filenames=("environment.toml",),
                     export=export_toml,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_supported_extensions(self) -> Iterable[CondaSupportedExtensions]:
+        """
+        Register supported package archive formats and their extraction handlers.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            @plugins.hookimpl
+            def conda_supported_extensions():
+                yield plugins.CondaSupportedExtensions(
+                    name="conda-package",
+                    extensions=(".tar.bz2", ".conda"),
+                    action=my_extract_function,
+                )
+
+        :return: An iterable of CondaSupportedExtensions entries.
         """
         yield from ()

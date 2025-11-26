@@ -598,10 +598,10 @@ class CondaSupportedExtensions(CondaPlugin):
     Return type to use when defining conda supported packages plugin hook.
 
     :param name: name of the supported extension
-    :extension: the extension (eg. `.conda`, `.whl`)
-    :install function:
+    :extensions: the extension (eg. `.conda`, `.whl`)
+    :pkg_extraction_function: the extraction function
     """
 
     name: str
-    extension: str
+    extensions: list[str]
     pkg_extraction_function: Callable
