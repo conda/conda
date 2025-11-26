@@ -101,7 +101,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if not args.executable_call:
         parser.print_help()
         raise ArgumentError(
-            "No command has been specified to run. Please provide a command after 'conda run'."
+            "No command specified. Please provide a command to run."
         )
 
     # create run script

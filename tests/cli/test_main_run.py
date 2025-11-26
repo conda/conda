@@ -125,5 +125,5 @@ def test_run_with_empty_command_will_raise(
 ):
     from conda.exceptions import ArgumentError
 
-    with pytest.raises(ArgumentError, match="No command has been specified to run"):
+    with pytest.raises(ArgumentError, match="No command specified"):
         conda_cli("run")
