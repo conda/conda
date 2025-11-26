@@ -13,6 +13,8 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from conda.plugins.manager import get_pkg_extraction_function_from_plugin
+
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
@@ -37,7 +39,6 @@ from ..exceptions import (
     CondaVerificationError,
     NotWritableError,
     PaddingError,
-    PluginError,
     SafetyError,
 )
 from ..gateways.connection.download import download
@@ -1431,21 +1432,7 @@ class ExtractPackageAction(PathAction):
             rm_rf(self.target_full_path)
 
         # find the right extractor function from registered plugins
-        extractor = None
-        # This will raise `PluginError`` if plugin discovery fails.
-        hooks = context.plugin_manager.get_hook_results("supported_extensions")
-        for hook in hooks:
-            for ext in hook.extensions:
-                if self.source_full_path.lower().endswith(ext.lower()):
-                    extractor = getattr(hook, "pkg_extraction_function", None)
-                    break
-            if extractor:
-                break
-
-        if not extractor:
-            raise PluginError(
-                f"No registered 'supported extensions' plugin found for package: {self.source_full_path}"
-            )
+        extractor = get_pkg_extraction_function_from_plugin(self.source_full_path)
 
         # Call the extractor function
         extractor(
