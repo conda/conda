@@ -857,10 +857,7 @@ def get_pkg_extraction_function_from_plugin(source_full_path: str) -> Callable:
     for hook in hooks:
         for ext in hook.extensions:
             if source_full_path.lower().endswith(ext.lower()):
-                extractor = getattr(hook, "pkg_extraction_function", None)
-                break
-            if extractor:
-                break
+                return hook.pkg_extraction_function
 
     if not extractor:
         raise PluginError(
