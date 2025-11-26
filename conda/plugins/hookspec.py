@@ -739,7 +739,7 @@ class CondaSpecs:
     @_hookspec
     def conda_supported_extensions(self) -> Iterable[CondaSupportedExtensions]:
         """
-        Register supported package archive formats and their extraction handlers.
+        Register supported package extensions and their extraction handlers.
 
         Example:
 
@@ -751,9 +751,9 @@ class CondaSpecs:
             @plugins.hookimpl
             def conda_supported_extensions():
                 yield plugins.CondaSupportedExtensions(
-                    name="conda-package",
-                    extensions=(".tar.bz2", ".conda"),
-                    action=my_extract_function,
+                    name="wheel-package",
+                    extensions=[".whl"],
+                    action=extract_whl_as_conda_pkg,
                 )
 
         :return: An iterable of CondaSupportedExtensions entries.

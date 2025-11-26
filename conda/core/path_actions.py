@@ -1437,7 +1437,7 @@ class ExtractPackageAction(PathAction):
         for hook in hooks:
             for ext in hook.extensions:
                 if self.source_full_path.lower().endswith(ext.lower()):
-                    extractor = getattr(hook, "action", None)
+                    extractor = getattr(hook, "pkg_extraction_function", None)
                     break
             if extractor:
                 break
