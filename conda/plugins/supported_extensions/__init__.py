@@ -1,10 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Supported package extensions plugins package.
-
-This package exposes a small `plugins` list so the plugin manager can
-discover the modules in this directory.
-"""
+"""Supported package extensions plugins package."""
 
 from . import conda_pkg
 
