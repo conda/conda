@@ -231,10 +231,7 @@ from conda.cli.condarc import ConfigurationFile
 custom_context = Context()
 
 # Use it with ConfigurationFile
-config = ConfigurationFile(
-    path="/path/to/config",
-    context=custom_context
-)
+config = ConfigurationFile(path="/path/to/config", context=custom_context)
 ```
 
 ### Warning Handlers
@@ -244,13 +241,12 @@ Customize how warnings are reported:
 ```python
 warnings = []
 
+
 def collect_warnings(msg):
     warnings.append(msg)
 
-config = ConfigurationFile(
-    path="/path/to/config",
-    warning_handler=collect_warnings
-)
+
+config = ConfigurationFile(path="/path/to/config", warning_handler=collect_warnings)
 
 config.add("channels", "defaults", prepend=False)
 # If "defaults" already exists, a warning is collected
