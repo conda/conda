@@ -190,19 +190,20 @@ def massage_arguments(arguments, errors="assert"):
     return arguments
 
 
+@deprecated.argument(
+    "26.9",
+    "27.3",
+    "use_system_tmp_path",
+    addendum="Use the TMPDIR, TEMP, or TMP environment variables to set the system temporary directory location.",
+)
 def wrap_subprocess_call(
     root_prefix,
     prefix,
     dev_mode,
     debug_wrapper_scripts,
     arguments,
-    use_system_tmp_path=False,
 ):
     arguments = massage_arguments(arguments)
-    if not use_system_tmp_path:
-        tmp_prefix = abspath(join(prefix, ".tmp"))
-    else:
-        tmp_prefix = None
     script_caller = None
     multiline = False
     if len(arguments) == 1 and "\n" in arguments[0]:
@@ -217,9 +218,7 @@ def wrap_subprocess_call(
             conda_bat = environ.get(
                 "CONDA_BAT", abspath(join(root_prefix, "condabin", "conda.bat"))
             )
-        with Utf8NamedTemporaryFile(
-            mode="w", prefix=tmp_prefix, suffix=".bat", delete=False
-        ) as fh:
+        with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as fh:
             silencer = "" if debug_wrapper_scripts else "@"
             fh.write(f"{silencer}ECHO OFF\n")
             fh.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
@@ -288,7 +287,7 @@ def wrap_subprocess_call(
             ]
             dev_arg = ""
             dev_args = []
-        with Utf8NamedTemporaryFile(mode="w", prefix=tmp_prefix, delete=False) as fh:
+        with Utf8NamedTemporaryFile(mode="w", delete=False) as fh:
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
 
