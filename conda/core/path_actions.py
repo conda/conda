@@ -13,6 +13,8 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from conda.plugins.manager import get_pkg_extraction_function_from_plugin
+
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
@@ -46,7 +48,6 @@ from ..gateways.disk.create import (
     create_hard_link_or_copy,
     create_link,
     create_python_entry_point,
-    extract_tarball,
     make_menu,
     mkdir_p,
     write_as_json_to_file,
@@ -1430,7 +1431,11 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        extract_tarball(
+        # find the right extractor function from registered plugins
+        extractor = get_pkg_extraction_function_from_plugin(self.source_full_path)
+
+        # Call the extractor function
+        extractor(
             self.source_full_path,
             self.target_full_path,
             progress_update_callback=progress_update_callback,
