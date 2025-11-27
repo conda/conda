@@ -810,8 +810,6 @@ class NoChannelsConfiguredError(CondaError):
 
               3. Create or modify your .condarc file to include channels.
 
-
-
             For more information, visit: https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html#channel-locations-channels
             and https://docs.conda.io/projects/conda/en/stable/user-guide/concepts/channels.html#specifying-channels-when-installing-packages
             """
