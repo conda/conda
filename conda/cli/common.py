@@ -290,7 +290,7 @@ def validate_subdir_config():
                 raise OperationNotAllowed(msg)
 
 
-def print_activate(env_name_or_prefix):  # pragma: no cover
+def print_activate(env_name_or_prefix):
     if not context.quiet and not context.json:
         if " " in env_name_or_prefix:
             env_name_or_prefix = f'"{env_name_or_prefix}"'
@@ -306,7 +306,7 @@ def print_activate(env_name_or_prefix):  # pragma: no cover
             #     $ conda deactivate
             """
         )
-        print(message)  # TODO: use logger
+        getLogger("conda.stdout").info(message)
 
 
 def validate_environment_files_consistency(files: list[str]) -> None:
