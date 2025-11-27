@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from conda.base.context import context
 from conda.models.channel import Channel
-from conda.models.enums import FileMode, PathType
+from conda.models.enums import FileMode, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathData, PathsData
 
@@ -28,12 +28,12 @@ def test_package_info():
         PathData(
             _path="test/path/1",
             file_mode=FileMode.text,
-            path_type=PathType.hardlink,
+            path_type=PathEnum.hardlink,
             prefix_placeholder="/opt/anaconda1anaconda2anaconda3",
         ),
-        PathData(_path="test/path/2", no_link=True, path_type=PathType.hardlink),
-        PathData(_path="test/path/3", path_type=PathType.softlink),
-        PathData(_path="menu/test.json", path_type=PathType.hardlink),
+        PathData(_path="test/path/2", no_link=True, path_type=PathEnum.hardlink),
+        PathData(_path="test/path/3", path_type=PathEnum.softlink),
+        PathData(_path="menu/test.json", path_type=PathEnum.hardlink),
     ]
     paths_data = PathsData(paths_version=0, paths=paths)
 
