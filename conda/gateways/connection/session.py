@@ -187,7 +187,11 @@ class CondaSession(Session, metaclass=CondaSessionType):
 
                 import truststore
 
-                ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                # not lazy enough
+                def ssl_context_factory():
+                    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
+                ssl_context = ssl_context_factory
             except ImportError:
                 raise CondaError(
                     "The `ssl_verify: truststore` setting is only supported on"
