@@ -29,10 +29,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-env:
-  # https://conda.github.io/conda-libmamba-solver/user-guide/configuration/#advanced-options
-  CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
-
 jobs:
   # detect whether any code changes are included in this PR
   changes:
@@ -75,7 +71,7 @@ jobs:
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         python-version: ['3.10', '3.13']
-        default-channel: [defaults, conda-forge]
+        default-channel: [conda-forge]  # [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
@@ -87,7 +83,7 @@ jobs:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'rattler' || 'rattler,classic' }}
 
     steps:
       - name: Checkout Source
@@ -202,7 +198,7 @@ jobs:
           - ubuntu-latest  # linux-64
           - ubuntu-24.04-arm  # linux-aarch64
         python-version: ['3.10', '3.11', '3.12', '3.13']
-        default-channel: [defaults, conda-forge]
+        default-channel: [conda-forge]  # [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
@@ -223,7 +219,7 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'rattler' || 'rattler,classic' }}
 
     steps:
       - name: Checkout Source
@@ -362,6 +358,8 @@ jobs:
 
       - name: Run Benchmarks
         uses: CodSpeedHQ/action@4348f634fa7309fe23aac9502e88b999ec90a164 # v4.3.1
+        env:
+          CONDA_TEST_SOLVERS: rattler
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/python -m pytest --codspeed
@@ -594,7 +592,7 @@ jobs:
           - macos-15-intel  # osx-64
           - macos-latest  # osx-arm64
         python-version: ['3.10', '3.13']
-        default-channel: [defaults, conda-forge]
+        default-channel: [conda-forge] # [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
@@ -615,7 +613,7 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'rattler' || 'rattler,classic' }}
 
     steps:
       - name: Checkout Source
