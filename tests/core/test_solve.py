@@ -18,6 +18,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.core.solve import DepsModifier, Solver, UpdateModifier, get_pinned_specs
 from conda.exceptions import (
+    NoChannelsConfiguredError,
     PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
@@ -3937,8 +3938,6 @@ def test_pinned_specs_all(
 
 
 def test_no_channels_error(tmpdir, mocker: MockerFixture):
-    from conda.exceptions import NoChannelsConfiguredError
-
     mocker.patch(
         "conda.base.context.Context.channels",
         new_callable=mocker.PropertyMock,
