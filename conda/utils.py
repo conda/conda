@@ -267,6 +267,7 @@ def wrap_subprocess_call(
                     )
                 fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            fh.write(f'{silencer}CALL "{conda_bat}" deactivate\n')
             fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
             script_caller = fh.name
         command_args = [comspec, "/d", "/c", script_caller]
@@ -307,6 +308,13 @@ def wrap_subprocess_call(
                 fh.write("{}\n".format(" ".join(arguments)))
             else:
                 fh.write(f"{quote_for_shell(*arguments)}\n")
+            # Capture the return code of the user's command in a variable
+            # before deactivating. We don't need to unset this per se, because
+            # the shell process will terminate and clean it up afterwards.
+            fh.write("_CONDA_EXE_RC=$?\n")
+            fh.write(f"conda deactivate {dev_arg}\n")
+            # Exit with this captured return code from the user's command.
+            fh.write("exit $_CONDA_EXE_RC\n")
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]
