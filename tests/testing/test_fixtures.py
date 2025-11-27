@@ -47,6 +47,10 @@ def test_tmp_env(tmp_env: TmpEnvFixture) -> None:
         assert PrefixData(prefix).is_environment()
 
 
+def test_empty_env(empty_env: Path) -> None:
+    assert PrefixData(empty_env).is_environment()
+
+
 def test_session_tmp_env(session_tmp_env: TmpEnvFixture) -> None:
     with session_tmp_env() as prefix:
         assert PrefixData(prefix).is_environment()
