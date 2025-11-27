@@ -11,6 +11,7 @@ from conda.base.context import context, reset_context
 from conda.cli.common import (
     check_non_admin,
     is_active_prefix,
+    print_activate,
     validate_file_exists,
     validate_subdir_config,
 )
@@ -128,3 +129,32 @@ def test_validate_subdir_config_invalid_subdir(
 
     with pytest.raises(OperationNotAllowed):
         validate_subdir_config()
+
+
+def test_print_activate(capsys):
+    print_activate("test_env")
+
+    captured = capsys.readouterr()
+
+    assert "To activate this environment" in captured.out
+    assert "To deactivate an active environment" in captured.out
+
+
+def test_print_activate_quiet(capsys, monkeypatch):
+    monkeypatch.setenv("CONDA_QUIET", "true")
+    reset_context()
+
+    print_activate("test_env")
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+def test_print_activate_json(capsys, monkeypatch):
+    monkeypatch.setenv("CONDA_JSON", "true")
+    reset_context()
+
+    print_activate("test_env")
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
