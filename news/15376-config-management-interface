@@ -1,0 +1,7 @@
+### Enhancements
+
+* Add `conda.cli.condarc.ConfigurationFile` class to expose configuration file manipulation interface programmatically. This allows other Python interfaces to read and modify conda configuration files without shelling out to `conda config` commands. (#15238 via #15376)
+
+### Deprecations
+
+* Deprecate private helper functions in `conda.cli.main_config` (`_key_exists`, `_get_key`, `_set_key`, `_remove_item`, `_remove_key`, `_read_rc`, `_write_rc`, `_validate_provided_parameters`) in favor of the new `ConfigurationFile` class. These functions will be removed in conda 27.3. (#15376)
