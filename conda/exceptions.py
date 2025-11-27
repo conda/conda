@@ -790,7 +790,7 @@ class PackagesNotFoundError(CondaError):
         )
 
 
-class NoChannelsError(CondaError):
+class NoChannelsConfiguredError(CondaError):
     def __init__(self, packages: Iterable[str] = ()):
         packages_str = ", ".join(packages) if packages else "the requested packages"
 
@@ -803,15 +803,14 @@ class NoChannelsError(CondaError):
             To fix this issue, you may do one of the following:
 
               1. Add a channel for this command:
-                 $ conda install -c conda-forge %(packages_str)s
+                 conda install -c <your-channel> %(packages_str)s
 
               2. Configure channels permanently:
-                 $ conda config --append channels conda-forge
-                 $ conda config --append channels defaults
+                 conda config --append channels <your-channel>
 
               3. Create or modify your .condarc file to include channels.
 
-            Popular channels include: conda-forge, defaults, bioconda, and so on.
+
 
             For more information, visit: https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html#channel-locations-channels
             and https://docs.conda.io/projects/conda/en/stable/user-guide/concepts/channels.html#specifying-channels-when-installing-packages
