@@ -3937,7 +3937,7 @@ def test_pinned_specs_all(
 
 
 def test_no_channels_error(tmpdir, mocker: MockerFixture):
-    from conda.exceptions import NoChannelsError
+    from conda.exceptions import NoChannelsConfiguredError
 
     mocker.patch(
         "conda.base.context.Context.channels",
@@ -3954,7 +3954,7 @@ def test_no_channels_error(tmpdir, mocker: MockerFixture):
         specs_to_add=specs,
     )
 
-    with pytest.raises(NoChannelsError) as exc:
+    with pytest.raises(NoChannelsConfiguredError) as exc:
         solver.solve_final_state()
 
     error_message = str(exc.value)
