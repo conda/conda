@@ -140,18 +140,9 @@ def test_print_activate(capsys):
     assert "To deactivate an active environment" in captured.out
 
 
-def test_print_activate_quiet(capsys, monkeypatch):
-    monkeypatch.setenv("CONDA_QUIET", "true")
-    reset_context()
-
-    print_activate("test_env")
-
-    captured = capsys.readouterr()
-    assert captured.out == ""
-
-
-def test_print_activate_json(capsys, monkeypatch):
-    monkeypatch.setenv("CONDA_JSON", "true")
+@pytest.mark.parametrize("env_var", ["CONDA_QUIET", "CONDA_JSON"])
+def test_print_activate_no_output(capsys, monkeypatch, env_var):
+    monkeypatch.setenv(env_var, "true")
     reset_context()
 
     print_activate("test_env")
