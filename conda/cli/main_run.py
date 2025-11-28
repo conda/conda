@@ -100,9 +100,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if not args.executable_call:
         parser.print_help()
-        raise ArgumentError(
-            "No command specified. Please provide a command to run."
-        )
+        raise ArgumentError("No command specified. Please provide a command to run.")
 
     # create run script
     script, command = wrap_subprocess_call(
