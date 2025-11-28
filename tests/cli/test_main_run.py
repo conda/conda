@@ -118,3 +118,12 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         )
         assert stdout
         assert not stderr
+
+
+def test_run_with_empty_command_will_raise(
+    conda_cli: CondaCLIFixture,
+):
+    from conda.exceptions import ArgumentError
+
+    with pytest.raises(ArgumentError, match="No command specified"):
+        conda_cli("run")
