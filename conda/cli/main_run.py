@@ -99,7 +99,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix_data.assert_environment()
 
     if not args.executable_call:
-        parser.print_help()
         raise ArgumentError("No command specified. Please provide a command to run.")
 
     # create run script
