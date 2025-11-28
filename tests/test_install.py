@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 import random
 import subprocess
 import sys
@@ -205,7 +206,16 @@ def test_binary(path_factory: PathFactoryFixture, subdir: str):
     assert tmp.read_bytes() == b"\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0"
 
 
-def test_trash_outside_prefix():
+def test_trash_outside_prefix(monkeypatch: MonkeyPatch):
+    # Ensure temp dir is on the same drive as conda prefix on Windows
+    # so that relpath() works (as we can't compute relative path across
+    # drives). This is needed on Windows because we set TEMP to the D:
+    # drive in CI tests to speed it up.
+    if on_win and os.getenv("CI"):
+        root_drive = Path(context.root_prefix).drive
+        temp_on_same_drive = str(Path(root_drive) / "Temp")
+        monkeypatch.setenv("TEMP", temp_on_same_drive)
+
     tmp_dir = tempfile.mkdtemp()
     rel = relpath(tmp_dir, context.root_prefix)
     assert rel.startswith("..")
