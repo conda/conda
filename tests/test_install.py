@@ -215,6 +215,7 @@ def test_trash_outside_prefix(monkeypatch: MonkeyPatch):
         root_drive = Path(context.root_prefix).drive
         temp_on_same_drive = str(Path(root_drive) / "Temp")
         monkeypatch.setenv("TEMP", temp_on_same_drive)
+        monkeypatch.setattr(tempfile, "tempdir", temp_on_same_drive)
 
     tmp_dir = tempfile.mkdtemp()
     rel = relpath(tmp_dir, context.root_prefix)
