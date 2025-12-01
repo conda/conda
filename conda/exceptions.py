@@ -796,7 +796,7 @@ class NoChannelsConfiguredError(CondaError):
 
         message = dals(
             """
-            No channels are configured. conda requires at least one channel to search for packages.
+            No channels are configured. Conda requires at least one channel to search for packages.
 
             You have attempted to install: %(packages_str)s
 

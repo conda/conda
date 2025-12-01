@@ -144,7 +144,7 @@ class Solver:
         """
         if self.specs_to_add and (not self.channels or len(self.channels) == 0):
             raise NoChannelsConfiguredError(
-                packages=[s.name for s in self.specs_to_add if s.name],
+                packages=[spec.name for spec in self.specs_to_add if spec.name],
             )
 
         if self.prefix == context.root_prefix and context.enable_private_envs:
@@ -299,7 +299,7 @@ class Solver:
 
         if self.specs_to_add and (not self.channels or len(self.channels) == 0):
             raise NoChannelsConfiguredError(
-                packages=[s.name for s in self.specs_to_add if s.name],
+                packages=[spec.name for spec in self.specs_to_add if spec.name],
             )
 
         if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
