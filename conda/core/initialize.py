@@ -1422,7 +1422,7 @@ def _config_fish_content(conda_prefix):
         """
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
-        set -l __conda_env_keep "$CONDA_PREFIX"
+        set -g __conda_env_keep "$CONDA_PREFIX"
         if test -f %(conda_exe)s
             eval %(conda_exe)s "shell.fish" "hook" $argv | source
         else
@@ -1435,6 +1435,7 @@ def _config_fish_content(conda_prefix):
         if test -n "$__conda_env_keep"
             conda activate "$__conda_env_keep"
         end
+        set -e __conda_env_keep
         # <<< conda initialize <<<
         """
     ) % {
