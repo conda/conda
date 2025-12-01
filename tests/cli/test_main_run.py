@@ -146,28 +146,28 @@ def test_run_deactivates_environment_windows(
         script_content = Path(script_path).read_text()
         lines = script_content.split("\n")
 
-        assert "CALL" in script_content and "deactivate" in script_content, (
-            "Windows wrapper script should contain conda deactivate command"
+        assert "deactivate.d" in script_content, (
+            "Windows wrapper script should check for deactivation scripts"
         )
 
         echo_line_idx = None
-        deactivate_line_idx = None
+        deactivate_check_idx = None
 
         for idx, line in enumerate(lines):
             if "echo" in line and "test" in line:
                 echo_line_idx = idx
-            if "CALL" in line and "deactivate" in line:
-                deactivate_line_idx = idx
+            if "deactivate.d" in line and "EXIST" in line:
+                deactivate_check_idx = idx
 
-        assert deactivate_line_idx is not None, (
-            "Could not find 'CALL ... deactivate' in the Windows wrapper script"
+        assert deactivate_check_idx is not None, (
+            "Could not find deactivate.d directory check in the Windows wrapper script"
         )
         assert echo_line_idx is not None, (
             "Could not find the user's command in the Windows wrapper script"
         )
-        # Verify deactivation comes after the user's command
-        assert deactivate_line_idx > echo_line_idx, (
-            "On Windows, 'CALL ... deactivate' should come after the user's command"
+        # Verify deactivation check comes after the user's command
+        assert deactivate_check_idx > echo_line_idx, (
+            "On Windows, deactivation check should come after the user's command"
         )
 
 
@@ -195,25 +195,25 @@ def test_run_deactivates_environment_unix(
         script_content = Path(script_path).read_text()
         lines = script_content.split("\n")
 
-        assert "conda deactivate" in script_content, (
-            "Unix wrapper script should contain 'conda deactivate' command"
+        assert "deactivate.d" in script_content, (
+            "Unix wrapper script should check for deactivation scripts"
         )
 
         echo_line_idx = None
-        deactivate_line_idx = None
+        deactivate_check_idx = None
         for idx, line in enumerate(lines):
             if "echo" in line and "test" in line:
                 echo_line_idx = idx
-            if "conda deactivate" in line:
-                deactivate_line_idx = idx
+            if "deactivate.d" in line and ("CONDA_PREFIX" in line or "-d" in line):
+                deactivate_check_idx = idx
 
         assert deactivate_line_idx is not None, (
-            "Could not find 'conda deactivate' in the wrapper script"
+            "Could not find deactivate.d directory check in the wrapper script"
         )
         assert echo_line_idx is not None, (
             "Could not find the user's command in the wrapper script"
         )
-        # Verify deactivation comes after the user's command
+        # Verify deactivation check comes after the user's command
         assert deactivate_line_idx > echo_line_idx, (
-            "'conda deactivate' should come after the user's command"
+            "Deactivation check should come after the user's command"
         )
