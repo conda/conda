@@ -1422,6 +1422,7 @@ def _config_fish_content(conda_prefix):
         """
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
+        set -l __conda_env_keep "$CONDA_PREFIX"
         if test -f %(conda_exe)s
             eval %(conda_exe)s "shell.fish" "hook" $argv | source
         else
@@ -1430,6 +1431,9 @@ def _config_fish_content(conda_prefix):
             else
                 set -x PATH "%(conda_prefix)s/bin" $PATH
             end
+        end
+        if test -n "$__conda_env_keep"
+            conda activate "$__conda_env_keep"
         end
         # <<< conda initialize <<<
         """
@@ -1566,6 +1570,7 @@ def _config_xonsh_content(conda_prefix):
         """
     # >>> conda initialize >>>
     # !! Contents within this block are managed by 'conda init' !!
+    __conda_env_keep = $CONDA_PREFIX if 'CONDA_PREFIX' in ${{...}} else None
     if !(test -f "{conda_exe}"):
         import sys as _sys
         from types import ModuleType as _ModuleType
@@ -1576,6 +1581,9 @@ def _config_xonsh_content(conda_prefix):
                             filename="$({conda_exe} shell.xonsh hook)")
         _sys.modules["xontrib.conda"] = _mod
         del _sys, _mod, _ModuleType
+    if __conda_env_keep:
+        conda activate @(__conda_env_keep)
+    del __conda_env_keep
     # <<< conda initialize <<<
     """
     ).format(conda_exe=conda_exe)
@@ -1684,9 +1692,12 @@ def _bashrc_content(conda_prefix, shell):
             """
         # >>> conda initialize >>>
         # !! Contents within this block are managed by 'conda init' !!
+        __conda_env_keep="$CONDA_PREFIX"
         if [ -f '%(conda_exe)s' ]; then
             eval "$('%(conda_exe)s' 'shell.%(shell)s' 'hook')"
         fi
+        [ -n "$__conda_env_keep" ] && conda activate "$__conda_env_keep"
+        unset __conda_env_keep
         # <<< conda initialize <<<
         """
         ) % {
@@ -1699,10 +1710,17 @@ def _bashrc_content(conda_prefix, shell):
                 """
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
+            if ( $?CONDA_PREFIX ) then
+                set __conda_env_keep="$CONDA_PREFIX"
+            endif
             if ( -f "%(conda_prefix)s/etc/profile.d/conda.csh" ) then
                 source "%(conda_prefix)s/etc/profile.d/conda.csh"
             else
                 setenv PATH "%(conda_bin)s:$PATH"
+            endif
+            if ( $?__conda_env_keep ) then
+                conda activate "$__conda_env_keep"
+                unset __conda_env_keep
             endif
             # <<< conda initialize <<<
             """
@@ -1717,6 +1735,7 @@ def _bashrc_content(conda_prefix, shell):
                 """
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
+            __conda_env_keep="$CONDA_PREFIX"
             __conda_setup="$('%(conda_exe)s' 'shell.%(shell)s' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
                 eval "$__conda_setup"
@@ -1728,6 +1747,8 @@ def _bashrc_content(conda_prefix, shell):
                 fi
             fi
             unset __conda_setup
+            [ -n "$__conda_env_keep" ] && conda activate "$__conda_env_keep"
+            unset __conda_env_keep
             # <<< conda initialize <<<
             """
             ) % {
@@ -2130,9 +2151,14 @@ def _powershell_profile_content(conda_prefix):
         f"""
     #region conda initialize
     # !! Contents within this block are managed by 'conda init' !!
+    $__conda_env_keep = $Env:CONDA_PREFIX
     If (Test-Path "{conda_exe}") {{
         (& "{conda_exe}" "shell.powershell" "hook") | Out-String | ?{{$_}} | Invoke-Expression
     }}
+    If ($__conda_env_keep) {{
+        conda activate "$__conda_env_keep"
+    }}
+    Remove-Variable __conda_env_keep
     #endregion
     """
     )
