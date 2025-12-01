@@ -132,10 +132,10 @@ def test_run_with_separator(
             "python",
             "-v",
             "-c",
-            "print('test')",
+            "print('spam')",
         )
 
-        assert "test" in stdout
+        assert "spam" in stdout
         assert not err
 
 
@@ -151,10 +151,10 @@ def test_run_with_separator_multiple_v_flags(
             "python",
             "-vvv",
             "-c",
-            "print('test me')",
+            "print('eggs')",
         )
 
-        assert "test me" in stdout
+        assert "eggs" in stdout
         assert not err
 
 
@@ -176,11 +176,11 @@ def test_run_with_separator_combined_options(
             "--",
             "python",
             str(script),
-            "-vic",
+            "--vic",
             "60",
         )
 
-        assert "arg0: -vic" in stdout
+        assert "arg0: --vic" in stdout
         assert "arg1: 60" in stdout
         assert not err
 
@@ -197,7 +197,7 @@ def test_run_without_separator(
             "--version",
         )
 
-        assert "Python" in (stdout + stderr)
+        assert "Python" in stdout
         assert not err
 
 
