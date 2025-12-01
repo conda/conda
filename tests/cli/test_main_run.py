@@ -217,3 +217,12 @@ def test_run_deactivates_environment_unix(
         assert deactivate_check_idx > echo_line_idx, (
             "Deactivation check should come after the user's command"
         )
+
+
+def test_run_with_empty_command_will_raise(
+    conda_cli: CondaCLIFixture,
+):
+    from conda.exceptions import ArgumentError
+
+    with pytest.raises(ArgumentError, match="No command specified"):
+        conda_cli("run")
