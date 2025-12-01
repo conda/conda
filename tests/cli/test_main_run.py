@@ -207,13 +207,13 @@ def test_run_deactivates_environment_unix(
             if "deactivate.d" in line and ("CONDA_PREFIX" in line or "-d" in line):
                 deactivate_check_idx = idx
 
-        assert deactivate_line_idx is not None, (
+        assert deactivate_check_idx is not None, (
             "Could not find deactivate.d directory check in the wrapper script"
         )
         assert echo_line_idx is not None, (
             "Could not find the user's command in the wrapper script"
         )
         # Verify deactivation check comes after the user's command
-        assert deactivate_line_idx > echo_line_idx, (
+        assert deactivate_check_idx > echo_line_idx, (
             "Deactivation check should come after the user's command"
         )
