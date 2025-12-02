@@ -273,6 +273,15 @@ def wrap_subprocess_call(
             fh.write(
                 f'{silencer}  IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d" (\n'
             )
+            # We list files in reverse alphabetical order, and assign each one to %%S.
+            # We then CALL each script that we find. Here, the /b flag means bare mode
+            # listing (only file names). The /a:-d flag means we want only files (not
+            # directories). The /o:-n flag means we want the listing in reverse
+            # alphabetical order. The delims= option in FOR /F tells it that file
+            # names may contain spaces, so it should not split them on whitespace.
+            # For reference, see:
+            # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for
+            # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir
             fh.write(
                 f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\*.bat"\') DO (\n'
             )
