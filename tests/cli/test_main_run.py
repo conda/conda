@@ -216,3 +216,12 @@ def test_run_if_separator_not_at_start(
 
         assert "-- hello" in stdout or "hello" in stdout
         assert not err
+
+
+def test_run_with_empty_command_will_raise(
+    conda_cli: CondaCLIFixture,
+):
+    from conda.exceptions import ArgumentError
+
+    with pytest.raises(ArgumentError, match="No command specified"):
+        conda_cli("run")

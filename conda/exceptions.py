@@ -790,6 +790,38 @@ class PackagesNotFoundError(CondaError):
         )
 
 
+class NoChannelsConfiguredError(CondaError):
+    def __init__(self, packages: Iterable[str] = ()):
+        packages_str = ", ".join(packages) if packages else "the requested packages"
+
+        message = dals(
+            """
+            No channels are configured. Conda requires at least one channel to search for packages.
+
+            You have attempted to install: %(packages_str)s
+
+            To fix this issue, you may do one of the following:
+
+              1. Add a channel for this command:
+                 conda install -c <your-channel> %(packages_str)s
+
+              2. Configure channels permanently:
+                 conda config --append channels <your-channel>
+
+              3. Create or modify your .condarc file to include channels.
+
+            For more information, visit: https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html#channel-locations-channels
+            and https://docs.conda.io/projects/conda/en/stable/user-guide/concepts/channels.html#specifying-channels-when-installing-packages
+            """
+        )
+
+        super().__init__(
+            message,
+            packages=list(packages),
+            packages_str=packages_str,
+        )
+
+
 class UnsatisfiableError(CondaError):
     """An exception to report unsatisfiable dependencies.
 
