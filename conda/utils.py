@@ -274,9 +274,11 @@ def wrap_subprocess_call(
                 f'{silencer}  IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d" (\n'
             )
             fh.write(
-                f'{silencer}    FOR %%S IN ("%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\*.bat") DO (\n'
+                f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\*.bat"\') DO (\n'
             )
-            fh.write(f"{silencer}      IF EXIST %%S CALL %%S\n")
+            fh.write(
+                f'{silencer}      IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\%%S" CALL "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\%%S"\n'
+            )
             fh.write(f"{silencer}    )\n")
             fh.write(f"{silencer}  )\n")
             fh.write(f"{silencer})\n")
@@ -330,7 +332,7 @@ def wrap_subprocess_call(
             fh.write('if [ -n "${CONDA_PREFIX:-}" ]; then\n')
             fh.write('  if [ -d "${CONDA_PREFIX}/etc/conda/deactivate.d" ]; then\n')
             fh.write(
-                '    for script in "${CONDA_PREFIX}"/etc/conda/deactivate.d/*.sh; do\n'
+                "    for script in $(printf '%s\\n' \"${CONDA_PREFIX}\"/etc/conda/deactivate.d/*.sh | sort -r); do\n"
             )
             fh.write('      [ -f "$script" ] && . "$script"\n')
             fh.write("    done\n")
