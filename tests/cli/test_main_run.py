@@ -213,8 +213,7 @@ def test_run_if_separator_not_at_start(
             "--",
             "hello",
         )
-
-        assert "-- hello" in stdout or "hello" in stdout
+        assert "-- hello" in stdout
         assert not err
 
 
