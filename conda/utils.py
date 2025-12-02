@@ -266,7 +266,9 @@ def wrap_subprocess_call(
                         "requirements)"
                     )
                 fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
-            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            # Capture the user's command exit code before deactivation.
+            fh.write(f"{silencer}SET _CONDA_EXE_RC=%ERRORLEVEL%\n")
+
             fh.write(f"{silencer}IF DEFINED CONDA_PREFIX (\n")
             fh.write(
                 f'{silencer}  IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d" (\n'
@@ -279,6 +281,9 @@ def wrap_subprocess_call(
             fh.write(f"{silencer}  )\n")
             fh.write(f"{silencer})\n")
             fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
+            # Always exit with the user's original exit code, not
+            # whatever the last deactivate script or chcp returned.
+            fh.write(f"{silencer}EXIT /b %_CONDA_EXE_RC%\n")
             script_caller = fh.name
         command_args = [comspec, "/d", "/c", script_caller]
     else:
