@@ -284,9 +284,7 @@ def wrap_subprocess_call(
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir
             fh.write(
                 f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\*.bat"\') DO (\n'
-            )
-            fh.write(
-                f'{silencer}      IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\%%S" CALL "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\%%S"\n'
+                f'{silencer}      CALL "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\%%S"\n'
             )
             fh.write(f"{silencer}    )\n")
             fh.write(f"{silencer}  )\n")
