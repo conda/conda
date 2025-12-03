@@ -282,10 +282,8 @@ def wrap_subprocess_call(
             # For reference, see:
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir
-            fh.write(
-                f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\*.bat"\') DO (\n'
-                f'{silencer}      CALL "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\%%S"\n'
-            )
+            fh.write(f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\*.bat"\') DO (\n')  # fmt: skip
+            fh.write(f'{silencer}      CALL "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\%%S"\n')  # fmt: skip
             fh.write(f"{silencer}    )\n")
             fh.write(f"{silencer}  )\n")
             fh.write(f"{silencer})\n")
@@ -338,9 +336,7 @@ def wrap_subprocess_call(
             fh.write("_CONDA_EXE_RC=$?\n")
             fh.write('if [ -n "${CONDA_PREFIX:-}" ]; then\n')
             fh.write('  if [ -d "${CONDA_PREFIX}/etc/conda/deactivate.d" ]; then\n')
-            fh.write(
-                "    for script in $(printf '%s\\n' \"${CONDA_PREFIX}\"/etc/conda/deactivate.d/*.sh | sort -r); do\n"
-            )
+            fh.write("    for script in $(printf '%s\\n' \"${CONDA_PREFIX}\"/etc/conda/deactivate.d/*.sh | sort -r); do\n")  # fmt: skip
             fh.write('      [ -f "$script" ] && . "$script"\n')
             fh.write("    done\n")
             fh.write("  fi\n")
