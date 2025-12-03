@@ -1,21 +1,33 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
 from importlib.metadata import version
 from logging import getLogger
+from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context, reset_context
+from conda.base.context import context
 from conda.common.io import stderr_log_level
-from conda.exceptions import DryRunExit, PackagesNotFoundError
+from conda.exceptions import (
+    CondaEnvException,
+    DryRunExit,
+    EnvironmentLocationNotFound,
+    PackagesNotFoundError,
+)
 from conda.gateways.disk.delete import path_is_clean
-from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
     package_is_installed,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 log = getLogger(__name__)
 stderr_log_level(TEST_LOG_LEVEL, "conda")
@@ -54,12 +66,19 @@ def test_remove_globbed_package_names(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    reset_context()
     if context.solver == "libmamba" and version("conda_libmamba_solver") <= "24.1.0":
         pytest.xfail(
             reason="Removing using wildcards is not available in older versions of the libmamba solver.",
         )
-    with tmp_env("zlib", "ca-certificates") as prefix:
+    # classic takes too long with conda-forge
+    channels = (
+        "--repodata-fn",
+        "current_repodata.json",
+        "--override-channels",
+        "-c",
+        "defaults",
+    )
+    with tmp_env("zlib", "ca-certificates", *channels) as prefix:
         stdout, stderr, _ = conda_cli(
             "remove",
             "--yes",
@@ -68,6 +87,7 @@ def test_remove_globbed_package_names(
             "--dry-run",
             "--json",
             f"--solver={context.solver}",
+            *channels,
             raises=DryRunExit,
         )
         log.info(stdout)
@@ -84,3 +104,36 @@ def test_remove_globbed_package_names(
                 assert any(
                     pkg["name"] == "ca-certificates" for pkg in data["actions"]["LINK"]
                 )
+
+
+def test_remove_nonexistent_env(conda_cli: CondaCLIFixture):
+    with pytest.raises(EnvironmentLocationNotFound):
+        conda_cli("remove", "--prefix=/non/existent/path", "--all")
+
+
+def test_remove_all_default_activation_env(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    tmp_path: Path,
+):
+    """Check that removing the default_activation_env raises an exception."""
+    with tmp_env() as prefix:
+        conda_cli(
+            "config",
+            "--set",
+            "default_activation_env",
+            prefix,
+        )
+        assert prefix == context.default_activation_prefix
+        with pytest.raises(
+            CondaEnvException,
+            match=(
+                "Cannot remove an environment if it is configured "
+                "as `default_activation_env`."
+            ),
+        ):
+            conda_cli(
+                "remove",
+                "--all",
+                f"--prefix={prefix}",
+            )

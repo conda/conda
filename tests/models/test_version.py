@@ -325,7 +325,7 @@ def test_match():
         m = VersionSpec(vspec)
         assert VersionSpec(m) is m
         assert str(m) == vspec
-        assert repr(m) == "VersionSpec('%s')" % vspec
+        assert repr(m) == f"VersionSpec('{vspec}')"
         assert m.match("1.7.1") == res, vspec
 
 

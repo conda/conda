@@ -6,7 +6,6 @@ Provides some low-level tools for creating conda packages.
 """
 
 import hashlib
-import json
 import os
 import re
 import tarfile
@@ -164,7 +163,7 @@ def fix_shebang(tmp_dir, path):
     if not (m and "python" in m.group()):
         return False
 
-    data = shebang_pat.sub("#!%s/bin/python" % PREFIX_PLACEHOLDER, data, count=1)
+    data = shebang_pat.sub(f"#!{PREFIX_PLACEHOLDER}/bin/python", data, count=1)
     tmp_path = join(tmp_dir, basename(path))
     with open(tmp_path, "w") as fo:
         fo.write(data)
@@ -173,7 +172,7 @@ def fix_shebang(tmp_dir, path):
 
 
 def _add_info_dir(t, tmp_dir, files, has_prefix, info):
-    from ..auxlib.entity import EntityEncoder
+    from ..common.serialize import json
 
     info_dir = join(tmp_dir, "info")
     os.mkdir(info_dir)
@@ -182,7 +181,7 @@ def _add_info_dir(t, tmp_dir, files, has_prefix, info):
             fo.write(f + "\n")
 
     with open(join(info_dir, "index.json"), "w") as fo:
-        json.dump(info, fo, indent=2, sort_keys=True, cls=EntityEncoder)
+        json.dump(info, fo, sort_keys=True)
 
     if has_prefix:
         with open(join(info_dir, "has_prefix"), "w") as fo:
@@ -204,7 +203,11 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
     t = tarfile.open(tar_path, "w:bz2")
     h = hashlib.new("sha1")
     for f in files:
-        assert not (f.startswith("/") or f.endswith("/") or "\\" in f or f == ""), f
+        if f.startswith("/") or f.endswith("/") or "\\" in f or f == "":
+            raise ValueError(
+                f"Invalid file path: {f}. "
+                "Must be not empty. Cannot start or end with '/'. Cannot contain '\\'."
+            )
         path = join(prefix, f)
         if f.startswith("bin/") and fix_shebang(tmp_dir, path):
             path = join(tmp_dir, basename(path))
@@ -223,7 +226,7 @@ def create_conda_pkg(prefix, files, info, tar_path, update_info=None):
         elif isfile(path):
             h.update(open(path, "rb").read())
             if path.endswith(".egg-link"):
-                warnings.append("found egg link: %s" % f)
+                warnings.append(f"found egg link: {f}")
 
     info["file_hash"] = h.hexdigest()
     if update_info:
@@ -247,7 +250,8 @@ def make_tarbz2(prefix, name="unknown", version="0.0", build_number=0, files=Non
 
     if any("/site-packages/" in f for f in files):
         python_version = get_installed_version(prefix, "python")
-        assert python_version is not None
+        if python_version is None:
+            raise ValueError("Python must be installed in target prefix.")
         requires_py = tuple(int(x) for x in python_version[:3].split("."))
     else:
         requires_py = False
@@ -275,7 +279,7 @@ def which_package(path):
     if prefix is None:
         from ..exceptions import CondaVerificationError
 
-        raise CondaVerificationError("could not determine conda prefix from: %s" % path)
+        raise CondaVerificationError(f"could not determine conda prefix from: {path}")
 
     for prec in PrefixData(prefix).iter_records():
         if any(paths_equal(join(prefix, f), path) for f in prec["files"] or ()):

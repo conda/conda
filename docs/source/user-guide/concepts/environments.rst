@@ -21,7 +21,7 @@ Conda directory structure
 
 ``ROOT_DIR``
 ------------
-The directory that Anaconda or Miniconda was installed into.
+The directory where the conda distribution was installed into.
 
 EXAMPLES:
 

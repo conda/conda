@@ -1,25 +1,42 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import logging
 import re
 import sys
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pluggy
 import pytest
 from packaging.version import Version
-from pytest_mock import MockerFixture
 
 from conda import plugins
+from conda.common.url import urlparse
 from conda.core import solve
-from conda.exceptions import CondaValueError, PluginError
+from conda.exceptions import (
+    CondaValueError,
+    PluginError,
+)
 from conda.plugins import virtual_packages
-from conda.plugins.manager import CondaPluginManager
+from conda.plugins.types import CondaPlugin
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from typing import Any
+
+    from pytest_mock import MockerFixture
+
+    from conda.plugins.manager import CondaPluginManager
 
 log = logging.getLogger(__name__)
 this_module = sys.modules[__name__]
 
-# detect if this is an older pluggy
+# detect if this is an older/newer pluggy
 pluggy_v100 = Version(pluggy.__version__) <= Version("1.0.0")
+pluggy_v150 = Version(pluggy.__version__) >= Version("1.5.0")
 
 
 class VerboseSolver(solve.Solver):
@@ -41,19 +58,12 @@ class VerboseSolverPlugin:
 
 
 DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
-NoNameVirtualPackage = plugins.CondaVirtualPackage(None, None, None)
 
 
 class DummyVirtualPackagePlugin:
     @plugins.hookimpl
-    def conda_virtual_packages(*args):
+    def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
         yield DummyVirtualPackage
-
-
-class NoNameVirtualPackagePlugin:
-    @plugins.hookimpl
-    def conda_virtual_packages(*args):
-        yield NoNameVirtualPackage
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
@@ -95,7 +105,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
 
     plugin_manager.register(SecondArchspec)
     with pytest.raises(
-        PluginError, match="Conflicting `virtual_packages` plugins found"
+        PluginError, match="Conflicting plugins found for `virtual_packages`"
     ):
         plugin_manager.get_hook_results(name)
 
@@ -131,7 +141,7 @@ def test_load_entrypoints_blocked(plugin_manager: CondaPluginManager):
     plugin_manager.set_blocked("test_plugin.blocked")
 
     assert plugin_manager.load_entrypoints("test_plugin", "blocked") == 0
-    if pluggy_v100:
+    if pluggy_v100 or pluggy_v150:
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
@@ -193,24 +203,83 @@ def test_disable_external_plugins(plugin_manager: CondaPluginManager, plugin: ob
     assert plugin_manager.load_plugins(plugin) == 1
     assert plugin_manager.get_plugins() == {plugin}
     plugin_manager.disable_external_plugins()
-    if pluggy_v100:
+    if pluggy_v100 or pluggy_v150:
         assert plugin_manager.get_plugins() == set()
     else:
         assert plugin_manager.get_plugins() == {None}
 
 
+def test_plugin_name() -> None:
+    assert CondaPlugin("foo").name == "foo"
+
+    # name is lowercased
+    assert CondaPlugin("FOO").name == "foo"
+
+    # spaces are stripped
+    assert CondaPlugin("  foo  ").name == "foo"
+    assert CondaPlugin("foo  bar").name == "foo  bar"
+    assert CondaPlugin("  foo  bar  ").name == "foo  bar"
+
+
+@pytest.mark.parametrize("name", [None, 42, True, False, [], {}])
+def test_plugin_bad_names(name: Any) -> None:
+    with pytest.raises(PluginError, match="Invalid plugin name for"):
+        CondaPlugin(name)
+
+
+def test_custom_plugin_name_validation(plugin_manager: CondaPluginManager) -> None:
+    @dataclass
+    class NoNameCondaPlugin(CondaPlugin):
+        name: str | None  # type: ignore[assignment]
+
+        def __post_init__(self):
+            # do not normalize the name
+            pass
+
+    @dataclass
+    class NoNamePlugin:
+        name: str | None
+
+    class SpecialPlugin:
+        @plugins.hookimpl
+        def conda_virtual_packages(*args):
+            yield NoNameCondaPlugin(None)
+            yield NoNamePlugin(None)
+
+    plugin_manager.load_plugins(SpecialPlugin)
+    with pytest.raises(
+        PluginError,
+        match=r"(?s)Invalid plugin names found.+NoNameCondaPlugin.+NoNamePlugin",
+    ):
+        plugin_manager.get_virtual_package_records()
+
+
 def test_get_virtual_packages(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
-    assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
-
-
-def test_get_virtual_packages_no_name(plugin_manager: CondaPluginManager):
-    assert plugin_manager.load_plugins(NoNameVirtualPackagePlugin) == 1
-    with pytest.raises(PluginError, match="Invalid plugin names"):
-        plugin_manager.get_virtual_packages()
+    assert plugin_manager.get_virtual_package_records() == (
+        DummyVirtualPackage.to_virtual_package(),
+    )
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
     assert plugin_manager.get_solvers() == {"verbose-classic": VerboseCondaSolver}
+
+
+def test_get_session_headers(plugin_manager: CondaPluginManager):
+    """
+    Ensure that an empty dict is returned when no ``conda_request_headers`` plugin
+    hooks have been defined.
+    """
+    url = urlparse("https://example.com")
+    assert plugin_manager.get_session_headers(host=url.netloc) == {}
+
+
+def test_get_request_headers(plugin_manager: CondaPluginManager):
+    """
+    Ensure that an empty dict is returned when no ``conda_request_headers`` plugin
+    hooks have been defined.
+    """
+    url = urlparse("https://example.com")
+    assert plugin_manager.get_request_headers(host=url.netloc, path=url.path) == {}

@@ -10,12 +10,29 @@ This guide to getting started with conda goes over the basics of starting up and
 
    Anaconda Navigator is a graphical desktop application that enables you to use conda without having to run commands at the command line.
 
-   See `Getting started with Anaconda Navigator <https://docs.anaconda.com/free/navigator/getting-started>`_ to learn more.
+   See `Getting started with Anaconda Navigator <https://docs.anaconda.com/navigator/getting-started/>`__ to learn more.
 
 Before you start
 ================
 
-You should have already installed conda before beginning this getting started guide. Conda can be found in many distributions, like `Anaconda Distribution <https://docs.anaconda.com/free/anaconda/install/>`_, `Miniconda <https://docs.anaconda.com/free/miniconda/>`_ or `Miniforge <https://github.com/conda-forge/miniforge>`_.
+To bootstrap a ``conda`` installation, use a minimal installer such as `Miniconda <https://docs.anaconda.com/miniconda/>`__ or `Miniforge <https://conda-forge.org/download>`__.
+
+Conda is also included in the `Anaconda Distribution <https://docs.anaconda.com/anaconda/install/>`_.
+
+.. note::
+
+    Miniconda and Anaconda Distribution come preconfigured to use the `Anaconda
+    Repository <https://repo.anaconda.com/>`__ and installing/using packages
+    from that repository is governed by the `Anaconda Terms of Service
+    <https://www.anaconda.com/terms-of-service>`__, which means that it *might*
+    require a commercial fee license. There are exceptions for individuals,
+    universities and companies with fewer than 200 employees (as of September
+    2024).
+
+    Please review the `terms of service <https://www.anaconda.com/terms-of-service>`__, Anaconda's most recent `Update on Anaconda’s Terms of Service for Academia
+    and Research <https://www.anaconda.com/blog/update-on-anacondas-terms-of-service-for-academia-and-research>`__,
+    and the `Anaconda Terms of Service FAQ
+    <https://www.anaconda.com/pricing/terms-of-service-faqs>`__ to answer your questions.
 
 Starting conda
 ==============
@@ -26,7 +43,7 @@ Conda is available on Windows, macOS, or Linux and can be used with any terminal
 
    .. tab-item:: Windows
 
-      #. Open either the Command Prompt (cmd.exe) or PowerShell.
+      #. Open either the Anaconda or Miniforge Command Prompt (cmd.exe). A PowerShell prompt is also available with Anaconda Distribution or Miniconda.
 
    .. tab-item:: macOS
 
@@ -45,11 +62,11 @@ Conda allows you to create separate environments, each containing their own file
 
 The most basic way to create a new environment is with the following command::
 
-   conda create -n <env-name>
+   conda create --name <env-name>
 
 To add packages while creating an environment, specify them after the environment name::
 
-   conda create -n myenvironment python numpy pandas
+   conda create --name myenvironment python numpy pandas
 
 For more information on working with environments, see :doc:`Managing environments <tasks/manage-environments>`.
 
@@ -70,12 +87,14 @@ A list of environments appears, similar to the following::
 .. tip::
    The active environment is the one with an asterisk (*).
 
-To change your current environment back to the default ``base``::
+To change your current environment back to the default one::
 
    conda activate
 
 .. tip::
-    When the environment is deactivated, its name is no longer shown in your prompt, and the asterisk (*) returns to ``base``. To verify, you can repeat the  ``conda info --envs`` command.
+    When the environment is deactivated, its name is no longer shown in your prompt,
+    and the asterisk (*) returns to the default env. To verify, you can repeat the
+    ``conda info --envs`` command.
 
 Installing packages
 ===================
@@ -113,16 +132,22 @@ To see your conda version, use the following command::
 
    conda --version
 
-No matter which environment you run this command in, conda displays its current version::
+No matter which environment you run this command in, conda displays its current version:
 
-   conda 23.10.0
+.. parsed-literal::
+
+   conda |version|
 
 .. note::
    If you get an error message ``command not found: conda``, close and reopen
    your terminal window and verify that you are logged
    into the same user account that you used to install conda.
 
-To update conda to the latest version::
+First, change your current environment back to the default one::
+
+   conda activate
+
+Then update conda to the latest version::
 
    conda update conda
 

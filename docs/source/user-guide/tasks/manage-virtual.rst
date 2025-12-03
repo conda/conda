@@ -71,11 +71,54 @@ Overriding detected packages
 ============================
 
 For troubleshooting, it is possible to override virtual package detection
-using an environment variable. Supported variables include:
+using an environment variable or a setting in your ``.condarc`` file.
 
-* ``CONDA_OVERRIDE_CUDA`` - CUDA version number or set to ``""`` for no CUDA
-  detected.
-* ``CONDA_OVERRIDE_OSX`` - OSX version number or set to ``""`` for no OSX
-  detected.
-* ``CONDA_OVERRIDE_GLIBC`` - GLIBC version number or set to ``""`` for no GLIBC.
-  This only applies on Linux.
+Environment variables
+---------------------
+
+You can set environment variables when using a ``conda install`` command.
+This way of overriding has the highest priority, **but the override
+variable must be set every time a package requiring that override is installed**.
+
+**Example**:
+
+.. code-block::
+
+    CONDA_OVERRIDE_CUDA=12.8 conda install pytorch
+
+Supported variables include:
+
+.. csv-table::
+    :header-rows: 1
+
+    Variable Name, Override Entity, Example
+    ``CONDA_OVERRIDE_ARCHSPEC``, Build Number, x86_64
+    ``CONDA_OVERRIDE_CUDA``, Version Number, 12.8
+    ``CONDA_OVERRIDE_GLIBC``, Version Number, 2.17
+    ``CONDA_OVERRIDE_LINUX``, Version Number, 5.15.0
+    ``CONDA_OVERRIDE_OSX``, Version Number, 11.0
+    ``CONDA_OVERRIDE_WIN``, Version Number, 10.0.22631
+
+.. note::
+
+    For any custom virtual packages, the variable name is
+    ``CONDA_OVERRIDE_<NAME>`` and the override entity is the
+    ``override_entity`` variable value, either "version" or "build".
+
+``.condarc`` setting
+--------------------
+
+To avoid having to set any override variables every time you install a package,
+conda also offers the ability to set these overrides in your ``.condarc`` file.
+
+.. code-block:: yaml
+
+    override_virtual_packages:
+      archspec: "x86_64"
+      cuda: "12.8"
+      glibc: "2.17"
+      osx: "11.0"
+      mycustompackage: "1.2.3"
+
+See :ref:`override-virtual-packages <override-virtual-packages>` for more information on
+the ``.condarc`` setting.

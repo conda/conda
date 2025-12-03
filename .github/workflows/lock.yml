@@ -1,4 +1,3 @@
----
 name: Lock
 
 on:
@@ -18,10 +17,10 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/lock-threads@v5
+      - uses: dessant/lock-threads@1bf7ec25051fe7c00bdd17e6a7cf3d7bfb7dc771 # v5.0.1
         with:
           # Number of days of inactivity before a closed issue is locked
-          issue-inactive-days: 365
+          issue-inactive-days: 180
           # Do not lock issues created before a given timestamp, value must follow ISO 8601
           exclude-issue-created-before: ''
           # Do not lock issues with these labels, value must be a comma separated list of labels or ''
@@ -30,7 +29,6 @@ jobs:
           add-issue-labels: locked
           # Reason for locking an issue, value must be one of resolved, off-topic, too heated, spam or ''
           issue-lock-reason: resolved
-
           # Number of days of inactivity before a closed pull request is locked
           pr-inactive-days: 365
           # Do not lock pull requests created before a given timestamp, value must follow ISO 8601

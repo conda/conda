@@ -1,3 +1,5 @@
+# edit this in https://github.com/conda/infrastructure
+
 $ACTIVITIES = ["authors", "changelog"]
 
 # Basic settings

@@ -1,0 +1,26 @@
+{
+  "info": {
+    "subdir": "osx-64",
+    "base_url": "https://repo.anaconda.com/pkgs/main/osx-64"
+  },
+  "packages": {},
+  "packages.conda": {
+    "ca-certificates-2024.3.11-hecd8cb5_0.conda": {
+      "build": "hecd8cb5_0",
+      "build_number": 0,
+      "depends": [],
+      "legacy_bz2_md5": "34583b436e62a2ce55d6a7e8eb818e33",
+      "license": "MPL-2.0",
+      "license_family": "Other",
+      "md5": "a2e29a11940c66baf9942912096fad5f",
+      "name": "ca-certificates",
+      "sha256": "24088140db452365c0d6f94dcc67603b47313a785a37ec698532a569b1c5ba10",
+      "size": 131534,
+      "subdir": "osx-64",
+      "timestamp": 1710764814844,
+      "version": "2024.3.11"
+    }
+  },
+  "removed": [],
+  "repodata_version": 2
+}

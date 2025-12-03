@@ -1,25 +1,37 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import json
-import os
 import re
 import sys
 from contextlib import contextmanager, nullcontext
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 from ruamel.yaml.scanner import ScannerError
 
 from conda import CondaError, CondaMultiError
 from conda.auxlib.compat import Utf8NamedTemporaryFile
-from conda.base.context import context, reset_context, sys_rc_path, user_rc_path
-from conda.common.configuration import ConfigurationLoadError, CustomValidationError
+from conda.base import context as context_module
+from conda.base.context import context, reset_context
+from conda.common.configuration import (
+    DEFAULT_CONDARC_FILENAME,
+    ConfigurationLoadError,
+    CustomValidationError,
+)
 from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 # use condarc from source tree to run these tests against
 
@@ -111,7 +123,7 @@ def test_channels_add_empty(conda_cli: CondaCLIFixture):
             *("--add", "channels", "test"),
         )
         assert stdout == stderr == ""
-        assert _read_test_condarc(rc) == _channels_as_yaml("test", "defaults")
+        assert _read_test_condarc(rc) == _channels_as_yaml("test")
 
 
 def test_channels_add_empty_with_defaults(conda_cli: CondaCLIFixture):
@@ -124,10 +136,6 @@ def test_channels_add_empty_with_defaults(conda_cli: CondaCLIFixture):
             *("--add", "channels", "defaults"),
         )
         assert stdout == ""
-        assert (
-            stderr.strip()
-            == "Warning: 'defaults' already in 'channels' list, moving to the top"
-        )
         assert _read_test_condarc(rc) == _channels_as_yaml("defaults", "test")
 
 
@@ -228,7 +236,7 @@ def test_channels_remove_duplicate(conda_cli: CondaCLIFixture):
 
         with pytest.raises(
             CondaKeyError,
-            match="'channels': 'test' is not in the 'channels' key of the config file",
+            match=r"'channels': value 'test' not present in config",
         ):
             conda_cli(
                 "config",
@@ -273,7 +281,7 @@ def test_get_all(conda_cli: CondaCLIFixture):
             --add create_default_packages 'ipython'
             """
         )
-        assert stderr.strip() == "unknown key invalid_key"
+        assert stderr.strip() == "Unknown key: 'invalid_key'"
 
 
 def test_get_all_inc_maps(conda_cli: CondaCLIFixture):
@@ -291,7 +299,7 @@ def test_get_all_inc_maps(conda_cli: CondaCLIFixture):
             --set proxy_servers.https 1.2.3.4:5678
             """
         )
-        assert stderr.strip() == "unknown key invalid_key"
+        assert stderr.strip() == "Unknown key: 'invalid_key'"
 
 
 def test_get_channels_list(conda_cli: CondaCLIFixture):
@@ -408,7 +416,7 @@ def test_get_invalid_key(conda_cli: CondaCLIFixture):
     with make_temp_condarc(condarc) as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", "invalid_key")
         assert stdout == ""
-        assert stderr.strip() == "unknown key invalid_key"
+        assert stderr.strip() == "Unknown key: 'invalid_key'"
 
 
 def test_set_key(conda_cli: CondaCLIFixture):
@@ -446,7 +454,7 @@ def test_set_map_key(key, from_val, to_val, conda_cli: CondaCLIFixture):
 
 
 def test_set_unconfigured_key(conda_cli: CondaCLIFixture):
-    key, to_val = "restore_free_channel", "true"
+    key, to_val = "use_only_tar_bz2", "true"
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, to_val)
         assert stdout == stderr == ""
@@ -456,9 +464,7 @@ def test_set_unconfigured_key(conda_cli: CondaCLIFixture):
 def test_set_invalid_key(conda_cli: CondaCLIFixture):
     key, to_val = "invalid_key", "a_bogus_value"
     with make_temp_condarc(CONDARC_BASE) as rc:
-        with pytest.raises(
-            CondaValueError, match=f"Key '{key}' is not a known primitive parameter."
-        ):
+        with pytest.raises(CondaKeyError, match=r"'invalid_key': unknown parameter"):
             conda_cli("config", "--file", rc, "--set", key, to_val)
 
         assert _read_test_condarc(rc) == CONDARC_BASE
@@ -501,19 +507,18 @@ def test_remove_key_duplicate(conda_cli: CondaCLIFixture):
     with make_temp_condarc(CONDARC_BASE) as rc:
         conda_cli("config", "--file", rc, "--remove-key", key)
 
-        with pytest.raises(
-            CondaKeyError, match=f"'{key}': key '{key}' is not in the config file"
-        ):
+        with pytest.raises(CondaKeyError, match=r"'changeps1': undefined in config"):
             conda_cli("config", "--file", rc, "--remove-key", key)
 
         assert f"{key}: {value}\n" not in _read_test_condarc(rc)
 
 
 def test_remove_unconfigured_key(conda_cli: CondaCLIFixture):
-    key = "restore_free_channel"
+    key = "use_only_tar_bz2"
     with make_temp_condarc(CONDARC_BASE) as rc:
         with pytest.raises(
-            CondaKeyError, match=f"'{key}': key '{key}' is not in the config file"
+            CondaKeyError,
+            match=r"'use_only_tar_bz2': undefined in config",
         ):
             conda_cli("config", "--file", rc, "--remove-key", key)
 
@@ -543,7 +548,7 @@ def test_set_check_types(key, str_value, py_value, conda_cli: CondaCLIFixture):
 
 
 def test_set_and_get_bool(conda_cli: CondaCLIFixture):
-    key = "restore_free_channel"
+    key = "use_only_tar_bz2"
     with make_temp_condarc() as rc:
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, "yes")
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--get", key)
@@ -581,48 +586,28 @@ def test_ssl_verify_set_filename(conda_cli: CondaCLIFixture):
         assert context.ssl_verify == tf.name
 
 
-def test_set_rc_without_user_rc(conda_cli: CondaCLIFixture):
-    if os.path.exists(sys_rc_path):
-        # Backup system rc_config
-        with open(sys_rc_path) as fh:
-            sys_rc_config_backup = yaml_round_trip_load(fh)
-        restore_sys_rc_config_backup = True
-    else:
-        restore_sys_rc_config_backup = False
+def test_set_rc_without_user_rc(
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+):
+    sys_rc_path = tmp_path / "condarc"
+    user_rc_path = tmp_path / DEFAULT_CONDARC_FILENAME
 
-    if os.path.exists(user_rc_path):
-        # Backup user rc_config
-        with open(user_rc_path) as fh:
-            user_rc_config_backup = yaml_round_trip_load(fh)
-        # Remove user rc_path
-        os.remove(user_rc_path)
-        restore_user_rc_config_backup = True
-    else:
-        restore_user_rc_config_backup = False
+    with sys_rc_path.open("w") as fh:
+        yaml_round_trip_dump({"channels": ["conda-forge"]}, fh)
 
-    try:
-        # Write custom system sys_rc_config
-        with open(sys_rc_path, "w") as rc:
-            rc.write(yaml_round_trip_dump({"channels": ["conda-forge"]}))
-    except OSError:
-        # In case, we don't have writing right to the system rc config file
-        pytest.skip("No writing right to root prefix.")
+    monkeypatch.setattr(context_module, "sys_rc_path", str(sys_rc_path))
+    monkeypatch.setattr(context_module, "user_rc_path", str(user_rc_path))
 
     # This would create a user rc_config
-    stdout, stderr, return_code = conda_cli("config", "--add", "channels", "test")
-    assert stdout == stderr == ""
-    assert yaml_round_trip_load(_read_test_condarc(user_rc_path)) == {
+    stdout, stderr, error = conda_cli("config", "--add", "channels", "test")
+    assert not stdout
+    assert not stderr
+    assert not error
+    assert yaml_round_trip_load(user_rc_path.read_text()) == {
         "channels": ["test", "conda-forge"]
     }
-
-    if restore_user_rc_config_backup:
-        # Restore previous user rc_config
-        with open(user_rc_path, "w") as rc:
-            rc.write(yaml_round_trip_dump(user_rc_config_backup))
-    if restore_sys_rc_config_backup:
-        # Restore previous system rc_config
-        with open(sys_rc_path, "w") as rc:
-            rc.write(yaml_round_trip_dump(sys_rc_config_backup))
 
 
 def test_custom_multichannels_append(conda_cli: CondaCLIFixture):

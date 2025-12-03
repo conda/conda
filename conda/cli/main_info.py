@@ -7,22 +7,24 @@ Display information about current conda installation.
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import sys
 from argparse import SUPPRESS, _StoreTrueAction
+from functools import cached_property
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
 from textwrap import wrap
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
-    from typing import Any, Iterable
+    from collections.abc import Iterable
+    from typing import Any
 
+    from ..base.context import Context
     from ..models.records import PackageRecord
 
 log = getLogger(__name__)
@@ -53,30 +55,24 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "-a",
         "--all",
-        dest="verbosity",
-        action=deprecated.action(
-            "24.3",
-            "24.9",
-            _StoreTrueAction,
-            addendum="Use `--verbose` instead.",
-        ),
+        action="store_true",
+        help="Show all information.",
     )
     p.add_argument(
         "--base",
         action="store_true",
         help="Display base environment path.",
     )
-    # TODO: deprecate 'conda info --envs' and create 'conda list --envs'
     p.add_argument(
         "-e",
         "--envs",
         action="store_true",
-        help="List all known conda environments.",
+        help="List all known conda environments. Combine with `--json` to obtain more details.",
     )
     p.add_argument(
         "-l",
         "--license",
-        action="store_true",
+        action=deprecated.action("25.9", "26.3", _StoreTrueAction),
         help=SUPPRESS,
     )
     p.add_argument(
@@ -87,7 +83,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     p.add_argument(
         "--root",
-        action="store_true",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            _StoreTrueAction,
+            addendum="Use `--base` instead.",
+        ),
         help=SUPPRESS,
         dest="base",
     )
@@ -118,7 +119,7 @@ def get_user_site() -> list[str]:  # pragma: no cover
                 python_re = re.compile(r"python\d\.\d")
                 for path in os.listdir(expanduser("~/.local/lib/")):
                     if python_re.match(path):
-                        site_dirs.append("~/.local/lib/%s" % path)
+                        site_dirs.append(f"~/.local/lib/{path}")
         else:
             if "APPDATA" not in os.environ:
                 return site_dirs
@@ -189,10 +190,9 @@ def pretty_package(prec: PackageRecord) -> None:
         print("%-12s: %s" % (key, d[key]))
     print("dependencies:")
     for dep in pkg["depends"]:
-        print("    %s" % dep)
+        print(f"    {dep}")
 
 
-@deprecated.argument("24.9", "25.3", "system")
 def get_info_dict() -> dict[str, Any]:
     """
     Returns a dictionary of contextual information.
@@ -211,7 +211,7 @@ def get_info_dict() -> dict[str, Any]:
     )
     from ..common.compat import on_win
     from ..common.url import mask_anaconda_token
-    from ..core.index import _supplement_index_with_system
+    from ..core.index import Index
     from ..models.channel import all_channel_urls, offline_keep
 
     try:
@@ -224,8 +224,7 @@ def get_info_dict() -> dict[str, Any]:
         log.error("Error importing conda-build: %s", err)
         conda_build_version = "error"
 
-    virtual_pkg_index = {}
-    _supplement_index_with_system(virtual_pkg_index)
+    virtual_pkg_index = Index().system_packages
     virtual_pkgs = [[p.name, p.version, p.build] for p in virtual_pkg_index.values()]
 
     channels = list(all_channel_urls(context.channels))
@@ -342,14 +341,10 @@ def get_env_vars_str(info_dict: dict[str, Any]) -> str:
     return "\n".join(builder)
 
 
-def get_main_info_str(info_dict: dict[str, Any]) -> str:
+def get_main_info_display(info_dict: dict[str, Any]) -> dict[str, str]:
     """
-    Returns a printable string of the contents of ``info_dict``.
-
-    :param info_dict:  The output of ``get_info_dict()``.
-    :returns:  String to print.
+    Returns the data that can be used to display information for conda info
     """
-
     from ..common.compat import on_win
 
     def flatten(lines: Iterable[str]) -> str:
@@ -396,80 +391,218 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
         yield ("netrc file", info_dict["netrc_file"])
         yield ("offline mode", info_dict["offline"])
 
-    return "\n".join(("", *(f"{key:>23} : {value}" for key, value in builder()), ""))
+    return {key: value for key, value in builder()}
+
+
+def get_main_info_str(info_dict: dict[str, Any]) -> str:
+    """
+    Returns a printable string of the contents of ``info_dict``.
+
+    :param info_dict:  The output of ``get_info_dict()``.
+    :returns:  String to print.
+    """
+    display_info = get_main_info_display(info_dict)
+
+    return "\n".join(
+        ("", *(f"{key:>23} : {value}" for key, value in display_info.items()), "")
+    )
+
+
+#: Possible components for the info command to render
+InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_all"]
+
+
+class InfoRenderer:
+    """
+    Provides a ``render`` method for rendering ``InfoComponents``
+    """
+
+    def __init__(self, context):
+        self._context = context
+        self._component_style_map = {
+            "base": None,
+            "channels": None,
+            "detail": "detail_view",
+            "envs": "envs_list",
+            "system": None,
+            "json_all": None,
+        }
+
+    @cached_property
+    def _info_dict(self):
+        info_dict = get_info_dict()
+        info_dict["envs"] = self._info_dict_envs
+        info_dict["envs_details"] = self._info_dict_envs_details
+        return info_dict
+
+    @cached_property
+    def _info_dict_envs(self) -> list[str]:
+        from ..core.envs_manager import list_all_known_prefixes
+
+        return list_all_known_prefixes()
+
+    @cached_property
+    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None]]:
+        from ..core.prefix_data import PrefixData
+
+        result = {}
+        if active_prefix := self._context.active_prefix:
+            active_prefix_data = PrefixData(active_prefix)
+        else:
+            active_prefix_data = None
+        for prefix in self._info_dict_envs:
+            prefix_data = PrefixData(prefix)
+            if created := prefix_data.created:
+                created = created.isoformat()
+            if last_modified := prefix_data.last_modified:
+                last_modified = last_modified.isoformat()
+            result[prefix] = {
+                "name": prefix_data.name,
+                "created": created,
+                "last_modified": last_modified,
+                "active": prefix_data == active_prefix_data,
+                "base": prefix_data.is_base(),
+                "frozen": prefix_data.is_frozen(),
+                "writable": prefix_data.is_writable,
+            }
+        return result
+
+    def render(self, components: Iterable[InfoComponents]):
+        """
+        Iterates through the registered components, obtains the data to render via a
+        ``_<component>_component`` method and then renders it.
+        """
+        from ..reporters import render
+
+        for component in components:
+            style = self._component_style_map.get(component)
+            data_func = getattr(self, f"_{component}_component", None)
+
+            if not data_func:
+                continue
+
+            data = data_func()
+
+            if data:
+                render(data, style=style)
+
+    def _base_component(self) -> str | dict:
+        if self._context.json:
+            return {"root_prefix": self._context.root_prefix}
+        else:
+            return f"{self._context.root_prefix}\n"
+
+    def _channels_component(self) -> str | dict:
+        if self._context.json:
+            return {"channels": self._context.channels}
+        else:
+            channels_str = "\n".join(self._context.channels)
+            return f"{channels_str}\n"
+
+    def _detail_component(self) -> dict[str, str]:
+        return get_main_info_display(self._info_dict)
+
+    def _envs_component(self):
+        if self._context.json:
+            return {
+                "envs": self._info_dict_envs,
+                "envs_details": self._info_dict_envs_details,
+            }
+        return self._info_dict_envs
+
+    def _system_component(self) -> str:
+        from .find_commands import find_commands, find_executable
+
+        output = [
+            f"sys.version: {sys.version[:40]}...",
+            f"sys.prefix: {sys.prefix}",
+            f"sys.executable: {sys.executable}",
+            "conda location: {}".format(self._info_dict["conda_location"]),
+        ]
+
+        for cmd in sorted(set(find_commands() + ("build",))):
+            output.append("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
+
+        site_dirs = self._info_dict["site_dirs"]
+        if site_dirs:
+            output.append(f"user site dirs: {site_dirs[0]}")
+        else:
+            output.append("user site dirs:")
+
+        for site_dir in site_dirs[1:]:
+            output.append(f"                {site_dir}")
+
+        output.append("")
+
+        for name, value in sorted(self._info_dict["env_vars"].items()):
+            output.append(f"{name}: {value}")
+
+        output.append("")
+
+        return "\n".join(output)
+
+    def _json_all_component(self) -> dict[str, Any]:
+        return self._info_dict
+
+
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use `conda.cli.main_info.iter_info_components` instead.",
+)
+def get_info_components(args: Namespace, context: Context) -> set[InfoComponents]:
+    return set(iter_info_components(args, context))
+
+
+def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:
+    """
+    Determine which components to display.
+
+    :param args: The parsed command line arguments.
+    :param context: The conda context.
+    :returns: An iterable of components to display.
+    """
+    if args.base:
+        yield "base"
+
+    if args.unsafe_channels:
+        yield "channels"
+
+    if (
+        (args.all or (not args.envs and not args.system))
+        and not context.json
+        and not args.base
+        and not args.unsafe_channels
+    ):
+        yield "detail"
+
+    if args.envs or (args.all and not context.json):
+        yield "envs"
+        yield "envs_details"
+
+    if (args.system or args.all) and not context.json:
+        yield "system"
+
+    if context.json and not args.base and not args.unsafe_channels and not args.envs:
+        yield "json_all"
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
-    Implements ``conda info`` commands.
+    Implements ``conda info`` command.
 
      * ``conda info``
      * ``conda info --base``
-     * ``conda info <package_spec> ...`` (deprecated) (no ``--json``)
+     * ``conda info <package_spec> ...``
      * ``conda info --unsafe-channels``
-     * ``conda info --envs`` (deprecated) (no ``--json``)
-     * ``conda info --system`` (deprecated) (no ``--json``)
+     * ``conda info --envs``
+     * ``conda info --system``
     """
 
     from ..base.context import context
-    from .common import print_envs_list, stdout_json
 
-    if args.base:
-        if context.json:
-            stdout_json({"root_prefix": context.root_prefix})
-        else:
-            print(f"{context.root_prefix}")
-        return 0
+    components = iter_info_components(args, context)
+    renderer = InfoRenderer(context)
+    renderer.render(components)
 
-    if args.unsafe_channels:
-        if not context.json:
-            print("\n".join(context.channels))
-        else:
-            print(json.dumps({"channels": context.channels}))
-        return 0
-
-    options = "envs", "system"
-
-    if context.verbose or context.json:
-        for option in options:
-            setattr(args, option, True)
-    info_dict = get_info_dict()
-
-    if (
-        context.verbose or all(not getattr(args, opt) for opt in options)
-    ) and not context.json:
-        print(get_main_info_str(info_dict) + "\n")
-
-    if args.envs:
-        from ..core.envs_manager import list_all_known_prefixes
-
-        info_dict["envs"] = list_all_known_prefixes()
-        print_envs_list(info_dict["envs"], not context.json)
-
-    if args.system:
-        if not context.json:
-            from .find_commands import find_commands, find_executable
-
-            print("sys.version: %s..." % (sys.version[:40]))
-            print("sys.prefix: %s" % sys.prefix)
-            print("sys.executable: %s" % sys.executable)
-            print("conda location: %s" % info_dict["conda_location"])
-            for cmd in sorted(set(find_commands() + ("build",))):
-                print("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
-            print("user site dirs: ", end="")
-            site_dirs = info_dict["site_dirs"]
-            if site_dirs:
-                print(site_dirs[0])
-            else:
-                print()
-            for site_dir in site_dirs[1:]:
-                print("                %s" % site_dir)
-            print()
-
-            for name, value in sorted(info_dict["env_vars"].items()):
-                print(f"{name}: {value}")
-            print()
-
-    if context.json:
-        stdout_json(info_dict)
     return 0

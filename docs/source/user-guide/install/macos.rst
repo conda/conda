@@ -10,11 +10,11 @@ Installing on macOS
 
 #. Download the installer:
 
-   * `Miniconda installer for macOS <https://docs.anaconda.com/free/miniconda/>`_.
+   * `Miniconda installer for macOS <https://docs.anaconda.com/miniconda/>`__.
 
-   * `Anaconda installer for macOS <https://www.anaconda.com/download/>`_.
+   * `Anaconda Distribution installer for macOS <https://www.anaconda.com/download/>`__.
 
-   * `Miniforge installer for macOS <https://github.com/conda-forge/miniforge/>`_.
+   * `Miniforge installer for macOS <https://conda-forge.org/download/>`_.
 
 #. :ref:`Verify your installer hashes <hash-verification>`.
 

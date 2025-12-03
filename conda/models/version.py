@@ -349,8 +349,9 @@ def treeify(spec_str):
     """
     # Converts a VersionSpec expression string into a tuple-based
     # expression tree.
-    assert isinstance(spec_str, str)
-    tokens = re.findall(VSPEC_TOKENS, "(%s)" % spec_str)
+    if not isinstance(spec_str, str):
+        raise TypeError("`spec_str` must be a string.")
+    tokens = re.findall(VSPEC_TOKENS, f"({spec_str})")
     output = []
     stack = []
 
@@ -392,7 +393,7 @@ def treeify(spec_str):
             output.append(item)
     if stack:
         raise InvalidVersionSpec(
-            spec_str, "unable to convert to expression tree: %s" % stack
+            spec_str, f"unable to convert to expression tree: {stack}"
         )
     if not output:
         raise InvalidVersionSpec(spec_str, "unable to determine version from spec")
@@ -417,13 +418,13 @@ def untreeify(spec, _inand=False, depth=0):
         if spec[0] == "|":
             res = "|".join(map(lambda x: untreeify(x, depth=depth + 1), spec[1:]))
             if _inand or depth > 0:
-                res = "(%s)" % res
+                res = f"({res})"
         else:
             res = ",".join(
                 map(lambda x: untreeify(x, _inand=True, depth=depth + 1), spec[1:])
             )
             if depth > 0:
-                res = "(%s)" % res
+                res = f"({res})"
         return res
     return spec
 
@@ -569,9 +570,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
             try:
                 self.operator_func = OPERATOR_MAP[operator_str]
             except KeyError:
-                raise InvalidVersionSpec(
-                    vspec_str, "invalid operator: %s" % operator_str
-                )
+                raise InvalidVersionSpec(vspec_str, f"invalid operator: {operator_str}")
             self.matcher_vo = VersionOrder(vo_str)
             matcher = self.operator_match
             is_exact = operator_str == "=="
@@ -580,7 +579,7 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
             is_exact = False
         elif "*" in vspec_str.rstrip("*"):
             rx = vspec_str.replace(".", r"\.").replace("+", r"\+").replace("*", r".*")
-            rx = r"^(?:%s)$" % rx
+            rx = rf"^(?:{rx})$"
 
             self.regex = re.compile(rx)
             matcher = self.regex_match
@@ -615,11 +614,19 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
         return vspec_str, matcher, is_exact
 
     def merge(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f"Can only combine objects of the same type. Received {type(other)}."
+            )
+        if self.raw_value == other.raw_value:
+            return self
         return self.__class__(",".join(sorted((self.raw_value, other.raw_value))))
 
     def union(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f"Can only combine objects of the same type. Received {type(other)}."
+            )
         options = {self.raw_value, other.raw_value}
         # important: we only return a string here because the parens get gobbled otherwise
         #    this info is for visual display only, not for feeding into actual matches
@@ -659,9 +666,7 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
             try:
                 self.operator_func = OPERATOR_MAP[operator_str]
             except KeyError:
-                raise InvalidVersionSpec(
-                    vspec_str, "invalid operator: %s" % operator_str
-                )
+                raise InvalidVersionSpec(vspec_str, f"invalid operator: {operator_str}")
             self.matcher_vo = VersionOrder(vo_str)
             matcher = self.operator_match
 

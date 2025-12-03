@@ -1,9 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
 import stat
 import uuid
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -13,8 +16,10 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
 )
-from conda.testing import CondaCLIFixture, TmpEnvFixture
 from conda.testing.integration import env_or_set, which_or_where
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_run_returns_int(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
@@ -50,13 +55,18 @@ def test_run_returns_nonzero_errorlevel(
         assert err == 5
 
 
-def test_run_uncaptured(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+@pytest.mark.parametrize("flag", ["--no-capture-output", "-s"])
+def test_run_uncaptured(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    flag: str,
+):
     with tmp_env() as prefix:
         random_text = uuid.uuid4().hex
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
-            "--no-capture-output",
+            flag,
             *("echo", random_text),
         )
 
@@ -108,3 +118,12 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         )
         assert stdout
         assert not stderr
+
+
+def test_run_with_empty_command_will_raise(
+    conda_cli: CondaCLIFixture,
+):
+    from conda.exceptions import ArgumentError
+
+    with pytest.raises(ArgumentError, match="No command specified"):
+        conda_cli("run")

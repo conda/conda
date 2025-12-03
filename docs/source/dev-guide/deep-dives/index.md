@@ -11,5 +11,7 @@ maxdepth: 1
 install
 activation
 context
+condarc
 solvers
+logging
 ```

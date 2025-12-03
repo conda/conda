@@ -1,7 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 import logging
-import re
 
 import pytest
 
@@ -59,7 +58,7 @@ def test_get_solver_backend(plugin_manager, solver_classic):
 def test_get_cached_solver_backend(plugin_manager, mocker):
     mocked = mocker.patch(
         "conda.plugins.manager.CondaPluginManager.get_solver_backend",
-        side_effect=classic_solver,
+        return_value=classic_solver,
     )
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
@@ -108,9 +107,7 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(SolverPlugin())
     plugin_manager.register(SolverPlugin())
 
-    with pytest.raises(
-        PluginError, match=re.escape("Conflicting `solvers` plugins found")
-    ):
+    with pytest.raises(PluginError, match=r"Conflicting plugins found for `solvers`"):
         plugin_manager.get_solver_backend()
 
 
@@ -143,7 +140,5 @@ def test_get_conflicting_solvers(plugin_manager):
     plugin_manager.register(SolverPlugin())
     plugin_manager.register(SolverPlugin())
 
-    with pytest.raises(
-        PluginError, match=re.escape("Conflicting `solvers` plugins found")
-    ):
+    with pytest.raises(PluginError, match=r"Conflicting plugins found for `solvers`"):
         plugin_manager.get_hook_results("solvers")

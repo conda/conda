@@ -4,13 +4,14 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import warnings
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from pathlib import Path
+
+from ..common.serialize import json
 
 try:
     from conda_content_trust.authentication import verify_delegation, verify_root
@@ -32,12 +33,22 @@ from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION
 from ..base.context import context
 from ..common.url import join_url
 from ..core.subdir_data import SubdirData
+from ..deprecations import deprecated
 from ..gateways.connection import HTTPError, InsecureRequestWarning
 from ..gateways.connection.session import get_session
 from .constants import INITIAL_TRUST_ROOT, KEY_MGR_FILE
 
 if TYPE_CHECKING:
     from ..models.records import PackageRecord
+
+# Mark the entire module for deprecation. For more information see
+# https://github.com/conda/conda-content-trust and #14797
+deprecated.module(
+    "25.9",  # deprecate_in version
+    "26.3",  # remove_in version
+    addendum="This module will be moved to conda-content-trust.",
+)
+
 
 log = getLogger(__name__)
 
@@ -46,9 +57,8 @@ RE_ROOT_METADATA = re.compile(r"(?P<number>\d+)\.root\.json")
 
 
 class _SignatureVerification:
-    # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
-    @lru_cache(maxsize=None)
+    @cache
     def enabled(self) -> bool:
         # safety checks must be enabled
         if not context.extra_safety_checks:
@@ -56,7 +66,7 @@ class _SignatureVerification:
 
         # signing url must be defined
         if not context.signing_metadata_url_base:
-            log.warn(
+            log.warning(
                 "metadata signature verification requested, "
                 "but no metadata URL base has not been specified."
             )
@@ -66,7 +76,7 @@ class _SignatureVerification:
         try:
             import conda_content_trust  # noqa: F401
         except ImportError:
-            log.warn(
+            log.warning(
                 "metadata signature verification requested, "
                 "but `conda-content-trust` is not installed."
             )
@@ -77,22 +87,23 @@ class _SignatureVerification:
 
         # ensure the trusted_root exists
         if self.trusted_root is None:
-            log.warn(
+            log.warning(
                 "could not find trusted_root data for metadata signature verification"
             )
             return False
 
         # ensure the key_mgr exists
         if self.key_mgr is None:
-            log.warn("could not find key_mgr data for metadata signature verification")
+            log.warning(
+                "could not find key_mgr data for metadata signature verification"
+            )
             return False
 
         # signature verification is enabled
         return True
 
-    # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
-    @lru_cache(maxsize=None)
+    @cache
     def trusted_root(self) -> dict:
         # TODO: formalize paths for `*.root.json` and `key_mgr.json` on server-side
         trusted: dict | None = None
@@ -160,9 +171,8 @@ class _SignatureVerification:
 
         return trusted
 
-    # FUTURE: Python 3.8+, replace with functools.cached_property
     @property
-    @lru_cache(maxsize=None)
+    @cache
     def key_mgr(self) -> dict | None:
         trusted: dict | None = None
 
@@ -178,11 +188,11 @@ class _SignatureVerification:
 
             verify_delegation("key_mgr", untrusted, self.trusted_root)
         except ConnectionError as err:
-            log.warn(err)
+            log.warning(err)
         except HTTPError as err:
             # sometimes the HTTPError message is blank, when that occurs include the
             # HTTP status code
-            log.warn(
+            log.warning(
                 str(err) or f"{err.__class__.__name__} ({err.response.status_code})"
             )
         else:
@@ -245,7 +255,7 @@ class _SignatureVerification:
         # this function only have to worry about a ValueError being raised.
         try:
             return resp.json()
-        except json.decoder.JSONDecodeError as err:  # noqa
+        except json.JSONDecodeError as err:  # noqa
             # TODO: additional loading and error handling improvements?
             raise ValueError(
                 f"Invalid JSON returned from {signing_data_url}/{filename}"

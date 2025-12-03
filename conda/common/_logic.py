@@ -5,6 +5,8 @@ from array import array
 from itertools import combinations
 from logging import DEBUG, getLogger
 
+from .constants import TRACE
+
 log = getLogger(__name__)
 
 
@@ -497,9 +499,9 @@ class Clauses:
         return self.Combine(combos, polarity)
 
     def AtMostOne_BDD(self, vals, polarity=None):
-        lits = list(vals)
-        coeffs = [1] * len(lits)
-        return self.LinearBound(lits, coeffs, 0, 1, True, polarity)
+        literals = list(vals)
+        coeffs = [1] * len(literals)
+        return self.LinearBound(literals, coeffs, 0, 1, True, polarity)
 
     def ExactlyOne_NSQ(self, vals, polarity):
         vals = list(vals)
@@ -508,28 +510,28 @@ class Clauses:
         return self.Combine((v1, v2), polarity)
 
     def ExactlyOne_BDD(self, vals, polarity):
-        lits = list(vals)
-        coeffs = [1] * len(lits)
-        return self.LinearBound(lits, coeffs, 1, 1, True, polarity)
+        literals = list(vals)
+        coeffs = [1] * len(literals)
+        return self.LinearBound(literals, coeffs, 1, 1, True, polarity)
 
-    def LB_Preprocess(self, lits, coeffs):
+    def LB_Preprocess(self, literals, coeffs):
         equation = []
         offset = 0
-        for coeff, lit in zip(coeffs, lits):
-            if lit == TRUE:
+        for coeff, literal in zip(coeffs, literals):
+            if literal == TRUE:
                 offset += coeff
                 continue
-            if lit == FALSE or coeff == 0:
+            if literal == FALSE or coeff == 0:
                 continue
             if coeff < 0:
                 offset += coeff
-                coeff, lit = -coeff, -lit
-            equation.append((coeff, lit))
-        coeffs, lits = tuple(zip(*sorted(equation))) or ((), ())
-        return lits, coeffs, offset
+                coeff, literal = -coeff, -literal
+            equation.append((coeff, literal))
+        coeffs, literals = tuple(zip(*sorted(equation))) or ((), ())
+        return literals, coeffs, offset
 
-    def BDD(self, lits, coeffs, nterms, lo, hi, polarity):
-        # The equation (coeffs x lits) is sorted in
+    def BDD(self, literals, coeffs, nterms, lo, hi, polarity):
+        # The equation (coeffs x literals) is sorted in
         # order of increasing coefficients.
         # Then we take advantage of the following recurrence:
         #                l      <= S + cN xN <= u
@@ -556,7 +558,7 @@ class Clauses:
             if lower_limit > total or upper_limit < 0:
                 ret[call_stack_pop()] = FALSE
                 continue
-            LA = lits[ndx]
+            LA = literals[ndx]
             LC = coeffs[ndx]
             ndx -= 1
             total -= LC
@@ -580,15 +582,17 @@ class Clauses:
             )
         return ret[target]
 
-    def LinearBound(self, lits, coeffs, lo, hi, preprocess, polarity):
+    def LinearBound(self, literals, coeffs, lo, hi, preprocess, polarity):
         if preprocess:
-            lits, coeffs, offset = self.LB_Preprocess(lits, coeffs)
+            literals, coeffs, offset = self.LB_Preprocess(literals, coeffs)
             lo -= offset
             hi -= offset
         nterms = len(coeffs)
         if nterms and coeffs[-1] > hi:
             nprune = sum(c > hi for c in coeffs)
-            log.trace("Eliminating %d/%d terms for bound violation" % (nprune, nterms))
+            log.log(
+                TRACE, "Eliminating %d/%d terms for bound violation", nprune, nterms
+            )
             nterms -= nprune
         else:
             nprune = 0
@@ -602,9 +606,9 @@ class Clauses:
         if nterms == 0:
             res = TRUE if lo == 0 else FALSE
         else:
-            res = self.BDD(lits, coeffs, nterms, lo, hi, polarity)
+            res = self.BDD(literals, coeffs, nterms, lo, hi, polarity)
         if nprune:
-            prune = self.All([-a for a in lits[nterms:]], polarity)
+            prune = self.All([-a for a in literals[nterms:]], polarity)
             res = self.Combine((res, prune), polarity)
         return res
 
@@ -656,10 +660,10 @@ class Clauses:
             self._sat_solver.restore_state(saved_state)
         return solution
 
-    def minimize(self, lits, coeffs, bestsol=None, trymax=False):
+    def minimize(self, literals, coeffs, bestsol=None, trymax=False):
         """
         Minimize the objective function given by (coeff, integer) pairs in
-        zip(coeffs, lits).
+        zip(coeffs, literals).
         The actual minimization is multiobjective: first, we minimize the
         largest active coefficient value, then we minimize the sum.
         """
@@ -673,7 +677,7 @@ class Clauses:
             log.debug("Empty objective, trivial solution")
             return bestsol, 0
 
-        lits, coeffs, offset = self.LB_Preprocess(lits, coeffs)
+        literals, coeffs, offset = self.LB_Preprocess(literals, coeffs)
         maxval = max(coeffs)
 
         def peak_val(sol, objective_dict):
@@ -686,13 +690,13 @@ class Clauses:
         try0 = 0
         for peak in (True, False) if maxval > 1 else (False,):
             if peak:
-                log.trace("Beginning peak minimization")
+                log.log(TRACE, "Beginning peak minimization")
                 objval = peak_val
             else:
-                log.trace("Beginning sum minimization")
+                log.log(TRACE, "Beginning sum minimization")
                 objval = sum_val
 
-            objective_dict = {a: c for c, a in zip(coeffs, lits)}
+            objective_dict = {a: c for c, a in zip(coeffs, literals)}
             bestval = objval(bestsol, objective_dict)
 
             # If we got lucky and the initial solution is optimal, we still
@@ -706,30 +710,36 @@ class Clauses:
             if trymax and not peak:
                 try0 = hi - 1
 
-            log.trace("Initial range (%d,%d)" % (lo, hi))
+            log.log(TRACE, "Initial range (%d,%d)", lo, hi)
             while True:
                 if try0 is None:
                     mid = (lo + hi) // 2
                 else:
                     mid = try0
                 if peak:
-                    prevent = tuple(a for c, a in zip(coeffs, lits) if c > mid)
-                    require = tuple(a for c, a in zip(coeffs, lits) if lo <= c <= mid)
+                    prevent = tuple(a for c, a in zip(coeffs, literals) if c > mid)
+                    require = tuple(
+                        a for c, a in zip(coeffs, literals) if lo <= c <= mid
+                    )
                     self.Prevent(self.Any, prevent)
                     if require:
                         self.Require(self.Any, require)
                 else:
-                    self.Require(self.LinearBound, lits, coeffs, lo, mid, False)
+                    self.Require(self.LinearBound, literals, coeffs, lo, mid, False)
 
                 if log.isEnabledFor(DEBUG):
-                    log.trace(
-                        "Bisection attempt: (%d,%d), (%d+%d) clauses"
-                        % (lo, mid, nz, self.get_clause_count() - nz)
+                    log.log(
+                        TRACE,
+                        "Bisection attempt: (%d,%d), (%d+%d) clauses",
+                        lo,
+                        mid,
+                        nz,
+                        self.get_clause_count() - nz,
                     )
                 newsol = self.sat()
                 if newsol is None:
                     lo = mid + 1
-                    log.trace("Bisection failure, new range=(%d,%d)" % (lo, hi))
+                    log.log(TRACE, "Bisection failure, new range=(%d,%d)", lo, hi)
                     if lo > hi:
                         # FIXME: This is not supposed to happen!
                         # TODO: Investigate and fix the cause.
@@ -742,7 +752,7 @@ class Clauses:
                     bestsol = newsol
                     bestval = objval(newsol, objective_dict)
                     hi = bestval
-                    log.trace("Bisection success, new range=(%d,%d)" % (lo, hi))
+                    log.log(TRACE, "Bisection success, new range=(%d,%d)", lo, hi)
                     if done:
                         break
                 self.m = m_orig
@@ -761,7 +771,7 @@ class Clauses:
                 # with coefficients larger than this. Furthermore, since we know
                 # at least one peak will be active, our lower bound for the sum
                 # equals the peak.
-                lits = [a for c, a in zip(coeffs, lits) if c <= bestval]
+                literals = [a for c, a in zip(coeffs, literals) if c <= bestval]
                 coeffs = [c for c in coeffs if c <= bestval]
                 try0 = sum_val(bestsol, objective_dict)
                 lo = bestval

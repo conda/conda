@@ -7,35 +7,43 @@ import uuid
 from typing import TYPE_CHECKING
 
 import pytest
+from requests import Response
 
-from conda.base.context import reset_context
+from conda.base.constants import PREFIX_PINNED_FILE
+from conda.base.context import context, reset_context
+from conda.common.serialize import yaml_safe_dump
+from conda.gateways.disk import lock
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
     X_MARK,
     altered_files,
     check_envs_txt_file,
-    display_health_checks,
     env_txt_check,
     find_altered_packages,
     find_packages_with_missing_files,
     missing_files,
+    requests_ca_bundle_check,
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
-    from typing import Iterable
 
-    from pytest import MonkeyPatch
+    from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
 
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from tests.conftest import test_recipes_channel
 
-@pytest.fixture
-def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
+
+@pytest.fixture(params=[".pyo", ".pyc"])
+def env_ok(tmp_path: Path, request) -> Iterable[tuple[Path, str, str, str, str]]:
     """Fixture that returns a testing environment with no missing files"""
     package = uuid.uuid4().hex
 
     (tmp_path / "bin").mkdir(parents=True, exist_ok=True)
     (tmp_path / "lib").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "pycache").mkdir(parents=True, exist_ok=True)
     (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)
 
     bin_doctor = f"bin/{package}"
@@ -44,12 +52,16 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
     lib_doctor = f"lib/{package}.py"
     (tmp_path / lib_doctor).touch()
 
+    ignored_doctor = f"pycache/{package}.{request.param}"
+    (tmp_path / ignored_doctor).touch()
+
     # A template json file mimicking a json file in conda-meta
     # the "sha256" and "sha256_in_prefix" values are sha256 checksum generated for an empty file
     PACKAGE_JSON = {
         "files": [
             bin_doctor,
             lib_doctor,
+            ignored_doctor,
         ],
         "paths_data": {
             "paths": [
@@ -63,6 +75,11 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
                     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                 },
+                {
+                    "_path": ignored_doctor,
+                    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                    "sha256_in_prefix": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                },
             ],
             "paths_version": 1,
         },
@@ -70,33 +87,41 @@ def env_ok(tmp_path: Path) -> Iterable[tuple[Path, str, str, str]]:
 
     (tmp_path / "conda-meta" / f"{package}.json").write_text(json.dumps(PACKAGE_JSON))
 
-    yield tmp_path, bin_doctor, lib_doctor, package
+    yield tmp_path, bin_doctor, lib_doctor, ignored_doctor, package
 
 
 @pytest.fixture
-def env_missing_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
+def env_missing_files(
+    env_ok: tuple[Path, str, str, str, str],
+) -> tuple[Path, str, str, str, str]:
     """Fixture that returns a testing environment with missing files"""
-    prefix, bin_doctor, _, _ = env_ok
+    prefix, bin_doctor, _, ignored_doctor, _ = env_ok
     (prefix / bin_doctor).unlink()  # file bin_doctor becomes "missing"
+    (prefix / ignored_doctor).unlink()  # file ignored_doctor becomes "missing"
+
     return env_ok
 
 
 @pytest.fixture
-def env_altered_files(env_ok: tuple[Path, str, str, str]) -> tuple[Path, str, str, str]:
+def env_altered_files(
+    env_ok: tuple[Path, str, str, str, str],
+) -> tuple[Path, str, str, str, str]:
     """Fixture that returns a testing environment with altered files"""
-    prefix, _, lib_doctor, _ = env_ok
+    prefix, _, lib_doctor, ignored_doctor, _ = env_ok
     # Altering the lib_doctor.py file so that it's sha256 checksum will change
     with open(prefix / lib_doctor, "w") as f:
         f.write("print('Hello, World!')")
+    with open(prefix / ignored_doctor, "w") as f:
+        f.write("nonsense")
 
     return env_ok
 
 
 def test_listed_on_envs_txt_file(
-    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str]
+    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str, str]
 ):
     """Test that runs for the case when the env is listed on the environments.txt file"""
-    prefix, _, _, _ = env_ok
+    prefix, _, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
     tmp_envs_txt_file.write_text(f"{prefix}")
 
@@ -108,10 +133,10 @@ def test_listed_on_envs_txt_file(
 
 
 def test_not_listed_on_envs_txt_file(
-    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str]
+    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str, str]
 ):
     """Test that runs for the case when the env is not listed on the environments.txt file"""
-    prefix, _, _, _ = env_ok
+    prefix, _, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
     tmp_envs_txt_file.write_text("Not environment name")
 
@@ -122,44 +147,47 @@ def test_not_listed_on_envs_txt_file(
     assert not check_envs_txt_file(prefix)
 
 
-def test_no_missing_files(env_ok: tuple[Path, str, str, str]):
+def test_no_missing_files(env_ok: tuple[Path, str, str, str, str]):
     """Test that runs for the case with no missing files"""
-    prefix, _, _, _ = env_ok
+    prefix, _, _, _, _ = env_ok
     assert find_packages_with_missing_files(prefix) == {}
 
 
-def test_missing_files(env_missing_files: tuple[Path, str, str, str]):
-    prefix, bin_doctor, _, package = env_missing_files
+def test_missing_files(env_missing_files: tuple[Path, str, str, str, str]):
+    prefix, bin_doctor, _, ignored_doctor, package = env_missing_files
     assert find_packages_with_missing_files(prefix) == {package: [bin_doctor]}
 
 
-def test_no_altered_files(env_ok: tuple[Path, str, str, str]):
+def test_no_altered_files(env_ok: tuple[Path, str, str, str, str]):
     """Test that runs for the case with no altered files"""
-    prefix, _, _, _ = env_ok
+    prefix, _, _, _, _ = env_ok
     assert find_altered_packages(prefix) == {}
 
 
-def test_altered_files(env_altered_files: tuple[Path, str, str, str]):
-    prefix, _, lib_doctor, package = env_altered_files
+def test_altered_files(env_altered_files: tuple[Path, str, str, str, str]):
+    prefix, _, lib_doctor, _, package = env_altered_files
     assert find_altered_packages(prefix) == {package: [lib_doctor]}
 
 
 @pytest.mark.parametrize("verbose", [True, False])
 def test_missing_files_action(
-    env_missing_files: tuple[Path, str, str, str], capsys, verbose
+    env_missing_files: tuple[Path, str, str, str, str], capsys, verbose
 ):
-    prefix, bin_doctor, _, package = env_missing_files
+    prefix, bin_doctor, _, ignored_doctor, package = env_missing_files
     missing_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(bin_doctor) in captured.out
+        assert str(ignored_doctor) not in captured.out
     else:
         assert f"{package}: 1" in captured.out
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_no_missing_files_action(env_ok: tuple[Path, str, str, str], capsys, verbose):
-    prefix, _, _, _ = env_ok
+def test_no_missing_files_action(
+    env_ok: tuple[Path, str, str, str, str], capsys, verbose
+):
+    prefix, _, _, _, _ = env_ok
     missing_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     assert "There are no packages with missing files." in captured.out
@@ -167,29 +195,35 @@ def test_no_missing_files_action(env_ok: tuple[Path, str, str, str], capsys, ver
 
 @pytest.mark.parametrize("verbose", [True, False])
 def test_altered_files_action(
-    env_altered_files: tuple[Path, str, str, str], capsys, verbose
+    env_altered_files: tuple[Path, str, str, str, str], capsys, verbose
 ):
-    prefix, _, lib_doctor, package = env_altered_files
+    prefix, _, lib_doctor, ignored_doctor, package = env_altered_files
     altered_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
         assert str(lib_doctor) in captured.out
+        assert str(ignored_doctor) not in captured.out
     else:
         assert f"{package}: 1" in captured.out
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_no_altered_files_action(env_ok: tuple[Path, str, str, str], capsys, verbose):
-    prefix, _, _, _ = env_ok
+def test_no_altered_files_action(
+    env_ok: tuple[Path, str, str, str, str], capsys, verbose
+):
+    prefix, _, _, _, _ = env_ok
     altered_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     assert "There are no packages with altered files." in captured.out
 
 
 def test_env_txt_check_action(
-    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str], capsys
+    tmp_path: Path,
+    mocker: MockerFixture,
+    env_ok: tuple[Path, str, str, str, str],
+    capsys,
 ):
-    prefix, _, _, _ = env_ok
+    prefix, _, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
     tmp_envs_txt_file.write_text(f"{prefix}")
 
@@ -203,9 +237,12 @@ def test_env_txt_check_action(
 
 
 def test_not_env_txt_check_action(
-    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str], capsys
+    tmp_path: Path,
+    mocker: MockerFixture,
+    env_ok: tuple[Path, str, str, str, str],
+    capsys,
 ):
-    prefix, _, _, _ = env_ok
+    prefix, _, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
     tmp_envs_txt_file.write_text("Not environment name")
 
@@ -218,9 +255,59 @@ def test_not_env_txt_check_action(
     assert X_MARK in captured.out
 
 
-def test_json_keys_missing(env_ok: tuple[Path, str, str, str], capsys):
+def test_requests_ca_bundle_check_action_passes(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+    mocker: MockerFixture,
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
+    response = Response()
+    response.status_code = 200
+    mocker.patch(
+        "conda.gateways.connection.session.CondaSession.get", return_value=response
+    )
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n" in captured.out
+
+
+def test_requests_ca_bundle_check_action_non_existent_path(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "non/existent/path")
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert (
+        f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
+        in captured.out
+    )
+
+
+def test_requests_ca_bundle_check_action_fails(
+    env_ok: tuple[Path, str, str, str, str],
+    capsys: CaptureFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+):
+    prefix, _, _, _, _ = env_ok
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
+    requests_ca_bundle_check(prefix, verbose=True)
+    captured = capsys.readouterr()
+    assert (
+        f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`:"
+        in captured.out
+    )
+
+
+def test_json_keys_missing(env_ok: tuple[Path, str, str, str, str], capsys):
     """Test that runs for the case with empty json"""
-    prefix, _, _, package = env_ok
+    prefix, _, _, _, package = env_ok
     file = prefix / "conda-meta" / f"{package}.json"
     with open(file) as f:
         data = json.load(f)
@@ -231,9 +318,9 @@ def test_json_keys_missing(env_ok: tuple[Path, str, str, str], capsys):
     assert find_altered_packages(prefix) == {}
 
 
-def test_wrong_path_version(env_ok: tuple[Path, str, str, str]):
+def test_wrong_path_version(env_ok: tuple[Path, str, str, str, str]):
     """Test that runs for the case when path_version is not equal to 1"""
-    prefix, _, _, package = env_ok
+    prefix, _, _, _, package = env_ok
     file = prefix / "conda-meta" / f"{package}.json"
     with open(file) as f:
         data = json.load(f)
@@ -244,60 +331,133 @@ def test_wrong_path_version(env_ok: tuple[Path, str, str, str]):
     assert find_altered_packages(prefix) == {}
 
 
-def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str]):
+def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
     """Test that runs for the case when json file is missing"""
-    prefix, _, _, package = env_ok
+    prefix, _, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
     assert find_altered_packages(prefix) == {}
 
 
-@pytest.mark.parametrize("verbose", [True, False])
-def test_display_health_checks(
-    env_ok: tuple[Path, str, str, str], verbose: bool, capsys, monkeypatch: MonkeyPatch
+def test_env_consistency_check_passes(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
 ):
-    """Test that runs display_health_checks without missing or altered files."""
-    prefix, bin_doctor, lib_doctor, package = env_ok
-    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
-    reset_context()
-    display_health_checks(prefix, verbose=verbose)
-    captured = capsys.readouterr()
-    assert "There are no packages with missing files." in captured.out
-    assert "There are no packages with altered files." in captured.out
+    with tmp_env("dependent") as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+
+        assert f"{OK_MARK} The environment is consistent.\n" in out
 
 
-@pytest.mark.parametrize("verbose", [True, False])
-def test_display_health_checks_missing_files(
-    env_missing_files: tuple[Path, str, str, str],
-    verbose: bool,
-    capsys,
+def test_env_consistency_check_fails(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+
+
+def test_env_consistency_check_fails_verbose(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_to_install = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+
+    expected_output_dict = {
+        "dependent": {"missing": ["dependency[version='>=1.0,<2.0a0']"]}
+    }
+    expected_output_yaml = yaml_safe_dump(expected_output_dict)
+
+    with tmp_env(pkg_to_install) as prefix:
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+        assert expected_output_yaml in out
+
+
+def test_env_consistency_constrains_not_met(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: test_recipes_channel,
+):
+    pkg_1_to_install = test_recipes_channel / "noarch" / "run_constrained-1.0-0.conda"
+    pkg_2_to_install = test_recipes_channel / "noarch" / "dependency-1.0-0.tar.bz2"
+
+    with tmp_env(pkg_1_to_install, pkg_2_to_install) as prefix:
+        expected_output_dict = {
+            "run_constrained": {
+                "inconsistent": [
+                    {
+                        "expected": "dependency[version='>=2.0']",
+                        "installed": "dependency[version='1.0']",
+                    }
+                ]
+            }
+        }
+        expected_output_yaml = yaml_safe_dump(expected_output_dict)
+
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert f"{X_MARK} The environment is not consistent.\n" in out
+        assert expected_output_yaml in out
+
+
+@pytest.mark.parametrize(
+    "pinned_file,expected_output",
+    [
+        ("", OK_MARK),
+        ("conda 1.11", OK_MARK),
+        ("conda 1.11, otherpackages==1", X_MARK),
+        ('"conda"', X_MARK),
+        ("imnotinstalledyet", X_MARK),
+    ],
+)
+def test_pinned_will_formatted_check(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    pinned_file: str,
+    expected_output: str,
+):
+    with tmp_env() as prefix:
+        (prefix / PREFIX_PINNED_FILE).write_text(pinned_file)
+
+        out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
+        assert expected_output in out
+
+
+@pytest.mark.parametrize("no_lock_flag", [True, False])
+def test_file_locking_supported(
+    conda_cli: CondaCLIFixture,
+    no_lock_flag: bool,
     monkeypatch: MonkeyPatch,
 ):
-    """Test that runs display_health_checks with missing files"""
-    prefix, bin_doctor, _, package = env_missing_files
-    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
+    assert lock.locking_supported()
+
+    monkeypatch.setenv("CONDA_NO_LOCK", no_lock_flag)
     reset_context()
-    display_health_checks(prefix, verbose=verbose)
-    captured = capsys.readouterr()
-    if verbose:
-        assert str(bin_doctor) in captured.out
+
+    assert context.no_lock == no_lock_flag
+
+    out, _, _ = conda_cli("doctor")
+    if no_lock_flag:
+        assert (
+            f"{X_MARK} File locking is supported but currently disabled using the CONDA_NO_LOCK=1 setting.\n"
+            in out
+        )
     else:
-        assert f"{package}: 1" in captured.out
+        assert f"{OK_MARK} File locking is supported." in out
 
 
-@pytest.mark.parametrize("verbose", [True, False])
-def test_display_health_checks_altered_files(
-    env_altered_files: tuple[Path, str, str, str],
-    verbose: bool,
-    capsys,
-    monkeypatch: MonkeyPatch,
+def test_file_locking_not_supported(
+    conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
 ):
-    """Test that runs display_health_checks with altered files"""
-    prefix, _, lib_doctor, package = env_altered_files
-    monkeypatch.setenv("CONDA_PREFIX", str(prefix))
-    reset_context()
-    display_health_checks(prefix, verbose=verbose)
-    captured = capsys.readouterr()
-    if verbose:
-        assert str(lib_doctor) in captured.out
-    else:
-        assert f"{package}: 1" in captured.out
+    monkeypatch.setattr(lock, "_lock_impl", lock._lock_noop)
+
+    assert not lock.locking_supported()
+
+    out, _, _ = conda_cli("doctor")
+
+    assert f"{X_MARK} File locking is not supported." in out

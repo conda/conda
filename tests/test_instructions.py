@@ -6,8 +6,6 @@ import pytest
 
 from conda import instructions
 from conda.exceptions import CondaFileIOError
-from conda.exports import execute_instructions
-from conda.instructions import commands
 
 
 def test_expected_operation_order():
@@ -24,44 +22,6 @@ def test_expected_operation_order():
         instructions.RM_FETCHED,
     )
     assert expected == instructions.ACTION_CODES
-
-
-def test_simple_instruction():
-    index = {"This is an index": True}
-
-    def simple_cmd(state, arg):
-        simple_cmd.called = True
-        simple_cmd.call_args = arg
-
-    commands["SIMPLE"] = simple_cmd
-
-    plan = [("SIMPLE", ["arg1"])]
-
-    execute_instructions(plan, index, verbose=False)
-
-    assert simple_cmd.called
-    assert simple_cmd.call_args == ["arg1"]
-
-
-def test_state():
-    index = {"This is an index": True}
-
-    def simple_cmd(state, arg):
-        expect, x = arg
-        state.setdefault("x", 1)
-        assert state["x"] == expect
-        state["x"] = x
-        simple_cmd.called = True
-
-    commands["SIMPLE"] = simple_cmd
-
-    plan = [
-        ("SIMPLE", (1, 5)),
-        ("SIMPLE", (5, None)),
-    ]
-
-    execute_instructions(plan, index, verbose=False)
-    assert simple_cmd.called
 
 
 def test_check_files_in_tarball_files_exist():

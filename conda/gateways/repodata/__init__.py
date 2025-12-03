@@ -8,7 +8,6 @@ import abc
 import datetime
 import errno
 import hashlib
-import json
 import logging
 import os
 import pathlib
@@ -24,6 +23,7 @@ from ... import CondaError
 from ...auxlib.logz import stringify
 from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from ...base.context import context
+from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
 from ...core.package_cache_data import PackageCacheData
 from ...exceptions import (
@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-# if repodata.json.zst or repodata.jlap were unavailable, check again later.
+# if repodata_shards.msgpack.zst, repodata.json.zst or repodata.jlap were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 # repodata.info/state.json keys to keep up with the CEP
@@ -87,8 +87,6 @@ class RepodataOnDisk(Exception):
 
 
 class RepoInterface(abc.ABC):
-    # TODO: Support async operations
-    # TODO: Support progress bars
     def repodata(self, state: dict) -> str:
         """
         Given a mutable state dictionary with information about the cache,
@@ -302,8 +300,8 @@ will need to
         followed by collecting a new token with `anaconda login`, or
     (b) provide conda with a valid token directly.
 
-Further configuration help can be found at <%s>.
-""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
             else:
                 help_message = """\
@@ -311,8 +309,8 @@ The credentials you have provided for this URL are invalid.
 
 You will need to modify your conda configuration to proceed.
 Use `conda config --show` to view your configuration's current state.
-Further configuration help can be found at <%s>.
-""" % join_url(CONDA_HOMEPAGE_URL, "docs/config.html")
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
         elif status_code is not None and 500 <= status_code < 600:
             help_message = """\
@@ -326,22 +324,22 @@ of the remote server.
 
         else:
             if url.startswith("https://repo.anaconda.com/"):
-                help_message = """\
+                help_message = f"""\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
 
 If your current network has https://repo.anaconda.com blocked, please file
 a support request with your network engineering team.
 
-%s
-""" % maybe_unquote(repr(url))
+{maybe_unquote(repr(url))}
+"""
 
             else:
-                help_message = """\
+                help_message = f"""\
 An HTTP error occurred when trying to retrieve this URL.
 HTTP errors are often intermittent, and a simple retry will get you on your way.
-%s
-""" % maybe_unquote(repr(url))
+{maybe_unquote(repr(url))}
+"""
 
         raise CondaHTTPError(
             help_message,
@@ -438,7 +436,7 @@ class RepodataState(UserDict):
             value = bool(obj["value"])
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
-            log.warn(
+            log.warning(
                 f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
                 exc_info=e,
             )
@@ -493,6 +491,8 @@ class RepodataCache:
     (<hex-string>*.json inside `dir`)
 
     Avoid race conditions while loading, saving repodata.json and cache state.
+
+    Also support bytes as in repodata_shards.msgpack.zst
     """
 
     def __init__(self, base, repodata_fn):
@@ -517,11 +517,18 @@ class RepodataCache:
         )
 
     @property
+    def cache_path_shards(self):
+        return pathlib.Path(
+            self.cache_dir,
+            self.name + ("1" if context.use_only_tar_bz2 else "") + ".msgpack.zst",
+        )
+
+    @property
     def cache_path_state(self):
         """Out-of-band etag and other state needed by the RepoInterface."""
         return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
-    def load(self, *, state_only=False) -> str:
+    def load(self, *, state_only=False, binary=False) -> str | bytes:
         # read state and repodata.json with locking
 
         # lock {CACHE_STATE_SUFFIX} file
@@ -534,14 +541,19 @@ class RepodataCache:
             # it will release the lock early
             state = json.loads(state_file.read())
 
+            cache_path = self.cache_path_shards if binary else self.cache_path_json
+
             # json and state files should match. must read json before checking
             # stat (if json_data is to be trusted)
             if state_only:
-                json_data = ""
+                json_data = b"" if binary else ""
             else:
-                json_data = self.cache_path_json.read_text()
+                if binary:
+                    json_data = cache_path.read_bytes()
+                else:
+                    json_data = cache_path.read_text()
 
-            json_stat = self.cache_path_json.stat()
+            json_stat = cache_path.stat()
             if not (
                 state.get("mtime_ns") == json_stat.st_mtime_ns
                 and state.get("size") == json_stat.st_size
@@ -555,49 +567,41 @@ class RepodataCache:
                         "size": 0,
                     }
                 )
+            # Replace data in special self.state dict subclass with key aliases
             self.state.clear()
-            self.state.update(
-                state
-            )  # will aliased _mod, _etag (not cleared above) pass through as mod, etag?
+            self.state.update(state)
 
         return json_data
 
-        # check repodata.json stat(); mtime_ns must equal value in
-        # {CACHE_STATE_SUFFIX} file, or it is stale.
-        # read repodata.json
-        # check repodata.json stat() again: st_size, st_mtime_ns must be equal
-
-        # repodata.json is okay - use it somewhere
-
-        # repodata.json is not okay - maybe use it, but don't allow cache updates
-
-        # unlock {CACHE_STATE_SUFFIX} file
-
-        # also, add refresh_ns instead of touching repodata.json file
-
-    def load_state(self):
+    def load_state(self, binary=False):
         """
-        Update self.state without reading repodata.json.
+        Update self.state without reading repodata.
 
         Return self.state.
         """
         try:
-            self.load(state_only=True)
+            self.load(state_only=True, binary=binary)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, json.JSONDecodeError):
                 log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
             self.state.clear()
         return self.state
 
-    def save(self, data: str):
-        """Write data to <repodata>.json cache path, synchronize state."""
+    def save(self, data: str | bytes):
+        """Write data to <repodata> cache path, by calling self.replace()."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
+        if isinstance(data, bytes):
+            mode = "bx"
+            target = self.cache_path_shards
+        else:
+            mode = "x"
+            target = self.cache_path_json
 
         try:
-            with temp_path.open("x") as temp:  # exclusive mode, error if exists
+            with temp_path.open(mode) as temp:  # exclusive mode, error if exists
                 temp.write(data)
 
-            return self.replace(temp_path)
+            return self.replace(temp_path, target)
 
         finally:
             try:
@@ -605,28 +609,30 @@ class RepodataCache:
             except OSError:
                 pass
 
-    def replace(self, temp_path: Path):
+    def replace(self, temp_path: Path, target=None):
         """
-        Rename path onto <repodata>.json path, synchronize state.
+        Rename path onto <repodata> path, synchronize state.
 
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
+        if target is None:
+            target = self.cache_path_json
         with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             stat = temp_path.stat()
-            # XXX make sure self.state has the correct etag, etc. for temp_path.
             # UserDict has inscrutable typing, which we ignore
             self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
             self.state["size"] = stat.st_size  # type: ignore
             self.state["refresh_ns"] = time.time_ns()  # type: ignore
             try:
-                temp_path.rename(self.cache_path_json)
+                temp_path.rename(target)
             except FileExistsError:  # Windows
-                self.cache_path_json.unlink()
-                temp_path.rename(self.cache_path_json)
+                target.unlink()
+                temp_path.rename(target)
+
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):
@@ -871,8 +877,8 @@ class RepodataFetch:
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
                     raw_repodata = self.cache_path_json.read_text()
-                    cache.state["size"] = len(raw_repodata)  # type: ignore
                     stat = self.cache_path_json.stat()
+                    cache.state["size"] = stat.st_size  # type: ignore
                     mtime_ns = stat.st_mtime_ns
                     cache.state["mtime_ns"] = mtime_ns  # type: ignore
                     cache.refresh()
@@ -890,8 +896,7 @@ class RepodataFetch:
                         raw_repodata = "{}"
                     cache.save(raw_repodata)
                 else:  # pragma: no cover
-                    # it can be a dict?
-                    assert False, f"Unreachable {raw_repodata}"
+                    raise RuntimeError(f"Unreachable {raw_repodata}")
             except OSError as e:
                 if e.errno in (errno.EACCES, errno.EPERM, errno.EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)
@@ -926,16 +931,8 @@ so they can be downloaded again."""
             raise CondaError(message)
 
 
-try:
-    hashlib.md5(b"", usedforsecurity=False)
-
-    def _md5_not_for_security(data):
-        return hashlib.md5(data, usedforsecurity=False)
-
-except TypeError:  # pragma: no cover
-    # Python < 3.9
-    def _md5_not_for_security(data):
-        return hashlib.md5(data)
+def _md5_not_for_security(data):
+    return hashlib.md5(data, usedforsecurity=False)
 
 
 def cache_fn_url(url, repodata_fn=REPODATA_FN):

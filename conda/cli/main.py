@@ -4,15 +4,7 @@
 
 import sys
 
-from ..deprecations import deprecated
 
-
-@deprecated.argument(
-    "24.3",
-    "24.9",
-    "context",
-    addendum="The context is a global state, no need to pass it around.",
-)
 def init_loggers():
     import logging
 
@@ -28,21 +20,6 @@ def init_loggers():
 
     # set log_level
     set_log_level(context.log_level)
-
-
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.cli.conda_argparse.generate_parser` instead.",
-)
-def generate_parser(*args, **kwargs):
-    """
-    Some code paths import this function directly from this module instead
-    of from conda_argparse. We add the forwarder for backwards compatibility.
-    """
-    from .conda_argparse import generate_parser
-
-    return generate_parser(*args, **kwargs)
 
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
@@ -94,6 +71,7 @@ def main_sourced(shell, *args, **kwargs):
 
     # This is called any way later in conda.activate, so no point in removing it
     from ..base.context import context
+    from ..common.compat import on_win
 
     context.__init__()
 
@@ -104,10 +82,17 @@ def main_sourced(shell, *args, **kwargs):
     except KeyError:
         from ..exceptions import CondaError
 
-        raise CondaError("%s is not a supported shell." % shell)
+        raise CondaError(f"{shell} is not a supported shell.")
 
     activator = activator_cls(args)
-    print(activator.execute(), end="")
+    result = activator.execute()
+
+    # Fix line endings for shells that need it on Windows
+    if on_win and activator.needs_line_ending_fix:
+        result = result.replace("\r", "")
+        sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+
+    print(result, end="")
     return 0
 
 

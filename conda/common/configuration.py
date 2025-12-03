@@ -21,6 +21,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
+from functools import wraps
 from itertools import chain
 from logging import getLogger
 from os import environ
@@ -30,26 +31,38 @@ from re import IGNORECASE, VERBOSE, compile
 from string import Template
 from typing import TYPE_CHECKING
 
-from ..deprecations import deprecated
-
-if TYPE_CHECKING:  # pragma: no cover
-    from re import Match
-    from typing import Any, Hashable, Iterable, Sequence
-
 from boltons.setutils import IndexedSet
+from frozendict import deepfreeze, frozendict
+from frozendict import getFreezeConversionMap as _getFreezeConversionMap
+from frozendict import register as _register
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.reader import ReaderError
 from ruamel.yaml.scanner import ScannerError
 
 from .. import CondaError, CondaMultiError
-from .._vendor.frozendict import frozendict
-from ..auxlib.collection import AttrDict, first, last, make_immutable
+from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
+from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml_round_trip_load
+
+if Enum not in _getFreezeConversionMap():
+    # leave enums as is, deepfreeze will flatten it into a dict
+    # see https://github.com/Marco-Sulla/python-frozendict/issues/98
+    _register(Enum, lambda x: x)
+
+del _getFreezeConversionMap
+del _register
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable, Iterable, Sequence
+    from re import Match
+    from typing import Any, Final
+
+    from ..common.path import PathsType
 
 log = getLogger(__name__)
 
@@ -153,7 +166,7 @@ class ParameterFlag(Enum):
     bottom = "bottom"
 
     def __str__(self):
-        return "%s" % self.value
+        return f"{self.value}"
 
     @classmethod
     def from_name(cls, name):
@@ -205,13 +218,14 @@ class RawParameter(metaclass=ABCMeta):
 
 
 class EnvRawParameter(RawParameter):
-    source = "envvars"
+    source = ENV_VARS_SOURCE
 
     def value(self, parameter_obj):
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, "string_delimiter"):
-            assert isinstance(self._raw_value, str)
+            if not isinstance(self._raw_value, str):
+                raise TypeError("Value is not a string.")
             string_delimiter = getattr(parameter_obj, "string_delimiter")
             # TODO: add stripping of !important, !top, and !bottom
             return tuple(
@@ -249,7 +263,7 @@ class EnvRawParameter(RawParameter):
 
 
 class ArgParseRawParameter(RawParameter):
-    source = "cmd_line"
+    source = CMD_LINE_SOURCE
 
     def value(self, parameter_obj):
         # note: this assumes ArgParseRawParameter will only have flat configuration of either
@@ -262,7 +276,7 @@ class ArgParseRawParameter(RawParameter):
                 )
             return tuple(children_values)
         else:
-            return make_immutable(self._raw_value)
+            return deepfreeze(self._raw_value)
 
     def keyflag(self):
         return None
@@ -451,12 +465,6 @@ class DefaultValueRawParameter(RawParameter):
             raise ThisShouldNeverHappenError()  # pragma: no cover
 
 
-@deprecated("24.3", "24.9")
-def load_file_configs(search_path: Iterable[Path | str], **kwargs) -> dict[Path, dict]:
-    expanded_paths = Configuration._expand_search_path(search_path, **kwargs)
-    return dict(Configuration._load_search_path(expanded_paths))
-
-
 class LoadedParameter(metaclass=ABCMeta):
     # (type) describes the type of parameter
     _type = None
@@ -520,7 +528,7 @@ class LoadedParameter(metaclass=ABCMeta):
         """
         Recursively expands any environment values in the Loaded Parameter.
 
-        Returns: LoadedParameter
+        Returns LoadedParameter
         """
         # This is similar to conda.auxlib.type_coercion.typify_data_structure
         # It could be DRY-er but that would break SRP.
@@ -900,6 +908,17 @@ class ObjectLoadedParameter(LoadedParameter):
 class ConfigurationObject:
     """Dummy class to mark whether a Python object has config parameters within."""
 
+    def to_json(self):
+        """
+        Return a serializable object with defaults filled in
+        """
+        serializable = {}
+
+        for attr, value in vars(self).items():
+            serializable[attr] = value
+
+        return serializable
+
 
 class Parameter(metaclass=ABCMeta):
     # (type) describes the type of parameter
@@ -1161,14 +1180,16 @@ class ObjectParameter(Parameter):
         object_parameter_attrs = {
             attr_name: parameter_type
             for attr_name, parameter_type in vars(self._element_type).items()
-            if isinstance(parameter_type, Parameter) and attr_name in value.keys()
+            if isinstance(parameter_type, Parameter)
         }
 
         # recursively load object fields
         loaded_attrs = {}
         for attr_name, parameter_type in object_parameter_attrs.items():
-            raw_child_value = value.get(attr_name)
-            loaded_child_value = parameter_type.load(name, raw_child_value)
+            if raw_child_value := value.get(attr_name):
+                loaded_child_value = parameter_type.load(name, raw_child_value)
+            else:
+                loaded_child_value = parameter_type.default
             loaded_attrs[attr_name] = loaded_child_value
 
         # copy object and replace Parameter with LoadedParameter fields
@@ -1289,15 +1310,33 @@ class ConfigurationType(type):
     def __init__(cls, name, bases, attr):
         super().__init__(name, bases, attr)
 
-        # call _set_name for each parameter
+        # call _set_name for each parameter found during class creation
         cls.parameter_names = tuple(
             p._set_name(name)
             for name, p in cls.__dict__.items()
             if isinstance(p, ParameterLoader)
         )
 
+        # Build parameter_names_and_aliases by extracting parameter loaders directly
+        cls._set_parameter_names_and_aliases()
 
-CONDARC_FILENAMES = (".condarc", "condarc")
+    @property
+    def _parameter_loaders(cls) -> dict[str, ParameterLoader]:
+        return {
+            name: param
+            for name, param in cls.__dict__.items()
+            if isinstance(param, ParameterLoader)
+        }
+
+    def __call__(cls, *args, **kwargs):
+        self = super().__call__(*args, **kwargs)
+        self._parameter_loaders = cls._parameter_loaders
+        return self
+
+
+DEFAULT_CONDARC_FILENAME: Final = ".condarc"
+ALTERNATIVE_CONDARC_FILENAME: Final = "condarc"
+CONDARC_FILENAMES = (DEFAULT_CONDARC_FILENAME, ALTERNATIVE_CONDARC_FILENAME)
 YAML_EXTENSIONS = (".yml", ".yaml")
 _RE_CUSTOM_EXPANDVARS = compile(
     rf"""
@@ -1364,9 +1403,18 @@ class Configuration(metaclass=ConfigurationType):
         self._set_env_vars(app_name)
         self._set_argparse_args(argparse_args)
 
+    @classmethod
+    def _set_parameter_names_and_aliases(cls):
+        """Build parameter_names_and_aliases from the class's parameter loaders."""
+        cls.parameter_names_and_aliases = tuple(
+            alias_name
+            for p in cls._parameter_loaders.values()
+            for alias_name in (p._names or ())
+        )
+
     @staticmethod
     def _expand_search_path(
-        search_path: Iterable[Path | str],
+        search_path: PathsType,
         **kwargs,
     ) -> Iterable[Path]:
         for search in search_path:
@@ -1375,7 +1423,7 @@ class Configuration(metaclass=ConfigurationType):
             if isinstance(search, Path):
                 path = search
             else:
-                template = custom_expandvars(search, environ, **kwargs)
+                template = custom_expandvars(str(search), environ, **kwargs)
                 path = Path(template).expanduser()
 
             if path.is_file() and (
@@ -1404,7 +1452,7 @@ class Configuration(metaclass=ConfigurationType):
                     err,
                 )
 
-    def _set_search_path(self, search_path: Iterable[Path | str], **kwargs):
+    def _set_search_path(self, search_path: PathsType, **kwargs):
         self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
 
         self._set_raw_data(dict(self._load_search_path(self._search_path)))
@@ -1460,6 +1508,62 @@ class Configuration(metaclass=ConfigurationType):
         self._reset_cache()
         return self
 
+    def name_for_alias(self, alias: str, ignore_private: bool = True) -> str | None:
+        """
+        Find the canonical parameter name for a given alias.
+
+        This method searches through all configuration parameters to find the canonical
+        parameter name that corresponds to the given alias. It's useful for resolving
+        parameter aliases to their primary names in configuration contexts.
+
+        Args:
+            alias (str): The parameter alias to look up.
+            ignore_private (bool, optional): If True (default), exclude private parameters
+                (those starting with underscore) from the search. If False, include all
+                parameters regardless of privacy.
+
+        Returns:
+            str | None: The canonical parameter name if the alias is found, otherwise None.
+
+        Example:
+            >>> config = Configuration()
+            >>> config.name_for_alias("channel_priority")
+            'channel_priority'
+            >>> config.name_for_alias("unknown_alias")
+            None
+        """
+        return next(
+            (
+                p._name
+                for p in self._parameter_loaders.values()
+                if alias in p.aliases
+                and (not ignore_private or not p._name.startswith("_"))
+            ),
+            None,
+        )
+
+    def _get_parameter_loader(self, parameter_name):
+        """Get parameter loader with fallback for missing parameters."""
+        loaders = self._parameter_loaders
+        if parameter_name in loaders:
+            return loaders[parameter_name]
+
+        # Try with underscore prefix for private parameters
+        private_name = "_" + parameter_name
+        if private_name in loaders:
+            return loaders[private_name]
+
+        # Last resort: search through __dict__ for any ParameterLoader
+        for name, param in self.__class__.__dict__.items():
+            if isinstance(param, ParameterLoader) and param._name == parameter_name:
+                return param
+            if isinstance(param, ParameterLoader) and parameter_name in getattr(
+                param, "_names", ()
+            ):
+                return param
+
+        return None
+
     def _reset_cache(self):
         self._cache_ = {}
         for callback in self._reset_callbacks:
@@ -1476,7 +1580,10 @@ class Configuration(metaclass=ConfigurationType):
         validation_errors = []
         raw_parameters = self.raw_data[source]
         for key in self.parameter_names:
-            parameter = self.__class__.__dict__[key]
+            parameter = self._get_parameter_loader(key)
+            if parameter is None:
+                continue  # Skip parameters that can't be found
+
             match, multikey_error = parameter._raw_parameters_from_single_source(
                 raw_parameters
             )
@@ -1537,7 +1644,7 @@ class Configuration(metaclass=ConfigurationType):
     def post_build_validation(self):
         return ()
 
-    def collect_all(self):
+    def collect_all(self) -> dict[str | Path, dict]:
         typed_values = {}
         validation_errors = {}
         for source in self.raw_data:
@@ -1549,9 +1656,16 @@ class Configuration(metaclass=ConfigurationType):
         # TODO, in Parameter base class, rename element_type to value_type
         if parameter_name not in self.parameter_names:
             parameter_name = "_" + parameter_name
-        parameter_loader = self.__class__.__dict__[parameter_name]
+
+        parameter_loader = self._get_parameter_loader(parameter_name)
+        if parameter_loader is None:
+            raise KeyError(parameter_name)
+
         parameter = parameter_loader.type
-        assert isinstance(parameter, Parameter)
+        if not isinstance(parameter, Parameter):
+            raise TypeError(
+                f"Name '{parameter_name}' did not return a Parameter object."
+            )
 
         # dedupe leading underscore from name
         name = parameter_loader.name.lstrip("_")
@@ -1564,7 +1678,9 @@ class Configuration(metaclass=ConfigurationType):
         if not isiterable(et):
             et = [et]
 
-        if isinstance(parameter._element_type, Parameter):
+        if isinstance(parameter._element_type, Parameter) or isinstance(
+            parameter._element_type, ConfigurationObject
+        ):
             element_types = tuple(
                 _et.__class__.__name__.lower().replace("parameter", "") for _et in et
             )
@@ -1585,18 +1701,71 @@ class Configuration(metaclass=ConfigurationType):
             details["string_delimiter"] = parameter.string_delimiter
         return details
 
-    def list_parameters(self):
+    def list_parameters(self, aliases: bool = False):
+        if aliases:
+            return tuple(
+                dict.fromkeys(
+                    name for p in self._parameter_loaders.values() for name in p._names
+                )
+            )
         return tuple(sorted(name.lstrip("_") for name in self.parameter_names))
 
     def typify_parameter(self, parameter_name, value, source):
         # return a tuple with correct parameter name and typed-value
         if parameter_name not in self.parameter_names:
             parameter_name = "_" + parameter_name
-        parameter_loader = self.__class__.__dict__[parameter_name]
+
+        parameter_loader = self._get_parameter_loader(parameter_name)
+        if parameter_loader is None:
+            raise KeyError(parameter_name)
+
         parameter = parameter_loader.type
-        assert isinstance(parameter, Parameter)
+        if not isinstance(parameter, Parameter):
+            raise TypeError(
+                f"Name '{parameter_name}' did not return a Parameter object."
+            )
 
         return parameter.typify(parameter_name, source, value)
 
     def get_descriptions(self):
         raise NotImplementedError()
+
+
+def unique_sequence_map(*, unique_key: str):
+    """
+    Used to validate properties on :class:`Configuration` subclasses defined as a
+    ``SequenceParameter(MapParameter())`` where the map contains a single key that
+    should be regarded as unique. This decorator will handle removing duplicates and
+    merging to a single sequence.
+    """
+
+    def inner_wrap(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            sequence_map = func(*args, **kwargs)
+            new_sequence_mapping = {}
+
+            for mapping in sequence_map:
+                unique_key_value = mapping.get(unique_key)
+
+                if unique_key_value is None:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; unique key '
+                        f'"{unique_key}" not present on mapping'
+                    )
+                    continue
+
+                if unique_key_value in new_sequence_mapping:
+                    log.error(
+                        f'Configuration: skipping {mapping} for "{func.__name__}"; value '
+                        f'"{unique_key_value}" already present'
+                    )
+                    continue
+
+                new_sequence_mapping[unique_key_value] = mapping
+
+            return tuple(new_sequence_mapping.values())
+
+        return wrapper
+
+    return inner_wrap

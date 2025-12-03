@@ -1,9 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from pathlib import Path
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from conda.auxlib.ish import dals
-from conda.testing import CondaCLIFixture, TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_compare_success(

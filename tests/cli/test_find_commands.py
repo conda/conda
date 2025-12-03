@@ -58,11 +58,15 @@ def faux_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Path:
     (exe / "conda-exe.exe").touch()
     monkeypatch.setenv("PATH", str(exe), prepend=os.pathsep)
 
+    find_commands.cache_clear()
+
     yield tmp_path
 
     if not on_win:
         # undo read-only for clean removal
         permission.chmod(permission.stat().st_mode | 0o444)
+
+    find_commands.cache_clear()
 
 
 def test_find_executable(faux_path: Path):
@@ -77,7 +81,6 @@ def test_find_executable(faux_path: Path):
 
 
 def test_find_commands(faux_path: Path):
-    find_commands.cache_clear()
     if on_win:
         assert {"bin", "bat", "exe"}.issubset(find_commands())
     else:

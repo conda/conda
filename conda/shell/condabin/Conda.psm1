@@ -49,10 +49,10 @@ function Get-CondaEnvironment {
         the head of $Env:PATH.
 
     .EXAMPLE
-        Enter-CondaEnvironment base
+        Enter-CondaEnvironment my-env
 
     .EXAMPLE
-        etenv base
+        etenv my-env
 
     .NOTES
         This command does not currently support activating environments stored
@@ -191,13 +191,8 @@ function Expand-CondaSubcommands() {
         $Filter
     );
 
-    $ValidCommands = Invoke-Conda shell.powershell commands;
-
-    # Add in the commands defined within this wrapper, filter, sort, and return.
-    $ValidCommands + @('activate', 'deactivate') `
-        | Where-Object { $_ -like "$Filter*" } `
-        | Sort-Object `
-        | Write-Output;
+    # Filter and output applicable subcommands
+    Invoke-Conda commands | Where-Object { $_ -like "$Filter*" } | Write-Output;
 
 }
 

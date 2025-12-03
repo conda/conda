@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from functools import lru_cache, wraps
+from functools import cache, wraps
 from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
@@ -16,20 +16,19 @@ from shutil import which
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
-from .common.path import win_path_to_unix
 from .common.url import path_to_url
+from .deprecations import deprecated
 
 log = logging.getLogger(__name__)
 
 
-def path_identity(path):
-    """Used as a dummy path converter where no conversion necessary"""
-    return path
-
-
+@deprecated(
+    "25.3",
+    "26.3",
+    addendum="Use `conda.common.path.unix_path_to_win` instead.",
+)
 def unix_path_to_win(path, root_prefix=""):
     """Convert a path or :-separated string of paths into a Windows representation
-
     Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
     """
     if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
@@ -51,17 +50,8 @@ def unix_path_to_win(path, root_prefix=""):
     return translation
 
 
-# curry cygwin functions
-def win_path_to_cygwin(path):
-    return win_path_to_unix(path, "/cygdrive")
-
-
-def cygwin_path_to_win(path):
-    return unix_path_to_win(path, "/cygdrive")
-
-
-def translate_stream(stream, translator):
-    return "\n".join(translator(line) for line in stream.split("\n"))
+deprecated.constant("25.3", "26.3", "unix_path_to_win", unix_path_to_win)
+del unix_path_to_win
 
 
 def human_bytes(n):
@@ -85,144 +75,9 @@ def human_bytes(n):
         return "%d KB" % round(k)
     m = k / 1024
     if m < 1024:
-        return "%.1f MB" % m
+        return f"{m:.1f} MB"
     g = m / 1024
-    return "%.2f GB" % g
-
-
-# TODO: this should be done in a more extensible way
-#     (like files for each shell, with some registration mechanism.)
-
-# defaults for unix shells.  Note: missing "exe" entry, which should be set to
-#    either an executable on PATH, or a full path to an executable for a shell
-unix_shell_base = dict(
-    binpath="/bin/",  # mind the trailing slash.
-    echo="echo",
-    env_script_suffix=".sh",
-    nul="2>/dev/null",
-    path_from=path_identity,
-    path_to=path_identity,
-    pathsep=":",
-    printdefaultenv="echo $CONDA_DEFAULT_ENV",
-    printpath="echo $PATH",
-    printps1="echo $CONDA_PROMPT_MODIFIER",
-    promptvar="PS1",
-    sep="/",
-    set_var="export ",
-    shell_args=["-l", "-c"],
-    shell_suffix="",
-    slash_convert=("\\", "/"),
-    source_setup="source",
-    test_echo_extra="",
-    var_format="${}",
-)
-
-msys2_shell_base = dict(
-    unix_shell_base,
-    path_from=unix_path_to_win,
-    path_to=win_path_to_unix,
-    binpath="/bin/",  # mind the trailing slash.
-    printpath="python -c \"import os; print(';'.join(os.environ['PATH'].split(';')[1:]))\" | cygpath --path -f -",  # NOQA
-)
-
-if on_win:
-    shells = {
-        # "powershell.exe": dict(
-        #    echo="echo",
-        #    test_echo_extra=" .",
-        #    var_format="${var}",
-        #    binpath="/bin/",  # mind the trailing slash.
-        #    source_setup="source",
-        #    nul='2>/dev/null',
-        #    set_var='export ',
-        #    shell_suffix=".ps",
-        #    env_script_suffix=".ps",
-        #    printps1='echo $PS1',
-        #    printdefaultenv='echo $CONDA_DEFAULT_ENV',
-        #    printpath="echo %PATH%",
-        #    exe="powershell.exe",
-        #    path_from=path_identity,
-        #    path_to=path_identity,
-        #    slash_convert = ("/", "\\"),
-        # ),
-        "cmd.exe": dict(
-            echo="@echo",
-            var_format="%{}%",
-            binpath="\\Scripts\\",  # mind the trailing slash.
-            source_setup="call",
-            test_echo_extra="",
-            nul="1>NUL 2>&1",
-            set_var="set ",
-            shell_suffix=".bat",
-            env_script_suffix=".bat",
-            printps1="@echo %PROMPT%",
-            promptvar="PROMPT",
-            # parens mismatched intentionally.  See http://stackoverflow.com/questions/20691060/how-do-i-echo-a-blank-empty-line-to-the-console-from-a-windows-batch-file # NOQA
-            printdefaultenv='IF NOT "%CONDA_DEFAULT_ENV%" == "" (\n'
-            "echo %CONDA_DEFAULT_ENV% ) ELSE (\n"
-            "echo()",
-            printpath="@echo %PATH%",
-            exe="cmd.exe",
-            shell_args=["/d", "/c"],
-            path_from=path_identity,
-            path_to=path_identity,
-            slash_convert=("/", "\\"),
-            sep="\\",
-            pathsep=";",
-        ),
-        "cygwin": dict(
-            unix_shell_base,
-            exe="bash.exe",
-            binpath="/Scripts/",  # mind the trailing slash.
-            path_from=cygwin_path_to_win,
-            path_to=win_path_to_cygwin,
-        ),
-        # bash is whichever bash is on PATH.  If using Cygwin, you should use the cygwin
-        #    entry instead.  The only major difference is that it handle's cygwin's /cygdrive
-        #    filesystem root.
-        "bash.exe": dict(
-            msys2_shell_base,
-            exe="bash.exe",
-        ),
-        "bash": dict(
-            msys2_shell_base,
-            exe="bash",
-        ),
-        "sh.exe": dict(
-            msys2_shell_base,
-            exe="sh.exe",
-        ),
-        "zsh.exe": dict(
-            msys2_shell_base,
-            exe="zsh.exe",
-        ),
-        "zsh": dict(
-            msys2_shell_base,
-            exe="zsh",
-        ),
-    }
-
-else:
-    shells = {
-        "bash": dict(
-            unix_shell_base,
-            exe="bash",
-        ),
-        "dash": dict(
-            unix_shell_base,
-            exe="dash",
-            source_setup=".",
-        ),
-        "zsh": dict(
-            unix_shell_base,
-            exe="zsh",
-        ),
-        "fish": dict(
-            unix_shell_base,
-            exe="fish",
-            pathsep=" ",
-        ),
-    }
+    return f"{g:.2f} GB"
 
 
 # ##########################################
@@ -232,7 +87,7 @@ else:
 urlpath = url_path = path_to_url
 
 
-@lru_cache(maxsize=None)
+@cache
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to
@@ -297,15 +152,7 @@ if on_win:
         return " ".join(quote(arg) for arg in args)
 
 else:
-    try:
-        from shlex import join as _args_join
-    except ImportError:
-        # [backport] Python <3.8
-        def _args_join(args):
-            """Return a shell-escaped string from *args*."""
-            from shlex import quote
-
-            return " ".join(quote(arg) for arg in args)
+    from shlex import join as _args_join
 
 
 # Ensures arguments are a tuple or a list. Strings are converted
@@ -324,8 +171,8 @@ def massage_arguments(arguments, errors="assert"):
 
     if isinstance(arguments, str):
         if errors == "assert":
-            # This should be something like 'conda programming bug', it is an assert
-            assert False, "Please ensure arguments are not strings"
+            # This should be something like 'conda programming bug'
+            raise RuntimeError("Please ensure arguments are not strings")
         else:
             arguments = shlex_split_unicode(arguments)
             log.warning(
@@ -336,9 +183,8 @@ def massage_arguments(arguments, errors="assert"):
     if not isiterable(arguments):
         arguments = (arguments,)
 
-    assert not any(
-        [isiterable(arg) for arg in arguments]
-    ), "Individual arguments must not be iterable"  # NOQA
+    if any(isiterable(arg) for arg in arguments):
+        raise ValueError("Individual arguments must not be iterable")
     arguments = list(arguments)
 
     return arguments
@@ -379,7 +225,7 @@ def wrap_subprocess_call(
             fh.write(f"{silencer}SET PYTHONIOENCODING=utf-8\n")
             fh.write(f"{silencer}SET PYTHONUTF8=1\n")
             fh.write(
-                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'  # noqa
+                f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'
             )
             fh.write(f"{silencer}chcp 65001 > NUL\n")
             if dev_mode:
@@ -410,14 +256,15 @@ def wrap_subprocess_call(
                 # it needs doing for each line and the caller may as well do that.
                 fh.write(f"{arguments[0]}\n")
             else:
-                assert not any("\n" in arg for arg in arguments), (
-                    "Support for scripts where arguments contain newlines not implemented.\n"
-                    ".. requires writing the script to an external file and knowing how to "
-                    "transform the command-line (e.g. `python -c args` => `python file`) "
-                    "in a tool dependent way, or attempting something like:\n"
-                    ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
-                    "requirements)"
-                )
+                if any("\n" in arg for arg in arguments):
+                    raise NotImplementedError(
+                        "Support for scripts where arguments contain newlines not implemented.\n"
+                        ".. requires writing the script to an external file and knowing how to "
+                        "transform the command-line (e.g. `python -c args` => `python file`) "
+                        "in a tool dependent way, or attempting something like:\n"
+                        ".. https://stackoverflow.com/a/15032476 (adds unacceptable escaping"
+                        "requirements)"
+                    )
                 fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
@@ -490,7 +337,7 @@ def get_comspec():
                 environ["COMSPEC"] = comspec
                 break
         else:
-            log.warn(
+            log.warning(
                 "cmd.exe could not be found. Looked in SystemRoot and windir env vars.\n"
             )
 
