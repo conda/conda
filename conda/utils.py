@@ -270,11 +270,10 @@ def wrap_subprocess_call(
             fh.write(f'{silencer}SET "_CONDA_EXE_RC=%ERRORLEVEL%"\n')
 
             fh.write(f"{silencer}IF DEFINED CONDA_PREFIX (\n")
-            fh.write(f'{silencer}  SET "_CONDA_DEACTIVATE_DIR=%CONDA_PREFIX%\\etc\\conda\\deactivate.d"\n')  # fmt: skip
-            fh.write(f'{silencer}  IF EXIST "%_CONDA_DEACTIVATE_DIR%" (\n')
+            fh.write(f'{silencer}  IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d" (\n')  # fmt: skip
             # Change to the deactivate.d directory so we don't have to expand the full path
-            # inside the FOR /F command. This avoids some tricky parsing issues with CONDA_PREFIX.
-            fh.write(f'{silencer}    PUSHD "%_CONDA_DEACTIVATE_DIR%"\n')
+            # inside the FOR /F command. This avoids some tricky parsing issues with %CONDA_PREFIX%.
+            fh.write(f'{silencer}    PUSHD "%CONDA_PREFIX%\\etc\\conda\\deactivate.d"\n')  # fmt: skip
             # We list files in reverse alphabetical order, and assign each one to %%S.
             # We then CALL each script that we find. Here, the /b flag means bare mode
             # listing (only file names). The /a:-d flag means we want only files (not
