@@ -24,6 +24,7 @@ from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
+    NoChannelsConfiguredError,
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -70,7 +71,7 @@ class Solver:
     def __init__(
         self,
         prefix: str,
-        channels: Iterable[Channel],
+        channels: Iterable[Channel] | None = None,
         subdirs: Iterable[str] = (),
         specs_to_add: Iterable[MatchSpec] = (),
         specs_to_remove: Iterable[MatchSpec] = (),
@@ -141,6 +142,11 @@ class Solver:
             UnlinkLinkTransaction:
 
         """
+        if self.specs_to_add and (not self.channels or len(self.channels) == 0):
+            raise NoChannelsConfiguredError(
+                packages=[spec.name for spec in self.specs_to_add if spec.name],
+            )
+
         if self.prefix == context.root_prefix and context.enable_private_envs:
             # This path has the ability to generate a multi-prefix transaction. The basic logic
             # is in the commented out get_install_transaction() function below. Exercised at
@@ -290,6 +296,12 @@ class Solver:
                 the solved state of the environment.
 
         """
+
+        if self.specs_to_add and (not self.channels or len(self.channels) == 0):
+            raise NoChannelsConfiguredError(
+                packages=[spec.name for spec in self.specs_to_add if spec.name],
+            )
+
         if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
             update_modifier = NULL
         if update_modifier is NULL:
