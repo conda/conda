@@ -24,6 +24,8 @@ from .condarc import (
     ConfigurationFile,
     validate_provided_parameters,
 )
+from ..reporters import render
+
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -360,12 +362,11 @@ def describe_all_parameters(context=None, plugins=False) -> str:
 
 
 def print_config_item(key, value):
-    stdout_write = getLogger("conda.stdout").info
     if isinstance(value, (dict,)):
         for k, v in value.items():
             print_config_item(key + "." + k, v)
     elif isinstance(value, (bool, int, str)):
-        stdout_write(" ".join(("--set", key, str(value))))
+        render(" ".join(("--set", key, str(value))))
     elif isinstance(value, (list, tuple)):
         # Note, since `conda config --add` prepends, print `--add` commands in
         # reverse order (using repr), so that entering them in this order will
@@ -373,7 +374,7 @@ def print_config_item(key, value):
         numitems = len(value)
         for q, item in enumerate(reversed(value)):
             if key == "channels" and q in (0, numitems - 1):
-                stdout_write(
+                render(
                     " ".join(
                         (
                             "--add",
@@ -384,7 +385,7 @@ def print_config_item(key, value):
                     )
                 )
             else:
-                stdout_write(" ".join(("--add", key, repr(item))))
+                render(" ".join(("--add", key, repr(item))))
 
 
 def set_keys(*args: tuple[str, Any], path: str | os.PathLike[str] | Path) -> None:
