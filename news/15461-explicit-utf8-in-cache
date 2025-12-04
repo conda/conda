@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Read, write cached repodata.json and metadata files with explicit UTF-8
+  encoding to avoid encoding issues in some locales. #15461.
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
