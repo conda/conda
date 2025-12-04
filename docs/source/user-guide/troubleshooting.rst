@@ -357,7 +357,7 @@ Cause
 Solution
 --------
 
-Configure conda to use a different temporary directory by setting the ``TMPDIR`` (Unix/Linux/macOS), ``TEMP``, or ``TMP`` (Windows) environment variables.
+Configure conda to use a different temporary directory by setting the ``TMPDIR``, ``TEMP``, or ``TMP`` environment variables.
 
 For detailed instructions, platform-specific examples, and information on how Python's ``tempfile`` module determines temporary directories, see :doc:`configuration/temp-files`.
 
