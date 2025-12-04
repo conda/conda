@@ -1,0 +1,19 @@
+### Enhancements
+
+* Renamed `conda.models.enums.PathType` enum to `conda.models.enums.PathEnum` to resolve a naming conflict with the `PathType` type annotation. This change follows modern Python conventions and establishes the `*Enum` suffix as the pattern for enums in the codebase. (#15428)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.models.enums.PathType` as pending deprecation, to be removed in 26.3. Use `conda.models.enums.PathEnum` instead. (#15428)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
