@@ -266,8 +266,31 @@ def wrap_subprocess_call(
                         "requirements)"
                     )
                 fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
-            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            # Capture the user's command exit code before deactivation.
+            fh.write(f"{silencer}SET _CONDA_EXE_RC=%ERRORLEVEL%\n")
+
+            fh.write(f"{silencer}IF DEFINED CONDA_PREFIX (\n")
+            fh.write(
+                f'{silencer}  IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d" (\n'
+            )
+            # We list files in reverse alphabetical order, and assign each one to %%S.
+            # We then CALL each script that we find. Here, the /b flag means bare mode
+            # listing (only file names). The /a:-d flag means we want only files (not
+            # directories). The /o:-n flag means we want the listing in reverse
+            # alphabetical order. The delims= option in FOR /F tells it that file
+            # names may contain spaces, so it should not split them on whitespace.
+            # For reference, see:
+            # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for
+            # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir
+            fh.write(f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\*.bat"\') DO (\n')  # fmt: skip
+            fh.write(f'{silencer}      CALL "%CONDA_PREFIX%\\etc\\conda\\deactivate.d\\%%S"\n')  # fmt: skip
+            fh.write(f"{silencer}    )\n")
+            fh.write(f"{silencer}  )\n")
+            fh.write(f"{silencer})\n")
             fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
+            # Always exit with the user's original exit code, not
+            # whatever the last deactivate script or chcp returned.
+            fh.write(f"{silencer}EXIT /b %_CONDA_EXE_RC%\n")
             script_caller = fh.name
         command_args = [comspec, "/d", "/c", script_caller]
     else:
@@ -307,6 +330,19 @@ def wrap_subprocess_call(
                 fh.write("{}\n".format(" ".join(arguments)))
             else:
                 fh.write(f"{quote_for_shell(*arguments)}\n")
+            # Capture the return code of the user's command in a variable
+            # before deactivating. We don't need to unset this per se, because
+            # the shell process will terminate and clean it up afterwards.
+            fh.write("_CONDA_EXE_RC=$?\n")
+            fh.write('if [ -n "${CONDA_PREFIX:-}" ]; then\n')
+            fh.write('  if [ -d "${CONDA_PREFIX}/etc/conda/deactivate.d" ]; then\n')
+            fh.write("    for script in $(printf '%s\\n' \"${CONDA_PREFIX}\"/etc/conda/deactivate.d/*.sh | sort -r); do\n")  # fmt: skip
+            fh.write('      [ -f "$script" ] && . "$script"\n')
+            fh.write("    done\n")
+            fh.write("  fi\n")
+            fh.write("fi\n")
+            # Exit with this captured return code from the user's command.
+            fh.write("exit $_CONDA_EXE_RC\n")
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]
