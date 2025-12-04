@@ -366,6 +366,9 @@ class RepodataState(UserDict):
     # Enforce string type on these keys
     _strings = {"mod", "etag", "cache_control", "url"}
 
+    # updated by RepodataCache.load()
+    cache_path_stat: None | os.stat_result
+
     def __init__(
         self,
         cache_path_json: Path | str = "",
@@ -379,6 +382,7 @@ class RepodataState(UserDict):
         self.cache_path_state = pathlib.Path(cache_path_state)
         # XXX may not be that useful/used compared to the full URL
         self.repodata_fn = repodata_fn
+        self.cache_path_stat = None
 
     @property
     def mod(self) -> str:
@@ -469,6 +473,37 @@ class RepodataState(UserDict):
             > CHECK_ALTERNATE_FORMAT_INTERVAL
         )
 
+    def is_valid_etag(self) -> bool:
+        """
+        Return True if self.cache_path_stat, loaded by RepodataCache, matches
+        our saved size and mtime.
+        """
+        json_stat = self.cache_path_stat
+        if not json_stat:
+            return False
+
+        if not (
+            self.get("mtime_ns") == json_stat.st_mtime_ns
+            and self.get("size") == json_stat.st_size
+        ):
+            return False
+
+        return True
+
+    def clear_etag(self):
+        """
+        Clear cache headers from state. Should be called when replacing the
+        cached path.
+        """
+        self.update(
+            {
+                ETAG_KEY: "",
+                LAST_MODIFIED_KEY: "",
+                CACHE_CONTROL_KEY: "",
+                "size": 0,
+            }
+        )
+
     def __contains__(self, key: str) -> bool:
         key = self._aliased.get(key, key)
         return super().__contains__(key)
@@ -528,7 +563,12 @@ class RepodataCache:
         """Out-of-band etag and other state needed by the RepoInterface."""
         return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
-    def load(self, *, state_only=False, binary=False) -> str | bytes:
+    def load(self, *, state_only=False, binary=False, clear_etag=True) -> str | bytes:
+        """
+        Load state and repodata.json with careful locking, to make sure that we
+        get a complete state_file and that the associated cached data is not
+        changed under our noses.
+        """
         # read state and repodata.json with locking
 
         # lock {CACHE_STATE_SUFFIX} file
@@ -554,33 +594,38 @@ class RepodataCache:
                     json_data = cache_path.read_text()
 
             json_stat = cache_path.stat()
-            if not (
-                state.get("mtime_ns") == json_stat.st_mtime_ns
-                and state.get("size") == json_stat.st_size
-            ):
-                # clear mod, etag, cache_control to encourage re-download
-                state.update(
-                    {
-                        ETAG_KEY: "",
-                        LAST_MODIFIED_KEY: "",
-                        CACHE_CONTROL_KEY: "",
-                        "size": 0,
-                    }
-                )
+            self.state.cache_path_stat = json_stat
+
+            # Older versions of this code always cleared the etag; instead, newer clients should
+            if clear_etag:
+                if not (
+                    state.get("mtime_ns") == json_stat.st_mtime_ns
+                    and state.get("size") == json_stat.st_size
+                ):
+                    # clear mod, etag, cache_control to encourage re-download
+                    state.update(
+                        {
+                            ETAG_KEY: "",
+                            LAST_MODIFIED_KEY: "",
+                            CACHE_CONTROL_KEY: "",
+                            "size": 0,
+                        }
+                    )
+
             # Replace data in special self.state dict subclass with key aliases
             self.state.clear()
             self.state.update(state)
 
         return json_data
 
-    def load_state(self, binary=False):
+    def load_state(self, binary=False, clear_etag=False):
         """
         Update self.state without reading repodata.
 
         Return self.state.
         """
         try:
-            self.load(state_only=True, binary=binary)
+            self.load(state_only=True, binary=binary, clear_etag=clear_etag)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, json.JSONDecodeError):
                 log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
