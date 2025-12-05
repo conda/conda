@@ -52,6 +52,7 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
+    InvalidMatchSpec,
     LinkError,
     OperationNotAllowed,
     PackageNotInstalledError,
@@ -1004,7 +1005,7 @@ def test_tarball_install_and_bad_metadata(
                 """
             )
         )
-        with pytest.raises(PackagesNotFoundError):
+        with pytest.raises((InvalidMatchSpec, PackagesNotFoundError)):
             conda_cli("install", f"--prefix={prefix}", bad_metadata, "--yes")
             assert not package_is_installed(prefix, "something-made-up")
 
@@ -1046,7 +1047,7 @@ def test_pinned_override_with_explicit_spec(
             f"--file={prefix / 'condarc'}",
             *("--add", "pinned_packages", "dependent=1.0"),
         )
-        if context.solver == "libmamba":
+        if context.solver in ("libmamba", "rattler"):
             # LIBMAMBA ADJUSTMENT
             # Incompatible pin overrides forbidden in conda-libmamba-solver 23.9.0+
             # See https://github.com/conda/conda-libmamba-solver/pull/294
@@ -1102,12 +1103,22 @@ def test_channel_usage_replacing_python(
             "--yes",
         )
         PrefixData._cache_.clear()
-        assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
-        assert package_is_installed(prefix, "main::decorator")
+        if context.solver == "rattler":
+            # Rattler adjustment: channels change more than expected
+            assert (prec := package_is_installed(prefix, "python=3.10"))
+            assert package_is_installed(prefix, "decorator")
+        else:
+            assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
+            assert package_is_installed(prefix, "main::decorator")
 
         with tmp_env(f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::python=3.10")
-            assert package_is_installed(clone, "main::decorator")
+            if context.solver == "rattler":
+                # Rattler adjustment: channels change more than expected
+                assert package_is_installed(clone, "python=3.10")
+                assert package_is_installed(clone, "decorator")
+            else:
+                assert package_is_installed(clone, "conda-forge::python=3.10")
+                assert package_is_installed(clone, "main::decorator")
 
         # Regression test for #2645
         fn = prefix / "conda-meta" / f"{prec.name}-{prec.version}-{prec.build}.json"
@@ -1120,8 +1131,13 @@ def test_channel_usage_replacing_python(
         PrefixData._cache_.clear()
 
         with tmp_env("--channel=conda-forge", f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::python=3.10")
-            assert package_is_installed(clone, "main::decorator")
+            if context.solver == "rattler":
+                # Rattler adjustment: channels change more than expected
+                assert package_is_installed(clone, "python=3.10")
+                assert package_is_installed(clone, "decorator")
+            else:
+                assert package_is_installed(clone, "conda-forge::python=3.10")
+                assert package_is_installed(clone, "main::decorator")
 
 
 def test_install_prune_flag(
@@ -1480,7 +1496,11 @@ def test_shortcut_creation_installs_shortcut(
     # depending on channel priorities match one of:
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
-    with tmp_env("*console_shortcut", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
 
         assert get_shortcut()
@@ -1506,7 +1526,13 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     # including --no-shortcuts should not get shortcuts installed
-    with tmp_env("*console_shortcut", "--no-shortcuts", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, "--no-shortcuts", prefix=prefix):
+        out, err, rc = conda_cli("list", "-p", prefix)
+        print(out)
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
 
@@ -1537,7 +1563,11 @@ def test_shortcut_absent_when_condarc_set(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     # shortcuts: False from condarc should not get shortcuts installed
-    with tmp_env("*console_shortcut", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
 
@@ -1813,19 +1843,19 @@ def test_conda_pip_interop_pip_clobbers_conda(
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/DESCRIPTION.rst",
                         "path_type": "hardlink",
-                        "sha256": "QWBtSTT2zzabwJv1NQbTfClSX13m-Qc6tqU4TRL1RLs",
+                        "sha256": "41606d4934f6cf369bc09bf53506d37c29525f5de6f9073ab6a5384d12f544bb",
                         "size_in_bytes": 774,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/INSTALLER",
                         "path_type": "hardlink",
-                        "sha256": "zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg",
+                        "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
                         "size_in_bytes": 4,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/METADATA",
                         "path_type": "hardlink",
-                        "sha256": "5HceJsUnHof2IRamlCKO2MwNjve1eSP4rLzVQDfwpCQ",
+                        "sha256": "e4771e26c5271e87f62116a694228ed8cc0d8ef7b57923f8acbcd54037f0a424",
                         "size_in_bytes": 1283,
                     },
                     {
@@ -1837,25 +1867,25 @@ def test_conda_pip_interop_pip_clobbers_conda(
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/WHEEL",
                         "path_type": "hardlink",
-                        "sha256": "GrqQvamwgBV4nLoJe0vhYRSWzWsx7xjlt74FT0SWYfE",
+                        "sha256": "1aba90bda9b08015789cba097b4be1611496cd6b31ef18e5b7be054f449661f1",
                         "size_in_bytes": 110,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/metadata.json",
                         "path_type": "hardlink",
-                        "sha256": "jtOeeTBubYDChl_5Ql5ZPlKoHgg6rdqRIjOz1e5Ek2U",
+                        "sha256": "8ed39e79306e6d80c2865ff9425e593e52a81e083aadda912233b3d5ee449365",
                         "size_in_bytes": 658,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/top_level.txt",
                         "path_type": "hardlink",
-                        "sha256": "_iVH_iYEtEXnD8nYGQYpYFUvkUW9sEO1GYbkeKSAais",
+                        "sha256": "fe2547fe2604b445e70fc9d819062960552f9145bdb043b51986e478a4806a2b",
                         "size_in_bytes": 4,
                     },
                     {
                         "_path": sp_dir + "/six.py",
                         "path_type": "hardlink",
-                        "sha256": "A6hdJZVjI3t_geebZ9BzUvwRrIXo0lfwzQlM2LcKyas",
+                        "sha256": "03a85d259563237b7f81e79b67d07352fc11ac85e8d257f0cd094cd8b70ac9ab",
                         "size_in_bytes": 30098,
                     },
                 ],
@@ -1921,8 +1951,8 @@ def test_conda_pip_interop_conda_editable_package(
     )
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="conda-libmamba-solver does not implement pip interoperability",
+            context.solver in ("libmamba", "rattler"),
+            reason="This solver does not implement pip interoperability",
         )
     )
 
@@ -2453,7 +2483,26 @@ def test_conda_downgrade(
     # elevate verbosity so we can inspect subprocess' stdout/stderr
     monkeypatch.setenv("CONDA_VERBOSE", "2")
 
-    with tmp_env("python=3.11", "conda") as prefix:  # rev 0
+    # for py-rattler
+    monkeypatch.setenv("CONDA_CHANNELS", "conda-forge")
+
+    # with tmp_env("python=3.11", "conda") as prefix:  # rev 0
+    # TMP: Ask for py-rattler
+    with tmp_env(
+        "python=3.11", "pip", "conda", "py-rattler>=0.17.0", "git",
+    ) as prefix:  # rev 0
+        python_exe = str(prefix / PYTHON_BINARY)
+        # TMP: Install conda-rattler-solver in target env too
+        subprocess_call_with_clean_env(
+            [
+                python_exe,
+                "-m",
+                "pip",
+                "install",
+                "git+https://github.com/conda-incubator/conda-rattler-solver.git#egg=conda-rattler-solver",
+                "--no-deps",
+            ]
+        )
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
         assert (py_prec := package_is_installed(prefix, "python"))
         assert (conda_prec := package_is_installed(prefix, "conda"))

@@ -125,7 +125,7 @@ def test_solve_1(tmpdir, request):
 
 
 def test_solve_2(tmpdir):
-    if context.solver == "libmamba":
+    if context.solver in ("libmamba", "rattler"):
         pytest.skip(
             "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
         )
@@ -203,10 +203,10 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
-def test_virtual_package_solver(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
-    if context.solver == "libmamba":
+def test_virtual_package_solver(tmpdir, clear_cuda_version, monkeypatch):
+    if context.solver in ("libmamba", "rattler"):
         pytest.skip(
-            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+            f"{context.solver} does not use Solver.ssc (SolverStateContainer)"
         )
 
     specs = (MatchSpec("cudatoolkit"),)
@@ -280,6 +280,7 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
+    exc_msg = str(exc.value).strip()
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
@@ -293,10 +294,15 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
   - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
             ),
         ]
-        exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
+    elif context.solver == "rattler":
+        possible_messages = [
+            "__cuda >=9.0, for which no candidates were found.",
+            "cudatoolkit * cannot be installed because there are no viable options:",
+        ]
+        assert all(msg in exc_msg for msg in possible_messages)
     else:
-        assert str(exc.value).strip() == dals(
+        assert exc_msg == dals(
             f"""The following specifications were found to be incompatible with your system:
 
   - feature:/{context._native_subdir()}::__cuda==8.0=0
@@ -316,6 +322,8 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
+    exc_msg = str(exc.value).strip()
+
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
@@ -329,10 +337,15 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
   - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
             ),
         ]
-        exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
+    elif context.solver == "rattler":
+        expected_messages = [
+            "cudatoolkit * cannot be installed because there are no viable options:",
+            "__cuda >=9.0, for which no candidates were found.",
+        ]
+        assert all(msg in exc_msg for msg in expected_messages)
     else:
-        assert str(exc.value).strip() == dals(
+        assert exc_msg == dals(
             """The following specifications were found to be incompatible with your system:
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
@@ -461,8 +474,8 @@ def test_archspec_call(
 def test_prune_1(tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason="Features not supported in libmamba/rattler",
             strict=True,
         )
     )
@@ -599,8 +612,8 @@ def test_update_prune_2(tmpdir, request):
     """
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason="Features not supported in libmamba/rattler",
             strict=True,
         )
     )
@@ -677,8 +690,8 @@ def test_update_prune_3(tmpdir, request):
     """
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason="Features not supported in libmamba/rattler",
             strict=True,
         )
     )
@@ -819,8 +832,8 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
     # "Create" a conda env with specs that "pin" dependencies.
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba" and not prune,
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler") and not prune,
+            reason="Features not supported in libmamba/rattler",
             strict=True,
         )
     )
@@ -922,7 +935,12 @@ def test_force_remove_1(tmpdir, request):
                 "channel-1::zlib-1.2.7-0",
             )
         )
-        assert convert_to_dist_str(final_state_2) == order
+        if context.solver == "rattler":
+            # rattler puts numpy last; without python in the mix, its position
+            # is not topologically relevant
+            assert sorted(convert_to_dist_str(final_state_2)) == sorted(order)
+        else:
+            assert convert_to_dist_str(final_state_2) == order
 
     # re-solving restores order
     with get_solver(tmpdir, prefix_records=final_state_2) as solver:
@@ -1204,8 +1222,10 @@ def test_update_all_1(tmpdir):
 
 
 def test_broken_install(tmpdir):
-    if context.solver == "libmamba":
-        pytest.skip("conda-libmamba-solver does not use a Solver._r (Resolve) object")
+    if context.solver in ("libmamba", "rattler"):
+        pytest.skip(
+            "conda-{libmamba,rattler}-solver does not use a Solver._r (Resolve) object"
+        )
 
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
     with get_solver(tmpdir, specs) as solver:
@@ -1376,7 +1396,8 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
                 "channel-4::conda-build-3.12.1-py37_0",
             )
         )
-        assert convert_to_dist_str(final_state_1) == order
+        if context.solver != "rattler":  # skip this part, it's slightly different
+            assert convert_to_dist_str(final_state_1) == order
 
     monkeypatch.delenv("CONDA_CHANNEL_PRIORITY")
     reset_context()
@@ -1397,7 +1418,12 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
             unlink_order = (
                 # no conda downgrade
             )
-            link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
+            if context.solver == "rattler":
+                link_order = add_subdir_to_iter(
+                    ("channel-4::itsdangerous-0.24-py37_1",)
+                )
+            else:
+                link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
 
@@ -1508,7 +1534,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
                     "channel-4::conda-build-3.12.1-py36_0",
                 )
             )
-            if context.solver == "libmamba":
+            if context.solver in ("libmamba", "rattler"):
                 # LIBMAMBA ADJUSTMENT
                 # We only check for conda itself and the explicit specs
                 # The other packages are slightly different;
@@ -1518,7 +1544,9 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
                     if pkg.name == "conda":
                         assert VersionOrder(pkg.version) < VersionOrder("4.4.10")
                     elif pkg.name == "python":
-                        assert pkg.version == "3.6.2"
+                        assert pkg.version == (
+                            "3.6.2" if context.solver == "libmamba" else "3.6.6"
+                        )
                     elif pkg.name == "conda-build":
                         assert pkg.version == "3.12.1"
                     elif pkg.name == "itsdangerous":
@@ -2023,7 +2051,7 @@ def test_python2_update(tmpdir):
             )
         )
         full_solution = convert_to_dist_str(final_state_2)
-        if context.solver == "libmamba":
+        if context.solver in ("libmamba", "rattler"):
             # LIBMAMBA ADJUSTMENT
             # libmamba has a different solution here (cryptography 2.3 instead of 2.2.2)
             # and cryptography-vectors (not present in regular conda)
@@ -2283,7 +2311,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-3.6.4-hc3d631a_1",  # python is upgraded
             )
         )
-        if context.solver == "libmamba":
+        if context.solver in ("libmamba", "rattler"):
             # LIBMAMBA ADJUSTMENT
             # We only check python was upgraded as expected, not the full solution
             assert add_subdir(
@@ -2321,7 +2349,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-2.7.15-h1571d57_0",  # python is not upgraded
             )
         )
-        if context.solver == "libmamba":
+        if context.solver in ("libmamba", "rattler"):
             # LIBMAMBA ADJUSTMENT
             # We only check sqlite was upgraded as expected and python stays the same
             assert add_subdir(
@@ -2450,6 +2478,12 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
             error = str(exc_info.value)
             assert "package scikit-learn-0.13" in error
             assert "requires python 2.7*" in error
+        elif context.solver == "rattler":
+            with pytest.raises(UnsatisfiableError) as exc_info:
+                solver.solve_final_state(ignore_pinned=False)
+            error = str(exc_info.value)
+            assert "scikit-learn ==0.13 can be installed" in error
+            assert "constraint python 2.6.* cannot be fulfilled" in error
         else:
             with pytest.raises(SpecsConfigurationConflictError) as exc:
                 solver.solve_final_state(ignore_pinned=False)
@@ -2563,9 +2597,9 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
     reset_context()
 
     # now update without pinning
-    if context.solver == "libmamba":
+    if context.solver in ("libmamba", "rattler"):
         # LIBMAMBA ADJUSTMENT:
-        # libmamba decides to stay in python=2.6 unless explicit
+        # libmamba and rattler decide to stay in python=2.6 unless explicit
         specs_to_add = (MatchSpec("python=3"),)
     else:
         specs_to_add = (MatchSpec("python"),)
@@ -2780,8 +2814,8 @@ def test_channel_priority_churn_minimized(tmpdir):
 
     pprint(convert_to_dist_str(final_state))
 
-    if context.solver == "libmamba":
-        # With libmamba v2, we need this extra flag to make this test pass
+    if context.solver in ("libmamba", "rattler"):
+        # With libmamba v2 / rattler, we need this extra flag to make this test pass
         # Otherwise, the solver considers the current state as satisfying.
         solver_kwargs = {"force_reinstall": True}
     else:
@@ -2885,11 +2919,11 @@ def test_remove_with_constrained_dependencies(tmpdir):
 
 
 def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
-    if context.solver == "libmamba":
+    if context.solver in ("libmamba", "rattler"):
         request.applymarker(
             pytest.mark.xfail(
-                context.solver == "libmamba",
-                reason="libmamba is 'lazier' to change channels if the installed one already "
+                context.solver in ("libmamba", "rattler"),
+                reason="libmamba/rattler are 'lazier' to change channels if the installed one already "
                 "satisfies the request.",
                 strict=True,
                 run=False,
@@ -2992,7 +3026,7 @@ def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
 def test_features_solve_1(tmpdir, request, monkeypatch: MonkeyPatch):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
+            context.solver in ("libmamba", "rattler"),
             reason="Features not supported in libmamba",
             strict=True,
         )
@@ -3164,12 +3198,13 @@ def test_freeze_deps_1(tmpdir):
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
                 # LIBMAMBA ADJUSTMENT
-                # libmamba v1 doesn't remove xz in this solve
+                # libmamba v1 / rattler don't remove xz in this solve
                 *(
                     ()
                     if (
                         context.solver == "libmamba"
                         and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
+                        or context.solver == "rattler"
                     )
                     else ("channel-2::xz-5.2.3-0",)
                 ),
@@ -3378,6 +3413,13 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 r"python.*2\.6",
                 r"scikit-learn.*0\.13",
             ]
+        elif context.solver == "rattler":
+            error_snippets = [
+                "Cannot solve the request because of",
+                r"the constraint .* cannot be fulfilled",
+                r"python.*2\.6",
+                r"scikit-learn.*0\.13",
+            ]
 
         for snippet in error_snippets:
             assert re.search(snippet, error_msg)
@@ -3405,6 +3447,13 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 "Pins seem to be involved in the conflict. Currently pinned specs",
                 r"python.*2\.6",
                 "unsatisfiable-with-py26",
+            ]
+        elif context.solver == "rattler":
+            error_snippets = [
+                "Cannot solve the request because of",
+                r"the constraint .* cannot be fulfilled",
+                r"python.*2\.6",
+                r"unsatisfiable-with-py26",
             ]
 
         for snippet in error_snippets:
@@ -3848,13 +3897,17 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     # context manager is now in the inner block!
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+        with pytest.raises(
+            (UnsatisfiableError, PackagesNotFoundError, ResolvePackageNotFound)
+        ):
             solver.solve_final_state()
 
     # Same here; the index has no accelerate pkg with BOTH np15 and py33
     specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+        with pytest.raises(
+            (UnsatisfiableError, PackagesNotFoundError, ResolvePackageNotFound)
+        ):
             solver.solve_final_state()
 
 

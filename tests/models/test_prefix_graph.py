@@ -59,7 +59,7 @@ def get_windows_conda_build_record_set(tmpdir, merge_noarch=True):
 @cache
 def get_sqlite_cyclical_record_set(tmpdir):
     # sqlite-3.20.1-haaaaaaa_4
-    if context.solver == "libmamba":
+    if context.solver in ("libmamba", "rattler"):
         # LIBMAMBA ADJUSTMENT
         # build_number is not supported
         spec = "sqlite=3.20.1[build=*_4]"
