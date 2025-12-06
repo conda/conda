@@ -161,6 +161,112 @@ $ source ./dev/start -i miniforge
 
 Each installer creates its own isolated environment, so you can test conda behavior with both the defaults and conda-forge channels.
 
+## Manual Setup
+
+If you prefer to set up your development environment manually instead of using the automated scripts, follow these steps:
+
+### Prerequisites
+
+- Conda is already installed and initialized on your system
+- (Optional) If using Option B in step 4, install conda-pypi canary version: `conda install -n base conda-canary/label/dev::conda-pypi `
+
+1. Create the development directory:
+
+   ```bash
+   $ mkdir -p ./devenv
+   ```
+
+2. Download and install miniforge:
+
+   ````{tab-set}
+
+   ```{tab-item} macOS
+   ```bash
+   $ curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh -o ./devenv/miniforge.sh
+   $ bash ./devenv/miniforge.sh -bfp ./devenv
+   ```
+
+   ```{tab-item} Linux
+   ```bash
+   $ curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh -o ./devenv/miniforge.sh
+   $ bash ./devenv/miniforge.sh -bfp ./devenv
+   ```
+
+   ```{tab-item} Windows (PowerShell)
+   ```powershell
+   > Invoke-WebRequest -Uri "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe" -OutFile ".\devenv\miniforge.exe"
+   > Start-Process -FilePath ".\devenv\miniforge.exe" -ArgumentList "/InstallationType=JustMe","/RegisterPython=0","/AddToPath=0","/S","/D=$PWD\devenv" -Wait -NoNewWindow
+   ```
+
+   ````
+
+3. Create and configure environment:
+
+   ````{tab-set}
+
+   ```{tab-item} Bash (macOS, Linux)
+   ```bash
+   # Install dependencies
+   $ ./devenv/bin/conda install -y -p ./devenv --override-channels -c conda-forge --file ./tests/requirements.txt --file ./tests/requirements-ci.txt python=3.13
+   ```
+
+
+   ```{tab-item} PowerShell (Windows)
+   ```powershell
+   # Install dependencies
+   > .\devenv\Scripts\conda.exe install -y -p .\devenv --override-channels -c conda-forge --file .\tests\requirements.txt --file .\tests\requirements-ci.txt python=3.13
+   ```
+
+   ````
+
+4. Make conda source code available:
+
+   Choose one of the following options:
+
+   **Option A: Set PYTHONPATH**:
+
+   ````{tab-set}
+
+   ```{tab-item} Bash (macOS, Linux)
+   ```bash
+   $ export PYTHONPATH=$(pwd):$PYTHONPATH
+   ```
+   ```{tab-item} Fish (macOS, Linux)
+   ```fish
+   $ set -gx PYTHONPATH (pwd) $PYTHONPATH
+   ```
+   ```{tab-item} PowerShell (Windows)
+   ```powershell
+   > $env:PYTHONPATH="$PWD;$env:PYTHONPATH"
+   ```
+   ````
+
+   **Option B: Install conda in editable mode**:
+
+   ```bash
+   $ conda pypi install -e .
+   ```
+
+   This installs conda as an editable package in the environment, which can be more convenient for development.
+
+5. Activate environment:
+
+   ````{tab-set}
+
+   ```{tab-item} Bash (macOS, Linux)
+   ```bash
+   # Activate (PYTHONPATH should be set if using Option A from step 4)
+   $ conda activate ./devenv
+   ```
+
+   ```{tab-item} PowerShell (Windows)
+   ```powershell
+   # Activate (PYTHONPATH should be set if using Option A from step 4)
+   > conda activate .\devenv
+   ```
+
+   ````
+
 ## Docker Alternative
 
 Alternatively, for Linux development only, you can use the same Docker image the CI pipelines use. Note that you can run this from all three operating systems! We are using `docker compose`, which provides three actions for you:
@@ -301,20 +407,6 @@ $ pytest --cov -m "not integration" conda tests
 
 # or you can use pytest to focus on one specific test
 $ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
-```
-
-```{tab-item} cmd.exe (Windows)
-```batch
-:: reuse the development environment created above
-> .\dev\start.bat
-:: or start the Docker image in interactive mode
-:: > docker compose run interactive
-
-:: run conda's unit tests with pytest
-> pytest --cov -m "not integration" conda tests
-
-:: or you can use pytest to focus on one specific test
-> pytest --cov tests\test_create.py -k create_install_update_remove_smoketest
 ```
 
 ````
