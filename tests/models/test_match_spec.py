@@ -1563,4 +1563,3 @@ def test_conditional_specs():
     nested = MatchSpec("python; if __win; if __unix")
     assert str(nested) == "python; if __win; if __unix"
     assert nested.get("condition") == "__win; if __unix"
-

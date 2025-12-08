@@ -204,9 +204,7 @@ def test_solve_2(tmpdir):
 
 def test_virtual_package_solver(tmpdir, clear_cuda_version, monkeypatch):
     if context.solver in ("libmamba", "rattler"):
-        pytest.skip(
-            f"{context.solver} does not use Solver.ssc (SolverStateContainer)"
-        )
+        pytest.skip(f"{context.solver} does not use Solver.ssc (SolverStateContainer)")
 
     specs = (MatchSpec("cudatoolkit"),)
 
