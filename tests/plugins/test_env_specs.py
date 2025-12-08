@@ -13,9 +13,6 @@ from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
 class NaughtySpec(EnvironmentSpecBase):
-    def __init__(self, source: str):
-        self.source = source
-
     def can_handle(self):
         raise TypeError("This is a naughty spec")
 
@@ -34,9 +31,6 @@ class NaughtySpecPlugin:
 
 class RandomSpec(EnvironmentSpecBase):
     extensions = {".random"}
-
-    def __init__(self, filename: str):
-        self.filename = filename
 
     def can_handle(self):
         for ext in RandomSpec.extensions:

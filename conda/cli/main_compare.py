@@ -106,6 +106,7 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..core.prefix_data import PrefixData
+    from ..common.io import load_file
     from ..gateways.connection.session import CONDA_SESSION_SCHEMES
     from .common import stdout_json
 
@@ -122,7 +123,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         source=filename,
         name=context.environment_specifier,
     )
-    spec = spec_hook.environment_spec(filename)
+    spec = spec_hook.environment_spec(filename=filename)
     env = spec.env
 
     active_pkgs = prefix_data.map_records()

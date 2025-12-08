@@ -31,7 +31,7 @@ class RequirementsSpec(EnvironmentSpecBase):
 
     @deprecated.argument("24.7", "26.3", "name")
     def __init__(
-        self, filename: str | None = None, name: str | None = None, **kwargs
+        self, filename: str, data: str | None = None, name: str | None = None, **kwargs
     ) -> None:
         """Initialize the requirements specification.
 
@@ -39,8 +39,8 @@ class RequirementsSpec(EnvironmentSpecBase):
         :param name: (Deprecated) Name of the environment
         :param kwargs: Additional arguments
         """
-        self.filename = filename
         self._name = name
+        super().__init__(filename=filename, data=data)
 
     @property
     @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
