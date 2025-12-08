@@ -2634,6 +2634,9 @@ def test_neutering_of_historic_specs(
 ):
     with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
         conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
+        # make sure we didn't lose psutil
+        PrefixData._cache_.clear()
+        assert PrefixData(prefix).get("psutil")
         d = (prefix / "conda-meta" / "history").read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
