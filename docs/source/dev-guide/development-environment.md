@@ -182,7 +182,7 @@ If you prefer to set up your development environment manually instead of using t
 
    ```{tab-item} macOS
    ```bash
-   $ curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh -o ./devenv/miniforge.sh
+   $ curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh" -o ./devenv/miniforge.sh
    $ bash ./devenv/miniforge.sh -bfp ./devenv
    ```
 
