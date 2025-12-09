@@ -240,7 +240,7 @@ def wrap_subprocess_call(
                 fh.write(f"{silencer}SET _CE_M=-m\n")
                 fh.write(f"{silencer}SET _CE_CONDA=conda\n")
             if debug_wrapper_scripts:
-                fh.write("echo [DEBUG] *** environment before activation *** 1>&2\n")
+                fh.write("echo *** environment before *** 1>&2\n")
                 fh.write("SET 1>&2\n")
             # Not sure there is any point in backing this up, nothing will get called with it reset
             # after all!
@@ -249,7 +249,7 @@ def wrap_subprocess_call(
             fh.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"\n')
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
-                fh.write("echo [DEBUG] *** environment after activation *** 1>&2\n")
+                fh.write("echo *** environment after *** 1>&2\n")
                 fh.write("SET 1>&2\n")
             if multiline:
                 # No point silencing the first line. If that's what's wanted then
@@ -268,53 +268,25 @@ def wrap_subprocess_call(
                 fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
             # Capture the user's command exit code before deactivation.
             fh.write(f'{silencer}SET "_CONDA_EXE_RC=%ERRORLEVEL%"\n')
-            if debug_wrapper_scripts:
-                fh.write(
-                    "echo [DEBUG] User command exit code is %_CONDA_EXE_RC% 1>&2\n"
-                )
+
             fh.write(f"{silencer}IF DEFINED CONDA_PREFIX (\n")
-            fh.write(
-                f'{silencer}  SET "_CONDA_DEACTIVATE_DIR=%CONDA_PREFIX%\\etc\\conda\\deactivate.d"\n'
-            )
-
-            if debug_wrapper_scripts:
-                fh.write('  echo [DEBUG] CONDA_PREFIX="%CONDA_PREFIX%" 1>&2\n')
-                fh.write(
-                    '  echo [DEBUG] _CONDA_DEACTIVATE_DIR="%_CONDA_DEACTIVATE_DIR%" 1>&2\n'
-                )
-                fh.write(
-                    "  echo [DEBUG] Checking for deactivate scripts in that directory... 1>&2\n"
-                )
-
-            fh.write(f'{silencer}  IF EXIST "%_CONDA_DEACTIVATE_DIR%" (\n')
+            fh.write(f'{silencer}  IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d" (\n')  # fmt: skip
             # Change to the deactivate.d directory so we don't have to expand the full path
             # inside the FOR /F command. This avoids some tricky parsing issues with %CONDA_PREFIX%.
-            if debug_wrapper_scripts:
-                fh.write('    echo [DEBUG] PUSHD "%_CONDA_DEACTIVATE_DIR%" 1>&2\n')
-
-            fh.write(f'{silencer}    PUSHD "%_CONDA_DEACTIVATE_DIR%"\n')
-            if debug_wrapper_scripts:
-                fh.write(
-                    "    echo [DEBUG] Listing .bat files to run (reverse sorted): 1>&2\n"
-                )
-                fh.write('    dir /b /a:-d /o:-n "*.bat" 1>&2\n')
-                fh.write("    echo [DEBUG] Executing each deactivate script: 1>&2\n")
-            fh.write(
-                f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "*.bat"\') DO (\n'
-            )
-
-            if debug_wrapper_scripts:
-                fh.write("      echo [DEBUG] Running deactivate script: %%S 1>&2\n")
-
-            fh.write(f'{silencer}      CALL "%%S"\n')
-            fh.write(f"{silencer}    )\n")  # close FOR
+            fh.write(f'{silencer}    PUSHD "%CONDA_PREFIX%\\etc\\conda\\deactivate.d"\n')  # fmt: skip
+            # We list files in reverse alphabetical order, and assign each one to %%S.
+            # We then CALL each script that we find. Here, the /b flag means bare mode
+            # listing (only file names). The /a:-d flag means we want only files (not
+            # directories). The /o:-n flag means we want the listing in reverse
+            # alphabetical order. The delims= option in FOR /F tells it that file
+            # names may contain spaces, so it should not split them on whitespace.
+            # For reference, see:
+            # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for
+            # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir
+            fh.write(f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "*.bat"\') DO CALL "%%S"\n')  # fmt: skip
             fh.write(f"{silencer}    POPD\n")
-            fh.write(f"{silencer}  )\n")  # close IF EXIST
-            fh.write(f"{silencer})\n")  # close IF DEFINED
-
-            if debug_wrapper_scripts:
-                fh.write("echo [DEBUG] Restoring code page and exiting wrapper 1>&2\n")
-
+            fh.write(f"{silencer}  )\n")
+            fh.write(f"{silencer})\n")
             fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
             # Always exit with the user's original exit code, not
             # whatever the last deactivate script or chcp returned.
