@@ -114,7 +114,7 @@ class Env:
 @pytest.fixture(scope="module")
 def stacking_envs(session_tmp_env: TmpEnvFixture) -> dict[str, Env]:
     # create envs using full path to avoid solver
-    path = TEST_RECIPES_CHANNEL / "noarch" / "small-executable-1.0.0-1.tar.bz2"
+    path = TEST_RECIPES_CHANNEL / "noarch" / "small-executable-1.0.0-1.conda"
     with (
         session_tmp_env(path) as base_env,
         session_tmp_env(path) as has_env,
