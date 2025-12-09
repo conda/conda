@@ -7,6 +7,7 @@ import logging
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -292,7 +293,12 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             self.active_prefix = ""
             self.plugin_manager = mocker.MagicMock()
             self.repodata_fns = ["repodata.json", "current_repodata.json"]
-            self.subdir = mocker.MagicMock()
+
+        def __getattr__(self, item):
+            """
+            Return a MagicMock object if a property cannot be found.
+            """
+            return MagicMock()
 
         @property
         def plugins(self) -> PluginConfig:
