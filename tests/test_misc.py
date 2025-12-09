@@ -118,14 +118,14 @@ def test_explicit_missing_cache_entries(
 
     with pytest.raises(
         SpecNotFoundInPackageCache,
-        match="Missing package cache records for: test-recipes/noarch::missing==1.0.0=0",
+        match="Missing package cache records for: test-recipes/noarch::missing==1.0.0=1",
     ):
         schema = "file:///" if on_win else "file://"
         noarch = test_recipes_channel / "noarch"
         explicit(
             [
                 f"{schema}{(noarch / 'missing-1.0.0-0.tar.bz2').as_posix()}",
-                f"{schema}{(noarch / 'small-executable-1.0.0-0.tar.bz2').as_posix()}",
+                f"{schema}{(noarch / 'small-executable-1.0.0-1.tar.bz2').as_posix()}",
             ],
             None,  # the assertion is raised before the prefix matters
         )
