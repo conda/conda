@@ -7,7 +7,6 @@ import logging
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -298,7 +297,7 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             """
             Return a MagicMock object if a property cannot be found.
             """
-            return MagicMock()
+            return mocker.MagicMock()
 
         @property
         def plugins(self) -> PluginConfig:
