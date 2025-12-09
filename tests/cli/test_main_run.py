@@ -93,7 +93,7 @@ def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert not err
 
 
-def test_conda_run_nonexistant_prefix(tmp_path: Path, conda_cli: CondaCLIFixture):
+def test_conda_run_nonexistent_prefix(tmp_path: Path, conda_cli: CondaCLIFixture):
     with pytest.raises(EnvironmentLocationNotFound):
         conda_cli("run", f"--prefix={tmp_path / 'missing'}", "echo", "hello")
 
