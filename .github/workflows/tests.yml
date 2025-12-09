@@ -158,6 +158,7 @@ jobs:
         # keep the test directories shorter
         run: >
           python -m pytest
+          -svra
           --cov=conda
           --basetemp=${{ runner.temp }}
           --durations-path=durations\${{ runner.os }}.json
