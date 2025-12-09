@@ -266,14 +266,18 @@ def wrap_subprocess_call(
                         "requirements)"
                     )
                 fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
-            # Capture the user's command exit code before deactivation.
+            # Capture the user's command exit code before deactivation, and
+            # run the deactivate.d hooks for the active environment, if any.
             fh.write(f'{silencer}SET "_CONDA_EXE_RC=%ERRORLEVEL%"\n')
-
-            fh.write(f"{silencer}IF DEFINED CONDA_PREFIX (\n")
-            fh.write(f'{silencer}  IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d" (\n')  # fmt: skip
-            # Change to the deactivate.d directory so we don't have to expand the full path
-            # inside the FOR /F command. This avoids some tricky parsing issues with %CONDA_PREFIX%.
-            fh.write(f'{silencer}    PUSHD "%CONDA_PREFIX%\\etc\\conda\\deactivate.d"\n')  # fmt: skip
+            fh.write(f'{silencer}SET "_CONDA_DEACTIVATE_DIR="\n')
+            fh.write(
+                f"{silencer}IF DEFINED CONDA_PREFIX "
+                f'SET "_CONDA_DEACTIVATE_DIR=%CONDA_PREFIX%\\etc\\conda\\deactivate.d"\n'
+            )
+            fh.write(
+                f'{silencer}IF EXIST "%_CONDA_DEACTIVATE_DIR%" '
+                f'PUSHD "%_CONDA_DEACTIVATE_DIR%"\n'
+            )
             # We list files in reverse alphabetical order, and assign each one to %%S.
             # We then CALL each script that we find. Here, the /b flag means bare mode
             # listing (only file names). The /a:-d flag means we want only files (not
@@ -283,14 +287,15 @@ def wrap_subprocess_call(
             # For reference, see:
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir
-            fh.write(f'{silencer}    FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "*.bat"\') DO CALL "%%S"\n')  # fmt: skip
-            fh.write(f"{silencer}    POPD\n")
-            fh.write(f"{silencer}  )\n")
-            fh.write(f"{silencer})\n")
+            fh.write(
+                r'FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "*.bat"\') DO CALL "%%S"'
+                "\n"
+            )
+            fh.write(f"{silencer}POPD\n")
             fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
             # Always exit with the user's original exit code, not
             # whatever the last deactivate script or chcp returned.
-            fh.write(f"{silencer}EXIT /b %_CONDA_EXE_RC%\n")
+            fh.write(f"{silencer}EXIT /B %_CONDA_EXE_RC%\n")
             script_caller = fh.name
         command_args = [comspec, "/d", "/c", script_caller]
     else:
