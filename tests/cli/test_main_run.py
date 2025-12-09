@@ -124,17 +124,19 @@ def test_run_with_separator(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env("python") as prefix:
+    with tmp_env("small-executable") as prefix:
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
             "--",
-            "python",
+            "small",
             "-v",
             "-c",
-            "print('spam')",
+            "spam",
         )
 
+        assert "-v" in stdout
+        assert "-c" in stdout
         assert "spam" in stdout
         assert not err
 
@@ -143,17 +145,19 @@ def test_run_with_separator_multiple_v_flags(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env("python") as prefix:
+    with tmp_env("small-executable") as prefix:
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
             "--",
-            "python",
+            "small",
             "-vvv",
             "-c",
-            "print('eggs')",
+            "eggs",
         )
 
+        assert "-vvv" in stdout
+        assert "-c" in stdout
         assert "eggs" in stdout
         assert not err
 
@@ -162,26 +166,18 @@ def test_run_with_separator_combined_options(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env("python") as prefix:
-        script = prefix / "test_script.py"
-        script.write_text(
-            "import sys\n"
-            "for i, arg in enumerate(sys.argv[1:]):\n"
-            "    print(f'arg{i}: {arg}')\n"
-        )
-
+    with tmp_env("small-executable") as prefix:
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
             "--",
-            "python",
-            str(script),
+            "small",
             "--vic",
             "60",
         )
 
-        assert "arg0: --vic" in stdout
-        assert "arg1: 60" in stdout
+        assert "--vic" in stdout
+        assert "60" in stdout
         assert not err
 
 
@@ -189,15 +185,15 @@ def test_run_without_separator(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env("python") as prefix:
+    with tmp_env("small-executable") as prefix:
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
-            "python",
+            "small",
             "--version",
         )
 
-        assert "Python" in stdout
+        assert "--version" in stdout
         assert not err
 
 
