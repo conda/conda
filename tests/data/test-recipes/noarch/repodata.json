@@ -353,13 +353,13 @@
       "build": "1",
       "build_number": 1,
       "depends": [],
-      "md5": "fa0b71ab53b9e490a123679241c2b347",
+      "md5": "843e7fb49922edc071656e8f6654fa8d",
       "name": "small-executable",
       "noarch": "generic",
-      "sha256": "90f9207c366c4f97e42a352e02d58e2505bb9d9810ed3e6add57c469a9f2d63c",
-      "size": 5152,
+      "sha256": "aedb680b20341be1324b6e44f6edb3252665186c17a1c2a814394ced939f745c",
+      "size": 5102,
       "subdir": "noarch",
-      "timestamp": 1765283728299,
+      "timestamp": 1765284629050,
       "version": "1.0.0"
     }
   },
