@@ -269,14 +269,10 @@ def wrap_subprocess_call(
             # Capture the user's command exit code before deactivation, and
             # run the deactivate.d hooks for the active environment, if any.
             fh.write(f'{silencer}SET "_CONDA_EXE_RC=%ERRORLEVEL%"\n')
-            fh.write(f'{silencer}SET "_CONDA_DEACTIVATE_DIR="\n')
             fh.write(
                 f"{silencer}IF DEFINED CONDA_PREFIX "
-                f'SET "_CONDA_DEACTIVATE_DIR=%CONDA_PREFIX%\\etc\\conda\\deactivate.d"\n'
-            )
-            fh.write(
-                f'{silencer}IF EXIST "%_CONDA_DEACTIVATE_DIR%" '
-                f'PUSHD "%_CONDA_DEACTIVATE_DIR%"\n'
+                f'IF EXIST "%CONDA_PREFIX%\\etc\\conda\\deactivate.d" '
+                f'PUSHD "%CONDA_PREFIX%\\etc\\conda\\deactivate.d"\n'
             )
             # We list files in reverse alphabetical order, and assign each one to %%S.
             # We then CALL each script that we find. Here, the /b flag means bare mode
@@ -284,11 +280,12 @@ def wrap_subprocess_call(
             # directories). The /o:-n flag means we want the listing in reverse
             # alphabetical order. The delims= option in FOR /F tells it that file
             # names may contain spaces, so it should not split them on whitespace.
+            # The 2^>NUL suppresses "File Not Found" errors when no .bat files exist.
             # For reference, see:
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir
             fh.write(
-                'FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "*.bat"\') DO CALL "%%S"'
+                'FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "*.bat" 2^>NUL\') DO CALL "%%S"'
                 "\n"
             )
             fh.write(f"{silencer}POPD\n")
