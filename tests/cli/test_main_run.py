@@ -121,6 +121,7 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
 
 
 def test_run_with_separator(
+    test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
@@ -142,6 +143,7 @@ def test_run_with_separator(
 
 
 def test_run_with_separator_multiple_v_flags(
+    test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
@@ -163,6 +165,7 @@ def test_run_with_separator_multiple_v_flags(
 
 
 def test_run_with_separator_combined_options(
+    test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
@@ -182,6 +185,7 @@ def test_run_with_separator_combined_options(
 
 
 def test_run_without_separator(
+    test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
