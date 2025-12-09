@@ -288,7 +288,7 @@ def wrap_subprocess_call(
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/for
             # - https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/dir
             fh.write(
-                r'FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "*.bat"\') DO CALL "%%S"'
+                'FOR /F "delims=" %%S IN (\'dir /b /a:-d /o:-n "*.bat"\') DO CALL "%%S"'
                 "\n"
             )
             fh.write(f"{silencer}POPD\n")
