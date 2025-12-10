@@ -9,11 +9,9 @@ build:
     # executables
     - mkdir -p ${PREFIX}/bin
     - echo '#!/usr/bin/env bash' > ${PREFIX}/bin/small
-    - echo '[ $# -eq 0 ] && echo "Hello!" || printf "%s\n" "$@"' >> ${PREFIX}/bin/small
-    - chmod +x ${PREFIX}/bin/small
+    - echo 'echo Hello! $@' >> ${PREFIX}/bin/small
     - mkdir -p ${PREFIX}/Scripts
-    - echo '@echo off' > ${PREFIX}/Scripts/small.bat
-    - echo 'if "%~1"=="" (echo Hello!) else (for %%a in (%*) do @echo %%a)' >> ${PREFIX}/Scripts/small.bat
+    - echo '@echo Hello! %*' > ${PREFIX}/Scripts/small.bat
     # activate scripts
     - mkdir -p ${PREFIX}/etc/conda/activate.d
     - echo 'SMALL_EXE="small-var-sh"' > ${PREFIX}/etc/conda/activate.d/small_executable.sh
