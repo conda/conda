@@ -658,6 +658,14 @@ def test_override_channels_disabled(
         raises=OperationNotAllowed,
     )
 
+    conda_cli(
+        "search",
+        "-O",
+        "zlib",
+        "--json",
+        raises=OperationNotAllowed,
+    )
+
 
 def test_create_override_channels_enabled(
     monkeypatch: MonkeyPatch,
