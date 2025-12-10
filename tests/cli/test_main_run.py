@@ -127,10 +127,20 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         pytest.param(["small", "-v", "-c", "spam"], "-c spam", id="no separator"),
         pytest.param(["small", "--version"], "--version", id="no known args"),
         # with separator and conda will ignore everything after
-        pytest.param(["small", "--", "-v", "hello"], "-- -v hello", id="separator not first"),
-        pytest.param(["--", "small", "--", "-v", "hello"], "-- -v hello", id="multiple separators"),
-        pytest.param(["--", "small", "-v", "-c", "spam"], "-v -c spam", id="multiple args"),
-        pytest.param(["--", "small", "--vic", "eggs"], "--vic eggs", id="combined option"),
+        pytest.param(
+            ["small", "--", "-v", "hello"], "-- -v hello", id="separator not first"
+        ),
+        pytest.param(
+            ["--", "small", "--", "-v", "hello"],
+            "-- -v hello",
+            id="multiple separators",
+        ),
+        pytest.param(
+            ["--", "small", "-v", "-c", "spam"], "-v -c spam", id="multiple args"
+        ),
+        pytest.param(
+            ["--", "small", "--vic", "eggs"], "--vic eggs", id="combined option"
+        ),
     ],
 )
 def test_run_with_separator(
@@ -141,11 +151,7 @@ def test_run_with_separator(
     expected_output: str,
 ):
     with tmp_env("small-executable") as prefix:
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *args
-        )
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", *args)
 
         assert stdout.strip() == "Hello! " + expected_output
         assert not err
