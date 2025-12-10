@@ -175,10 +175,10 @@
 :DOWNLOADED
 
 :: installing conda
-@ECHO Installing development environment...
+@ECHO Installing %_INSTALLER_TYPE%...
 @START /wait "" "%_INSTALLER_FILE%" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=%_DEVENV% > NUL
 @IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to install development environment 1>&2
+    @ECHO Error: failed to install %_INSTALLER_TYPE% 1>&2
     @EXIT /B 1
 )
 
@@ -200,13 +200,15 @@
 :: check if explicitly updating or if 24 hrs since last update
 @CALL :UPDATING
 @IF NOT %ErrorLevel%==0 @GOTO :UP_TO_DATE
-@ECHO Updating %_NAME%...
+@ECHO Updating %_INSTALLER_TYPE%...
 
-@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all "--prefix=%_ENV%" > NUL
+@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
 @IF NOT %ErrorLevel%==0 (
-    @ECHO Error: failed to update development environment 1>&2
+    @ECHO Error: failed to update %_INSTALLER_TYPE% 1>&2
     @EXIT /B 1
 )
+
+@ECHO Updating %_NAME%...
 
 :: set channels based on installer type
 @IF "%_INSTALLER_TYPE%"=="miniconda" (

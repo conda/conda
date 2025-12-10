@@ -288,13 +288,13 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
     fi
 
     # installing conda
-    echo "Installing development environment..."
+    echo "Installing ${_INSTALLER_TYPE}..."
     case "${_MACH}" in
         Darwin|Linux) bash "${_INSTALLER_FILE}" -bfp "${_DEVENV}" > /dev/null ;;
                    *) cmd.exe /c "start /wait \"\" \"${_INSTALLER_FILE}\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
     esac
     if ! [ $? = 0 ]; then
-        echo "Error: failed to install development environment" 1>&2
+        echo "Error: failed to install ${_INSTALLER_TYPE}" 1>&2
         return 1
     fi
 fi
@@ -310,12 +310,14 @@ fi
 
 # check if explicitly updating or if 24 hrs since last update
 if updating; then
-    echo "Updating ${_NAME}..."
+    echo "Updating ${_INSTALLER_TYPE}..."
 
-    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all "--prefix=${_ENV}" > /dev/null; then
-        echo "Error: failed to update development environment" 1>&2
+    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all > /dev/null; then
+        echo "Error: failed to update ${_INSTALLER_TYPE}" 1>&2
         return 1
     fi
+
+    echo "Updating ${_NAME}..."
 
     # set channels based on installer type
     case "${_INSTALLER_TYPE}" in
