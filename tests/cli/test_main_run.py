@@ -120,10 +120,20 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         assert not stderr
 
 
+@pytest.mark.parametrize(
+    "args,expected_output",
+    [
+        (["-v", "-c", "spam"], "-v -c spam"),
+        (["--vic", "eggs"], "--vic eggs"),
+    ],
+    ids=["multiple_args", "combined_option"],
+)
 def test_run_with_separator(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    args: list[str],
+    expected_output: str,
 ):
     with tmp_env("small-executable") as prefix:
         stdout, stderr, err = conda_cli(
@@ -131,54 +141,10 @@ def test_run_with_separator(
             f"--prefix={prefix}",
             "--",
             "small",
-            "-v",
-            "-c",
-            "spam",
+            *args,
         )
 
-        assert stdout.strip() == "-v -c spam"
-        assert not err
-
-
-def test_run_with_separator_multiple_v_flags(
-    test_recipes_channel: Path,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    with tmp_env("small-executable") as prefix:
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            "--",
-            "small",
-            "-vvv",
-            "-c",
-            "eggs",
-        )
-
-        assert "-vvv" in stdout
-        assert "-c" in stdout
-        assert "eggs" in stdout
-        assert not err
-
-
-def test_run_with_separator_combined_options(
-    test_recipes_channel: Path,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    with tmp_env("small-executable") as prefix:
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            "--",
-            "small",
-            "--vic",
-            "60",
-        )
-
-        assert "--vic" in stdout
-        assert "60" in stdout
+        assert stdout.strip() == expected_output
         assert not err
 
 
