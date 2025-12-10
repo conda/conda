@@ -49,93 +49,6 @@ PLATFORMS = {
     ("Windows", "AMD64"): "win-64",
 }
 
-DEFAULTS_SAMPLE_PACKAGES = {
-    "linux-64": {
-        "channel": "pkgs/main/linux-64",
-        "name": "aiohttp",
-        "version": "2.3.9",
-        "build": "py35_0",
-        "build_number": 0,
-        "subdir": "linux-64",
-        "fn": "aiohttp-2.3.9-py35_0.conda",
-    },
-    "linux-aarch64": {
-        "channel": "pkgs/main/linux-aarch64",
-        "name": "aiohttp",
-        "version": "3.10.11",
-        "build": "py311h998d150_0",
-        "build_number": 0,
-        "subdir": "linux-aarch64",
-    },
-    "osx-64": {
-        "channel": "pkgs/main/osx-64",
-        "name": "aiohttp",
-        "version": "2.3.9",
-        "build": "py35_0",
-        "build_number": 0,
-        "subdir": "osx-64",
-    },
-    "osx-arm64": {
-        "channel": "pkgs/main/osx-arm64",
-        "name": "aiohttp",
-        "version": "3.9.3",
-        "build": "py310h80987f9_0",
-        "build_number": 0,
-        "subdir": "osx-arm64",
-    },
-    "win-64": {
-        "channel": "pkgs/main/win-64",
-        "name": "aiohttp",
-        "version": "2.3.9",
-        "build": "py35_0",
-        "build_number": 0,
-        "subdir": "win-64",
-    },
-}
-
-CONDAFORGE_SAMPLE_PACKAGES = {
-    "linux-64": {
-        "channel": "conda-forge",
-        "name": "vim",
-        "version": "9.1.0356",
-        "build": "py310pl5321hfe26b83_0",
-        "build_number": 0,
-        "subdir": "linux-64",
-    },
-    "linux-aarch64": {
-        "channel": "conda-forge",
-        "name": "vim",
-        "version": "9.1.0356",
-        "build": "py310pl5321hdc9b7a6_0",
-        "build_number": 0,
-        "subdir": "linux-aarch64",
-    },
-    "osx-64": {
-        "channel": "conda-forge",
-        "name": "vim",
-        "version": "9.1.0356",
-        "build": "py38pl5321h6d91244_0",
-        "build_number": 0,
-        "subdir": "osx-64",
-    },
-    "osx-arm64": {
-        "channel": "conda-forge",
-        "name": "vim",
-        "version": "9.1.0356",
-        "build": "py39pl5321h878be05_0",
-        "build_number": 0,
-        "subdir": "osx-arm64",
-    },
-    "win-64": {
-        "channel": "conda-forge",
-        "name": "vim",
-        "version": "9.1.0356",
-        "build": "py312h275cf98_0",
-        "build_number": 0,
-        "subdir": "win-64",
-    },
-}
-
 
 @pytest.fixture
 def pkg_cache_entries(mocker):
@@ -258,18 +171,108 @@ def test_calculate_channel_urls():
 
 
 @pytest.mark.parametrize(
-    "subdir",
-    ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
+    "channel,sample_packages",
+    [
+        (
+            "defaults",
+            {
+                "linux-64": {
+                    "channel": "pkgs/main/linux-64",
+                    "subdir": "linux-64",
+                    "name": "aiohttp",
+                    "version": "2.3.9",
+                    "build": "py35_0",
+                    "build_number": 0,
+                },
+                "linux-aarch64": {
+                    "channel": "pkgs/main/linux-aarch64",
+                    "subdir": "linux-aarch64",
+                    "name": "aiohttp",
+                    "version": "3.10.11",
+                    "build": "py311h998d150_0",
+                    "build_number": 0,
+                },
+                "osx-64": {
+                    "channel": "pkgs/main/osx-64",
+                    "subdir": "osx-64",
+                    "name": "aiohttp",
+                    "version": "2.3.9",
+                    "build": "py35_0",
+                    "build_number": 0,
+                },
+                "osx-arm64": {
+                    "channel": "pkgs/main/osx-arm64",
+                    "subdir": "osx-arm64",
+                    "name": "aiohttp",
+                    "version": "3.9.3",
+                    "build": "py310h80987f9_0",
+                    "build_number": 0,
+                },
+                "win-64": {
+                    "channel": "pkgs/main/win-64",
+                    "subdir": "win-64",
+                    "name": "aiohttp",
+                    "version": "2.3.9",
+                    "build": "py35_0",
+                    "build_number": 0,
+                },
+            },
+        ),
+        (
+            "conda-forge",
+            {
+                "linux-64": {
+                    "channel": "conda-forge",
+                    "subdir": "linux-64",
+                    "name": "vim",
+                    "version": "9.1.0356",
+                    "build": "py310pl5321hfe26b83_0",
+                    "build_number": 0,
+                },
+                "linux-aarch64": {
+                    "channel": "conda-forge",
+                    "subdir": "linux-aarch64",
+                    "name": "vim",
+                    "version": "9.1.0356",
+                    "build": "py310pl5321hdc9b7a6_0",
+                    "build_number": 0,
+                },
+                "osx-64": {
+                    "channel": "conda-forge",
+                    "subdir": "osx-64",
+                    "name": "vim",
+                    "version": "9.1.0356",
+                    "build": "py38pl5321h6d91244_0",
+                    "build_number": 0,
+                },
+                "osx-arm64": {
+                    "channel": "conda-forge",
+                    "subdir": "osx-arm64",
+                    "name": "vim",
+                    "version": "9.1.0356",
+                    "build": "py39pl5321h878be05_0",
+                    "build_number": 0,
+                },
+                "win-64": {
+                    "channel": "conda-forge",
+                    "subdir": "win-64",
+                    "name": "vim",
+                    "version": "9.1.0356",
+                    "build": "py312h275cf98_0",
+                    "build_number": 0,
+                },
+            },
+        ),
+    ],
 )
 @pytest.mark.memray
 @pytest.mark.integration
-def test_get_index_lazy(subdir):
-    index = Index(channels=["defaults", "conda-forge"], platform=subdir)
-    main_prec = PackageRecord(**DEFAULTS_SAMPLE_PACKAGES[subdir])
-    conda_forge_prec = PackageRecord(**CONDAFORGE_SAMPLE_PACKAGES[subdir])
+def test_get_index_lazy(channel, sample_packages):
+    """Test lazy index loading with the specified channel."""
+    index = Index(channels=[channel], prepend=False, platform=context.subdir)
+    prec = PackageRecord(**sample_packages[context.subdir])
 
-    assert main_prec == index[main_prec]
-    assert conda_forge_prec == index[conda_forge_prec]
+    assert prec == index[prec]
 
 
 class TestIndex:
