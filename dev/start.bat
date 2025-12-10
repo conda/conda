@@ -246,7 +246,7 @@
 )
 
 :: copy latest shell scripts
-@ECHO Update shell scripts...
+@ECHO Updating shell scripts...
 @CALL :CONDA "%_ENVEXE%" init --install > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update shell scripts 1>&2

@@ -352,7 +352,7 @@ else
 fi
 
 # copy latest shell scripts
-echo "Update shell scripts..."
+echo "Updating shell scripts..."
 if ! "${_ENVEXE}" init --install > /dev/null; then
     echo "Error: failed to update shell scripts" 1>&2
     return 1
