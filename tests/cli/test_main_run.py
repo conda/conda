@@ -136,9 +136,7 @@ def test_run_with_separator(
             "spam",
         )
 
-        assert "-v" in stdout
-        assert "-c" in stdout
-        assert "spam" in stdout
+        assert stdout.strip() == "-v -c spam"
         assert not err
 
 
