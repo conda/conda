@@ -45,7 +45,7 @@ configuration.
         How to configure different locations for storing environments and package cache
 
     :doc:`Configuring Temporary File Locations <temp-files>`
-        Control where conda creates temporary files using TMPDIR/TEMP/TMP environment variables
+        Control where conda creates temporary files using ``TMPDIR``/``TEMP``/``TMP`` environment variables
 
     :doc:`Pip interoperability (experimental) <pip-interoperability>`
         An experimental feature that makes conda operate better with pip (no longer supported)

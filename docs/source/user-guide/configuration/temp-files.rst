@@ -18,7 +18,7 @@ You may need to configure temporary file locations when:
 Environment variables
 =====================
 
-Conda respects the standard operating system environment variables for temporary file locations. Python's ``tempfile`` `module <https://docs.python.org/3/library/tempfile.html#tempfile.gettempdir>`_, which conda uses internally, checks these variables in the following order on **all platforms**:
+Conda respects the standard operating system environment variables for temporary file locations. Python's :py:mod:`tempfile` module (specifically :py:func:`tempfile.gettempdir`), which conda uses internally, checks these variables in the following order on **all platforms**:
 
 1. ``TMPDIR``
 2. ``TEMP``
@@ -51,9 +51,11 @@ Setting temporary directories
 
 .. code-block:: bat
 
-   # For current session (Command Prompt)
+   REM For current session (Command Prompt)
    set TEMP=C:\path\to\writable\tmp
    md %TEMP%
+
+.. code-block:: powershell
 
    # For current session (PowerShell)
    $env:TEMP = "C:\path\to\writable\tmp"
