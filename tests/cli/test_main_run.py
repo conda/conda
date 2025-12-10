@@ -144,7 +144,7 @@ def test_run_with_separator(
             *args,
         )
 
-        assert stdout.strip() == expected_output
+        assert stdout.strip() == "Hello! " + expected_output
         assert not err
 
 
