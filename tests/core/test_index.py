@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import platform
 from contextlib import nullcontext
 from logging import getLogger
 from typing import TYPE_CHECKING
