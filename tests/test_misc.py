@@ -125,7 +125,7 @@ def test_explicit_missing_cache_entries(
         explicit(
             [
                 f"{schema}{(noarch / 'missing-1.0.0-0.tar.bz2').as_posix()}",
-                f"{schema}{(noarch / 'small-executable-1.0.0-1.conda').as_posix()}",
+                f"{schema}{(noarch / 'small-executable-1.0.0-0.conda').as_posix()}",
             ],
             None,  # the assertion is raised before the prefix matters
         )
