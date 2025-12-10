@@ -49,6 +49,7 @@ PLATFORMS = {
     ("Windows", "AMD64"): "win-64",
 }
 
+
 @pytest.fixture
 def pkg_cache_entries(mocker):
     miniconda_pkg_cache = load_cache_entries("miniconda.json")
