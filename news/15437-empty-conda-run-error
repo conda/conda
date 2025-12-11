@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix zsh parse error on Windows
+* Raise an error when no command is provided to `conda run`, instead of proceeding with an empty command (#15437).
 
 ### Deprecations
 
