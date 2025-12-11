@@ -128,7 +128,9 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         pytest.param(["small", "--version"], "--version", id="no known args"),
         # with separator and conda will ignore everything after
         pytest.param(
-            ["small", "--", "-v", "hello"], "-- -v hello", id="separator not first"
+            ["small", "--", "-v", "hello"],
+            "-- -v hello",
+            id="separator not first",
         ),
         pytest.param(
             ["--", "small", "--", "-v", "hello"],
@@ -136,10 +138,14 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
             id="multiple separators",
         ),
         pytest.param(
-            ["--", "small", "-v", "-c", "spam"], "-v -c spam", id="multiple args"
+            ["--", "small", "-v", "-c", "spam"],
+            "-v -c spam",
+            id="multiple args",
         ),
         pytest.param(
-            ["--", "small", "--vic", "eggs"], "--vic eggs", id="combined option"
+            ["--", "small", "--vic", "eggs"],
+            "--vic eggs",
+            id="combined option",
         ),
     ],
 )
