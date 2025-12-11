@@ -337,13 +337,13 @@ class ConfigurationFile:
         :param path: Optional path to read from. If None, uses the instance path.
         :returns: Dictionary containing configuration content.
         """
-        from ..common.serialize import yaml_round_trip_load
+        from ..common.serialize import yaml
 
         path = Path(path or self._path)
 
         try:
             self._content = (
-                yaml_round_trip_load(Path(path or self._path).read_text()) or {}
+                yaml.loads(Path(path or self._path).read_text()) or {}
             )
         except FileNotFoundError:
             self._content = {}

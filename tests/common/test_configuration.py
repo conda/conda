@@ -31,7 +31,7 @@ from conda.common.configuration import (
     raise_errors,
     unique_sequence_map,
 )
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml
 
 test_yaml_raw = {
     "file1": dals(
@@ -326,7 +326,7 @@ class SampleConfiguration(Configuration):
 def load_from_string_data(*seq):
     return {
         f: YamlRawParameter.make_raw_parameters(
-            f, yaml_round_trip_load(test_yaml_raw[f])
+            f, yaml.loads(test_yaml_raw[f])
         )
         for f in seq
     }
@@ -674,7 +674,7 @@ def test_map_parameter_must_be_map():
         """
     )
     data = {
-        "s1": YamlRawParameter.make_raw_parameters("s1", yaml_round_trip_load(string))
+        "s1": YamlRawParameter.make_raw_parameters("s1", yaml.loads(string))
     }
     config = SampleConfiguration()._set_raw_data(data)
     raises(InvalidTypeError, config.validate_all)
