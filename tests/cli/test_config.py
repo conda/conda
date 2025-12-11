@@ -21,7 +21,7 @@ from conda.common.configuration import (
     ConfigurationLoadError,
     CustomValidationError,
 )
-from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
+from conda.common.serialize import yaml_round_trip_dump, yaml
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
 
@@ -262,7 +262,7 @@ def test_show_sorts_keys(conda_cli: CondaCLIFixture):
         # TODO: a deprecation warning is emitted for `error_upload_url`.
         with pytest.deprecated_call():
             stdout, stderr, _ = conda_cli("config", "--file", rc, "--show")
-            output_keys = yaml_round_trip_load(stdout).keys()
+            output_keys = yaml.loads(stdout).keys()
 
             assert stderr == ""
             assert sorted(output_keys) == [item for item in output_keys]
@@ -543,7 +543,7 @@ def test_set_check_types(key, str_value, py_value, conda_cli: CondaCLIFixture):
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, str_value)
         assert stdout == stderr == ""
         with open(rc) as fh:
-            content = yaml_round_trip_load(fh.read())
+            content = yaml.loads(fh.read())
             if "." in key:
                 key = key.split(".", 1)[0]
             assert content[key] == py_value
@@ -607,7 +607,7 @@ def test_set_rc_without_user_rc(
     assert not stdout
     assert not stderr
     assert not error
-    assert yaml_round_trip_load(user_rc_path.read_text()) == {
+    assert yaml.loads(user_rc_path.read_text()) == {
         "channels": ["test", "conda-forge"]
     }
 

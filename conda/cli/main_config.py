@@ -417,7 +417,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         user_rc_path,
     )
     from ..common.io import timeout
-    from ..common.serialize import json, yaml_round_trip_load
+    from ..common.serialize import json, yaml
     from ..core.prefix_data import PrefixData
 
     # Override context for --file operations with --show/--describe
@@ -661,7 +661,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             return
         try:
             # round trip load required because... we need to round trip
-            parsed = yaml_round_trip_load(content)
+            parsed = yaml.loads(content)
             rc_config.content.update(parsed)
         except Exception:  # pragma: no cover
             from ..exceptions import ParseError

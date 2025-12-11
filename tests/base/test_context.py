@@ -34,7 +34,7 @@ from conda.base.context import (
 )
 from conda.common.configuration import ValidationError, YamlRawParameter
 from conda.common.path import expand, win_path_backout
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml
 from conda.common.url import join_url, path_to_url
 from conda.exceptions import (
     ChannelDenied,
@@ -103,7 +103,7 @@ def test_signing_metadata_url_base(context_testdata: None):
     reset_context()
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
+            "testdata", yaml.loads(string)
         )
     }
     context._set_raw_data(rd)
@@ -119,7 +119,7 @@ def test_signing_metadata_url_base_empty_default_channels(context_testdata: None
     reset_context()
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
+            "testdata", yaml.loads(string)
         )
     }
     context._set_raw_data(rd)
@@ -136,7 +136,7 @@ def test_client_ssl_cert(context_testdata: None):
     reset_context()
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
+            "testdata", yaml.loads(string)
         )
     }
     context._set_raw_data(rd)
@@ -409,7 +409,7 @@ def test_channels_defaults_condarc(context_testdata: None):
     )
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
+            "testdata", yaml.loads(string)
         )
     }
     context._set_raw_data(rd)
@@ -440,7 +440,7 @@ def test_specify_channels_cli_condarc(context_testdata: None):
     )
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
+            "testdata", yaml.loads(string)
         )
     }
     context._set_raw_data(rd)
@@ -462,7 +462,7 @@ def test_specify_different_channels_cli_condarc(context_testdata: None):
     )
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
+            "testdata", yaml.loads(string)
         )
     }
     context._set_raw_data(rd)
@@ -486,7 +486,7 @@ def test_specify_same_channels_cli_as_in_condarc(context_testdata: None):
     )
     rd = {
         "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
+            "testdata", yaml.loads(string)
         )
     }
     context._set_raw_data(rd)
@@ -502,7 +502,7 @@ def test_expandvars(context_testdata: None):
             string = f"{attr}: {config_expr}"
             rd = {
                 "testdata": YamlRawParameter.make_raw_parameters(
-                    "testdata", yaml_round_trip_load(string)
+                    "testdata", yaml.loads(string)
                 )
             }
             context._set_raw_data(rd)
