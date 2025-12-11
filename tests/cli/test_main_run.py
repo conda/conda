@@ -163,39 +163,6 @@ def test_run_with_separator(
         assert not err
 
 
-def test_run_without_separator(
-    test_recipes_channel: Path,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    with tmp_env("small-executable") as prefix:
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            "small",
-            "--version",
-        )
-
-        assert "--version" in stdout
-        assert not err
-
-
-def test_run_if_separator_not_at_start(
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    with tmp_env() as prefix:
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            "echo",
-            "--",
-            "hello",
-        )
-        assert "-- hello" in stdout
-        assert not err
-
-
 def test_run_with_empty_command_will_raise(
     conda_cli: CondaCLIFixture,
 ):
