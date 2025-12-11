@@ -21,7 +21,7 @@ from conda.common.configuration import (
     ConfigurationLoadError,
     CustomValidationError,
 )
-from conda.common.serialize import yaml_round_trip_dump, yaml
+from conda.common.serialize import yaml, yaml_round_trip_dump
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
 
@@ -607,9 +607,7 @@ def test_set_rc_without_user_rc(
     assert not stdout
     assert not stderr
     assert not error
-    assert yaml.loads(user_rc_path.read_text()) == {
-        "channels": ["test", "conda-forge"]
-    }
+    assert yaml.loads(user_rc_path.read_text()) == {"channels": ["test", "conda-forge"]}
 
 
 def test_custom_multichannels_append(conda_cli: CondaCLIFixture):

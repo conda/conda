@@ -314,9 +314,7 @@ def parameter_description_builder(name, context=None, plugins=False):
     # If we are dealing with a plugin parameter, we need to nest it
     # instead of having it at the top level (YAML-wise).
     if plugins:
-        yaml_content = yaml.dumps(
-            {"plugins": {name: json.loads(default_value_str)}}
-        )
+        yaml_content = yaml.dumps({"plugins": {name: json.loads(default_value_str)}})
     else:
         yaml_content = yaml.dumps({name: json.loads(default_value_str)})
 

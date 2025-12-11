@@ -2438,9 +2438,7 @@ def test_create_env_different_platform(
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
         assert (
-            yaml.loads((prefix / DEFAULT_CONDARC_FILENAME).read_text())[
-                "subdir"
-            ]
+            yaml.loads((prefix / DEFAULT_CONDARC_FILENAME).read_text())["subdir"]
             == platform
         )
 

@@ -325,9 +325,7 @@ class SampleConfiguration(Configuration):
 
 def load_from_string_data(*seq):
     return {
-        f: YamlRawParameter.make_raw_parameters(
-            f, yaml.loads(test_yaml_raw[f])
-        )
+        f: YamlRawParameter.make_raw_parameters(f, yaml.loads(test_yaml_raw[f]))
         for f in seq
     }
 
@@ -673,9 +671,7 @@ def test_map_parameter_must_be_map():
         proxy_servers: bad values
         """
     )
-    data = {
-        "s1": YamlRawParameter.make_raw_parameters("s1", yaml.loads(string))
-    }
+    data = {"s1": YamlRawParameter.make_raw_parameters("s1", yaml.loads(string))}
     config = SampleConfiguration()._set_raw_data(data)
     raises(InvalidTypeError, config.validate_all)
 
