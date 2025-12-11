@@ -99,9 +99,7 @@ def test_signing_metadata_url_base(context_testdata: None):
     string = f"signing_metadata_url_base: {SIGNING_URL_BASE}"
     reset_context()
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml.loads(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.signing_metadata_url_base == SIGNING_URL_BASE
@@ -115,9 +113,7 @@ def test_signing_metadata_url_base_empty_default_channels(context_testdata: None
     )
     reset_context()
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml.loads(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert len(context.default_channels) == 0
@@ -132,9 +128,7 @@ def test_client_ssl_cert(context_testdata: None):
     )
     reset_context()
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml.loads(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     pytest.raises(ValidationError, context.validate_configuration)
@@ -405,9 +399,7 @@ def test_channels_defaults_condarc(context_testdata: None):
         """
     )
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml.loads(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.channels == ("defaults", "conda-forge")
@@ -436,9 +428,7 @@ def test_specify_channels_cli_condarc(context_testdata: None):
         """
     )
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml.loads(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.channels == ("defaults", "conda-forge")
@@ -458,9 +448,7 @@ def test_specify_different_channels_cli_condarc(context_testdata: None):
         """
     )
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml.loads(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.channels == ("conda-forge", "other")
@@ -482,9 +470,7 @@ def test_specify_same_channels_cli_as_in_condarc(context_testdata: None):
         """
     )
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml.loads(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.channels == ("conda-forge",)
