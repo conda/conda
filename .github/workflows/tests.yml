@@ -43,6 +43,7 @@ jobs:
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      covctx: ${{ steps.covctx.outputs.covctx}}
     steps:
       - name: Checkout Source
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -62,6 +63,11 @@ jobs:
               - '*.py'
               - 'recipe/**'
               - '.github/workflows/tests.yml'
+      - name: Coverage contexts
+        id: covctx
+        if: contains( github.event.pull_request.labels.*.name, 'cla-signed')
+        run: echo "covctx='--cov-context=test'" >> "$GITHUB_OUTPUT"
+
 
   # windows test suite
   windows:
@@ -159,6 +165,8 @@ jobs:
         run: >
           python -m pytest
           --cov=conda
+          --cov=$env:CONDA_PREFIX\lib\python${{ matrix.python-version }}\site-packages\conda_libmamba_solver
+          ${{ needs.changes.outputs.covctx }}
           --basetemp=${{ runner.temp }}
           --durations-path=durations\${{ runner.os }}.json
           --group=${{ matrix.test-group }}
@@ -278,6 +286,8 @@ jobs:
         run: >
           python -m pytest
           --cov=conda
+          --cov=$CONDA_PREFIX/lib/python${{ matrix.python-version }}/site-packages/conda_libmamba_solver
+          ${{ needs.changes.outputs.covctx }}
           --durations-path=durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
@@ -669,6 +679,8 @@ jobs:
         run: >
           python -m pytest
           --cov=conda
+          --cov=$CONDA_PREFIX/lib/python${{ matrix.python-version }}/site-packages/conda_libmamba_solver
+          ${{ needs.changes.outputs.covctx }}
           --durations-path=durations/${{ runner.os }}.json
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
