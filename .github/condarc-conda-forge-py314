@@ -1,0 +1,4 @@
+channels:
+  - conda-forge/label/python_rc
+  - conda-forge
+anaconda_anon_usage: false
