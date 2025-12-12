@@ -123,8 +123,8 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
 @pytest.mark.parametrize(
     "args,expected_output",
     [
-        # no separator and conda will consume what it can
-        pytest.param(["small", "-v", "-c", "spam"], "-c spam", id="no separator"),
+        # no separator: arguments after the executable are passed through to the executable
+        pytest.param(["small", "-v", "-c", "spam"], "-v -c spam", id="no separator"),
         pytest.param(["small", "--version"], "--version", id="no known args"),
         # with separator and conda will ignore everything after
         pytest.param(
