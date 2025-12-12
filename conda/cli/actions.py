@@ -19,7 +19,8 @@ class NullCountAction(_CountAction):
         return getattr(namespace, name)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        if not isinstance(count := getattr(namespace, self.dest, NULL), int):
+        count = getattr(namespace, self.dest, NULL)
+        if not isinstance(count, int):
             count = 0
         setattr(namespace, self.dest, count + 1)
 
