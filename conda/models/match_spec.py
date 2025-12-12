@@ -268,6 +268,9 @@ class MatchSpec(metaclass=MatchSpecType):
 
             rec = PackageRecord.from_objects(rec)
         for field_name, v in self._match_components.items():
+            if field_name == "condition":
+                # Does it make sense for a PackageRecord to have a condition?
+                continue
             if not self._match_individual(rec, field_name, v):
                 return False
         return True
