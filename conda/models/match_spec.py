@@ -17,6 +17,7 @@ from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
+from typing import TYPE_CHECKING
 
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
@@ -34,6 +35,12 @@ try:
     from frozendict import frozendict
 except ImportError:
     from ..auxlib.collection import frozendict
+
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from conda.models.records import PackageRecord
 
 log = getLogger(__name__)
 
@@ -257,7 +264,7 @@ class MatchSpec(metaclass=MatchSpecType):
     def original_spec_str(self):
         return self._original_spec_str
 
-    def match(self, rec):
+    def match(self, rec: PackageRecord | dict[str, Any]) -> bool:
         """
         Accepts a `PackageRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
@@ -268,6 +275,10 @@ class MatchSpec(metaclass=MatchSpecType):
 
             rec = PackageRecord.from_objects(rec)
         for field_name, v in self._match_components.items():
+            if field_name == "condition":
+                # Conditions do not apply to check whether a record
+                # matches a given match spec.
+                continue
             if not self._match_individual(rec, field_name, v):
                 return False
         return True
