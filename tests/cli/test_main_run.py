@@ -93,7 +93,7 @@ def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert not err
 
 
-def test_conda_run_nonexistant_prefix(tmp_path: Path, conda_cli: CondaCLIFixture):
+def test_conda_run_nonexistent_prefix(tmp_path: Path, conda_cli: CondaCLIFixture):
     with pytest.raises(EnvironmentLocationNotFound):
         conda_cli("run", f"--prefix={tmp_path / 'missing'}", "echo", "hello")
 
@@ -118,6 +118,49 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         )
         assert stdout
         assert not stderr
+
+
+@pytest.mark.parametrize(
+    "args,expected_output",
+    [
+        # no separator and conda will consume what it can
+        pytest.param(["small", "-v", "-c", "spam"], "-c spam", id="no separator"),
+        pytest.param(["small", "--version"], "--version", id="no known args"),
+        # with separator and conda will ignore everything after
+        pytest.param(
+            ["small", "--", "-v", "hello"],
+            "-- -v hello",
+            id="separator not first",
+        ),
+        pytest.param(
+            ["--", "small", "--", "-v", "hello"],
+            "-- -v hello",
+            id="multiple separators",
+        ),
+        pytest.param(
+            ["--", "small", "-v", "-c", "spam"],
+            "-v -c spam",
+            id="multiple args",
+        ),
+        pytest.param(
+            ["--", "small", "--vic", "eggs"],
+            "--vic eggs",
+            id="combined option",
+        ),
+    ],
+)
+def test_run_with_separator(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    args: list[str],
+    expected_output: str,
+):
+    with tmp_env("small-executable") as prefix:
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", *args)
+
+        assert stdout.strip() == "Hello! " + expected_output
+        assert not err
 
 
 def test_run_with_empty_command_will_raise(
