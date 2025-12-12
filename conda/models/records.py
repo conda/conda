@@ -35,7 +35,7 @@ from ..common.compat import isiterable
 from ..deprecations import deprecated
 from ..exceptions import PathNotFoundError
 from .channel import Channel
-from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
 from .match_spec import MatchSpec
 
 
@@ -222,7 +222,7 @@ class PathData(Entity):
     no_link = BooleanField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
-    path_type = EnumField(PathType)
+    path_type = EnumField(PathEnum)
 
     @property
     def path(self):
@@ -231,7 +231,7 @@ class PathData(Entity):
 
 
 class PathDataV1(PathData):
-    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory
+    # TODO: sha256 and size_in_bytes should be required for all PathEnum.hardlink, but not for softlink and directory
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(str, required=False, nullable=True)
