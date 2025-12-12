@@ -11,12 +11,14 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.auxlib.ish import dals
+from conda.base.context import context
 from conda.common.compat import on_win
 from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
 )
 from conda.testing.integration import env_or_set, which_or_where
+from conda.utils import wrap_subprocess_call
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -118,6 +120,103 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         )
         assert stdout
         assert not stderr
+
+
+@pytest.mark.skipif(not on_win, reason="Windows-specific test")
+def test_run_deactivates_environment_windows(
+    request: pytest.FixtureRequest,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    # Set env var to prevent script deletion, so we can inspect it.
+    monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
+
+    with tmp_env() as prefix:
+        script_path, _ = wrap_subprocess_call(
+            root_prefix=context.root_prefix,
+            prefix=str(prefix),
+            dev_mode=False,
+            debug_wrapper_scripts=False,
+            arguments=["echo", "test"],
+            use_system_tmp_path=True,
+        )
+
+        request.addfinalizer(lambda: Path(script_path).unlink(missing_ok=True))
+
+        script_content = Path(script_path).read_text()
+        lines = script_content.split("\n")
+
+        assert "deactivate.d" in script_content, (
+            "Windows wrapper script should check for deactivation scripts"
+        )
+
+        echo_line_idx = None
+        deactivate_check_idx = None
+
+        for idx, line in enumerate(lines):
+            if "echo" in line and "test" in line:
+                echo_line_idx = idx
+            if "deactivate.d" in line and "EXIST" in line:
+                deactivate_check_idx = idx
+
+        assert deactivate_check_idx is not None, (
+            "Could not find deactivate.d directory check in the Windows wrapper script"
+        )
+        assert echo_line_idx is not None, (
+            "Could not find the user's command in the Windows wrapper script"
+        )
+        # Verify deactivation check comes after the user's command
+        assert deactivate_check_idx > echo_line_idx, (
+            "On Windows, deactivation check should come after the user's command"
+        )
+
+
+@pytest.mark.skipif(on_win, reason="Unix-specific test")
+def test_run_deactivates_environment_unix(
+    request: pytest.FixtureRequest,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    # Set env var to prevent script deletion, so we can inspect it.
+    monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
+
+    with tmp_env() as prefix:
+        script_path, _ = wrap_subprocess_call(
+            root_prefix=context.root_prefix,
+            prefix=str(prefix),
+            dev_mode=False,
+            debug_wrapper_scripts=False,
+            arguments=["echo", "test"],
+            use_system_tmp_path=True,
+        )
+
+        request.addfinalizer(lambda: Path(script_path).unlink(missing_ok=True))
+
+        script_content = Path(script_path).read_text()
+        lines = script_content.split("\n")
+
+        assert "deactivate.d" in script_content, (
+            "Unix wrapper script should check for deactivation scripts"
+        )
+
+        echo_line_idx = None
+        deactivate_check_idx = None
+        for idx, line in enumerate(lines):
+            if "echo" in line and "test" in line:
+                echo_line_idx = idx
+            if "deactivate.d" in line and ("CONDA_PREFIX" in line or "-d" in line):
+                deactivate_check_idx = idx
+
+        assert deactivate_check_idx is not None, (
+            "Could not find deactivate.d directory check in the wrapper script"
+        )
+        assert echo_line_idx is not None, (
+            "Could not find the user's command in the wrapper script"
+        )
+        # Verify deactivation check comes after the user's command
+        assert deactivate_check_idx > echo_line_idx, (
+            "Deactivation check should come after the user's command"
+        )
 
 
 def test_run_with_empty_command_will_raise(
