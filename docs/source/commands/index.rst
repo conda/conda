@@ -38,6 +38,7 @@ The following commands are part of conda:
    run
    search
    update
+   commands
 
 Conda vs. pip vs. virtualenv commands
 =====================================

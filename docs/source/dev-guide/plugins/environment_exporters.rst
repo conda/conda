@@ -139,7 +139,7 @@ The ``default_filenames`` tuple specifies filename patterns for automatic format
    conda export --file=environment.txt
 
 Export/Multiplatform Export Function
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 There are two export functions, one for single platform formats and one for multiplatform formats. Both return a string representation:
 

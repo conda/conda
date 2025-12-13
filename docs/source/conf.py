@@ -41,6 +41,7 @@ extensions = [
     "sphinx_reredirects",
     "sphinx_sitemap",
     "sphinxarg.ext",
+    "sphinx_copybutton",
     "sphinxcontrib.mermaid",
     "sphinxcontrib.plantuml",
     "sphinxcontrib.programoutput",
@@ -155,6 +156,15 @@ myst_enable_extensions = [
     "substitution",
     "tasklist",
 ]
+
+
+# -- For sphinx_copybutton -------------------------------------------------
+
+# Remove prompt text when copying code blocks
+copybutton_prompt_text = r"\$ |> "
+copybutton_prompt_is_regexp = True
+copybutton_only_copy_prompt_lines = True
+copybutton_remove_prompts = True
 
 
 # -- For autoapi.extension -------------------------------------------------
