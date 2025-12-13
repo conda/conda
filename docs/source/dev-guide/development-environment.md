@@ -168,7 +168,7 @@ If you prefer to set up your development environment manually instead of using t
 ### Prerequisites
 
 - Conda is already installed and initialized on your system
-- (Optional) If using Option B in step 4, install conda-pypi canary version: `conda install -n base conda-canary/label/dev::conda-pypi `
+- (Optional) If using Option B in step 4, install conda-pypi canary version: `conda install -n base conda-canary/label/dev::conda-pypi`
 
 1. Create the development directory:
 
@@ -194,8 +194,11 @@ If you prefer to set up your development environment manually instead of using t
 
    ```{tab-item} Windows (PowerShell)
    ```powershell
-   > Invoke-WebRequest -Uri "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe" -OutFile ".\devenv\miniforge.exe"
-   > Start-Process -FilePath ".\devenv\miniforge.exe" -ArgumentList "/InstallationType=JustMe","/RegisterPython=0","/AddToPath=0","/S","/D=$PWD\devenv" -Wait -NoNewWindow
+   > (New-Object System.Net.WebClient).DownloadFile(
+       "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe",
+       "$env:TEMP\miniforge.exe"
+     )
+   > Start-Process $env:TEMP\miniforge.exe -ArgumentList "/InstallationType=JustMe","/RegisterPython=0","/AddToPath=0","/NoRegistry=1","/NoShortcuts=1","/S","/D=$PWD\devenv" -Wait -NoNewWindow
    ```
 
    ````
@@ -241,14 +244,6 @@ If you prefer to set up your development environment manually instead of using t
    ```
    ````
 
-   **Option B: Install conda in editable mode**:
-
-   ```bash
-   $ conda pypi install -e .
-   ```
-
-   This installs conda as an editable package in the environment, which can be more convenient for development.
-
 5. Activate environment:
 
    ````{tab-set}
@@ -266,6 +261,16 @@ If you prefer to set up your development environment manually instead of using t
    ```
 
    ````
+
+   **Option B: Install conda in editable mode** (alternative to Option A):
+
+   After activating the environment, you can install conda in editable mode instead of using PYTHONPATH:
+
+   ```bash
+   $ conda pypi install -e .
+   ```
+
+   This installs conda as an editable package in the environment, which can be more convenient for development.
 
 ## Docker Alternative
 
