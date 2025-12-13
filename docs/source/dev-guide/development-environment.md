@@ -236,7 +236,7 @@ If you prefer to set up your development environment manually instead of using t
    ```bash
    # Set PYTHONPATH
    $ export PYTHONPATH=$(pwd):$PYTHONPATH
-   
+
    # Activate environment
    $ conda activate ./devenv
    ```
@@ -244,7 +244,7 @@ If you prefer to set up your development environment manually instead of using t
    ```fish
    # Set PYTHONPATH
    $ set -gx PYTHONPATH (pwd) $PYTHONPATH
-   
+
    # Activate environment
    $ conda activate ./devenv
    ```
@@ -252,7 +252,7 @@ If you prefer to set up your development environment manually instead of using t
    ```powershell
    # Set PYTHONPATH
    > $env:PYTHONPATH="$PWD;$env:PYTHONPATH"
-   
+
    # Activate environment
    > conda activate .\devenv
    ```
@@ -268,7 +268,7 @@ If you prefer to set up your development environment manually instead of using t
    ```bash
    # Activate environment
    $ conda activate ./devenv
-   
+
    # Install conda in editable mode
    $ conda pypi install -e .
    ```
@@ -276,7 +276,7 @@ If you prefer to set up your development environment manually instead of using t
    ```powershell
    # Activate environment
    > conda activate .\devenv
-   
+
    # Install conda in editable mode
    > conda pypi install -e .
    ```
