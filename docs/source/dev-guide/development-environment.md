@@ -184,18 +184,21 @@ If you prefer to set up your development environment manually instead of using t
    ```bash
    $ curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh" -o ./devenv/miniforge.sh
    $ bash ./devenv/miniforge.sh -bfp ./devenv
+   $ rm ./devenv/miniforge.sh
    ```
 
    ```{tab-item} Linux
    ```bash
    $ curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh" -o ./devenv/miniforge.sh
    $ bash ./devenv/miniforge.sh -bfp ./devenv
+   $ rm ./devenv/miniforge.sh
    ```
 
    ```{tab-item} Windows (PowerShell)
    ```powershell
    > (New-Object System.Net.WebClient).DownloadFile("https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe", "$env:TEMP\miniforge.exe")
    > Start-Process $env:TEMP\miniforge.exe -ArgumentList "/InstallationType=JustMe","/RegisterPython=0","/AddToPath=0","/NoRegistry=1","/NoShortcuts=1","/S","/D=$PWD\devenv" -Wait -NoNewWindow
+   > rm $env:TEMP\miniforge.exe
    ```
 
    ````
