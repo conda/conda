@@ -194,10 +194,7 @@ If you prefer to set up your development environment manually instead of using t
 
    ```{tab-item} Windows (PowerShell)
    ```powershell
-   > (New-Object System.Net.WebClient).DownloadFile(
-       "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe",
-       "$env:TEMP\miniforge.exe"
-     )
+   > (New-Object System.Net.WebClient).DownloadFile("https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe", "$env:TEMP\miniforge.exe")
    > Start-Process $env:TEMP\miniforge.exe -ArgumentList "/InstallationType=JustMe","/RegisterPython=0","/AddToPath=0","/NoRegistry=1","/NoShortcuts=1","/S","/D=$PWD\devenv" -Wait -NoNewWindow
    ```
 
@@ -222,53 +219,65 @@ If you prefer to set up your development environment manually instead of using t
 
    ````
 
-4. Make conda source code available:
+4. Make conda source code available and activate environment:
 
    Choose one of the following options:
 
-   **Option A: Set PYTHONPATH**:
+   **Option A: Set PYTHONPATH**
+
+   Set PYTHONPATH to make the conda source code available, then activate the environment:
 
    ````{tab-set}
 
    ```{tab-item} Bash (macOS, Linux)
    ```bash
+   # Set PYTHONPATH
    $ export PYTHONPATH=$(pwd):$PYTHONPATH
+   
+   # Activate environment
+   $ conda activate ./devenv
    ```
    ```{tab-item} Fish (macOS, Linux)
    ```fish
+   # Set PYTHONPATH
    $ set -gx PYTHONPATH (pwd) $PYTHONPATH
+   
+   # Activate environment
+   $ conda activate ./devenv
    ```
    ```{tab-item} PowerShell (Windows)
    ```powershell
+   # Set PYTHONPATH
    > $env:PYTHONPATH="$PWD;$env:PYTHONPATH"
+   
+   # Activate environment
+   > conda activate .\devenv
    ```
    ````
 
-5. Activate environment:
+   **Option B: Install conda in editable mode**
+
+   Activate the environment first, then install conda in editable mode using conda-pypi:
 
    ````{tab-set}
 
    ```{tab-item} Bash (macOS, Linux)
    ```bash
-   # Activate (PYTHONPATH should be set if using Option A from step 4)
+   # Activate environment
    $ conda activate ./devenv
-   ```
-
-   ```{tab-item} PowerShell (Windows)
-   ```powershell
-   # Activate (PYTHONPATH should be set if using Option A from step 4)
-   > conda activate .\devenv
-   ```
-
-   ````
-
-   **Option B: Install conda in editable mode** (alternative to Option A):
-
-   After activating the environment, you can install conda in editable mode instead of using PYTHONPATH:
-
-   ```bash
+   
+   # Install conda in editable mode
    $ conda pypi install -e .
    ```
+   ```{tab-item} PowerShell (Windows)
+   ```powershell
+   # Activate environment
+   > conda activate .\devenv
+   
+   # Install conda in editable mode
+   > conda pypi install -e .
+   ```
+   ````
 
    This installs conda as an editable package in the environment, which can be more convenient for development.
 
