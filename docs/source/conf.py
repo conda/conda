@@ -162,7 +162,8 @@ myst_enable_extensions = [
 
 # Remove prompt text when copying code blocks
 copybutton_prompt_text = r"\$ |> "
-copybutton_only_copy_prompt_lines = False
+copybutton_prompt_is_regexp = True
+copybutton_only_copy_prompt_lines = True
 copybutton_remove_prompts = True
 
 
