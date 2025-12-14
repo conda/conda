@@ -120,3 +120,8 @@ def test_tmp_pkgs_dir(tmp_pkgs_dir: Path) -> None:
 
 def test_tmp_envs_dir(tmp_envs_dir: Path) -> None:
     assert tmp_envs_dir.is_dir()
+
+
+def test_mocked_conda_cli(tmp_env: TmpEnvFixture) -> None:
+    with tmp_env("python", mocked=True) as prefix:
+        assert PrefixData(prefix).get("python")

@@ -19,24 +19,27 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
-from conda.deprecations import deprecated
-
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ..base.context import context, reset_context
+from ..cli.install import handle_txn
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
 from ..common.serialize import json, yaml_round_trip_load
 from ..common.url import path_to_url
-from ..core.package_cache_data import PackageCacheData
+from ..core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
+from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData
+from ..deprecations import deprecated
 from ..exceptions import CondaExitZero
 from ..gateways.disk.create import TemporaryDirectory
-from ..models.records import PackageRecord
+from ..history import History
+from ..models.records import PackageRecord, PrefixRecord
 from .integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
+    from argparse import Namespace
     from collections.abc import Iterable, Iterator
 
     from _pytest.capture import MultiCapture
@@ -50,6 +53,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from ..common.path import PathType
+    from ..core.link import UnlinkLinkTransaction
 
 
 log = getLogger(__name__)
@@ -215,11 +219,13 @@ def session_capsys(request) -> Iterator[MultiCapture]:
 @dataclass
 class CondaCLIFixture:
     capsys: CaptureFixture | None
+    monkeypatch: MonkeyPatch
 
     @overload
     def __call__(
         self,
         *argv: PathType,
+        mocked: bool,
         raises: type[Exception] | tuple[type[Exception], ...],
     ) -> tuple[str, str, ExceptionInfo]: ...
 
@@ -227,11 +233,13 @@ class CondaCLIFixture:
     def __call__(
         self,
         *argv: PathType,
+        mocked: bool,
     ) -> tuple[str, str, int]: ...
 
     def __call__(
         self,
         *argv: PathType,
+        mocked: bool = False,
         raises: type[Exception] | tuple[type[Exception], ...] | None = None,
     ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
@@ -239,6 +247,8 @@ class CondaCLIFixture:
         `conda ...` == `conda_cli(...)`
 
         :param argv: Arguments to parse.
+        :param mocked: Whether to create the environment fully, or only record
+            the installed packages in conda-meta without linking the actual contents.
         :param raises: Expected exception to intercept. If provided, the raised exception
             will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
         :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
@@ -246,6 +256,14 @@ class CondaCLIFixture:
         # clear output
         if self.capsys:
             self.capsys.readouterr()
+
+        if mocked:
+            self.monkeypatch.setattr(
+                "conda.cli.install.handle_txn", self.mocked_handle_txn
+            )
+            self.monkeypatch.setattr(
+                "conda.cli.main_remove.handle_txn", self.mocked_handle_txn
+            )
 
         # run command
         code = None
@@ -285,25 +303,73 @@ class CondaCLIFixture:
 
                 yield from argv
 
+    @staticmethod
+    def mocked_handle_txn(
+        unlink_link_transaction: UnlinkLinkTransaction,
+        prefix: str | Path,
+        args: Namespace,
+        newenv: bool,
+        remove_op: bool = False,
+    ) -> None:
+        with pytest.MonkeyPatch.context() as mp:
+            # Mock some attributes to make conda believe the transaction did all the work
+            mp.setattr(unlink_link_transaction, "_pfe", ProgressiveFetchExtract(()))
+            mp.setattr(unlink_link_transaction, "_prepared", True)
+            mp.setattr(unlink_link_transaction, "_verified", True)
+            # We still execut handle_txn so flow control ops work as expected
+            # (early exit on dry-runs, nothing-to-dos, etc)
+            handle_txn(
+                unlink_link_transaction,
+                prefix,
+                args,
+                newenv,
+                remove_op,
+            )
+            # This is the key part: making conda believe we actually linked packages!
+            # For this we only need:
+            # - conda-meta/*.json records: the solver will see these as installed
+            # - conda-meta/history file: informs user intent in some solver logic
+            prefix_data = PrefixData(prefix)
+            setup = unlink_link_transaction.prefix_setups[prefix]
+            (prefix_data.prefix_path / "conda-meta").mkdir(parents=True, exist_ok=True)
+
+            for record in setup.unlink_precs:
+                prefix_data.remove(record.name)
+            for record in setup.link_precs:
+                # NOTE: We are missing all the 'files' and 'paths' data. This can be obtained
+                # with partial downloads of the info/ folder and populated in place without
+                # having to download and extract the whole archive
+                prefix_data.insert(PrefixRecord.from_objects(**record.dump()))
+
+            history = History(prefix)
+            if not Path(history.path).is_file():
+                prefix_data.set_creation_time()
+            history.update()
+            history.write_specs(
+                setup.remove_specs, setup.update_specs, setup.neutered_specs
+            )
+
 
 @pytest.fixture
-def conda_cli(capsys: CaptureFixture) -> Iterator[CondaCLIFixture]:
+def conda_cli(
+    capsys: CaptureFixture, monkeypatch: MonkeyPatch
+) -> Iterator[CondaCLIFixture]:
     """A function scoped fixture returning CondaCLIFixture instance.
 
     Use this for any commands that are local to the current test (e.g., creating a
     conda environment only used in the test).
     """
-    yield CondaCLIFixture(capsys)
+    yield CondaCLIFixture(capsys, monkeypatch)
 
 
 @pytest.fixture(scope="session")
-def session_conda_cli() -> Iterator[CondaCLIFixture]:
+def session_conda_cli(monkeypatch: MonkeyPatch) -> Iterator[CondaCLIFixture]:
     """A session scoped fixture returning CondaCLIFixture instance.
 
     Use this for any commands that are global to the test session (e.g., creating a
     conda environment shared across tests, `conda info`, etc.).
     """
-    yield CondaCLIFixture(None)
+    yield CondaCLIFixture(None, monkeypatch)
 
 
 @dataclass
@@ -441,16 +507,21 @@ class TmpEnvFixture:
         self,
         *packages: str,
         prefix: str | os.PathLike | None = None,
+        mocked: bool = False,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
         :param packages: The packages to install into environment
         :param prefix: The prefix at which to install the conda environment
+        :param mocked: Whether to create the environment fully, or only record
+            the installed packages in conda-meta without linking the actual contents.
         :return: The conda environment's prefix
         """
         prefix = Path(prefix or self.get_path())
 
-        self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
+        self.conda_cli(
+            "create", "--prefix", prefix, *packages, "--yes", "--quiet", mocked=mocked
+        )
         yield prefix
 
         # no need to remove prefix since it is in a temporary directory
