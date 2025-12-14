@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from itertools import chain
 from logging import getLogger
 from pathlib import Path
-from shutil import copyfile
+from shutil import copyfile, copytree
 from typing import TYPE_CHECKING, Literal, TypeVar, overload
 
 import py
@@ -32,7 +32,7 @@ from ..core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData
 from ..deprecations import deprecated
-from ..exceptions import CondaExitZero
+from ..exceptions import CondaExitZero, DryRunExit
 from ..gateways.disk.create import TemporaryDirectory
 from ..history import History
 from ..models.records import PackageRecord, PrefixRecord
@@ -261,9 +261,8 @@ class CondaCLIFixture:
             self.monkeypatch.setattr(
                 "conda.cli.install.handle_txn", self.mocked_handle_txn
             )
-            self.monkeypatch.setattr(
-                "conda.cli.main_remove.handle_txn", self.mocked_handle_txn
-            )
+            self.monkeypatch.setattr("conda.misc.clone_env", self.mocked_clone_env)
+            self.monkeypatch.setattr("conda.cli.install.clone_env", self.mocked_clone_env)
 
         # run command
         code = None
@@ -348,6 +347,13 @@ class CondaCLIFixture:
             history.write_specs(
                 setup.remove_specs, setup.update_specs, setup.neutered_specs
             )
+
+    @staticmethod
+    def mocked_clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None) -> tuple[dict, list[str]]:
+        if context.dry_run:
+            raise DryRunExit()
+        copytree(prefix1, prefix2)
+        return {}, []
 
 
 @pytest.fixture
