@@ -10,6 +10,7 @@ from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
+from conda.plugins.types import CondaSolver
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class VerboseSolver(solve.Solver):
         return verbose_user_agent
 
 
-classic_solver = plugins.CondaSolver(
+classic_solver = CondaSolver(
     name="classic",
     backend=solve.Solver,
 )
@@ -42,7 +43,7 @@ class SolverPlugin:
 class VerboseSolverPlugin:
     @plugins.hookimpl
     def conda_solvers(self):
-        yield plugins.CondaSolver(
+        yield CondaSolver(
             name="verbose-classic",
             backend=VerboseSolver,
         )
@@ -124,7 +125,7 @@ def test_get_one_solver(plugin_manager):
 def test_get_two_solvers(plugin_manager):
     plugin_manager.register(SolverPlugin())
 
-    verbose_classic_solver = plugins.CondaSolver(
+    verbose_classic_solver = CondaSolver(
         name="verbose-classic",
         backend=VerboseSolver,
     )
