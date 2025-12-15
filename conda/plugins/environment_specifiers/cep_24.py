@@ -5,8 +5,6 @@
 Register the conda env spec for environment.yml files.
 """
 
-import warnings
-
 from .. import hookimpl
 from ..types import CondaEnvironmentSpecifier
 
