@@ -18,7 +18,7 @@ from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
-from conda.plugins.types import CondaPlugin
+from conda.plugins.types import CondaPlugin, CondaSolver, CondaVirtualPackage
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -42,7 +42,7 @@ class VerboseSolver(solve.Solver):
         return super().solve_final_state(*args, **kwargs)
 
 
-VerboseCondaSolver = plugins.CondaSolver(
+VerboseCondaSolver = CondaSolver(
     name="verbose-classic",
     backend=VerboseSolver,
 )
@@ -54,12 +54,12 @@ class VerboseSolverPlugin:
         yield VerboseCondaSolver
 
 
-DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
+DummyVirtualPackage = CondaVirtualPackage("dummy", "version", "build")
 
 
 class DummyVirtualPackagePlugin:
     @plugins.hookimpl
-    def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
+    def conda_virtual_packages(*args) -> Iterator[CondaVirtualPackage]:
         yield DummyVirtualPackage
 
 
@@ -98,7 +98,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     class SecondArchspec:
         @plugins.hookimpl
         def conda_virtual_packages():
-            yield plugins.CondaVirtualPackage("archspec", "", None)
+            yield CondaVirtualPackage("archspec", "", None)
 
     plugin_manager.register(SecondArchspec)
     with pytest.raises(
