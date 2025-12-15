@@ -19,6 +19,7 @@ from conda.common.configuration import (
 )
 from conda.exceptions import ArgumentError, CondaKeyError
 from conda.plugins.manager import CondaPluginManager
+from conda.plugins.types import CondaSetting
 
 log = logging.getLogger(__name__)
 
@@ -48,20 +49,20 @@ string_parameter = PrimitiveParameter("", element_type=str)
 seq_parameter = SequenceParameter(PrimitiveParameter("", element_type=str))
 map_parameter = MapParameter(PrimitiveParameter("", element_type=str))
 
-string_config_parameter = plugins.CondaSetting(
+string_config_parameter = CondaSetting(
     name=STRING_PARAMETER_NAME,
     description="Test string type setting",
     parameter=string_parameter,
     aliases=(STRING_PARAMETER_ALIAS,),
 )
 
-sequence_config_parameter = plugins.CondaSetting(
+sequence_config_parameter = CondaSetting(
     name=SEQ_PARAMETER_NAME,
     description="Test sequence type setting",
     parameter=seq_parameter,
 )
 
-map_config_parameter = plugins.CondaSetting(
+map_config_parameter = CondaSetting(
     name=MAP_PARAMETER_NAME,
     description="Test map type setting",
     parameter=map_parameter,
