@@ -306,7 +306,7 @@ def print_activate(env_name_or_prefix):
             #     $ conda deactivate
             """
         )
-        getLogger("conda.stdout").info(message)
+        print(message)  # TODO: use logger
 
 
 def validate_environment_files_consistency(files: list[str]) -> None:
