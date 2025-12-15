@@ -240,14 +240,14 @@ def test_run_deactivates_environment_unix(
     ("script_name", "script_template"),
     [
         pytest.param(
-            "test_deactivate.bat",
-            '@echo Deactivation script has been executed >> "{marker}"\n',
-            marks=pytest.mark.skipif(not on_win, reason="Windows-specific test"),
-        ),
-        pytest.param(
             "test_deactivate.sh",
             '#!/bin/bash\necho "Deactivation script has been executed" >> "{marker}"\n',
             marks=pytest.mark.skipif(on_win, reason="Unix-specific test"),
+        ),
+        pytest.param(
+            "test_deactivate.bat",
+            '@echo Deactivation script has been executed >> "{marker}"\n',
+            marks=pytest.mark.skipif(not on_win, reason="Windows-specific test"),
         ),
     ],
     ids=["unix", "windows"],
