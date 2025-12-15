@@ -937,7 +937,7 @@ def test_timestamps(
     test_recipes_channel: Path,
 ):
     start = datetime.now(tz=timezone.utc)
-    with tmp_env(mock=False) as prefix:
+    with tmp_env(shallow=False) as prefix:
         pd = PrefixData(prefix)
         created = pd.created
         first_modification = pd.last_modified

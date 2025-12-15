@@ -736,7 +736,7 @@ def test_search_override_channels_enabled(
 
 
 def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env(mock=False) as prefix:
+    with tmp_env(shallow=False) as prefix:
         assert (prefix / PREFIX_MAGIC_FILE).exists()
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
@@ -910,7 +910,7 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
         assert not any(prefix in key for key in PrefixData._cache_)
 
-    with tmp_env(mock=False) as prefix:
+    with tmp_env(shallow=False) as prefix:
         assert prefix.is_dir()
         assert any(prefix in key for key in PrefixData._cache_)
 
@@ -2408,7 +2408,7 @@ def test_create_env_different_platform(
 
         args = []
 
-    with tmp_env(*args, mock=False) as prefix:
+    with tmp_env(*args, shallow=False) as prefix:
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
         assert (

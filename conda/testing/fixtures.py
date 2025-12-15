@@ -441,18 +441,18 @@ class TmpEnvFixture:
         self,
         *args: str,
         prefix: str | os.PathLike | None = None,
-        mock: bool = True,
+        shallow: bool = True,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
         :param args: The arguments to pass to conda create (e.g., packages, flags, etc.)
         :param prefix: The prefix at which to install the conda environment
-        :param mock: Whether to mock the environment creation (default: True)
+        :param shallow: Whether the environment is created only on disk without call to `conda create` (default: True)
         :return: The conda environment's prefix
         """
         prefix = Path(prefix or self.get_path())
 
-        if mock and not args:
+        if shallow and not args:
             # no arguments, just create an empty environment
             path = prefix / PREFIX_MAGIC_FILE
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -489,7 +489,7 @@ def empty_env(tmp_env: TmpEnvFixture) -> Path:
 
     Use this when creating a conda environment that is empty.
     """
-    with tmp_env() as prefix:
+    with tmp_env(shallow=True) as prefix:
         return prefix
 
 
