@@ -502,6 +502,7 @@ def test_cover_get_entry_to_link(tmp_pkgs_dir: Path):
         constrains=(),
         track_features=(),
         features=(),
+        requested_specs=(),
         license="MIT",
         license_family="MIT",
         timestamp=1605539545.169,
