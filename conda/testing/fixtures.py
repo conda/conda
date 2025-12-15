@@ -452,7 +452,9 @@ class TmpEnvFixture:
         """
         prefix = Path(prefix or self.get_path())
 
-        if shallow and not args:
+        if shallow and args:
+            raise ValueError("shallow=True cannot be used with any arguments")
+        elif shallow:
             # no arguments, just create an empty environment
             path = prefix / PREFIX_MAGIC_FILE
             path.parent.mkdir(parents=True, exist_ok=True)
