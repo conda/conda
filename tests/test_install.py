@@ -206,9 +206,6 @@ def test_binary(path_factory: PathFactoryFixture, subdir: str):
 
 
 def test_trash_outside_prefix():
-    with pytest.deprecated_call():
-        from conda.gateways.disk.delete import move_path_to_trash
-
     tmp_dir = tempfile.mkdtemp()
     rel = relpath(tmp_dir, context.root_prefix)
     assert rel.startswith("..")
