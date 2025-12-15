@@ -369,13 +369,14 @@ def conda_cli(
 
 
 @pytest.fixture(scope="session")
-def session_conda_cli(monkeypatch: MonkeyPatch) -> Iterator[CondaCLIFixture]:
+def session_conda_cli() -> Iterator[CondaCLIFixture]:
     """A session scoped fixture returning CondaCLIFixture instance.
 
     Use this for any commands that are global to the test session (e.g., creating a
     conda environment shared across tests, `conda info`, etc.).
     """
-    yield CondaCLIFixture(None, monkeypatch)
+    with pytest.MonkeyPatch.context() as mp:
+        yield CondaCLIFixture(None, mp)
 
 
 @dataclass
