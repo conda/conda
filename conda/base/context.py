@@ -256,7 +256,7 @@ class Context(Configuration):
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
     prefix_data_interoperability = ParameterLoader(
-        PrimitiveParameter(False), aliases="pip_interop_enabled"
+        PrimitiveParameter(False), aliases=("pip_interop_enabled",)
     )
 
     @property

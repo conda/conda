@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `Channel.urls()` to respect explicit `subdirs` parameter when the channel has a platform defined. (#14258)
+* Do not expose `__cuda` virtual package when no CUDA version was detected. (#15500)
 
 ### Deprecations
 
