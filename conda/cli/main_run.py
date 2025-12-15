@@ -90,12 +90,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..common.compat import encode_environment
     from ..core.prefix_data import PrefixData
+    from ..exceptions import ArgumentError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.subprocess import subprocess_call
     from ..utils import wrap_subprocess_call
 
     prefix_data = PrefixData.from_context()
     prefix_data.assert_environment()
+
+    if not args.executable_call:
+        raise ArgumentError("No command specified. Please provide a command to run.")
+
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
@@ -103,7 +108,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,
-        use_system_tmp_path=True,
     )
 
     # run script

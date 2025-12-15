@@ -1,5 +1,18 @@
 [//]: # (current developments)
 
+## 25.11.1 (2025-12-12)
+
+### Bug fixes
+
+* Do not expose `__cuda` virtual package when no CUDA version was detected. (#15500)
+
+### Contributors
+
+* @jaimergp
+* @kenodegard
+
+
+
 ## 25.11.0 (2025-11-20)
 
 ### Enhancements
