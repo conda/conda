@@ -53,6 +53,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     p.add_argument(
+        "-O",
         "--override-channels",
         action="store_true",
         help="Do not include .condarc channels",
