@@ -132,13 +132,17 @@ def test_run_deactivates_environment_windows(
     monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
 
     with tmp_env() as prefix:
+        deactivate_d = Path(prefix) / "etc" / "conda" / "deactivate.d"
+        deactivate_d.mkdir(parents=True, exist_ok=True)
+        (deactivate_d / "z_test.bat").write_text("@echo Deactivating Z\n")
+        (deactivate_d / "a_test.bat").write_text("@echo Deactivating A\n")
+
         script_path, _ = wrap_subprocess_call(
             root_prefix=context.root_prefix,
             prefix=str(prefix),
             dev_mode=False,
             debug_wrapper_scripts=False,
             arguments=["echo", "test"],
-            use_system_tmp_path=True,
         )
 
         request.addfinalizer(lambda: Path(script_path).unlink(missing_ok=True))
@@ -146,28 +150,32 @@ def test_run_deactivates_environment_windows(
         script_content = Path(script_path).read_text()
         lines = script_content.split("\n")
 
-        assert "deactivate.d" in script_content, (
-            "Windows wrapper script should check for deactivation scripts"
-        )
+        assert "z_test.bat" in script_content and "a_test.bat" in script_content
 
         echo_line_idx = None
-        deactivate_check_idx = None
+        z_test_idx = None
+        a_test_idx = None
 
         for idx, line in enumerate(lines):
-            if "echo" in line and "test" in line:
+            if "echo" in line and "test" in line and "CALL" not in line:
                 echo_line_idx = idx
-            if "deactivate.d" in line and "EXIST" in line:
-                deactivate_check_idx = idx
+            if "z_test.bat" in line:
+                z_test_idx = idx
+            if "a_test.bat" in line:
+                a_test_idx = idx
 
-        assert deactivate_check_idx is not None, (
-            "Could not find deactivate.d directory check in the Windows wrapper script"
+        assert echo_line_idx is not None
+
+        assert z_test_idx is not None
+        assert a_test_idx is not None
+
+        # Verify deactivation scripts come after the user's command
+        assert z_test_idx > echo_line_idx and a_test_idx > echo_line_idx, (
+            "Deactivation scripts should come after the user's command"
         )
-        assert echo_line_idx is not None, (
-            "Could not find the user's command in the Windows wrapper script"
-        )
-        # Verify deactivation check comes after the user's command
-        assert deactivate_check_idx > echo_line_idx, (
-            "On Windows, deactivation check should come after the user's command"
+
+        assert z_test_idx < a_test_idx, (
+            "Deactivation scripts are to be called in reverse alphabetical order."
         )
 
 
@@ -181,13 +189,17 @@ def test_run_deactivates_environment_unix(
     monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
 
     with tmp_env() as prefix:
+        deactivate_d = Path(prefix) / "etc" / "conda" / "deactivate.d"
+        deactivate_d.mkdir(parents=True, exist_ok=True)
+        (deactivate_d / "z_test.sh").write_text("echo 'Deactivating Z'\n")
+        (deactivate_d / "a_test.sh").write_text("echo 'Deactivating A'\n")
+
         script_path, _ = wrap_subprocess_call(
             root_prefix=context.root_prefix,
             prefix=str(prefix),
             dev_mode=False,
             debug_wrapper_scripts=False,
             arguments=["echo", "test"],
-            use_system_tmp_path=True,
         )
 
         request.addfinalizer(lambda: Path(script_path).unlink(missing_ok=True))
@@ -195,27 +207,32 @@ def test_run_deactivates_environment_unix(
         script_content = Path(script_path).read_text()
         lines = script_content.split("\n")
 
-        assert "deactivate.d" in script_content, (
-            "Unix wrapper script should check for deactivation scripts"
-        )
+        assert "z_test.sh" in script_content and "a_test.sh" in script_content
 
         echo_line_idx = None
-        deactivate_check_idx = None
-        for idx, line in enumerate(lines):
-            if "echo" in line and "test" in line:
-                echo_line_idx = idx
-            if "deactivate.d" in line and ("CONDA_PREFIX" in line or "-d" in line):
-                deactivate_check_idx = idx
+        z_test_idx = None
+        a_test_idx = None
 
-        assert deactivate_check_idx is not None, (
-            "Could not find deactivate.d directory check in the wrapper script"
+        for idx, line in enumerate(lines):
+            if "echo" in line and "test" in line and not line.strip().startswith("."):
+                echo_line_idx = idx
+            if "z_test.sh" in line:
+                z_test_idx = idx
+            if "a_test.sh" in line:
+                a_test_idx = idx
+
+        assert echo_line_idx is not None
+
+        assert z_test_idx is not None
+        assert a_test_idx is not None
+
+        # Verify deactivation scripts come after the user's command
+        assert z_test_idx > echo_line_idx and a_test_idx > echo_line_idx, (
+            "Deactivation scripts should come after the user's command"
         )
-        assert echo_line_idx is not None, (
-            "Could not find the user's command in the wrapper script"
-        )
-        # Verify deactivation check comes after the user's command
-        assert deactivate_check_idx > echo_line_idx, (
-            "Deactivation check should come after the user's command"
+
+        assert z_test_idx < a_test_idx, (
+            "Deactivation scripts are to be called in reverse alphabetical order."
         )
 
 
