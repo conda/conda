@@ -441,20 +441,21 @@ class TmpEnvFixture:
         self,
         *args: str,
         prefix: str | os.PathLike | None = None,
-        shallow: bool = True,
+        shallow: bool | None = None,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
         :param args: The arguments to pass to conda create (e.g., packages, flags, etc.)
         :param prefix: The prefix at which to install the conda environment
-        :param shallow: Whether the environment is created only on disk without call to `conda create` (default: True)
+        :param shallow: Whether the environment is created only on disk without call to `conda create`
         :return: The conda environment's prefix
         """
-        prefix = Path(prefix or self.get_path())
-
         if shallow and args:
             raise ValueError("shallow=True cannot be used with any arguments")
-        elif shallow:
+
+        prefix = Path(prefix or self.get_path())
+
+        if shallow in (None, True) and not args:
             # no arguments, just create an empty environment
             path = prefix / PREFIX_MAGIC_FILE
             path.parent.mkdir(parents=True, exist_ok=True)
