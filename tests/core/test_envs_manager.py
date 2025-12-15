@@ -8,12 +8,12 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from pytest import MonkeyPatch
 
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from conda.base.context import context, reset_context
 from conda.common.compat import on_win
-from conda.common.io import env_var
 from conda.common.path import expand, paths_equal
 from conda.core.envs_manager import (
     _clean_environments_txt,
@@ -29,7 +29,7 @@ from conda.gateways.disk.update import touch
 log = getLogger(__name__)
 
 
-def test_register_unregister_location_env(tmp_path: Path):
+def test_register_unregister_location_env(monkeypatch: MonkeyPatch, tmp_path: Path):
     user_environments_txt_file = get_user_environments_txt_file()
     if (
         not os.path.exists(user_environments_txt_file)
@@ -44,12 +44,11 @@ def test_register_unregister_location_env(tmp_path: Path):
     assert gascon_location not in list_all_known_prefixes()
 
     touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
-    with env_var(
-        "CONDA_REGISTER_ENVS",
-        "true",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        register_env(gascon_location)
+
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
+    reset_context()
+
+    register_env(gascon_location)
     assert gascon_location in yield_lines(user_environments_txt_file)
     assert (
         len(
@@ -80,21 +79,17 @@ def test_register_unregister_location_env(tmp_path: Path):
     assert gascon_location not in list_all_known_prefixes()
 
 
-def test_prefix_cli_flag(tmp_path: Path):
+def test_prefix_cli_flag(monkeypatch: MonkeyPatch, tmp_path: Path):
     envs_dirs = (
         join(tmp_path, "first-envs-dir"),
         join(tmp_path, "seconds-envs-dir"),
     )
-    with env_var(
-        "CONDA_ENVS_DIRS",
-        os.pathsep.join(envs_dirs),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        # even if prefix doesn't exist, it can be a target prefix
-        reset_context((), argparse_args=AttrDict(prefix="./blarg", func="create"))
-        target_prefix = join(os.getcwd(), "blarg")
-        assert context.target_prefix == target_prefix
-        assert not isdir(target_prefix)
+    monkeypatch.setenv("CONDA_ENVS_DIRS", os.pathsep.join(envs_dirs))
+    # even if prefix doesn't exist, it can be a target prefix
+    reset_context((), argparse_args=AttrDict(prefix="./blarg", func="create"))
+    target_prefix = join(os.getcwd(), "blarg")
+    assert context.target_prefix == target_prefix
+    assert not isdir(target_prefix)
 
 
 def test_rewrite_environments_txt_file(tmp_path: Path):

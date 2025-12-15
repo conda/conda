@@ -9,18 +9,15 @@ import os
 from argparse import (
     ArgumentParser,
     Namespace,
-    _StoreAction,
     _SubParsersAction,
 )
 
 from .. import CondaError
-from ..deprecations import deprecated
 from ..notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..common.constants import NULL
     from .helpers import (
         add_parser_environment_specifier,
         add_parser_frozen_env,
@@ -70,18 +67,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=False,
         help="remove installed packages not defined in environment.yml",
     )
-    p.add_argument(
-        "remote_definition",
-        help="remote environment definition / IPython notebook",
-        action=deprecated.action(
-            "24.7",
-            "25.9",
-            _StoreAction,
-            addendum="Use `conda env update --file=URL` instead.",
-        ),
-        default=NULL,
-        nargs="?",
-    )
+
     add_parser_json(p)
     add_parser_solver(p)
     p.set_defaults(func="conda.cli.main_env_update.execute")

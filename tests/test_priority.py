@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context
-from conda.common.compat import on_linux
 from conda.core.prefix_data import PrefixData
 
 if TYPE_CHECKING:
@@ -34,8 +32,8 @@ def test_reorder_channel_priority(
     clear_conda_session_cache: None,
 ):
     # use "cheap" packages with no dependencies
-    package1 = "zlib"
-    package2 = "ca-certificates"
+    package2 = "zlib"
+    package1 = "xz"
 
     # set pinned package
     if pinned_package:
@@ -63,10 +61,7 @@ def test_reorder_channel_priority(
         PrefixData._cache_.clear()
         expected_channel = "pkgs/main" if pinned_package else "conda-forge"
         assert PrefixData(prefix).get(package1).channel.name == expected_channel
-        if context.solver == "libmamba":
-            # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
-            # the request, so it stays in pkgs/main. Other transient deps do change, though.
-            if on_linux:  # lazy, only check on linux
-                assert PrefixData(prefix).get("libgcc").channel.name == "conda-forge"
-        else:
-            assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
+        assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
+
+        # Check that oher transient deps do change
+        assert PrefixData(prefix).get("libzlib").channel.name == "conda-forge"

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-from contextlib import nullcontext
 from logging import getLogger
 from os.path import join
 from pathlib import Path
@@ -13,7 +12,7 @@ from uuid import uuid4
 
 import pytest
 
-from conda import CondaError, activate, plugins
+from conda import CondaError, plugins
 from conda.activate import (
     CmdExeActivator,
     CshActivator,
@@ -413,6 +412,68 @@ def test_default_env(tmp_path: Path):
 
     (prefix := tmp_path / "envs" / "named-env").mkdir(parents=True)
     assert "named-env" == activator._default_env(str(prefix))
+
+
+def test_build_activate_dont_use_PATH(
+    env_activate: tuple[str, str, str],
+):
+    prefix, activate_sh, _ = env_activate
+
+    write_state_file(
+        prefix,
+        PATH="something",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=CONDA_ENV_VARS_UNSET_VAR,
+    )
+
+    activator = PosixActivator()
+
+    export_vars, unset_vars = activator.get_export_unset_vars(
+        PATH=activator.pathsep_join(activator._add_prefix_to_path(prefix)),
+        CONDA_PREFIX=prefix,
+        CONDA_SHLVL=1,
+        CONDA_DEFAULT_ENV=prefix,
+        CONDA_PROMPT_MODIFIER=get_prompt_modifier(prefix),
+        # write_state_file
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+    )
+
+    # TODO: refactor unset_vars into a set and avoid sorting
+    activate = activator.build_activate(prefix)
+    activate["unset_vars"].sort()
+    assert activate == {
+        # "export_path": {},
+        "deactivate_scripts": (),
+        "unset_vars": sorted(unset_vars),
+        "set_vars": {"PS1": get_prompt(prefix)},
+        "export_vars": export_vars,
+        "activate_scripts": activator.path_conversion([activate_sh]),
+    }
+
+
+def test_build_deactivate_dont_use_PATH(
+    env_activate: tuple[str, str, str],
+    monkeypatch: MonkeyPatch,
+):
+    prefix, activate_sh, _ = env_activate
+
+    write_state_file(
+        prefix,
+        PATH="something",
+        ENV_ONE=ENV_ONE,
+        ENV_TWO=ENV_TWO,
+        ENV_THREE=CONDA_ENV_VARS_UNSET_VAR,
+    )
+
+    activator = PosixActivator()
+    # Ensure that deactivating does not clobber PATH
+    monkeypatch.setenv("CONDA_PREFIX", prefix)
+    monkeypatch.setenv("CONDA_SHLVL", 1)
+
+    deactivate = activator.build_deactivate()
+    assert "PATH" not in deactivate["unset_vars"]
 
 
 def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, str]):
@@ -2027,6 +2088,27 @@ def test_MSYS2_PATH(
             assert activator.path_conversion(str(library / path / "bin")) not in paths
 
 
+@pytest.mark.skipif(
+    not on_win, reason="MSYS2 shells line ending fix only applies on Windows"
+)
+@pytest.mark.parametrize("shell", ["zsh", "bash", "posix", "ash", "dash"])
+def test_msys2_shell_line_endings(shell: str, capsys) -> None:
+    """Test that MSYS2/zsh shell hooks don't contain Windows line endings."""
+    assert main_sourced(shell, "hook") == 0
+    output = capsys.readouterr().out
+    assert "\r" not in output
+    assert "export" in output
+
+
+@pytest.mark.skipif(
+    not on_win, reason="MSYS2 shells line ending fix only applies on Windows"
+)
+def test_msys2_shell_stdout_reconfiguration(capsys) -> None:
+    """Test that stdout is properly reconfigured for MSYS2 shells."""
+    assert main_sourced("zsh", "hook") == 0
+    assert "\r" not in capsys.readouterr().out
+
+
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_force_uppercase(monkeypatch: MonkeyPatch, force_uppercase_boolean):
     monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
@@ -2095,20 +2177,6 @@ def test_metavars_force_uppercase(
     assert "SIX" in export_vars
 
 
-@pytest.mark.parametrize(
-    "function,raises",
-    [
-        ("path_identity", TypeError),
-        ("ensure_binary", TypeError),
-        ("ensure_fs_path_encoding", TypeError),
-    ],
-)
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(activate, function)()
-
-
 class PrePostCommandPlugin:
     def pre_command_action(self, command: str) -> None:
         pass
@@ -2118,7 +2186,7 @@ class PrePostCommandPlugin:
         yield CondaPreCommand(
             name="custom-pre-command",
             action=self.pre_command_action,
-            run_for={"activate", "deactivate", "reactivate", "hook", "commands"},
+            run_for={"activate", "deactivate", "reactivate", "hook"},
         )
 
     def post_command_action(self, command: str) -> None:
@@ -2129,7 +2197,7 @@ class PrePostCommandPlugin:
         yield CondaPostCommand(
             name="custom-post-command",
             action=self.post_command_action,
-            run_for={"activate", "deactivate", "reactivate", "hook", "commands"},
+            run_for={"activate", "deactivate", "reactivate", "hook"},
         )
 
 
@@ -2149,7 +2217,7 @@ def plugin(
 
 @pytest.mark.parametrize(
     "command",
-    ["activate", "deactivate", "reactivate", "hook", "commands"],
+    ["activate", "deactivate", "reactivate", "hook"],
 )
 def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) -> None:
     # FUTURE: conda 25.9+ remove "commands"
@@ -2163,7 +2231,7 @@ def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) ->
 
 @pytest.mark.parametrize(
     "command",
-    ["activate", "deactivate", "reactivate", "hook", "commands"],
+    ["activate", "deactivate", "reactivate", "hook"],
 )
 def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> None:
     exc_message = "💥"

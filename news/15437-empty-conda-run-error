@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Avoid triple-equals string exports when the `MatchSpec.version` field starts with a single equals. (#15123 via #15141)
+* Raise an error when no command is provided to `conda run`, instead of proceeding with an empty command (#15437).
 
 ### Deprecations
 

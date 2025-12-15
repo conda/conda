@@ -153,20 +153,6 @@ def test_conda_env_create_no_existent_file_with_name(conda_cli: CondaCLIFixture)
 
 
 @pytest.mark.integration
-def test_deprecated_binstar(conda_cli: CondaCLIFixture):
-    """
-    Test retrieving an environment using the BinstarSpec (i.e. it retrieves it from anaconda.org)
-
-    This tests the `remote_origin` command line argument.
-    """
-    with pytest.warns(FutureWarning), pytest.raises(EnvironmentFileNotFound):
-        conda_cli("env", "create", "conda-test/env-remote")
-
-    with pytest.warns(FutureWarning), pytest.raises(EnvironmentFileNotFound):
-        conda_cli("env", "update", "conda-test/env-remote")
-
-
-@pytest.mark.integration
 def test_create_valid_env(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
     """
     Creates an environment.yml file and
@@ -699,3 +685,14 @@ def test_invalid_extensions(
 
     with pytest.raises(SpecNotFound):
         conda_cli("env", "create", f"--file={env_yml}", "--yes")
+
+
+# conda env list [--json]
+def test_list_info_envs(conda_cli: CondaCLIFixture):
+    stdout_env, _, _ = conda_cli("env", "list")
+    stdout_info, _, _ = conda_cli("info", "--envs")
+    assert stdout_env == stdout_info
+
+    stdout_env, _, _ = conda_cli("env", "list", "--json")
+    stdout_info, _, _ = conda_cli("info", "--envs", "--json")
+    assert stdout_env == stdout_info

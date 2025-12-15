@@ -14,6 +14,9 @@ from typing import TYPE_CHECKING
 
 import pluggy
 
+from ..base.constants import APP_NAME
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
@@ -37,22 +40,23 @@ if TYPE_CHECKING:
         CondaVirtualPackage,
     )
 
-spec_name = "conda"
-"""Name used for organizing conda hook specifications"""
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "spec_name",
+    APP_NAME,
+    addendum="Use `conda.base.constants.APP_NAME` instead.",
+)
 
-_hookspec = pluggy.HookspecMarker(spec_name)
-"""
-The conda plugin hook specifications, to be used by developers
-"""
+#: Decorator to mark conda plugin hook specifications, used to register plugin hook types
+_hookspec = pluggy.HookspecMarker(APP_NAME)
 
-hookimpl = pluggy.HookimplMarker(spec_name)
-"""
-Decorator used to mark plugin hook implementations
-"""
+#: Decorator to mark plugin hook implementations, used to register plugins
+hookimpl = pluggy.HookimplMarker(APP_NAME)
 
 
 class CondaSpecs:
-    """The conda plugin hookspecs, to be used by developers."""
+    """Collection of all supported conda plugin hookspecs."""
 
     @_hookspec
     def conda_solvers(self) -> Iterable[CondaSolver]:

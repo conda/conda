@@ -13,7 +13,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from typing import Any, Callable, ParamSpec, Self, TypeVar
+    from collections.abc import Callable
+    from typing import Any, ParamSpec, Self, TypeVar
 
     from packaging.version import Version
 

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add conda doctor check for if the pinned file is ill formatted. (#7978 via #15022)
+* Add `-s` as a shorthand alias for `conda run --no-capture-output`. (#15426)
 
 ### Bug fixes
 

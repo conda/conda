@@ -24,7 +24,7 @@ with pytest.deprecated_call():
     )
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from collections.abc import Callable
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture

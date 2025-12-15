@@ -17,7 +17,6 @@ from ..base.context import context
 # is updated to use the environment spec plugins to read environment files.
 from ..cli.common import specs_from_url
 from ..common.iterators import groupby_to_dict as groupby
-from ..common.path import is_package_file
 from ..core.prefix_data import PrefixData
 from ..exceptions import CondaError, CondaValueError
 from ..history import History
@@ -35,6 +34,7 @@ if TYPE_CHECKING:
         SatSolverChoice,
         UpdateModifier,
     )
+    from ..common.path import PathType
     from .records import PackageRecord
 
     T = TypeVar("T")
@@ -207,16 +207,13 @@ class EnvironmentConfig:
         )
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Environment:
     """
     **Experimental** While experimental, expect both major and minor changes across minor releases.
 
     Data model for a conda environment.
     """
-
-    #: Prefix the environment is installed into (required).
-    prefix: str
 
     #: The platform this environment may be installed on (required)
     platform: str
@@ -236,6 +233,9 @@ class Environment:
     #: Environment name
     name: str | None = None
 
+    #: Prefix the environment is installed into.
+    prefix: str | None = None
+
     #: User requested specs for this environment.
     requested_packages: list[MatchSpec] = field(default_factory=list)
 
@@ -247,10 +247,6 @@ class Environment:
     virtual_packages: list[PackageRecord] = field(default_factory=list)
 
     def __post_init__(self):
-        # an environment must have a name of prefix
-        if not self.prefix:
-            raise CondaValueError("'Environment' needs a 'prefix'.")
-
         # an environment must have a platform
         if not self.platform:
             raise CondaValueError("'Environment' needs a 'platform'.")
@@ -403,10 +399,7 @@ class Environment:
 
         # Handle --from-history case
         if from_history:
-            history = History(prefix)
-            spec_map = history.get_requested_specs_map()
-            # Get MatchSpec objects from history; they'll be serialized to bracket format later
-            requested_packages = list(spec_map.values())
+            requested_packages = cls.from_history(prefix)
             conda_precs = []  # No conda packages to process for channel extraction
         else:
             # Use PrefixData's package extraction methods
@@ -438,8 +431,8 @@ class Environment:
         # Always populate explicit_packages from prefix data (for explicit export format)
         explicit_packages = list(prefix_data.iter_records())
 
-        # Build channels list
-        environment_channels = list(channels or [])
+        # Build channels tuple
+        environment_channels = tuple(channels or ())
 
         # Inject channels from installed conda packages (unless ignoring channels)
         # This applies regardless of override_channels setting
@@ -455,14 +448,14 @@ class Environment:
                 *environment_channels,
             )
 
-        # Channel list is a unique ordered list
-        environment_channels = list(dict.fromkeys(environment_channels))
+        # Channels tuple is a unique ordered sequence
+        environment_channels = tuple(dict.fromkeys(environment_channels))
 
         # Create environment config with comprehensive context settings
         config = EnvironmentConfig.from_context()
 
         # Override/set channels with those extracted from installed packages if any were found
-        config = replace(config, channels=tuple(environment_channels))
+        config = replace(config, channels=environment_channels)
 
         return cls(
             prefix=prefix,
@@ -521,10 +514,10 @@ class Environment:
                     specs.append(default_package)
 
         for spec in specs:
-            if is_package_file(spec):
+            if (match_spec := MatchSpec(spec)).get("url"):
                 fetch_explicit_packages.append(spec)
             else:
-                requested_packages.append(MatchSpec(spec))
+                requested_packages.append(match_spec)
 
         # transform explicit packages into package records
         explicit_packages = []
@@ -545,4 +538,44 @@ class Environment:
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
             config=EnvironmentConfig.from_context(),
+        )
+
+    @staticmethod
+    def from_history(prefix: PathType) -> list[MatchSpec]:
+        history = History(prefix)
+        spec_map = history.get_requested_specs_map()
+        # Get MatchSpec objects from history; they'll be serialized to bracket format later
+        return list(spec_map.values())
+
+    def extrapolate(self, platform: str) -> Environment:
+        """
+        Given the current environment, extrapolate the environment for the given platform.
+        """
+        if platform == self.platform:
+            return self
+
+        from ..cli.install import Repodatas
+
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        requested_packages = self.from_history(self.prefix)
+
+        for repodata_manager in Repodatas(self.config.repodata_fns, {}):
+            with repodata_manager as repodata_fn:
+                solver = solver_backend(
+                    prefix="/env/does/not/exist",
+                    channels=context.channels,
+                    subdirs=(platform, "noarch"),
+                    specs_to_add=requested_packages,
+                    repodata_fn=repodata_fn,
+                    command="create",
+                )
+                explicit_packages = solver.solve_final_state()
+        return Environment(
+            prefix=self.prefix,
+            name=self.name,
+            platform=platform,
+            config=EnvironmentConfig.from_context(),
+            requested_packages=requested_packages,
+            explicit_packages=explicit_packages,
+            external_packages=self.external_packages,
         )

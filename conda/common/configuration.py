@@ -60,7 +60,7 @@ del _register
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Sequence
     from re import Match
-    from typing import Any
+    from typing import Any, Final
 
     from ..common.path import PathsType
 
@@ -224,7 +224,8 @@ class EnvRawParameter(RawParameter):
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, "string_delimiter"):
-            assert isinstance(self._raw_value, str)
+            if not isinstance(self._raw_value, str):
+                raise TypeError("Value is not a string.")
             string_delimiter = getattr(parameter_obj, "string_delimiter")
             # TODO: add stripping of !important, !top, and !bottom
             return tuple(
@@ -1333,7 +1334,9 @@ class ConfigurationType(type):
         return self
 
 
-CONDARC_FILENAMES = (".condarc", "condarc")
+DEFAULT_CONDARC_FILENAME: Final = ".condarc"
+ALTERNATIVE_CONDARC_FILENAME: Final = "condarc"
+CONDARC_FILENAMES = (DEFAULT_CONDARC_FILENAME, ALTERNATIVE_CONDARC_FILENAME)
 YAML_EXTENSIONS = (".yml", ".yaml")
 _RE_CUSTOM_EXPANDVARS = compile(
     rf"""
@@ -1659,7 +1662,10 @@ class Configuration(metaclass=ConfigurationType):
             raise KeyError(parameter_name)
 
         parameter = parameter_loader.type
-        assert isinstance(parameter, Parameter)
+        if not isinstance(parameter, Parameter):
+            raise TypeError(
+                f"Name '{parameter_name}' did not return a Parameter object."
+            )
 
         # dedupe leading underscore from name
         name = parameter_loader.name.lstrip("_")
@@ -1714,7 +1720,10 @@ class Configuration(metaclass=ConfigurationType):
             raise KeyError(parameter_name)
 
         parameter = parameter_loader.type
-        assert isinstance(parameter, Parameter)
+        if not isinstance(parameter, Parameter):
+            raise TypeError(
+                f"Name '{parameter_name}' did not return a Parameter object."
+            )
 
         return parameter.typify(parameter_name, source, value)
 

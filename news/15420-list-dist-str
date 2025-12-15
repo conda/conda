@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Fix `conda list --fields dist_str` representation. (#15420)
 
 ### Deprecations
 
@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Update docs to reflect that conda cli args are higher precedence than env vars. (#15054)
+* <news item>
 
 ### Other
 

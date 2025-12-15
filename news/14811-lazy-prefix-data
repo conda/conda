@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add a "file locking" health check to `conda doctor`. (#13921 & #14948 via #15114)
+* Defer `PrefixData` record instantiation until they are accessed for faster query performance. (#14811)
 
 ### Bug fixes
 

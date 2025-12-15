@@ -248,13 +248,7 @@ def test_custom_plugin_name_validation(plugin_manager: CondaPluginManager) -> No
         PluginError,
         match=r"(?s)Invalid plugin names found.+NoNameCondaPlugin.+NoNamePlugin",
     ):
-        plugin_manager.get_virtual_packages()
-
-
-def test_get_virtual_packages(plugin_manager: CondaPluginManager):
-    assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
-    with pytest.deprecated_call():
-        assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
+        plugin_manager.get_virtual_package_records()
 
 
 def test_get_virtual_package_records(plugin_manager: CondaPluginManager):

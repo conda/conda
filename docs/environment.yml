@@ -19,6 +19,7 @@ dependencies:
   - sphinx-reredirects==0.1.5
   - sphinx-sitemap==2.5.1
   - sphinx-design==0.5.0
+  - sphinx-copybutton==0.5.2
   - sphinxcontrib-applehelp==1.0.7
   - sphinxcontrib-devhelp==1.0.5
   - sphinxcontrib-htmlhelp==2.0.4
@@ -28,7 +29,7 @@ dependencies:
   - sphinxcontrib-qthelp==1.0.6
   - sphinxcontrib-serializinghtml==1.1.9
   - tqdm>=4
-  - conda-libmamba-solver>=24.11.0
+  - conda-libmamba-solver>=25.4.0
   - pip>25
   - pip:
       - sphinxcontrib-plantuml==0.21

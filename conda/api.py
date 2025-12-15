@@ -208,7 +208,8 @@ class SubdirData:
                     * Channel('conda-forge/osx-64')
         """
         channel = Channel(channel)
-        assert channel.subdir
+        if not channel.subdir:
+            raise ValueError("SubdirData requires platform-aware Channel objects.")
         self._internal = _SubdirData(channel)
 
     def query(self, package_ref_or_match_spec):

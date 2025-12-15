@@ -15,7 +15,7 @@ from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
 from conda.plugins.types import CondaSubcommand
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from collections.abc import Callable
 
     from pytest import CaptureFixture
     from pytest_mock import MockerFixture

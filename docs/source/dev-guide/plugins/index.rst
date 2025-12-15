@@ -13,7 +13,7 @@ This is an example of a minimal working conda plugin that defines a new subcomma
 .. code-block:: python
    :caption: example_plugin.py
 
-   import conda.plugins
+   import conda.plugins.types
    from conda.base.context import context
 
 
@@ -23,7 +23,7 @@ This is an example of a minimal working conda plugin that defines a new subcomma
 
    @conda.plugins.hookimpl
    def conda_subcommands():
-       yield conda.plugins.CondaSubcommand(
+       yield conda.plugins.types.CondaSubcommand(
            name="example",
            action=command,
            summary="Example of a conda subcommand",
@@ -57,7 +57,7 @@ by either using a ``pyproject.toml`` file (preferred) or a ``setup.py`` (legacy)
    name = "conda-example-plugin"
    version = "1.0.0"
    description = "Example conda plugin"
-   requires-python = ">=3.9"
+   requires-python = ">=3.10"
    dependencies = ["conda"]
 
    [project.entry-points."conda"]

@@ -1,26 +1,33 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 from dataclasses import fields
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
-from pytest_mock import MockerFixture
 
 from conda.base.constants import ChannelPriority
-from conda.base.context import reset_context
+from conda.base.context import context, reset_context
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
+from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
-from conda.testing.fixtures import TmpEnvFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import TmpEnvFixture
 
 
 def test_create_environment_missing_required_fields():
-    with pytest.raises(CondaValueError):
-        Environment(platform="linux-64", prefix=None)
-
     with pytest.raises(CondaValueError):
         Environment(platform=None, prefix="/path/to/env")
 
@@ -576,3 +583,58 @@ def test_from_cli_environment_inject_default_packages_override_file(
     assert MatchSpec("numpy==2.0.0") not in env.requested_packages
     assert MatchSpec("numpy==2.3.1") in env.requested_packages
     assert env.explicit_packages == []
+
+
+def test_extrapolate(tmp_env: TmpEnvFixture):
+    package_name = "zlib"
+    package_version = "1.2.12"
+    platforms = {"linux-64", "osx-arm64", "win-64"}
+    with tmp_env(f"{package_name}=={package_version}") as prefix:
+        assert PrefixData(prefix).get(package_name).version == package_version
+        env = Environment.from_prefix(prefix, None, context.subdir)
+        for platform in platforms:
+            extrapolated = env.extrapolate(platform)
+
+            if platform == env.platform:
+                assert env is extrapolated
+                continue
+
+            # assert the package with no dependents is the requested package
+            package = list(PrefixGraph(extrapolated.explicit_packages).records)[-1]
+            assert package.name == package_name
+            assert package.version == package_version
+
+            # assert the extrapolated environment is as expected
+            assert extrapolated.prefix == prefix
+            assert extrapolated.platform == platform
+            assert extrapolated.config == env.config
+            assert extrapolated.external_packages == env.external_packages
+            # cannot compare explicit_packages because they are unique to each platform
+            # assert extrapolated.explicit_packages == env.explicit_packages
+            assert extrapolated.name is None
+            assert len(extrapolated.requested_packages) == 1
+            assert extrapolated.variables == env.variables
+            assert extrapolated.virtual_packages == env.virtual_packages
+
+            # assert the explicit package version matches the requested package version
+            assert (
+                next(
+                    package
+                    for package in extrapolated.explicit_packages
+                    if package.name == package_name
+                ).version
+                == package_version
+            )
+
+
+def test_explicit_packages(tmp_path: Path):
+    explicit = tmp_path / "explicit.txt"
+    explicit.write_text(
+        "@EXPLICIT\n"
+        "http://repo.anaconda.com/pkgs/main/noarch/pip-25.2-pyhc872135_0.conda#b829d36091ab08d18cafe8994ac6e02b"
+    )
+    env = Environment.from_cli(
+        args=SimpleNamespace(name="test", packages=[], file=[str(explicit)]),
+    )
+    assert len(env.explicit_packages) == 1
+    assert not env.requested_packages

@@ -56,23 +56,45 @@ Here's a minimal example of an environment exporter plugin:
 
     def export_simple_text(environment: Environment) -> str:
         """Export environment as a simple text list."""
-        lines = [f"# Environment: {environment.name}"]
+        return "\n".join(
+            (
+                f"# Environment: {environment.name or environment.prefix}",
+                f"# Platform: {environment.platform}",
+                f"# Packages:",
+                *(str(package) for package in environment.explicit_packages),
+            )
+        )
 
-        if environment.dependencies:
-            lines.append("# Dependencies:")
-            for dep in environment.dependencies:
-                lines.append(str(dep))
 
-        return "\n".join(lines)
+    def export_multiplatform_text(environments: Iterable[Environment]) -> str:
+        """Export environments as a simple text list."""
+        return "\n".join(
+            (
+                f"# Environment: {environment.name or environment.prefix}",
+                f"# Platforms: {', '.join((environment.platform for environment in environments))}",
+                f"# Packages:",
+                *(
+                    str(package)
+                    for environment in environments
+                    for package in environment.explicit_packages
+                ),
+            )
+        )
 
 
     @conda.plugins.hookimpl
     def conda_environment_exporters():
-        yield conda.plugins.CondaEnvironmentExporter(
+        yield conda.plugins.types.CondaEnvironmentExporter(
             name="simple-text",
             aliases=("simple", "txt-simple"),
             default_filenames=("environment.txt",),
             export=export_simple_text,
+        )
+        yield conda.plugins.types.CondaEnvironmentExporter(
+            name="multiplatform-text",
+            aliases=("multiplatform", "txt-multiplatform"),
+            default_filenames=("environment.txt",),
+            export=export_multiplatform_text,
         )
 
 
@@ -116,23 +138,13 @@ The ``default_filenames`` tuple specifies filename patterns for automatic format
    # These would auto-detect the simple-text format
    conda export --file=environment.txt
 
-Export Function
-~~~~~~~~~~~~~~~
+Export/Multiplatform Export Function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The export function receives an :class:`~conda.models.environment.Environment` object
-and returns a string representation:
+There are two export functions, one for single platform formats and one for multiplatform formats. Both return a string representation:
 
-.. code-block:: python
-
-    def export_function(environment: Environment) -> str:
-        # Access environment properties:
-        # - environment.name: environment name
-        # - environment.channels: configured channels
-        # - environment.dependencies: requested packages (MatchSpec objects)
-        # - environment.explicit_packages: all installed packages (PackageRecord objects)
-        # - environment.variables: environment variables
-
-        return "formatted content"
+* ``export``: receives a single :class:`~conda.models.environment.Environment` object
+* ``multiplatform_export``: receives a list of :class:`~conda.models.environment.Environment` objects
 
 Advanced Example: JSON Exporter
 -------------------------------
@@ -144,7 +156,7 @@ Here's a more sophisticated example that creates a custom JSON format:
     import json
     from typing import Any, Dict
 
-    import conda.plugins
+    import conda.plugins.types
     from conda.models.environment import Environment
 
 
@@ -158,10 +170,10 @@ Here's a more sophisticated example that creates a custom JSON format:
             },
         }
 
-        # Add dependencies as MatchSpec strings
-        if environment.dependencies:
-            data["environment"]["dependencies"] = [
-                str(dep) for dep in environment.dependencies
+        # Add requested_packages as MatchSpec strings
+        if environment.requested_packages:
+            data["environment"]["requested_packages"] = [
+                str(dep) for dep in environment.requested_packages
             ]
 
         # Add explicit packages with full metadata
@@ -187,7 +199,7 @@ Here's a more sophisticated example that creates a custom JSON format:
 
     @conda.plugins.hookimpl
     def conda_environment_exporters():
-        yield conda.plugins.CondaEnvironmentExporter(
+        yield conda.plugins.types.CondaEnvironmentExporter(
             name="custom-json",
             aliases=("cjson",),
             default_filenames=("environment.cjson", "env.cjson"),
@@ -206,10 +218,10 @@ Your export function should handle error cases appropriately:
 
     def export_strict_format(environment: Environment) -> str:
         """Export that requires specific conditions."""
-        if not environment.dependencies:
+        if not environment.requested_packages:
             raise CondaValueError(
-                "Cannot export strict format: no dependencies found. "
-                "This format requires at least one dependency."
+                "Cannot export strict format: no requested packages found. "
+                "This format requires at least one requested package."
             )
 
         if not environment.name:
@@ -228,7 +240,7 @@ Understanding Package Collections
 
 The Environment model provides different package collections for different use cases:
 
-``dependencies`` (:class:`~conda.models.match_spec.MatchSpec` objects)
+``requested_packages`` (:class:`~conda.models.match_spec.MatchSpec` objects)
   Represents user-requested packages. These are the packages the user explicitly
   asked for, either from history (when using ``--from-history``) or converted
   from installed packages.
@@ -236,6 +248,10 @@ The Environment model provides different package collections for different use c
 ``explicit_packages`` (:class:`~conda.models.records.PackageRecord` objects)
   Represents all installed packages with full metadata including URLs, checksums,
   and build information. Used for exact reproduction.
+
+``external_packages`` (dict of str -> list[str])
+  Represents external packages. These are packages that are not conda packages.
+  For example, pip packages.
 
 Example usage patterns:
 

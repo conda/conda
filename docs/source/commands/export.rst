@@ -321,6 +321,31 @@ When **not** to use ``--from-history``:
   - With ``requirements`` format (always uses all packages)
   - When you need exact dependency reproduction
 
+Platform-Specific Exports
+==========================
+
+You can specify target platforms for export using the ``--platform`` option or by configuring
+``export_platforms`` in your condarc file:
+
+.. code-block:: bash
+
+   # Export for specific platforms
+   conda export --platform linux-64 --platform osx-64 --format=environment-yaml
+   # or
+   conda export --subdir linux-64 --subdir osx-64 --format=environment-yaml
+
+   # Export using condarc configuration
+   conda export --format=environment-yaml
+
+With condarc configuration:
+
+.. code-block:: yaml
+
+   export_platforms:
+     - linux-64
+     - osx-64
+     - win-64
+
 File Format Detection
 =====================
 
@@ -410,6 +435,14 @@ Advanced Usage
 
    # Export with custom channels
    conda export --channel conda-forge --format=environment-yaml
+
+   # Export for multiple platforms
+   conda export --platform linux-64 --platform osx-64 --format=environment-yaml
+   conda export --subdir linux-64 --subdir osx-64 --format=environment-yaml
+
+   # Export for specific platform only
+   conda export --platform win-64 --format=explicit --file=explicit-win-64.txt
+   conda export --subdir win-64 --format=explicit --file=explicit-win-64.txt
 
 Error Handling
 ==============

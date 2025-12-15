@@ -315,7 +315,8 @@ def _do_softlink(src, dst):
 
 @deprecated("26.3", "26.9")
 def create_fake_executable_softlink(src, dst):
-    assert on_win
+    if not on_win:
+        raise RuntimeError("Only runs on Windows.")
     src_root, _ = splitext(src)
     # TODO: this open will clobber, consider raising
     with open(dst, "w") as f:

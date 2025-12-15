@@ -55,13 +55,18 @@ def test_run_returns_nonzero_errorlevel(
         assert err == 5
 
 
-def test_run_uncaptured(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+@pytest.mark.parametrize("flag", ["--no-capture-output", "-s"])
+def test_run_uncaptured(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    flag: str,
+):
     with tmp_env() as prefix:
         random_text = uuid.uuid4().hex
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
-            "--no-capture-output",
+            flag,
             *("echo", random_text),
         )
 
@@ -113,3 +118,12 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         )
         assert stdout
         assert not stderr
+
+
+def test_run_with_empty_command_will_raise(
+    conda_cli: CondaCLIFixture,
+):
+    from conda.exceptions import ArgumentError
+
+    with pytest.raises(ArgumentError, match="No command specified"):
+        conda_cli("run")

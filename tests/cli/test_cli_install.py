@@ -35,8 +35,6 @@ def test_pre_link_message(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    mocker.patch("conda.cli.common.confirm_yn", return_value=True)
-
     with tmp_env() as prefix:
         stdout, _, _ = conda_cli(
             "install",

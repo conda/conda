@@ -248,7 +248,8 @@ from frozendict import getFreezeConversionMap as _getFreezeConversionMap
 from frozendict import register as _register
 
 from . import NULL
-from .compat import isiterable, odict
+from .compat import odict
+from ..common.compat import isiterable
 from .collection import AttrDict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise

@@ -24,7 +24,6 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import url_to_path
 from ..common.serialize import json
 from ..common.url import join_url
-from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
@@ -55,9 +54,12 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 class SubdirDataType(type):
     def __call__(cls, channel: Channel, repodata_fn: str = REPODATA_FN) -> SubdirData:
-        assert channel.subdir
-        assert not channel.package_filename
-        assert type(channel) is Channel
+        if not channel.subdir:
+            raise ValueError("SubdirData requires a subdir-aware Channel.")
+        if channel.package_filename:
+            raise ValueError("Channel object cannot define `package_filename`")
+        if type(channel) is not Channel:
+            raise TypeError("`channel` must be a Channel object.")
         now = time()
         repodata_fn = repodata_fn or REPODATA_FN
         cache_key = channel.url(with_credentials=True), repodata_fn
@@ -170,8 +172,6 @@ class SubdirData(metaclass=SubdirDataType):
         create_cache_dir()
         if channels is None:
             channels = context.channels
-        if subdirs is None:
-            subdirs = context.subdirs
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
         if context.offline:
             grouped_urls = groupby(lambda url: url.startswith("file://"), channel_urls)
@@ -235,7 +235,8 @@ class SubdirData(metaclass=SubdirDataType):
                     if param.match(prec):
                         yield prec
         else:
-            assert isinstance(param, PackageRecord)
+            if not isinstance(param, PackageRecord):
+                raise TypeError("Query did not result in a record.")
             for prec in self._iter_records_by_name(param.name):
                 if prec == param:
                     yield prec
@@ -253,7 +254,8 @@ class SubdirData(metaclass=SubdirDataType):
         :param repodata_fn: The repodata filename.
         :param RepoInterface: The RepoInterface class.
         """
-        assert channel.subdir
+        if not channel.subdir:
+            raise ValueError("SubdirData requires a subdir-aware Channel.")
         # metaclass __init__ asserts no package_filename
         if channel.package_filename:  # pragma: no cover
             parts = channel.dump()
@@ -467,7 +469,8 @@ class SubdirData(metaclass=SubdirDataType):
         raw_repodata_str, state = self.repo_fetch.read_cache()
         _internal_state = self._process_raw_repodata_str(raw_repodata_str, state)
         # taken care of by _process_raw_repodata():
-        assert self._internal_state is _internal_state
+        if self._internal_state is not _internal_state:
+            raise RuntimeError("Internal state out of sync.")
         self._pickle_me()
         return _internal_state
 
@@ -592,7 +595,10 @@ class SubdirData(metaclass=SubdirDataType):
             )
 
         subdir = repodata.get("info", {}).get("subdir") or self.channel.subdir
-        assert subdir == self.channel.subdir
+        if subdir != self.channel.subdir:
+            raise ValueError(
+                f"Repodata subdir ({subdir}) does not match channel ({self.channel.subdir})"
+            )
         add_pip = context.add_pip_as_python_dependency
         schannel = self.channel.canonical_name
 
@@ -736,19 +742,3 @@ class SubdirData(metaclass=SubdirDataType):
         if with_credentials:
             return self.url_w_credentials
         return self.url_w_subdir
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.core.models.records.PackageRecord.feature` instead.",
-)
-def make_feature_record(feature_name: str) -> PackageRecord:
-    """
-    Create a feature record based on the given feature name.
-
-    :param feature_name: The name of the feature
-    :return: The created PackageRecord for the feature.
-    """
-    # necessary for the SAT solver to do the right thing with features
-    return PackageRecord.feature(feature_name)
