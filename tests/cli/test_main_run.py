@@ -250,7 +250,7 @@ def test_run_deactivates_environment_unix(
             marks=pytest.mark.skipif(on_win, reason="Unix-specific test"),
         ),
     ],
-    ids=["test_deactivate.bat", "test_deactivate.sh"],
+    ids=["unix", "windows"],
 )
 def test_run_executes_deactivation_scripts(
     tmp_env: TmpEnvFixture,
@@ -284,6 +284,107 @@ def test_run_executes_deactivation_scripts(
             "Deactivation script has been executed"
             in deactivation_marker_file.read_text()
         )
+
+
+@pytest.mark.parametrize(
+    ("script_name", "script_template", "command"),
+    [
+        pytest.param(
+            "test_deactivate.bat",
+            '@echo Deactivating >> "{marker}"\n@REM Some deactivation logic here\n',
+            ["cmd", "/c", "exit 42"],
+            marks=pytest.mark.skipif(not on_win, reason="Windows-specific test"),
+        ),
+        pytest.param(
+            "test_deactivate.sh",
+            'echo "Deactivating" >> "{marker}"\n# Some deactivation logic here\n',
+            ["sh", "-c", "exit 42"],
+            marks=pytest.mark.skipif(on_win, reason="Unix-specific test"),
+        ),
+    ],
+    ids=["unix", "windows"],
+)
+def test_run_preserves_exit_code_with_deactivation(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    script_name: str,
+    script_template: str,
+    command: list[str],
+):
+    with tmp_env() as prefix:
+        deactivate_d = Path(prefix) / "etc" / "conda" / "deactivate.d"
+        deactivate_d.mkdir(parents=True, exist_ok=True)
+
+        deactivation_marker_file = tmp_path / "deactivation_marker.txt"
+        deactivate_script = deactivate_d / script_name
+        deactivate_script.write_text(
+            script_template.format(marker=deactivation_marker_file)
+        )
+
+        _, _, retcode = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *command,
+        )
+
+        # The exit code has to be 42 from the user's command,
+        # otherwise the deactivation script may have overwritten it.
+        assert retcode == 42
+
+        assert deactivation_marker_file.exists()
+
+
+@pytest.mark.parametrize(
+    ("script_name", "script_template", "command"),
+    [
+        pytest.param(
+            "test_deactivate.bat",
+            '@false.exe 2>NUL\n@echo Deactivation continued >> "{marker}"\n',
+            ["cmd", "/c", "exit 42"],
+            marks=pytest.mark.skipif(not on_win, reason="Windows-specific test"),
+            id="windows",
+        ),
+        pytest.param(
+            "test_deactivate.sh",
+            'false\necho "Deactivation continued" >> "{marker}"\n',
+            ["sh", "-c", "exit 42"],
+            marks=pytest.mark.skipif(on_win, reason="Unix-specific test"),
+            id="unix",
+        ),
+    ],
+)
+def test_run_preserves_exit_code_despite_deactivation_failure(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    script_name: str,
+    script_template: str,
+    command: list[str],
+):
+    with tmp_env() as prefix:
+        deactivate_d = Path(prefix) / "etc" / "conda" / "deactivate.d"
+        deactivate_d.mkdir(parents=True, exist_ok=True)
+
+        # We create deactivation scripts that have failing commands, but
+        # don't exit the parent shell.
+        deactivation_marker_file = tmp_path / "deactivation_marker.txt"
+        deactivate_script = deactivate_d / script_name
+        deactivate_script.write_text(
+            script_template.format(marker=deactivation_marker_file)
+        )
+
+        _, _, retcode = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            *command,
+        )
+
+        # The exit code has to be 42 from the user's command,
+        # otherwise the deactivation script may have overwritten it.
+        assert retcode == 42
+
+        assert deactivation_marker_file.exists()
 
 
 def test_run_with_empty_command_will_raise(
