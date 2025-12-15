@@ -38,10 +38,6 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
-# FUTURE: remove once default 'defaults' context.channels value deprecation completes
-with pytest.deprecated_call():
-    CHANNELS = context.channels
-
 # Environment names we use during our tests
 TEST_ENV1 = "env1"
 
@@ -50,7 +46,7 @@ ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
-        "channels": CHANNELS,
+        "channels": context.channels,
     }
 )
 
@@ -58,7 +54,7 @@ ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
-        "channels": CHANNELS,
+        "channels": context.channels,
         "variables": {
             "DUDE": "woah",
             "SWEET": "yaaa",
@@ -71,7 +67,7 @@ ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates", "zlib"],
-        "channels": CHANNELS,
+        "channels": context.channels,
     }
 )
 
@@ -79,7 +75,7 @@ ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click"]}],
-        "channels": CHANNELS,
+        "channels": context.channels,
     }
 )
 
@@ -87,7 +83,7 @@ ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click", "attrs"]}],
-        "channels": CHANNELS,
+        "channels": context.channels,
     }
 )
 
@@ -95,7 +91,7 @@ ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["nonexisting_"]}],
-        "channels": CHANNELS,
+        "channels": context.channels,
     }
 )
 
@@ -103,7 +99,7 @@ ENVIRONMENT_UNSOLVABLE = yaml_safe_dump(
     {
         "name": TEST_ENV1,
         "dependencies": ["does-not-exist"],
-        "channels": CHANNELS,
+        "channels": context.channels,
     }
 )
 
