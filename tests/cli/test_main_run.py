@@ -236,6 +236,56 @@ def test_run_deactivates_environment_unix(
         )
 
 
+@pytest.mark.parametrize(
+    ("script_name", "script_template"),
+    [
+        pytest.param(
+            "test_deactivate.bat",
+            '@echo Deactivation script has been executed >> "{marker}"\n',
+            marks=pytest.mark.skipif(not on_win, reason="Windows-specific test"),
+        ),
+        pytest.param(
+            "test_deactivate.sh",
+            '#!/bin/bash\necho "Deactivation script has been executed" >> "{marker}"\n',
+            marks=pytest.mark.skipif(on_win, reason="Unix-specific test"),
+        ),
+    ],
+    ids=["test_deactivate.bat", "test_deactivate.sh"],
+)
+def test_run_executes_deactivation_scripts(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    script_name: str,
+    script_template: str,
+):
+    with tmp_env() as prefix:
+        deactivate_d = Path(prefix) / "etc" / "conda" / "deactivate.d"
+        deactivate_d.mkdir(parents=True, exist_ok=True)
+        deactivation_marker_file = tmp_path / "deactivation_marker.txt"
+
+        deactivate_script = deactivate_d / script_name
+        deactivate_script.write_text(
+            script_template.format(marker=deactivation_marker_file)
+        )
+
+        stdout, stderr, retcode = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "echo",
+            "test",
+        )
+
+        assert retcode == 0, f"conda run failed with stderr: {stderr}"
+        assert "test" in stdout
+
+        assert deactivation_marker_file.exists()
+        assert (
+            "Deactivation script has been executed"
+            in deactivation_marker_file.read_text()
+        )
+
+
 def test_run_with_empty_command_will_raise(
     conda_cli: CondaCLIFixture,
 ):
