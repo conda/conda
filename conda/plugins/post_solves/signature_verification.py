@@ -14,7 +14,8 @@ def conda_post_solves():
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
-            message="conda.trust is deprecated and will be removed in 26.3.",
+            message=r"conda\.trust(\.\w+)? is deprecated and will be removed in 26\.3\.",
+            category=DeprecationWarning,
         )
         from ...trust.signature_verification import signature_verification
 
