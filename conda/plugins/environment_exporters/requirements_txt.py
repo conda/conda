@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from ...models.environment import Environment
 
 
-#: The name of the requirements format
 REQUIREMENTS_FORMAT: Final = "requirements"
+"""The name of the requirements format."""
 
 
 def export_requirements(env: Environment) -> str:
