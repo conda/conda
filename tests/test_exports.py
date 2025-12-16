@@ -16,6 +16,7 @@ from conda import exports
         ("input", OSError),
         ("StringIO", None),
         ("PY3", TypeError),
+        ("string_types", None),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
