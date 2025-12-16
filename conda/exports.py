@@ -99,7 +99,6 @@ CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 CondaFileNotFoundError = PathNotFoundError
 # Replacements for six exports for compatibility
-text_type = str
 
 
 # FUTURE: conda 26.3+ remove this
@@ -152,6 +151,14 @@ deprecated.constant(
     "26.9",
     "27.3",
     "string_types",
+    str,
+    addendum="Use `str` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "text_type",
     str,
     addendum="Use `str` instead.",
 )
