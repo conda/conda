@@ -99,7 +99,6 @@ CondaOSError = CondaOSError
 # PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
 CondaFileNotFoundError = PathNotFoundError
 # Replacements for six exports for compatibility
-PY3 = True
 string_types = str
 text_type = str
 
@@ -141,6 +140,14 @@ deprecated.constant(
     addendum="Use `io.StringIO` instead.",
 )
 del StringIO
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "PY3",
+    True,
+    addendum="Python 2 is no longer supported.",
+)
 
 
 def rm_rf(path, max_retries=5, trash=True):
