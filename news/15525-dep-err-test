@@ -16,4 +16,4 @@
 
 ### Other
 
-* Deprecation warnings now raise errors during testing to better track and address them. (#12771)
+* Deprecation warnings now raise errors during testing to better track and address them. (#15525)
