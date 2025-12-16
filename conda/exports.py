@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from builtins import input  # noqa: F401, UP029
+from builtins import input  # noqa: UP029
 from io import StringIO  # noqa: F401, for conda-build
 from typing import TYPE_CHECKING
 
@@ -123,6 +123,15 @@ deprecated.constant(
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
 )
 del CondaJSONEncoder
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "input",
+    input,
+    addendum="Use `builtins.input` instead.",
+)
+del input
 
 
 def rm_rf(path, max_retries=5, trash=True):

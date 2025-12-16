@@ -13,6 +13,7 @@ from conda import exports
     "function,raises",
     [
         ("EntityEncoder", None),
+        ("input", OSError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
