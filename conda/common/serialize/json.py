@@ -17,6 +17,12 @@ if TYPE_CHECKING:
 
 class CondaJSONEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
+        # immutable types
+        from frozendict import frozendict
+
+        if isinstance(obj, frozendict):
+            return dict(obj)
+
         # Python types
         if isinstance(obj, Enum):
             return obj.value
