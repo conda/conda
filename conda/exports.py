@@ -9,10 +9,10 @@ from io import StringIO
 from typing import TYPE_CHECKING
 
 from . import CondaError  # noqa: F401
-from .base.constants import (  # noqa: F401
+from .base.constants import (
     DEFAULT_CHANNELS,
-    DEFAULT_CHANNELS_UNIX,
-    DEFAULT_CHANNELS_WIN,
+    DEFAULT_CHANNELS_UNIX,  # noqa: F401
+    DEFAULT_CHANNELS_WIN,  # noqa: F401
     PREFIX_PLACEHOLDER,
 )
 from .base.context import (  # noqa: F401
@@ -76,7 +76,6 @@ reset_context()  # initialize context when conda.exports is imported
 
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 non_x86_linux_machines = non_x86_machines
-get_default_urls = lambda: DEFAULT_CHANNELS
 _PREFIX_PLACEHOLDER = prefix_placeholder = PREFIX_PLACEHOLDER
 arch_name = context.arch_name
 binstar_upload = context.anaconda_upload
@@ -162,6 +161,21 @@ deprecated.constant(
     str,
     addendum="Use `str` instead.",
 )
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "DEFAULT_CHANNELS",
+    DEFAULT_CHANNELS,
+    addendum="Use `conda.base.constants.DEFAULT_CHANNELS` instead.",
+)
+del DEFAULT_CHANNELS
+
+
+def get_default_urls():
+    from .base.constants import DEFAULT_CHANNELS
+
+    return DEFAULT_CHANNELS
 
 
 def rm_rf(path, max_retries=5, trash=True):
