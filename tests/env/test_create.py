@@ -158,14 +158,25 @@ def test_create_empty_env(
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
+    import warnings
+
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    conda_cli(
-        *("env", "create"),
-        *("--name", env_name),
-        *("--file", support_file("empty_env.yml")),
-    )
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always", PendingDeprecationWarning)
+        conda_cli(
+            *("env", "create"),
+            *("--name", env_name),
+            *("--file", support_file("empty_env.yml")),
+        )
+
+    cep24_warnings = [
+        w
+        for w in warning_list
+        if "The environment file is not fully CEP 24 compliant" in str(w.message)
+    ]
+    assert len(cep24_warnings) > 0
     assert prefix.exists()
 
 
