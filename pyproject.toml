@@ -169,27 +169,10 @@ filterwarnings = [
   "error::DeprecationWarning",
   "error::FutureWarning",
   # ##### external library deprecations that we cannot fix in the conda source code
-  # #   boltons.timeutils uses deprecated datetime.utcfromtimestamp (Python 3.12+)
-  # #     remove when boltons is updated
-  # "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning:boltons.timeutils",
-  # #   conda-libmamba-solver uses deprecated conda APIs
-  # #     remove when CLS is updated to use the new APIs
-  # "ignore:conda.core.prefix_data.PrefixDataType.__call__:PendingDeprecationWarning:conda_libmamba_solver.state",
-  # "ignore:conda.core.index._supplement_index_with_system:DeprecationWarning:conda_libmamba_solver.state",
-  # #   'defaults' channel FutureWarning in conda.base.context. affects various tests that use default channel config.
-  # #     remove when TBD (I'll need to determine if this warning is still needed).
-  # "ignore:Adding 'defaults':FutureWarning:conda.base.context",
-  # #   botocore.auth uses deprecated datetime.utcnow() (Python 3.12+)
-  # #     remove when botocore/boto3 os updated
-  # "ignore: datetime.datetime.utcnow():DeprecationWarning:botocore.auth",
-  # #   pexpect uses deprecated threading setDaemon method
-  # #     Remove when pexpect is updated
-  # "ignore:setDaemon.*:DeprecationWarning",
-  # conda_content_trust.plugin uses old CondaSubcommand import path
-  # remove when conda-content-trust plugin is updated
+  # - conda_content_trust.plugin uses old CondaSubcommand import path; remove when conda-content-trust plugin is updated
   "ignore:conda.plugins.CondaSubcommand:PendingDeprecationWarning:conda_content_trust.plugin",
   # ##### internal conda deprecations that need some special handling right now
-  # ignore this until 26.3 due to a circular deprecation warning
+  # - ignore this until 26.3 due to a circular deprecation warning
   "ignore:conda.core.link.PrefixActions:DeprecationWarning:conda.core.link",
 ]
 markers = [
