@@ -177,8 +177,8 @@ filterwarnings = [
   "ignore: datetime.datetime.utcnow():DeprecationWarning:botocore.auth",
   # pexpect ignores
   "ignore:setDaemon.*:DeprecationWarning",
-  # ignore this until 26.9 due to a circular deprecation warning
-  "ignore:conda.core.link.PrefixActions:PendingDeprecationWarning:conda.core.link",
+  # ignore this until 26.3 due to a circular deprecation warning
+  "ignore:conda.core.link.PrefixActions:DeprecationWarning:conda.core.link",
   # ignore external plugin deprecation warnings until they are updated
   "ignore:conda.plugins.CondaSubcommand:PendingDeprecationWarning:conda_content_trust.plugin",
 ]
