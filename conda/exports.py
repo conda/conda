@@ -39,14 +39,14 @@ from .core.prefix_data import delete_prefix_from_linked_data
 from .core.solve import Solver  # noqa: F401
 from .core.subdir_data import cache_fn_url  # noqa: F401
 from .deprecations import deprecated
-from .exceptions import (  # noqa: F401
+from .exceptions import (
     CondaHTTPError,
     CondaOSError,
     LinkError,
-    LockError,
+    LockError,  # noqa: F401
     PaddingError,
     PathNotFoundError,
-    UnsatisfiableError,
+    UnsatisfiableError,  # noqa: F401
 )
 from .gateways.connection.download import TmpDownload  # noqa: F401
 from .gateways.connection.download import download as _download
@@ -221,6 +221,15 @@ deprecated.constant(
     addendum="Use `conda.CondaError` instead.",
 )
 del CondaError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaHTTPError",
+    CondaHTTPError,
+    addendum="Use `conda.exceptions.CondaHTTPError` instead.",
+)
+del CondaHTTPError
 
 
 def get_default_urls():

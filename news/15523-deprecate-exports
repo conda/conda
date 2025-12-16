@@ -20,6 +20,7 @@
 * Mark `conda.exports._PREFIX_PLACEHOLDER` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.PREFIX_PLACEHOLDER` instead. (#15523)
 * Mark `conda.exports.prefix_placeholder` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.PREFIX_PLACEHOLDER` instead. (#15523)
 * Mark `conda.exports.CondaError` as pending deprecation, to be removed in 27.3. Use `conda.CondaError` instead. (#15523)
+* Mark `conda.exports.CondaHTTPError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.CondaHTTPError` instead. (#15523)
 
 ### Docs
 
