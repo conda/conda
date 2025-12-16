@@ -43,7 +43,7 @@ from .exceptions import (
     CondaHTTPError,
     CondaOSError,
     LinkError,
-    LockError,  # noqa: F401
+    LockError,
     PaddingError,
     PathNotFoundError,
     UnsatisfiableError,  # noqa: F401
@@ -248,6 +248,15 @@ deprecated.constant(
     addendum="Use `conda.exceptions.LinkError` instead.",
 )
 del LinkError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "LockError",
+    LockError,
+    addendum="Use `conda.exceptions.LockError` instead.",
+)
+del LockError
 
 
 def get_default_urls():

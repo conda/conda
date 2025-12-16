@@ -23,6 +23,7 @@
 * Mark `conda.exports.CondaHTTPError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.CondaHTTPError` instead. (#15523)
 * Mark `conda.exports.CondaOSError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.CondaOSError` instead. (#15523)
 * Mark `conda.exports.LinkError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.LinkError` instead. (#15523)
+* Mark `conda.exports.LockError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.LockError` instead. (#15523)
 
 ### Docs
 
