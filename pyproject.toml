@@ -179,6 +179,8 @@ filterwarnings = [
   "ignore:setDaemon.*:DeprecationWarning",
   # ignore this until 26.9 due to a circular deprecation warning
   "ignore:conda.core.link.PrefixActions:PendingDeprecationWarning:conda.core.link",
+  # ignore external plugin deprecation warnings until they are updated
+  "ignore:conda.plugins.CondaSubcommand:PendingDeprecationWarning:conda_content_trust.plugin",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
