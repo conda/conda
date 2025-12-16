@@ -240,6 +240,15 @@ deprecated.constant(
 )
 del CondaOSError
 
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "LinkError",
+    LinkError,
+    addendum="Use `conda.exceptions.LinkError` instead.",
+)
+del LinkError
+
 
 def get_default_urls():
     from .base.constants import DEFAULT_CHANNELS
