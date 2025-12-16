@@ -29,6 +29,7 @@ from conda import exports
         ("CondaOSError", TypeError),
         ("LinkError", TypeError),
         ("LockError", TypeError),
+        ("PaddingError", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

@@ -258,6 +258,15 @@ deprecated.constant(
 )
 del LockError
 
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "PaddingError",
+    PaddingError,
+    addendum="Use `conda.exceptions.PaddingError` instead.",
+)
+del PaddingError
+
 
 def get_default_urls():
     from .base.constants import DEFAULT_CHANNELS
