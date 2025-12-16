@@ -1,0 +1,25 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.exports.input` as pending deprecation, to be removed in 27.3. Use `builtins.input` instead. (#15523)
+* Mark `conda.exports.StringIO` as pending deprecation, to be removed in 27.3. Use `io.StringIO` instead. (#15523)
+* Mark `conda.exports.PY3` as pending deprecation, to be removed in 27.3. Python 2 is no longer supported. (#15523)
+* Mark `conda.exports.string_types` as pending deprecation, to be removed in 27.3. Use `str` instead. (#15523)
+* Mark `conda.exports.text_type` as pending deprecation, to be removed in 27.3. Use `str` instead. (#15523)
+* Mark `conda.exports.DEFAULT_CHANNELS` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.DEFAULT_CHANNELS` instead. (#15523)
+* Mark `conda.exports.DEFAULT_CHANNELS_UNIX` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.DEFAULT_CHANNELS_UNIX` instead. (#15523)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
