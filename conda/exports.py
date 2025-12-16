@@ -12,7 +12,7 @@ from . import CondaError  # noqa: F401
 from .base.constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
-    DEFAULT_CHANNELS_WIN,  # noqa: F401
+    DEFAULT_CHANNELS_WIN,
     PREFIX_PLACEHOLDER,
 )
 from .base.context import (  # noqa: F401
@@ -179,6 +179,15 @@ deprecated.constant(
     addendum="Use `conda.base.constants.DEFAULT_CHANNELS_UNIX` instead.",
 )
 del DEFAULT_CHANNELS_UNIX
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "DEFAULT_CHANNELS_WIN",
+    DEFAULT_CHANNELS_WIN,
+    addendum="Use `conda.base.constants.DEFAULT_CHANNELS_WIN` instead.",
+)
+del DEFAULT_CHANNELS_WIN
 
 
 def get_default_urls():

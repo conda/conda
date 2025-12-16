@@ -20,6 +20,7 @@ from conda import exports
         ("text_type", None),
         ("DEFAULT_CHANNELS", TypeError),
         ("DEFAULT_CHANNELS_UNIX", TypeError),
+        ("DEFAULT_CHANNELS_WIN", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

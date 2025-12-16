@@ -15,6 +15,7 @@
 * Mark `conda.exports.text_type` as pending deprecation, to be removed in 27.3. Use `str` instead. (#15523)
 * Mark `conda.exports.DEFAULT_CHANNELS` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.DEFAULT_CHANNELS` instead. (#15523)
 * Mark `conda.exports.DEFAULT_CHANNELS_UNIX` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.DEFAULT_CHANNELS_UNIX` instead. (#15523)
+* Mark `conda.exports.DEFAULT_CHANNELS_WIN` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.DEFAULT_CHANNELS_WIN` instead. (#15523)
 
 ### Docs
 
