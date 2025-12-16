@@ -8,7 +8,7 @@ from builtins import input  # noqa: UP029
 from io import StringIO
 from typing import TYPE_CHECKING
 
-from . import CondaError  # noqa: F401
+from . import CondaError
 from .base.constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
@@ -212,6 +212,15 @@ deprecated.constant(
     addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
 )
 del PREFIX_PLACEHOLDER
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaError",
+    CondaError,
+    addendum="Use `conda.CondaError` instead.",
+)
+del CondaError
 
 
 def get_default_urls():

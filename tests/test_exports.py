@@ -24,6 +24,7 @@ from conda import exports
         ("PREFIX_PLACEHOLDER", TypeError),
         ("_PREFIX_PLACEHOLDER", TypeError),
         ("prefix_placeholder", TypeError),
+        ("CondaError", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
