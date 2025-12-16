@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from . import CondaError  # noqa: F401
 from .base.constants import (
     DEFAULT_CHANNELS,
-    DEFAULT_CHANNELS_UNIX,  # noqa: F401
+    DEFAULT_CHANNELS_UNIX,
     DEFAULT_CHANNELS_WIN,  # noqa: F401
     PREFIX_PLACEHOLDER,
 )
@@ -170,6 +170,15 @@ deprecated.constant(
     addendum="Use `conda.base.constants.DEFAULT_CHANNELS` instead.",
 )
 del DEFAULT_CHANNELS
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "DEFAULT_CHANNELS_UNIX",
+    DEFAULT_CHANNELS_UNIX,
+    addendum="Use `conda.base.constants.DEFAULT_CHANNELS_UNIX` instead.",
+)
+del DEFAULT_CHANNELS_UNIX
 
 
 def get_default_urls():
