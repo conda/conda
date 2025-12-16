@@ -231,6 +231,15 @@ deprecated.constant(
 )
 del CondaHTTPError
 
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaOSError",
+    CondaOSError,
+    addendum="Use `conda.exceptions.CondaOSError` instead.",
+)
+del CondaOSError
+
 
 def get_default_urls():
     from .base.constants import DEFAULT_CHANNELS

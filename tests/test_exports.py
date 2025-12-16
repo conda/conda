@@ -26,6 +26,7 @@ from conda import exports
         ("prefix_placeholder", TypeError),
         ("CondaError", TypeError),
         ("CondaHTTPError", TypeError),
+        ("CondaOSError", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
