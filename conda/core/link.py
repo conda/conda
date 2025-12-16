@@ -250,8 +250,10 @@ class ChangeReport(NamedTuple):
 
 class UnlinkLinkTransaction:
     def __init__(self, *setups):
-        self.prefix_setups = {stp.target_prefix: stp for stp in setups}
-        self.prefix_action_groups = {}
+        self.prefix_setups: dict[str, PrefixSetup] = {
+            stp.target_prefix: stp for stp in setups
+        }
+        self.prefix_action_groups: dict[str | Path, PrefixActions] = {}
 
         for stp in self.prefix_setups.values():
             log.info(
@@ -266,6 +268,7 @@ class UnlinkLinkTransaction:
                 "\n    ".join(prec.dist_str() for prec in stp.link_precs),
             )
 
+        self.transaction_context = {}
         self._pfe = None
         self._prepared = False
         self._verified = False
@@ -305,8 +308,6 @@ class UnlinkLinkTransaction:
 
         if self._prepared:
             return
-
-        self.transaction_context = {}
 
         with get_spinner("Preparing transaction"):
             for stp in self.prefix_setups.values():
@@ -391,7 +392,8 @@ class UnlinkLinkTransaction:
                 tuple(chain(*chain(*zip(*self.prefix_action_groups.values()))))
             )
         finally:
-            rm_rf(self.transaction_context["temp_dir"])
+            if temp_dir := self.transaction_context.get("temp_dir"):
+                rm_rf(temp_dir)
 
     def _get_pfe(self):
         from .package_cache_data import ProgressiveFetchExtract

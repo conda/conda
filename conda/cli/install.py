@@ -14,6 +14,7 @@ import os
 from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from boltons.setutils import IndexedSet
 
@@ -62,6 +63,9 @@ from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
+
+if TYPE_CHECKING:
+    from argparse import Namespace
 
 log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
@@ -521,7 +525,13 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
     return UnlinkLinkTransaction(setup)
 
 
-def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
+def handle_txn(
+    unlink_link_transaction: UnlinkLinkTransaction,
+    prefix: str | Path,
+    args: Namespace,
+    newenv: bool,
+    remove_op: bool = False,
+) -> None:
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment

@@ -271,7 +271,13 @@ def touch_nonadmin(prefix):
             fo.write("")
 
 
-def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
+def clone_env(
+    prefix1: str,
+    prefix2: str,
+    verbose: bool = True,
+    quiet: bool = False,
+    index_args: dict[str, Any] | None = None,
+):
     """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
     drecs = {prec for prec in PrefixData(prefix1).iter_records()}
