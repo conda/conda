@@ -30,6 +30,8 @@ from conda import exports
         ("LinkError", TypeError),
         ("LockError", TypeError),
         ("PaddingError", TypeError),
+        ("PathNotFoundError", TypeError),
+        ("CondaFileNotFoundError", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

@@ -94,8 +94,6 @@ load_condarc = lambda fn: reset_context([fn])
 PaddingError = PaddingError
 LinkError = LinkError
 CondaOSError = CondaOSError
-# PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
-CondaFileNotFoundError = PathNotFoundError
 # Replacements for six exports for compatibility
 
 
@@ -266,6 +264,23 @@ deprecated.constant(
     addendum="Use `conda.exceptions.PaddingError` instead.",
 )
 del PaddingError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "PathNotFoundError",
+    PathNotFoundError,
+    addendum="Use `conda.exceptions.PathNotFoundError` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaFileNotFoundError",
+    PathNotFoundError,
+    addendum="Use `conda.exceptions.PathNotFoundError` instead.",
+)
+del PathNotFoundError
 
 
 def get_default_urls():
