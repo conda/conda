@@ -21,6 +21,9 @@ from conda import exports
         ("DEFAULT_CHANNELS", TypeError),
         ("DEFAULT_CHANNELS_UNIX", TypeError),
         ("DEFAULT_CHANNELS_WIN", TypeError),
+        ("PREFIX_PLACEHOLDER", TypeError),
+        ("_PREFIX_PLACEHOLDER", TypeError),
+        ("prefix_placeholder", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

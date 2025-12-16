@@ -76,7 +76,6 @@ reset_context()  # initialize context when conda.exports is imported
 
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 non_x86_linux_machines = non_x86_machines
-_PREFIX_PLACEHOLDER = prefix_placeholder = PREFIX_PLACEHOLDER
 arch_name = context.arch_name
 binstar_upload = context.anaconda_upload
 bits = context.bits
@@ -188,6 +187,31 @@ deprecated.constant(
     addendum="Use `conda.base.constants.DEFAULT_CHANNELS_WIN` instead.",
 )
 del DEFAULT_CHANNELS_WIN
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "PREFIX_PLACEHOLDER",
+    PREFIX_PLACEHOLDER,
+    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "_PREFIX_PLACEHOLDER",
+    PREFIX_PLACEHOLDER,
+    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "prefix_placeholder",
+    PREFIX_PLACEHOLDER,
+    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
+)
+del PREFIX_PLACEHOLDER
 
 
 def get_default_urls():
