@@ -46,7 +46,7 @@ from .exceptions import (
     LockError,
     PaddingError,
     PathNotFoundError,
-    UnsatisfiableError,  # noqa: F401
+    UnsatisfiableError,
 )
 from .gateways.connection.download import TmpDownload  # noqa: F401
 from .gateways.connection.download import download as _download
@@ -281,6 +281,15 @@ deprecated.constant(
     addendum="Use `conda.exceptions.PathNotFoundError` instead.",
 )
 del PathNotFoundError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "UnsatisfiableError",
+    UnsatisfiableError,
+    addendum="Use `conda.exceptions.UnsatisfiableError` instead.",
+)
+del UnsatisfiableError
 
 
 def get_default_urls():

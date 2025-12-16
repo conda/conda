@@ -27,6 +27,7 @@
 * Mark `conda.exports.PaddingError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PaddingError` instead. (#15523)
 * Mark `conda.exports.PathNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523)
 * Mark `conda.exports.CondaFileNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523)
+* Mark `conda.exports.UnsatisfiableError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.UnsatisfiableError` instead. (#15523)
 
 ### Docs
 
