@@ -13,8 +13,8 @@ log = getLogger(__name__)
 
 
 @deprecated(
-    "26.3",
     "26.9",
+    "27.3",
     addendum="Use `conda.common.serialize.yaml._yaml()` instead.",
 )
 @functools.cache
@@ -27,8 +27,8 @@ def _yaml_round_trip():
 
 
 @deprecated(
-    "26.3",
     "26.9",
+    "27.3",
     addendum="Use `conda.common.serialize.yaml._yaml()` instead.",
 )
 @functools.cache
@@ -43,8 +43,8 @@ def _yaml_safe():
 
 
 @deprecated(
-    "26.3",
     "26.9",
+    "27.3",
     addendum="Use `conda.common.serialize.yaml.load()` instead.",
 )
 def yaml_round_trip_load(string):
@@ -52,8 +52,8 @@ def yaml_round_trip_load(string):
 
 
 @deprecated(
-    "26.3",
     "26.9",
+    "27.3",
     addendum="Use `conda.common.serialize.yaml.load()` instead.",
 )
 def yaml_safe_load(string):
@@ -67,8 +67,8 @@ def yaml_safe_load(string):
 
 
 @deprecated(
-    "26.3",
     "26.9",
+    "27.3",
     addendum="Use `conda.common.serialize.yaml.dump()` instead.",
 )
 def yaml_round_trip_dump(object, stream=None):
@@ -80,8 +80,8 @@ def yaml_round_trip_dump(object, stream=None):
 
 
 @deprecated(
-    "26.3",
     "26.9",
+    "27.3",
     addendum="Use `conda.common.serialize.yaml.dump()` instead.",
 )
 def yaml_safe_dump(object, stream=None):
