@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from builtins import input  # noqa: UP029
-from io import StringIO  # noqa: F401, for conda-build
+from io import StringIO
 from typing import TYPE_CHECKING
 
 from . import CondaError  # noqa: F401
@@ -132,6 +132,15 @@ deprecated.constant(
     addendum="Use `builtins.input` instead.",
 )
 del input
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "StringIO",
+    StringIO,
+    addendum="Use `io.StringIO` instead.",
+)
+del StringIO
 
 
 def rm_rf(path, max_retries=5, trash=True):

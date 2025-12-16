@@ -14,6 +14,7 @@ from conda import exports
     [
         ("EntityEncoder", None),
         ("input", OSError),
+        ("StringIO", None),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
