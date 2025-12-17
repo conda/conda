@@ -647,51 +647,6 @@ def context_testdata() -> None:
 # HTTP Test Server Fixtures
 
 
-def _get_http_server_directory(request: FixtureRequest) -> str:
-    """
-    Extract directory path from pytest marker.
-
-    Looks for @pytest.mark.http_server_dir(path) marker on the test.
-    Raises ValueError if marker is missing or invalid.
-
-    :param request: pytest fixture request object
-    :return: Resolved absolute path to directory
-    :raises ValueError: If marker is missing or invalid
-    """
-    marker = request.node.get_closest_marker("http_server_dir")
-    if marker is None:
-        raise ValueError(
-            f"Test {request.node.nodeid} requires @pytest.mark.http_server_dir(directory) "
-            "marker to specify the directory to serve. Example: "
-            '@pytest.mark.http_server_dir("tests/data/mock-channel")'
-        )
-
-    if not marker.args or len(marker.args) != 1:
-        raise ValueError(
-            f"@pytest.mark.http_server_dir marker requires exactly one argument "
-            f"(the directory path), got: {marker.args}"
-        )
-
-    directory = marker.args[0]
-    if not isinstance(directory, (str, Path)):
-        raise ValueError(
-            f"@pytest.mark.http_server_dir argument must be a string or Path, "
-            f"got {type(directory).__name__}"
-        )
-
-    directory_path = Path(directory)
-    if not directory_path.exists():
-        raise ValueError(
-            f"Directory specified in @pytest.mark.http_server_dir does not exist: {directory}"
-        )
-    if not directory_path.is_dir():
-        raise ValueError(
-            f"Path specified in @pytest.mark.http_server_dir is not a directory: {directory}"
-        )
-
-    return str(directory_path.resolve())
-
-
 @dataclass
 class HttpTestServerFixture:
     """Fixture providing HTTP test server for serving local files."""
@@ -700,6 +655,7 @@ class HttpTestServerFixture:
     host: str
     port: int
     url: str
+    directory: Path
 
     def __post_init__(self):
         """Log server startup for debugging."""
@@ -717,32 +673,56 @@ class HttpTestServerFixture:
 
 
 @pytest.fixture
-def http_test_server(request: FixtureRequest) -> Iterator[HttpTestServerFixture]:
+def http_test_server(
+    request: FixtureRequest,
+    tmp_path: Path,
+) -> Iterator[HttpTestServerFixture]:
     """
     Function-scoped HTTP test server for serving local files.
 
     This fixture starts an HTTP server on a random port and serves files
-    from a directory specified via pytest marker. The server supports both
-    IPv4 and IPv6.
+    from a directory. The server supports both IPv4 and IPv6.
 
-    Usage:
-        @pytest.mark.http_server_dir("tests/data/mock-channel")
-        def test_something(http_test_server):
+    Usage without parametrize (dynamic content):
+        def test_dynamic(http_test_server):
+            # Server uses temporary directory automatically
+            (http_test_server.directory / "file.txt").write_text("content")
             url = http_test_server.get_url("file.txt")
-            # url is now "http://127.0.0.1:<random-port>/file.txt"
             response = requests.get(url)
             assert response.status_code == 200
 
-    The marker is REQUIRED. If not provided, the fixture will raise ValueError
-    with a helpful error message.
+    Usage with parametrize (pre-existing directory):
+        @pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
+        def test_existing(http_test_server):
+            url = http_test_server.get_url("file.txt")
+            response = requests.get(url)
+            assert response.status_code == 200
 
     :param request: pytest fixture request object
-    :return: HttpTestServerFixture with server, host, port, and url attributes
-    :raises ValueError: If marker is missing or invalid
+    :param tmp_path: pytest tmp_path fixture (used when no parametrize provided)
+    :return: HttpTestServerFixture with server, host, port, url, and directory attributes
+    :raises ValueError: If parametrized directory is invalid
     """
     from . import http_test_server as http_server_module
 
-    directory = _get_http_server_directory(request)
+    # Check if test used parametrize with indirect=True
+    if hasattr(request, "param"):
+        # Parameter was provided via @pytest.mark.parametrize
+        directory = request.param
+        if directory is None:
+            # Explicit None means use tmp_path
+            directory = str(tmp_path)
+        else:
+            # Validate the provided directory
+            directory_path = Path(directory)
+            if not directory_path.exists():
+                raise ValueError(f"Directory does not exist: {directory}")
+            if not directory_path.is_dir():
+                raise ValueError(f"Path is not a directory: {directory}")
+            directory = str(directory_path.resolve())
+    else:
+        # No parameter provided - use tmp_path (dynamic content)
+        directory = str(tmp_path)
 
     server = http_server_module.run_test_server(directory)
     host, port = server.socket.getsockname()[:2]
@@ -754,6 +734,7 @@ def http_test_server(request: FixtureRequest) -> Iterator[HttpTestServerFixture]
         host=host,
         port=port,
         url=url,
+        directory=Path(directory),
     )
 
     yield fixture
@@ -765,6 +746,7 @@ def http_test_server(request: FixtureRequest) -> Iterator[HttpTestServerFixture]
 @pytest.fixture(scope="session")
 def session_http_test_server(
     request: FixtureRequest,
+    tmp_path_factory: TempPathFactory,
 ) -> Iterator[HttpTestServerFixture]:
     """
     Session-scoped HTTP test server for serving local files.
@@ -773,28 +755,52 @@ def session_http_test_server(
     for all tests. Use this when multiple tests need to access the same files
     and you want to amortize server startup costs.
 
-    Usage:
-        @pytest.mark.http_server_dir("tests/env/support")
-        def test_something(session_http_test_server):
+    Usage without parametrize (dynamic content):
+        def test_dynamic(session_http_test_server):
+            # Server uses session-scoped temporary directory
+            (session_http_test_server.directory / "file.txt").write_text("content")
             url = session_http_test_server.get_url("file.txt")
             response = requests.get(url)
             assert response.status_code == 200
 
-    The marker is REQUIRED. If not provided, the fixture will raise ValueError
-    with a helpful error message.
+    Usage with parametrize (pre-existing directory):
+        @pytest.mark.parametrize("session_http_test_server", ["tests/env/support"], indirect=True)
+        def test_existing(session_http_test_server):
+            url = session_http_test_server.get_url("file.txt")
+            response = requests.get(url)
+            assert response.status_code == 200
 
-    Note: With session scope, all tests using this fixture must specify the SAME
-    directory via the marker, or the first directory will be used for all tests.
-    If you need different directories, use the function-scoped `http_test_server`
-    fixture instead.
+    Note: With session scope, a single directory is used for all tests. If using
+    parametrize, all tests must specify the SAME directory. If not using parametrize,
+    a single temporary directory is created for the entire session. If you need
+    different directories for different tests, use the function-scoped
+    `http_test_server` fixture instead.
 
     :param request: pytest fixture request object
-    :return: HttpTestServerFixture with server, host, port, and url attributes
-    :raises ValueError: If marker is missing or invalid
+    :param tmp_path_factory: pytest tmp_path_factory fixture (used when no parametrize)
+    :return: HttpTestServerFixture with server, host, port, url, and directory attributes
+    :raises ValueError: If parametrized directory is invalid
     """
     from . import http_test_server as http_server_module
 
-    directory = _get_http_server_directory(request)
+    # Check if test used parametrize with indirect=True
+    if hasattr(request, "param"):
+        # Parameter was provided via @pytest.mark.parametrize
+        directory = request.param
+        if directory is None:
+            # Explicit None means use tmp_path_factory
+            directory = str(tmp_path_factory.mktemp("http_server"))
+        else:
+            # Validate the provided directory
+            directory_path = Path(directory)
+            if not directory_path.exists():
+                raise ValueError(f"Directory does not exist: {directory}")
+            if not directory_path.is_dir():
+                raise ValueError(f"Path is not a directory: {directory}")
+            directory = str(directory_path.resolve())
+    else:
+        # No parameter provided - use tmp_path_factory (dynamic content)
+        directory = str(tmp_path_factory.mktemp("http_server"))
 
     server = http_server_module.run_test_server(directory)
     host, port = server.socket.getsockname()[:2]
@@ -806,6 +812,7 @@ def session_http_test_server(
         host=host,
         port=port,
         url=url,
+        directory=Path(directory),
     )
 
     yield fixture

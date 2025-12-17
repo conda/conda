@@ -8,71 +8,167 @@ The HTTP test server fixture provides a way to test conda functionality that req
 
 ## Overview
 
-The `http_test_server` and `session_http_test_server` fixtures start a local HTTP server that serves files from a directory you specify. The server runs on a random port and supports both IPv4 and IPv6.
+The `http_test_server` and `session_http_test_server` fixtures start a local HTTP server that serves files from a directory. The server runs on a random port and supports both IPv4 and IPv6.
+
+The fixtures can be used in two ways:
+1. **Without a marker** (recommended) - Uses a temporary directory that you populate dynamically
+2. **With a marker** - Serves files from a pre-existing directory
 
 ## Basic Usage
 
-### Function-Scoped Fixture
+### Dynamic Content (No Marker)
 
-Use `http_test_server` when each test needs its own server instance:
+The simplest usage - no marker needed. The server automatically uses a temporary directory that you can populate:
+
+```python
+import requests
+
+
+def test_dynamic_repodata(http_test_server):
+    """Create content on the fly - no setup needed."""
+    # Populate files directly in the server's directory
+    (http_test_server.directory / "repodata.json").write_text('{"packages": {}}')
+
+    # Make request
+    response = requests.get(http_test_server.get_url("repodata.json"))
+    assert response.status_code == 200
+    assert response.json() == {"packages": {}}
+```
+
+This pattern is ideal for:
+- Creating mock repodata files
+- Testing with minimal setup
+- Generating test files programmatically
+- Tests that need different content
+
+### Pre-existing Directory (With Parametrize)
+
+Use `@pytest.mark.parametrize()` with `indirect=True` when you have test data already prepared:
 
 ```python
 import pytest
 import requests
 
 
-@pytest.mark.http_server_dir("tests/data/mock-channel")
+@pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
 def test_fetch_from_channel(http_test_server):
-    # Get URL for a specific file
+    # Server serves files from tests/data/mock-channel/
     repodata_url = http_test_server.get_url("linux-64/repodata.json")
 
-    # Make request
     response = requests.get(repodata_url)
     assert response.status_code == 200
-
-    # The base URL is also available
-    print(f"Server running at: {http_test_server.url}")
-    print(f"Host: {http_test_server.host}, Port: {http_test_server.port}")
 ```
 
-### Session-Scoped Fixture
+The `indirect=True` parameter tells pytest to pass the directory path to the fixture rather than directly to the test function.
 
-Use `session_http_test_server` when multiple tests can share the same server:
+This pattern is ideal for:
+- Complex directory structures
+- Sharing test data across multiple tests
+- Binary files (packages, archives)
+- Large test datasets
+
+## Testing Multiple Directories
+
+One of the benefits of using `parametrize` is that you can easily test the same logic against multiple directories:
 
 ```python
-@pytest.mark.http_server_dir("tests/env/support")
+@pytest.mark.parametrize(
+    "http_test_server",
+    ["tests/data/channel1", "tests/data/channel2", "tests/data/channel3"],
+    indirect=True,
+)
+def test_multiple_channels(http_test_server):
+    # This test runs three times, once for each channel directory
+    response = requests.get(http_test_server.get_url("repodata.json"))
+    assert response.status_code == 200
+    assert "packages" in response.json()
+```
+
+Each test run will use a different directory, making it easy to verify behavior across multiple datasets.
+
+## Function vs Session Scope
+
+### Function-Scoped Fixture (`http_test_server`)
+
+Use when each test needs its own server instance:
+
+```python
+def test_case_1(http_test_server):
+    # This test gets its own server and temporary directory
+    (http_test_server.directory / "file1.txt").write_text("content 1")
+    ...
+
+
+def test_case_2(http_test_server):
+    # This test gets a different server and temporary directory
+    (http_test_server.directory / "file2.txt").write_text("content 2")
+    ...
+```
+
+### Session-Scoped Fixture (`session_http_test_server`)
+
+Use when multiple tests can share the same server:
+
+```python
+@pytest.mark.parametrize(
+    "session_http_test_server", ["tests/env/support"], indirect=True
+)
 def test_remote_env_file_1(session_http_test_server):
     url = session_http_test_server.get_url("example/environment.yml")
     # ... test code ...
 
 
-@pytest.mark.http_server_dir("tests/env/support")
+@pytest.mark.parametrize(
+    "session_http_test_server", ["tests/env/support"], indirect=True
+)
 def test_remote_env_file_2(session_http_test_server):
     url = session_http_test_server.get_url("example/environment_updated.yml")
     # ... test code ...
 ```
 
-**Important**: All tests using `session_http_test_server` must specify the SAME directory in the marker.
-
-## Marker Requirement
-
-Both fixtures **require** the `@pytest.mark.http_server_dir()` marker:
-
-```python
-@pytest.mark.http_server_dir("/absolute/or/relative/path")
-def test_example(http_test_server): ...
-```
-
-If you forget the marker, you'll get a helpful error:
-```
-ValueError: Test test_example.py::test_example requires
-@pytest.mark.http_server_dir(directory) marker to specify the directory to serve.
-Example: @pytest.mark.http_server_dir("tests/data/mock-channel")
-```
+**Important**: When using `session_http_test_server` with parametrize, all tests must specify the SAME directory.
 
 ## Complete Example: Testing a Mock Channel
 
-Here's a full example showing how to test conda against a mock channel:
+Here's a full example showing dynamic content generation:
+
+```python
+import json
+import pytest
+from pathlib import Path
+from conda.testing.fixtures import CondaCLIFixture
+
+
+@pytest.mark.integration
+def test_install_from_mock_channel(
+    http_test_server,
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+):
+    """Test installing from a dynamically created mock channel."""
+    # Create channel structure on the fly
+    noarch = http_test_server.directory / "noarch"
+    noarch.mkdir()
+
+    # Create minimal repodata
+    repodata = {"packages": {}, "packages.conda": {}, "repodata_version": 1}
+    (noarch / "repodata.json").write_text(json.dumps(repodata))
+
+    # Use the channel
+    channel_url = http_test_server.url
+    stdout, stderr, code = conda_cli(
+        "search",
+        "--channel",
+        channel_url,
+        "--override-channels",
+        "*",
+    )
+
+    # Verify it worked (no packages found but channel was accessible)
+    assert code == 0
+```
+
+For pre-existing test data:
 
 ```python
 import pytest
@@ -89,17 +185,15 @@ from conda.testing.fixtures import CondaCLIFixture
 
 
 @pytest.mark.integration
-@pytest.mark.http_server_dir("tests/data/mock-channel")
-def test_install_from_mock_channel(
+@pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
+def test_install_from_preexisting_channel(
     http_test_server,
     conda_cli: CondaCLIFixture,
     tmp_path: Path,
 ):
-    """Test installing a package from a local mock channel."""
-    # The server is serving files from tests/data/mock-channel/
+    """Test installing from pre-existing mock channel."""
     channel_url = http_test_server.url
 
-    # Create environment with package from mock channel
     stdout, stderr, code = conda_cli(
         "create",
         "--prefix",
@@ -111,35 +205,7 @@ def test_install_from_mock_channel(
     )
 
     assert code == 0
-    # Verify package installed
     assert (tmp_path / "conda-meta" / "example-pkg-1.0.0-0.json").exists()
-```
-
-## Using with tmp_path
-
-For dynamic content, you can use the server module directly:
-
-```python
-import json
-from conda.testing import http_test_server
-
-
-def test_dynamic_content(tmp_path):
-    """Create test files dynamically and serve them."""
-    # Create test files
-    channel_dir = tmp_path / "channel"
-    channel_dir.mkdir()
-    (channel_dir / "repodata.json").write_text(json.dumps({"packages": {}}))
-
-    # Import and use the server module directly
-    server = http_test_server.run_test_server(str(channel_dir))
-
-    try:
-        host, port = server.socket.getsockname()[:2]
-        url = f"http://{host}:{port}"
-        # ... use url in test ...
-    finally:
-        server.shutdown()
 ```
 
 ## Fixture API Reference
@@ -153,10 +219,28 @@ The fixture returns an instance with these attributes and methods:
 - `host: str` - Server host (usually "127.0.0.1")
 - `port: int` - Server port (random)
 - `url: str` - Base URL (e.g., "http://127.0.0.1:54321")
+- `directory: Path` - The directory being served (writable, use to populate content)
 
 **Methods:**
 - `get_url(path: str = "") -> str` - Get full URL for a path
   - Example: `get_url("linux-64/repodata.json")` → `"http://127.0.0.1:54321/linux-64/repodata.json"`
+
+**Using the `directory` attribute:**
+
+```python
+def test_dynamic_files(http_test_server):
+    # Write files directly to the served directory
+    (http_test_server.directory / "file.txt").write_text("content")
+
+    # Create subdirectories
+    subdir = http_test_server.directory / "subdir"
+    subdir.mkdir()
+    (subdir / "nested.json").write_text('{"key": "value"}')
+
+    # Files are immediately accessible via HTTP
+    response = requests.get(http_test_server.get_url("subdir/nested.json"))
+    assert response.json() == {"key": "value"}
+```
 
 ## Migration from `support_file_server`
 
@@ -171,7 +255,9 @@ def test_remote_files(support_file_server_port):
 
 **New code:**
 ```python
-@pytest.mark.http_server_dir("tests/env/support")
+@pytest.mark.parametrize(
+    "session_http_test_server", ["tests/env/support"], indirect=True
+)
 def test_remote_files(session_http_test_server):
     url = session_http_test_server.get_url("example/file.yml")
     ...
@@ -180,6 +266,7 @@ def test_remote_files(session_http_test_server):
 Benefits of the new approach:
 - More flexible (any directory, not just tests/env/support)
 - Explicit about what directory is being served
+- Uses standard pytest patterns
 - Better error messages
 - Type-safe with IDE support
 
@@ -193,7 +280,7 @@ pytest_plugins = "conda.testing.fixtures"
 
 
 # In your tests
-@pytest.mark.http_server_dir("tests/my-mock-channel")
+@pytest.mark.parametrize("http_test_server", ["tests/my-mock-channel"], indirect=True)
 def test_with_mock_channel(http_test_server):
     channel_url = http_test_server.url
     # ... your test code ...
@@ -201,17 +288,17 @@ def test_with_mock_channel(http_test_server):
 
 ## Troubleshooting
 
-**"ValueError: requires @pytest.mark.http_server_dir marker"**
-- Add the marker to your test: `@pytest.mark.http_server_dir("/path/to/dir")`
-
 **"ValueError: Directory does not exist"**
-- Check that the path in the marker exists
+- This error occurs when using `@pytest.mark.parametrize()` with an invalid path
+- Check that the directory path provided in parametrize exists
 - Use absolute paths or paths relative to the repository root
 - Use `Path(__file__).parent / "data"` if needed
+- Or omit the parametrize decorator entirely to use a temporary directory
 
 **"ValueError: Path is not a directory"**
-- Ensure the path points to a directory, not a file
-- The marker argument must be a directory containing files to serve
+- This error occurs when the parametrize value points to a file instead of a directory
+- Ensure the path in `@pytest.mark.parametrize(..., indirect=True)` points to a directory
+- Or use the fixture without parametrize for dynamic content
 
 **Address already in use**
 - The fixture uses random ports, so this is rare
@@ -221,19 +308,28 @@ def test_with_mock_channel(http_test_server):
 - This is handled automatically by the fixture
 - The server runs on a daemon thread and will be cleaned up when tests finish
 
+**Files not appearing in HTTP responses**
+- Make sure files are written before making the HTTP request
+- Check that file paths don't have leading slashes when using `get_url()`
+- Verify the directory structure with `list(http_test_server.directory.iterdir())`
+
 ## Tips and Best Practices
 
-1. **Use function scope for isolation**: If tests modify the served files or need different setups, use `http_test_server` (function scope) instead of `session_http_test_server`.
+1. **Prefer dynamic content**: Use the fixture without parametrize (dynamic content) for most tests. It's simpler and doesn't require maintaining test data files.
 
-2. **Organize test data**: Keep mock channel data in dedicated directories like `tests/data/mock-channels/`.
+2. **Use parametrize for complex data**: Use `@pytest.mark.parametrize(..., indirect=True)` when you have complex directory structures, binary files, or data shared across many tests.
 
-3. **Document channel structure**: Add a README in your mock channel directories explaining what files are present and why.
+3. **Test multiple directories**: Leverage parametrize to test the same logic against multiple directories in a single test function.
 
-4. **Test offline scenarios**: Use the HTTP server to test error handling when repodata is malformed or packages are missing.
+4. **Function scope for isolation**: Each test gets its own temporary directory with `http_test_server` (function scope), providing complete isolation.
 
-5. **Performance**: If multiple tests use the same large channel data, use `session_http_test_server` to avoid repeated server startups.
+5. **Session scope for performance**: If multiple tests need the same pre-existing data, use `session_http_test_server` with parametrize to avoid repeated server startups.
 
-6. **Cleanup**: The fixtures handle cleanup automatically - no need to manually shut down servers.
+6. **Organize test data**: When using parametrize, keep mock channel data in dedicated directories like `tests/data/mock-channels/` with README files explaining the structure.
+
+7. **Test error scenarios**: Use dynamic content to easily test edge cases like malformed repodata, missing packages, or network timeouts.
+
+8. **Cleanup is automatic**: The fixtures handle cleanup automatically - no need to manually shut down servers or delete temporary files.
 
 ## Examples from conda Test Suite
 
