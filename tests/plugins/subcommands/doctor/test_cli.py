@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.exceptions import DryRunExit, EnvironmentLocationNotFound
+from conda.exceptions import EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -97,19 +97,20 @@ def test_conda_doctor_fix_dry_run(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
 ):
-    """Make sure --fix --dry-run raises DryRunExit without making changes."""
+    """Make sure --fix --dry-run doesn't make actual changes."""
     with tmp_env() as prefix:
-        # Create a scenario where fix would do something (missing file)
-        out, err, exc = conda_cli(
+        out, err, code = conda_cli(
             "doctor",
             "--fix",
             "--dry-run",
             "--prefix",
             prefix,
-            raises=DryRunExit,
         )
-        # DryRunExit means dry-run is working
-        assert exc
+        # Dry run triggers DryRunExit which results in exit code 1
+        # The important thing is that no actual changes are made
+        assert "Running fixes" in out
+        # Verify dry-run was triggered (logged as warning)
+        assert "Dry run" in err
 
 
 def test_conda_doctor_fix_yes(

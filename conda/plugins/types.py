@@ -263,7 +263,7 @@ class CondaHealthCheck(CondaPlugin):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_checks`.
 
-    :param name: Health check name (e.g., ``Missing Files``).
+    :param name: Health check display name (e.g., ``Missing Files``).
     :param id: Unique identifier for CLI use (e.g., ``missing-files``).
         Auto-generated from name if not provided.
     :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
@@ -278,10 +278,24 @@ class CondaHealthCheck(CondaPlugin):
     summary: str | None = None
 
     def __post_init__(self):
-        """Auto-generate id from name if not provided."""
+        """Auto-generate id from name if not provided, set name to id for plugin system."""
+        # Store display name before parent modifies it
+        display_name = self.name
+        # Generate id if not provided
         if self.id is None:
             # Convert "Missing Files" -> "missing-files"
-            self.id = self.name.lower().replace(" ", "-").replace("_", "-")
+            # Also handle special chars like "/" and "."
+            self.id = (
+                display_name.lower()
+                .replace(" ", "-")
+                .replace("_", "-")
+                .replace("/", "-")
+                .replace(".", "-")
+            )
+        # Set name to id for plugin system validation (must be lowercase)
+        self.name = self.id
+        # Store display name separately
+        self.display_name = display_name
 
 
 @dataclass

@@ -58,7 +58,7 @@ def execute(args: Namespace) -> int:
         print("Available health checks:\n")
         for id, check in sorted(checks.items()):
             fix_marker = " [fixable]" if check.fix else ""
-            summary = check.summary or check.name
+            summary = check.summary or check.display_name
             print(f"  {id}: {summary}{fix_marker}")
         print()
         return 0

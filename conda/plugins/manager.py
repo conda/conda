@@ -526,7 +526,7 @@ class CondaPluginManager(pluggy.PluginManager):
             try:
                 check.action(prefix, verbose)
             except Exception as err:
-                log.warning(f"Error running health check: {check.name} ({err})")
+                log.warning(f"Error running health check: {check.display_name} ({err})")
                 continue
 
     def invoke_pre_solves(
