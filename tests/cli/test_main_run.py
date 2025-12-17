@@ -181,13 +181,12 @@ def test_run_separator_prevents_conda_preparse(
 ):
     with tmp_env("small-executable") as prefix:
         # without separator; the pre-parser will trip over `-v*` executable args, and exit(2).
-        with pytest.raises(SystemExit) as excinfo:
-            conda_cli("run", f"--prefix={prefix}", "small", *exec_args)
-        assert excinfo.value.code == 2
-
-        captured = capsys.readouterr()
-        assert "argument -v/--verbose" in captured.err
-        assert expected_err_substr in captured.err
+        stdout, stderr, err = conda_cli(
+            "run", f"--prefix={prefix}", "small", *exec_args
+        )
+        assert err == 2
+        assert "argument -v/--verbose" in stderr
+        assert expected_err_substr in stderr
 
         # with separator; the pre-parser only sees args before `--`, and the executable will
         # get the args verbatim.
