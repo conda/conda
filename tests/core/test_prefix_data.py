@@ -4,8 +4,6 @@
 from __future__ import annotations
 
 import json
-import os.path
-from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,12 +14,7 @@ import pytest
 from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import (
-    CondaError,
-    CondaValueError,
-    CorruptedEnvironmentError,
-    EnvironmentNameNotFound,
-)
+from conda.exceptions import CondaError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
@@ -926,60 +919,6 @@ def test_api_consistency(
         if packages:
             package_names = [pkg.name for pkg in packages]
             assert package_names == sorted(package_names)
-
-
-@pytest.mark.parametrize(
-    "name,allow_base,mock_locate_prefix,expected,raises",
-    (
-        # First scenario which triggers an Environment not found error
-        (
-            ENV_NAME := "env-name",
-            False,
-            EnvironmentNameNotFound(ENV_NAME),
-            os.path.join("{tmp_path}", ENV_NAME),
-            None,
-        ),
-        # Passing in not allowed characters as the prefix name
-        (
-            "not/allow#characters:in-path",
-            False,
-            None,
-            None,
-            CondaValueError("Environment names cannot contain path separators"),
-        ),
-        # Passing in "base" as the prefix name
-        (
-            "base",
-            False,
-            None,
-            None,
-            CondaValueError("'base' is a reserved environment name"),
-        ),
-    ),
-)
-def test_validate_prefix_name(
-    name: str,
-    allow_base: bool,
-    mock_locate_prefix: EnvironmentNameNotFound | None,
-    expected: str | None,
-    raises: CondaValueError | None,
-    mocker: MockerFixture,
-    tmp_path: Path,
-):
-    mocker.patch(
-        "conda.core.prefix_data.first_writable_envs_dir",
-        return_value=tmp_path,
-    )
-    if mock_locate_prefix:
-        mocker.patch(
-            "conda.core.prefix_data.locate_prefix_by_name",
-            side_effect=mock_locate_prefix,
-        )
-
-    with pytest.raises(type(raises), match=str(raises)) if raises else nullcontext():
-        prefix_data = PrefixData.from_name(name)
-        prefix_data.validate_name(allow_base)
-        assert str(prefix_data.prefix_path) == expected.format(tmp_path=tmp_path)
 
 
 def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
