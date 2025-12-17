@@ -37,6 +37,7 @@ from ..models.records import PackageRecord
 from .integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
+    import http.server
     from collections.abc import Iterable, Iterator
 
     from _pytest.capture import MultiCapture
@@ -641,3 +642,173 @@ def context_testdata() -> None:
             )
         }
     )
+
+
+# HTTP Test Server Fixtures
+
+
+def _get_http_server_directory(request: FixtureRequest) -> str:
+    """
+    Extract directory path from pytest marker.
+
+    Looks for @pytest.mark.http_server_dir(path) marker on the test.
+    Raises ValueError if marker is missing or invalid.
+
+    :param request: pytest fixture request object
+    :return: Resolved absolute path to directory
+    :raises ValueError: If marker is missing or invalid
+    """
+    marker = request.node.get_closest_marker("http_server_dir")
+    if marker is None:
+        raise ValueError(
+            f"Test {request.node.nodeid} requires @pytest.mark.http_server_dir(directory) "
+            "marker to specify the directory to serve. Example: "
+            '@pytest.mark.http_server_dir("tests/data/mock-channel")'
+        )
+
+    if not marker.args or len(marker.args) != 1:
+        raise ValueError(
+            f"@pytest.mark.http_server_dir marker requires exactly one argument "
+            f"(the directory path), got: {marker.args}"
+        )
+
+    directory = marker.args[0]
+    if not isinstance(directory, (str, Path)):
+        raise ValueError(
+            f"@pytest.mark.http_server_dir argument must be a string or Path, "
+            f"got {type(directory).__name__}"
+        )
+
+    directory_path = Path(directory)
+    if not directory_path.exists():
+        raise ValueError(
+            f"Directory specified in @pytest.mark.http_server_dir does not exist: {directory}"
+        )
+    if not directory_path.is_dir():
+        raise ValueError(
+            f"Path specified in @pytest.mark.http_server_dir is not a directory: {directory}"
+        )
+
+    return str(directory_path.resolve())
+
+
+@dataclass
+class HttpTestServerFixture:
+    """Fixture providing HTTP test server for serving local files."""
+
+    server: http.server.ThreadingHTTPServer
+    host: str
+    port: int
+    url: str
+
+    def __post_init__(self):
+        """Log server startup for debugging."""
+        log.debug(f"HTTP test server started: {self.url}")
+
+    def get_url(self, path: str = "") -> str:
+        """
+        Get full URL for a given path on the server.
+
+        :param path: Relative path on the server (e.g., "subdir/package.tar.bz2")
+        :return: Full URL
+        """
+        path = path.lstrip("/")
+        return f"{self.url}/{path}" if path else self.url
+
+
+@pytest.fixture
+def http_test_server(request: FixtureRequest) -> Iterator[HttpTestServerFixture]:
+    """
+    Function-scoped HTTP test server for serving local files.
+
+    This fixture starts an HTTP server on a random port and serves files
+    from a directory specified via pytest marker. The server supports both
+    IPv4 and IPv6.
+
+    Usage:
+        @pytest.mark.http_server_dir("tests/data/mock-channel")
+        def test_something(http_test_server):
+            url = http_test_server.get_url("file.txt")
+            # url is now "http://127.0.0.1:<random-port>/file.txt"
+            response = requests.get(url)
+            assert response.status_code == 200
+
+    The marker is REQUIRED. If not provided, the fixture will raise ValueError
+    with a helpful error message.
+
+    :param request: pytest fixture request object
+    :return: HttpTestServerFixture with server, host, port, and url attributes
+    :raises ValueError: If marker is missing or invalid
+    """
+    from . import http_test_server as http_server_module
+
+    directory = _get_http_server_directory(request)
+
+    server = http_server_module.run_test_server(directory)
+    host, port = server.socket.getsockname()[:2]
+    url_host = f"[{host}]" if ":" in host else host
+    url = f"http://{url_host}:{port}"
+
+    fixture = HttpTestServerFixture(
+        server=server,
+        host=host,
+        port=port,
+        url=url,
+    )
+
+    yield fixture
+
+    # Cleanup: shutdown server
+    server.shutdown()
+
+
+@pytest.fixture(scope="session")
+def session_http_test_server(
+    request: FixtureRequest,
+) -> Iterator[HttpTestServerFixture]:
+    """
+    Session-scoped HTTP test server for serving local files.
+
+    This fixture starts an HTTP server once per test session and keeps it running
+    for all tests. Use this when multiple tests need to access the same files
+    and you want to amortize server startup costs.
+
+    Usage:
+        @pytest.mark.http_server_dir("tests/env/support")
+        def test_something(session_http_test_server):
+            url = session_http_test_server.get_url("file.txt")
+            response = requests.get(url)
+            assert response.status_code == 200
+
+    The marker is REQUIRED. If not provided, the fixture will raise ValueError
+    with a helpful error message.
+
+    Note: With session scope, all tests using this fixture must specify the SAME
+    directory via the marker, or the first directory will be used for all tests.
+    If you need different directories, use the function-scoped `http_test_server`
+    fixture instead.
+
+    :param request: pytest fixture request object
+    :return: HttpTestServerFixture with server, host, port, and url attributes
+    :raises ValueError: If marker is missing or invalid
+    """
+    from . import http_test_server as http_server_module
+
+    directory = _get_http_server_directory(request)
+
+    server = http_server_module.run_test_server(directory)
+    host, port = server.socket.getsockname()[:2]
+    url_host = f"[{host}]" if ":" in host else host
+    url = f"http://{url_host}:{port}"
+
+    fixture = HttpTestServerFixture(
+        server=server,
+        host=host,
+        port=port,
+        url=url,
+    )
+
+    yield fixture
+
+    # Cleanup: shutdown server
+    server.shutdown()

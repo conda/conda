@@ -168,6 +168,7 @@ markers = [
   "slow: slow running tests",
   "benchmark: benchmark tests",
   "memray: memory use tests",
+  "http_server_dir: specify directory to serve with HTTP test server fixture",
 ]
 minversion = "3.0"
 norecursedirs = [

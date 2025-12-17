@@ -27,8 +27,9 @@ from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from conda.plugins.types import CondaEnvironmentExporter
+from conda.testing import http_test_server
 
-from . import TEST_RECIPES_CHANNEL, http_test_server
+from . import TEST_RECIPES_CHANNEL
 
 if TYPE_CHECKING:
     import http.server

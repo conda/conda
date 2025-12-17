@@ -1,7 +1,37 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Local test server based on http.server
+HTTP test server for serving local files during tests.
+
+This module provides a local HTTP server that can be used in pytest fixtures
+to serve files from a specified directory. The server runs on a random port
+and supports both IPv4 and IPv6.
+
+The server is commonly used for testing:
+- Mock conda channels with packages and repodata
+- Remote environment files (environment.yml)
+- Remote configuration files
+- Any scenario where conda needs to fetch files from HTTP URLs
+
+Example usage:
+
+    from conda.testing import http_test_server
+
+    def test_something():
+        server = http_test_server.run_test_server("/path/to/files")
+        host, port = server.socket.getsockname()[:2]
+        url = f"http://{host}:{port}/file.txt"
+
+        # Make HTTP requests to url...
+
+        server.shutdown()
+
+For pytest fixtures that wrap this functionality, see:
+- `http_test_server` - function-scoped fixture
+- `session_http_test_server` - session-scoped fixture
+
+Both fixtures require the `@pytest.mark.http_server_dir()` marker to specify
+the directory to serve.
 """
 
 import contextlib
