@@ -13,10 +13,13 @@ from .....common.serialize import json
 from .....exceptions import CondaError
 from .....gateways.disk.read import compute_sum
 from .....reporters import confirm_yn
-from . import OK_MARK, X_MARK, excluded_files_check, reinstall_packages
+from .... import hookimpl
+from ....types import CondaHealthCheck
+from ._common import OK_MARK, X_MARK, excluded_files_check, reinstall_packages
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from collections.abc import Iterable
 
 logger = getLogger(__name__)
 
@@ -108,3 +111,13 @@ def fix_altered_files(prefix: str, args: Namespace) -> int:
     specs = list(altered.keys())
     return reinstall_packages(args, specs, force_reinstall=True)
 
+
+@hookimpl
+def conda_health_checks() -> Iterable[CondaHealthCheck]:
+    """Register the altered files health check."""
+    yield CondaHealthCheck(
+        name="Altered Files",
+        action=altered_files,
+        fix=fix_altered_files,
+        summary="Reinstall packages with altered files",
+    )

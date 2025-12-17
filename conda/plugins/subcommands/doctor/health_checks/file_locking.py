@@ -4,9 +4,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from .....base.context import context
 from .....gateways.disk.lock import locking_supported
-from . import OK_MARK, X_MARK
+from .... import hookimpl
+from ....types import CondaHealthCheck
+from ._common import OK_MARK, X_MARK
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def file_locking_check(prefix: str, verbose: bool) -> None:
@@ -21,3 +28,12 @@ def file_locking_check(prefix: str, verbose: bool) -> None:
     else:
         print(f"{X_MARK} File locking is not supported.\n")
 
+
+@hookimpl
+def conda_health_checks() -> Iterable[CondaHealthCheck]:
+    """Register the file locking health check."""
+    yield CondaHealthCheck(
+        name="File Locking Supported Check",
+        action=file_locking_check,
+        # No fix - system-level issue
+    )

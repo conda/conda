@@ -6,12 +6,18 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from requests.exceptions import RequestException
 
 from .....base.context import context
 from .....gateways.connection.session import get_session
-from . import OK_MARK, X_MARK
+from .... import hookimpl
+from ....types import CondaHealthCheck
+from ._common import OK_MARK, X_MARK
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
@@ -38,3 +44,12 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
                 f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`: {e}\n"
             )
 
+
+@hookimpl
+def conda_health_checks() -> Iterable[CondaHealthCheck]:
+    """Register the REQUESTS_CA_BUNDLE health check."""
+    yield CondaHealthCheck(
+        name="REQUESTS_CA_BUNDLE Check",
+        action=requests_ca_bundle_check,
+        # No fix - user must configure this manually
+    )

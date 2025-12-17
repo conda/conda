@@ -10,10 +10,13 @@ from typing import TYPE_CHECKING
 from .....base.context import context
 from .....common.serialize import json
 from .....reporters import confirm_yn
-from . import OK_MARK, X_MARK, excluded_files_check, reinstall_packages
+from .... import hookimpl
+from ....types import CondaHealthCheck
+from ._common import OK_MARK, X_MARK, excluded_files_check, reinstall_packages
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from collections.abc import Iterable
 
 
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:
@@ -67,3 +70,13 @@ def fix_missing_files(prefix: str, args: Namespace) -> int:
     specs = list(packages_with_missing.keys())
     return reinstall_packages(args, specs, force_reinstall=True)
 
+
+@hookimpl
+def conda_health_checks() -> Iterable[CondaHealthCheck]:
+    """Register the missing files health check."""
+    yield CondaHealthCheck(
+        name="Missing Files",
+        action=missing_files,
+        fix=fix_missing_files,
+        summary="Reinstall packages with missing files",
+    )

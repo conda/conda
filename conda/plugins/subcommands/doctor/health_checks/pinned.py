@@ -13,10 +13,13 @@ from .....common.io import dashlist
 from .....core.prefix_data import PrefixData
 from .....models.match_spec import MatchSpec
 from .....reporters import confirm_yn
-from . import OK_MARK, X_MARK
+from .... import hookimpl
+from ....types import CondaHealthCheck
+from ._common import OK_MARK, X_MARK
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from collections.abc import Iterable
 
 
 def find_malformed_pinned_specs(prefix_data: PrefixData) -> list[MatchSpec]:
@@ -120,3 +123,13 @@ def fix_malformed_pinned(prefix: str, args: Namespace) -> int:
     print(f"Updated {pinned_file}")
     return 0
 
+
+@hookimpl
+def conda_health_checks() -> Iterable[CondaHealthCheck]:
+    """Register the pinned file health check."""
+    yield CondaHealthCheck(
+        name=f"{PREFIX_PINNED_FILE} Well Formatted Check",
+        action=pinned_well_formatted_check,
+        fix=fix_malformed_pinned,
+        summary="Clean up invalid specs in pinned file",
+    )

@@ -881,7 +881,7 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
-        health_checks,
+        *health_checks.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
         *prefix_data_loaders.plugins,

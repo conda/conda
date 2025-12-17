@@ -11,10 +11,13 @@ from .....common.serialize import yaml_safe_dump
 from .....core.prefix_data import PrefixData
 from .....models.match_spec import MatchSpec
 from .....reporters import confirm_yn
-from . import OK_MARK, X_MARK, reinstall_packages
+from .... import hookimpl
+from ....types import CondaHealthCheck
+from ._common import OK_MARK, X_MARK, reinstall_packages
 
 if TYPE_CHECKING:
     from argparse import Namespace
+    from collections.abc import Iterable
 
 
 def find_inconsistent_packages(
@@ -119,3 +122,13 @@ def fix_inconsistent_packages(prefix: str, args: Namespace) -> int:
 
     return reinstall_packages(args, specs, update_deps=True)
 
+
+@hookimpl
+def conda_health_checks() -> Iterable[CondaHealthCheck]:
+    """Register the consistency health check."""
+    yield CondaHealthCheck(
+        name="Consistent Environment Check",
+        action=consistent_env_check,
+        fix=fix_inconsistent_packages,
+        summary="Resolve missing or inconsistent dependencies",
+    )

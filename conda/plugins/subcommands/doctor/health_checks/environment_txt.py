@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -12,10 +11,14 @@ from typing import TYPE_CHECKING
 from .....base.context import context
 from .....core.envs_manager import get_user_environments_txt_file, register_env
 from .....reporters import confirm_yn
-from . import OK_MARK, X_MARK
+from .... import hookimpl
+from ....types import CondaHealthCheck
+from ._common import OK_MARK, X_MARK
 
 if TYPE_CHECKING:
+    import os
     from argparse import Namespace
+    from collections.abc import Iterable
 
 logger = getLogger(__name__)
 
@@ -73,3 +76,13 @@ def fix_env_txt(prefix: str, args: Namespace) -> int:
     print(f"Environment registered: {prefix}")
     return 0
 
+
+@hookimpl
+def conda_health_checks() -> Iterable[CondaHealthCheck]:
+    """Register the environment.txt health check."""
+    yield CondaHealthCheck(
+        name="Environment.txt File Check",
+        action=env_txt_check,
+        fix=fix_env_txt,
+        summary="Register environment in environments.txt",
+    )
