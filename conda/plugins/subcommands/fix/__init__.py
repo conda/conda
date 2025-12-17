@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Implementation for `conda fix` subcommand.
 
-Provides a framework for fix tasks that help users diagnose and repair
+Provides a framework for health fixes that help users diagnose and repair
 issues in their conda setup.
 """
 
@@ -22,58 +22,58 @@ if TYPE_CHECKING:
 
 def configure_parser(parser: ArgumentParser) -> None:
     parser.description = (
-        "Apply fixes for conda environments and configuration.\n\n"
+        "Apply health fixes for conda environments and configuration.\n\n"
         "The fix command helps you diagnose and repair issues in your conda setup. "
-        "Each fix task addresses a specific problem or improves your conda workflow.\n\n"
-        "Use `conda fix --list` to see available fix tasks."
+        "Each health fix addresses a specific problem or improves your conda workflow.\n\n"
+        "Use `conda fix --list` to see available health fixes."
     )
     parser.add_argument(
         "--list",
         action="store_true",
-        help="List all available fix tasks",
+        help="List all available health fixes",
     )
     add_output_and_prompt_options(parser)
 
     subparsers = parser.add_subparsers(
-        title="fix tasks",
-        dest="task",
+        title="health fixes",
+        dest="fix_name",
     )
 
-    # Register subparsers for each fix task from plugins
-    for name, task in context.plugin_manager.get_fix_tasks().items():
-        task_parser = subparsers.add_parser(name, help=task.summary)
-        task.configure_parser(task_parser)
-        task_parser.set_defaults(fix_task=task)
+    # Register subparsers for each health fix from plugins
+    for name, fix in context.plugin_manager.get_health_fixes().items():
+        fix_parser = subparsers.add_parser(name, help=fix.summary)
+        fix.configure_parser(fix_parser)
+        fix_parser.set_defaults(fix=fix)
 
 
 def execute(args: Namespace) -> int:
-    """Run the specified fix task or list available tasks."""
+    """Run the specified health fix or list available health fixes."""
     if args.list:
-        tasks = context.plugin_manager.get_fix_tasks()
+        health_fixes = context.plugin_manager.get_health_fixes()
         if context.json:
             stdout_json(
-                [{"name": name, "summary": task.summary} for name, task in tasks.items()]
+                [{"name": name, "summary": fix.summary} for name, fix in health_fixes.items()]
             )
         else:
-            print("Available fix tasks:\n")
-            for name, task in sorted(tasks.items()):
-                print(f"  {name:<12}  {task.summary}")
+            print("Available health fixes:\n")
+            for name, fix in sorted(health_fixes.items()):
+                print(f"  {name:<24}  {fix.summary}")
         return 0
 
-    # If no task was provided, show error
-    if not hasattr(args, "fix_task"):
+    # If no health fix was provided, show error
+    if not hasattr(args, "fix"):
         from ....exceptions import CondaError
 
-        raise CondaError("No fix task specified. Use `conda fix --list` to see available tasks.")
+        raise CondaError("No health fix specified. Use `conda fix --list` to see available health fixes.")
 
-    return args.fix_task.execute(args)
+    return args.fix.execute(args)
 
 
 @hookimpl
 def conda_subcommands():
     yield CondaSubcommand(
         name="fix",
-        summary="Apply fixes for conda environments and configuration.",
+        summary="Apply health fixes for conda environments and configuration.",
         action=execute,
         configure_parser=configure_parser,
     )
