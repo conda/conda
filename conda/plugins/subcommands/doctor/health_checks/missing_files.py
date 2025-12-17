@@ -82,7 +82,7 @@ def fix_missing_files(prefix: str, args: Namespace) -> int:
 def conda_health_checks() -> Iterable[CondaHealthCheck]:
     """Register the missing files health check."""
     yield CondaHealthCheck(
-        name="Missing Files",
+        name="missing-files",
         action=missing_files,
         fix=fix_missing_files,
         summary="Reinstall packages with missing files",

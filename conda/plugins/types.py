@@ -258,44 +258,21 @@ class CondaHealthCheck(CondaPlugin):
     environment. They are invoked via ``conda doctor``.
 
     Health checks can optionally provide a fix capability, which is invoked
-    via ``conda doctor --fix`` or ``conda doctor --fix <id>``.
+    via ``conda doctor --fix`` or ``conda doctor --fix <name>``.
 
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_checks`.
 
-    :param name: Health check display name (e.g., ``Missing Files``).
-    :param id: Unique identifier for CLI use (e.g., ``missing-files``).
-        Auto-generated from name if not provided.
+    :param name: Health check identifier (e.g., ``missing-files``).
     :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
     :param fix: Optional callable that fixes issues: ``fix(prefix, args) -> int``.
-    :param summary: Short description shown in ``--list`` and ``--fix`` listings.
+    :param summary: Short description shown in ``--list`` output.
     """
 
     name: str
     action: Callable[[str, bool], None]
-    id: str | None = None
     fix: Callable[[str, Namespace], int] | None = None
     summary: str | None = None
-
-    def __post_init__(self):
-        """Auto-generate id from name if not provided, set name to id for plugin system."""
-        # Store display name before parent modifies it
-        display_name = self.name
-        # Generate id if not provided
-        if self.id is None:
-            # Convert "Missing Files" -> "missing-files"
-            # Also handle special chars like "/" and "."
-            self.id = (
-                display_name.lower()
-                .replace(" ", "-")
-                .replace("_", "-")
-                .replace("/", "-")
-                .replace(".", "-")
-            )
-        # Set name to id for plugin system validation (must be lowercase)
-        self.name = self.id
-        # Store display name separately
-        self.display_name = display_name
 
 
 @dataclass

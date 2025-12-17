@@ -81,7 +81,7 @@ def fix_env_txt(prefix: str, args: Namespace) -> int:
 def conda_health_checks() -> Iterable[CondaHealthCheck]:
     """Register the environment.txt health check."""
     yield CondaHealthCheck(
-        name="Environment.txt File Check",
+        name="environment-txt",
         action=env_txt_check,
         fix=fix_env_txt,
         summary="Register environment in environments.txt",

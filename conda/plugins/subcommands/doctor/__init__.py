@@ -30,8 +30,8 @@ def configure_parser(parser: ArgumentParser):
     parser.add_argument(
         "checks",
         nargs="*",
-        metavar="ID",
-        help="Health check ids to run (default: all). Use --list to see available checks.",
+        metavar="NAME",
+        help="Health check names to run (default: all). Use --list to see available checks.",
     )
     parser.add_argument(
         "--list",
@@ -56,10 +56,10 @@ def execute(args: Namespace) -> int:
             return 0
 
         print("Available health checks:\n")
-        for id, check in sorted(checks.items()):
+        for name, check in sorted(checks.items()):
             fix_marker = " [fixable]" if check.fix else ""
-            summary = check.summary or check.display_name
-            print(f"  {id}: {summary}{fix_marker}")
+            summary = check.summary or name
+            print(f"  {name}: {summary}{fix_marker}")
         print()
         return 0
 
@@ -67,12 +67,12 @@ def execute(args: Namespace) -> int:
     prefix_data.assert_environment()
     prefix = str(prefix_data.prefix_path)
 
-    # Get check ids from positional arguments (empty list means all)
-    check_ids = args.checks if args.checks else None
+    # Get check names from positional arguments (empty list means all)
+    check_names = args.checks if args.checks else None
 
-    # Run health checks (filtered by ids if provided)
+    # Run health checks (filtered by names if provided)
     print(f"Environment Health Report for: {prefix}\n")
-    context.plugin_manager.invoke_health_checks(prefix, context.verbose, check_ids)
+    context.plugin_manager.invoke_health_checks(prefix, context.verbose, check_names)
 
     # If --fix was provided, run fixes
     if getattr(args, "fix", False):
@@ -82,15 +82,15 @@ def execute(args: Namespace) -> int:
 
         # Show available fixable checks if none specified
         fixable = context.plugin_manager.get_fixable_health_checks()
-        if check_ids:
+        if check_names:
             # Filter to only requested checks
-            fixable = {id: c for id, c in fixable.items() if id in check_ids}
+            fixable = {n: c for n, c in fixable.items() if n in check_names}
 
         if not fixable:
             print("No health checks with fix capability are available.")
             return 0
 
-        return context.plugin_manager.invoke_health_fixes(prefix, args, check_ids)
+        return context.plugin_manager.invoke_health_fixes(prefix, args, check_names)
 
     return 0
 

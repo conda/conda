@@ -127,7 +127,7 @@ def fix_malformed_pinned(prefix: str, args: Namespace) -> int:
 def conda_health_checks() -> Iterable[CondaHealthCheck]:
     """Register the pinned file health check."""
     yield CondaHealthCheck(
-        name=f"{PREFIX_PINNED_FILE} Well Formatted Check",
+        name="pinned",
         action=pinned_well_formatted_check,
         fix=fix_malformed_pinned,
         summary="Clean up invalid specs in pinned file",

@@ -412,45 +412,47 @@ class CondaPluginManager(pluggy.PluginManager):
         }
 
     def get_health_checks(self) -> dict[str, CondaHealthCheck]:
-        """Return a mapping of health check id to health check."""
-        return {check.id: check for check in self.get_hook_results("health_checks")}
+        """Return a mapping of health check name to health check."""
+        return {check.name: check for check in self.get_hook_results("health_checks")}
 
     def get_fixable_health_checks(self) -> dict[str, CondaHealthCheck]:
-        """Return a mapping of health check id to health check for checks with fix capability."""
+        """Return a mapping of health check name to health check for checks with fix capability."""
         return {
-            check.id: check
+            check.name: check
             for check in self.get_hook_results("health_checks")
             if check.fix is not None
         }
 
     def invoke_health_fixes(
-        self, prefix: str, args, check_ids: list[str] | None = None
+        self, prefix: str, args, check_names: list[str] | None = None
     ) -> int:
         """Run fixes for health checks that have fix capability.
 
         :param prefix: Environment prefix path
         :param args: Parsed command-line arguments
-        :param check_ids: Optional list of specific check ids to fix (None = all)
+        :param check_names: Optional list of specific check names to fix (None = all)
         :return: Combined exit code (0 = success)
         """
         fixable = self.get_fixable_health_checks()
 
-        if check_ids:
+        if check_names:
             # Filter to only requested checks
-            fixable = {id: check for id, check in fixable.items() if id in check_ids}
-            # Warn about unknown check ids
-            unknown = set(check_ids) - set(fixable.keys())
+            fixable = {
+                name: check for name, check in fixable.items() if name in check_names
+            }
+            # Warn about unknown check names
+            unknown = set(check_names) - set(fixable.keys())
             if unknown:
                 log.warning(f"Unknown health check(s): {', '.join(sorted(unknown))}")
 
         exit_code = 0
-        for id, check in fixable.items():
+        for name, check in fixable.items():
             try:
                 result = check.fix(prefix, args)
                 if result != 0:
                     exit_code = result
             except Exception as err:
-                log.warning(f"Error running fix for health check: {id} ({err})")
+                log.warning(f"Error running fix for health check: {name} ({err})")
                 exit_code = 1
 
         return exit_code
@@ -504,29 +506,31 @@ class CondaPluginManager(pluggy.PluginManager):
             yield hook.loader
 
     def invoke_health_checks(
-        self, prefix: str, verbose: bool, check_ids: list[str] | None = None
+        self, prefix: str, verbose: bool, check_names: list[str] | None = None
     ) -> None:
         """Run health checks.
 
         :param prefix: Environment prefix path
         :param verbose: Whether to show verbose output
-        :param check_ids: Optional list of specific check ids to run (None = all)
+        :param check_names: Optional list of specific check names to run (None = all)
         """
         checks = self.get_health_checks()
 
-        if check_ids:
+        if check_names:
             # Filter to only requested checks
-            checks = {id: check for id, check in checks.items() if id in check_ids}
-            # Warn about unknown check ids
-            unknown = set(check_ids) - set(checks.keys())
+            checks = {
+                name: check for name, check in checks.items() if name in check_names
+            }
+            # Warn about unknown check names
+            unknown = set(check_names) - set(checks.keys())
             if unknown:
                 log.warning(f"Unknown health check(s): {', '.join(sorted(unknown))}")
 
-        for id, check in checks.items():
+        for name, check in checks.items():
             try:
                 check.action(prefix, verbose)
             except Exception as err:
-                log.warning(f"Error running health check: {check.display_name} ({err})")
+                log.warning(f"Error running health check: {name} ({err})")
                 continue
 
     def invoke_pre_solves(

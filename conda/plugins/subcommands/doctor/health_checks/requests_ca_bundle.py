@@ -49,7 +49,8 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
 def conda_health_checks() -> Iterable[CondaHealthCheck]:
     """Register the REQUESTS_CA_BUNDLE health check."""
     yield CondaHealthCheck(
-        name="REQUESTS_CA_BUNDLE Check",
+        name="requests-ca-bundle",
         action=requests_ca_bundle_check,
+        summary="Check REQUESTS_CA_BUNDLE environment variable",
         # No fix - user must configure this manually
     )

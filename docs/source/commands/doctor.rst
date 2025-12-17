@@ -35,15 +35,20 @@ Example::
 Built-in Health Checks
 ======================
 
-Conda includes several built-in health checks:
+Use ``conda doctor --list`` to see all available health checks. Conda includes
+several built-in health checks:
 
-- **Missing Files** - Detects packages with missing files and can reinstall them
-- **Altered Files** - Detects packages with modified files (checksum mismatch) and can reinstall them
-- **Consistent Environment** - Checks for missing or inconsistent dependencies
-- **Environment.txt** - Verifies the environment is registered in ``environments.txt``
-- **Pinned File** - Validates the format of the ``pinned`` file
-- **File Locking** - Reports if file locking is supported
-- **REQUESTS_CA_BUNDLE** - Validates the SSL certificate bundle configuration
+- ``missing-files`` - Detects packages with missing files and can reinstall them
+- ``altered-files`` - Detects packages with modified files (checksum mismatch) and can reinstall them
+- ``consistency`` - Checks for missing or inconsistent dependencies
+- ``environment-txt`` - Verifies the environment is registered in ``environments.txt``
+- ``pinned`` - Validates the format of the ``pinned`` file
+- ``file-locking`` - Reports if file locking is supported
+- ``requests-ca-bundle`` - Validates the SSL certificate bundle configuration
+
+You can run specific health checks by name::
+
+   conda doctor missing-files altered-files
 
 .. argparse::
    :module: conda.cli.conda_argparse

@@ -128,7 +128,7 @@ def fix_inconsistent_packages(prefix: str, args: Namespace) -> int:
 def conda_health_checks() -> Iterable[CondaHealthCheck]:
     """Register the consistency health check."""
     yield CondaHealthCheck(
-        name="Consistent Environment Check",
+        name="consistency",
         action=consistent_env_check,
         fix=fix_inconsistent_packages,
         summary="Resolve missing or inconsistent dependencies",

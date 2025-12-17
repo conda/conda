@@ -33,7 +33,8 @@ def file_locking_check(prefix: str, verbose: bool) -> None:
 def conda_health_checks() -> Iterable[CondaHealthCheck]:
     """Register the file locking health check."""
     yield CondaHealthCheck(
-        name="File Locking Supported Check",
+        name="file-locking",
         action=file_locking_check,
+        summary="Check if file locking is supported",
         # No fix - system-level issue
     )

@@ -118,7 +118,7 @@ def fix_altered_files(prefix: str, args: Namespace) -> int:
 def conda_health_checks() -> Iterable[CondaHealthCheck]:
     """Register the altered files health check."""
     yield CondaHealthCheck(
-        name="Altered Files",
+        name="altered-files",
         action=altered_files,
         fix=fix_altered_files,
         summary="Reinstall packages with altered files",
