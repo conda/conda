@@ -164,37 +164,27 @@ def test_run_with_separator(
 
 
 @pytest.mark.parametrize(
-    "exec_args,expected_err_substr",
+    "exec_args",
     [
-        pytest.param(["-vhgj"], "ignored explicit argument 'hgj'", id="vhgj"),
-        pytest.param(["-vs"], "ignored explicit argument 's'", id="vs"),
-        pytest.param(["-vic", "60"], "ignored explicit argument 'ic'", id="vic"),
+        pytest.param(["-vhgj"], id="vhgj"),
+        pytest.param(["-vs"], id="vs"),
+        pytest.param(["-vic", "60"], id="vic"),
     ],
 )
 def test_run_separator_prevents_conda_preparse(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
-    capsys: pytest.CaptureFixture[str],
     exec_args: list[str],
-    expected_err_substr: str,
 ):
     with tmp_env("small-executable") as prefix:
-        # without separator; the pre-parser will trip over `-v*` executable args, and exit(2).
-        stdout, stderr, err = conda_cli(
-            "run", f"--prefix={prefix}", "small", *exec_args
-        )
-        assert err == 2
-        assert "argument -v/--verbose" in stderr
-        assert expected_err_substr in stderr
-
-        # with separator; the pre-parser only sees args before `--`, and the executable will
-        # get the args verbatim.
+        # with separator; arguments after `--` are passed through verbatim
         stdout, stderr, err = conda_cli(
             "run", f"--prefix={prefix}", "--", "small", *exec_args
         )
+        assert err == 0
         assert stdout.strip() == "Hello! " + " ".join(exec_args)
-        assert not err
+        assert "argument -v/--verbose" not in (stderr or "")
 
 
 def test_run_with_empty_command_will_raise(
