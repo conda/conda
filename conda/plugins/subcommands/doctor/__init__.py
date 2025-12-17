@@ -28,12 +28,17 @@ def configure_parser(parser: ArgumentParser):
     add_parser_prefix(parser)
     add_parser_verbose(parser)
     parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List all available health checks and their fix capabilities.",
+    )
+    parser.add_argument(
         "--fix",
         nargs="*",
-        metavar="CHECK",
+        metavar="ID",
         help=(
             "Fix issues found by health checks. "
-            "Optionally specify which checks to fix (e.g., --fix 'Missing Files')."
+            "Optionally specify which checks to fix by id (e.g., --fix missing-files)."
         ),
     )
     parser.add_argument(
@@ -51,6 +56,21 @@ def configure_parser(parser: ArgumentParser):
 
 def execute(args: Namespace) -> int:
     """Run registered health_check plugins and optionally fix issues."""
+    # Handle --list first (doesn't require environment)
+    if getattr(args, "list", False):
+        checks = context.plugin_manager.get_health_checks()
+        if not checks:
+            print("No health checks are available.")
+            return 0
+
+        print("Available health checks:\n")
+        for id, check in sorted(checks.items()):
+            fix_marker = " [fixable]" if check.fix else ""
+            summary = check.summary or check.name
+            print(f"  {id}: {summary}{fix_marker}")
+        print()
+        return 0
+
     prefix_data = PrefixData.from_context()
     prefix_data.assert_environment()
     prefix = str(prefix_data.prefix_path)
@@ -65,8 +85,8 @@ def execute(args: Namespace) -> int:
         print("Running fixes...")
         print("=" * 60 + "\n")
 
-        # Get list of checks to fix (empty list means all)
-        check_names = args.fix if args.fix else None
+        # Get list of check ids to fix (empty list means all)
+        check_ids = args.fix if args.fix else None
 
         # Show available fixable checks if none specified
         fixable = context.plugin_manager.get_fixable_health_checks()
@@ -74,14 +94,14 @@ def execute(args: Namespace) -> int:
             print("No health checks with fix capability are available.")
             return 0
 
-        if check_names is None:
+        if check_ids is None:
             print("Available fixes:")
-            for name, check in sorted(fixable.items()):
-                summary = check.summary or "No description"
-                print(f"  {name}: {summary}")
+            for id, check in sorted(fixable.items()):
+                summary = check.summary or check.name
+                print(f"  {id}: {summary}")
             print()
 
-        return context.plugin_manager.invoke_health_fixes(prefix, args, check_names)
+        return context.plugin_manager.invoke_health_fixes(prefix, args, check_ids)
 
     return 0
 

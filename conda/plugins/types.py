@@ -258,21 +258,30 @@ class CondaHealthCheck(CondaPlugin):
     environment. They are invoked via ``conda doctor``.
 
     Health checks can optionally provide a fix capability, which is invoked
-    via ``conda doctor --fix`` or ``conda doctor --fix <check-name>``.
+    via ``conda doctor --fix`` or ``conda doctor --fix <id>``.
 
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_checks`.
 
     :param name: Health check name (e.g., ``Missing Files``).
+    :param id: Unique identifier for CLI use (e.g., ``missing-files``).
+        Auto-generated from name if not provided.
     :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
     :param fix: Optional callable that fixes issues: ``fix(prefix, args) -> int``.
-    :param summary: Short description shown in ``--fix`` listings.
+    :param summary: Short description shown in ``--list`` and ``--fix`` listings.
     """
 
     name: str
     action: Callable[[str, bool], None]
+    id: str | None = None
     fix: Callable[[str, Namespace], int] | None = None
     summary: str | None = None
+
+    def __post_init__(self):
+        """Auto-generate id from name if not provided."""
+        if self.id is None:
+            # Convert "Missing Files" -> "missing-files"
+            self.id = self.name.lower().replace(" ", "-").replace("_", "-")
 
 
 @dataclass

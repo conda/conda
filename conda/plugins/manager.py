@@ -411,44 +411,46 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    def get_health_checks(self) -> dict[str, CondaHealthCheck]:
+        """Return a mapping of health check id to health check."""
+        return {check.id: check for check in self.get_hook_results("health_checks")}
+
     def get_fixable_health_checks(self) -> dict[str, CondaHealthCheck]:
-        """Return a mapping of health check name to health check for checks with fix capability."""
+        """Return a mapping of health check id to health check for checks with fix capability."""
         return {
-            check.name: check
+            check.id: check
             for check in self.get_hook_results("health_checks")
             if check.fix is not None
         }
 
     def invoke_health_fixes(
-        self, prefix: str, args, check_names: list[str] | None = None
+        self, prefix: str, args, check_ids: list[str] | None = None
     ) -> int:
         """Run fixes for health checks that have fix capability.
 
         :param prefix: Environment prefix path
         :param args: Parsed command-line arguments
-        :param check_names: Optional list of specific check names to fix (None = all)
+        :param check_ids: Optional list of specific check ids to fix (None = all)
         :return: Combined exit code (0 = success)
         """
         fixable = self.get_fixable_health_checks()
 
-        if check_names:
+        if check_ids:
             # Filter to only requested checks
-            fixable = {
-                name: check for name, check in fixable.items() if name in check_names
-            }
-            # Warn about unknown check names
-            unknown = set(check_names) - set(fixable.keys())
+            fixable = {id: check for id, check in fixable.items() if id in check_ids}
+            # Warn about unknown check ids
+            unknown = set(check_ids) - set(fixable.keys())
             if unknown:
                 log.warning(f"Unknown health check(s): {', '.join(sorted(unknown))}")
 
         exit_code = 0
-        for name, check in fixable.items():
+        for id, check in fixable.items():
             try:
                 result = check.fix(prefix, args)
                 if result != 0:
                     exit_code = result
             except Exception as err:
-                log.warning(f"Error running fix for health check: {name} ({err})")
+                log.warning(f"Error running fix for health check: {id} ({err})")
                 exit_code = 1
 
         return exit_code
