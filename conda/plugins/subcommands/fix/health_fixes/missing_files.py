@@ -33,7 +33,7 @@ def configure_parser(parser: ArgumentParser) -> None:
 
 def execute(args: Namespace) -> int:
     """Execute the missing-files fix task."""
-    from .....cli.install import install
+    from . import reinstall_packages
 
     prefix_data = PrefixData.from_context()
     prefix_data.assert_environment()
@@ -56,23 +56,8 @@ def execute(args: Namespace) -> int:
         dry_run=context.dry_run,
     )
 
-    # Get the package specs to reinstall
     specs = list(packages_with_missing.keys())
-
-    # Use conda install --force-reinstall
-    args.packages = specs
-    args.force_reinstall = True
-    args.channel = None
-    args.override_channels = False
-    args.satisfied_skip_solve = False
-    args.update_deps = False
-    args.only_deps = False
-    args.no_deps = False
-    args.prune = False
-    args.freeze_installed = False
-    args.solver_retries = 0
-
-    return install(args)
+    return reinstall_packages(args, specs, force_reinstall=True)
 
 
 @hookimpl
