@@ -32,7 +32,7 @@ def test_listed_on_envs_txt_file(
     tmp_envs_txt_file.write_text(f"{prefix}")
 
     mocker.patch(
-        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        "conda.plugins.subcommands.doctor.health_checks.environment_txt.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
     assert check_envs_txt_file(prefix)
@@ -47,7 +47,7 @@ def test_not_listed_on_envs_txt_file(
     tmp_envs_txt_file.write_text("Not environment name")
 
     mocker.patch(
-        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        "conda.plugins.subcommands.doctor.health_checks.environment_txt.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
     assert not check_envs_txt_file(prefix)
@@ -65,7 +65,7 @@ def test_env_txt_check_action(
     tmp_envs_txt_file.write_text(f"{prefix}")
 
     mocker.patch(
-        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        "conda.plugins.subcommands.doctor.health_checks.environment_txt.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
     env_txt_check(prefix, verbose=True)
@@ -85,7 +85,7 @@ def test_not_env_txt_check_action(
     tmp_envs_txt_file.write_text("Not environment name")
 
     mocker.patch(
-        "conda.plugins.subcommands.doctor.health_checks.get_user_environments_txt_file",
+        "conda.plugins.subcommands.doctor.health_checks.environment_txt.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
     env_txt_check(prefix, verbose=True)

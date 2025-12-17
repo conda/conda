@@ -1,0 +1,75 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""Health check: Environment listed in environments.txt."""
+
+from __future__ import annotations
+
+import os
+from logging import getLogger
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from .....base.context import context
+from .....core.envs_manager import get_user_environments_txt_file, register_env
+from .....reporters import confirm_yn
+from . import OK_MARK, X_MARK
+
+if TYPE_CHECKING:
+    from argparse import Namespace
+
+logger = getLogger(__name__)
+
+
+def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
+    """Checks whether the environment is listed in the environments.txt file."""
+    prefix = Path(prefix)
+    envs_txt_file = Path(get_user_environments_txt_file())
+
+    def samefile(path1: Path, path2: Path) -> bool:
+        try:
+            return path1.samefile(path2)
+        except FileNotFoundError:
+            return path1 == path2
+
+    try:
+        for line in envs_txt_file.read_text().splitlines():
+            stripped_line = line.strip()
+            if stripped_line and samefile(prefix, Path(stripped_line)):
+                return True
+    except (IsADirectoryError, FileNotFoundError, PermissionError) as err:
+        logger.error(
+            f"{envs_txt_file} could not be "
+            f"accessed because of the following error: {err}"
+        )
+    return False
+
+
+def env_txt_check(prefix: str, verbose: bool) -> None:
+    """Health check action: Check if environment is in environments.txt."""
+    if check_envs_txt_file(prefix):
+        print(f"{OK_MARK} The environment is listed in the environments.txt file.\n")
+    else:
+        print(f"{X_MARK} The environment is not listed in the environments.txt file.\n")
+
+
+def fix_env_txt(prefix: str, args: Namespace) -> int:
+    """Register environment in environments.txt."""
+    if check_envs_txt_file(prefix):
+        print(f"Environment is already registered in environments.txt: {prefix}")
+        return 0
+
+    envs_txt = get_user_environments_txt_file()
+    print(f"Environment not found in {envs_txt}")
+    print(f"  Environment: {prefix}")
+
+    print()
+    confirm_yn(
+        "Register this environment?",
+        default="yes",
+        dry_run=context.dry_run,
+    )
+
+    register_env(prefix)
+    print(f"Environment registered: {prefix}")
+    return 0
+
