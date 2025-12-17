@@ -13,7 +13,7 @@ from . import (
     missing_files,
 )
 
-#: The list of health fix plugins for easier registration with pluggy
+# The list of health fix plugins for easier registration with pluggy
 plugins = [
     altered_files,
     environment_txt,
