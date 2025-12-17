@@ -66,7 +66,7 @@ def write(obj: Any, *, path: PathType) -> None: ...
 def write(
     obj: Any, *, fp: IO[str] | None = None, path: PathType | None = None
 ) -> None | str:
-    if sum(value is not None for value in (fp, path)) > 1:
+    if fp and path:
         raise ValueError("At most one of fp or path must be provided")
 
     if fp is not None:
@@ -106,7 +106,7 @@ def read(*, path: PathType) -> Any: ...
 def read(
     *, text: str | None = None, fp: IO[str] | None = None, path: PathType | None = None
 ) -> Any:
-    if sum(value is not None for value in (text, fp, path)) != 1:
+    if (text, fp, path).count(None) != 2:
         raise ValueError("Exactly one of text, fp or path must be provided")
 
     if fp is not None:

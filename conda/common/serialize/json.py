@@ -57,7 +57,7 @@ def write(obj: Any, **kwargs) -> str: ...
 def write(
     obj: Any, *, fp: IO[str] | None = None, path: PathType | None = None, **kwargs
 ) -> None | str:
-    if sum(value is not None for value in (fp, path)) > 1:
+    if fp and path:
         raise ValueError("At most one of fp or path must be provided")
 
     kwargs.setdefault("cls", CondaJSONEncoder)
@@ -102,7 +102,7 @@ def read(
     path: PathType | None = None,
     **kwargs,
 ) -> Any:
-    if sum(value is not None for value in (text, fp, path)) != 1:
+    if (text, fp, path).count(None) != 2:
         raise ValueError("Exactly one of text, fp or path must be provided")
 
     if fp is not None:
