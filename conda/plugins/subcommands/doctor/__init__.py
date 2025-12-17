@@ -14,7 +14,6 @@ from ....cli.helpers import (
     add_output_and_prompt_options,
     add_parser_help,
     add_parser_prefix,
-    add_parser_verbose,
 )
 from ....core.prefix_data import PrefixData
 from ... import hookimpl
@@ -27,8 +26,7 @@ if TYPE_CHECKING:
 def configure_parser(parser: ArgumentParser):
     add_parser_help(parser)
     add_parser_prefix(parser)
-    add_parser_verbose(parser)
-    add_output_and_prompt_options(parser)
+    add_output_and_prompt_options(parser)  # includes --verbose, --dry-run, --yes
     parser.add_argument(
         "checks",
         nargs="*",
