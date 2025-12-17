@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from contextlib import nullcontext
 from functools import partial
 from io import StringIO
 from typing import TYPE_CHECKING
@@ -9,6 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.constants import SafetyChecks
+from conda.common import serialize
 from conda.common.serialize import (
     json,
     json_dump,
@@ -215,3 +217,22 @@ field2: yes
 
 def test_comment_round_trip():
     assert yaml.write(yaml.read(text=YAML_COMMENT)) == YAML_COMMENT
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("_yaml_round_trip", None),
+        ("_yaml_safe", None),
+        ("yaml_round_trip_load", TypeError),
+        ("yaml_safe_load", TypeError),
+        ("yaml_round_trip_dump", TypeError),
+        ("yaml_safe_dump", TypeError),
+        ("json_dump", TypeError)
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(serialize, function)()
+
