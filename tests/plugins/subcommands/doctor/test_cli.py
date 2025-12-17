@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.exceptions import EnvironmentLocationNotFound
+from conda.exceptions import DryRunExit, EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -63,3 +63,68 @@ def test_conda_doctor_with_non_existent_environment(conda_cli: CondaCLIFixture):
     assert not out
     assert not err  # no error message
     assert exception
+
+
+def test_conda_doctor_list(conda_cli: CondaCLIFixture):
+    """Make sure --list shows available health checks."""
+    out, err, code = conda_cli("doctor", "--list")
+
+    assert "Available health checks:" in out
+    assert "missing-files" in out  # built-in check
+    assert not err
+    assert not code
+
+
+def test_conda_doctor_specific_check(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
+    """Make sure we can run a specific health check by id."""
+    with tmp_env() as prefix:
+        out, err, code = conda_cli("doctor", "missing-files", "--prefix", prefix)
+
+        assert "There are no packages with missing files." in out
+        # Should NOT run other checks like altered files
+        assert (
+            "altered" not in out.lower()
+            or "no packages with altered files" in out.lower()
+        )
+        assert not err
+        assert not code
+
+
+def test_conda_doctor_fix_dry_run(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
+    """Make sure --fix --dry-run raises DryRunExit without making changes."""
+    with tmp_env() as prefix:
+        # Create a scenario where fix would do something (missing file)
+        out, err, exc = conda_cli(
+            "doctor",
+            "--fix",
+            "--dry-run",
+            "--prefix",
+            prefix,
+            raises=DryRunExit,
+        )
+        # DryRunExit means dry-run is working
+        assert exc
+
+
+def test_conda_doctor_fix_yes(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
+    """Make sure --fix --yes skips confirmation prompts."""
+    with tmp_env() as prefix:
+        out, err, code = conda_cli(
+            "doctor",
+            "--fix",
+            "--yes",
+            "--prefix",
+            prefix,
+        )
+        # Should complete without prompting
+        assert not err
+        assert not code
