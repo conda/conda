@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import stat
 import uuid
+from logging import WARNING, getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -17,6 +18,7 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
 )
+from conda.gateways.logging import initialize_logging
 from conda.testing.integration import env_or_set, which_or_where
 from conda.utils import wrap_subprocess_call
 
@@ -159,12 +161,21 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
     ],
 )
 def test_run_with_separator(
+    request: pytest.FixtureRequest,
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     args: list[str],
     expected_output: str,
 ):
+    request.addfinalizer(
+        lambda: (
+            getLogger().setLevel(WARNING),
+            initialize_logging.cache_clear(),
+            initialize_logging(),
+        )
+    )
+
     with tmp_env("small-executable") as prefix:
         stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", *args)
 
