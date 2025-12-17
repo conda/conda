@@ -128,6 +128,7 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         # no separator: arguments after the executable are passed through to the executable
         pytest.param(["small", "-v", "-c", "spam"], "-v -c spam", id="no separator"),
         pytest.param(["small", "--version"], "--version", id="no known args"),
+        pytest.param(["small", "-vvv"], "-vvv", id="vvv passthrough"),
         # with separator and conda will ignore everything after
         pytest.param(
             ["small", "--", "-v", "hello"],
@@ -154,6 +155,7 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
             "-vic eggs",
             id="combined option",
         ),
+        pytest.param(["--", "small", "-vvv"], "-vvv", id="vvv passthrough with --"),
     ],
 )
 def test_run_with_separator(
@@ -168,6 +170,15 @@ def test_run_with_separator(
 
         assert stdout.strip() == "Hello! " + expected_output
         assert not err
+
+        assert stderr is not None
+
+        has_vvv = "-vvv" in args
+        has_separator = args and args[0] == "--"
+
+        # without `--`, `-vvv` affects conda's own verbosity; with `--`, it should not
+        expect_conda_debug_str = has_vvv and not has_separator
+        assert ("log_level set to" in stderr) is expect_conda_debug_str
 
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test")
