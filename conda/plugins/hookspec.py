@@ -24,8 +24,8 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
-        CondaFixTask,
         CondaHealthCheck,
+        CondaHealthFix,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -122,19 +122,19 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_fix_tasks(self) -> Iterable[CondaFixTask]:
+    def conda_health_fixes(self) -> Iterable[CondaHealthFix]:
         """
-        Register fix tasks in conda.
+        Register health fixes in conda.
 
-        Fix tasks are operations that help users diagnose and repair issues in
-        their conda setup. They are invoked via ``conda fix <task>``.
+        Health fixes are operations that help users diagnose and repair issues in
+        their conda setup. They are invoked via ``conda fix <name>``.
 
         **Example:**
 
         .. code-block:: python
 
             from conda import plugins
-            from conda.plugins.types import CondaFixTask
+            from conda.plugins.types import CondaHealthFix
 
 
             def configure_my_fix(parser):
@@ -142,20 +142,20 @@ class CondaSpecs:
 
 
             def execute_my_fix(args):
-                print("Running my fix task!")
+                print("Running my health fix!")
                 return 0
 
 
             @plugins.hookimpl
-            def conda_fix_tasks():
-                yield CondaFixTask(
-                    name="my-task",
-                    summary="Example fix task",
+            def conda_health_fixes():
+                yield CondaHealthFix(
+                    name="my-fix",
+                    summary="Example health fix",
                     configure_parser=configure_my_fix,
                     execute=execute_my_fix,
                 )
 
-        :return: An iterable of fix task entries.
+        :return: An iterable of health fix entries.
         """
         yield from ()
 

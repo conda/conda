@@ -593,20 +593,20 @@ class CondaEnvironmentExporter(CondaPlugin):
 
 
 @dataclass
-class CondaFixTask(CondaPlugin):
+class CondaHealthFix(CondaPlugin):
     """
-    Return type to use when defining a conda fix task plugin hook.
+    Return type to use when defining a conda health fix plugin hook.
 
-    Fix tasks are operations that help users diagnose and repair issues in their
-    conda setup. They are invoked via ``conda fix <task>``.
+    Health fixes are operations that help users diagnose and repair issues in their
+    conda setup. They are invoked via ``conda fix <name>``.
 
     For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_fix_tasks`.
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_fixes`.
 
-    :param name: Fix task name (e.g., ``base``).
+    :param name: Health fix name (e.g., ``missing-files``).
     :param summary: Short description shown in ``conda fix --list``.
-    :param configure_parser: Callable to configure the argument parser for this task.
-    :param execute: Callable that performs the fix task.
+    :param configure_parser: Callable to configure the argument parser for this health fix.
+    :param execute: Callable that performs the health fix.
     """
 
     name: str

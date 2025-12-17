@@ -43,6 +43,7 @@ from . import (
 from .config import PluginConfig
 from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
+from .subcommands.fix import health_fixes
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -72,7 +73,7 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
-        CondaFixTask,
+        CondaHealthFix,
         CondaVirtualPackage,
     )
 
@@ -274,8 +275,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["fix_tasks"]
-    ) -> list[CondaFixTask]: ...
+        self, name: Literal["health_fixes"]
+    ) -> list[CondaHealthFix]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -417,11 +418,11 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
-    def get_fix_tasks(self) -> dict[str, CondaFixTask]:
-        """Return a mapping from fix task name to fix task."""
+    def get_health_fixes(self) -> dict[str, CondaHealthFix]:
+        """Return a mapping from health fix name to health fix."""
         return {
-            task.name: task
-            for task in self.get_hook_results("fix_tasks")
+            fix.name: fix
+            for fix in self.get_hook_results("health_fixes")
         }
 
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
@@ -853,6 +854,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *virtual_packages.plugins,
         *subcommands.plugins,
         health_checks,
+        *health_fixes.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
         *prefix_data_loaders.plugins,
