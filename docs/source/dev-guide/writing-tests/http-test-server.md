@@ -8,7 +8,7 @@ The HTTP test server fixture provides a way to test conda functionality that req
 
 ## Overview
 
-The `http_test_server` and `session_http_test_server` fixtures start a local HTTP server that serves files from a directory. The server runs on a random port and supports both IPv4 and IPv6.
+The `http_test_server` fixture starts a local HTTP server that serves files from a directory. The server runs on a random port and supports both IPv4 and IPv6.
 
 The fixtures can be used in two ways:
 1. **Without a marker** (recommended) - Uses a temporary directory that you populate dynamically
@@ -103,29 +103,6 @@ def test_case_2(http_test_server):
     (http_test_server.directory / "file2.txt").write_text("content 2")
     ...
 ```
-
-### Session-Scoped Fixture (`session_http_test_server`)
-
-Use when multiple tests can share the same server:
-
-```python
-@pytest.mark.parametrize(
-    "session_http_test_server", ["tests/env/support"], indirect=True
-)
-def test_remote_env_file_1(session_http_test_server):
-    url = session_http_test_server.get_url("example/environment.yml")
-    # ... test code ...
-
-
-@pytest.mark.parametrize(
-    "session_http_test_server", ["tests/env/support"], indirect=True
-)
-def test_remote_env_file_2(session_http_test_server):
-    url = session_http_test_server.get_url("example/environment_updated.yml")
-    # ... test code ...
-```
-
-**Important**: When using `session_http_test_server` with parametrize, all tests must specify the SAME directory.
 
 ## Complete Example: Testing a Mock Channel
 
@@ -241,34 +218,6 @@ def test_dynamic_files(http_test_server):
     assert response.json() == {"key": "value"}
 ```
 
-## Migration from `support_file_server`
-
-If you're using the older `support_file_server` fixture, here's how to migrate:
-
-**Old code:**
-```python
-def test_remote_files(support_file_server_port):
-    url = f"http://127.0.0.1:{support_file_server_port}/example/file.yml"
-    ...
-```
-
-**New code:**
-```python
-@pytest.mark.parametrize(
-    "session_http_test_server", ["tests/env/support"], indirect=True
-)
-def test_remote_files(session_http_test_server):
-    url = session_http_test_server.get_url("example/file.yml")
-    ...
-```
-
-Benefits of the new approach:
-- More flexible (any directory, not just tests/env/support)
-- Explicit about what directory is being served
-- Uses standard pytest patterns
-- Better error messages
-- Type-safe with IDE support
-
 ## Use in Downstream Projects
 
 The HTTP test server fixtures are part of `conda.testing` module and can be used by downstream projects like `conda-libmamba-solver` and `conda-pypi`:
@@ -320,13 +269,11 @@ def test_with_mock_channel(http_test_server):
 
 3. **Function scope for isolation**: Each test gets its own temporary directory with `http_test_server` (function scope), providing complete isolation.
 
-4. **Session scope for performance**: If multiple tests need the same pre-existing data, use `session_http_test_server` with parametrize to avoid repeated server startups.
+4. **Organize test data**: When using parametrize, keep mock channel data in dedicated directories like `tests/data/mock-channels/` with README files explaining the structure.
 
-5. **Organize test data**: When using parametrize, keep mock channel data in dedicated directories like `tests/data/mock-channels/` with README files explaining the structure.
+5. **Test error scenarios**: Use dynamic content to easily test edge cases like malformed repodata, missing packages, or network timeouts.
 
-6. **Test error scenarios**: Use dynamic content to easily test edge cases like malformed repodata, missing packages, or network timeouts.
-
-7. **Cleanup is automatic**: The fixtures handle cleanup automatically - no need to manually shut down servers or delete temporary files.
+6. **Cleanup is automatic**: The fixtures handle cleanup automatically - no need to manually shut down servers or delete temporary files.
 
 ## Examples from conda Test Suite
 
