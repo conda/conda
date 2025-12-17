@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pytest
 
+from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.serialize import yaml_safe_dump, yaml_safe_load
@@ -283,7 +284,7 @@ def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
         f"--prefix={tmp_path}",
         "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
     )
-    assert (tmp_path / "conda-meta" / "history").is_file()
+    assert (tmp_path / PREFIX_MAGIC_FILE).is_file()
 
 
 @pytest.mark.integration
