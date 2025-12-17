@@ -169,7 +169,7 @@ def test_run_with_separator(
         assert stdout.strip() == "Hello! " + expected_output
         assert not err
 
-    
+
 @pytest.mark.skipif(not on_win, reason="Windows-specific test")
 def test_run_deactivates_environment_windows(
     request: pytest.FixtureRequest,
