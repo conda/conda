@@ -10,11 +10,11 @@ from .....base.constants import PREFIX_PINNED_FILE
 from .....base.context import context
 from .....cli.helpers import add_output_and_prompt_options, add_parser_prefix
 from .....core.prefix_data import PrefixData
-from .....exceptions import CondaError
 from .....models.match_spec import MatchSpec
 from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthFix
+from ...doctor.health_checks import find_malformed_pinned_specs
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -45,17 +45,7 @@ def execute(args: Namespace) -> int:
         print(f"No pinned file found at {pinned_file}")
         return 0
 
-    try:
-        pinned_specs = prefix_data.get_pinned_specs()
-    except Exception as err:
-        raise CondaError(f"Error reading pinned file: {err}")
-
-    if not pinned_specs:
-        print("Pinned file is empty.")
-        return 0
-
-    # Find specs for packages that aren't installed
-    malformed = [spec for spec in pinned_specs if not any(prefix_data.query(spec.name))]
+    malformed = find_malformed_pinned_specs(prefix_data)
 
     if not malformed:
         print("No malformed specs found in pinned file.")

@@ -184,55 +184,61 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
             )
 
 
-def consistent_env_check(prefix: str, verbose: bool) -> None:
-    # get the plugin manager from context
+def find_inconsistent_packages(
+    prefix_data: PrefixData,
+) -> tuple[dict[str, dict[str, list]], set[str]]:
+    """Find packages with missing or inconsistent dependencies.
+
+    Returns a tuple of (issues dict, missing dependency names set).
+    The issues dict maps package name -> {"missing": [...], "inconsistent": [...]}.
+    """
     pm = context.plugin_manager
-
-    # get prefix data
-    pd = PrefixData(prefix)
-
-    # get virtual packages record
     virtual_packages = {
         record.name: record for record in pm.get_virtual_package_records()
     }
 
-    # collect missing dependency issues in a list
     issues = {}
+    missing_deps = set()
 
-    # check if dependencies are present
-    for record in pd.iter_records():
+    for record in prefix_data.iter_records():
         for dependency in record.depends:
             match_spec = MatchSpec(dependency)
-            dependency_record = pd.get(
-                match_spec.name, default=virtual_packages.get(match_spec.name, None)
+            dep_record = prefix_data.get(
+                match_spec.name, default=virtual_packages.get(match_spec.name)
             )
-            if dependency_record is None:
+            if dep_record is None:
                 issues.setdefault(record.name, {}).setdefault("missing", []).append(
                     str(match_spec)
                 )
-            elif not match_spec.match(dependency_record):
-                inconsistent = {
-                    "expected": str(match_spec),
-                    "installed": str(dependency_record),
-                }
+                missing_deps.add(match_spec.name)
+            elif not match_spec.match(dep_record):
                 issues.setdefault(record.name, {}).setdefault(
                     "inconsistent", []
-                ).append(inconsistent)
+                ).append({"expected": str(match_spec), "installed": str(dep_record)})
 
         for constrain in record.constrains:
-            package_found = pd.get(
+            package_found = prefix_data.get(
                 MatchSpec(constrain).name,
-                default=virtual_packages.get(MatchSpec(constrain).name, None),
+                default=virtual_packages.get(MatchSpec(constrain).name),
             )
-            if package_found is not None:
-                if not MatchSpec(constrain).match(package_found):
-                    inconsistent_constrain = {
+            if package_found is not None and not MatchSpec(constrain).match(
+                package_found
+            ):
+                issues.setdefault(record.name, {}).setdefault(
+                    "inconsistent", []
+                ).append(
+                    {
                         "expected": str(MatchSpec(constrain)),
                         "installed": f"{package_found.name}[version='{package_found.version}']",
                     }
-                    issues.setdefault(record.name, {}).setdefault(
-                        "inconsistent", []
-                    ).append(inconsistent_constrain)
+                )
+
+    return issues, missing_deps
+
+
+def consistent_env_check(prefix: str, verbose: bool) -> None:
+    pd = PrefixData(prefix)
+    issues, _ = find_inconsistent_packages(pd)
 
     if issues:
         print(f"{X_MARK} The environment is not consistent.\n")
@@ -242,46 +248,51 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         print(f"{OK_MARK} The environment is consistent.\n")
 
 
+def find_malformed_pinned_specs(prefix_data: PrefixData) -> list[MatchSpec]:
+    """Find pinned specs that reference packages not installed in the environment.
+
+    Returns a list of MatchSpec objects for packages that might be typos.
+    """
+    try:
+        pinned_specs = prefix_data.get_pinned_specs()
+    except Exception:
+        return []
+
+    if not pinned_specs:
+        return []
+
+    return [
+        pinned for pinned in pinned_specs if not any(prefix_data.query(pinned.name))
+    ]
+
+
 def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
     prefix_data = PrefixData(prefix_path=prefix)
+    pinned_file = prefix_data.prefix_path / PREFIX_PINNED_FILE
 
     try:
         pinned_specs = prefix_data.get_pinned_specs()
     except OSError as err:
-        print(
-            f"{X_MARK} Unable to open pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
-        )
+        print(f"{X_MARK} Unable to open pinned file at {pinned_file}:\n\t{err}")
+        return
     except Exception as err:
         print(
-            f"{X_MARK} An error occurred trying to read pinned file at {prefix_data.prefix_path / PREFIX_PINNED_FILE}:\n\t{err}"
+            f"{X_MARK} An error occurred trying to read pinned file at {pinned_file}:\n\t{err}"
         )
         return
 
-    # If there are no pinned specs, exit early
     if not pinned_specs:
-        print(
-            f"{OK_MARK} No pinned specs found in {prefix_data.prefix_path / PREFIX_PINNED_FILE}."
-        )
+        print(f"{OK_MARK} No pinned specs found in {pinned_file}.")
         return
 
-    # If there is a pinned package that does not exist in the prefix, that
-    # is an indication that it might be a typo.
-    maybe_malformed = [
-        pinned for pinned in pinned_specs if not any(prefix_data.query(pinned.name))
-    ]
+    maybe_malformed = find_malformed_pinned_specs(prefix_data)
 
-    # Inform the user of any packages that might be malformed
     if maybe_malformed:
-        print(
-            f"{X_MARK} The following specs in {prefix_data.prefix_path / PREFIX_PINNED_FILE} are maybe malformed:"
-        )
+        print(f"{X_MARK} The following specs in {pinned_file} are maybe malformed:")
         print(dashlist((spec.name for spec in maybe_malformed), indent=4))
         return
 
-    # If there are no malformed packages, the pinned file is well formatted
-    print(
-        f"{OK_MARK} The pinned file in {prefix_data.prefix_path / PREFIX_PINNED_FILE} seems well formatted."
-    )
+    print(f"{OK_MARK} The pinned file in {pinned_file} seems well formatted.")
 
 
 def file_locking_check(prefix: str, verbose: bool):

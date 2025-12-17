@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING
 from .....base.context import context
 from .....cli.helpers import add_output_and_prompt_options, add_parser_prefix
 from .....core.prefix_data import PrefixData
-from .....models.match_spec import MatchSpec
 from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthFix
+from ...doctor.health_checks import find_inconsistent_packages
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -37,48 +37,7 @@ def execute(args: Namespace) -> int:
     prefix_data = PrefixData.from_context()
     prefix_data.assert_environment()
 
-    # Get virtual packages for dependency checking
-    pm = context.plugin_manager
-    virtual_packages = {
-        record.name: record for record in pm.get_virtual_package_records()
-    }
-
-    # Find inconsistencies
-    issues = {}
-    missing_deps = set()
-
-    for record in prefix_data.iter_records():
-        for dependency in record.depends:
-            match_spec = MatchSpec(dependency)
-            dep_record = prefix_data.get(
-                match_spec.name, default=virtual_packages.get(match_spec.name)
-            )
-            if dep_record is None:
-                issues.setdefault(record.name, {}).setdefault("missing", []).append(
-                    str(match_spec)
-                )
-                missing_deps.add(match_spec.name)
-            elif not match_spec.match(dep_record):
-                issues.setdefault(record.name, {}).setdefault(
-                    "inconsistent", []
-                ).append({"expected": str(match_spec), "installed": str(dep_record)})
-
-        for constrain in record.constrains:
-            package_found = prefix_data.get(
-                MatchSpec(constrain).name,
-                default=virtual_packages.get(MatchSpec(constrain).name),
-            )
-            if package_found is not None and not MatchSpec(constrain).match(
-                package_found
-            ):
-                issues.setdefault(record.name, {}).setdefault(
-                    "inconsistent", []
-                ).append(
-                    {
-                        "expected": str(MatchSpec(constrain)),
-                        "installed": f"{package_found.name}[version='{package_found.version}']",
-                    }
-                )
+    issues, missing_deps = find_inconsistent_packages(prefix_data)
 
     if not issues:
         print("No inconsistent packages found.")

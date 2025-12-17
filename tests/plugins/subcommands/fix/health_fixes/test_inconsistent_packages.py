@@ -27,17 +27,15 @@ def test_no_inconsistencies(
 
     mock_prefix_data = mocker.MagicMock()
     mock_prefix_data.prefix_path = prefix
-    mock_prefix_data.iter_records.return_value = []
     mock_prefix_data.assert_environment = mocker.MagicMock()
     mocker.patch(
         "conda.plugins.subcommands.fix.health_fixes.inconsistent_packages.PrefixData.from_context",
         return_value=mock_prefix_data,
     )
-
-    mock_context = mocker.patch(
-        "conda.plugins.subcommands.fix.health_fixes.inconsistent_packages.context"
+    mocker.patch(
+        "conda.plugins.subcommands.fix.health_fixes.inconsistent_packages.find_inconsistent_packages",
+        return_value=({}, set()),
     )
-    mock_context.plugin_manager.get_virtual_package_records.return_value = []
 
     args = Namespace()
     result = inconsistent_packages.execute(args)
