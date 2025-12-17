@@ -215,32 +215,36 @@ class Environment:
     Data model for a conda environment.
     """
 
-    #: The platform this environment may be installed on (required)
     platform: str
+    """The platform this environment may be installed on (required)."""
 
-    #: Environment level configuration, eg. channels, solver options, etc.
-    #: TODO: may need to think more about the type of this field and how
-    #:       conda should be merging configs between environments
     config: EnvironmentConfig = field(default_factory=EnvironmentConfig)
+    """Environment level configuration, eg. channels, solver options, etc.
 
-    #: Map of other package types that conda can install. For example pypi packages.
+    TODO: may need to think more about the type of this field and how
+    conda should be merging configs between environments.
+    """
+
     external_packages: dict[str, list[str]] = field(default_factory=dict)
+    """Map of other package types that conda can install. For example pypi packages."""
 
-    #: The complete list of specs for the environment.
-    #: eg. after a solve, or from an explicit environment spec
     explicit_packages: list[PackageRecord] = field(default_factory=list)
+    """The complete list of specs for the environment.
 
-    #: Environment name
+    E.g. after a solve, or from an explicit environment spec.
+    """
+
     name: str | None = None
+    """Environment name."""
 
-    #: Prefix the environment is installed into.
     prefix: str | None = None
+    """Prefix the environment is installed into."""
 
-    #: User requested specs for this environment.
     requested_packages: list[MatchSpec] = field(default_factory=list)
+    """User requested specs for this environment."""
 
-    #: Environment variables to be applied to the environment.
     variables: dict[str, str] = field(default_factory=dict)
+    """Environment variables to be applied to the environment."""
 
     # Virtual packages for the environment. Either the default ones provided by
     # the virtual_packages plugins or the overrides captured by CONDA_OVERRIDE_*.
