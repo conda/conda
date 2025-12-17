@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 import yaml
 
-from conda.common.serialize import yaml
+from conda.common.serialize import yaml as yaml_serializer
 from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
@@ -510,7 +510,7 @@ def test_single_platform_export(
     result = exporter.export(test_env)
     first, text = result.strip().split("\n", 1)
     assert first == "# This is a single-platform export"
-    parsed = yaml.loads(text)
+    parsed = yaml_serializer.loads(text)
     assert parsed["name"] == test_env.name
     assert parsed["single-platform"] == test_env.platform
     packages = iter(parsed["packages"])
@@ -535,7 +535,7 @@ def test_multi_platform_export(
     result = exporter.multiplatform_export([test_env, test_env])
     first, text = result.strip().split("\n", 1)
     assert first == "# This is a multi-platform export"
-    parsed = yaml.loads(text)
+    parsed = yaml_serializer.loads(text)
     assert parsed["name"] == test_env.name
     assert parsed["multi-platforms"] == [test_env.platform, test_env.platform]
     packages = iter(parsed["packages"])

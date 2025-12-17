@@ -22,8 +22,8 @@ from conda.common.serialize import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any
     from pathlib import Path
+    from typing import Any
 
 
 OBJ1 = {
@@ -152,8 +152,8 @@ def test_read_write(
     write: Callable,
     legacy_dump: Callable | None,
     legacy_load: Callable | None,
-    tmp_path: Path
-):    
+    tmp_path: Path,
+):
     # Test read/write text
     assert read(text=text) == obj
     assert write(obj) == text
@@ -168,7 +168,7 @@ def test_read_write(
     assert write(obj, fp=stream) is None
     assert stream.getvalue() == text
     with open(test_file) as fp:
-      assert read(fp=fp) == obj
+        assert read(fp=fp) == obj
 
     if legacy_load:
         assert legacy_load(text) == obj
@@ -228,11 +228,10 @@ def test_comment_round_trip():
         ("yaml_safe_load", TypeError),
         ("yaml_round_trip_dump", TypeError),
         ("yaml_safe_dump", TypeError),
-        ("json_dump", TypeError)
+        ("json_dump", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(serialize, function)()
-
