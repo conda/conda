@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.plugins.subcommands.doctor.health_checks import (
+from conda.plugins.subcommands.doctor.health_checks.missing_files import (
     find_packages_with_missing_files,
     missing_files,
 )

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.plugins.subcommands.doctor.health_checks import (
+from conda.plugins.subcommands.doctor.health_checks.altered_files import (
     altered_files,
     find_altered_packages,
 )

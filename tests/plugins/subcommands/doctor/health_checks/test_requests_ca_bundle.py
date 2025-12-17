@@ -12,9 +12,8 @@ from typing import TYPE_CHECKING
 
 from requests import Response
 
-from conda.plugins.subcommands.doctor.health_checks import (
-    OK_MARK,
-    X_MARK,
+from conda.plugins.subcommands.doctor.health_checks import OK_MARK, X_MARK
+from conda.plugins.subcommands.doctor.health_checks.requests_ca_bundle import (
     requests_ca_bundle_check,
 )
 

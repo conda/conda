@@ -45,4 +45,3 @@ def excluded_files_check(filename: str) -> bool:
     """Check if a file should be excluded from health checks."""
     excluded_extensions = (".pyc", ".pyo")
     return filename.endswith(excluded_extensions)
-
