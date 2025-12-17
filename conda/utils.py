@@ -265,8 +265,25 @@ def wrap_subprocess_call(
                         "requirements)"
                     )
                 fh.write(f"{silencer}{quote_for_shell(*arguments)}\n")
-            fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+            # Capture the user's command exit code before deactivation, and
+            # run the deactivate.d hooks for the active environment, if any,
+            # sorted in reverse alphabetical order.
+            fh.write(f'{silencer}SET "_CONDA_EXE_RC=%ERRORLEVEL%"\n')
+            deactivate_d = Path(prefix) / "etc" / "conda" / "deactivate.d"
+            if deactivate_d.is_dir():
+                deactivate_scripts = sorted(
+                    deactivate_d.glob("*.bat"),
+                    key=lambda p: p.name,
+                    reverse=True,
+                )
+                for script in deactivate_scripts:
+                    if script.is_file():
+                        fh.write(f'{silencer}CALL "{script}"\n')
+
             fh.write(f"{silencer}chcp %_CONDA_OLD_CHCP%>NUL\n")
+            # Always exit with the user's original exit code, not
+            # whatever the last deactivate script or chcp returned.
+            fh.write(f"{silencer}EXIT /B %_CONDA_EXE_RC%\n")
             script_caller = fh.name
         command_args = [comspec, "/d", "/c", script_caller]
     else:
@@ -306,6 +323,23 @@ def wrap_subprocess_call(
                 fh.write("{}\n".format(" ".join(arguments)))
             else:
                 fh.write(f"{quote_for_shell(*arguments)}\n")
+            # Capture the return code of the user's command in a variable
+            # before deactivating. We don't need to unset this per se, because
+            # the shell process will terminate and clean it up afterwards.
+            fh.write("_CONDA_EXE_RC=$?\n")
+            deactivate_d = Path(prefix) / "etc" / "conda" / "deactivate.d"
+            if deactivate_d.is_dir():
+                deactivate_scripts = sorted(
+                    deactivate_d.glob("*.sh"),
+                    key=lambda p: p.name,
+                    reverse=True,
+                )
+                for script in deactivate_scripts:
+                    if script.is_file():
+                        fh.write(f'. "{script}"\n')
+
+            # Exit with this captured return code from the user's command.
+            fh.write("exit $_CONDA_EXE_RC\n")
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]

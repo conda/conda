@@ -48,11 +48,11 @@ deprecated.constant(
     addendum="Use `conda.base.constants.APP_NAME` instead.",
 )
 
-#: Decorator to mark conda plugin hook specifications, used to register plugin hook types
 _hookspec = pluggy.HookspecMarker(APP_NAME)
+"""Decorator to mark conda plugin hook specifications, used to register plugin hook types."""
 
-#: Decorator to mark plugin hook implementations, used to register plugins
 hookimpl = pluggy.HookimplMarker(APP_NAME)
+"""Decorator to mark plugin hook implementations, used to register plugins."""
 
 
 class CondaSpecs:

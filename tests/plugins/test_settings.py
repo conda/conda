@@ -22,27 +22,27 @@ from conda.plugins.manager import CondaPluginManager
 
 log = logging.getLogger(__name__)
 
-#: Name for a string type parameter
 STRING_PARAMETER_NAME = "string_parameter"
+"""Name for a string type parameter."""
 STRING_PARAMETER_ALIAS = "string_parameter_alias"
 
-#: Name for a sequence type parameter
 SEQ_PARAMETER_NAME = "seq_parameter"
+"""Name for a sequence type parameter."""
 
-#: Name for a map type parameter
 MAP_PARAMETER_NAME = "map_parameter"
+"""Name for a map type parameter."""
 
-#: Value for the string type parameter (used in test condarc below)
 STRING_PARAMETER_VALUE = "test_value"
+"""Value for the string type parameter (used in test condarc below)."""
 
-#: Value for the string type parameter (used in test condarc below)
 STRING_PARAMETER_ENV_VAR_VALUE = "env_var_value"
+"""Value for the string type parameter (used in test condarc below)."""
 
-#: condarc file with our test setting present
 CONDARC_TEST_ONE = f"""
 plugins:
   {STRING_PARAMETER_NAME}: {STRING_PARAMETER_VALUE}
 """
+"""condarc file with our test setting present."""
 
 string_parameter = PrimitiveParameter("", element_type=str)
 seq_parameter = SequenceParameter(PrimitiveParameter("", element_type=str))
