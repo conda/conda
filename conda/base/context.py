@@ -2262,7 +2262,11 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
                 if allowlist and url not in allowlist:
                     raise ChannelNotAllowed(channel)
 
-    return tuple(channel for channel in dict.fromkeys(channels) if Channel(channel).canonical_name != UNKNOWN_CHANNEL)
+    return tuple(
+        channel
+        for channel in dict.fromkeys(channels)
+        if Channel(channel).canonical_name != UNKNOWN_CHANNEL
+    )
 
 
 @deprecated(

@@ -47,8 +47,9 @@ from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
 if TYPE_CHECKING:
-    from pytest import MonkeyPatch
     from collections.abc import Iterator
+
+    from pytest import MonkeyPatch
 
     from conda.testing import PathFactoryFixture
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -760,6 +761,7 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     validate_channels(("defaults",))
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
+
 @pytest.mark.parametrize(
     "channels,expected_channels",
     [
@@ -768,7 +770,12 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
             ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
         ),
         (
-            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge", None),
+            (
+                "defaults",
+                "https://beta.conda.anaconda.org/conda-test",
+                "conda-forge",
+                None,
+            ),
             ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
         ),
         (
