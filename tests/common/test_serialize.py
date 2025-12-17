@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import partial
+from io import StringIO
 from typing import TYPE_CHECKING
 
 import pytest
@@ -20,6 +21,7 @@ from conda.common.serialize import (
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
+    from pathlib import Path
 
 
 OBJ1 = {
@@ -148,9 +150,23 @@ def test_read_write(
     write: Callable,
     legacy_dump: Callable | None,
     legacy_load: Callable | None,
-):
+    tmp_path: Path
+):    
+    # Test read/write text
     assert read(text=text) == obj
     assert write(obj) == text
+
+    # Test read/write from path
+    test_file = tmp_path / "test_file"
+    assert write(obj, path=test_file) is None
+    assert read(path=test_file) == obj
+
+    # Test read/write from fp
+    stream = StringIO()
+    assert write(obj, fp=stream) is None
+    assert stream.getvalue() == text
+    with open(test_file) as fp:
+      assert read(fp=fp) == obj
 
     if legacy_load:
         assert legacy_load(text) == obj
