@@ -239,8 +239,8 @@ def test_env_create(
     out, err, code = conda_cli(
         "env",
         "create",
-        f"--prefix={path_factory()}",
-        f"--file={environment_yml}",
+        *("--prefix", path_factory()),
+        *("--file", environment_yml),
     )
     assert out
     assert not err
