@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from ....base.context import context
 from ....cli.helpers import (
+    add_output_and_prompt_options,
     add_parser_help,
     add_parser_prefix,
     add_parser_verbose,
@@ -27,6 +28,7 @@ def configure_parser(parser: ArgumentParser):
     add_parser_help(parser)
     add_parser_prefix(parser)
     add_parser_verbose(parser)
+    add_output_and_prompt_options(parser)
     parser.add_argument(
         "checks",
         nargs="*",
@@ -42,17 +44,6 @@ def configure_parser(parser: ArgumentParser):
         "--fix",
         action="store_true",
         help="Fix issues found by health checks.",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Only display what would have been done without actually fixing.",
-    )
-    parser.add_argument(
-        "-y",
-        "--yes",
-        action="store_true",
-        help="Do not ask for confirmation.",
     )
 
 
