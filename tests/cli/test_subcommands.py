@@ -236,14 +236,12 @@ def test_env_create(
     path_factory: PathFactoryFixture,
     environment_yml: Path,
 ):
-    # FUTURE: conda 26.3+, remove ignore BinstarSpec deprecation
-    with pytest.deprecated_call():
-        out, err, code = conda_cli(
-            "env",
-            "create",
-            f"--prefix={path_factory()}",
-            f"--file={environment_yml}",
-        )
+    out, err, code = conda_cli(
+        "env",
+        "create",
+        f"--prefix={path_factory()}",
+        f"--file={environment_yml}",
+    )
     assert out
     assert not err
     assert not code
