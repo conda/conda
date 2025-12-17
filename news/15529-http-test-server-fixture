@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add reusable HTTP test server fixtures (`http_test_server` and `session_http_test_server`) to `conda.testing` module for serving mock conda channels and remote files in tests. Fixtures are configurable via `@pytest.mark.http_server_dir()` marker and provide a clean API with `get_url()` helper method. (#15528 via #15529)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Add comprehensive guide for using HTTP test server fixtures in `docs/source/dev-guide/writing-tests/http-test-server.md`. Includes usage examples, API reference, migration guide from `support_file_server`, and troubleshooting tips. (#15528 via #15529)
+
+### Other
+
+* <news item>
