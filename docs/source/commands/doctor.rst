@@ -7,8 +7,7 @@ Display a health report for your environment by running registered health checks
 
    ``conda check`` is an alias for ``conda doctor``. Use whichever you prefer!
 
-   The ``check`` alias pairs well with ``conda fix`` for diagnosing and repairing
-   environment issues.
+Use ``conda doctor --fix`` to automatically fix issues that have available fixes.
 
 .. argparse::
    :module: conda.cli.conda_argparse

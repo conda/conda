@@ -25,7 +25,6 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
-        CondaHealthFix,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -118,44 +117,6 @@ class CondaSpecs:
                 )
 
         :return: An iterable of subcommand entries.
-        """
-        yield from ()
-
-    @_hookspec
-    def conda_health_fixes(self) -> Iterable[CondaHealthFix]:
-        """
-        Register health fixes in conda.
-
-        Health fixes are operations that help users diagnose and repair issues in
-        their conda setup. They are invoked via ``conda fix <name>``.
-
-        **Example:**
-
-        .. code-block:: python
-
-            from conda import plugins
-            from conda.plugins.types import CondaHealthFix
-
-
-            def configure_my_fix(parser):
-                parser.add_argument("--dry-run", action="store_true")
-
-
-            def execute_my_fix(args):
-                print("Running my health fix!")
-                return 0
-
-
-            @plugins.hookimpl
-            def conda_health_fixes():
-                yield CondaHealthFix(
-                    name="my-fix",
-                    summary="Example health fix",
-                    configure_parser=configure_my_fix,
-                    execute=execute_my_fix,
-                )
-
-        :return: An iterable of health fix entries.
         """
         yield from ()
 
@@ -282,7 +243,10 @@ class CondaSpecs:
         that you can write to diagnose problems in your conda environment.
         Check out the health checks already shipped with conda for inspiration.
 
-        **Example:**
+        Health checks can optionally provide a ``fix`` callable that is invoked
+        via ``conda doctor --fix`` or ``conda doctor --fix <check-name>``.
+
+        **Example (check only):**
 
         .. code-block:: python
 
@@ -299,6 +263,35 @@ class CondaSpecs:
                     name="example-health-check",
                     action=example_health_check,
                 )
+
+        **Example (check with fix):**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def my_health_check(prefix: str, verbose: bool):
+                # Check and report issues
+                print("Checking for issues...")
+
+
+            def my_health_fix(prefix: str, args) -> int:
+                # Fix the issues
+                print("Fixing issues...")
+                return 0  # exit code
+
+
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="my-check",
+                    action=my_health_check,
+                    fix=my_health_fix,
+                    summary="Fix description for --fix listing",
+                )
+
+        :return: An iterable of health check entries.
         """
         yield from ()
 

@@ -24,18 +24,66 @@ if TYPE_CHECKING:
 
 
 def configure_parser(parser: ArgumentParser):
-    add_parser_verbose(parser)
     add_parser_help(parser)
     add_parser_prefix(parser)
+    add_parser_verbose(parser)
+    parser.add_argument(
+        "--fix",
+        nargs="*",
+        metavar="CHECK",
+        help=(
+            "Fix issues found by health checks. "
+            "Optionally specify which checks to fix (e.g., --fix 'Missing Files')."
+        ),
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only display what would have been done without actually fixing.",
+    )
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Do not ask for confirmation.",
+    )
 
 
-def execute(args: Namespace) -> None:
-    """Run registered health_check plugins."""
+def execute(args: Namespace) -> int:
+    """Run registered health_check plugins and optionally fix issues."""
     prefix_data = PrefixData.from_context()
     prefix_data.assert_environment()
     prefix = str(prefix_data.prefix_path)
+
+    # Always run health checks first
     print(f"Environment Health Report for: {prefix}\n")
     context.plugin_manager.invoke_health_checks(prefix, context.verbose)
+
+    # If --fix was provided, run fixes
+    if args.fix is not None:
+        print("\n" + "=" * 60)
+        print("Running fixes...")
+        print("=" * 60 + "\n")
+
+        # Get list of checks to fix (empty list means all)
+        check_names = args.fix if args.fix else None
+
+        # Show available fixable checks if none specified
+        fixable = context.plugin_manager.get_fixable_health_checks()
+        if not fixable:
+            print("No health checks with fix capability are available.")
+            return 0
+
+        if check_names is None:
+            print("Available fixes:")
+            for name, check in sorted(fixable.items()):
+                summary = check.summary or "No description"
+                print(f"  {name}: {summary}")
+            print()
+
+        return context.plugin_manager.invoke_health_fixes(prefix, args, check_names)
+
+    return 0
 
 
 @hookimpl

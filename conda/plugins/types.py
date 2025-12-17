@@ -253,10 +253,26 @@ class CondaAuthHandler(CondaPlugin):
 class CondaHealthCheck(CondaPlugin):
     """
     Return type to use when defining conda health checks plugin hook.
+
+    Health checks are diagnostic actions that report on the state of a conda
+    environment. They are invoked via ``conda doctor``.
+
+    Health checks can optionally provide a fix capability, which is invoked
+    via ``conda doctor --fix`` or ``conda doctor --fix <check-name>``.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_checks`.
+
+    :param name: Health check name (e.g., ``Missing Files``).
+    :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
+    :param fix: Optional callable that fixes issues: ``fix(prefix, args) -> int``.
+    :param summary: Short description shown in ``--fix`` listings.
     """
 
     name: str
     action: Callable[[str, bool], None]
+    fix: Callable[[str, Namespace], int] | None = None
+    summary: str | None = None
 
 
 @dataclass
@@ -590,26 +606,3 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
-
-
-@dataclass
-class CondaHealthFix(CondaPlugin):
-    """
-    Return type to use when defining a conda health fix plugin hook.
-
-    Health fixes are operations that help users diagnose and repair issues in their
-    conda setup. They are invoked via ``conda fix <name>``.
-
-    For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_fixes`.
-
-    :param name: Health fix name (e.g., ``missing-files``).
-    :param summary: Short description shown in ``conda fix --list``.
-    :param configure_parser: Callable to configure the argument parser for this health fix.
-    :param execute: Callable that performs the health fix.
-    """
-
-    name: str
-    summary: str
-    configure_parser: Callable[[ArgumentParser], None]
-    execute: Callable[[Namespace], int]

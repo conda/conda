@@ -43,7 +43,6 @@ from . import (
 from .config import PluginConfig
 from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
-from .subcommands.fix import health_fixes
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -60,7 +59,6 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
-        CondaHealthFix,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -273,11 +271,6 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
 
-    @overload
-    def get_hook_results(
-        self, name: Literal["health_fixes"]
-    ) -> list[CondaHealthFix]: ...
-
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -418,9 +411,47 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
-    def get_health_fixes(self) -> dict[str, CondaHealthFix]:
-        """Return a mapping from health fix name to health fix."""
-        return {fix.name: fix for fix in self.get_hook_results("health_fixes")}
+    def get_fixable_health_checks(self) -> dict[str, CondaHealthCheck]:
+        """Return a mapping of health check name to health check for checks with fix capability."""
+        return {
+            check.name: check
+            for check in self.get_hook_results("health_checks")
+            if check.fix is not None
+        }
+
+    def invoke_health_fixes(
+        self, prefix: str, args, check_names: list[str] | None = None
+    ) -> int:
+        """Run fixes for health checks that have fix capability.
+
+        :param prefix: Environment prefix path
+        :param args: Parsed command-line arguments
+        :param check_names: Optional list of specific check names to fix (None = all)
+        :return: Combined exit code (0 = success)
+        """
+        fixable = self.get_fixable_health_checks()
+
+        if check_names:
+            # Filter to only requested checks
+            fixable = {
+                name: check for name, check in fixable.items() if name in check_names
+            }
+            # Warn about unknown check names
+            unknown = set(check_names) - set(fixable.keys())
+            if unknown:
+                log.warning(f"Unknown health check(s): {', '.join(sorted(unknown))}")
+
+        exit_code = 0
+        for name, check in fixable.items():
+            try:
+                result = check.fix(prefix, args)
+                if result != 0:
+                    exit_code = result
+            except Exception as err:
+                log.warning(f"Error running fix for health check: {name} ({err})")
+                exit_code = 1
+
+        return exit_code
 
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
         return tuple(self.get_hook_results("reporter_backends"))
@@ -851,7 +882,6 @@ def get_plugin_manager() -> CondaPluginManager:
         *virtual_packages.plugins,
         *subcommands.plugins,
         health_checks,
-        *health_fixes.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
         *prefix_data_loaders.plugins,
