@@ -21,6 +21,7 @@ from conda.common.configuration import (
 )
 from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
+from conda.gateways.logging import initialize_logging
 from conda.plugins import environment_exporters, solvers
 from conda.plugins.config import PluginConfig
 from conda.plugins.hookspec import CondaSpecs
@@ -140,6 +141,15 @@ def do_not_register_envs(monkeypatch):
 def do_not_notify_outdated_conda(monkeypatch):
     """Do not notify about outdated conda during tests"""
     monkeypatch.setenv("CONDA_NOTIFY_OUTDATED_CONDA", "false")
+
+
+@pytest.fixture(autouse=True)
+def reset_logging():
+    """Reset logging state after each test"""
+    yield
+    logging.getLogger().setLevel(logging.WARNING)
+    initialize_logging.cache_clear()
+    initialize_logging()
 
 
 @pytest.fixture
