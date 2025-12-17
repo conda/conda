@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .....base.constants import PREFIX_PINNED_FILE
+from .....base.constants import OK_MARK, PREFIX_PINNED_FILE, X_MARK
 from .....base.context import context
 from .....common.io import dashlist
 from .....core.prefix_data import PrefixData
@@ -15,7 +15,6 @@ from .....models.match_spec import MatchSpec
 from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
-from ._common import OK_MARK, X_MARK
 
 if TYPE_CHECKING:
     from argparse import Namespace

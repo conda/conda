@@ -6,11 +6,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .....base.constants import OK_MARK, X_MARK
 from .....base.context import context
 from .....gateways.disk.lock import locking_supported
 from .... import hookimpl
 from ....types import CondaHealthCheck
-from ._common import OK_MARK, X_MARK
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

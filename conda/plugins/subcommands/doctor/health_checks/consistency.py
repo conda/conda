@@ -6,14 +6,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .....base.constants import OK_MARK, X_MARK
 from .....base.context import context
+from .....cli.install import reinstall_packages
 from .....common.serialize import yaml_safe_dump
 from .....core.prefix_data import PrefixData
 from .....models.match_spec import MatchSpec
 from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
-from ._common import OK_MARK, X_MARK, reinstall_packages
 
 if TYPE_CHECKING:
     from argparse import Namespace

@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import PREFIX_PINNED_FILE
-from conda.plugins.subcommands.doctor.health_checks import OK_MARK, X_MARK
+from conda.base.constants import OK_MARK, PREFIX_PINNED_FILE, X_MARK
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture

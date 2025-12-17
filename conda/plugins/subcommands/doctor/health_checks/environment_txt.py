@@ -8,12 +8,12 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from .....base.constants import OK_MARK, X_MARK
 from .....base.context import context
 from .....core.envs_manager import get_user_environments_txt_file, register_env
 from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
-from ._common import OK_MARK, X_MARK
 
 if TYPE_CHECKING:
     import os

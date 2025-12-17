@@ -17,7 +17,6 @@ from . import (
     pinned,
     requests_ca_bundle,
 )
-from ._common import OK_MARK, X_MARK
 
 # The list of health check plugins for easier registration with pluggy
 plugins = [
@@ -28,10 +27,4 @@ plugins = [
     missing_files,
     pinned,
     requests_ca_bundle,
-]
-
-__all__ = [
-    "OK_MARK",
-    "X_MARK",
-    "plugins",
 ]

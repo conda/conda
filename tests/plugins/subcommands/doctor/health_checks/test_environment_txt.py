@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from conda.plugins.subcommands.doctor.health_checks import OK_MARK, X_MARK
+from conda.base.constants import OK_MARK, X_MARK
 from conda.plugins.subcommands.doctor.health_checks.environment_txt import (
     check_envs_txt_file,
     env_txt_check,

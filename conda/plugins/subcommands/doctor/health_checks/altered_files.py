@@ -8,14 +8,16 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from .....base.constants import OK_MARK, X_MARK
 from .....base.context import context
+from .....cli.install import reinstall_packages
 from .....common.serialize import json
 from .....exceptions import CondaError
 from .....gateways.disk.read import compute_sum
 from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
-from ._common import OK_MARK, X_MARK, excluded_files_check, reinstall_packages
+from .missing_files import excluded_files_check
 
 if TYPE_CHECKING:
     from argparse import Namespace

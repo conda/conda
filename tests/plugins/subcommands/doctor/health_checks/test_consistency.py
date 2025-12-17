@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from conda.base.constants import OK_MARK, X_MARK
 from conda.common.serialize import yaml_safe_dump
-from conda.plugins.subcommands.doctor.health_checks import OK_MARK, X_MARK
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture

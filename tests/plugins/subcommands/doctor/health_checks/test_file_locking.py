@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.base.constants import OK_MARK, X_MARK
 from conda.base.context import context, reset_context
 from conda.gateways.disk import lock
-from conda.plugins.subcommands.doctor.health_checks import OK_MARK, X_MARK
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch

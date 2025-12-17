@@ -7,16 +7,23 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from .....base.constants import OK_MARK, X_MARK
 from .....base.context import context
+from .....cli.install import reinstall_packages
 from .....common.serialize import json
 from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
-from ._common import OK_MARK, X_MARK, excluded_files_check, reinstall_packages
 
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
+
+
+def excluded_files_check(filename: str) -> bool:
+    """Check if a file should be excluded from health checks."""
+    excluded_extensions = (".pyc", ".pyo")
+    return filename.endswith(excluded_extensions)
 
 
 def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]:

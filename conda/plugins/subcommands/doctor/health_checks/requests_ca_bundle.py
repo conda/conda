@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING
 
 from requests.exceptions import RequestException
 
+from .....base.constants import OK_MARK, X_MARK
 from .....base.context import context
 from .....gateways.connection.session import get_session
 from .... import hookimpl
 from ....types import CondaHealthCheck
-from ._common import OK_MARK, X_MARK
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

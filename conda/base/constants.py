@@ -393,6 +393,10 @@ NO_PLUGINS: Final = False
 # describes an explicit environment spec.
 EXPLICIT_MARKER: Final = "@EXPLICIT"
 
+# Status marks for health check output
+OK_MARK: Final = "✅"
+X_MARK: Final = "❌"
+
 # These variables describe the various sources for config that are supported by conda.
 # In addition to these sources, conda also supports configuration from condarc config
 # files (these are referred to in the context object by their full path as a pathlib.Path).
