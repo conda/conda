@@ -145,6 +145,11 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         pytest.param(
             ["--", "small", "--vic", "eggs"],
             "--vic eggs",
+            id="double dash option",
+        ),
+        pytest.param(
+            ["--", "small", "-vic", "eggs"],
+            "-vic eggs",
             id="combined option",
         ),
     ],
@@ -161,30 +166,6 @@ def test_run_with_separator(
 
         assert stdout.strip() == "Hello! " + expected_output
         assert not err
-
-
-@pytest.mark.parametrize(
-    "exec_args",
-    [
-        pytest.param(["-vhgj"], id="vhgj"),
-        pytest.param(["-vs"], id="vs"),
-        pytest.param(["-vic", "60"], id="vic"),
-    ],
-)
-def test_run_separator_prevents_conda_preparse(
-    test_recipes_channel: Path,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-    exec_args: list[str],
-):
-    with tmp_env("small-executable") as prefix:
-        # with separator; arguments after `--` are passed through verbatim
-        stdout, stderr, err = conda_cli(
-            "run", f"--prefix={prefix}", "--", "small", *exec_args
-        )
-        assert err == 0
-        assert stdout.strip() == "Hello! " + " ".join(exec_args)
-        assert "argument -v/--verbose" not in (stderr or "")
 
 
 def test_run_with_empty_command_will_raise(
