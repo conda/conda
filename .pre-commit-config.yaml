@@ -74,6 +74,14 @@ repos:
         args: [--fix]
       # compatible replacement for black
       - id: ruff-format
+  - repo: local
+    hooks:
+      # sphinx-autoapi doesn't support #: comments, use trailing docstrings instead
+      - id: no-sphinx-autodoc-comments
+        name: 'Disallow #: comments, require trailing docstrings'
+        entry: '^\s*#:'
+        language: pygrep
+        types: [python]
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: v2.15.0
     hooks:

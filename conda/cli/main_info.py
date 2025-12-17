@@ -411,8 +411,8 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
     )
 
 
-#: Possible components for the info command to render
 InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_all"]
+"""Possible components for the info command to render."""
 
 
 class InfoRenderer:
