@@ -57,4 +57,3 @@ def test_no_missing_files_action(
     missing_files(prefix, verbose=verbose)
     captured = capsys.readouterr()
     assert "There are no packages with missing files." in captured.out
-

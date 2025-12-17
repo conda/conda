@@ -100,4 +100,3 @@ def env_altered_files(
     with open(prefix / ignored_file, "w") as f:
         f.write("nonsense")
     return env_ok
-

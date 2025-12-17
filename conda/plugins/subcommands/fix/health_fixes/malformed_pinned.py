@@ -55,9 +55,7 @@ def execute(args: Namespace) -> int:
         return 0
 
     # Find specs for packages that aren't installed
-    malformed = [
-        spec for spec in pinned_specs if not any(prefix_data.query(spec.name))
-    ]
+    malformed = [spec for spec in pinned_specs if not any(prefix_data.query(spec.name))]
 
     if not malformed:
         print("No malformed specs found in pinned file.")

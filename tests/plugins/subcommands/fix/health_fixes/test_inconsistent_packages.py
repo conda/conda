@@ -45,4 +45,3 @@ def test_no_inconsistencies(
     assert result == 0
     captured = capsys.readouterr()
     assert "No inconsistent packages found." in captured.out
-

@@ -142,4 +142,3 @@ def test_fix_malformed_pinned_no_file(
         out, err, code = conda_cli("fix", "malformed-pinned", "--prefix", prefix)
         assert code == 0
         assert "No pinned file found" in out
-

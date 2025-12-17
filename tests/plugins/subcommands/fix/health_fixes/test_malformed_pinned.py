@@ -150,4 +150,3 @@ def test_with_malformed_specs(
     captured = capsys.readouterr()
     assert "Found 1 potentially malformed spec(s)" in captured.out
     assert "notinstalled" in captured.out
-

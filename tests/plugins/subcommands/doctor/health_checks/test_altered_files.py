@@ -91,4 +91,3 @@ def test_json_cannot_be_loaded(env_ok: tuple[Path, str, str, str, str]):
     prefix, _, _, _, package = env_ok
     # passing a None type to json.loads() so that it fails
     assert find_altered_packages(prefix) == {}
-

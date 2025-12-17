@@ -60,6 +60,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaHealthFix,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -73,7 +74,6 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
-        CondaHealthFix,
         CondaVirtualPackage,
     )
 
@@ -420,10 +420,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_health_fixes(self) -> dict[str, CondaHealthFix]:
         """Return a mapping from health fix name to health fix."""
-        return {
-            fix.name: fix
-            for fix in self.get_hook_results("health_fixes")
-        }
+        return {fix.name: fix for fix in self.get_hook_results("health_fixes")}
 
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
         return tuple(self.get_hook_results("reporter_backends"))

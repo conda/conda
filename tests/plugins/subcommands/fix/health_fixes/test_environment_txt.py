@@ -92,4 +92,3 @@ def test_not_registered(
 
     captured = capsys.readouterr()
     assert "Environment registered" in captured.out
-

@@ -61,17 +61,21 @@ def execute(args: Namespace) -> int:
                 )
                 missing_deps.add(match_spec.name)
             elif not match_spec.match(dep_record):
-                issues.setdefault(record.name, {}).setdefault("inconsistent", []).append(
-                    {"expected": str(match_spec), "installed": str(dep_record)}
-                )
+                issues.setdefault(record.name, {}).setdefault(
+                    "inconsistent", []
+                ).append({"expected": str(match_spec), "installed": str(dep_record)})
 
         for constrain in record.constrains:
             package_found = prefix_data.get(
                 MatchSpec(constrain).name,
                 default=virtual_packages.get(MatchSpec(constrain).name),
             )
-            if package_found is not None and not MatchSpec(constrain).match(package_found):
-                issues.setdefault(record.name, {}).setdefault("inconsistent", []).append(
+            if package_found is not None and not MatchSpec(constrain).match(
+                package_found
+            ):
+                issues.setdefault(record.name, {}).setdefault(
+                    "inconsistent", []
+                ).append(
                     {
                         "expected": str(MatchSpec(constrain)),
                         "installed": f"{package_found.name}[version='{package_found.version}']",

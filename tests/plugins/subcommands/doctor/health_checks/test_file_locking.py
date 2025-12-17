@@ -53,4 +53,3 @@ def test_file_locking_not_supported(
     out, _, _ = conda_cli("doctor")
 
     assert f"{X_MARK} File locking is not supported." in out
-

@@ -76,4 +76,3 @@ def test_requests_ca_bundle_check_action_fails(
         f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`:"
         in captured.out
     )
-

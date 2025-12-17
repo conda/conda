@@ -105,4 +105,3 @@ def test_health_fix_not_executed_on_other_commands(health_fix_plugin, conda_cli)
     conda_cli("info")
 
     assert not health_fix_plugin.execute_called
-

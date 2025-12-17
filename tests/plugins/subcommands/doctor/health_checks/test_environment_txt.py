@@ -91,4 +91,3 @@ def test_not_env_txt_check_action(
     env_txt_check(prefix, verbose=True)
     captured = capsys.readouterr()
     assert X_MARK in captured.out
-

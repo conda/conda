@@ -85,4 +85,3 @@ def test_with_missing_files(
     captured = capsys.readouterr()
     assert "Found 1 package(s) with missing files:" in captured.out
     assert package in captured.out
-

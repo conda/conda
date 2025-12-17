@@ -84,4 +84,3 @@ def test_with_altered_files(
 
     captured = capsys.readouterr()
     assert "Found 1 package(s) with altered files:" in captured.out
-

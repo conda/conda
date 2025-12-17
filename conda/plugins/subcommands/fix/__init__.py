@@ -52,7 +52,10 @@ def execute(args: Namespace) -> int:
         health_fixes = context.plugin_manager.get_health_fixes()
         if context.json:
             stdout_json(
-                [{"name": name, "summary": fix.summary} for name, fix in health_fixes.items()]
+                [
+                    {"name": name, "summary": fix.summary}
+                    for name, fix in health_fixes.items()
+                ]
             )
         else:
             print("Available health fixes:\n")
@@ -64,7 +67,9 @@ def execute(args: Namespace) -> int:
     if not hasattr(args, "fix"):
         from ....exceptions import CondaError
 
-        raise CondaError("No health fix specified. Use `conda fix --list` to see available health fixes.")
+        raise CondaError(
+            "No health fix specified. Use `conda fix --list` to see available health fixes."
+        )
 
     return args.fix.execute(args)
 

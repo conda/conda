@@ -83,4 +83,3 @@ def test_env_consistency_constrains_not_met(
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{X_MARK} The environment is not consistent.\n" in out
         assert expected_output_yaml in out
-
