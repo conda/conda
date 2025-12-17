@@ -42,6 +42,7 @@ def configure_parser(parser: ArgumentParser):
     )
     parser.add_argument(
         "--fix",
+        "--heal",  # easter egg 🩺
         action="store_true",
         help="Fix issues found by health checks.",
     )
