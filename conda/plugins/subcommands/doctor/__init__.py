@@ -7,6 +7,7 @@ corruption.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from ....base.context import context
@@ -21,6 +22,8 @@ from ...types import CondaSubcommand
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+
+log = logging.getLogger(__name__)
 
 
 def configure_parser(parser: ArgumentParser):
@@ -67,12 +70,22 @@ def execute(args: Namespace) -> int:
     prefix_data.assert_environment()
     prefix = str(prefix_data.prefix_path)
 
-    # Get check names from positional arguments (empty list means all)
+    # Get and filter health checks by name
+    checks = context.plugin_manager.get_health_checks()
     check_names = args.checks if args.checks else None
+    if check_names:
+        unknown = set(check_names) - set(checks.keys())
+        if unknown:
+            log.warning(f"Unknown health check(s): {', '.join(sorted(unknown))}")
+        checks = {n: c for n, c in checks.items() if n in check_names}
 
-    # Run health checks (filtered by names if provided)
+    # Run health checks
     print(f"Environment Health Report for: {prefix}\n")
-    context.plugin_manager.invoke_health_checks(prefix, context.verbose, check_names)
+    for name, check in checks.items():
+        try:
+            check.action(prefix, context.verbose)
+        except Exception as err:
+            log.warning(f"Error running health check: {name} ({err})")
 
     # If --fix was provided, run fixes
     if getattr(args, "fix", False):
@@ -80,17 +93,21 @@ def execute(args: Namespace) -> int:
         print("Running fixes...")
         print("=" * 60 + "\n")
 
-        # Show available fixable checks if none specified
-        fixable = context.plugin_manager.get_fixable_health_checks()
-        if check_names:
-            # Filter to only requested checks
-            fixable = {n: c for n, c in fixable.items() if n in check_names}
-
+        fixable = {n: c for n, c in checks.items() if c.fix}
         if not fixable:
             print("No health checks with fix capability are available.")
             return 0
 
-        return context.plugin_manager.invoke_health_fixes(prefix, args, check_names)
+        exit_code = 0
+        for name, check in fixable.items():
+            try:
+                result = check.fix(prefix, args)
+                if result != 0:
+                    exit_code = result
+            except Exception as err:
+                log.warning(f"Error running fix: {name} ({err})")
+                exit_code = 1
+        return exit_code
 
     return 0
 
