@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Add `-s` as a shorthand alias for `conda run --no-capture-output`. (#15426)
 
 ### Bug fixes
 
-* Fix several bugs related to Python 3.14 compatibility. (#15079, #15088 via #15340)
+* <news item>
 
 ### Deprecations
 

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Restrict the JSON output to only the `envs` list when `conda info --envs --json` and `conda env list --json` are called. (#15353)
+* Raise an error when no command is provided to `conda run`, instead of proceeding with an empty command (#15437).
 
 ### Deprecations
 

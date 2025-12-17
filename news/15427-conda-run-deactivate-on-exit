@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* `conda run` now deactivates the environment on exiting the command. (#15427)
 
 ### Bug fixes
 
-* Fix zsh parse error on Windows
+* <news item>
 
 ### Deprecations
 

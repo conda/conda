@@ -34,7 +34,7 @@ from ....common.path import (
     win_path_ok,
 )
 from ....models.channel import Channel
-from ....models.enums import PackageType, PathType
+from ....models.enums import PackageType, PathEnum
 from ....models.records import PathData, PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
@@ -1245,7 +1245,7 @@ def read_python_record(prefix_path, anchor_file, python_version):
             paths=(
                 PathDataV1(
                     _path=path,
-                    path_type=PathType.hardlink,
+                    path_type=PathEnum.hardlink,
                     sha256=checksum,
                     size_in_bytes=size,
                 )
@@ -1272,7 +1272,7 @@ def read_python_record(prefix_path, anchor_file, python_version):
             paths_data = PathsData(
                 paths_version=1,
                 paths=(
-                    PathData(_path=path, path_type=PathType.hardlink) for path in files
+                    PathData(_path=path, path_type=PathEnum.hardlink) for path in files
                 ),
             )
         else:

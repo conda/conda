@@ -58,13 +58,15 @@ __url__ = "https://github.com/conda/conda"
 if os.getenv("CONDA_ROOT") is None:
     os.environ["CONDA_ROOT"] = sys.prefix
 
-#: The conda package directory.
 CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
-#: The path within which to find the conda package.
-#:
-#: If `conda` is statically installed this is the site-packages. If `conda` is an editable install
-#: or otherwise uninstalled this is the git repo.
+"""The conda package directory."""
+
 CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
+"""The path within which to find the conda package.
+
+If ``conda`` is statically installed this is the site-packages. If ``conda`` is an editable
+install or otherwise uninstalled this is the git repo.
+"""
 
 
 class CondaError(Exception):

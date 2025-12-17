@@ -18,14 +18,14 @@ if TYPE_CHECKING:
 
     from ...models.environment import Environment
 
-#: The name of the environment-json format
 ENVIRONMENT_JSON_FORMAT: Final = "environment-json"
+"""The name of the environment-json format."""
 
-#: The name of the environment-yaml format
 ENVIRONMENT_YAML_FORMAT: Final = "environment-yaml"
+"""The name of the environment-yaml format."""
 
-#: Type alias for format validation
 EnvironmentFormatType = Literal["environment-json", "environment-yaml"]
+"""Type alias for format validation."""
 
 
 def to_dict(env: Environment) -> dict[str, Any]:

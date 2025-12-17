@@ -71,7 +71,6 @@ log = getLogger(__name__)
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
 
-#: List of built-in commands; these cannot be overridden by plugin subcommands
 BUILTIN_COMMANDS = {
     "activate",  # Mock entry for shell command
     "clean",
@@ -96,6 +95,7 @@ BUILTIN_COMMANDS = {
     "update",
     "upgrade",  # update alias
 }
+"""List of built-in commands; these cannot be overridden by plugin subcommands."""
 
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:

@@ -4,5 +4,5 @@
 
 from . import environment_yml, explicit, requirements_txt
 
-#: The list of environment exporter plugins for easier registration with pluggy
 plugins = [environment_yml, explicit, requirements_txt]
+"""The list of environment exporter plugins for easier registration with pluggy."""
