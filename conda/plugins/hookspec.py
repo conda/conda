@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaFixTask,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
@@ -117,6 +118,44 @@ class CondaSpecs:
                 )
 
         :return: An iterable of subcommand entries.
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_fix_tasks(self) -> Iterable[CondaFixTask]:
+        """
+        Register fix tasks in conda.
+
+        Fix tasks are operations that help users diagnose and repair issues in
+        their conda setup. They are invoked via ``conda fix <task>``.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.plugins.types import CondaFixTask
+
+
+            def configure_my_fix(parser):
+                parser.add_argument("--dry-run", action="store_true")
+
+
+            def execute_my_fix(args):
+                print("Running my fix task!")
+                return 0
+
+
+            @plugins.hookimpl
+            def conda_fix_tasks():
+                yield CondaFixTask(
+                    name="my-task",
+                    summary="Example fix task",
+                    configure_parser=configure_my_fix,
+                    execute=execute_my_fix,
+                )
+
+        :return: An iterable of fix task entries.
         """
         yield from ()
 

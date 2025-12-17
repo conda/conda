@@ -19,7 +19,8 @@ as well as conda's internal implementations of plugins.
 **Modules with internal plugin implementations**
 
 - :mod:`conda.plugins.solvers`: implementation of the "classic" solver
-- :mod:`conda.plugins.subcommands.doctor`: ``conda doctor`` subcommand
+- :mod:`conda.plugins.subcommands.doctor`: ``conda doctor`` and ``conda check`` subcommands
+- :mod:`conda.plugins.subcommands.fix`: ``conda fix`` subcommand
 - :mod:`conda.plugins.virtual_packages`: registers virtual packages in conda
 
 """

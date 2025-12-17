@@ -590,3 +590,26 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+
+@dataclass
+class CondaFixTask(CondaPlugin):
+    """
+    Return type to use when defining a conda fix task plugin hook.
+
+    Fix tasks are operations that help users diagnose and repair issues in their
+    conda setup. They are invoked via ``conda fix <task>``.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_fix_tasks`.
+
+    :param name: Fix task name (e.g., ``base``).
+    :param summary: Short description shown in ``conda fix --list``.
+    :param configure_parser: Callable to configure the argument parser for this task.
+    :param execute: Callable that performs the fix task.
+    """
+
+    name: str
+    summary: str
+    configure_parser: Callable[[ArgumentParser], None]
+    execute: Callable[[Namespace], int]

@@ -46,3 +46,9 @@ def conda_subcommands():
         action=execute,
         configure_parser=configure_parser,
     )
+    yield CondaSubcommand(
+        name="check",
+        summary="Display a health report for your environment (alias for doctor).",
+        action=execute,
+        configure_parser=configure_parser,
+    )

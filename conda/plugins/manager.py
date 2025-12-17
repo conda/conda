@@ -72,6 +72,7 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
+        CondaFixTask,
         CondaVirtualPackage,
     )
 
@@ -271,6 +272,11 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["fix_tasks"]
+    ) -> list[CondaFixTask]: ...
+
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -409,6 +415,13 @@ class CondaPluginManager(pluggy.PluginManager):
         return {
             subcommand.name: subcommand
             for subcommand in self.get_hook_results("subcommands")
+        }
+
+    def get_fix_tasks(self) -> dict[str, CondaFixTask]:
+        """Return a mapping from fix task name to fix task."""
+        return {
+            task.name: task
+            for task in self.get_hook_results("fix_tasks")
         }
 
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
