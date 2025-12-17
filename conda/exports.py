@@ -58,7 +58,7 @@ from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F
 from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
-from .models.enums import FileMode, PathType  # noqa: F401
+from .models.enums import FileMode, PathEnum  # noqa: F401
 from .models.version import VersionOrder, normalized_version  # noqa: F401
 from .resolve import (  # noqa: F401
     MatchSpec,

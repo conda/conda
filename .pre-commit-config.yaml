@@ -67,13 +67,21 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.7
+    rev: v0.14.9
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
         args: [--fix]
       # compatible replacement for black
       - id: ruff-format
+  - repo: local
+    hooks:
+      # sphinx-autoapi doesn't support #: comments, use trailing docstrings instead
+      - id: no-sphinx-autodoc-comments
+        name: 'Disallow #: comments, require trailing docstrings'
+        entry: '^\s*#:'
+        language: pygrep
+        types: [python]
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: v2.15.0
     hooks:
