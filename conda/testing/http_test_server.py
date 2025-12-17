@@ -30,8 +30,8 @@ For pytest fixtures that wrap this functionality, see:
 - `http_test_server` - function-scoped fixture
 - `session_http_test_server` - session-scoped fixture
 
-Both fixtures require the `@pytest.mark.http_server_dir()` marker to specify
-the directory to serve.
+Both fixtures require the `@pytest.mark.parametrize("<fixture>", ["<directory>"], indirect=True)`
+marker to specify the directory to serve.
 """
 
 import contextlib

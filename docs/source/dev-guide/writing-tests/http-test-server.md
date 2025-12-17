@@ -38,8 +38,7 @@ def test_dynamic_repodata(http_test_server):
 This pattern is ideal for:
 - Creating mock repodata files
 - Testing with minimal setup
-- Generating test files programmatically
-- Tests that need different content
+- Extending and creating your own fixtures programmatically
 
 ### Pre-existing Directory (With Parametrize)
 
@@ -315,21 +314,19 @@ def test_with_mock_channel(http_test_server):
 
 ## Tips and Best Practices
 
-1. **Prefer dynamic content**: Use the fixture without parametrize (dynamic content) for most tests. It's simpler and doesn't require maintaining test data files.
+1. **Prefer dynamic content**: Use the fixture without parametrize (dynamic content) for simple use cases. It's simpler and doesn't require maintaining test data files.
 
 2. **Use parametrize for complex data**: Use `@pytest.mark.parametrize(..., indirect=True)` when you have complex directory structures, binary files, or data shared across many tests.
 
-3. **Test multiple directories**: Leverage parametrize to test the same logic against multiple directories in a single test function.
+3. **Function scope for isolation**: Each test gets its own temporary directory with `http_test_server` (function scope), providing complete isolation.
 
-4. **Function scope for isolation**: Each test gets its own temporary directory with `http_test_server` (function scope), providing complete isolation.
+4. **Session scope for performance**: If multiple tests need the same pre-existing data, use `session_http_test_server` with parametrize to avoid repeated server startups.
 
-5. **Session scope for performance**: If multiple tests need the same pre-existing data, use `session_http_test_server` with parametrize to avoid repeated server startups.
+5. **Organize test data**: When using parametrize, keep mock channel data in dedicated directories like `tests/data/mock-channels/` with README files explaining the structure.
 
-6. **Organize test data**: When using parametrize, keep mock channel data in dedicated directories like `tests/data/mock-channels/` with README files explaining the structure.
+6. **Test error scenarios**: Use dynamic content to easily test edge cases like malformed repodata, missing packages, or network timeouts.
 
-7. **Test error scenarios**: Use dynamic content to easily test edge cases like malformed repodata, missing packages, or network timeouts.
-
-8. **Cleanup is automatic**: The fixtures handle cleanup automatically - no need to manually shut down servers or delete temporary files.
+7. **Cleanup is automatic**: The fixtures handle cleanup automatically - no need to manually shut down servers or delete temporary files.
 
 ## Examples from conda Test Suite
 
