@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-from contextlib import nullcontext
 from logging import getLogger
 from os.path import join
 from pathlib import Path
@@ -2221,10 +2220,8 @@ def plugin(
     ["activate", "deactivate", "reactivate", "hook"],
 )
 def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) -> None:
-    # FUTURE: conda 25.9+ remove "commands"
-    with pytest.deprecated_call() if command == "commands" else nullcontext():
-        activator = PosixActivator([command])
-        activator.execute()
+    activator = PosixActivator([command])
+    activator.execute()
 
     assert len(plugin.pre_command_action.mock_calls) == 1
     assert len(plugin.post_command_action.mock_calls) == 1
@@ -2242,9 +2239,7 @@ def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> 
 
     activator = PosixActivator([command])
     with pytest.raises(Exception, match=exc_message):
-        # FUTURE: conda 25.9+ remove "commands"
-        with pytest.deprecated_call() if command == "commands" else nullcontext():
-            activator.execute()
+        activator.execute()
 
     assert len(plugin.pre_command_action.mock_calls) == 1
     assert len(plugin.post_command_action.mock_calls) == 1
