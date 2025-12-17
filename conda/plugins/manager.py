@@ -503,12 +503,30 @@ class CondaPluginManager(pluggy.PluginManager):
         for hook in self.get_hook_results("prefix_data_loaders"):
             yield hook.loader
 
-    def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
-        for hook in self.get_hook_results("health_checks"):
+    def invoke_health_checks(
+        self, prefix: str, verbose: bool, check_ids: list[str] | None = None
+    ) -> None:
+        """Run health checks.
+
+        :param prefix: Environment prefix path
+        :param verbose: Whether to show verbose output
+        :param check_ids: Optional list of specific check ids to run (None = all)
+        """
+        checks = self.get_health_checks()
+
+        if check_ids:
+            # Filter to only requested checks
+            checks = {id: check for id, check in checks.items() if id in check_ids}
+            # Warn about unknown check ids
+            unknown = set(check_ids) - set(checks.keys())
+            if unknown:
+                log.warning(f"Unknown health check(s): {', '.join(sorted(unknown))}")
+
+        for id, check in checks.items():
             try:
-                hook.action(prefix, verbose)
+                check.action(prefix, verbose)
             except Exception as err:
-                log.warning(f"Error running health check: {hook.name} ({err})")
+                log.warning(f"Error running health check: {check.name} ({err})")
                 continue
 
     def invoke_pre_solves(
