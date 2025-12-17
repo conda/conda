@@ -184,17 +184,17 @@ CONDA_LOGS_DIR: Final = ".logs"
 UNKNOWN_CHANNEL: Final = "<unknown>"
 REPODATA_FN: Final = "repodata.json"
 
-#: Default name of the notices file on the server we look for
 NOTICES_FN: Final = "notices.json"
+"""Default name of the notices file on the server we look for."""
 
-#: Name of cache file where read notice IDs are stored
 NOTICES_CACHE_FN: Final = "notices.cache"
+"""Name of cache file where read notice IDs are stored."""
 
-#: Determines the subdir for notices cache
 NOTICES_CACHE_SUBDIR: Final = "notices"
+"""Determines the subdir for notices cache."""
 
-#: Determines how often notices are displayed while running commands
 NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400  # in seconds
+"""Determines how often notices are displayed while running commands."""
 
 DRY_RUN_PREFIX: Final = "Dry run action:"
 PREFIX_NAME_DISALLOWED_CHARS: Final = {"/", " ", ":", "#"}
@@ -281,18 +281,19 @@ class SatSolverChoice(ValueEnum):
     PYSAT = "pysat"
 
 
-#: The name of the default solver, currently "libmamba"
 DEFAULT_SOLVER: Final = "libmamba"
+"""The name of the default solver, currently "libmamba"."""
+
 CLASSIC_SOLVER: Final = "classic"
 
-#: The name of the default json reporter backend
 DEFAULT_JSON_REPORTER_BACKEND: Final = "json"
+"""The name of the default json reporter backend."""
 
-#: The name of the default console reporter backend
 DEFAULT_CONSOLE_REPORTER_BACKEND: Final = "classic"
+"""The name of the default console reporter backend."""
 
-#: The default `conda list` columns
 DEFAULT_CONDA_LIST_FIELDS: Final = ("name", "version", "build", "channel_name")
+"""The default ``conda list`` columns."""
 CONDA_LIST_FIELDS: Final = {
     # Keys MUST be valid attributes in conda.core.records.PrefixRecords
     # Values are the displayed column title
