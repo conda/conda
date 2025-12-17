@@ -21,7 +21,7 @@ from conda.common.configuration import (
     ConfigurationLoadError,
     CustomValidationError,
 )
-from conda.common.serialize import yaml, yaml_round_trip_dump
+from conda.common.serialize import yaml
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
 
@@ -597,7 +597,7 @@ def test_set_rc_without_user_rc(
     user_rc_path = tmp_path / DEFAULT_CONDARC_FILENAME
 
     with sys_rc_path.open("w") as fh:
-        yaml_round_trip_dump({"channels": ["conda-forge"]}, fh)
+        yaml.dump({"channels": ["conda-forge"]}, fh)
 
     monkeypatch.setattr(context_module, "sys_rc_path", str(sys_rc_path))
     monkeypatch.setattr(context_module, "user_rc_path", str(user_rc_path))
@@ -618,7 +618,7 @@ def test_custom_multichannels_append(conda_cli: CondaCLIFixture):
             *("--append", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
-        assert _read_test_condarc(rc) == yaml_round_trip_dump(
+        assert _read_test_condarc(rc) == yaml.dumps(
             {"custom_multichannels": {"foo": ["bar"]}}
         )
 
@@ -631,7 +631,7 @@ def test_custom_multichannels_add(conda_cli: CondaCLIFixture):
             *("--add", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
-        assert _read_test_condarc(rc) == yaml_round_trip_dump(
+        assert _read_test_condarc(rc) == yaml.dumps(
             {"custom_multichannels": {"foo": ["bar"]}}
         )
 
@@ -644,13 +644,13 @@ def test_custom_multichannels_prepend(conda_cli: CondaCLIFixture):
             *("--prepend", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
-        assert _read_test_condarc(rc) == yaml_round_trip_dump(
+        assert _read_test_condarc(rc) == yaml.dumps(
             {"custom_multichannels": {"foo": ["bar"]}}
         )
 
 
 def test_custom_multichannels_append_duplicate(conda_cli: CondaCLIFixture):
-    custom_multichannels_expected = yaml_round_trip_dump(
+    custom_multichannels_expected = yaml.dumps(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:
@@ -668,7 +668,7 @@ def test_custom_multichannels_append_duplicate(conda_cli: CondaCLIFixture):
 
 
 def test_custom_multichannels_add_duplicate(conda_cli: CondaCLIFixture):
-    custom_multichannels_expected = yaml_round_trip_dump(
+    custom_multichannels_expected = yaml.dumps(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:
@@ -686,7 +686,7 @@ def test_custom_multichannels_add_duplicate(conda_cli: CondaCLIFixture):
 
 
 def test_custom_multichannels_prepend_duplicate(conda_cli: CondaCLIFixture):
-    custom_multichannels_expected = yaml_round_trip_dump(
+    custom_multichannels_expected = yaml.dumps(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:

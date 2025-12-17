@@ -356,11 +356,11 @@ class ConfigurationFile:
         :raises CondaError: If the file cannot be written.
         """
         from .. import CondaError
-        from ..common.serialize import yaml_round_trip_dump
+        from ..common.serialize import yaml
 
         path: Path = Path(path or self._path)
         try:
-            path.write_text(yaml_round_trip_dump(self.content))
+            path.write_text(yaml.dumps(self.content))
         except OSError as e:
             raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
 
