@@ -11,8 +11,8 @@ The HTTP test server fixture provides a way to test conda functionality that req
 The `http_test_server` fixture starts a local HTTP server that serves files from a directory. The server runs on a random port and supports both IPv4 and IPv6.
 
 The fixtures can be used in two ways:
-1. **Without a marker** (recommended) - Uses a temporary directory that you populate dynamically
-2. **With a marker** - Serves files from a pre-existing directory
+1. **Without @pytest.mark.parametrize** (recommended) - Use a temporary directory that you populate dynamically
+2. **With @pytest.mark.parametrize** - Serve files from a pre-existing directory
 
 ## Basic Usage
 
