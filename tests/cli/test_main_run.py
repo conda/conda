@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import stat
+import sys
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -23,7 +24,16 @@ from conda.utils import wrap_subprocess_call
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
+# Python 3.14 doesn't have a conda package available yet, which means there's
+# no fallback conda binary in the test environment. Some conda run tests fail
+# because of this when the shell function isn't properly defined.
+_skip_py314 = pytest.mark.skipif(
+    sys.version_info[:2] == (3, 14),
+    reason="conda package not available for Python 3.14 yet",
+)
 
+
+@_skip_py314
 def test_run_returns_int(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
         stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "echo", "hi")
@@ -33,6 +43,7 @@ def test_run_returns_int(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert isinstance(err, int)
 
 
+@_skip_py314
 def test_run_returns_zero_errorlevel(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -45,6 +56,7 @@ def test_run_returns_zero_errorlevel(
         assert not err
 
 
+@_skip_py314
 def test_run_returns_nonzero_errorlevel(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -57,6 +69,7 @@ def test_run_returns_nonzero_errorlevel(
         assert err == 5
 
 
+@_skip_py314
 @pytest.mark.parametrize("flag", ["--no-capture-output", "-s"])
 def test_run_uncaptured(
     tmp_env: TmpEnvFixture,
@@ -77,6 +90,7 @@ def test_run_uncaptured(
         assert not err
 
 
+@_skip_py314
 @pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
 def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
@@ -105,6 +119,7 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
         conda_cli("run", f"--prefix={tmp_path}", "echo", "hello")
 
 
+@_skip_py314
 def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
         stdout, stderr, _ = conda_cli(
@@ -236,6 +251,7 @@ def test_run_deactivates_environment_unix(
         )
 
 
+@_skip_py314
 @pytest.mark.parametrize(
     ("script_name", "script_template"),
     [
@@ -286,6 +302,7 @@ def test_run_executes_deactivation_scripts(
         )
 
 
+@_skip_py314
 @pytest.mark.parametrize(
     ("script_name", "script_template", "command"),
     [
@@ -335,6 +352,7 @@ def test_run_preserves_exit_code_with_deactivation(
         assert deactivation_marker_file.exists()
 
 
+@_skip_py314
 @pytest.mark.parametrize(
     ("script_name", "script_template", "command"),
     [
