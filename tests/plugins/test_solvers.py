@@ -28,7 +28,7 @@ class VerboseSolver(solve.Solver):
         return verbose_user_agent
 
 
-classic_solver = CondaSolver(
+classic_solver = plugins.types.CondaSolver(
     name="classic",
     backend=solve.Solver,
 )
@@ -43,7 +43,7 @@ class SolverPlugin:
 class VerboseSolverPlugin:
     @plugins.hookimpl
     def conda_solvers(self):
-        yield CondaSolver(
+        yield plugins.types.CondaSolver(
             name="verbose-classic",
             backend=VerboseSolver,
         )
@@ -125,7 +125,7 @@ def test_get_one_solver(plugin_manager):
 def test_get_two_solvers(plugin_manager):
     plugin_manager.register(SolverPlugin())
 
-    verbose_classic_solver = CondaSolver(
+    verbose_classic_solver = plugins.types.CondaSolver(
         name="verbose-classic",
         backend=VerboseSolver,
     )

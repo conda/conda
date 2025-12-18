@@ -290,19 +290,6 @@
       "timestamp": 1730835517361,
       "version": "1.0.0"
     },
-    "small-executable-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "30354a300263b1d80f1ef89236b480b9",
-      "name": "small-executable",
-      "noarch": "generic",
-      "sha256": "a05b4c05717fcfbe1a60b98beb0439ff19e210e4358082748dbb34ab842469f4",
-      "size": 3448,
-      "subdir": "noarch",
-      "timestamp": 1738635376365,
-      "version": "1.0.0"
-    },
     "track_feature-1.0-0.tar.bz2": {
       "build": "0",
       "build_number": 0,
@@ -361,6 +348,19 @@
       "subdir": "noarch",
       "timestamp": 1747922191018,
       "version": "1.0"
+    },
+    "small-executable-1.0.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "9b415868f2b3d74d85b349bfd7f74289",
+      "name": "small-executable",
+      "noarch": "generic",
+      "sha256": "8dd488bebb78d62b701db1954e56f81b15f38c085bb503fe8da409d6c9e4919d",
+      "size": 4956,
+      "subdir": "noarch",
+      "timestamp": 1765401586628,
+      "version": "1.0.0"
     }
   },
   "removed": [],
