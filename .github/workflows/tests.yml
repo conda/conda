@@ -243,18 +243,16 @@ jobs:
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
         with:
-          condarc-file: .github/condarc-${{ (matrix.default-channel == 'defaults') && (matrix.python-version == '3.14' && 'defaults-py314' || 'defaults') || (matrix.python-version == '3.14' && 'conda-forge-py314' || 'conda-forge') }}
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
-      - name: Conda Install (Py3.14, conda-forge)
-        if: matrix.default-channel == 'conda-forge' && matrix.python-version == '3.14'
+      - name: Conda Install (Py3.14)
+        if: matrix.python-version == '3.14'
         run: >
           conda install
           --yes
-          --override-channels
-          --channel conda-forge
           --file tests/requirements-py314.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
@@ -262,36 +260,15 @@ jobs:
           ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
-      - name: Manually add conda-libmamba-solver (Py3.14, conda-forge)
-        if: matrix.default-channel == 'conda-forge' && matrix.python-version == '3.14'
+      - name: Manually add conda-libmamba-solver (Py3.14)
+        # conda-libmamba-solver depends on conda which doesn't have a Python 3.14 build yet
+        if: matrix.python-version == '3.14'
         run: >
-          conda install --yes https://anaconda.org/conda-forge/conda-libmamba-solver/25.4.0/download/noarch/conda-libmamba-solver-25.4.0-pyhd8ed1ab_0.conda
-
-      - name: Conda Install (Py3.14, defaults)
-        if: matrix.default-channel == 'defaults' && matrix.python-version == '3.14'
-        run: >
-          conda install
-          --yes
-          --override-channels
-          --channel defaults
-          --file tests/requirements-py314.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          ${{ env.REQUIREMENTS_TRUSTSTORE }}
-          python=${{ matrix.python-version }}
-
-      - name: Manually add conda-libmamba-solver (Py3.14, defaults)
-        if: matrix.default-channel == 'defaults' && matrix.python-version == '3.14'
-        run: >
-          conda install --yes https://anaconda.org/main/conda-libmamba-solver/25.4.0/download/noarch/conda-libmamba-solver-25.4.0-pyhd3eb1b0_0.tar.bz2
+          conda install --yes
+          ${{ matrix.default-channel == 'conda-forge' && 'https://anaconda.org/conda-forge/conda-libmamba-solver/25.4.0/download/noarch/conda-libmamba-solver-25.4.0-pyhd8ed1ab_0.conda' || 'https://anaconda.org/main/conda-libmamba-solver/25.4.0/download/noarch/conda-libmamba-solver-25.4.0-pyhd3eb1b0_0.tar.bz2' }}
 
       - name: Conda Install
-        if: >-
-          !(
-            (matrix.default-channel == 'conda-forge' && matrix.python-version == '3.14')
-            || (matrix.default-channel == 'defaults' && matrix.python-version == '3.14')
-          )
+        if: matrix.python-version != '3.14'
         run: >
           conda install
           --yes
