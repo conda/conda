@@ -18,7 +18,7 @@ from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
-from conda.plugins.types import CondaPlugin, CondaSolver, CondaVirtualPackage
+from conda.plugins.types import CondaPlugin
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

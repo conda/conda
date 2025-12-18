@@ -10,7 +10,6 @@ from conda.core import solve
 from conda.exceptions import PluginError
 from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
-from conda.plugins.types import CondaSolver
 
 log = logging.getLogger(__name__)
 

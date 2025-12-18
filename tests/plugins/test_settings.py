@@ -19,7 +19,6 @@ from conda.common.configuration import (
 )
 from conda.exceptions import ArgumentError, CondaKeyError
 from conda.plugins.manager import CondaPluginManager
-from conda.plugins.types import CondaSetting
 
 log = logging.getLogger(__name__)
 
