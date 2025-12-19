@@ -265,6 +265,7 @@ def wrap_subprocess_call(
                 activate_env = activator.activate()
             finally:
                 _context.__dict__.pop("changeps1", None)
+                _context.__dict__.pop("dev", None)
 
             for line in activate_env.splitlines():
                 line = line.rstrip("\r")
@@ -377,6 +378,7 @@ def wrap_subprocess_call(
                 activate_code = activator.activate()
             finally:
                 _context.__dict__.pop("changeps1", None)
+                _context.__dict__.pop("dev", None)
 
             fh.write(activate_code)
 
