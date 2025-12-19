@@ -8,6 +8,13 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+# We must import frozendict before importing json to enable its monkeypatch over
+# json.JSONEncoder. This makes sure that our CondaJSONEncoder inherits from
+# frozendict's patched JSONEncoder, which natively supports serialising frozendicts.
+# See https://github.com/Marco-Sulla/python-frozendict/blob/a9744d61f42e86fc10c9c3668425abc4d485a9ec/src/frozendict/monkeypatch.py
+# and https://github.com/Marco-Sulla/python-frozendict/releases/tag/v2.3.6 for more.
+from frozendict import frozendict  # noqa: F401
+
 # detect the best json library to use
 from requests.compat import json
 
