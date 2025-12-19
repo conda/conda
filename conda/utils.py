@@ -212,14 +212,7 @@ def wrap_subprocess_call(
         multiline = True
     if on_win:
         comspec = get_comspec()  # fail early with KeyError if undefined
-        if dev_mode:
-            from . import CONDA_PACKAGE_ROOT
 
-            conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
-        else:
-            conda_bat = environ.get(
-                "CONDA_BAT", abspath(join(root_prefix, "condabin", "conda.bat"))
-            )
         with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as fh:
             silencer = "" if debug_wrapper_scripts else "@"
             fh.write(f"{silencer}ECHO OFF\n")
@@ -247,7 +240,51 @@ def wrap_subprocess_call(
             # after all!
             # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
             # fh.write('@chcp 65001>NUL\n')
-            fh.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"\n')
+
+            # We pursue activation inline here, which allows us to avoid
+            # spawning a `conda activate` process at wrapper runtime.
+            _old_changeps1 = _context.changeps1
+            _old_dev = getattr(_context, "dev", False)
+            try:
+                _context.changeps1 = False
+
+                activator_cls = _build_activator_cls("cmd.exe")
+                activator_args = ["activate"]
+                if dev_mode:
+                    activator_args.append("--dev")
+                activator_args.append(prefix)
+
+                activator = activator_cls(activator_args)
+                activator._parse_and_set_args()
+                # CmdExeActivator writes an .env file by default; let's force in-memory output here
+                # so that we can embed the activation output directly into our wrapper script.
+                activator.tempfile_extension = None
+                activate_env = activator.activate()
+            finally:
+                _context.changeps1 = _old_changeps1
+                _context.dev = _old_dev
+
+            for line in activate_env.splitlines():
+                line = line.rstrip("\r")
+                if not line:
+                    continue
+
+                if line.startswith("_CONDA_SCRIPT="):
+                    script = line.split("=", 1)[1]
+                    fh.write(f'{silencer}CALL "{script}"\n')
+                    # If any of these calls to the activation hook scripts fail, we want
+                    # to exit the wrapper immediately and abort `conda run` right away.
+                    fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
+                    continue
+
+                if "=" not in line:
+                    continue
+
+                key, value = line.split("=", 1)
+                fh.write(f'{silencer}SET "{key}="\n') if value == "" else fh.write(
+                    f'{silencer}SET "{key}={value}"\n'
+                )
+
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
                 fh.write("echo *** environment after *** 1>&2\n")
