@@ -269,7 +269,7 @@ def test_with_mock_channel(http_test_server: HttpTestServerFixture):
 
 5. **Test error scenarios**: Use dynamic content to easily test edge cases like malformed repodata, missing packages, or network timeouts.
 
-6. **Cleanup is automatic**: The fixture handle cleanup automatically - no need to manually shut down servers or delete temporary files.
+6. **Cleanup is automatic**: The fixture handles cleanup automatically - no need to manually shut down servers or delete temporary files.
 
 ## Examples from conda Test Suite
 

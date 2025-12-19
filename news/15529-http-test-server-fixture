@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Add comprehensive guide for using HTTP test server fixtures in `docs/source/dev-guide/writing-tests/http-test-server.md`. Includes usage examples, API reference, migration guide from `support_file_server`, and troubleshooting tips. (#15528 via #15529)
+* Add comprehensive guide for using HTTP test server fixture in `docs/source/dev-guide/writing-tests/http-test-server.md`. Includes usage examples, API reference, and troubleshooting tips. (#15528 via #15529)
 
 ### Other
 
