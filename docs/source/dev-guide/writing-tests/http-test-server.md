@@ -10,9 +10,11 @@ The HTTP test server fixture provides a way to test conda functionality that req
 
 The `http_test_server` fixture starts a local HTTP server that serves files from a directory. The server runs on a random port and supports both IPv4 and IPv6.
 
-The fixtures can be used in two ways:
-1. **Without @pytest.mark.parametrize** (recommended) - Use a temporary directory that you populate dynamically
+The fixture can be used in two ways:
+1. **Without @pytest.mark.parametrize** - Use a temporary directory that you populate dynamically
 2. **With @pytest.mark.parametrize** - Serve files from a pre-existing directory
+
+**Type annotations:** For proper type hints, import `HttpTestServerFixture` from `conda.testing.fixtures` under `TYPE_CHECKING`. See the [complete example](#complete-example-testing-a-mock-channel) for the full import pattern.
 
 ## Basic Usage
 
@@ -21,10 +23,7 @@ The fixtures can be used in two ways:
 The simplest usage - no marker needed. The server automatically uses a temporary directory that you can populate:
 
 ```python
-import requests
-
-
-def test_dynamic_repodata(http_test_server):
+def test_dynamic_repodata(http_test_server: HttpTestServerFixture):
     """Create content on the fly - no setup needed."""
     # Populate files directly in the server's directory
     (http_test_server.directory / "repodata.json").write_text('{"packages": {}}')
@@ -45,12 +44,8 @@ This pattern is ideal for:
 Use `@pytest.mark.parametrize()` with `indirect=True` when you have test data already prepared:
 
 ```python
-import pytest
-import requests
-
-
 @pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
-def test_fetch_from_channel(http_test_server):
+def test_fetch_from_channel(http_test_server: HttpTestServerFixture):
     # Server serves files from tests/data/mock-channel/
     repodata_url = http_test_server.get_url("linux-64/repodata.json")
 
@@ -76,7 +71,7 @@ One of the benefits of using `parametrize` is that you can easily test the same 
     ["tests/data/channel1", "tests/data/channel2", "tests/data/channel3"],
     indirect=True,
 )
-def test_multiple_channels(http_test_server):
+def test_multiple_channels(http_test_server: HttpTestServerFixture):
     # This test runs three times, once for each channel directory
     response = requests.get(http_test_server.get_url("repodata.json"))
     assert response.status_code == 200
@@ -93,7 +88,7 @@ You can also mix pre-existing directories with dynamic content by using `None`:
     ["tests/data/channel1", None, "tests/data/channel2"],
     indirect=True,
 )
-def test_mixed_sources(http_test_server):
+def test_mixed_sources(http_test_server: HttpTestServerFixture):
     # Runs 3 times: channel1, dynamic tmp dir, channel2
     # When None, http_test_server.directory is a fresh temporary directory
     ...
@@ -101,18 +96,25 @@ def test_mixed_sources(http_test_server):
 
 ## Complete Example: Testing a Mock Channel
 
-Here's a full example showing dynamic content generation:
+Here's a full example with all imports showing dynamic content generation:
 
 ```python
+from __future__ import annotations
+
 import json
-import pytest
 from pathlib import Path
-from conda.testing.fixtures import CondaCLIFixture
+from typing import TYPE_CHECKING
+
+import pytest
+import requests
+
+if TYPE_CHECKING:
+    from conda.testing.fixtures import CondaCLIFixture, HttpTestServerFixture
 
 
 @pytest.mark.integration
 def test_install_from_mock_channel(
-    http_test_server,
+    http_test_server: HttpTestServerFixture,
     conda_cli: CondaCLIFixture,
     tmp_path: Path,
 ):
@@ -139,13 +141,9 @@ def test_install_from_mock_channel(
     assert code == 0
 ```
 
-For pre-existing test data:
+For pre-existing test data, use `@pytest.mark.parametrize`:
 
 ```python
-import pytest
-from pathlib import Path
-from conda.testing.fixtures import CondaCLIFixture
-
 # Assume we have this directory structure:
 # tests/data/mock-channel/
 #   ├── noarch/
@@ -158,7 +156,7 @@ from conda.testing.fixtures import CondaCLIFixture
 @pytest.mark.integration
 @pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
 def test_install_from_preexisting_channel(
-    http_test_server,
+    http_test_server: HttpTestServerFixture,
     conda_cli: CondaCLIFixture,
     tmp_path: Path,
 ):
@@ -199,7 +197,7 @@ The fixture returns an instance with these attributes and methods:
 **Using the `directory` attribute:**
 
 ```python
-def test_dynamic_files(http_test_server):
+def test_dynamic_files(http_test_server: HttpTestServerFixture):
     # Write files directly to the served directory
     (http_test_server.directory / "file.txt").write_text("content")
 
@@ -215,16 +213,18 @@ def test_dynamic_files(http_test_server):
 
 ## Use in Downstream Projects
 
-The HTTP test server fixtures are part of `conda.testing` module and can be used by downstream projects like `conda-libmamba-solver` and `conda-pypi`:
+The HTTP test server fixture is part of `conda.testing` module and can be used by downstream projects like `conda-libmamba-solver` and `conda-pypi`:
 
 ```python
 # In your project's conftest.py
 pytest_plugins = "conda.testing.fixtures"
+```
 
+Then use it in your tests:
 
-# In your tests
+```python
 @pytest.mark.parametrize("http_test_server", ["tests/my-mock-channel"], indirect=True)
-def test_with_mock_channel(http_test_server):
+def test_with_mock_channel(http_test_server: HttpTestServerFixture):
     channel_url = http_test_server.url
     # ... your test code ...
 ```
@@ -268,11 +268,11 @@ def test_with_mock_channel(http_test_server):
 
 5. **Test error scenarios**: Use dynamic content to easily test edge cases like malformed repodata, missing packages, or network timeouts.
 
-6. **Cleanup is automatic**: The fixtures handle cleanup automatically - no need to manually shut down servers or delete temporary files.
+6. **Cleanup is automatic**: The fixture handle cleanup automatically - no need to manually shut down servers or delete temporary files.
 
 ## Examples from conda Test Suite
 
 See these files for real-world usage examples:
-- `tests/testing/test_http_test_server.py` - Tests for the fixtures themselves
+- `tests/testing/test_http_test_server.py` - Tests for the fixture itself
 - `tests/env/test_create.py::test_create_update_remote_env_file` - Using remote environment files
 - `tests/gateways/test_connection.py` - Connection and download testing
