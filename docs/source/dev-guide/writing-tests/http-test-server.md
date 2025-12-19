@@ -1,8 +1,9 @@
 # HTTP Test Server Fixture
 
 The HTTP test server fixture provides a way to test conda functionality that requires serving files over HTTP, such as:
+
 - Mock conda channels with packages
-- Remote environment files (environment.yml)
+- Remote environment files (`environment.yml`)
 - Remote configuration files
 - Any scenario where conda needs to fetch files from a URL
 
@@ -11,8 +12,9 @@ The HTTP test server fixture provides a way to test conda functionality that req
 The `http_test_server` fixture starts a local HTTP server that serves files from a directory. The server runs on a random port and supports both IPv4 and IPv6.
 
 The fixture can be used in two ways:
-1. **Without @pytest.mark.parametrize** - Use a temporary directory that you populate dynamically
-2. **With @pytest.mark.parametrize** - Serve files from a pre-existing directory
+
+1. **Without `@pytest.mark.parametrize`** - Use a temporary directory that you populate dynamically
+2. **With `@pytest.mark.parametrize`** - Serve files from a pre-existing directory
 
 ```{tip}
 For proper type hints, import `HttpTestServerFixture` from `conda.testing.fixtures` under `TYPE_CHECKING`.
@@ -38,6 +40,7 @@ def test_dynamic_repodata(http_test_server: HttpTestServerFixture):
 ```
 
 This pattern is ideal for:
+
 - Creating mock repodata files
 - Testing with minimal setup
 - Extending and creating your own fixtures programmatically
@@ -63,6 +66,7 @@ def test_fetch_from_channel(http_test_server: HttpTestServerFixture):
 The `indirect=True` parameter tells pytest to pass the directory path to the fixture rather than directly to the test function.
 
 This pattern is ideal for:
+
 - Complex directory structures
 - Sharing test data across multiple tests
 - Binary files (packages, archives)
@@ -70,12 +74,16 @@ This pattern is ideal for:
 
 ## Testing Multiple Directories
 
-One of the benefits of using `parametrize` is that you can easily test the same logic against multiple directories:
+One of the benefits of using `@pytest.mark.parametrize` is that you can easily test the same logic against multiple directories:
 
 ```python
 @pytest.mark.parametrize(
     "http_test_server",
-    ["tests/data/channel1", "tests/data/channel2", "tests/data/channel3"],
+    [
+        "tests/data/channel1",
+        "tests/data/channel2",
+        "tests/data/channel3",
+    ],
     indirect=True,
 )
 def test_multiple_channels(http_test_server: HttpTestServerFixture):
@@ -92,7 +100,11 @@ You can also mix pre-existing directories with dynamic content by using `None`:
 ```python
 @pytest.mark.parametrize(
     "http_test_server",
-    ["tests/data/channel1", None, "tests/data/channel2"],
+    [
+        "tests/data/channel1",
+        None,
+        "tests/data/channel2",
+    ],
     indirect=True,
 )
 def test_mixed_sources(http_test_server: HttpTestServerFixture):
@@ -184,18 +196,20 @@ def test_install_from_preexisting_channel(
 
 The fixture returns an instance with these attributes and methods:
 
-**Attributes:**
+#### Attributes:
+
 - `server: http.server.ThreadingHTTPServer` - The underlying server instance
-- `host: str` - Server host (usually "127.0.0.1")
+- `host: str` - Server host (usually `127.0.0.1`)
 - `port: int` - Server port (random)
-- `url: str` - Base URL (e.g., "http://127.0.0.1:54321")
+- `url: str` - Base URL (e.g., `http://127.0.0.1:54321`)
 - `directory: Path` - The directory being served (writable, use to populate content)
 
-**Methods:**
+#### Methods:
+
 - `get_url(path: str = "") -> str` - Get full URL for a path
   - Example: `get_url("linux-64/repodata.json")` → `"http://127.0.0.1:54321/linux-64/repodata.json"`
 
-**Using the `directory` attribute:**
+#### Using the `directory` attribute:
 
 ```python
 def test_dynamic_files(http_test_server: HttpTestServerFixture):
@@ -214,7 +228,7 @@ def test_dynamic_files(http_test_server: HttpTestServerFixture):
 
 ## Use in Downstream Projects
 
-The HTTP test server fixture is part of `conda.testing` module and can be used by downstream projects like `conda-libmamba-solver` and `conda-pypi`:
+The HTTP test server fixture is part of the `conda.testing` module and can be used by downstream projects:
 
 ```python
 # In your project's conftest.py
@@ -232,27 +246,32 @@ def test_with_mock_channel(http_test_server: HttpTestServerFixture):
 
 ## Troubleshooting
 
-**"ValueError: Directory does not exist"**
+### "ValueError: Directory does not exist"
+
 - This error occurs when using `@pytest.mark.parametrize()` with an invalid path
 - Check that the directory path provided in parametrize exists
 - Use absolute paths or paths relative to the repository root
 - Use `Path(__file__).parent / "data"` if needed
 - Or omit the parametrize decorator entirely to use a temporary directory
 
-**"ValueError: Path is not a directory"**
+### "ValueError: Path is not a directory"
+
 - This error occurs when the parametrize value points to a file instead of a directory
 - Ensure the path in `@pytest.mark.parametrize(..., indirect=True)` points to a directory
 - Or use the fixture without parametrize for dynamic content
 
-**Address already in use**
+### Address already in use
+
 - The fixture uses random ports, so this is rare
 - If it happens, the test will likely fail and retry automatically
 
-**Server not shutting down cleanly**
+### Server not shutting down cleanly
+
 - This is handled automatically by the fixture
 - The server runs on a daemon thread and will be cleaned up when tests finish
 
-**Files not appearing in HTTP responses**
+### Files not appearing in HTTP responses
+
 - Make sure files are written before making the HTTP request
 - Check that file paths don't have leading slashes when using `get_url()`
 - Verify the directory structure with `list(http_test_server.directory.iterdir())`
@@ -263,7 +282,7 @@ def test_with_mock_channel(http_test_server: HttpTestServerFixture):
 
 2. **Use parametrize for complex data**: Use `@pytest.mark.parametrize(..., indirect=True)` when you have complex directory structures, binary files, or data shared across many tests.
 
-3. **Function scope for isolation**: Each test gets its own temporary directory with `http_test_server` (function scope), providing complete isolation.
+3. **Function scope for isolation**: Each test gets its own temporary directory with the `http_test_server` fixture (function scope), providing complete isolation.
 
 4. **Organize test data**: When using parametrize, keep mock channel data in dedicated directories like `tests/data/mock-channels/` with README files explaining the structure.
 
@@ -274,6 +293,7 @@ def test_with_mock_channel(http_test_server: HttpTestServerFixture):
 ## Examples from conda Test Suite
 
 See these files for real-world usage examples:
+
 - `tests/testing/test_http_test_server.py` - Tests for the fixture itself
 - `tests/env/test_create.py::test_create_update_remote_env_file` - Using remote environment files
 - `tests/gateways/test_connection.py` - Connection and download testing
