@@ -703,7 +703,7 @@ class HttpTestServerFixture:
 @pytest.fixture
 def http_test_server(
     request: FixtureRequest,
-    tmp_path: Path,
+    path_factory: PathFactoryFixture,
 ) -> Iterator[HttpTestServerFixture]:
     """
     Function-scoped HTTP test server for serving local files.
@@ -730,7 +730,7 @@ def http_test_server(
         @pytest.mark.parametrize("http_test_server", ["tests/data", None], indirect=True)
 
     :param request: pytest fixture request object
-    :param tmp_path: pytest tmp_path fixture (used when no parametrize or None provided)
+    :param path_factory: path_factory fixture for creating unique temp directories
     :return: HttpTestServerFixture with server, host, port, url, and directory attributes
     :raises ValueError: If parametrized directory is invalid
     """
@@ -746,8 +746,10 @@ def http_test_server(
             raise ValueError(f"Path is not a directory: {directory}")
         directory = str(directory_path.resolve())
     else:
-        # No parameter provided or explicit None - use tmp_path (dynamic content)
-        directory = str(tmp_path)
+        # No parameter provided or explicit None - use path_factory for unique directory
+        server_dir = path_factory(name="http_test_server")
+        server_dir.mkdir()
+        directory = str(server_dir)
 
     server = http_server_module.run_test_server(directory)
     host, port = server.socket.getsockname()[:2]
