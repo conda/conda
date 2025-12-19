@@ -14,7 +14,9 @@ from pathlib import Path
 from shutil import which
 
 from . import CondaError
+from .activate import _build_activator_cls
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
+from .base.context import context as _context
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
 from .deprecations import deprecated
@@ -314,7 +316,29 @@ def wrap_subprocess_call(
                 fh.write(">&2 echo '*** environment before ***'\n>&2 env\n")
                 fh.write(f'>&2 echo "$({hook_quoted})"\n')
             fh.write(f'eval "$({hook_quoted})"\n')
-            fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
+
+            # We pursue activation inline here, which allows us to avoid
+            # spawning a `conda activate` process at wrapper runtime.
+            _old_changeps1 = _context.changeps1
+            _old_dev = getattr(_context, "dev", False)
+            try:
+                _context.changeps1 = False
+
+                activator_cls = _build_activator_cls("posix")
+                activator_args = ["activate"]
+                if dev_mode:
+                    activator_args.append("--dev")
+                activator_args.append(prefix)
+
+                activator = activator_cls(activator_args)
+                activator._parse_and_set_args()
+                activate_code = activator.activate()
+            finally:
+                _context.changeps1 = _old_changeps1
+                _context.dev = _old_dev
+
+            fh.write(activate_code)
+
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
             if multiline:
