@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import warnings
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -158,8 +159,6 @@ def test_create_empty_env(
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
-    import warnings
-
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
@@ -419,8 +418,6 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     monkeypatch: MonkeyPatch,
 ):
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
-
-    import warnings
 
     with warnings.catch_warnings(record=True) as warning_list:
         warnings.simplefilter("always", PendingDeprecationWarning)
