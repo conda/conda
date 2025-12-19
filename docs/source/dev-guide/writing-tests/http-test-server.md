@@ -14,7 +14,10 @@ The fixture can be used in two ways:
 1. **Without @pytest.mark.parametrize** - Use a temporary directory that you populate dynamically
 2. **With @pytest.mark.parametrize** - Serve files from a pre-existing directory
 
-**Type annotations:** For proper type hints, import `HttpTestServerFixture` from `conda.testing.fixtures` under `TYPE_CHECKING`. See the [complete example](#complete-example-testing-a-mock-channel) for the full import pattern.
+```{tip}
+For proper type hints, import `HttpTestServerFixture` from `conda.testing.fixtures` under `TYPE_CHECKING`.
+See the [complete example](#complete-example-testing-a-mock-channel) for the full import pattern.
+```
 
 ## Basic Usage
 
