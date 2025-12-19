@@ -726,8 +726,11 @@ def http_test_server(
             response = requests.get(url)
             assert response.status_code == 200
 
+    Use ``None`` in parametrize to mix pre-existing directories with dynamic content:
+        @pytest.mark.parametrize("http_test_server", ["tests/data", None], indirect=True)
+
     :param request: pytest fixture request object
-    :param tmp_path: pytest tmp_path fixture (used when no parametrize provided)
+    :param tmp_path: pytest tmp_path fixture (used when no parametrize or None provided)
     :return: HttpTestServerFixture with server, host, port, url, and directory attributes
     :raises ValueError: If parametrized directory is invalid
     """

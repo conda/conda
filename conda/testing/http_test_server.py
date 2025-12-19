@@ -28,10 +28,9 @@ Example usage:
 
 For pytest fixtures that wrap this functionality, see:
 - `http_test_server` - function-scoped fixture
-- `session_http_test_server` - session-scoped fixture
 
-Both fixtures require the `@pytest.mark.parametrize("<fixture>", ["<directory>"], indirect=True)`
-marker to specify the directory to serve.
+The fixture can be configured via `@pytest.mark.parametrize("http_test_server", ["<directory>"], indirect=True)`
+to specify the directory to serve, or used without parametrize (or with `None`) for dynamic content generation.
 """
 
 import contextlib

@@ -122,14 +122,6 @@ def test_http_server_directory_attribute(http_test_server: HttpTestServerFixture
     assert response.text == "nested content"
 
 
-# Session-scoped fixture tests
-# Note: Session-scoped fixtures are tested separately in integration tests
-# because they require special setup (all tests in session must use same marker).
-# The session_http_test_server fixture works correctly but is harder to unit test
-# in isolation due to pytest's session scope initialization order.
-# See tests/env/test_create.py::test_create_update_remote_env_file for usage example.
-
-
 @pytest.mark.parametrize(
     "http_test_server",
     ["tests/env/support", "tests/data"],

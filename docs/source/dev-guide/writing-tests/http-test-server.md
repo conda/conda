@@ -85,22 +85,17 @@ def test_multiple_channels(http_test_server):
 
 Each test run will use a different directory, making it easy to verify behavior across multiple datasets.
 
-## Function vs Session Scope
-
-### Function-Scoped Fixture (`http_test_server`)
-
-Use when each test needs its own server instance:
+You can also mix pre-existing directories with dynamic content by using `None`:
 
 ```python
-def test_case_1(http_test_server):
-    # This test gets its own server and temporary directory
-    (http_test_server.directory / "file1.txt").write_text("content 1")
-    ...
-
-
-def test_case_2(http_test_server):
-    # This test gets a different server and temporary directory
-    (http_test_server.directory / "file2.txt").write_text("content 2")
+@pytest.mark.parametrize(
+    "http_test_server",
+    ["tests/data/channel1", None, "tests/data/channel2"],
+    indirect=True,
+)
+def test_mixed_sources(http_test_server):
+    # Runs 3 times: channel1, dynamic tmp dir, channel2
+    # When None, http_test_server.directory is a fresh temporary directory
     ...
 ```
 
