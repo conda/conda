@@ -47,7 +47,11 @@ This pattern is ideal for:
 Use `@pytest.mark.parametrize()` with `indirect=True` when you have test data already prepared:
 
 ```python
-@pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
+@pytest.mark.parametrize(
+    "http_test_server",
+    ["tests/data/mock-channel"],
+    indirect=True,
+)
 def test_fetch_from_channel(http_test_server: HttpTestServerFixture):
     # Server serves files from tests/data/mock-channel/
     repodata_url = http_test_server.get_url("linux-64/repodata.json")
@@ -115,7 +119,6 @@ if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, HttpTestServerFixture
 
 
-@pytest.mark.integration
 def test_install_from_mock_channel(
     http_test_server: HttpTestServerFixture,
     conda_cli: CondaCLIFixture,
@@ -134,30 +137,27 @@ def test_install_from_mock_channel(
     channel_url = http_test_server.url
     stdout, stderr, code = conda_cli(
         "search",
-        "--channel",
-        channel_url,
+        f"--channel={channel_url}",
         "--override-channels",
         "*",
     )
 
     # Verify it worked (no packages found but channel was accessible)
     assert code == 0
-```
-
-For pre-existing test data, use `@pytest.mark.parametrize`:
-
-```python
-# Assume we have this directory structure:
-# tests/data/mock-channel/
-#   ├── noarch/
-#   │   └── repodata.json
-#   └── linux-64/
-#       ├── repodata.json
-#       └── example-pkg-1.0.0-0.tar.bz2
 
 
-@pytest.mark.integration
-@pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
+@pytest.mark.parametrize(
+    "http_test_server",
+    ["tests/data/mock-channel"],
+    # Assume the following structure:
+    # tests/data/mock-channel/
+    #   ├── noarch/
+    #   │   └── repodata.json
+    #   └── linux-64/
+    #       ├── repodata.json
+    #       └── example-pkg-1.0.0-0.tar.bz2
+    indirect=True,
+)
 def test_install_from_preexisting_channel(
     http_test_server: HttpTestServerFixture,
     conda_cli: CondaCLIFixture,
@@ -168,10 +168,8 @@ def test_install_from_preexisting_channel(
 
     stdout, stderr, code = conda_cli(
         "create",
-        "--prefix",
-        tmp_path,
-        "--channel",
-        channel_url,
+        f"--prefix={tmp_path}",
+        f"--channel={channel_url}",
         "example-pkg",
         "--yes",
     )
