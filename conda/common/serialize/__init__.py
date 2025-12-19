@@ -69,7 +69,7 @@ def yaml_safe_load(string):
 @deprecated(
     "26.9",
     "27.3",
-    addendum="Use `conda.common.serialize.yaml.dump()` instead.",
+    addendum="Use `conda.common.serialize.yaml.dump()` or `conda.common.serialize.yaml.dumps()` instead.",
 )
 def yaml_round_trip_dump(object, stream=None):
     """Dump object to string or stream."""
