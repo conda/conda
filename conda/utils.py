@@ -242,9 +242,12 @@ def wrap_subprocess_call(
             # fh.write('@chcp 65001>NUL\n')
 
             # We pursue activation inline here, which allows us to avoid
-            # spawning a `conda activate` process at wrapper runtime.
-            _old_changeps1 = _context.changeps1
-            _old_dev = getattr(_context, "dev", False)
+            # spawning a `conda activate` process at wrapper runtime. We
+            # ensure that a sentinel conda-meta directory exists to pass
+            # activation validation.
+            conda_meta_dir = Path(prefix) / "conda-meta"
+            conda_meta_dir.mkdir(parents=True, exist_ok=True)
+
             try:
                 _context.changeps1 = False
 
@@ -261,8 +264,7 @@ def wrap_subprocess_call(
                 activator.tempfile_extension = None
                 activate_env = activator.activate()
             finally:
-                _context.changeps1 = _old_changeps1
-                _context.dev = _old_dev
+                _context.__dict__.pop("changeps1", None)
 
             for line in activate_env.splitlines():
                 line = line.rstrip("\r")
@@ -355,9 +357,12 @@ def wrap_subprocess_call(
             fh.write(f'eval "$({hook_quoted})"\n')
 
             # We pursue activation inline here, which allows us to avoid
-            # spawning a `conda activate` process at wrapper runtime.
-            _old_changeps1 = _context.changeps1
-            _old_dev = getattr(_context, "dev", False)
+            # spawning a `conda activate` process at wrapper runtime. We
+            # ensure that a sentinel conda-meta directory exists to pass
+            # activation validation.
+            conda_meta_dir = Path(prefix) / "conda-meta"
+            conda_meta_dir.mkdir(parents=True, exist_ok=True)
+
             try:
                 _context.changeps1 = False
 
@@ -371,8 +376,7 @@ def wrap_subprocess_call(
                 activator._parse_and_set_args()
                 activate_code = activator.activate()
             finally:
-                _context.changeps1 = _old_changeps1
-                _context.dev = _old_dev
+                _context.__dict__.pop("changeps1", None)
 
             fh.write(activate_code)
 
