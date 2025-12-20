@@ -45,7 +45,7 @@ class VerboseSolver(solve.Solver):
         return super().solve_final_state(*args, **kwargs)
 
 
-VerboseCondaSolver = plugins.CondaSolver(
+VerboseCondaSolver = plugins.types.CondaSolver(
     name="verbose-classic",
     backend=VerboseSolver,
 )
@@ -57,12 +57,12 @@ class VerboseSolverPlugin:
         yield VerboseCondaSolver
 
 
-DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
+DummyVirtualPackage = plugins.types.CondaVirtualPackage("dummy", "version", "build")
 
 
 class DummyVirtualPackagePlugin:
     @plugins.hookimpl
-    def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
+    def conda_virtual_packages(*args) -> Iterator[plugins.types.CondaVirtualPackage]:
         yield DummyVirtualPackage
 
 
@@ -101,7 +101,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     class SecondArchspec:
         @plugins.hookimpl
         def conda_virtual_packages():
-            yield plugins.CondaVirtualPackage("archspec", "", None)
+            yield plugins.types.CondaVirtualPackage("archspec", "", None)
 
     plugin_manager.register(SecondArchspec)
     with pytest.raises(

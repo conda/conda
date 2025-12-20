@@ -37,6 +37,7 @@ from ..models.records import PackageRecord
 from .integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
+    import http.server
     from collections.abc import Iterable, Iterator
 
     from _pytest.capture import MultiCapture
@@ -669,3 +670,101 @@ def context_testdata() -> None:
             )
         }
     )
+
+
+# HTTP Test Server Fixtures
+
+
+@dataclass
+class HttpTestServerFixture:
+    """Fixture providing HTTP test server for serving local files."""
+
+    server: http.server.ThreadingHTTPServer
+    host: str
+    port: int
+    url: str
+    directory: Path
+
+    def __post_init__(self):
+        """Log server startup for debugging."""
+        log.debug(f"HTTP test server started: {self.url}")
+
+    def get_url(self, path: str = "") -> str:
+        """
+        Get full URL for a given path on the server.
+
+        :param path: Relative path on the server (e.g., "subdir/package.tar.bz2")
+        :return: Full URL
+        """
+        path = path.lstrip("/")
+        return f"{self.url}/{path}" if path else self.url
+
+
+@pytest.fixture
+def http_test_server(
+    request: FixtureRequest,
+    path_factory: PathFactoryFixture,
+) -> Iterator[HttpTestServerFixture]:
+    """
+    Function-scoped HTTP test server for serving local files.
+
+    This fixture starts an HTTP server on a random port and serves files
+    from a directory. The server supports both IPv4 and IPv6.
+
+    Usage without parametrize (dynamic content):
+        def test_dynamic(http_test_server):
+            # Server uses temporary directory automatically
+            (http_test_server.directory / "file.txt").write_text("content")
+            url = http_test_server.get_url("file.txt")
+            response = requests.get(url)
+            assert response.status_code == 200
+
+    Usage with parametrize (pre-existing directory):
+        @pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
+        def test_existing(http_test_server):
+            url = http_test_server.get_url("file.txt")
+            response = requests.get(url)
+            assert response.status_code == 200
+
+    Use ``None`` in parametrize to mix pre-existing directories with dynamic content:
+        @pytest.mark.parametrize("http_test_server", ["tests/data", None], indirect=True)
+
+    :param request: pytest fixture request object
+    :param path_factory: path_factory fixture for creating unique temp directories
+    :return: HttpTestServerFixture with server, host, port, url, and directory attributes
+    :raises ValueError: If parametrized directory is invalid
+    """
+    from . import http_test_server as http_server_module
+
+    if directory := getattr(request, "param", None):
+        # Parameter was provided via @pytest.mark.parametrize
+        # Validate the provided directory
+        directory_path = Path(directory)
+        if not directory_path.exists():
+            raise ValueError(f"Directory does not exist: {directory}")
+        if not directory_path.is_dir():
+            raise ValueError(f"Path is not a directory: {directory}")
+        directory = str(directory_path.resolve())
+    else:
+        # No parameter provided or explicit None - use path_factory for unique directory
+        server_dir = path_factory(name="http_test_server")
+        server_dir.mkdir()
+        directory = str(server_dir)
+
+    server = http_server_module.run_test_server(directory)
+    host, port = server.socket.getsockname()[:2]
+    url_host = f"[{host}]" if ":" in host else host
+    url = f"http://{url_host}:{port}"
+
+    fixture = HttpTestServerFixture(
+        server=server,
+        host=host,
+        port=port,
+        url=url,
+        directory=Path(directory),
+    )
+
+    yield fixture
+
+    # Cleanup: shutdown server
+    server.shutdown()

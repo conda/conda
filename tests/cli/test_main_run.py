@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import stat
 import uuid
+from logging import WARNING, getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -17,6 +18,7 @@ from conda.exceptions import (
     DirectoryNotACondaEnvironmentError,
     EnvironmentLocationNotFound,
 )
+from conda.gateways.logging import initialize_logging
 from conda.testing.integration import env_or_set, which_or_where
 from conda.utils import wrap_subprocess_call
 
@@ -120,6 +122,74 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         )
         assert stdout
         assert not stderr
+
+
+@pytest.mark.parametrize(
+    "args,expected_output",
+    [
+        # no separator: arguments after the executable are passed through to the executable
+        pytest.param(["small", "-v", "-c", "spam"], "-v -c spam", id="no separator"),
+        pytest.param(["small", "--version"], "--version", id="no known args"),
+        pytest.param(["small", "-vvv"], "-vvv", id="vvv passthrough"),
+        # with separator and conda will ignore everything after
+        pytest.param(
+            ["small", "--", "-v", "hello"],
+            "-- -v hello",
+            id="separator not first",
+        ),
+        pytest.param(
+            ["--", "small", "--", "-v", "hello"],
+            "-- -v hello",
+            id="multiple separators",
+        ),
+        pytest.param(
+            ["--", "small", "-v", "-c", "spam"],
+            "-v -c spam",
+            id="multiple args",
+        ),
+        pytest.param(
+            ["--", "small", "--vic", "eggs"],
+            "--vic eggs",
+            id="double dash option",
+        ),
+        pytest.param(
+            ["--", "small", "-vic", "eggs"],
+            "-vic eggs",
+            id="combined option",
+        ),
+        pytest.param(["--", "small", "-vvv"], "-vvv", id="vvv passthrough with --"),
+    ],
+)
+def test_run_with_separator(
+    request: pytest.FixtureRequest,
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    args: list[str],
+    expected_output: str,
+):
+    request.addfinalizer(
+        lambda: (
+            getLogger().setLevel(WARNING),
+            initialize_logging.cache_clear(),
+            initialize_logging(),
+        )
+    )
+
+    with tmp_env("small-executable") as prefix:
+        stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", *args)
+
+        assert stdout.strip() == "Hello! " + expected_output
+        assert not err
+
+        assert stderr is not None
+
+        has_vvv = "-vvv" in args
+        has_separator = args and args[0] == "--"
+
+        # without `--`, `-vvv` affects conda's own verbosity; with `--`, it should not
+        expect_conda_debug_str = has_vvv and not has_separator
+        assert ("log_level set to" in stderr) is expect_conda_debug_str
 
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test")

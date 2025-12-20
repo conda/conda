@@ -28,13 +28,15 @@ class CustomAltCondaAuth(HTTPBasicAuth):
 class CustomAuthPlugin:
     @plugins.hookimpl
     def conda_auth_handlers(self):
-        yield plugins.CondaAuthHandler(handler=CustomCondaAuth, name=PLUGIN_NAME)
+        yield plugins.types.CondaAuthHandler(handler=CustomCondaAuth, name=PLUGIN_NAME)
 
 
 class CustomAltAuthPlugin:
     @plugins.hookimpl
     def conda_auth_handlers(self):
-        yield plugins.CondaAuthHandler(handler=CustomAltCondaAuth, name=PLUGIN_NAME_ALT)
+        yield plugins.types.CondaAuthHandler(
+            handler=CustomAltCondaAuth, name=PLUGIN_NAME_ALT
+        )
 
 
 def test_get_auth_handler(plugin_manager):
