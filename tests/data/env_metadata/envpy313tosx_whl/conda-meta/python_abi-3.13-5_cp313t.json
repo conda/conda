@@ -1,0 +1,34 @@
+{
+  "build": "5_cp313t",
+  "build_number": 5,
+  "channel": "https://conda.anaconda.org/conda-forge/osx-arm64",
+  "constrains": [
+    "python 3.13.* *_cp313t"
+  ],
+  "depends": [],
+  "extracted_package_dir": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/python_abi-3.13-5_cp313t",
+  "features": "",
+  "files": [],
+  "fn": "python_abi-3.13-5_cp313t.conda",
+  "license": "BSD-3-Clause",
+  "license_family": "BSD",
+  "link": {
+    "source": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/python_abi-3.13-5_cp313t",
+    "type": 1
+  },
+  "md5": "24a9a05eba65586da53ad7b56a06dc02",
+  "name": "python_abi",
+  "package_tarball_full_path": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/python_abi-3.13-5_cp313t.conda",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "python_abi[build=*_cp313t]",
+  "sha256": "2165466ff175e1890b66d079d64449a1b6dd9873fb0f5e977839ccc4639b813b",
+  "size": 6317,
+  "subdir": "osx-arm64",
+  "timestamp": 1723823118660,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/conda-forge/osx-arm64/python_abi-3.13-5_cp313t.conda",
+  "version": "3.13"
+}
