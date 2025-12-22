@@ -124,37 +124,31 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
         assert not stderr
 
 
-def test_no_newline_in_stdout(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    # Using `python` to print a simple string is a bit heavy weight, but it's
-    # less developer stress figuring out out how to get "echo" to behave the
-    # same way across the range of platforms and shells we support.
+@pytest.mark.parametrize(
+    "stream,expected_stdout,expected_stderr",
+    [
+        pytest.param("stdout", "hello", "", id="stdout"),
+        pytest.param("stderr", "", "hello", id="stderr"),
+    ],
+)
+def test_no_newline_in_output(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    stream: str,
+    expected_stdout: str,
+    expected_stderr: str,
+):
     with tmp_env("python") as prefix:
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
             "python",
             "-c",
-            'import sys; sys.stdout.write("hello");',
+            f'import sys; sys.{stream}.write("hello")',
         )
-        assert stdout == "hello"
-        assert not stderr
-        assert not err
+        assert stdout == expected_stdout
+        assert stderr == expected_stderr
 
-
-def test_no_newline_in_stderr(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    # Using `python` to print a simple string is a bit heavy weight, but it's
-    # less developer stress figuring out out how to get "echo" to behave the
-    # same way across the range of platforms and shells we support.
-    with tmp_env("python") as prefix:
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            "python",
-            "-c",
-            'import sys; sys.stderr.write("hello")',
-        )
-        assert not stdout
-        assert stderr == "hello"
         assert not err
 
 
