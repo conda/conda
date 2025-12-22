@@ -14,7 +14,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaEnvException, CondaValueError
 from conda.testing.integration import package_is_installed
 
 from . import remote_support_file, support_file
@@ -442,3 +442,106 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     # get an array of length 2 if the string only appears once. If it appears
     # multiple times, the array will have more elements.
     assert len(stdout.split("EnvironmentSectionNotValid")) == 2
+
+
+@pytest.mark.integration
+def test_create_users_environment_file_prefix(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """
+    Ensures that the `prefix` field of the environment.yml is used to create
+    an environment, if provided
+    """
+    env_file = path_factory("test_prefix.yml")
+    prefix = path_factory()
+    env_file.write_text(
+        f"""
+        prefix: {prefix}
+        dependencies:
+        - ca-certificates
+        """
+    )
+
+    # Ensure that the prefix from the environment.yml is used
+    conda_cli(
+        "env",
+        "create",
+        "--file",
+        str(env_file),
+    )
+    prefix_data = PrefixData(prefix)
+    assert prefix_data.exists()
+    assert prefix_data.is_environment()
+
+    # Ensure that the prefix from the cli overwrites the one from environment.yml
+    prefix2 = path_factory()
+    conda_cli(
+        "env",
+        "create",
+        "--file",
+        str(env_file),
+        "--prefix",
+        prefix2,
+    )
+    prefix_data = PrefixData(prefix2)
+    assert prefix_data.exists()
+    assert prefix_data.is_environment()
+
+
+@pytest.mark.integration
+def test_create_users_environment_file_with_env_name(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """
+    Ensures that the `name` field of the environment.yml is used to create
+    an environment, if provided
+    """
+    env_file = path_factory("test_prefix.yml")
+    env_file.write_text(
+        """
+        name: my-special-test-env
+        dependencies:
+        - ca-certificates
+        """
+    )
+
+    stdout, stderr, exp = conda_cli(
+        "env", "create", "--file", str(env_file), "--dry-run"
+    )
+    assert "ca-certificates" in stdout
+
+
+@pytest.mark.integration
+def test_create_users_environment_file_with_env_name_and_prefix(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """
+    Ensures an error is raised if the environment.yml provides both
+    a name and prefix. In this situation it isn't clear what the
+    intended install location should be.
+    """
+    env_file = path_factory("test_prefix.yml")
+    env_file.write_text(
+        """
+        name: my-special-test-env
+        prefix: /some/path
+        dependencies:
+        - ca-certificates
+        """
+    )
+
+    # Raises an error if no name or prefix is specified in the cli
+    with pytest.raises(
+        CondaEnvException, match="Environment location is over specified."
+    ):
+        conda_cli("env", "create", "--file", str(env_file), "--dry-run")
+
+    # Don't raise an error if a name or prefix is specified in the
+    # cli.
+    stdout, _, _ = conda_cli(
+        "env", "create", "--file", str(env_file), "--name", "testenv", "--dry-run"
+    )
+    assert "ca-certificates" in stdout
