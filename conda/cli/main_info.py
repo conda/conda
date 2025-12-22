@@ -14,6 +14,7 @@ from argparse import SUPPRESS, _StoreTrueAction
 from functools import cached_property
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
+from tempfile import gettempdir
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
@@ -277,6 +278,7 @@ def get_info_dict() -> dict[str, Any]:
         netrc_file=netrc_file,
         virtual_pkgs=virtual_pkgs,
         solver=solver,
+        tmp_dir=gettempdir(),
     )
     if on_win:
         from ..common._os.windows import is_admin_on_windows
@@ -380,6 +382,7 @@ def get_main_info_display(info_dict: dict[str, Any]) -> dict[str, str]:
         yield ("channel URLs", flatten(info_dict["channels"]))
         yield ("package cache", flatten(info_dict["pkgs_dirs"]))
         yield ("envs directories", flatten(info_dict["envs_dirs"]))
+        yield ("temporary directory", info_dict["tmp_dir"])
         yield ("platform", info_dict["platform"])
         yield ("user-agent", info_dict["user_agent"])
 
@@ -408,8 +411,8 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
     )
 
 
-#: Possible components for the info command to render
 InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_all"]
+"""Possible components for the info command to render."""
 
 
 class InfoRenderer:

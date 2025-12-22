@@ -8,6 +8,8 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from frozendict import frozendict
+
 # detect the best json library to use
 from requests.compat import json
 
@@ -17,6 +19,11 @@ if TYPE_CHECKING:
 
 class CondaJSONEncoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
+        # immutable types
+
+        if isinstance(obj, frozendict):
+            return dict(obj)
+
         # Python types
         if isinstance(obj, Enum):
             return obj.value
