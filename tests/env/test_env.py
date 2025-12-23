@@ -14,7 +14,6 @@ from conda.common.serialize import yaml_round_trip_load
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
-    Environment,
     EnvironmentYaml,
     channels_validation,
     dependencies_validation,
@@ -321,7 +320,11 @@ def test_invalid_keys():
 
 
 def test_empty_deps():
-    e = get_environment("empty_deps.yml")
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="The environment file is not fully CEP 24 compliant",
+    ):
+        e = get_environment("empty_deps.yml")
     e_dict = e.to_dict()
     assert "name" in e_dict
     assert "channels" in e_dict
@@ -383,8 +386,7 @@ def test_from_history():
 
 
 def test_environment_deprecated() -> None:
-    with pytest.deprecated_call():
-        Environment(filename="idontexist", name="simple")
+    EnvironmentYaml(filename="idontexist", name="simple")
 
 
 @pytest.mark.parametrize(

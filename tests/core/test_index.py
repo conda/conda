@@ -162,11 +162,13 @@ def test_dist_str_in_index(test_recipes_channel: Path) -> None:
 
 
 def test_calculate_channel_urls():
-    urls = calculate_channel_urls(
-        channel_urls=[DEFAULTS_CHANNEL_NAME], use_local=False, prepend=True
-    )
-    assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
-    assert len(urls) == 6 if on_win else 4
+    with pytest.deprecated_call():
+        urls = calculate_channel_urls(
+            channel_urls=[DEFAULTS_CHANNEL_NAME], use_local=False, prepend=True
+        )
+
+        assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
+        assert len(urls) == 6 if on_win else 4
 
 
 @pytest.mark.parametrize(
