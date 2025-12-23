@@ -22,7 +22,7 @@ from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 BASE_KEYS = {"root_prefix"}
@@ -237,6 +237,37 @@ def test_info_envs_json(conda_cli: CondaCLIFixture):
     assert isinstance(first_envs_details, dict)
 
 
+def test_info_envs_size(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("info", "--envs", "--size")
+    assert not stderr
+    assert not err
+
+    lines = stdout.strip().split("\n")
+    non_comment_lines = [line for line in lines if line and not line.startswith("#")]
+    for line in non_comment_lines:
+        parts = line.split()
+        if len(parts) >= 2:
+            last_part = parts[-1]
+            assert any(
+                last_part.endswith(suffix) for suffix in ["B", "KB", "MB", "GB"]
+            ), f"Expected size suffix in line: {line}"
+
+
+def test_info_envs_size_json(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("info", "--envs", "--size", "--json")
+    assert not stderr
+    assert not err
+
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+    assert "envs_details" in parsed
+
+    for prefix, details in parsed["envs_details"].items():
+        assert "size" in details
+        assert isinstance(details["size"], int)
+        assert details["size"] >= 0
+
+
 # conda info --license
 def test_info_license(conda_cli: CondaCLIFixture):
     with pytest.deprecated_call():
@@ -278,3 +309,48 @@ def test_get_info_components() -> None:
         )
     assert isinstance(components, set)
     assert components == {"base", "channels", "envs", "envs_details", "system"}
+
+
+def test_compute_prefix_size(tmp_path: Path):
+    from conda.cli.main_info import compute_prefix_size
+
+    test_dir = tmp_path / "test_env"
+    test_dir.mkdir()
+
+    (test_dir / "file1.txt").write_text("test content 1")
+    (test_dir / "file2.txt").write_text("test content 2")
+
+    subdir = test_dir / "subdir"
+    subdir.mkdir()
+    (subdir / "file3.txt").write_text("test content 3")
+
+    size = compute_prefix_size(str(test_dir))
+    assert size > 0
+    assert size == len("test content 1") + len("test content 2") + len("test content 3")
+
+    (test_dir / "symlink.txt").symlink_to(test_dir / "file1.txt")
+    size_with_symlink = compute_prefix_size(str(test_dir))
+    assert size_with_symlink == size
+
+
+def test_compute_prefix_size_with_metadata(
+    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
+):
+    from conda.cli.main_info import compute_prefix_size
+
+    with tmp_env("ca-certificates") as prefix:
+        size = compute_prefix_size(str(prefix))
+        assert size > 0
+
+
+def test_compute_prefix_size_nonexistent_directory():
+    from conda.cli.main_info import compute_prefix_size
+    from conda.exceptions import DirectoryNotFoundError
+
+    nonexistent_path = "/nonexistent/path/to/environment"
+
+    with pytest.raises(DirectoryNotFoundError) as exc_info:
+        compute_prefix_size(nonexistent_path)
+
+    # Verify the exception contains the path
+    assert nonexistent_path in str(exc_info.value)

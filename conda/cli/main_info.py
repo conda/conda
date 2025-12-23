@@ -13,12 +13,13 @@ import sys
 from argparse import SUPPRESS, _StoreTrueAction
 from functools import cached_property
 from logging import getLogger
-from os.path import exists, expanduser, isfile, join
+from os.path import exists, expanduser, isfile, islink, join
 from tempfile import gettempdir
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
 from ..deprecations import deprecated
+from ..exceptions import DirectoryNotFoundError, EnvironmentNotReadableError
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -83,6 +84,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="List environment variables.",
     )
     p.add_argument(
+        "--size",
+        action="store_true",
+        help="Show disk usage for each environment (only applicable with --envs).",
+    )
+    p.add_argument(
         "--root",
         action=deprecated.action(
             "25.9",
@@ -133,6 +139,36 @@ def get_user_site() -> list[str]:  # pragma: no cover
     except OSError as e:
         log.debug("Error accessing user site directory.\n%r", e)
     return site_dirs
+
+
+def compute_prefix_size(prefix: str) -> int:
+    """
+    Compute the total size of a conda environment prefix using metadata.
+
+    :param prefix: Path to the environment prefix.
+    :returns: Total size in bytes.
+    :raises EnvironmentNotReadableError: Conda does not have permission to read the prefix.
+    """
+
+    if not exists(prefix):
+        raise DirectoryNotFoundError(prefix)
+
+    if not isfile(prefix) and not os.path.isdir(prefix):
+        raise EnvironmentNotReadableError(prefix)
+
+    total_size = 0
+
+    try:
+        for dirpath, _, filenames in os.walk(prefix):
+            for filename in filenames:
+                path = join(dirpath, filename)
+                if not islink(path):
+                    total_size += os.path.getsize(path)
+
+    except OSError as e:
+        raise EnvironmentNotReadableError(prefix, e)
+
+    return total_size
 
 
 IGNORE_FIELDS: set[str] = {"files", "auth", "preferred_env", "priority"}
@@ -420,8 +456,9 @@ class InfoRenderer:
     Provides a ``render`` method for rendering ``InfoComponents``
     """
 
-    def __init__(self, context):
+    def __init__(self, context, show_size=False):
         self._context = context
+        self._show_size = show_size
         self._component_style_map = {
             "base": None,
             "channels": None,
@@ -445,7 +482,7 @@ class InfoRenderer:
         return list_all_known_prefixes()
 
     @cached_property
-    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None]]:
+    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None | int]]:
         from ..core.prefix_data import PrefixData
 
         result = {}
@@ -468,6 +505,8 @@ class InfoRenderer:
                 "frozen": prefix_data.is_frozen(),
                 "writable": prefix_data.is_writable,
             }
+            if self._show_size:
+                result[prefix]["size"] = compute_prefix_size(prefix)
         return result
 
     def render(self, components: Iterable[InfoComponents]):
@@ -487,7 +526,10 @@ class InfoRenderer:
             data = data_func()
 
             if data:
-                render(data, style=style)
+                kwargs = {}
+                if component == "envs" and self._show_size:
+                    kwargs["show_size"] = True
+                render(data, style=style, **kwargs)
 
     def _base_component(self) -> str | dict:
         if self._context.json:
@@ -605,7 +647,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
 
     components = iter_info_components(args, context)
-    renderer = InfoRenderer(context)
+    show_size = getattr(args, "size", False) and args.envs
+    renderer = InfoRenderer(context, show_size=show_size)
     renderer.render(components)
 
     return 0
