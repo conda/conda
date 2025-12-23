@@ -36,7 +36,7 @@ Let's break down what's going on here step-by-step:
    arguments which equal to ``sys.argv[2:]``.
 2. Next, we register this subcommand by using the ``conda_subcommands`` plugin hook. We do this by creating a function
    called ``conda_subcommands`` and then decorating it with ``conda.plugins.hookimpl``.
-3. The object we return from this function is ``conda.plugins.CondaSubcommand``, which does several things:
+3. The object we return from this function is ``conda.plugins.types.CondaSubcommand``, which does several things:
 
    1. **name** is what we use to call this subcommand via the command line (i.e. "conda example")
    2. **action** is the function that will be called when we invoke "conda example"

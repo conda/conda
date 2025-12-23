@@ -10,7 +10,7 @@ from importlib.metadata import version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
-from os.path import basename, isdir
+from os.path import basename
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_output
@@ -744,8 +744,8 @@ def test_search_override_channels_enabled(
 
 
 def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
-        assert (prefix / "conda-meta" / "history").exists()
+    with tmp_env(shallow=False) as prefix:
+        assert (prefix / PREFIX_MAGIC_FILE).exists()
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
         assert stdout == dals(
@@ -916,19 +916,19 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         #   when using rm_rf on a file
         assert any(prefix in key for key in PrefixData._cache_)
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
-        assert prefix not in PrefixData._cache_
+        assert not any(prefix in key for key in PrefixData._cache_)
 
-    with tmp_env() as prefix:
-        assert isdir(prefix)
+    with tmp_env(shallow=False) as prefix:
+        assert prefix.is_dir()
         assert any(prefix in key for key in PrefixData._cache_)
 
         rmtree(prefix)
-        assert not isdir(prefix)
+        assert not prefix.is_dir()
         assert any(prefix in key for key in PrefixData._cache_)
 
         _rm_rf(prefix)
-        assert not isdir(prefix)
-        assert all(prefix not in key for key in PrefixData._cache_)
+        assert not prefix.is_dir()
+        assert not any(prefix in key for key in PrefixData._cache_)
 
 
 def test_install_tarball_from_file_based_channel(
@@ -1032,7 +1032,7 @@ def test_update_with_pinned_packages(
         assert package_is_installed(prefix, "dependency=1.0")
 
         # removing the history allows dependent to be updated too
-        (prefix / "conda-meta" / "history").write_text("")
+        (prefix / PREFIX_MAGIC_FILE).write_text("")
 
         conda_cli("update", f"--prefix={prefix}", "dependency", "--yes")
 
@@ -2416,7 +2416,7 @@ def test_create_env_different_platform(
 
         args = []
 
-    with tmp_env(*args) as prefix:
+    with tmp_env(*args, shallow=False) as prefix:
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
         assert (
@@ -2593,7 +2593,7 @@ def test_neutering_of_historic_specs(
 ):
     with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
         conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
-        d = (prefix / "conda-meta" / "history").read_text()
+        d = (prefix / PREFIX_MAGIC_FILE).read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
         #    If this command runs successfully (does not raise), then all is well.
