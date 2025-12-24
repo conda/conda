@@ -158,8 +158,8 @@ def compute_prefix_size(prefix: PathType) -> int:
                 path = join(dirpath, filename)
                 if not islink(path):
                     total_size += os.path.getsize(path)
-    except OSError:
-        raise EnvironmentNotReadableError(prefix)
+    except OSError as e:
+        raise EnvironmentNotReadableError(prefix, e)
 
     return total_size
 

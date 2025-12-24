@@ -1198,7 +1198,9 @@ class EnvironmentNotWritableError(CondaError):
 
 
 class EnvironmentNotReadableError(CondaError, OSError):
-    def __init__(self, environment_location: PathType, **kwargs):
+    def __init__(
+        self, environment_location: PathType, caused_by: OSError | None = None, **kwargs
+    ):
         message = dals(
             """
         The current user does not have read permissions for the target environment.
@@ -1208,6 +1210,7 @@ class EnvironmentNotReadableError(CondaError, OSError):
         super().__init__(
             message,
             environment_location=environment_location,
+            caused_by=caused_by,
             **kwargs,
         )
 
