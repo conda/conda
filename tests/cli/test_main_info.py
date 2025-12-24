@@ -359,12 +359,15 @@ def test_compute_prefix_size_unreadable_directory(tmp_path: Path, request):
 
     if sys.platform == "win32":
         username = os.environ.get("USERNAME")
-        subprocess.check_call(
-            ["icacls", str(subdir), "/deny", f"{username}:(R)"],
+        subprocess.run(
+            ["icacls", str(subdir), "/deny", f"{username}:(OI)(CI)RX"],
+            check=True,
+            capture_output=True,
         )
         request.addfinalizer(
-            lambda: subprocess.check_call(
-                ["icacls", str(subdir), "/remove:d", username],
+            lambda: subprocess.run(
+                ["icacls", str(subdir), "/grant", f"{username}:(OI)(CI)F"],
+                capture_output=True,
             )
         )
     else:
