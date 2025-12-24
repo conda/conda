@@ -202,7 +202,7 @@
 @IF NOT %ErrorLevel%==0 @GOTO :UP_TO_DATE
 @ECHO Updating %_INSTALLER_TYPE%...
 
-@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
+@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all "--prefix=%_ENV%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update %_INSTALLER_TYPE% 1>&2
     @EXIT /B 1
