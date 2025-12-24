@@ -19,7 +19,7 @@ from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
 from ..deprecations import deprecated
-from ..exceptions import DirectoryNotFoundError, EnvironmentNotReadableError
+from ..exceptions import EnvironmentNotReadableError
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -144,21 +144,12 @@ def get_user_site() -> list[str]:  # pragma: no cover
 
 def compute_prefix_size(prefix: PathType) -> int:
     """
-    Compute the total size of a conda environment prefix using metadata.
+    Compute the total size of a conda environment prefix.
 
     :param prefix: Path to the environment prefix.
     :returns: Total size in bytes.
-    :raises DirectoryNotFoundError: The environment prefix does not exist.
-    :raises NotADirectoryError: The environment prefix path exists but is not a directory.
-    :raises EnvironmentNotReadableError: Conda does not have permission to read the prefix.
+    :raises EnvironmentNotReadableError: Conda does not have permission to read the environment prefix.
     """
-
-    if not exists(prefix):
-        raise DirectoryNotFoundError(prefix)
-
-    if not os.path.isdir(prefix):
-        raise NotADirectoryError(prefix)
-
     total_size = 0
 
     try:

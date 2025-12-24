@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import os
+import stat
 from collections.abc import Iterable
 from os.path import isdir
 from pathlib import Path
@@ -14,9 +16,14 @@ import pytest
 
 from conda.base.constants import PREFIX_FROZEN_FILE
 from conda.base.context import context
-from conda.cli.main_info import get_info_components, iter_info_components
+from conda.cli.main_info import (
+    compute_prefix_size,
+    get_info_components,
+    iter_info_components,
+)
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
+from conda.exceptions import EnvironmentNotReadableError
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 if TYPE_CHECKING:
@@ -263,7 +270,7 @@ def test_info_envs_size_json(conda_cli: CondaCLIFixture):
     assert isinstance(parsed, dict)
     assert "envs_details" in parsed
 
-    for prefix, details in parsed["envs_details"].items():
+    for _, details in parsed["envs_details"].items():
         assert "size" in details
         assert isinstance(details["size"], int)
         assert details["size"] >= 0
@@ -313,8 +320,6 @@ def test_get_info_components() -> None:
 
 
 def test_compute_prefix_size(tmp_path: Path):
-    from conda.cli.main_info import compute_prefix_size
-
     test_dir = tmp_path / "test_env"
     test_dir.mkdir()
 
@@ -337,21 +342,42 @@ def test_compute_prefix_size(tmp_path: Path):
 def test_compute_prefix_size_with_metadata(
     conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
 ):
-    from conda.cli.main_info import compute_prefix_size
-
     with tmp_env("ca-certificates") as prefix:
         size = compute_prefix_size(str(prefix))
         assert size > 0
 
 
-def test_compute_prefix_size_nonexistent_directory():
-    from conda.cli.main_info import compute_prefix_size
-    from conda.exceptions import DirectoryNotFoundError
+def test_compute_prefix_size_unreadable_directory(tmp_path: Path, request):
+    test_dir = tmp_path / "test_env"
+    test_dir.mkdir()
 
-    nonexistent_path = "/nonexistent/path/to/environment"
+    subdir = test_dir / "subdir"
+    subdir.mkdir()
+    (subdir / "file.txt").write_text("test content")
 
-    with pytest.raises(DirectoryNotFoundError) as exc_info:
-        compute_prefix_size(nonexistent_path)
+    current = stat.S_IMODE(os.lstat(subdir).st_mode)
+    os.chmod(subdir, current & ~stat.S_IXUSR & ~stat.S_IXGRP & ~stat.S_IXOTH)
 
-    # Verify the exception contains the path
-    assert nonexistent_path in str(exc_info.value)
+    request.addfinalizer(lambda: os.chmod(subdir, current))
+
+    with pytest.raises(EnvironmentNotReadableError) as exc_info:
+        compute_prefix_size(str(test_dir))
+
+    assert str(test_dir) in str(exc_info.value)
+
+
+def test_compute_prefix_size_empty_directory(tmp_path: Path):
+    test_dir = tmp_path / "empty_env"
+    test_dir.mkdir()
+
+    size = compute_prefix_size(str(test_dir))
+    assert size == 0
+
+
+def test_compute_prefix_size_with_path_object(tmp_path: Path):
+    test_dir = tmp_path / "test_env"
+    test_dir.mkdir()
+    (test_dir / "file.txt").write_text("test")
+
+    size = compute_prefix_size(test_dir)
+    assert size == len("test")
