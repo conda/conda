@@ -235,6 +235,7 @@ def test_info_envs_json(conda_cli: CondaCLIFixture):
     assert isdir(first_env)
     first_envs_details = parsed["envs_details"][first_env]
     assert isinstance(first_envs_details, dict)
+    assert "size" not in first_envs_details
 
 
 def test_info_envs_size(conda_cli: CondaCLIFixture):
