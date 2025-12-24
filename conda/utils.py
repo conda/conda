@@ -62,22 +62,22 @@ def human_bytes(n):
         >>> human_bytes(42)
         '42 B'
         >>> human_bytes(1042)
-        '1 KB'
+        '1 KiB'
         >>> human_bytes(10004242)
-        '9.5 MB'
+        '9.5 MiB'
         >>> human_bytes(100000004242)
-        '93.13 GB'
+        '93.13 GiB'
     """
     if n < 1024:
         return "%d B" % n
     k = n / 1024
     if k < 1024:
-        return "%d KB" % round(k)
+        return "%d KiB" % round(k)
     m = k / 1024
     if m < 1024:
-        return f"{m:.1f} MB"
+        return f"{m:.1f} MiB"
     g = m / 1024
-    return f"{g:.2f} GB"
+    return f"{g:.2f} GiB"
 
 
 # ##########################################
