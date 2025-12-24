@@ -23,7 +23,7 @@ from conda.cli.main_info import (
 )
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
-from conda.exceptions import EnvironmentNotReadableError
+from conda.exceptions import ArgumentError, EnvironmentNotReadableError
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 if TYPE_CHECKING:
@@ -381,3 +381,8 @@ def test_compute_prefix_size_with_path_object(tmp_path: Path):
 
     size = compute_prefix_size(test_dir)
     assert size == len("test")
+
+
+def test_info_size_without_envs(conda_cli: CondaCLIFixture):
+    with pytest.raises(ArgumentError, match="--size can only be used with --envs"):
+        conda_cli("info", "--size")

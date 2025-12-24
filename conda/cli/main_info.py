@@ -19,7 +19,7 @@ from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
 from ..deprecations import deprecated
-from ..exceptions import EnvironmentNotReadableError
+from ..exceptions import ArgumentError, EnvironmentNotReadableError
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -87,7 +87,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "--size",
         action="store_true",
-        help="Show disk usage for each environment (only applicable with --envs).",
+        help="Show disk usage for each environment.",
     )
     p.add_argument(
         "--root",
@@ -639,8 +639,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.context import context
 
+    if args.size and not args.envs:
+        raise ArgumentError("--size can only be used with --envs")
+
     components = iter_info_components(args, context)
-    show_size = getattr(args, "size", False) and args.envs
+    show_size = getattr(args, "size", False)
     renderer = InfoRenderer(context, show_size=show_size)
     renderer.render(components)
 
