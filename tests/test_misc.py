@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import codecs
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
@@ -32,7 +31,7 @@ def test_Utf8NamedTemporaryFile():
                 else test_string
             )
             fname = tf.name
-        with codecs.open(fname, mode="rb", encoding="utf-8") as fh:
+        with open(fname, encoding="utf-8") as fh:
             value = fh.read()
         assert value == test_string
     except Exception as exc:

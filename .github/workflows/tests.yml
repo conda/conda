@@ -201,7 +201,7 @@ jobs:
         runs-on:
           - ubuntu-latest  # linux-64
           - ubuntu-24.04-arm  # linux-aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -248,7 +248,27 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
+      - name: Conda Install (Py3.14)
+        if: matrix.python-version == '3.14'
+        run: >
+          conda install
+          --yes
+          --file tests/requirements-py314.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          ${{ env.REQUIREMENTS_TRUSTSTORE }}
+          python=${{ matrix.python-version }}
+
+      - name: Manually add conda-libmamba-solver (Py3.14)
+        # conda-libmamba-solver depends on conda which doesn't have a Python 3.14 build yet
+        if: matrix.python-version == '3.14'
+        run: >
+          conda install --yes
+          ${{ matrix.default-channel == 'conda-forge' && 'https://conda.anaconda.org/conda-forge/noarch/conda-libmamba-solver-25.11.0-pyhd8ed1ab_0.conda' || 'https://conda.anaconda.org/main/noarch/conda-libmamba-solver-25.11.0-pyhdf14ebd_0.tar.bz2' }}
+
       - name: Conda Install
+        if: matrix.python-version != '3.14'
         run: >
           conda install
           --yes
