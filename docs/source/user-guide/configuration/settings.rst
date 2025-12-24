@@ -354,6 +354,27 @@ protocol. The default is ``False``.
 
   offline: True
 
+Verbosity settings
+------------------
+
+There are four inter-related keys that control how much output ``conda`` will
+generate in the terminal.
+
+- ``verbosity``: An integer from 0 to 4. The default is 0. Increasing this value
+  will result in more messages being printed to standard error.
+- ``quiet``: A boolean. Disables optional messages printed to standard output,
+  like progress bars and intermediate reports.
+- ``json``: Boolean. Makes ``conda`` generate JSON documents in standard output.
+  Logging statements will still be sent to standard error.
+- ``debug`` and ``trace``: Booleans, equivalent ``verbosity: 3`` and
+  ``verbosity: 4``, respectively. Their use is discouraged. Use ``verbosity``
+  instead.
+
+.. seealso::
+
+  The :ref:`console` setting will also affect the style of the output used by
+  ``conda``.
+
 Advanced configuration
 ======================
 
