@@ -222,7 +222,6 @@ class PrefixActions:
             yield getattr(self, field.name)
 
 
-@deprecated("25.9", "26.3", addendum="Use PrefixActions instead.")
 class PrefixActionGroup(NamedTuple):
     remove_menu_action_groups: Iterable[ActionGroup]
     unlink_action_groups: Iterable[ActionGroup]
