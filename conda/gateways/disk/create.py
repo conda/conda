@@ -145,7 +145,7 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
     else:
         shebang = None
 
-    with open(target_full_path, mode="wb", encoding="utf-8") as fo:
+    with open(target_full_path, mode="w", encoding="utf-8") as fo:
         if shebang is not None:
             fo.write(shebang)
         fo.write(pyscript)
