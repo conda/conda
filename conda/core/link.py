@@ -232,6 +232,8 @@ class PrefixActionGroup(NamedTuple):
     make_menu_action_groups: Iterable[ActionGroup]
     entry_point_action_groups: Iterable[ActionGroup]
     prefix_record_groups: Iterable[ActionGroup]
+    initial_action_groups: Iterable[ActionGroup] = ()
+    final_action_groups: Iterable[ActionGroup] = ()
 
 
 class ChangeReport(NamedTuple):
@@ -614,7 +616,7 @@ class UnlinkLinkTransaction:
             neutered_specs,
         )
 
-        return PrefixActions(
+        return PrefixActionGroup(
             remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,
