@@ -63,3 +63,19 @@ def as_virtual_package(record) -> GenericVirtualPackage:
     return GenericVirtualPackage(
         PackageName(record.name), Version(record.version), record.build
     )
+
+
+def channel_name_or_url(url: str, full_url: bool = False) -> str:
+    from conda.base.constants import KNOWN_SUBDIRS
+    from conda.base.context import context
+
+    if url.endswith(tuple(f"/{subdir}" for subdir in KNOWN_SUBDIRS)):
+        url = url.rsplit("/", 1)[0]
+
+    if full_url:
+        return url
+
+    alias = str(context.channel_alias)
+    if not alias.endswith("/"):
+        alias += "/"
+    return url.replace(alias, "").replace("https://repo.anaconda.com/", "").rstrip("/")

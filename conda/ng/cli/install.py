@@ -132,7 +132,7 @@ def solution_table(
 ):
     from rich.table import Column
 
-    from .common import create_table
+    from .common import channel_name_or_url, create_table
 
     table = create_table(
         *(("*",) if verbose else ()),
@@ -172,7 +172,7 @@ def solution_table(
                 removed.name.normalized,
                 str(removed.version),
                 removed.build,
-                removed.channel.replace("https://conda.anaconda.org/", "").rstrip("/"),
+                channel_name_or_url(removed.channel),
                 removed.subdir,
                 *requested_or_historic_spec,
                 style="red dim",
@@ -183,7 +183,7 @@ def solution_table(
                 record.name.normalized,
                 str(record.version),
                 record.build,
-                record.channel.replace("https://conda.anaconda.org/", "").rstrip("/"),
+                channel_name_or_url(record.channel),
                 record.subdir,
                 *requested_or_historic_spec,
                 style=" ".join(styles),

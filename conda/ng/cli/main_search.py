@@ -22,7 +22,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     import asyncio
     import itertools
 
-    import rattler
     from rattler.platform import Platform
     from rattler.repo_data import Gateway
     from rich.console import Console
@@ -62,7 +61,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             result = search_in_environments(args.match_spec)
         else:
             # Remote channel search
-            async def inner() -> Iterable[rattler.RepoDataRecord]:
+            async def inner() -> Iterable[RepoDataRecord]:
                 gateway = Gateway(cache_dir=cache_dir())
                 return itertools.chain(
                     *await gateway.query(
@@ -84,11 +83,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             console.print(record_as_details(record))
     else:
         console.print(records_as_table(records))
+
     return 0
 
 
 def records_as_table(records: Iterable[RepoDataRecord]) -> Table:
     from rich.table import Column, Table
+
+    from .common import channel_name_or_url
 
     with_environment = hasattr(records[0], "installed_in_prefix")
 
@@ -107,9 +109,7 @@ def records_as_table(records: Iterable[RepoDataRecord]) -> Table:
             record.name.normalized,
             str(record.version),
             record.build,
-            record.channel.replace("https://conda.anaconda.org/", "")
-            .replace("https://repo.anaconda.com/", "")
-            .rstrip("/"),
+            channel_name_or_url(record.channel),
             record.subdir,
             *((str(record.installed_in_prefix),) if with_environment else ()),
         )
