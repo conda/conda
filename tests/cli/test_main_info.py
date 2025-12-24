@@ -6,6 +6,8 @@ from __future__ import annotations
 import json
 import os
 import stat
+import subprocess
+import sys
 from collections.abc import Iterable
 from os.path import isdir
 from pathlib import Path
@@ -355,10 +357,20 @@ def test_compute_prefix_size_unreadable_directory(tmp_path: Path, request):
     subdir.mkdir()
     (subdir / "file.txt").write_text("test content")
 
-    current = stat.S_IMODE(os.lstat(subdir).st_mode)
-    os.chmod(subdir, current & ~stat.S_IXUSR & ~stat.S_IXGRP & ~stat.S_IXOTH)
-
-    request.addfinalizer(lambda: os.chmod(subdir, current))
+    if sys.platform == "win32":
+        username = os.environ.get("USERNAME")
+        subprocess.check_call(
+            ["icacls", str(subdir), "/deny", f"{username}:(R)"],
+        )
+        request.addfinalizer(
+            lambda: subprocess.check_call(
+                ["icacls", str(subdir), "/remove:d", username],
+            )
+        )
+    else:
+        current = stat.S_IMODE(os.lstat(subdir).st_mode)
+        os.chmod(subdir, current & ~stat.S_IXUSR & ~stat.S_IXGRP & ~stat.S_IXOTH)
+        request.addfinalizer(lambda: os.chmod(subdir, current))
 
     with pytest.raises(EnvironmentNotReadableError) as exc_info:
         compute_prefix_size(str(test_dir))
