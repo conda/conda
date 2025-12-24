@@ -4,42 +4,42 @@
 
 from __future__ import annotations
 
-from builtins import input  # noqa: F401, UP029
-from io import StringIO  # noqa: F401, for conda-build
+from builtins import input  # noqa: UP029
+from io import StringIO
 from typing import TYPE_CHECKING
 
-from . import CondaError  # noqa: F401
-from .base.constants import (  # noqa: F401
+from . import CondaError
+from .base.constants import (
     DEFAULT_CHANNELS,
     DEFAULT_CHANNELS_UNIX,
     DEFAULT_CHANNELS_WIN,
     PREFIX_PLACEHOLDER,
 )
-from .base.context import (  # noqa: F401
+from .base.context import (
     context,
     non_x86_machines,
     reset_context,
     sys_rc_path,
 )
-from .cli.common import spec_from_line, specs_from_args, specs_from_url  # noqa: F401
-from .cli.conda_argparse import ArgumentParser  # noqa: F401
-from .cli.helpers import (  # noqa: F401
+from .cli.common import spec_from_line, specs_from_args, specs_from_url
+from .cli.conda_argparse import ArgumentParser
+from .cli.helpers import (
     add_parser_channels,
     add_parser_prefix,
 )
-from .common import compat  # noqa: F401
+from .common import compat
 from .common.serialize.json import CondaJSONEncoder
-from .common.toposort import _toposort  # noqa: F401
+from .common.toposort import _toposort
 from .core.index import (
     Index,
-    dist_str_in_index,  # noqa: F401
+    dist_str_in_index,
 )
-from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
+from .core.package_cache_data import ProgressiveFetchExtract
 from .core.prefix_data import delete_prefix_from_linked_data
-from .core.solve import Solver  # noqa: F401
-from .core.subdir_data import cache_fn_url  # noqa: F401
+from .core.solve import Solver
+from .core.subdir_data import cache_fn_url
 from .deprecations import deprecated
-from .exceptions import (  # noqa: F401
+from .exceptions import (
     CondaHTTPError,
     CondaOSError,
     LinkError,
@@ -48,28 +48,121 @@ from .exceptions import (  # noqa: F401
     PathNotFoundError,
     UnsatisfiableError,
 )
-from .gateways.connection.download import TmpDownload  # noqa: F401
+from .gateways.connection.download import TmpDownload
 from .gateways.connection.download import download as _download
-from .gateways.connection.session import CondaSession  # noqa: F401
-from .gateways.disk.create import TemporaryDirectory  # noqa: F401
-from .gateways.disk.delete import delete_trash  # noqa: F401
-from .gateways.disk.link import lchmod  # noqa: F401
-from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call  # noqa: F401
-from .misc import untracked, walk_prefix  # noqa: F401
-from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
+from .gateways.connection.session import CondaSession
+from .gateways.disk.create import TemporaryDirectory
+from .gateways.disk.delete import delete_trash
+from .gateways.disk.link import lchmod
+from .gateways.subprocess import ACTIVE_SUBPROCESSES, subprocess_call
+from .misc import untracked, walk_prefix
+from .models.channel import Channel, get_conda_build_local_url
 from .models.dist import Dist
-from .models.enums import FileMode, PathEnum  # noqa: F401
-from .models.version import VersionOrder, normalized_version  # noqa: F401
-from .resolve import (  # noqa: F401
+from .models.enums import FileMode, PathEnum
+from .models.version import VersionOrder, normalized_version
+from .resolve import (
     MatchSpec,
     Resolve,
     ResolvePackageNotFound,
     Unsatisfiable,
 )
-from .utils import human_bytes, url_path  # noqa: F401
+from .utils import human_bytes, url_path
 
 if TYPE_CHECKING:
     from typing import Any
+
+__all__ = [
+    "ACTIVE_SUBPROCESSES",
+    "ArgumentParser",
+    "Channel",
+    "CondaError",
+    "CondaFileNotFoundError",
+    "CondaHTTPError",
+    "CondaOSError",
+    "CondaSession",
+    "DEFAULT_CHANNELS",
+    "DEFAULT_CHANNELS_UNIX",
+    "DEFAULT_CHANNELS_WIN",
+    "Dist",
+    "FileMode",
+    "Index",
+    "LinkError",
+    "LockError",
+    "MatchSpec",
+    "NoPackagesFound",
+    "NoPackagesFoundError",
+    "PREFIX_PLACEHOLDER",
+    "PY3",
+    "PaddingError",
+    "PathEnum",
+    "PathNotFoundError",
+    "ProgressiveFetchExtract",
+    "Resolve",
+    "ResolvePackageNotFound",
+    "Solver",
+    "StringIO",
+    "TYPE_CHECKING",
+    "TemporaryDirectory",
+    "TmpDownload",
+    "Unsatisfiable",
+    "UnsatisfiableError",
+    "VersionOrder",
+    "_PREFIX_PLACEHOLDER",
+    "_download",
+    "_toposort",
+    "add_parser_channels",
+    "add_parser_prefix",
+    "annotations",
+    "arch_name",
+    "binstar_upload",
+    "bits",
+    "cache_fn_url",
+    "compat",
+    "conda_build",
+    "context",
+    "default_prefix",
+    "default_python",
+    "delete_prefix_from_linked_data",
+    "delete_trash",
+    "deprecated",
+    "dist_str_in_index",
+    "download",
+    "envs_dirs",
+    "get_conda_build_local_url",
+    "get_default_urls",
+    "get_index",
+    "get_local_urls",
+    "get_rc_urls",
+    "human_bytes",
+    "input",
+    "is_linked",
+    "lchmod",
+    "linked",
+    "linked_data",
+    "load_condarc",
+    "non_x86_linux_machines",
+    "non_x86_machines",
+    "normalized_version",
+    "package_cache",
+    "pkgs_dirs",
+    "platform",
+    "prefix_placeholder",
+    "reset_context",
+    "rm_rf",
+    "root_dir",
+    "root_writable",
+    "spec_from_line",
+    "specs_from_args",
+    "specs_from_url",
+    "string_types",
+    "subdir",
+    "subprocess_call",
+    "sys_rc_path",
+    "text_type",
+    "untracked",
+    "url_path",
+    "walk_prefix",
+]
 
 reset_context()  # initialize context when conda.exports is imported
 
