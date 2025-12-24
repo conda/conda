@@ -265,7 +265,7 @@ jobs:
         if: matrix.python-version == '3.14'
         run: >
           conda install --yes
-          ${{ matrix.default-channel == 'conda-forge' && 'https://anaconda.org/conda-forge/conda-libmamba-solver/25.4.0/download/noarch/conda-libmamba-solver-25.4.0-pyhd8ed1ab_0.conda' || 'https://anaconda.org/main/conda-libmamba-solver/25.4.0/download/noarch/conda-libmamba-solver-25.4.0-pyhd3eb1b0_0.tar.bz2' }}
+          ${{ matrix.default-channel == 'conda-forge' && 'https://conda.anaconda.org/conda-forge/noarch/conda-libmamba-solver-25.11.0-pyhd8ed1ab_0.conda' || 'https://conda.anaconda.org/main/noarch/conda-libmamba-solver-25.11.0-pyhdf14ebd_0.tar.bz2' }}
 
       - name: Conda Install
         if: matrix.python-version != '3.14'
