@@ -344,7 +344,7 @@ def _do_copy(src, dst):
 
     # Same size as used by Linux cp command (has performance advantage).
     # Python's default is 16k.
-    buffer_size = 4194304  # 4 * 1024 * 1024  == 4 MB
+    buffer_size = 4194304  # 4 * 1024 * 1024  == 4 MiB
     with open(src, "rb") as fsrc:
         with open(dst, "wb") as fdst:
             copyfileobj(fsrc, fdst, buffer_size)
