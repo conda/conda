@@ -4,11 +4,41 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from conda import CondaError
-
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    raise CondaError("Not implemented yet")
+    from rattler import MatchSpec
+
+    from conda.base.context import context
+    from conda.history import History
+
+    from .common import as_virtual_package
+    from .install import install, installed_packages
+
+    prefix = context.target_prefix
+
+    history = [
+        MatchSpec(str(spec))
+        for spec in History(prefix).get_requested_specs_map().values()
+    ]
+    specs = [MatchSpec(spec) for spec in args.packages]
+    virtual_packages = [
+        as_virtual_package(pkg)
+        for pkg in context.plugin_manager.get_virtual_package_records()
+    ]
+    install(
+        specs=specs,
+        history=history,
+        channels=context.channels,
+        platform=context.subdir,
+        target_prefix=context.target_prefix,
+        locked_packages=installed_packages(context.target_prefix),
+        virtual_packages=virtual_packages,
+        report=not context.quiet and not context.json,
+        verbose=context.verbosity >= 1,
+        dry_run=context.dry_run,
+    )
+
+    return 0
