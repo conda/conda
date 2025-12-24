@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from ..base.context import Context
+    from ..common.path import PathType
     from ..models.records import PackageRecord
 
 log = getLogger(__name__)
@@ -141,20 +142,22 @@ def get_user_site() -> list[str]:  # pragma: no cover
     return site_dirs
 
 
-def compute_prefix_size(prefix: str) -> int:
+def compute_prefix_size(prefix: PathType) -> int:
     """
     Compute the total size of a conda environment prefix using metadata.
 
     :param prefix: Path to the environment prefix.
     :returns: Total size in bytes.
+    :raises DirectoryNotFoundError: The environment prefix does not exist.
+    :raises NotADirectoryError: The environment prefix path exists but is not a directory.
     :raises EnvironmentNotReadableError: Conda does not have permission to read the prefix.
     """
 
     if not exists(prefix):
         raise DirectoryNotFoundError(prefix)
 
-    if not isfile(prefix) and not os.path.isdir(prefix):
-        raise EnvironmentNotReadableError(prefix)
+    if not os.path.isdir(prefix):
+        raise NotADirectoryError(prefix)
 
     total_size = 0
 
@@ -164,9 +167,8 @@ def compute_prefix_size(prefix: str) -> int:
                 path = join(dirpath, filename)
                 if not islink(path):
                     total_size += os.path.getsize(path)
-
-    except OSError as e:
-        raise EnvironmentNotReadableError(prefix, e)
+    except OSError:
+        raise EnvironmentNotReadableError(prefix)
 
     return total_size
 
