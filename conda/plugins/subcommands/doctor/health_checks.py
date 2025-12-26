@@ -13,7 +13,7 @@ from requests.exceptions import RequestException
 from ....base.constants import PREFIX_PINNED_FILE
 from ....base.context import context
 from ....common.io import dashlist
-from ....common.serialize import json, yaml_safe_dump
+from ....common.serialize import json, yaml
 from ....core.envs_manager import get_user_environments_txt_file
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaError
@@ -237,7 +237,7 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
     if issues:
         print(f"{X_MARK} The environment is not consistent.\n")
         if verbose:
-            print(yaml_safe_dump(issues))
+            print(yaml.dumps(issues))
     else:
         print(f"{OK_MARK} The environment is consistent.\n")
 

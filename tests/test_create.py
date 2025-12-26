@@ -40,7 +40,7 @@ from conda.common.path import (
     get_python_site_packages_short_path,
     pyc_path,
 )
-from conda.common.serialize import json, yaml_round_trip_load
+from conda.common.serialize import json, yaml
 from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
@@ -2420,9 +2420,7 @@ def test_create_env_different_platform(
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
         assert (
-            yaml_round_trip_load((prefix / DEFAULT_CONDARC_FILENAME).read_text())[
-                "subdir"
-            ]
+            yaml.loads((prefix / DEFAULT_CONDARC_FILENAME).read_text())["subdir"]
             == platform
         )
 
