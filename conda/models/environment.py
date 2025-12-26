@@ -338,7 +338,10 @@ class Environment:
             )
         )
 
-        variables = {k: v for env in environments for (k, v) in env.variables.items()}
+        variables = {}
+        for env in environments:
+            if env.variables:
+                variables = {k: v for env in environments for (k, v) in env.variables.items()}
 
         external_packages = {}
         for env in environments:
@@ -497,16 +500,15 @@ class Environment:
         # environment spec plugin. The core conda cli commands are not
         # ready for that yet. So, use this old way of reading specs from
         # files.
+        envs_from_file = []
         for fpath in args.file:
-            try:
-                specs.extend(
-                    [spec for spec in specs_from_url(fpath) if spec != EXPLICIT_MARKER]
-                )
-            except UnicodeError:
-                raise CondaError(
-                    "Error reading file, file should be a text file containing packages\n"
-                    "See `conda create --help` for details."
-                )
+            spec_hook = context.plugin_manager.get_environment_specifier(
+                source=fpath,
+                name=context.environment_specifier,
+            )
+            spec = spec_hook.environment_spec(fpath)
+            env = spec.env
+            envs_from_file.append(env)
 
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any
@@ -535,7 +537,7 @@ class Environment:
                     "Cannot mix specifications with conda package filenames"
                 )
 
-        return Environment(
+        env = Environment(
             name=args.name,
             prefix=context.target_prefix,
             platform=context.subdir,
@@ -543,6 +545,9 @@ class Environment:
             explicit_packages=explicit_packages,
             config=EnvironmentConfig.from_context(),
         )
+
+        # merge the environments
+        return cls.merge(env, *envs_from_file)
 
     @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:
