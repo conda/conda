@@ -88,6 +88,8 @@ def install(
             record.sha256 for record in records
         ):
             raise CondaExitZero("Nothing to do.")
+    else:
+        installed = ()
     if not records:
         raise CondaExitZero("Nothing to do.")
 
@@ -141,7 +143,7 @@ def solution_table(
         Column("Build", justify="right"),
         "Channel",
         "Subdir",
-        *("Spec",) if verbose else (),
+        *("Requested as",) if verbose else (),
         caption_justify="left",
     )
     installed = {record.name.normalized: record for record in installed}
@@ -149,6 +151,7 @@ def solution_table(
     for record in sorted(records, key=lambda r: r.name.normalized):
         requested = [spec for spec in specs if record.matches(spec)]
         historic = [spec for spec in history if record.matches(spec)]
+        new = record.name.normalized not in installed
         removed = installed.get(record.name.normalized)
         if removed and removed.sha256 == record.sha256:
             removed = None
@@ -174,12 +177,12 @@ def solution_table(
                 removed.build,
                 channel_name_or_url(removed.channel),
                 removed.subdir,
-                *requested_or_historic_spec,
+                None,
                 style="red dim",
             )
         if requested or verbose:
             table.add_row(
-                *(("+" if removed else "",) if verbose else ()),
+                *(("+" if new or removed else "",) if verbose else ()),
                 record.name.normalized,
                 str(record.version),
                 record.build,
