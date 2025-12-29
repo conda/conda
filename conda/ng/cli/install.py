@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Helpers for conda create, install, update and remove.
 """
@@ -33,7 +35,7 @@ def install(
     constraints: Iterable[MatchSpec] | None = None,
     dry_run: bool = False,
     report: bool = True,
-    verbose: bool = False,
+    removing: bool = False,
 ) -> None:
     import asyncio
     import time
@@ -90,7 +92,7 @@ def install(
             raise CondaExitZero("Nothing to do.")
     else:
         installed = ()
-    if not records:
+    if not installed and not records:
         raise CondaExitZero("Nothing to do.")
 
     if report:
@@ -100,7 +102,7 @@ def install(
                 specs=specs,
                 installed=installed,
                 history=history,
-                verbose=verbose,
+                removing=removing,
             )
         )
 
@@ -130,73 +132,83 @@ def solution_table(
     specs: Iterable[MatchSpec] = (),
     history: Iterable[MatchSpec] = (),
     installed: Iterable[PrefixRecord] = (),
-    verbose: bool = False,
+    removing: bool = False,
 ):
     from rich.table import Column
 
     from .common import channel_name_or_url, create_table
 
     table = create_table(
-        *(("*",) if verbose else ()),
+        "*",
         "Name",
         "Version",
         Column("Build", justify="right"),
         "Channel",
         "Subdir",
-        *("Requested as",) if verbose else (),
+        "Requested as",
         caption_justify="left",
     )
     installed = {record.name.normalized: record for record in installed}
-    non_requested = 0
-    for record in sorted(records, key=lambda r: r.name.normalized):
-        requested = [spec for spec in specs if record.matches(spec)]
-        historic = [spec for spec in history if record.matches(spec)]
-        new = record.name.normalized not in installed
-        removed = installed.get(record.name.normalized)
-        if removed and removed.sha256 == record.sha256:
-            removed = None
+    records = {record.name.normalized: record for record in records}
+    all_names = sorted(dict.fromkeys([*installed, *records]))
+    for name in all_names:
+        # These are the specs for "Requested as" column
+        requested = [spec for spec in specs if spec.name.normalized == name]
+        historic = [spec for spec in history if spec.name.normalized == name]
+
         styles = []
-        if verbose:
+        if not removing:
             if historic:
-                styles.extend(["blue"])
+                styles.append("blue")
             if requested:
                 styles.append("bold")
-            else:
+        requested_or_historic_spec = " & ".join(
+            [str(s) for s in (requested or historic)]
+        )
+
+        # Table entries may have three states: added, removed or kept
+        # 'added' always comes from the records list
+        # 'removed' and 'kept' always come from installed; a removed
+        # entry is one that is also found in added
+        if name in installed and name in records:
+            installed_record = installed[name]
+            record = records[name]
+            if installed_record.sha256 == record.sha256:
+                # No change
+                status = ""
                 styles.append("dim")
-        if not requested:
-            non_requested += 1
-        requested_or_historic_spec = (
-            (" & ".join([str(s) for s in (requested or historic)]),) if verbose else ()
-        )
-        if removed and verbose:
+            else:
+                # There was a change!
+                styles.append("green")
+                status = "+"
+                table.add_row(
+                    "-",
+                    installed_record.name.normalized,
+                    str(installed_record.version),
+                    installed_record.build,
+                    channel_name_or_url(installed_record.channel),
+                    installed_record.subdir,
+                    None,
+                    style="red bold" if removing or requested else "red dim",
+                )
+        elif name in records and name not in installed:
+            status = "+"
             styles.append("green")
-            table.add_row(
-                "-",
-                removed.name.normalized,
-                str(removed.version),
-                removed.build,
-                channel_name_or_url(removed.channel),
-                removed.subdir,
-                None,
-                style="red dim",
-            )
-        if requested or verbose:
-            table.add_row(
-                *(("+" if new or removed else "",) if verbose else ()),
-                record.name.normalized,
-                str(record.version),
-                record.build,
-                channel_name_or_url(record.channel),
-                record.subdir,
-                *requested_or_historic_spec,
-                style=" ".join(styles),
-            )
-    if verbose:
-        table.caption = (
-            "Legend: bold=requested, green=added, red=removed, blue=historic"
+        elif name in installed and name not in records:
+            status = "-"
+            styles.extend(["red", "bold" if removing else "dim"])
+        record = records.get(name) or installed[name]
+        table.add_row(
+            status,
+            record.name.normalized,
+            str(record.version),
+            record.build,
+            channel_name_or_url(record.channel),
+            record.subdir,
+            requested_or_historic_spec,
+            style=" ".join(styles),
         )
-    elif non_requested:
-        table.caption = f"+ {non_requested} packages, use -v to show all"
+    table.caption = "Legend: bold=requested, green=added, red=removed, blue=historic"
     return table
 
 

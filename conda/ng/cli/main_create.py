@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """CLI reimplementation for create"""
 
 from __future__ import annotations
@@ -43,7 +45,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         virtual_packages=virtual_packages,
         report=not context.quiet and not context.json,
         dry_run=context.dry_run,
-        verbose=context.verbosity >= 1,
     )
 
     if not context.quiet and not context.json:
