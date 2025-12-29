@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """CLI reimplementation for deactivate"""
 
 from __future__ import annotations

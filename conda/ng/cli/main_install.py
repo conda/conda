@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """CLI reimplementation for install"""
 
 from __future__ import annotations
@@ -37,7 +39,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         locked_packages=installed_packages(context.target_prefix),
         virtual_packages=virtual_packages,
         report=not context.quiet and not context.json,
-        verbose=context.verbosity >= 1,
         dry_run=context.dry_run,
     )
 
