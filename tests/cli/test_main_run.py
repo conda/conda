@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import stat
-import sys
 import uuid
 from logging import WARNING, getLogger
 from pathlib import Path
@@ -20,7 +19,7 @@ from conda.exceptions import (
     EnvironmentLocationNotFound,
 )
 from conda.gateways.logging import initialize_logging
-from conda.testing.integration import env_or_set, which_or_where
+from conda.testing.integration import env_or_set
 from conda.utils import wrap_subprocess_call
 
 if TYPE_CHECKING:
