@@ -27,6 +27,26 @@ if TYPE_CHECKING:
     from conda.testing.fixtures import TmpEnvFixture
 
 
+@pytest.fixture
+def environment_spec_plugin_factory():
+    def _create_plugin(requested_packages):
+        class MockEnvSpec:
+            @property
+            def env(self):
+                return Environment(
+                    platform=context.subdir,
+                    requested_packages=requested_packages,
+                )
+
+        class MockEnvSpecPlugin:
+            def environment_spec(*args, **kwargs):
+                return MockEnvSpec()
+        
+        return MockEnvSpecPlugin
+    
+    return _create_plugin
+        
+
 def test_create_environment_missing_required_fields():
     with pytest.raises(CondaValueError):
         Environment(platform=None, prefix="/path/to/env")
@@ -474,13 +494,12 @@ def test_from_cli_mix_explicit_and_specs():
     assert "Cannot mix explicit package urls with conda specs" in str(exc_info)
 
 
-def test_from_cli_with_files(mocker: MockerFixture):
-    # Mock out extracting specs from a file by providing a list of specs.
-    # This is similar output to extracting specs from a requirements.txt file.
-    fake_specs_from_url = ["numpy", "python >=3.9"]
+def test_from_cli_with_files(mocker: MockerFixture, environment_spec_plugin_factory: callable):
+    fake_specs_from_url = [MatchSpec("numpy"), MatchSpec("python >=3.9")]
+    mock_env_spec_plugin = environment_spec_plugin_factory(fake_specs_from_url)
     mocker.patch(
-        "conda.models.environment.specs_from_url",
-        return_value=fake_specs_from_url,
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=mock_env_spec_plugin,
     )
 
     env = Environment.from_cli(
@@ -557,17 +576,18 @@ def test_from_cli_inject_default_packages_override(
 
 
 def test_from_cli_environment_inject_default_packages_override_file(
-    monkeypatch: MonkeyPatch, mocker: MockerFixture
+    monkeypatch: MonkeyPatch, mocker: MockerFixture,environment_spec_plugin_factory: callable
 ):
     # Setup the default packages. Expect this to inject favicon and numpy==2.0.0
     monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,numpy==2.0.0")
     reset_context()
 
-    # Mock the contents of a requirements.txt file that contains the spec numpy==2.3.1
-    fake_specs_from_url = ["numpy==2.3.1"]
+    # Mock the contents of an environment file that contains the spec numpy==2.3.1
+    fake_specs_from_url = [MatchSpec("numpy==2.3.1")]
+    mock_env_spec_plugin = environment_spec_plugin_factory(fake_specs_from_url)
     mocker.patch(
-        "conda.models.environment.specs_from_url",
-        return_value=fake_specs_from_url,
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=mock_env_spec_plugin,
     )
 
     env = Environment.from_cli(

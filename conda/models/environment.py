@@ -516,7 +516,10 @@ class Environment:
         # present in the list of specs, don't add it (this will override any
         # version constraint from the default package).
         if add_default_packages:
+            # specs provided on the cli
             names = {MatchSpec(spec).name for spec in specs}
+            # add requested + explicit packages from files
+            names = names | {spec.name for env in envs_from_file for spec in [*env.explicit_packages, *env.requested_packages]}
             for default_package in context.create_default_packages:
                 if MatchSpec(default_package).name not in names:
                     specs.append(default_package)
@@ -541,7 +544,7 @@ class Environment:
                     "Cannot mix explicit package urls with conda specs"
                 )
 
-        env = Environment(
+        cli_env = Environment(
             name=args.name,
             prefix=context.target_prefix,
             platform=context.subdir,
@@ -551,7 +554,7 @@ class Environment:
         )
 
         # merge the environments
-        return cls.merge(env, *envs_from_file)
+        return cls.merge(cli_env, *envs_from_file)
 
     @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:
