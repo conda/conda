@@ -471,7 +471,7 @@ def test_from_cli_mix_explicit_and_specs():
                 file=[],
             ),
         )
-    assert "Cannot mix specifications with conda package filenames" in str(exc_info)
+    assert "Cannot mix explicit package urls with conda specs" in str(exc_info)
 
 
 def test_from_cli_with_files(mocker: MockerFixture):
