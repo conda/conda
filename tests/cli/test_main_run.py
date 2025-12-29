@@ -108,7 +108,6 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
         conda_cli("run", f"--prefix={tmp_path}", "echo", "hello")
 
 
-@_skip_py314
 def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env() as prefix:
         stdout, stderr, _ = conda_cli(
@@ -336,7 +335,6 @@ def test_run_deactivates_environment_unix(
         )
 
 
-@_skip_py314
 @pytest.mark.parametrize(
     ("script_name", "script_template"),
     [
@@ -387,7 +385,6 @@ def test_run_executes_deactivation_scripts(
         )
 
 
-@_skip_py314
 @pytest.mark.parametrize(
     ("script_name", "script_template", "command"),
     [
@@ -437,7 +434,6 @@ def test_run_preserves_exit_code_with_deactivation(
         assert deactivation_marker_file.exists()
 
 
-@_skip_py314
 @pytest.mark.parametrize(
     ("script_name", "script_template", "command"),
     [
