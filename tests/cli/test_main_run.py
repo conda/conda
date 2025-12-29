@@ -116,7 +116,7 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
             dals(
                 f"""
                 {env_or_set}
-                conda --version
+                git --version
                 """
             ),
         )
