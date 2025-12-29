@@ -273,7 +273,9 @@ class Environment:
             for requested_package in self.requested_packages:
                 if requested_package.name not in explicit_package_names:
                     raise CondaValueError(
-                        f"Requested package '{requested_package}' is not found in 'explicit_packages'."
+                        "Cannot mix explicit package urls with conda specs\n"
+                        f"Requested package spec '{requested_package}' is not found in the "
+                        "set of requested  'explicit_packages'."
                     )
 
     @classmethod
@@ -519,6 +521,8 @@ class Environment:
                 if MatchSpec(default_package).name not in names:
                     specs.append(default_package)
 
+        # TODO: can this set of operations be simplified here now that
+        # we are merging environments using the Environment.merge function.
         for spec in specs:
             if (match_spec := MatchSpec(spec)).get("url"):
                 fetch_explicit_packages.append(spec)
@@ -534,7 +538,7 @@ class Environment:
                 )
             else:
                 raise CondaValueError(
-                    "Cannot mix specifications with conda package filenames"
+                    "Cannot mix explicit package urls with conda specs"
                 )
 
         env = Environment(
