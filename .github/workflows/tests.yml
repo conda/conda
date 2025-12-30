@@ -299,7 +299,10 @@ jobs:
       - name: Setup Shells
         # for tests/shell, so only necessary for integration tests
         if: matrix.test-type == 'integration'
-        run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
+        run: |
+          sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
+          # Initialize all shells
+          python -m conda init --all
 
       - name: Run Tests
         run: >
