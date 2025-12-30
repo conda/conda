@@ -63,7 +63,6 @@ from .constants import (
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
     ENV_VARS_SOURCE,
-    ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
@@ -456,7 +455,9 @@ class Context(Configuration):
     _trace = ParameterLoader(PrimitiveParameter(False), aliases=["trace"])
     dev = ParameterLoader(PrimitiveParameter(False))
     dry_run = ParameterLoader(PrimitiveParameter(False))
-    error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
+    _error_upload_url = ParameterLoader(
+        PrimitiveParameter("https://conda.io/conda-post/unexpected-error")
+    )
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
     _console = ParameterLoader(
@@ -597,6 +598,15 @@ class Context(Configuration):
         """
         self.plugin_manager.load_settings()
         return self.plugin_manager.get_config(self.raw_data)
+
+    @property
+    @deprecated(
+        "26.9",
+        "27.3",
+        addendum="`error_upload_url` is being deprecated and will be removed in conda version 27.3",
+    )
+    def error_upload_url(self) -> str:
+        return self._error_upload_url
 
     @property
     def conda_build_local_paths(self) -> tuple[PathType, ...]:
@@ -1404,7 +1414,7 @@ class Context(Configuration):
                 "dev",
                 "default_python",
                 "enable_private_envs",
-                "error_upload_url",  # should remain undocumented
+                "error_upload_url",
                 "force_32bit",
                 "root_prefix",
                 "sat_solver",
