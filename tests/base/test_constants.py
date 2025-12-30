@@ -1,8 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import pytest
-from logging import getLogger
 from contextlib import nullcontext
+from logging import getLogger
+
+import pytest
 
 from conda.base import constants
 from conda.base.constants import ChannelPriority

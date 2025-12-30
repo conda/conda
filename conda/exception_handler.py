@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 from .common.compat import ensure_text_type, on_win
 from .deprecations import deprecated
 
-
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
