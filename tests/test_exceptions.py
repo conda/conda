@@ -3,6 +3,7 @@
 import getpass
 import json
 import sys
+from contextlib import nullcontext
 from unittest.mock import patch
 
 import pytest
@@ -962,3 +963,15 @@ def test_proxy_error_custom_message() -> None:
     assert str(exc_custom) == custom_message
 
     assert str(ProxyError()) != str(exc_custom)
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [("error_upload_url", TypeError)],
+)
+def test_ExceptionHandler_deprecations(
+    function: str, raises: type[Exception] | None
+) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(ExceptionHandler(), function)()

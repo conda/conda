@@ -11,6 +11,8 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from .common.compat import ensure_text_type, on_win
+from .deprecations import deprecated
+
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -52,6 +54,11 @@ class ExceptionHandler:
         return context.user_agent
 
     @property
+    @deprecated(
+        "26.9",
+        "27.3",
+        addendum="`error_upload_url` is being deprecated and will be removed in conda version 27.3",
+    )
     def error_upload_url(self):
         from .base.context import context
 
