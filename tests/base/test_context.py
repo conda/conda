@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import os
 from argparse import Namespace
+from contextlib import nullcontext
 from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest import mock
-from contextlib import nullcontext
 
 import pytest
 
