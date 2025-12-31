@@ -10,9 +10,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from typing import Literal
 
-    from rattler import GenericVirtualPackage, PrefixRecord
+    from rattler import GenericVirtualPackage, PackageRecord, PrefixRecord
     from rich.console import Console
     from rich.panel import Panel
     from rich.table import Table
@@ -96,14 +97,25 @@ def channel_name_or_url(url: str, full_url: bool = False) -> str:
     return url.replace(alias, "").replace("https://repo.anaconda.com/", "").rstrip("/")
 
 
-def installed_packages(prefix: Path | str, sorted: bool = True) -> list[PrefixRecord]:
+def installed_packages(
+    prefix: Path | str, sorted: bool = True, matching: str | None = None
+) -> Iterable[PrefixRecord]:
+    import re
     from pathlib import Path
 
     from rattler import PrefixRecord
 
-    packages = [
-        PrefixRecord.from_path(f) for f in Path(prefix, "conda-meta").glob("*.json")
-    ]
+    jsons = list(Path(prefix, "conda-meta").glob("*.json"))
     if sorted:
-        packages.sort(key=lambda r: (r.name.normalized, r.version, r.build_number))
-    return packages
+        jsons.sort()
+    for path in jsons:
+        name, _, _ = path.stem.rsplit("-", 2)
+        if matching is None or (matching and re.match(matching, name) is not None):
+            yield PrefixRecord.from_path(path)
+
+
+def dist_str(pkg: PackageRecord) -> str:
+    channel_and_subdir = channel_name_or_url(pkg.channel)
+    if not channel_and_subdir.endswith(pkg.subdir):
+        channel_and_subdir += f"/{pkg.subdir}"
+    return f"{channel_and_subdir}::{pkg.name.normalized}-{pkg.version}-{pkg.build}"

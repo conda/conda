@@ -89,7 +89,7 @@ def install(
     )
 
     if target_prefix:
-        installed = installed_packages(target_prefix)
+        installed = list(installed_packages(target_prefix))
         if set(record.sha256 for record in installed) == set(
             record.sha256 for record in records
         ):
@@ -119,7 +119,7 @@ def install(
         await rattler_install(
             records=records,
             target_prefix=target_prefix,
-            installed_packages=installed or installed_packages(target_prefix),
+            installed_packages=installed or list(installed_packages(target_prefix)),
             cache_dir=cache_dir("pkgs"),
             execute_link_scripts=True,
             # TODO: Fix the need to pass the inner PyMatchSpec
