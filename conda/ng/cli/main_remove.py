@@ -16,8 +16,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from conda.base.context import context
     from conda.history import History
 
-    from .common import as_virtual_package
-    from .install import install, installed_packages
+    from .common import as_virtual_package, installed_packages
+    from .install import install
 
     prefix = context.target_prefix
     history = [

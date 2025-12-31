@@ -17,8 +17,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from conda.base.context import context
     from conda.utils import human_bytes
 
-    from .common import channel_name_or_url, create_table
-    from .install import installed_packages
+    from .common import channel_name_or_url, create_table, installed_packages
 
     prefix = context.target_prefix
     table = create_table(

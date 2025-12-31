@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal
 
-    from rattler import GenericVirtualPackage
+    from rattler import GenericVirtualPackage, PrefixRecord
     from rich.panel import Panel
     from rich.table import Table
 
@@ -81,3 +81,16 @@ def channel_name_or_url(url: str, full_url: bool = False) -> str:
     if not alias.endswith("/"):
         alias += "/"
     return url.replace(alias, "").replace("https://repo.anaconda.com/", "").rstrip("/")
+
+
+def installed_packages(prefix: Path | str, sorted: bool = True) -> list[PrefixRecord]:
+    from pathlib import Path
+
+    from rattler import PrefixRecord
+
+    packages = [
+        PrefixRecord.from_path(f) for f in Path(prefix, "conda-meta").glob("*.json")
+    ]
+    if sorted:
+        packages.sort(key=lambda r: (r.name.normalized, r.version, r.build_number))
+    return packages
