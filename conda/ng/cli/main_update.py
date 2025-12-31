@@ -70,11 +70,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         history=history,
         channels=context.channels,
         platform=context.subdir,
-        target_prefix=context.target_prefix,
+        target_prefix=prefix,
         locked_packages=list(installed.values()),
         virtual_packages=virtual_packages,
         report=not context.quiet and not context.json,
         dry_run=context.dry_run,
     )
+    History(prefix).write_specs(update_specs=map(str, specs))
 
     return 0

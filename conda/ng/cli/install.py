@@ -47,6 +47,7 @@ def install(
     from rattler.exceptions import GatewayError, SolverError
 
     from conda.exceptions import CondaError, CondaExitZero, DryRunExit
+    from conda.history import History
     from conda.reporters import confirm_yn
 
     from .common import cache_dir, create_console, installed_packages
@@ -127,7 +128,10 @@ def install(
             show_progress=report,
         )
 
-    asyncio.run(inner_install())
+    # Write History ourselves, rattler doesn't do that yet
+    with History(target_prefix):
+        asyncio.run(inner_install())
+
     if report:
         print()
     return records

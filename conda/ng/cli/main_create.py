@@ -18,6 +18,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from conda.base.context import context
     from conda.exceptions import ArgumentError
+    from conda.history import History
 
     from .common import activate_panel, as_virtual_package
     from .install import install
@@ -46,6 +47,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         report=not context.quiet and not context.json,
         dry_run=context.dry_run,
     )
+    History(target_prefix).write_specs(update_specs=map(str, specs))
 
     if not context.quiet and not context.json:
         rich.print(activate_panel(args.name or target_prefix))

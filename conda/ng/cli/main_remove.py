@@ -106,4 +106,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             conflicts.update(new_conflicts)
         else:
             break
+
+    History(prefix).write_specs(remove_specs=map(str, specs))
+
     return 0
