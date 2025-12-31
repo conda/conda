@@ -51,4 +51,3 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         p = subprocess.run(["cmd.exe" if on_win else "bash", script], cwd=args.cwd)
 
     return p.returncode
-
