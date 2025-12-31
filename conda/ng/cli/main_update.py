@@ -30,7 +30,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     installed = {
         pkg.name.normalized: pkg for pkg in installed_packages(context.target_prefix)
     }
-    specs_queue = [*args.packages]
+    if args.packages:
+        specs_queue = [*args.packages]
+    elif str(args.update_modifier) == "update_all":
+        specs_queue = list(installed)
+    else:
+        raise ArgumentError("Please specify at least one package name to update.")
     specs = []
     while specs_queue:
         spec_str = specs_queue.pop()

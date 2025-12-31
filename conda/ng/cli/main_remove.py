@@ -29,14 +29,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         MatchSpec(str(spec))
         for spec in History(prefix).get_requested_specs_map().values()
     ]
-    try:
-        names = [MatchSpec(spec) for spec in args.package_names]
-    except InvalidMatchSpecError as exc:
-        raise ArgumentError(f"Invalid MatchSpec: {exc}") from exc
     installed = {
         record.name.normalized: record
         for record in installed_packages(context.target_prefix)
     }
+    if args.package_names:
+        try:
+            names = [MatchSpec(spec) for spec in args.package_names]
+        except InvalidMatchSpecError as exc:
+            raise ArgumentError(f"Invalid MatchSpec: {exc}") from exc
+    elif args.all:
+        names = [MatchSpec(name) for name in installed]
+    else:
+        raise ArgumentError("Please specify at least one package to remove.")
     virtual_packages = [
         as_virtual_package(pkg)
         for pkg in context.plugin_manager.get_virtual_package_records()
@@ -56,7 +61,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     for record_name, record in installed.items():
                         if spec.match(record):
                             remove.add(record_name)
-                elif spec not in installed:
+                elif spec.name.normalized not in installed:
                     raise ArgumentError(
                         f"Package '{spec}' is not installed. Nothing to remove."
                     )
