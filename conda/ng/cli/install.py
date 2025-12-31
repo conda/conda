@@ -214,4 +214,3 @@ def solution_table(
         )
     table.caption = "Legend: bold=requested, green=added, red=removed, blue=historic"
     return table
-
