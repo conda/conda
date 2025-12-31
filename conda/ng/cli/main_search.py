@@ -89,19 +89,20 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
 
 def records_as_table(records: Iterable[RepoDataRecord]) -> Table:
-    from rich.table import Column, Table
+    from rich.table import Column
 
-    from .common import channel_name_or_url
+    from .common import channel_name_or_url, create_table
 
     with_environment = hasattr(records[0], "installed_in_prefix")
 
-    table = Table(
+    table = create_table(
         "Name",
-        Column("Version", justify="right"),
+        "Version",
         Column("Build", justify="right"),
         "Channel",
         "Subdir",
         *(("Environment",) if with_environment else ()),
+        row_styles=["dim", "none"],
     )
     count = 0
     for record in records:
@@ -171,15 +172,16 @@ def search_in_environments(spec: str) -> Iterable[RepoDataRecord]:
     from pathlib import Path
 
     from rattler import MatchSpec
-    from rattler.prefix import PrefixRecord
 
     from conda.core.envs_manager import list_all_known_prefixes
+
+    from .common import installed_packages
 
     spec = MatchSpec(spec)
     for prefix in list_all_known_prefixes():
         prefix = Path(prefix)
-        for record_json in (prefix / "conda-meta").glob("*.json"):
-            record = PrefixRecord.from_path(record_json)
+        for record in installed_packages(prefix):
             if record.matches(spec):
+                # HACK :D
                 record.installed_in_prefix = prefix
                 yield record
