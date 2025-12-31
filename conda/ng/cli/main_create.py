@@ -34,6 +34,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if not context.dry_run and not target_prefix:
         target_prefix = Path(context.envs_dirs[0], args.name)
 
+    if Path(target_prefix).exists():
+        raise ArgumentError(f"Target prefix '{target_prefix}' already exists.")
+
     virtual_packages = [
         as_virtual_package(pkg)
         for pkg in context.plugin_manager.get_virtual_package_records()

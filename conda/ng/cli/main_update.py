@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from pathlib import Path
+
     from rattler import MatchSpec
     from rattler.exceptions import InvalidMatchSpecError
 
@@ -22,6 +24,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .install import install
 
     prefix = context.target_prefix
+    if not Path(prefix).exists():
+        raise ArgumentError(f"Target prefix '{prefix}' does not exist.")
 
     history = [
         MatchSpec(str(spec))

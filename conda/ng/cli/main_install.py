@@ -11,15 +11,20 @@ if TYPE_CHECKING:
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
+    from pathlib import Path
+
     from rattler import MatchSpec
 
     from conda.base.context import context
+    from conda.exceptions import ArgumentError
     from conda.history import History
 
     from .common import as_virtual_package, installed_packages
     from .install import install
 
     prefix = context.target_prefix
+    if not Path(prefix).exists():
+        raise ArgumentError(f"Target prefix '{prefix}' does not exist. Use 'create'?")
 
     history = [
         MatchSpec(str(spec))
