@@ -456,7 +456,8 @@ class Context(Configuration):
     dev = ParameterLoader(PrimitiveParameter(False))
     dry_run = ParameterLoader(PrimitiveParameter(False))
     _error_upload_url = ParameterLoader(
-        PrimitiveParameter("https://conda.io/conda-post/unexpected-error")
+        PrimitiveParameter("https://conda.io/conda-post/unexpected-error"),
+        aliases=("error_upload_url",),
     )
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
