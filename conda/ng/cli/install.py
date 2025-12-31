@@ -36,7 +36,8 @@ def install(
     dry_run: bool = False,
     report: bool = True,
     removing: bool = False,
-) -> None:
+    t0: float | None = None,
+) -> Iterable[PackageRecord]:
     import asyncio
     import time
     from datetime import timedelta
@@ -50,6 +51,7 @@ def install(
     from conda.reporters import confirm_yn
 
     from .common import cache_dir, installed_packages
+    from .exceptions import CondaSolverError
 
     specs = [MatchSpec(spec) if isinstance(spec, str) else spec for spec in specs]
     history = [MatchSpec(spec) if isinstance(spec, str) else spec for spec in history]
@@ -71,12 +73,12 @@ def install(
 
     console = Console()
 
-    t0 = time.perf_counter()
+    t0 = t0 or time.perf_counter()
     with console.status("solving"):
         try:
             records = asyncio.run(inner_solve())
         except SolverError as exc:
-            raise CondaError(f"Solver error:\n\n{exc}") from exc
+            raise CondaSolverError(str(exc)) from exc
         except GatewayError as exc:
             raise CondaError(f"Connection error:\n\n{exc}") from exc
     t1 = time.perf_counter()
@@ -129,6 +131,73 @@ def install(
     asyncio.run(inner_install())
     if report:
         print()
+    return records
+
+
+def parse_conflicts(
+    problems: str,
+    conflicts: None | dict[str, MatchSpec] = None,
+    installed: Iterable[PackageRecord] = (),
+) -> dict[str, list[MatchSpec]]:
+    from rattler import MatchSpec
+
+    from conda import CondaError
+
+    unsatisfiable = {}
+    not_found = {}
+    for line in problems.splitlines():
+        for char in "─│└├":
+            line = line.replace(char, "")
+        line = line.strip()
+        if line.startswith("Cannot solve the request because of:"):
+            line = line.split(":", 1)[1]
+        words = line.split()
+        if "is locked, but another version is required as reported above" in line:
+            unsatisfiable[words[0]] = MatchSpec(f"{words[0]} {words[1]}")
+        elif "which cannot be installed because there are no viable options" in line:
+            unsatisfiable[words[0]] = MatchSpec(f"{words[0]} {words[1].strip(',')}")
+        elif "cannot be installed because there are no viable options" in line:
+            unsatisfiable[words[0]] = MatchSpec(f"{words[0]} {words[1]}")
+        elif "the constraint" in line and "cannot be fulfilled" in line:
+            unsatisfiable[words[2]] = MatchSpec(" ".join(words[2:-3]))
+        elif (
+            "can be installed with any of the following options" in line
+            and "which" not in line
+        ):
+            position = line.index(" can be installed with")
+            unsatisfiable[words[0]] = MatchSpec(line[:position])
+        elif "No candidates were found for" in line:
+            position = line.index("No candidates were found for ")
+            position += len("No candidates were found for ")
+            spec = line[position:].rstrip(".")
+            spec = MatchSpec(spec)
+            # Do not consider "not found" if it's already installed; this happens
+            # when user requested a package from a channel that is no longer in the
+            # list. e.g. `conda create main::psutil` + `conda install -c conda-forge python`
+            if any(spec.match(record) for record in installed.values()):
+                unsatisfiable[spec.name] = spec
+            else:
+                not_found[spec.name] = spec
+
+    if not unsatisfiable and not_found:
+        raise CondaError(f"Could not find any matches for: {not_found.values()}")
+
+    previous = conflicts or {}
+    previous_set = set(previous.values())
+    current_set = set(unsatisfiable.values())
+
+    diff = current_set.difference(previous_set)
+    if len(diff) > 1 and "python" in unsatisfiable:
+        # Only report python as conflict if it's the only conflict reported
+        # This helps us prioritize neutering for other dependencies first
+        unsatisfiable.pop("python")
+
+    if (previous and (previous_set == current_set)) or len(diff) >= 10:
+        # We have same or more (up to 10) unsatisfiable now! Abort to avoid recursion
+        exc = CondaError(problems)
+        raise exc
+
+    return unsatisfiable
 
 
 def solution_table(
