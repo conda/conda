@@ -67,7 +67,14 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
                     *module_name_components[conda_idx:],
                 ]
             )
-        module = import_module(module_name)
+        try:
+            module = import_module(module_name)
+        except ModuleNotFoundError:
+            from conda import CondaError
+
+            raise CondaError(
+                "This subcommand will not be reimplemented. Use regular conda."
+            )
         command = module_name.split(".")[-1].replace("main_", "")
 
         context.plugin_manager.invoke_pre_commands(command)
