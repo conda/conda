@@ -57,7 +57,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         if spec.match(record):
                             remove.add(record_name)
                 elif spec not in installed:
-                    raise ArgumentError(f"Package '{spec}' is not installed. Nothing to remove.")
+                    raise ArgumentError(
+                        f"Package '{spec}' is not installed. Nothing to remove."
+                    )
                 else:
                     remove.add(spec.name.normalized)
             remove_depends = set()

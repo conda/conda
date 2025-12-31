@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from rattler import MatchSpec
+    from rattler.exceptions import InvalidMatchSpecError
 
     from conda.base.context import context
     from conda.exceptions import ArgumentError
@@ -29,9 +30,22 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     installed = {
         pkg.name.normalized: pkg for pkg in installed_packages(context.target_prefix)
     }
+    specs_queue = [*args.packages]
     specs = []
-    for spec in args.packages:
-        spec = MatchSpec(spec)
+    while specs_queue:
+        spec_str = specs_queue.pop()
+        try:
+            spec = MatchSpec(spec_str)
+        except InvalidMatchSpecError as exc:
+            raise ArgumentError(f"Invalid MatchSpec: {exc}") from exc
+        if "*" in spec_str:
+            raise ArgumentError(
+                f"Asterisks in package names are not supported yet: {spec_str}"
+            )
+            for record_name, record in installed.items():
+                if spec.match(record):
+                    specs_queue.append(record_name)
+            continue
         if spec.name.normalized not in installed:
             raise ArgumentError(
                 "conda update only allows updating installed packages; use conda install."
@@ -40,6 +54,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise ArgumentError(
                 "conda update only allows name-only specs; use conda install."
             )
+        specs.append(spec)
 
     virtual_packages = [
         as_virtual_package(pkg)
