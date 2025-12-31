@@ -41,14 +41,15 @@ def install(
     import time
     from datetime import timedelta
 
-    from rattler import Gateway, MatchSpec, install, solve
-    from rattler.exceptions import SolverError
+    from rattler import Gateway, MatchSpec, solve
+    from rattler import install as rattler_install
+    from rattler.exceptions import GatewayError, SolverError
     from rich.console import Console
 
     from conda.exceptions import CondaError, CondaExitZero, DryRunExit
     from conda.reporters import confirm_yn
 
-    from .common import cache_dir
+    from .common import cache_dir, installed_packages
 
     specs = [MatchSpec(spec) if isinstance(spec, str) else spec for spec in specs]
     history = [MatchSpec(spec) if isinstance(spec, str) else spec for spec in history]
@@ -76,6 +77,8 @@ def install(
             records = asyncio.run(inner_solve())
         except SolverError as exc:
             raise CondaError(f"Solver error:\n\n{exc}") from exc
+        except GatewayError as exc:
+            raise CondaError(f"Connection error:\n\n{exc}") from exc
     t1 = time.perf_counter()
     delta = timedelta(seconds=t1 - t0)
     console.print(
@@ -112,11 +115,12 @@ def install(
     confirm_yn(f"\nApply changes to '{target_prefix}'?")
 
     async def inner_install():
-        await install(
+        await rattler_install(
             records=records,
             target_prefix=target_prefix,
             installed_packages=installed or installed_packages(target_prefix),
             cache_dir=cache_dir("pkgs"),
+            execute_link_scripts=True,
             # TODO: Fix the need to pass the inner PyMatchSpec
             requested_specs=[s._match_spec for s in specs],
             show_progress=report,
@@ -211,15 +215,3 @@ def solution_table(
     table.caption = "Legend: bold=requested, green=added, red=removed, blue=historic"
     return table
 
-
-def installed_packages(prefix: Path | str, sorted: bool = True) -> list[PrefixRecord]:
-    from pathlib import Path
-
-    from rattler import PrefixRecord
-
-    packages = [
-        PrefixRecord.from_path(f) for f in Path(prefix, "conda-meta").glob("*.json")
-    ]
-    if sorted:
-        packages.sort(key=lambda r: (r.name.normalized, r.version, r.build_number))
-    return packages
