@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from rattler import GenericVirtualPackage, PrefixRecord
+    from rich.console import Console
     from rich.panel import Panel
     from rich.table import Table
 
@@ -44,6 +45,18 @@ def activate_panel(env_name_or_prefix) -> Panel:
             $ conda deactivate"""
     )
     return Panel(message, title="Activation instructions", expand=False, padding=1)
+
+
+def create_console(*args, **kwargs) -> Console:
+    import sys
+
+    from rich.console import Console
+
+    kwargs.setdefault("soft_wrap", True)
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        # Disable output trimming in non-interactive sessions
+        kwargs.setdefault("width", 100_000)
+    return Console(*args, **kwargs)
 
 
 def create_table(*columns, **kwargs) -> Table:

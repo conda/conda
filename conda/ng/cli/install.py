@@ -45,12 +45,11 @@ def install(
     from rattler import Gateway, MatchSpec, solve
     from rattler import install as rattler_install
     from rattler.exceptions import GatewayError, SolverError
-    from rich.console import Console
 
     from conda.exceptions import CondaError, CondaExitZero, DryRunExit
     from conda.reporters import confirm_yn
 
-    from .common import cache_dir, installed_packages
+    from .common import cache_dir, create_console, installed_packages
     from .exceptions import CondaSolverError
 
     specs = [MatchSpec(spec) if isinstance(spec, str) else spec for spec in specs]
@@ -71,7 +70,7 @@ def install(
             constraints=constraints,
         )
 
-    console = Console()
+    console = create_console()
 
     t0 = t0 or time.perf_counter()
     with console.status("solving"):

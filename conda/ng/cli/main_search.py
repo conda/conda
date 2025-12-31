@@ -26,12 +26,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from rattler.platform import Platform
     from rattler.repo_data import Gateway
-    from rich.console import Console
 
     from conda.base.context import context
     from conda.exceptions import ArgumentError, PackagesNotFoundError
 
-    from .common import cache_dir
+    from .common import cache_dir, create_console
 
     if args.match_spec in (None, "*"):
         raise ArgumentError("Must provide one SPEC to search.")
@@ -57,7 +56,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             *channels[defaults_idx + 1 :],
         ]
 
-    console = Console()
+    console = create_console()
     with console.status("Searching..."):
         if args.envs:
             result = search_in_environments(args.match_spec)

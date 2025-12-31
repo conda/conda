@@ -11,13 +11,17 @@ if TYPE_CHECKING:
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from rich.console import Console
     from rich.rule import Rule
 
     from conda.base.context import context
     from conda.utils import human_bytes
 
-    from .common import channel_name_or_url, create_table, installed_packages
+    from .common import (
+        channel_name_or_url,
+        create_console,
+        create_table,
+        installed_packages,
+    )
 
     prefix = context.target_prefix
     table = create_table(
@@ -56,6 +60,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         f"[bold]{requested}[/] requested packages, [bold]{implicit}[/] transitive dependencies. "
         f"[bold]{human_bytes(size)}[/] total size."
     )
-    Console().print(Rule(prefix, style=None), "", table)
+    create_console().print(Rule(prefix, style=None), "", table)
 
     return 0
