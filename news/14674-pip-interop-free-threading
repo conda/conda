@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Non-conda installed Python packages now show up in `conda list` in free-threading environments. (#14674)
+* Python packages not listed as from the `pypi` channel if the `site-packages` directory includes a symlink. (#14674)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
