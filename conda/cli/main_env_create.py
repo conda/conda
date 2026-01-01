@@ -28,6 +28,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_platform,
         add_parser_prefix,
         add_parser_solver,
+        add_parser_create_install_update,
     )
 
     summary = "Create an environment based on an environment definition file."
@@ -68,29 +69,23 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         epilog=epilog,
         **kwargs,
     )
-    p.add_argument(
-        "-f",
-        "--file",
-        action="store",
-        help="Environment definition file (default: environment.yml)",
-        default="environment.yml",
-    )
 
-    # Add name and prefix args
-    add_parser_prefix(p)
 
-    # Add networking args
-    add_parser_networking(p)
+    # Common args for create/install/update
+    # Includes parser prefix, networking, output and prompt options
+    add_parser_create_install_update(p)
 
     # Add environment spec plugin args
     add_parser_environment_specifier(p)
 
     add_parser_default_packages(p)
-    add_output_and_prompt_options(p)
     add_parser_solver(p)
     add_parser_platform(p)
 
-    p.set_defaults(func="conda.cli.main_env_create.execute")
+    p.set_defaults(
+        func="conda.cli.main_create.execute",
+        clone=False,
+    )
 
     return p
 
