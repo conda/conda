@@ -19,10 +19,12 @@ from ...base.constants import (
     DEFAULT_CONSOLE_REPORTER_BACKEND,
 )
 from ...base.context import context
+from ...cli.main_info import compute_prefix_size
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from ...core.prefix_data import PrefixData
 from ...exceptions import CondaError
+from ...utils import human_bytes
 from .. import hookimpl
 from ..types import (
     CondaReporterBackend,
@@ -202,6 +204,8 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         if not output:
             return ""
 
+        show_size = kwargs.get("show_size", False)
+
         output = [
             "",
             "# conda environments:",
@@ -218,6 +222,10 @@ class ConsoleReporterRenderer(ReporterRendererBase):
                 else " "
             )
             frozen = "+" if prefix.is_frozen() else " "
+            if show_size:
+                size = compute_prefix_size(str(prefix.prefix_path))
+                size_str = human_bytes(size)
+                return f"{prefix.name:20} {active} {frozen} {str(prefix.prefix_path):60} {size_str:>10}"
             return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
 
         for env_prefix in prefixes:
