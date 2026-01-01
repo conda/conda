@@ -3,6 +3,7 @@
 import getpass
 import json
 import sys
+from contextlib import nullcontext
 from unittest.mock import patch
 
 import pytest
@@ -667,13 +668,15 @@ def test_print_unexpected_error_message_upload_1(
     assert not context.json
     assert not context.always_yes
 
-    ExceptionHandler()(_raise_helper, AssertionError())
-    stdout, stderr = capsys.readouterr()
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        ExceptionHandler()(_raise_helper, AssertionError())
+        stdout, stderr = capsys.readouterr()
 
-    assert username_not_in_post_mock(post_mock, getpass.getuser())
-    assert post_mock.call_count == 2
-    assert not stdout
-    assert "conda version" in stderr
+        assert username_not_in_post_mock(post_mock, getpass.getuser())
+        assert post_mock.call_count == 2
+        assert not stdout
+        assert "conda version" in stderr
 
 
 def test_print_unexpected_error_message_upload_2(
@@ -710,13 +713,15 @@ def test_print_unexpected_error_message_upload_2(
     assert context.json
     assert context.always_yes
 
-    ExceptionHandler()(_raise_helper, AssertionError())
-    stdout, stderr = capsys.readouterr()
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        ExceptionHandler()(_raise_helper, AssertionError())
+        stdout, stderr = capsys.readouterr()
 
-    assert username_not_in_post_mock(post_mock, getpass.getuser())
-    assert post_mock.call_count == 3
-    assert len(json.loads(stdout)["conda_info"]["channels"]) >= 2
-    assert not stderr
+        assert username_not_in_post_mock(post_mock, getpass.getuser())
+        assert post_mock.call_count == 3
+        assert len(json.loads(stdout)["conda_info"]["channels"]) >= 2
+        assert not stderr
 
 
 def test_print_unexpected_error_message_upload_3(
@@ -750,15 +755,17 @@ def test_print_unexpected_error_message_upload_3(
     assert not context.json
     assert not context.always_yes
 
-    ExceptionHandler()(_raise_helper, AssertionError())
-    stdout, stderr = capsys.readouterr()
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        ExceptionHandler()(_raise_helper, AssertionError())
+        stdout, stderr = capsys.readouterr()
 
-    assert username_not_in_post_mock(post_mock, username=getpass.getuser())
-    assert isatty_mock.call_count == 1
-    assert input_mock.call_count == 1
-    assert post_mock.call_count == 2
-    assert not stdout
-    assert "conda version" in stderr
+        assert username_not_in_post_mock(post_mock, username=getpass.getuser())
+        assert isatty_mock.call_count == 1
+        assert input_mock.call_count == 1
+        assert post_mock.call_count == 2
+        assert not stdout
+        assert "conda version" in stderr
 
 
 @patch(
@@ -783,15 +790,17 @@ def test_print_unexpected_error_message_upload_username_with_spaces(
     reset_context()
     assert context.report_errors
 
-    ExceptionHandler()(_raise_helper, AssertionError())
-    stdout, stderr = capsys.readouterr()
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        ExceptionHandler()(_raise_helper, AssertionError())
+        stdout, stderr = capsys.readouterr()
 
-    error_data = json.loads(post_mock.call_args[1].get("data"))
-    assert error_data.get("has_spaces") is True
-    assert error_data.get("is_ascii") is True
-    assert post_mock.call_count == 2
-    assert stdout == ""
-    assert "conda version" in stderr
+        error_data = json.loads(post_mock.call_args[1].get("data"))
+        assert error_data.get("has_spaces") is True
+        assert error_data.get("is_ascii") is True
+        assert post_mock.call_count == 2
+        assert stdout == ""
+        assert "conda version" in stderr
 
 
 @patch(
@@ -816,15 +825,17 @@ def test_print_unexpected_error_message_upload_username_with_unicode(
     reset_context()
     assert context.report_errors
 
-    ExceptionHandler()(_raise_helper, AssertionError())
-    stdout, stderr = capsys.readouterr()
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        ExceptionHandler()(_raise_helper, AssertionError())
+        stdout, stderr = capsys.readouterr()
 
-    error_data = json.loads(post_mock.call_args[1].get("data"))
-    assert error_data.get("has_spaces") is False
-    assert error_data.get("is_ascii") is False
-    assert post_mock.call_count == 2
-    assert stdout == ""
-    assert "conda version" in stderr
+        error_data = json.loads(post_mock.call_args[1].get("data"))
+        assert error_data.get("has_spaces") is False
+        assert error_data.get("is_ascii") is False
+        assert post_mock.call_count == 2
+        assert stdout == ""
+        assert "conda version" in stderr
 
 
 @patch("requests.post", return_value=None)
@@ -962,3 +973,15 @@ def test_proxy_error_custom_message() -> None:
     assert str(exc_custom) == custom_message
 
     assert str(ProxyError()) != str(exc_custom)
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [("error_upload_url", TypeError)],
+)
+def test_ExceptionHandler_deprecations(
+    function: str, raises: type[Exception] | None
+) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(ExceptionHandler(), function)()

@@ -383,20 +383,22 @@ def test_conda_config_show_includes_plugin_settings(
         "value_one",
     )
 
-    out, err, _ = conda_cli("config", "--show")
-    config_data = YAML().load(out)
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        out, err, _ = conda_cli("config", "--show")
+        config_data = YAML().load(out)
 
-    assert not err
-    assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
-    assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
-    assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
+        assert not err
+        assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
+        assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
+        assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
 
-    out, err, _ = conda_cli("config", "--show", "--json")
+        out, err, _ = conda_cli("config", "--show", "--json")
 
-    config_data = json.loads(out)
-    assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
-    assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
-    assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
+        config_data = json.loads(out)
+        assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
+        assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
+        assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
 
 
 @pytest.mark.parametrize(
