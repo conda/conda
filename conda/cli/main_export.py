@@ -151,7 +151,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     )
     if unknown_platforms:
         if len(unknown_platforms) == 1:
-            raise CondaValueError(
+            parser.error(
                 "\n".join(
                     (
                         f"Could not find platform '{unknown_platforms[0]}'.",
@@ -160,16 +160,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                     )
                 )
             )
-        raise CondaValueError(
-            "\n".join(
-                (
-                    "Could not find platform(s):",
-                    dashlist(unknown_platforms),
-                    "Valid platforms include:",
-                    dashlist(KNOWN_SUBDIRS),
+        else:
+            parser.error(
+                "\n".join(
+                    (
+                        "Could not find platform(s):",
+                        dashlist(unknown_platforms),
+                        "Valid platforms include:",
+                        dashlist(KNOWN_SUBDIRS),
+                    )
                 )
             )
-        )
 
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
