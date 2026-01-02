@@ -145,17 +145,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # TODO: Check if platform targets are valid
 
     unknown_platforms = tuple(
-    platform
-    for platform in context.export_platforms
-    if platform not in KNOWN_SUBDIRS
-)
-
+        platform
+        for platform in context.export_platforms
+        if platform not in KNOWN_SUBDIRS
+    )
     if unknown_platforms:
         if len(unknown_platforms) == 1:
             raise CondaValueError(
                 "\n".join(
                     (
-                        f"Invalid platform: '{unknown_platforms[0]}'.",
+                        f"Could not find platform '{unknown_platforms[0]}'.",
                         "Valid platforms include:",
                         dashlist(KNOWN_SUBDIRS),
                     )
@@ -164,7 +163,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         raise CondaValueError(
             "\n".join(
                 (
-                    "Invalid platforms:",
+                    "Could not find platform(s):",
                     dashlist(unknown_platforms),
                     "Valid platforms include:",
                     dashlist(KNOWN_SUBDIRS),
