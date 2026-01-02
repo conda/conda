@@ -905,3 +905,16 @@ def test_export_single_platform_different_platform(
     pprint(yaml_data)
     assert yaml_data["name"] == name
     assert yaml_data["single-platform"] == platform
+
+
+def test_export_invalid_platform_argument(conda_cli: CondaCLIFixture) -> None:
+    stdout, stderr, exc_info = conda_cli(
+        "export",
+        "--override-platforms",
+        "--platform=idontexist",
+        "--format=environment-yaml",
+        raises=CondaValueError,
+    )
+    assert not stdout
+    assert "Could not find platform 'idontexist'." in str(exc_info.value)
+    assert "Valid platforms include:" in str(exc_info.value)
