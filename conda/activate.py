@@ -37,7 +37,6 @@ from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
     PREFIX_STATE_FILE,
-    RESERVED_ENV_NAMES,
     RESERVED_ENV_VARS,
 )
 from .base.context import context, locate_prefix_by_name
@@ -335,8 +334,6 @@ class _Activator(metaclass=abc.ABCMeta):
                 from .exceptions import EnvironmentLocationNotFound
 
                 raise EnvironmentLocationNotFound(prefix)
-        elif env_name_or_prefix in (RESERVED_ENV_NAMES):
-            prefix = context.root_prefix
         else:
             prefix = locate_prefix_by_name(env_name_or_prefix)
 
