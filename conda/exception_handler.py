@@ -9,9 +9,9 @@ import sys
 from functools import cached_property, partial
 from logging import getLogger
 from typing import TYPE_CHECKING
-from .deprecations import deprecated
 
 from .common.compat import ensure_text_type, on_win
+from .deprecations import deprecated
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -262,7 +262,7 @@ class ExceptionHandler:
         except Exception as e:
             log.debug("%r", e)
             return True
-    
+
     @deprecated(
         "26.9",
         "27.3",
@@ -299,7 +299,7 @@ class ExceptionHandler:
         if post_upload:
             # post submission text
             self._post_upload(do_upload)
-            
+
     @deprecated(
         "26.9",
         "27.3",
