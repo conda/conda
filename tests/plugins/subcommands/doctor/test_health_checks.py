@@ -11,7 +11,7 @@ from requests import Response
 
 from conda.base.constants import PREFIX_PINNED_FILE
 from conda.base.context import context, reset_context
-from conda.common.serialize import yaml_safe_dump
+from conda.common.serialize import yaml
 from conda.gateways.disk import lock
 from conda.plugins.subcommands.doctor.health_checks import (
     OK_MARK,
@@ -371,7 +371,7 @@ def test_env_consistency_check_fails_verbose(
     expected_output_dict = {
         "dependent": {"missing": ["dependency[version='>=1.0,<2.0a0']"]}
     }
-    expected_output_yaml = yaml_safe_dump(expected_output_dict)
+    expected_output_yaml = yaml.dumps(expected_output_dict)
 
     with tmp_env(pkg_to_install) as prefix:
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
@@ -398,7 +398,7 @@ def test_env_consistency_constrains_not_met(
                 ]
             }
         }
-        expected_output_yaml = yaml_safe_dump(expected_output_dict)
+        expected_output_yaml = yaml.dumps(expected_output_dict)
 
         out, _, _ = conda_cli("doctor", "--verbose", "--prefix", prefix)
         assert f"{X_MARK} The environment is not consistent.\n" in out

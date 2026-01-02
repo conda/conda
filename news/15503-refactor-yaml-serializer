@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Deprecate private helper functions in `conda.common.serializers` (`_yaml_round_trip`, `_yaml_safe`) in favor of the new function `conda.common.serialize.yaml._yaml()`. These functions will be removed in conda 27.3. (#15503)
+* Deprecate functions in `conda.common.serializers` (`yaml_round_trip_load`, `yaml_safe_load`) in favor of the new function `conda.common.serialize.yaml.load()`. These functions will be removed in conda 27.3. (#15503)
+* Deprecate functions in `conda.common.serializers` (`yaml_round_trip_dump`, `yaml_safe_dump`) in favor of the new function `conda.common.serialize.yaml.dump()`. These functions will be removed in conda 27.3. (#15503)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
