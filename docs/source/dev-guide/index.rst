@@ -15,4 +15,3 @@ Developer guide
    releasing
    plugins/index
    specs/index
-   api
