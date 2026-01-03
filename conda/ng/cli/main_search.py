@@ -24,9 +24,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     import asyncio
     import itertools
 
-    from rattler.platform import Platform
-    from rattler.repo_data import Gateway
+    from rattler import Gateway, MatchSpec, Platform
+    from rattler.exceptions import InvalidMatchSpecError
 
+    from conda import CondaError
     from conda.base.context import context
     from conda.exceptions import ArgumentError, PackagesNotFoundError
 
@@ -35,7 +36,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.match_spec in (None, "*"):
         raise ArgumentError("Must provide one SPEC to search.")
 
-    specs = [args.match_spec]
+    try:
+        specs = [MatchSpec(args.match_spec)]
+    except InvalidMatchSpecError as exc:
+        raise CondaError(f"Invalid MatchSpec: '{args.match_spec}'") from exc
+
     platform = args.subdir or context.subdir
     if args.override_channels:
         channels = args.channel
