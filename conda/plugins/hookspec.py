@@ -37,6 +37,7 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
+        CondaSupportedExtensions,
         CondaVirtualPackage,
     )
 
@@ -734,5 +735,29 @@ class CondaSpecs:
                     default_filenames=("environment.toml",),
                     export=export_toml,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_supported_extensions(self) -> Iterable[CondaSupportedExtensions]:
+        """
+        Register supported package extensions and their extraction handlers.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            @plugins.hookimpl
+            def conda_supported_extensions():
+                yield plugins.CondaSupportedExtensions(
+                    name="wheel-package",
+                    extensions=[".whl"],
+                    action=extract_whl_as_conda_pkg,
+                )
+
+        :return: An iterable of CondaSupportedExtensions entries.
         """
         yield from ()
