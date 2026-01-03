@@ -11,11 +11,11 @@ from argparse import (
     _SubParsersAction,
 )
 
+from conda.base.constants import KNOWN_SUBDIRS
+
 from ..auxlib.ish import dals
-from ..base.constants import KNOWN_SUBDIRS
 from ..base.context import context
 from ..common.constants import NULL
-from ..common.io import dashlist
 from ..models.environment import Environment
 from ..plugins.environment_exporters.environment_yml import (
     ENVIRONMENT_JSON_FORMAT,
@@ -144,33 +144,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # TODO: Check if platform targets are valid
 
-    unknown_platforms = tuple(
-        platform
-        for platform in context.export_platforms
-        if platform not in KNOWN_SUBDIRS
-    )
-    if unknown_platforms:
-        if len(unknown_platforms) == 1:
-            raise CondaValueError(
-                "\n".join(
-                    (
-                        f"Could not find platform '{unknown_platforms[0]}'.",
-                        "Valid platforms include:",
-                        dashlist(KNOWN_SUBDIRS),
-                    )
-                )
-            )
-        raise CondaValueError(
-            "\n".join(
-                (
-                    "Could not find platform(s):",
-                    dashlist(unknown_platforms),
-                    "Valid platforms include:",
-                    dashlist(KNOWN_SUBDIRS),
-                )
-            )
-        )
-
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
     environment_exporter = None
@@ -222,6 +195,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         ignore_channels=args.ignore_channels,
         channels=context.channels,
     )
+
+    unknown = set(context.export_platforms) - set(KNOWN_SUBDIRS)
+    if unknown:
+        raise CondaValueError(
+            f"Could not find platform(s): {', '.join(sorted(unknown))}. \n"
+            f"Valid platforms include: {', '.join(sorted(KNOWN_SUBDIRS))}"
+        )
 
     # Export using the appropriate method
     envs = [env.extrapolate(platform) for platform in context.export_platforms]
