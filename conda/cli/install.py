@@ -418,6 +418,23 @@ def install(args, parser, command="install"):
 
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
+    # Is it ok to set environment variables and install external packages
+    # after handle_txn? handle_txn includes outputing a success message
+    # if the --json flag is provided.
+
+    # HACK: install pip packages
+    if env.external_packages.get("pip"):
+        from ..env.installers.pip import install as pip_install
+        # HACK: pip_install expectes args.file to be a single value
+        # and not a list
+        args.file = args.file[0]
+        pip_install(prefix, env.external_packages["pip"], args)
+
+    # Export environment variables
+    if env.variables:
+        prefix_data = PrefixData(prefix)
+        prefix_data.set_environment_env_vars(env.variables)
+
 
 def install_clone(args, parser):
     """Executes an install of a new conda environment by cloning."""
