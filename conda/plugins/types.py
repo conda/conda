@@ -253,10 +253,26 @@ class CondaAuthHandler(CondaPlugin):
 class CondaHealthCheck(CondaPlugin):
     """
     Return type to use when defining conda health checks plugin hook.
+
+    Health checks are diagnostic actions that report on the state of a conda
+    environment. They are invoked via ``conda doctor``.
+
+    Health checks can optionally provide a fix capability, which is invoked
+    via ``conda doctor --fix`` or ``conda doctor --fix <name>``.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_checks`.
+
+    :param name: Health check identifier (e.g., ``missing-files``).
+    :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
+    :param fix: Optional callable that fixes issues: ``fix(prefix, args) -> int``.
+    :param summary: Short description shown in ``--list`` output.
     """
 
     name: str
     action: Callable[[str, bool], None]
+    fix: Callable[[str, Namespace], int] | None = None
+    summary: str | None = None
 
 
 @dataclass

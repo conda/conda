@@ -67,6 +67,31 @@ log = getLogger(__name__)
 stderrlog = getLogger("conda.stderr")
 
 
+def reinstall_packages(args, specs: list[str], **kwargs) -> int:
+    """Reinstall packages using conda install.
+
+    Helper for health fixes that need to reinstall packages.
+
+    :param args: Parsed arguments namespace
+    :param specs: Package specs to reinstall
+    :param kwargs: Override default install options (e.g., force_reinstall=True)
+    :return: Exit code from install
+    """
+    args.packages = specs
+    args.channel = kwargs.get("channel", None)
+    args.override_channels = kwargs.get("override_channels", False)
+    args.force_reinstall = kwargs.get("force_reinstall", False)
+    args.satisfied_skip_solve = kwargs.get("satisfied_skip_solve", False)
+    args.update_deps = kwargs.get("update_deps", False)
+    args.only_deps = kwargs.get("only_deps", False)
+    args.no_deps = kwargs.get("no_deps", False)
+    args.prune = kwargs.get("prune", False)
+    args.freeze_installed = kwargs.get("freeze_installed", False)
+    args.solver_retries = kwargs.get("solver_retries", 0)
+
+    return install(args)
+
+
 @deprecated("25.9", "26.3", addendum="Use PrefixData.exists()")
 def validate_prefix_exists(prefix: str | Path) -> None:
     """
