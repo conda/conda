@@ -29,6 +29,7 @@ def install(
     platform: str,
     target_prefix: str | Path | None = None,
     history: Iterable[str | MatchSpec] = (),
+    user_specs: Iterable[str | MatchSpec] = (),
     locked_packages: Iterable[PackageRecord] | None = None,
     pinned_packages: Iterable[PackageRecord] | None = None,
     virtual_packages: Iterable[GenericVirtualPackage | VirtualPackage] | None = None,
@@ -42,10 +43,11 @@ def install(
     import time
     from datetime import timedelta
 
-    from rattler import Gateway, MatchSpec, solve
+    from rattler import Client, Gateway, MatchSpec, solve
     from rattler import install as rattler_install
     from rattler.exceptions import GatewayError, SolverError
 
+    from conda.base.context import context
     from conda.exceptions import CondaError, CondaExitZero, DryRunExit
     from conda.history import History
     from conda.reporters import confirm_yn
@@ -58,8 +60,14 @@ def install(
     aggregated_specs = {spec.name.normalized: spec for spec in history}
     aggregated_specs.update({spec.name.normalized: spec for spec in specs})
 
+    # Networking stuff
+    # Here we can configure things like user agent, request headers and authentication
+    # headers = context.plugin_manager.get_session_headers()
+    # headers = context.plugin_manager.get_request_headers()
+    client = Client(headers=None)
+    gateway = Gateway(cache_dir=cache_dir("index"), client=client, show_progress=report)
+
     async def inner_solve():
-        gateway = Gateway(cache_dir=cache_dir("index"), show_progress=report)
         return await solve(
             channels,
             specs=aggregated_specs.values(),
@@ -72,6 +80,12 @@ def install(
         )
 
     console = create_console()
+
+    # pre-solve
+    context.plugin_manager.invoke_pre_solves(
+        specs_to_add=user_specs or specs if not removing else (),
+        specs_to_remove=user_specs or specs if removing else (),
+    )
 
     t0 = t0 or time.perf_counter()
     with console.status("solving"):
@@ -97,6 +111,15 @@ def install(
             raise CondaExitZero("Nothing to do.")
     else:
         installed = ()
+
+    # post-solve
+    to_unlink, to_link = diff_for_unlink_link_precs(
+        previous_records=installed,
+        new_records=records,
+        specs_to_add=user_specs,
+    )
+    context.plugin_manager.invoke_post_solves("repodata.json", to_unlink, to_link)
+
     if not installed and not records:
         raise CondaExitZero("Nothing to do.")
 
@@ -124,16 +147,42 @@ def install(
             cache_dir=cache_dir("pkgs"),
             execute_link_scripts=True,
             # TODO: Fix the need to pass the inner PyMatchSpec
-            requested_specs=[s._match_spec for s in specs],
+            requested_specs=[s._match_spec for s in (user_specs or specs)],
             show_progress=report,
+            client=client,
         )
+
+    # pre-transaction
+    txn_context = {}
+    for action in context.plugin_manager.get_pre_transaction_actions(
+        transaction_context=txn_context,
+        target_prefix=target_prefix,
+        unlink_precs=to_unlink,
+        link_precs=to_link,
+        remove_specs=user_specs or specs if removing else (),
+        update_specs=user_specs or specs if not removing else (),
+        neutered_specs=(),
+    ):
+        action.execute()
 
     # Write History ourselves, rattler doesn't do that yet
     with History(target_prefix):
         asyncio.run(inner_install())
-
     if report:
         print()
+
+    # post-transaction
+    for action in context.plugin_manager.get_pre_transaction_actions(
+        transaction_context=txn_context,
+        target_prefix=target_prefix,
+        unlink_precs=to_unlink,
+        link_precs=to_link,
+        remove_specs=user_specs or specs if removing else (),
+        update_specs=user_specs or specs if not removing else (),
+        neutered_specs=(),  # TODO? Not implemented
+    ):
+        action.execute()
+
     return records
 
 
@@ -286,3 +335,53 @@ def solution_table(
         )
     table.caption = "Legend: bold=requested, green=added, red=removed, blue=historic"
     return table
+
+
+def diff_for_unlink_link_precs(
+    previous_records: Iterable[PackageRecord],
+    new_records: Iterable[PackageRecord],
+    specs_to_add: Iterable[MatchSpec] = (),
+    force_reinstall: bool = False,
+) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
+    from rattler import MatchSpec
+
+    previous_set = set(previous_records)
+    new_set = set(new_records)
+    unlink_precs = previous_set - new_set
+    link_precs = new_set - previous_set
+
+    def _add_to_unlink_and_link(rec):
+        link_precs.add(rec)
+        if prec in previous_records:
+            unlink_precs.add(rec)
+
+    # If force_reinstall is enabled, make sure any package in specs_to_add is unlinked then
+    # re-linked
+    if force_reinstall:
+        for spec in specs_to_add:
+            prec = next((rec for rec in new_records if spec.matches(rec)), None)
+            if not prec:
+                raise RuntimeError(f"Could not find record for spec {spec}")
+            _add_to_unlink_and_link(prec)
+
+    # add back 'noarch: python' packages to unlink and link if python version changes
+    python_spec = MatchSpec("python")
+    prev_python = next(
+        (rec for rec in previous_records if python_spec.matches(rec)), None
+    )
+    curr_python = next((rec for rec in new_records if python_spec.matches(rec)), None)
+    if (
+        prev_python
+        and curr_python
+        and prev_python.version.as_major_minor() != curr_python.version.as_major_minor()
+    ):
+        noarch_python_precs = (p for p in new_records if p.noarch.python)
+        for prec in noarch_python_precs:
+            _add_to_unlink_and_link(prec)
+
+    unlink_precs = sorted(
+        unlink_precs, key=lambda x: previous_records.index(x), reverse=True
+    )
+
+    link_precs = sorted(link_precs, key=lambda x: new_records.index(x))
+    return tuple(unlink_precs), tuple(link_precs)

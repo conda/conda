@@ -87,6 +87,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             ]
             install(
                 specs=specs,
+                user_specs=names,
                 history=(),
                 channels=context.channels,
                 platform=context.subdir,
@@ -111,6 +112,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         else:
             break
 
-    History(prefix).write_specs(remove_specs=map(str, specs))
+    History(prefix).write_specs(remove_specs=names)
 
     return 0
