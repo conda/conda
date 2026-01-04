@@ -99,7 +99,8 @@ def install(
     delta = timedelta(seconds=t1 - t0)
     console.print(
         f"[green]✔[/] solving [dim]{len(records)} packages in "
-        f"{delta.seconds}s {delta.microseconds / 1000:.0f}ms",
+        + (f"{delta.seconds}s " if delta.seconds else "") +
+        f"{delta.microseconds / 1000:.0f}ms",
         highlight=False,
     )
 
