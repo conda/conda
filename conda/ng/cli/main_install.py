@@ -46,6 +46,5 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         report=not context.quiet and not context.json,
         dry_run=context.dry_run,
     )
-    History(prefix).write_specs(update_specs=map(str, specs))
 
     return 0

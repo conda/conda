@@ -99,8 +99,8 @@ def install(
     delta = timedelta(seconds=t1 - t0)
     console.print(
         f"[green]✔[/] solving [dim]{len(records)} packages in "
-        + (f"{delta.seconds}s " if delta.seconds else "") +
-        f"{delta.microseconds / 1000:.0f}ms",
+        + (f"{delta.seconds}s " if delta.seconds else "")
+        + f"{delta.microseconds / 1000:.0f}ms",
         highlight=False,
     )
 
@@ -126,13 +126,14 @@ def install(
 
     if report:
         console.print(
+            "",
             solution_table(
                 records=records,
                 specs=specs,
                 installed=installed,
                 history=history,
                 removing=removing,
-            )
+            ),
         )
 
     if dry_run:
@@ -167,8 +168,10 @@ def install(
         action.execute()
 
     # Write History ourselves, rattler doesn't do that yet
-    with History(target_prefix):
+    with History(target_prefix) as h:
         asyncio.run(inner_install())
+    if not removing:
+        h.write_specs(update_specs=list(map(str, (user_specs or specs))))
     if report:
         print()
 
@@ -334,7 +337,8 @@ def solution_table(
             requested_or_historic_spec,
             style=" ".join(styles),
         )
-    table.caption = "Legend: bold=requested, green=added, red=removed, blue=historic"
+    if not removing:
+        table.caption = "Legend: bold=requested, green=added, red=removed, blue=historic"
     return table
 
 
