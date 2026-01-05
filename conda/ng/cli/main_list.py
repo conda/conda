@@ -71,6 +71,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         requested_spec = (
             None if pkg.requested_spec in (None, "None") else str(pkg.requested_spec)
         )
+        requested_spec = (
+            requested_spec or " & ".join(map(str, pkg.requested_specs)) or None
+        )
         pkg_size = sum(path.size_in_bytes or 0 for path in pkg.paths_data.paths)
         size += pkg_size
         if requested_spec:
