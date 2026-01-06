@@ -604,7 +604,6 @@ class Context(Configuration):
     @deprecated(
         "26.9",
         "27.3",
-        addendum="`error_upload_url` is being deprecated and will be removed in conda version 27.3",
     )
     def error_upload_url(self) -> str:
         return self._error_upload_url
@@ -1415,7 +1414,7 @@ class Context(Configuration):
                 "dev",
                 "default_python",
                 "enable_private_envs",
-                "error_upload_url",
+                "error_upload_url",  # TODO: Remove after deprecation ended
                 "force_32bit",
                 "root_prefix",
                 "sat_solver",

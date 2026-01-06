@@ -56,7 +56,6 @@ class ExceptionHandler:
     @deprecated(
         "26.9",
         "27.3",
-        addendum="`error_upload_url` is being deprecated and will be removed in conda version 27.3",
     )
     def error_upload_url(self):
         from .base.context import context

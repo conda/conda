@@ -81,7 +81,6 @@ deprecated.constant(
     "27.3",
     "ERROR_UPLOAD_URL",
     ERROR_UPLOAD_URL,
-    addendum="`ERROR_UPLOAD_URL` is being deprecated and will be removed in conda version 27.3",
 )
 del ERROR_UPLOAD_URL
 
