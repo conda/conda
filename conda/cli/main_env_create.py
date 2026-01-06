@@ -10,6 +10,7 @@ from argparse import (
     Namespace,
     _SubParsersAction,
 )
+import contextlib
 from pathlib import Path
 
 from .. import CondaError
@@ -102,6 +103,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .common import validate_file_exists
     from .main_create import execute as create_execute
     from ..base.context import context
+    import contextlib
 
     if args.file:
         for file in args.file:
@@ -116,16 +118,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         # Validate incoming arguments
         for file in args.file:
             try:
-                # detect the file format and get the env representation
-                spec_hook = context.plugin_manager.get_environment_specifier(
-                    source=file,
-                    name=context.environment_specifier,
-                )
-                spec = spec_hook.environment_spec(file)
-                env = spec.env
-                # HACK: continued, get the name and prefix
-                name = name or env.name
-                prefix = prefix or env.prefix
+                with contextlib.redirect_stdout(None):
+                    # detect the file format and get the env representation
+                    spec_hook = context.plugin_manager.get_environment_specifier(
+                        source=file,
+                        name=context.environment_specifier,
+                    )
+                    spec = spec_hook.environment_spec(file)
+                    env = spec.env
+                    # HACK: continued, get the name and prefix
+                    name = name or env.name
+                    prefix = prefix or env.prefix
             except EnvironmentSpecPluginNotDetected:
                 pass
     # HACK: continued, set args.name and args.prefix
