@@ -108,12 +108,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # HACK: get the name and prefix from the file if possible
     name = None
     prefix = None
-
     if args.file:
         # Validate incoming arguments
         for file in args.file:
-            validate_file_exists(file)
-
             # detect the file format and get the env representation
             spec_hook = context.plugin_manager.get_environment_specifier(
                 source=file,
@@ -124,7 +121,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             # HACK: continued, get the name and prefix
             name = name or env.name
             prefix = prefix or env.prefix
-
     # HACK: continued, set args.name and args.prefix
     if args.name is None:
         args.name = name
