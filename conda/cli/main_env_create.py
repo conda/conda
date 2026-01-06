@@ -109,3 +109,4 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         raise EnvironmentFileNotFound(filename="")
 
     create_execute(args, parser)
+    return 0
