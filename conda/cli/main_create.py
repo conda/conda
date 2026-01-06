@@ -91,7 +91,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
+    from ..exceptions import ArgumentError, CondaValueError, EnvironmentSpecPluginNotDetected, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
     from ..reporters import confirm_yn
     from .common import (
@@ -104,28 +104,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.env import print_result
     from ..common.path import expand
     from pathlib import Path
-
-    # HACK: get the name and prefix from the file if possible
-    name = None
-    prefix = None
-    if args.file:
-        # Validate incoming arguments
-        for file in args.file:
-            # detect the file format and get the env representation
-            spec_hook = context.plugin_manager.get_environment_specifier(
-                source=file,
-                name=context.environment_specifier,
-            )
-            spec = spec_hook.environment_spec(file)
-            env = spec.env
-            # HACK: continued, get the name and prefix
-            name = name or env.name
-            prefix = prefix or env.prefix
-    # HACK: continued, set args.name and args.prefix
-    if args.name is None:
-        args.name = name
-    if args.prefix is None and args.name is None:
-        args.prefix = prefix
     
     # Validate that input files are of the same format type
     validate_environment_files_consistency(args.file)

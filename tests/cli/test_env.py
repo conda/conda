@@ -23,6 +23,7 @@ from conda.exceptions import (
     PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecNotFound,
+    EnvironmentSpecPluginNotDetected,
 )
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
@@ -265,7 +266,7 @@ def test_conda_env_create_empty_file(
     tmp_file.touch()
 
     with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={tmp_file}")
+        conda_cli("env", "create", "-n", "testenv", f"--file={tmp_file}")
 
 
 @pytest.mark.integration
@@ -672,8 +673,8 @@ def test_invalid_extensions(
     env_yml = path_factory(suffix=".ymla")
     env_yml.touch()
 
-    with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={env_yml}", "--yes")
+    with pytest.raises(EnvironmentSpecPluginNotDetected):
+        conda_cli("env", "create", "-n", "testenv", f"--file={env_yml}", "--yes")
 
 
 # conda env list [--json]

@@ -98,15 +98,41 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..exceptions import EnvironmentFileNotFound
+    from ..exceptions import EnvironmentFileNotFound, EnvironmentSpecPluginNotDetected
     from .common import validate_file_exists
     from .main_create import execute as create_execute
+    from ..base.context import context
 
     if args.file:
         for file in args.file:
             validate_file_exists(file)
     else:
         raise EnvironmentFileNotFound(filename="")
+    
+    # HACK: get the name and prefix from the file if possible
+    name = None
+    prefix = None
+    if args.file:
+        # Validate incoming arguments
+        for file in args.file:
+            try:
+                # detect the file format and get the env representation
+                spec_hook = context.plugin_manager.get_environment_specifier(
+                    source=file,
+                    name=context.environment_specifier,
+                )
+                spec = spec_hook.environment_spec(file)
+                env = spec.env
+                # HACK: continued, get the name and prefix
+                name = name or env.name
+                prefix = prefix or env.prefix
+            except EnvironmentSpecPluginNotDetected:
+                pass
+    # HACK: continued, set args.name and args.prefix
+    if args.name is None:
+        args.name = name
+    if args.prefix is None and args.name is None:
+        args.prefix = prefix
 
     create_execute(args, parser)
     return 0
