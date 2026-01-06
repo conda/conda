@@ -85,6 +85,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.set_defaults(
         func="conda.cli.main_create.execute",
         clone=False,
+        file=["environment.yml"],
     )
 
     return p

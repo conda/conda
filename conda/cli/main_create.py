@@ -101,8 +101,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         validate_file_exists
     )
     from .install import install, install_clone
+    from ..env.env import print_result
+    from ..common.path import expand
+    from pathlib import Path
 
-     # HACK: get the name and prefix from the file if possible
+    # HACK: get the name and prefix from the file if possible
     name = None
     prefix = None
 
@@ -116,10 +119,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
             # detect the file format and get the env representation
             spec_hook = context.plugin_manager.get_environment_specifier(
-                source=args.file,
+                source=file,
                 name=context.environment_specifier,
             )
-            spec = spec_hook.environment_spec(args.file)
+            spec = spec_hook.environment_spec(file)
             env = spec.env
             # HACK: continued, get the name and prefix
             name = name or env.name
