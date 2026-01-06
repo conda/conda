@@ -110,9 +110,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     prefix = None
 
     if args.file:
-        # Validate that input files are of the same format type
-        validate_environment_files_consistency(args.file)
-
         # Validate incoming arguments
         for file in args.file:
             validate_file_exists(file)
@@ -133,6 +130,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.name = name
     if args.prefix is None and args.name is None:
         args.prefix = prefix
+    
+    # Validate that input files are of the same format type
+    validate_environment_files_consistency(args.file)
 
     # Ensure provided combination of command line argments are valid
     # At least one of the arguments -n/--name -p/--prefix is required
