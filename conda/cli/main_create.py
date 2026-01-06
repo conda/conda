@@ -98,8 +98,38 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         print_activate,
         validate_environment_files_consistency,
         validate_subdir_config,
+        validate_file_exists
     )
     from .install import install, install_clone
+
+     # HACK: get the name and prefix from the file if possible
+    name = None
+    prefix = None
+
+    if args.file:
+        # Validate that input files are of the same format type
+        validate_environment_files_consistency(args.file)
+
+        # Validate incoming arguments
+        for file in args.file:
+            validate_file_exists(file)
+
+            # detect the file format and get the env representation
+            spec_hook = context.plugin_manager.get_environment_specifier(
+                source=args.file,
+                name=context.environment_specifier,
+            )
+            spec = spec_hook.environment_spec(args.file)
+            env = spec.env
+            # HACK: continued, get the name and prefix
+            name = name or env.name
+            prefix = prefix or env.prefix
+
+    # HACK: continued, set args.name and args.prefix
+    if args.name is None:
+        args.name = name
+    if args.prefix is None and args.name is None:
+        args.prefix = prefix
 
     # Ensure provided combination of command line argments are valid
     # At least one of the arguments -n/--name -p/--prefix is required
@@ -159,9 +189,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Ensure the subdir config is valid
     validate_subdir_config()
-
-    # Validate that input files are of the same format type
-    validate_environment_files_consistency(args.file)
 
     # Run appropriate install
     if args.clone:
