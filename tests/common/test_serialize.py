@@ -13,11 +13,7 @@ from conda.base.constants import SafetyChecks
 from conda.common import serialize
 from conda.common.serialize import (
     json,
-    json_dump,
-    json_load,
     yaml,
-    yaml_round_trip_dump,
-    yaml_round_trip_load,
 )
 
 if TYPE_CHECKING:
@@ -109,39 +105,31 @@ a_map:
 
 
 @pytest.mark.parametrize(
-    "obj,text,read,write,legacy_load,legacy_dump",
+    "obj,text,read,write",
     [
         (
             OBJ1,
             JSON1,
             json.read,
             partial(json.write, sort_keys=True),
-            json_load,
-            json_dump,
         ),
         (
             OBJ2,
             JSON2,
             json.read,
             partial(json.write, sort_keys=True),
-            json_load,
-            json_dump,
         ),
         (
             OBJ1,
             YAML1,
             yaml.read,
             yaml.write,
-            yaml_round_trip_load,
-            yaml_round_trip_dump,
         ),
         (
             OBJ2,
             YAML2,
             yaml.read,
             yaml.write,
-            yaml_round_trip_load,
-            yaml_round_trip_dump,
         ),
     ],
 )
@@ -150,8 +138,6 @@ def test_read_write(
     text: str,
     read: Callable,
     write: Callable,
-    legacy_dump: Callable | None,
-    legacy_load: Callable | None,
     tmp_path: Path,
 ):
     # Test read/write text
@@ -169,11 +155,6 @@ def test_read_write(
     assert stream.getvalue() == text
     with open(test_file) as fp:
         assert read(fp=fp) == obj
-
-    if legacy_load:
-        assert legacy_load(text) == obj
-    if legacy_dump:
-        assert legacy_dump(obj) == text
 
 
 @pytest.mark.parametrize(
