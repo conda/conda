@@ -18,42 +18,36 @@ from conda.plugins.subcommands.doctor.health_checks.missing_files import (
 )
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from tests.plugins.subcommands.conftest import EnvFixture
 
 
-def test_no_missing_files(env_ok: tuple[Path, str, str, str, str]):
+def test_no_missing_files(env_ok: EnvFixture):
     """Test that runs for the case with no missing files."""
-    prefix, _, _, _, _ = env_ok
-    assert find_packages_with_missing_files(prefix) == {}
+    assert find_packages_with_missing_files(env_ok.prefix) == {}
 
 
-def test_missing_files(env_missing_files: tuple[Path, str, str, str, str]):
+def test_missing_files(env_missing_files: EnvFixture):
     """Test that missing files are detected correctly."""
-    prefix, bin_file, _, ignored_file, package = env_missing_files
-    assert find_packages_with_missing_files(prefix) == {package: [bin_file]}
+    assert find_packages_with_missing_files(env_missing_files.prefix) == {
+        env_missing_files.package: [env_missing_files.bin_file]
+    }
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_missing_files_action(
-    env_missing_files: tuple[Path, str, str, str, str], capsys, verbose
-):
+def test_missing_files_action(env_missing_files: EnvFixture, capsys, verbose):
     """Test the missing_files action output."""
-    prefix, bin_file, _, ignored_file, package = env_missing_files
-    missing_files(prefix, verbose=verbose)
+    missing_files(env_missing_files.prefix, verbose=verbose)
     captured = capsys.readouterr()
     if verbose:
-        assert str(bin_file) in captured.out
-        assert str(ignored_file) not in captured.out
+        assert str(env_missing_files.bin_file) in captured.out
+        assert str(env_missing_files.ignored_file) not in captured.out
     else:
-        assert f"{package}: 1" in captured.out
+        assert f"{env_missing_files.package}: 1" in captured.out
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_no_missing_files_action(
-    env_ok: tuple[Path, str, str, str, str], capsys, verbose
-):
+def test_no_missing_files_action(env_ok: EnvFixture, capsys, verbose):
     """Test the missing_files action when there are no missing files."""
-    prefix, _, _, _, _ = env_ok
-    missing_files(prefix, verbose=verbose)
+    missing_files(env_ok.prefix, verbose=verbose)
     captured = capsys.readouterr()
     assert "There are no packages with missing files." in captured.out

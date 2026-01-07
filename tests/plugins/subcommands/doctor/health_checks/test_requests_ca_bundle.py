@@ -23,36 +23,34 @@ if TYPE_CHECKING:
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_mock import MockerFixture
 
+    from tests.plugins.subcommands.conftest import EnvFixture
+
 
 def test_requests_ca_bundle_check_action_passes(
-    env_ok: tuple[Path, str, str, str, str],
+    env_ok: EnvFixture,
     capsys: CaptureFixture,
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
     mocker: MockerFixture,
 ):
     """Test REQUESTS_CA_BUNDLE check when the bundle is valid."""
-    prefix, _, _, _, _ = env_ok
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
     response = Response()
     response.status_code = 200
     mocker.patch(
         "conda.gateways.connection.session.CondaSession.get", return_value=response
     )
-    requests_ca_bundle_check(prefix, verbose=True)
+    requests_ca_bundle_check(env_ok.prefix, verbose=True)
     captured = capsys.readouterr()
     assert f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n" in captured.out
 
 
 def test_requests_ca_bundle_check_action_non_existent_path(
-    env_ok: tuple[Path, str, str, str, str],
-    capsys: CaptureFixture,
-    monkeypatch: MonkeyPatch,
+    env_ok: EnvFixture, capsys: CaptureFixture, monkeypatch: MonkeyPatch
 ):
     """Test REQUESTS_CA_BUNDLE check when the path doesn't exist."""
-    prefix, _, _, _, _ = env_ok
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", "non/existent/path")
-    requests_ca_bundle_check(prefix, verbose=True)
+    requests_ca_bundle_check(env_ok.prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
         f"{X_MARK} Env var `REQUESTS_CA_BUNDLE` is pointing to a non existent file.\n"
@@ -61,15 +59,14 @@ def test_requests_ca_bundle_check_action_non_existent_path(
 
 
 def test_requests_ca_bundle_check_action_fails(
-    env_ok: tuple[Path, str, str, str, str],
+    env_ok: EnvFixture,
     capsys: CaptureFixture,
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
 ):
     """Test REQUESTS_CA_BUNDLE check when verification fails."""
-    prefix, _, _, _, _ = env_ok
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path))
-    requests_ca_bundle_check(prefix, verbose=True)
+    requests_ca_bundle_check(env_ok.prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
         f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`:"

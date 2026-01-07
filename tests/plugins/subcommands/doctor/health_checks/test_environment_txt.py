@@ -21,27 +21,27 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+    from tests.plugins.subcommands.conftest import EnvFixture
+
 
 def test_listed_on_envs_txt_file(
-    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str, str]
+    tmp_path: Path, mocker: MockerFixture, env_ok: EnvFixture
 ):
     """Test that runs for the case when the env is listed on the environments.txt file."""
-    prefix, _, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
-    tmp_envs_txt_file.write_text(f"{prefix}")
+    tmp_envs_txt_file.write_text(f"{env_ok.prefix}")
 
     mocker.patch(
         "conda.plugins.subcommands.doctor.health_checks.environment_txt.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
-    assert check_envs_txt_file(prefix)
+    assert check_envs_txt_file(env_ok.prefix)
 
 
 def test_not_listed_on_envs_txt_file(
-    tmp_path: Path, mocker: MockerFixture, env_ok: tuple[Path, str, str, str, str]
+    tmp_path: Path, mocker: MockerFixture, env_ok: EnvFixture
 ):
     """Test that runs for the case when the env is not listed on the environments.txt file."""
-    prefix, _, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
     tmp_envs_txt_file.write_text("Not environment name")
 
@@ -49,37 +49,29 @@ def test_not_listed_on_envs_txt_file(
         "conda.plugins.subcommands.doctor.health_checks.environment_txt.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
-    assert not check_envs_txt_file(prefix)
+    assert not check_envs_txt_file(env_ok.prefix)
 
 
 def test_env_txt_check_action(
-    tmp_path: Path,
-    mocker: MockerFixture,
-    env_ok: tuple[Path, str, str, str, str],
-    capsys,
+    tmp_path: Path, mocker: MockerFixture, env_ok: EnvFixture, capsys
 ):
     """Test the env_txt_check action when the environment is registered."""
-    prefix, _, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
-    tmp_envs_txt_file.write_text(f"{prefix}")
+    tmp_envs_txt_file.write_text(f"{env_ok.prefix}")
 
     mocker.patch(
         "conda.plugins.subcommands.doctor.health_checks.environment_txt.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
-    env_txt_check(prefix, verbose=True)
+    env_txt_check(env_ok.prefix, verbose=True)
     captured = capsys.readouterr()
     assert OK_MARK in captured.out
 
 
 def test_not_env_txt_check_action(
-    tmp_path: Path,
-    mocker: MockerFixture,
-    env_ok: tuple[Path, str, str, str, str],
-    capsys,
+    tmp_path: Path, mocker: MockerFixture, env_ok: EnvFixture, capsys
 ):
     """Test the env_txt_check action when the environment is not registered."""
-    prefix, _, _, _, _ = env_ok
     tmp_envs_txt_file = tmp_path / "envs.txt"
     tmp_envs_txt_file.write_text("Not environment name")
 
@@ -87,6 +79,6 @@ def test_not_env_txt_check_action(
         "conda.plugins.subcommands.doctor.health_checks.environment_txt.get_user_environments_txt_file",
         return_value=tmp_envs_txt_file,
     )
-    env_txt_check(prefix, verbose=True)
+    env_txt_check(env_ok.prefix, verbose=True)
     captured = capsys.readouterr()
     assert X_MARK in captured.out

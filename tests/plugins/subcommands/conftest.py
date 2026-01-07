@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import pytest
 
@@ -15,14 +15,29 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+class EnvFixture(NamedTuple):
+    """Test environment fixture data.
+
+    Attributes:
+        prefix: Path to the environment root directory.
+        bin_file: Relative path to the binary file (e.g., "bin/<package>").
+        lib_file: Relative path to the library file (e.g., "lib/<package>.py").
+        ignored_file: Relative path to an ignored file (e.g., "pycache/<package>.pyc").
+        package: The generated package name (a UUID hex string).
+    """
+
+    prefix: Path
+    bin_file: str
+    lib_file: str
+    ignored_file: str
+    package: str
+
+
 @pytest.fixture(params=[".pyo", ".pyc"])
-def env_ok(tmp_path: Path, request) -> Iterable[tuple[Path, str, str, str, str]]:
+def env_ok(tmp_path: Path, request) -> Iterable[EnvFixture]:
     """Fixture that returns a testing environment with no missing files.
 
     Used by both health check (doctor) and health fix tests.
-
-    Returns:
-        Tuple of (prefix, bin_file, lib_file, ignored_file, package_name)
     """
     package = uuid.uuid4().hex
 
@@ -69,34 +84,28 @@ def env_ok(tmp_path: Path, request) -> Iterable[tuple[Path, str, str, str, str]]
 
     (tmp_path / "conda-meta" / f"{package}.json").write_text(json.dumps(PACKAGE_JSON))
 
-    yield tmp_path, bin_file, lib_file, ignored_file, package
+    yield EnvFixture(tmp_path, bin_file, lib_file, ignored_file, package)
 
 
 @pytest.fixture
-def env_missing_files(
-    env_ok: tuple[Path, str, str, str, str],
-) -> tuple[Path, str, str, str, str]:
+def env_missing_files(env_ok: EnvFixture) -> EnvFixture:
     """Fixture that returns a testing environment with missing files.
 
     Used by both health check (doctor) and health fix tests.
     """
-    prefix, bin_file, _, ignored_file, _ = env_ok
-    (prefix / bin_file).unlink()
-    (prefix / ignored_file).unlink()
+    (env_ok.prefix / env_ok.bin_file).unlink()
+    (env_ok.prefix / env_ok.ignored_file).unlink()
     return env_ok
 
 
 @pytest.fixture
-def env_altered_files(
-    env_ok: tuple[Path, str, str, str, str],
-) -> tuple[Path, str, str, str, str]:
+def env_altered_files(env_ok: EnvFixture) -> EnvFixture:
     """Fixture that returns a testing environment with altered files.
 
     Used by both health check (doctor) and health fix tests.
     """
-    prefix, _, lib_file, ignored_file, _ = env_ok
-    with open(prefix / lib_file, "w") as f:
+    with open(env_ok.prefix / env_ok.lib_file, "w") as f:
         f.write("print('Hello, World!')")
-    with open(prefix / ignored_file, "w") as f:
+    with open(env_ok.prefix / env_ok.ignored_file, "w") as f:
         f.write("nonsense")
     return env_ok
