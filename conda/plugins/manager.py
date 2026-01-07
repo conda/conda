@@ -83,17 +83,14 @@ class CondaPluginManager(pluggy.PluginManager):
     The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
-    #: method.
     get_cached_solver_backend: Callable[[str | None], type[Solver]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend` method."""
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers`
-    #: method.
     get_cached_session_headers: Callable[[str], dict[str, str]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers` method."""
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers`
-    #: method.
     get_cached_request_headers: Callable[[str, str], dict[str, str]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers` method."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(APP_NAME, *args, **kwargs)

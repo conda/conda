@@ -22,46 +22,46 @@ from conda.plugins.manager import CondaPluginManager
 
 log = logging.getLogger(__name__)
 
-#: Name for a string type parameter
 STRING_PARAMETER_NAME = "string_parameter"
+"""Name for a string type parameter."""
 STRING_PARAMETER_ALIAS = "string_parameter_alias"
 
-#: Name for a sequence type parameter
 SEQ_PARAMETER_NAME = "seq_parameter"
+"""Name for a sequence type parameter."""
 
-#: Name for a map type parameter
 MAP_PARAMETER_NAME = "map_parameter"
+"""Name for a map type parameter."""
 
-#: Value for the string type parameter (used in test condarc below)
 STRING_PARAMETER_VALUE = "test_value"
+"""Value for the string type parameter (used in test condarc below)."""
 
-#: Value for the string type parameter (used in test condarc below)
 STRING_PARAMETER_ENV_VAR_VALUE = "env_var_value"
+"""Value for the string type parameter (used in test condarc below)."""
 
-#: condarc file with our test setting present
 CONDARC_TEST_ONE = f"""
 plugins:
   {STRING_PARAMETER_NAME}: {STRING_PARAMETER_VALUE}
 """
+"""condarc file with our test setting present."""
 
 string_parameter = PrimitiveParameter("", element_type=str)
 seq_parameter = SequenceParameter(PrimitiveParameter("", element_type=str))
 map_parameter = MapParameter(PrimitiveParameter("", element_type=str))
 
-string_config_parameter = plugins.CondaSetting(
+string_config_parameter = plugins.types.CondaSetting(
     name=STRING_PARAMETER_NAME,
     description="Test string type setting",
     parameter=string_parameter,
     aliases=(STRING_PARAMETER_ALIAS,),
 )
 
-sequence_config_parameter = plugins.CondaSetting(
+sequence_config_parameter = plugins.types.CondaSetting(
     name=SEQ_PARAMETER_NAME,
     description="Test sequence type setting",
     parameter=seq_parameter,
 )
 
-map_config_parameter = plugins.CondaSetting(
+map_config_parameter = plugins.types.CondaSetting(
     name=MAP_PARAMETER_NAME,
     description="Test map type setting",
     parameter=map_parameter,
@@ -383,20 +383,22 @@ def test_conda_config_show_includes_plugin_settings(
         "value_one",
     )
 
-    out, err, _ = conda_cli("config", "--show")
-    config_data = YAML().load(out)
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        out, err, _ = conda_cli("config", "--show")
+        config_data = YAML().load(out)
 
-    assert not err
-    assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
-    assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
-    assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
+        assert not err
+        assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
+        assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
+        assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
 
-    out, err, _ = conda_cli("config", "--show", "--json")
+        out, err, _ = conda_cli("config", "--show", "--json")
 
-    config_data = json.loads(out)
-    assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
-    assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
-    assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
+        config_data = json.loads(out)
+        assert config_data["plugins"][STRING_PARAMETER_NAME] == "value_one"
+        assert config_data["plugins"][SEQ_PARAMETER_NAME] == []
+        assert config_data["plugins"][MAP_PARAMETER_NAME] == {}
 
 
 @pytest.mark.parametrize(

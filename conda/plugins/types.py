@@ -54,8 +54,8 @@ class CondaPlugin:
     Base class for all conda plugins.
     """
 
-    #: User-facing name of the plugin used for selecting & filtering plugins and error messages.
     name: str
+    """User-facing name of the plugin used for selecting & filtering plugins and error messages."""
 
     def __post_init__(self):
         try:

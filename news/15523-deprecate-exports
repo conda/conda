@@ -1,0 +1,38 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.exports.input` as pending deprecation, to be removed in 27.3. Use `builtins.input` instead. (#15523 via #15526)
+* Mark `conda.exports.StringIO` as pending deprecation, to be removed in 27.3. Use `io.StringIO` instead. (#15523 via #15526)
+* Mark `conda.exports.PY3` as pending deprecation, to be removed in 27.3. Python 2 is no longer supported. (#15523 via #15526)
+* Mark `conda.exports.string_types` as pending deprecation, to be removed in 27.3. Use `str` instead. (#15523 via #15526)
+* Mark `conda.exports.text_type` as pending deprecation, to be removed in 27.3. Use `str` instead. (#15523 via #15526)
+* Mark `conda.exports.DEFAULT_CHANNELS` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.DEFAULT_CHANNELS` instead. (#15523 via #15526)
+* Mark `conda.exports.DEFAULT_CHANNELS_UNIX` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.DEFAULT_CHANNELS_UNIX` instead. (#15523 via #15526)
+* Mark `conda.exports.DEFAULT_CHANNELS_WIN` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.DEFAULT_CHANNELS_WIN` instead. (#15523 via #15526)
+* Mark `conda.exports.PREFIX_PLACEHOLDER` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.PREFIX_PLACEHOLDER` instead. (#15523 via #15526)
+* Mark `conda.exports._PREFIX_PLACEHOLDER` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.PREFIX_PLACEHOLDER` instead. (#15523 via #15526)
+* Mark `conda.exports.prefix_placeholder` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.PREFIX_PLACEHOLDER` instead. (#15523 via #15526)
+* Mark `conda.exports.CondaError` as pending deprecation, to be removed in 27.3. Use `conda.CondaError` instead. (#15523 via #15526)
+* Mark `conda.exports.CondaHTTPError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.CondaHTTPError` instead. (#15523 via #15526)
+* Mark `conda.exports.CondaOSError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.CondaOSError` instead. (#15523 via #15526)
+* Mark `conda.exports.LinkError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.LinkError` instead. (#15523 via #15526)
+* Mark `conda.exports.LockError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.LockError` instead. (#15523 via #15526)
+* Mark `conda.exports.PaddingError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PaddingError` instead. (#15523 via #15526)
+* Mark `conda.exports.PathNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523 via #15526)
+* Mark `conda.exports.CondaFileNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523 via #15526)
+* Mark `conda.exports.UnsatisfiableError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.UnsatisfiableError` instead. (#15523 via #15526)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
