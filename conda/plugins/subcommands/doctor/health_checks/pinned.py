@@ -129,6 +129,7 @@ def conda_health_checks() -> Iterable[CondaHealthCheck]:
     yield CondaHealthCheck(
         name="pinned",
         action=pinned_well_formatted_check,
-        fix=fix_malformed_pinned,
-        summary="Clean up invalid specs in pinned file",
+        fixer=fix_malformed_pinned,
+        summary="Validate format of the pinned file",
+        fix="Remove invalid specs from pinned file",
     )

@@ -84,6 +84,7 @@ def conda_health_checks() -> Iterable[CondaHealthCheck]:
     yield CondaHealthCheck(
         name="missing-files",
         action=missing_files,
-        fix=fix_missing_files,
-        summary="Reinstall packages with missing files",
+        fixer=fix_missing_files,
+        summary="Detect packages with missing files",
+        fix="Reinstall affected packages",
     )

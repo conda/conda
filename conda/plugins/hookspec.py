@@ -243,7 +243,7 @@ class CondaSpecs:
         that you can write to diagnose problems in your conda environment.
         Check out the health checks already shipped with conda for inspiration.
 
-        Health checks can optionally provide a ``fix`` callable that is invoked
+        Health checks can optionally provide a ``fixer`` callable that is invoked
         via ``conda doctor --fix`` or ``conda doctor --fix <check-name>``.
 
         **Example (check only):**
@@ -287,8 +287,9 @@ class CondaSpecs:
                 yield plugins.CondaHealthCheck(
                     name="my-check",
                     action=my_health_check,
-                    fix=my_health_fix,
-                    summary="Fix description for --fix listing",
+                    fixer=my_health_fix,
+                    summary="Check for common issues",
+                    fix="Repair detected issues",
                 )
 
         :return: An iterable of health check entries.

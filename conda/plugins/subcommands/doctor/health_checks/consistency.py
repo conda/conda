@@ -130,6 +130,7 @@ def conda_health_checks() -> Iterable[CondaHealthCheck]:
     yield CondaHealthCheck(
         name="consistency",
         action=consistent_env_check,
-        fix=fix_inconsistent_packages,
-        summary="Resolve missing or inconsistent dependencies",
+        fixer=fix_inconsistent_packages,
+        summary="Check for missing or inconsistent dependencies",
+        fix="Install missing dependencies",
     )

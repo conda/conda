@@ -52,5 +52,4 @@ def conda_health_checks() -> Iterable[CondaHealthCheck]:
         name="requests-ca-bundle",
         action=requests_ca_bundle_check,
         summary="Check REQUESTS_CA_BUNDLE environment variable",
-        # No fix - user must configure this manually
     )

@@ -35,8 +35,8 @@ Example::
 Built-in Health Checks
 ======================
 
-Use ``conda doctor --list`` to see all available health checks. Conda includes
-several built-in health checks:
+Use ``conda doctor --list`` to see all available health checks and their fix capabilities.
+Conda includes several built-in health checks:
 
 - ``missing-files`` - Detects packages with missing files and can reinstall them
 - ``altered-files`` - Detects packages with modified files (checksum mismatch) and can reinstall them

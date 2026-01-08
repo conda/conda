@@ -83,6 +83,7 @@ def conda_health_checks() -> Iterable[CondaHealthCheck]:
     yield CondaHealthCheck(
         name="environment-txt",
         action=env_txt_check,
-        fix=fix_env_txt,
-        summary="Register environment in environments.txt",
+        fixer=fix_env_txt,
+        summary="Verify environment is registered in environments.txt",
+        fix="Add environment to environments.txt",
     )

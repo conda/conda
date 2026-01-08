@@ -265,14 +265,16 @@ class CondaHealthCheck(CondaPlugin):
 
     :param name: Health check identifier (e.g., ``missing-files``).
     :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
-    :param fix: Optional callable that fixes issues: ``fix(prefix, args) -> int``.
-    :param summary: Short description shown in ``--list`` output.
+    :param fixer: Optional callable that fixes issues: ``fixer(prefix, args) -> int``.
+    :param summary: Short description of what the check detects (shown in ``--list``).
+    :param fix: Short description of what the fix does (shown in ``--list``).
     """
 
     name: str
     action: Callable[[str, bool], None]
-    fix: Callable[[str, Namespace], int] | None = None
+    fixer: Callable[[str, Namespace], int] | None = None
     summary: str | None = None
+    fix: str | None = None
 
 
 @dataclass

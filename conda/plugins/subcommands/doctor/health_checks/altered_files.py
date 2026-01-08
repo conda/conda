@@ -120,6 +120,7 @@ def conda_health_checks() -> Iterable[CondaHealthCheck]:
     yield CondaHealthCheck(
         name="altered-files",
         action=altered_files,
-        fix=fix_altered_files,
-        summary="Reinstall packages with altered files",
+        fixer=fix_altered_files,
+        summary="Detect packages with modified files",
+        fix="Reinstall affected packages",
     )

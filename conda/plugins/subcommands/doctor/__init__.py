@@ -60,9 +60,12 @@ def execute(args: Namespace) -> int:
 
         print("Available health checks:\n")
         for name, check in sorted(checks.items()):
-            fix_marker = " [fixable]" if check.fix else ""
             summary = check.summary or name
-            print(f"  {name}: {summary}{fix_marker}")
+            if check.fixer:
+                fix = check.fix or "Fix available"
+                print(f"  {name}: {summary} (fix: {fix})")
+            else:
+                print(f"  {name}: {summary}")
         print()
         return 0
 
@@ -93,7 +96,7 @@ def execute(args: Namespace) -> int:
         print("Running fixes...")
         print("=" * 60 + "\n")
 
-        fixable = {n: c for n, c in checks.items() if c.fix}
+        fixable = {n: c for n, c in checks.items() if c.fixer}
         if not fixable:
             print("No health checks with fix capability are available.")
             return 0
@@ -101,7 +104,7 @@ def execute(args: Namespace) -> int:
         exit_code = 0
         for name, check in fixable.items():
             try:
-                result = check.fix(prefix, args)
+                result = check.fixer(prefix, args)
                 if result != 0:
                     exit_code = result
             except Exception as err:

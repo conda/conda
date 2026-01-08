@@ -41,10 +41,10 @@ Example of a basic health check:
 Health Checks with Fixes
 ========================
 
-Health checks can optionally provide a ``fix`` function that repairs detected issues.
-When a user runs ``conda doctor --fix``, the fix function is called after the check.
+Health checks can optionally provide a ``fixer`` function that repairs detected issues.
+When a user runs ``conda doctor --fix``, the fixer function is called after the check.
 
-The fix function receives:
+The fixer function receives:
 
 - **prefix**: The environment prefix path
 - **args**: The parsed command-line arguments (includes ``dry_run``, ``yes``, etc.)
@@ -88,8 +88,9 @@ Example with a fix:
        yield CondaHealthCheck(
            name="My Fixable Check",
            action=my_check,
-           fix=my_fix,
-           summary="Repairs broken things",  # Optional description
+           fixer=my_fix,
+           summary="Check for broken things",
+           fix="Repair broken things",
        )
 
 The ``confirm_yn`` function handles dry-run mode automatically by raising

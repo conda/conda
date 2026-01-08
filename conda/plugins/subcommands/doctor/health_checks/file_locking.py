@@ -36,5 +36,4 @@ def conda_health_checks() -> Iterable[CondaHealthCheck]:
         name="file-locking",
         action=file_locking_check,
         summary="Check if file locking is supported",
-        # No fix - system-level issue
     )
