@@ -43,7 +43,7 @@ def install(
     import time
     from datetime import timedelta
 
-    from rattler import Client, Gateway, MatchSpec, solve
+    from rattler import Client, Gateway, MatchSpec, SourceConfig, solve
     from rattler import install as rattler_install
     from rattler.exceptions import GatewayError, SolverError
 
@@ -64,8 +64,16 @@ def install(
     # Here we can configure things like user agent, request headers and authentication
     # headers = context.plugin_manager.get_session_headers()
     # headers = context.plugin_manager.get_request_headers()
-    client = Client(headers=None)
-    gateway = Gateway(cache_dir=cache_dir("index"), client=client, show_progress=report)
+    client = Client(headers={"User-Agent": user_agent()})
+    gateway_config = SourceConfig(
+        cache_action="force-cache-only" if context.offline else "cache-or-fetch"
+    )
+    gateway = Gateway(
+        cache_dir=cache_dir("index"),
+        client=client,
+        show_progress=report,
+        default_config=gateway_config,
+    )
 
     async def inner_solve():
         return await solve(
@@ -338,7 +346,9 @@ def solution_table(
             style=" ".join(styles),
         )
     if not removing:
-        table.caption = "Legend: bold=requested, green=added, red=removed, blue=historic"
+        table.caption = (
+            "Legend: bold=requested, green=added, red=removed, blue=historic"
+        )
     return table
 
 
@@ -390,3 +400,19 @@ def diff_for_unlink_link_precs(
 
     link_precs = sorted(link_precs, key=lambda x: new_records.index(x))
     return tuple(unlink_precs), tuple(link_precs)
+
+
+def user_agent() -> str:
+    import rattler
+
+    from conda import __version__
+    from conda.base.context import context
+
+    builder = [f"conda/{__version__} conda-ng/1 py-rattler/{rattler.__version__}"]
+    builder.append("{}/{}".format(*context.python_implementation_name_version))
+    builder.append("{}/{}".format(*context.platform_system_release))
+    builder.append("{}/{}".format(*context.os_distribution_name_version))
+    if context.libc_family_version[0]:
+        builder.append("{}/{}".format(*context.libc_family_version))
+
+    return " ".join(builder)
