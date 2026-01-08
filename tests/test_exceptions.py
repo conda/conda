@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from unittest.mock import patch
+import getpass
 import json
 import sys
 from contextlib import nullcontext
@@ -12,6 +12,7 @@ from pytest_mock import MockerFixture
 
 from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
+from conda.common.compat import AttrDict
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
