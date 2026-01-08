@@ -553,35 +553,40 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
 
 
 def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False, env=None):
+    skip_install = False
+    nothing_to_do = True
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
             raise PackagesNotFoundError(args.package_names)
-
-
-    if not context.json:
-        unlink_link_transaction.print_transaction_summary()
-        confirm_yn()
-    elif context.dry_run:
-        actions = unlink_link_transaction._make_legacy_action_groups()[0]
-        common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
-        raise DryRunExit()
+        elif not newenv:
+            skip_install = True
 
     # HACK
     results = {"conda": None, "pip": None}
 
-    try:
-        unlink_link_transaction.download_and_extract()
-        if context.download_only:
-            raise CondaExitZero(
-                "Package caches prepared. UnlinkLinkTransaction cancelled with "
-                "--download-only option."
-            )
-        unlink_link_transaction.execute()
-        actions = unlink_link_transaction._make_legacy_action_groups()[0]
-        results["conda"] = actions
-    except SystemExit as e:
-        raise CondaSystemExit("Exiting", e)
+    if not skip_install:
+        nothing_to_do = False
+        if not context.json:
+            unlink_link_transaction.print_transaction_summary()
+            confirm_yn()
+        elif context.dry_run:
+            actions = unlink_link_transaction._make_legacy_action_groups()[0]
+            common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
+            raise DryRunExit()
+
+        try:
+            unlink_link_transaction.download_and_extract()
+            if context.download_only:
+                raise CondaExitZero(
+                    "Package caches prepared. UnlinkLinkTransaction cancelled with "
+                    "--download-only option."
+                )
+            unlink_link_transaction.execute()
+            actions = unlink_link_transaction._make_legacy_action_groups()[0]
+            results["conda"] = actions
+        except SystemExit as e:
+            raise CondaSystemExit("Exiting", e)
 
     if env is not None:
         # Is it ok to set environment variables and install external packages
@@ -590,11 +595,12 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False, e
 
         # HACK: install pip packages
         if env.external_packages.get("pip"):
+            nothing_to_do = False
             from ..env.installers.pip import install as pip_install
             # HACK: pip_install expectes args.file to be a single value
             # and not a list
             args.file = args.file[0]
-            results["pip"] = pip_install(prefix, env.external_packages["pip"], args)
+            results["pip"] = pip_install(prefix, env.external_packages["pip"], args)    
 
         # Export environment variables
         if env.variables:
@@ -607,6 +613,17 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False, e
                 ("subdir", context.subdir),
                 path=Path(prefix, DEFAULT_CONDARC_FILENAME),
             )
+
+    if nothing_to_do:
+        if context.json:
+            common.stdout_json_success(
+                message="All requested packages already installed."
+            )
+        elif context.dry_run:
+            raise DryRunExit()
+        else:
+            print("\n# All requested packages already installed.\n")
+        return
 
     # TODO: We'll want to consolidate all types of printing out to the user
     # to use the same pattern. Not like here, where for json output we 
