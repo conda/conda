@@ -37,7 +37,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         raise ArgumentError("Must provide one SPEC to search.")
 
     try:
-        specs = [MatchSpec(args.match_spec)]
+        specs = [MatchSpec(args.match_spec, exact_names_only=False)]
     except InvalidMatchSpecError as exc:
         raise CondaError(f"Invalid MatchSpec: '{args.match_spec}'") from exc
 
@@ -61,12 +61,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             *channels[defaults_idx + 1 :],
         ]
 
-    console = create_console()
+    console = create_console(width=100_000)
     with console.status("Searching..."):
         if args.envs:
             result = search_in_environments(args.match_spec)
         else:
             # Remote channel search
+            if any("*" in spec.name.normalized for spec in specs):
+                raise ArgumentError("Fuzzy search not yet available.")
             async def inner() -> Iterable[RepoDataRecord]:
                 gateway = Gateway(cache_dir=cache_dir())
                 return itertools.chain(
@@ -80,7 +82,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
             result = asyncio.run(inner())
 
-    records = sorted(result, key=lambda r: (r.name, r.version, r.build_number, r.build))
+    records = sorted(result, key=lambda r: (r.name.normalized, r.version, r.build_number, r.build))
     if not records:
         raise PackagesNotFoundError(specs, channels)
 
@@ -182,7 +184,7 @@ def search_in_environments(spec: str) -> Iterable[RepoDataRecord]:
 
     from .common import installed_packages
 
-    spec = MatchSpec(spec)
+    spec = MatchSpec(spec, exact_names_only=False)
     for prefix in list_all_known_prefixes():
         prefix = Path(prefix)
         for record in installed_packages(prefix):

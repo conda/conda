@@ -35,11 +35,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     ]
     installed = {
         record.name.normalized: record
-        for record in installed_packages(context.target_prefix)
+        for record in installed_packages(prefix)
     }
     if args.package_names:
         try:
-            names = [MatchSpec(spec) for spec in args.package_names]
+            names = [MatchSpec(spec, exact_names_only=False) for spec in args.package_names]
         except InvalidMatchSpecError as exc:
             raise ArgumentError(f"Invalid MatchSpec: {exc}") from exc
     elif args.all:
@@ -54,12 +54,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # conda remove allows globbed names; make sure we don't install those!
     remove = set()
     for spec in names:
-        if "*" in str(spec):
-            raise ArgumentError(
-                f"Asterisks in package names are not supported yet: {spec}"
-            )
+        if "*" in spec.name.normalized:
             for record_name, record in installed.items():
-                if spec.match(record):
+                if spec.matches(record):
                     remove.add(record_name)
         elif spec.name.normalized not in installed:
             raise ArgumentError(
@@ -67,6 +64,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             )
         else:
             remove.add(spec.name.normalized)
+    if not remove:
+        raise ArgumentError("Passed specs did not match any installed packages.")
+
     remove_depends = set()
     for spec in history:
         installed_history = installed[spec.name.normalized]
@@ -131,7 +131,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 history=(),
                 channels=context.channels,
                 platform=context.subdir,
-                target_prefix=context.target_prefix,
+                target_prefix=prefix,
                 locked_packages=[
                     record
                     for record_name, record in installed.items()

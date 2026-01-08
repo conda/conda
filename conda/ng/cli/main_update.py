@@ -44,15 +44,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     while specs_queue:
         spec_str = specs_queue.pop()
         try:
-            spec = MatchSpec(spec_str)
+            spec = MatchSpec(spec_str, exact_names_only=False)
         except InvalidMatchSpecError as exc:
             raise ArgumentError(f"Invalid MatchSpec: {exc}") from exc
-        if "*" in spec_str:
-            raise ArgumentError(
-                f"Asterisks in package names are not supported yet: {spec_str}"
-            )
+        if "*" in spec.name.normalized:
             for record_name, record in installed.items():
-                if spec.match(record):
+                if spec.matches(record):
                     specs_queue.append(record_name)
             continue
         if spec.name.normalized not in installed:
