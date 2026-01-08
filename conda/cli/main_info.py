@@ -152,8 +152,11 @@ def compute_prefix_size(prefix: PathType) -> int:
     """
     total_size = 0
 
+    def handle_error(error: OSError):
+        raise EnvironmentNotReadableError(prefix, error)
+
     try:
-        for dirpath, _, filenames in os.walk(prefix):
+        for dirpath, _, filenames in os.walk(prefix, onerror=handle_error):
             for filename in filenames:
                 path = join(dirpath, filename)
                 if not islink(path):
