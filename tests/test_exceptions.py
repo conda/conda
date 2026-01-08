@@ -646,7 +646,7 @@ def test_print_unexpected_error_message_upload_1(
     capsys: CaptureFixture,
 ):
     """
-    Test that error reports are auto submitted when CONDA_REPORT_ERRORS=true.
+    Test that error reports are not submitted when CONDA_REPORT_ERRORS=true.
     """
     post_mock = mocker.patch(
         "requests.post",
@@ -668,15 +668,13 @@ def test_print_unexpected_error_message_upload_1(
     assert not context.json
     assert not context.always_yes
 
-    # TODO: a deprecation warning is emitted for `error_upload_url`.
-    with pytest.deprecated_call():
-        ExceptionHandler()(_raise_helper, AssertionError())
-        stdout, stderr = capsys.readouterr()
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
 
-        assert username_not_in_post_mock(post_mock, getpass.getuser())
-        assert post_mock.call_count == 2
-        assert not stdout
-        assert "conda version" in stderr
+    assert username_not_in_post_mock(post_mock, getpass.getuser())
+    assert post_mock.call_count == 0
+    assert not stdout
+    assert "conda version" in stderr
 
 
 def test_print_unexpected_error_message_upload_2(
@@ -685,8 +683,8 @@ def test_print_unexpected_error_message_upload_2(
     capsys: CaptureFixture,
 ):
     """
-    Test that error reports are auto submitted when CONDA_ALWAYS_YES=true. Also
-    test that we receive the error report in as a JSON when CONDA_JSON=true.
+    Test that error reports are not submitted when CONDA_ALWAYS_YES=true. Also
+    test that we do not receive the error report in as a JSON when CONDA_JSON=true.
     """
     post_mock = mocker.patch(
         "requests.post",
@@ -713,15 +711,13 @@ def test_print_unexpected_error_message_upload_2(
     assert context.json
     assert context.always_yes
 
-    # TODO: a deprecation warning is emitted for `error_upload_url`.
-    with pytest.deprecated_call():
-        ExceptionHandler()(_raise_helper, AssertionError())
-        stdout, stderr = capsys.readouterr()
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
 
-        assert username_not_in_post_mock(post_mock, getpass.getuser())
-        assert post_mock.call_count == 3
-        assert len(json.loads(stdout)["conda_info"]["channels"]) >= 2
-        assert not stderr
+    assert username_not_in_post_mock(post_mock, getpass.getuser())
+    assert post_mock.call_count == 0
+    assert len(json.loads(stdout)["conda_info"]["channels"]) >= 2
+    assert not stderr
 
 
 def test_print_unexpected_error_message_upload_3(
@@ -745,17 +741,15 @@ def test_print_unexpected_error_message_upload_3(
     assert not context.json
     assert not context.always_yes
 
-    # TODO: a deprecation warning is emitted for `error_upload_url`.
-    with pytest.deprecated_call():
-        ExceptionHandler()(_raise_helper, AssertionError())
-        stdout, stderr = capsys.readouterr()
+    ExceptionHandler()(_raise_helper, AssertionError())
+    stdout, stderr = capsys.readouterr()
 
-        assert username_not_in_post_mock(post_mock, username=getpass.getuser())
-        assert isatty_mock.call_count == 1
-        assert input_mock.call_count == 1
-        assert post_mock.call_count == 2
-        assert not stdout
-        assert "conda version" in stderr
+    assert username_not_in_post_mock(post_mock, username=getpass.getuser())
+    assert isatty_mock.call_count == 0
+    assert input_mock.call_count == 0
+    assert post_mock.call_count == 0
+    assert not stdout
+    assert "conda version" in stderr
 
 
 @patch("requests.post", return_value=None)
