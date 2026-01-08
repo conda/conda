@@ -53,6 +53,10 @@ class ExceptionHandler:
         return context.user_agent
 
     @property
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
     def error_upload_url(self):
         from .base.context import context
 

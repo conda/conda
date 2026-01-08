@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.base.constants.ERROR_UPLOAD_URL` as pending deprecation, to be removed in 27.3.  (#13900 via #15558)
+* Mark `conda.base.context.error_upload_url` as pending deprecation, to be removed in 27.3.  (#13900 via #15558)
+* Mark `conda.exception_handler.ExceptionHandler.error_upload_url` as pending deprecation, to be removed in 27.3.  (#13900 via #15558)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
