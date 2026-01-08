@@ -145,19 +145,7 @@ def test_no_gpu_cuda_patched(monkeypatch):
 
 
 def get_virtual_precs() -> Iterable[PackageRecord]:
-    index = conda.core.index.ReducedIndex(
-        prefix=context.default_prefix,
-        channels=context.default_channels,
-        subdirs=context.subdirs,
-        specs=(),
-        repodata_fn=context.repodata_fns[0],
-    )
-
-    yield from (
-        prec
-        for prec in index
-        if prec.channel.name == "@" and prec.name.startswith("__")
-    )
+    yield from conda.core.index.Index().system_packages.values()
 
 
 @pytest.mark.parametrize(
