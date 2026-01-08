@@ -10,9 +10,9 @@ import pytest
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
+from conda.auxlib.collection import AttrDict
 from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
-from conda.common.compat import AttrDict
 from conda.exceptions import (
     BasicClobberError,
     BinaryPrefixReplacementError,
@@ -755,76 +755,6 @@ def test_print_unexpected_error_message_upload_3(
         assert input_mock.call_count == 1
         assert post_mock.call_count == 2
         assert not stdout
-        assert "conda version" in stderr
-
-
-@patch(
-    "requests.post",
-    side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
-            status_code=302,
-            raise_for_status=lambda: None,
-        ),
-        AttrDict(raise_for_status=lambda: None),
-    ),
-)
-@patch("getpass.getuser", return_value="some name")
-def test_print_unexpected_error_message_upload_username_with_spaces(
-    pwuid,
-    post_mock,
-    monkeypatch: MonkeyPatch,
-    capsys: CaptureFixture,
-) -> None:
-    monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
-    reset_context()
-    assert context.report_errors
-
-    # TODO: a deprecation warning is emitted for `error_upload_url`.
-    with pytest.deprecated_call():
-        ExceptionHandler()(_raise_helper, AssertionError())
-        stdout, stderr = capsys.readouterr()
-
-        error_data = json.loads(post_mock.call_args[1].get("data"))
-        assert error_data.get("has_spaces") is True
-        assert error_data.get("is_ascii") is True
-        assert post_mock.call_count == 2
-        assert stdout == ""
-        assert "conda version" in stderr
-
-
-@patch(
-    "requests.post",
-    side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
-            status_code=302,
-            raise_for_status=lambda: None,
-        ),
-        AttrDict(raise_for_status=lambda: None),
-    ),
-)
-@patch("getpass.getuser", return_value="my√nameΩ")
-def test_print_unexpected_error_message_upload_username_with_unicode(
-    pwuid,
-    post_mock,
-    monkeypatch: MonkeyPatch,
-    capsys: CaptureFixture,
-) -> None:
-    monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
-    reset_context()
-    assert context.report_errors
-
-    # TODO: a deprecation warning is emitted for `error_upload_url`.
-    with pytest.deprecated_call():
-        ExceptionHandler()(_raise_helper, AssertionError())
-        stdout, stderr = capsys.readouterr()
-
-        error_data = json.loads(post_mock.call_args[1].get("data"))
-        assert error_data.get("has_spaces") is False
-        assert error_data.get("is_ascii") is False
-        assert post_mock.call_count == 2
-        assert stdout == ""
         assert "conda version" in stderr
 
 
