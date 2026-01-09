@@ -37,7 +37,7 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
-        CondaSupportedExtensions,
+        CondaSupportedPkgFormats,
         CondaVirtualPackage,
     )
 
@@ -737,7 +737,7 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_supported_extensions(self) -> Iterable[CondaSupportedExtensions]:
+    def conda_supported_extensions(self) -> Iterable[CondaSupportedPkgFormats]:
         """
         Register supported package extensions and their extraction handlers.
 
@@ -750,12 +750,12 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_supported_extensions():
-                yield plugins.CondaSupportedExtensions(
+                yield plugins.CondaSupportedPkgFormats(
                     name="wheel-package",
                     extensions=[".whl"],
                     action=extract_whl_as_conda_pkg,
                 )
 
-        :return: An iterable of CondaSupportedExtensions entries.
+        :return: An iterable of CondaSupportedPkgFormats entries.
         """
         yield from ()

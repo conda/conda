@@ -593,7 +593,7 @@ class CondaEnvironmentExporter(CondaPlugin):
 
 
 @dataclass
-class CondaSupportedExtensions(CondaPlugin):
+class CondaSupportedPkgFormats(CondaPlugin):
     """
     Return type to use when defining conda supported packages plugin hook.
 
