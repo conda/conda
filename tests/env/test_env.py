@@ -373,6 +373,11 @@ def test_create_and_update_env_with_just_vars(
     path_factory: PathFactoryFixture,
     support_file_isolated,
 ):
+    """
+    Ensures that files with empty dependency sections work.
+
+    Regression fix for: https://github.com/conda/conda/issues/15569
+    """
     prefix = path_factory()
     assert not prefix.exists()
 
