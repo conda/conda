@@ -38,7 +38,7 @@ from . import (
     reporter_backends,
     solvers,
     subcommands,
-    supported_extensions,
+    supported_pkg_formats,
     virtual_packages,
 )
 from .config import PluginConfig
@@ -828,7 +828,7 @@ class CondaPluginManager(pluggy.PluginManager):
         ]
 
     def get_pkg_extraction_function_from_plugin(source_full_path: str) -> Callable:
-        hooks = context.plugin_manager.get_hook_results("supported_extensions")
+        hooks = context.plugin_manager.get_hook_results("supported_pkg_formats")
         for hook in hooks:
             for ext in hook.extensions:
                 if source_full_path.lower().endswith(ext.lower()):
@@ -854,7 +854,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
-        *supported_extensions.plugins,
+        *supported_pkg_formats.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,
