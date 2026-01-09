@@ -270,7 +270,6 @@ class ExceptionHandler:
     @deprecated(
         "26.9",
         "27.3",
-        addendum="`_upload` is being deprecated and will be removed in conda version 27.3",
     )
     def _upload(self, error_report: dict[str, str]) -> None:
         """Determine whether or not to upload the error report."""
