@@ -832,7 +832,7 @@ class CondaPluginManager(pluggy.PluginManager):
         for hook in hooks:
             for ext in hook.extensions:
                 if source_full_path.lower().endswith(ext.lower()):
-                    return hook.pkg_extraction_function
+                    return hook.extractor
 
         raise PluginError(
             f"No registered 'supported extensions' plugin found for package: {source_full_path}"

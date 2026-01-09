@@ -599,9 +599,9 @@ class CondaSupportedPkgFormats(CondaPlugin):
 
     :param name: name of the supported extension
     :extensions: the extension (eg. `.conda`, `.whl`)
-    :pkg_extraction_function: the extraction function
+    :extractor: the extraction function
     """
 
     name: str
     extensions: list[str]
-    pkg_extraction_function: Callable
+    extractor: Callable
