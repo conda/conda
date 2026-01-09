@@ -330,7 +330,6 @@ class ExceptionHandler:
     @deprecated(
         "26.9",
         "27.3",
-        addendum="`_execute_upload` is being deprecated and will be removed in conda version 27.3",
     )
     def _execute_upload(self, error_report: dict[str, Any]) -> None:
         import getpass
