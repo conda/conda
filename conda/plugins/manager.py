@@ -827,6 +827,17 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
+    def get_pkg_extraction_function_from_plugin(source_full_path: str) -> Callable:
+        hooks = context.plugin_manager.get_hook_results("supported_extensions")
+        for hook in hooks:
+            for ext in hook.extensions:
+                if source_full_path.lower().endswith(ext.lower()):
+                    return hook.pkg_extraction_function
+
+        raise PluginError(
+            f"No registered 'supported extensions' plugin found for package: {source_full_path}"
+        )
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -850,15 +861,3 @@ def get_plugin_manager() -> CondaPluginManager:
     )
     plugin_manager.load_entrypoints(APP_NAME)
     return plugin_manager
-
-
-def get_pkg_extraction_function_from_plugin(source_full_path: str) -> Callable:
-    hooks = context.plugin_manager.get_hook_results("supported_extensions")
-    for hook in hooks:
-        for ext in hook.extensions:
-            if source_full_path.lower().endswith(ext.lower()):
-                return hook.pkg_extraction_function
-
-    raise PluginError(
-        f"No registered 'supported extensions' plugin found for package: {source_full_path}"
-        )
