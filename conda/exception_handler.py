@@ -306,7 +306,6 @@ class ExceptionHandler:
     @deprecated(
         "26.9",
         "27.3",
-        addendum="`_ask_upload` is being deprecated and will be removed in conda version 27.3",
     )
     def _ask_upload(self) -> bool:
         from .auxlib.type_coercion import boolify
