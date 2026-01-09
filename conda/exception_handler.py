@@ -393,7 +393,6 @@ class ExceptionHandler:
     @deprecated(
         "26.9",
         "27.3",
-        addendum="`_post_upload` is being deprecated and will be removed in conda version 27.3",
     )
     def _post_upload(self, do_upload: bool) -> None:
         if do_upload is True:
