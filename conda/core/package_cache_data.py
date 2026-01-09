@@ -18,7 +18,7 @@ from sys import platform
 from tarfile import ReadError
 from typing import TYPE_CHECKING
 
-from conda.plugins.manager import get_pkg_extraction_function_from_plugin
+from conda.plugins.manager import CondaPluginManager
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
@@ -428,7 +428,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         try:
-                            extractor = get_pkg_extraction_function_from_plugin(
+                            extractor = CondaPluginManager.get_pkg_extraction_function_from_plugin(
                                 package_tarball_full_path
                             )
                             extractor(package_tarball_full_path, extracted_package_dir)
