@@ -5,12 +5,12 @@
 
 from conda.gateways.disk.create import extract_tarball
 
-from ... import hookimpl
+from ..hookspec import hookimpl
 from ..types import CondaSupportedPkgFormats
 
 
 @hookimpl
-def conda_supported_extensions():
+def conda_supported_pkg_formats():
     yield CondaSupportedPkgFormats(
         name="Conda Package", extensions=[".tar.bz2", ".conda"], action=extract_tarball
     )
