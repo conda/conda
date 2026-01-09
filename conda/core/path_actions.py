@@ -13,7 +13,7 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from conda.plugins.manager import get_pkg_extraction_function_from_plugin
+from conda.plugins.manager import CondaPluginManager
 
 from .. import CondaError
 from ..auxlib.ish import dals
@@ -1432,7 +1432,9 @@ class ExtractPackageAction(PathAction):
             rm_rf(self.target_full_path)
 
         # find the right extractor function from registered plugins
-        extractor = get_pkg_extraction_function_from_plugin(self.source_full_path)
+        extractor = CondaPluginManager.get_pkg_extraction_function_from_plugin(
+            self.source_full_path
+        )
 
         # Call the extractor function
         extractor(
