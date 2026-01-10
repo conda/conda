@@ -305,15 +305,17 @@ def test_config_set_and_get_key_for_env(
         "config", "--append", "channels", test_channel_name, "--prefix", empty_env
     )
 
-    # check config is added to the prefix config
-    stdout, _, _ = conda_cli("config", "--show", "--prefix", empty_env, "--json")
-    parsed = json.loads(stdout.strip())
-    assert test_channel_name in parsed["channels"]
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        # check config is added to the prefix config
+        stdout, _, _ = conda_cli("config", "--show", "--prefix", empty_env, "--json")
+        parsed = json.loads(stdout.strip())
+        assert test_channel_name in parsed["channels"]
 
-    # check config is not added to the config of the base environment
-    stdout, _, _ = conda_cli("config", "--show", "--json")
-    parsed = json.loads(stdout.strip())
-    assert test_channel_name not in parsed["channels"]
+        # check config is not added to the config of the base environment
+        stdout, _, _ = conda_cli("config", "--show", "--json")
+        parsed = json.loads(stdout.strip())
+        assert test_channel_name not in parsed["channels"]
 
 
 def test_config_env_does_not_exist(
