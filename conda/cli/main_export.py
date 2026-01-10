@@ -142,7 +142,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..exceptions import CondaValueError
     from .common import stdout_json
 
-    # TODO: Check if platform targets are valid
+    unknown = set(context.export_platforms) - set(KNOWN_SUBDIRS)
+    if unknown:
+        raise CondaValueError(
+            f"Could not find platform(s): {', '.join(sorted(unknown))}. "
+            f"Valid platforms include: {', '.join(sorted(KNOWN_SUBDIRS))}"
+        )
 
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
@@ -195,13 +200,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         ignore_channels=args.ignore_channels,
         channels=context.channels,
     )
-
-    unknown = set(context.export_platforms) - set(KNOWN_SUBDIRS)
-    if unknown:
-        raise CondaValueError(
-            f"Could not find platform(s): {', '.join(sorted(unknown))}. \n"
-            f"Valid platforms include: {', '.join(sorted(KNOWN_SUBDIRS))}"
-        )
 
     # Export using the appropriate method
     envs = [env.extrapolate(platform) for platform in context.export_platforms]
