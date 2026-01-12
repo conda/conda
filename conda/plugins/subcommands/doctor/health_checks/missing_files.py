@@ -8,16 +8,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .....base.constants import OK_MARK, X_MARK
-from .....base.context import context
 from .....cli.install import reinstall_packages
 from .....common.serialize import json
-from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
 
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
+
+    from ....types import ConfirmCallback
 
 
 def excluded_files_check(filename: str) -> bool:
@@ -55,7 +55,7 @@ def missing_files(prefix: str, verbose: bool) -> None:
         print(f"{OK_MARK} There are no packages with missing files.\n")
 
 
-def fix_missing_files(prefix: str, args: Namespace) -> int:
+def fix_missing_files(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
     """Fix missing files by reinstalling affected packages."""
     packages_with_missing = find_packages_with_missing_files(prefix)
 
@@ -68,11 +68,7 @@ def fix_missing_files(prefix: str, args: Namespace) -> int:
         print(f"  {pkg_name}: {len(files)} missing file(s)")
 
     print()
-    confirm_yn(
-        "Reinstall these packages to restore missing files?",
-        default="no",
-        dry_run=context.dry_run,
-    )
+    confirm("Reinstall these packages to restore missing files?")
 
     specs = list(packages_with_missing.keys())
     return reinstall_packages(args, specs, force_reinstall=True)

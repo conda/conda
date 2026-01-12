@@ -17,7 +17,8 @@ from ....cli.helpers import (
     add_parser_prefix,
 )
 from ....core.prefix_data import PrefixData
-from ....exceptions import CondaSystemExit
+from ....exceptions import CondaSystemExit, DryRunExit
+from ....reporters import confirm_yn
 from ... import hookimpl
 from ...types import CondaSubcommand
 
@@ -103,13 +104,17 @@ def execute(args: Namespace) -> int:
             return 0
 
         exit_code = 0
+        confirm = lambda msg: confirm_yn(msg, default="no", dry_run=context.dry_run)
         for name, check in fixable.items():
             try:
-                result = check.fixer(prefix, args)
+                result = check.fixer(prefix, args, confirm)
                 if result != 0:
                     exit_code = result
+            except DryRunExit as exc:
+                # Dry-run mode: print the message and continue to next fixer
+                log.warning(str(exc))
             except CondaSystemExit:
-                # User cancelled the fix (e.g., answered 'n' to prompt)
+                # User cancelled the fix
                 pass
             except Exception as err:
                 log.warning(f"Error running fix: {name} ({err})")

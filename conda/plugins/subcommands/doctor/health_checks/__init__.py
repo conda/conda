@@ -28,3 +28,5 @@ plugins = [
     pinned,
     requests_ca_bundle,
 ]
+
+__all__ = ["plugins"]

@@ -63,7 +63,7 @@ class HealthCheckPluginWithFixer:
     def health_check_action(self, prefix, verbose):
         pass
 
-    def health_check_fixer(self, prefix, args):
+    def health_check_fixer(self, prefix, args, confirm):
         raise CondaSystemExit("Exiting.")
 
     @plugins.hookimpl

@@ -12,13 +12,14 @@ from .....cli.install import reinstall_packages
 from .....common.serialize import yaml_safe_dump
 from .....core.prefix_data import PrefixData
 from .....models.match_spec import MatchSpec
-from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
 
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
+
+    from ....types import ConfirmCallback
 
 
 def find_inconsistent_packages(
@@ -86,7 +87,9 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
         print(f"{OK_MARK} The environment is consistent.\n")
 
 
-def fix_inconsistent_packages(prefix: str, args: Namespace) -> int:
+def fix_inconsistent_packages(
+    prefix: str, args: Namespace, confirm: ConfirmCallback
+) -> int:
     """Fix inconsistent packages by updating the environment."""
     prefix_data = PrefixData(prefix)
     issues, missing_deps = find_inconsistent_packages(prefix_data)
@@ -107,11 +110,7 @@ def fix_inconsistent_packages(prefix: str, args: Namespace) -> int:
         print()
 
     print()
-    confirm_yn(
-        "Attempt to resolve these dependency issues?",
-        default="no",
-        dry_run=context.dry_run,
-    )
+    confirm("Attempt to resolve these dependency issues?")
 
     # Install missing dependencies and update inconsistent ones
     specs = list(missing_deps) if missing_deps else []

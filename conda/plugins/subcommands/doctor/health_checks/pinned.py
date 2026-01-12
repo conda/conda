@@ -8,17 +8,17 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .....base.constants import OK_MARK, PREFIX_PINNED_FILE, X_MARK
-from .....base.context import context
 from .....common.io import dashlist
 from .....core.prefix_data import PrefixData
 from .....models.match_spec import MatchSpec
-from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
 
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
+
+    from ....types import ConfirmCallback
 
 
 def find_malformed_pinned_specs(prefix_data: PrefixData) -> list[MatchSpec]:
@@ -69,7 +69,7 @@ def pinned_well_formatted_check(prefix: str, verbose: bool) -> None:
     print(f"{OK_MARK} The pinned file in {pinned_file} seems well formatted.")
 
 
-def fix_malformed_pinned(prefix: str, args: Namespace) -> int:
+def fix_malformed_pinned(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
     """Clean up malformed specs in pinned file."""
     prefix_data = PrefixData(prefix)
     pinned_file = Path(prefix) / PREFIX_PINNED_FILE
@@ -89,11 +89,7 @@ def fix_malformed_pinned(prefix: str, args: Namespace) -> int:
         print(f"  {spec} (package not installed)")
 
     print()
-    confirm_yn(
-        "Remove these specs from the pinned file?",
-        default="no",
-        dry_run=context.dry_run,
-    )
+    confirm("Remove these specs from the pinned file?")
 
     # Read the current file and filter out malformed specs
     malformed_names = {spec.name for spec in malformed}

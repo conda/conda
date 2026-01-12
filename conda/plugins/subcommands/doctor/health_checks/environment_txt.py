@@ -9,9 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .....base.constants import OK_MARK, X_MARK
-from .....base.context import context
 from .....core.envs_manager import get_user_environments_txt_file, register_env
-from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
 
@@ -19,6 +17,8 @@ if TYPE_CHECKING:
     import os
     from argparse import Namespace
     from collections.abc import Iterable
+
+    from ....types import ConfirmCallback
 
 logger = getLogger(__name__)
 
@@ -55,7 +55,7 @@ def env_txt_check(prefix: str, verbose: bool) -> None:
         print(f"{X_MARK} The environment is not listed in the environments.txt file.\n")
 
 
-def fix_env_txt(prefix: str, args: Namespace) -> int:
+def fix_env_txt(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
     """Register environment in environments.txt."""
     if check_envs_txt_file(prefix):
         print(f"Environment is already registered in environments.txt: {prefix}")
@@ -66,11 +66,7 @@ def fix_env_txt(prefix: str, args: Namespace) -> int:
     print(f"  Environment: {prefix}")
 
     print()
-    confirm_yn(
-        "Register this environment?",
-        default="yes",
-        dry_run=context.dry_run,
-    )
+    confirm("Register this environment?")
 
     register_env(prefix)
     print(f"Environment registered: {prefix}")

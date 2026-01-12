@@ -9,12 +9,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .....base.constants import OK_MARK, X_MARK
-from .....base.context import context
 from .....cli.install import reinstall_packages
 from .....common.serialize import json
 from .....exceptions import CondaError
 from .....gateways.disk.read import compute_sum
-from .....reporters import confirm_yn
 from .... import hookimpl
 from ....types import CondaHealthCheck
 from .missing_files import excluded_files_check
@@ -22,6 +20,9 @@ from .missing_files import excluded_files_check
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
+
+    from ....types import ConfirmCallback
+
 
 logger = getLogger(__name__)
 
@@ -91,7 +92,7 @@ def altered_files(prefix: str, verbose: bool) -> None:
         print(f"{OK_MARK} There are no packages with altered files.\n")
 
 
-def fix_altered_files(prefix: str, args: Namespace) -> int:
+def fix_altered_files(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
     """Fix altered files by reinstalling affected packages."""
     altered = find_altered_packages(prefix)
 
@@ -104,11 +105,7 @@ def fix_altered_files(prefix: str, args: Namespace) -> int:
         print(f"  {pkg_name}: {len(files)} altered file(s)")
 
     print()
-    confirm_yn(
-        "Reinstall these packages to restore original files?",
-        default="no",
-        dry_run=context.dry_run,
-    )
+    confirm("Reinstall these packages to restore original files?")
 
     specs = list(altered.keys())
     return reinstall_packages(args, specs, force_reinstall=True)
