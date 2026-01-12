@@ -367,6 +367,37 @@ def test_env_advanced_pip(
     assert package_is_installed(prefix, "argh==0.26.2")
 
 
+@pytest.mark.integration
+def test_create_and_update_env_with_just_vars(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    support_file_isolated,
+):
+    """
+    Ensures that files with empty dependency sections work.
+
+    Regression fix for: https://github.com/conda/conda/issues/15569
+    """
+    prefix = path_factory()
+    assert not prefix.exists()
+
+    env_file = support_file_isolated("just_vars.yml")
+
+    conda_cli(
+        *("env", "create"),
+        *("--prefix", prefix),
+        *("--file", str(env_file)),
+    )
+    assert prefix.exists()
+
+    conda_cli(
+        *("env", "update"),
+        *("--prefix", prefix),
+        *("--file", str(env_file)),
+    )
+    assert prefix.exists()
+
+
 def test_from_history():
     # We're not testing that get_requested_specs_map() actually works
     # assume it gives us back a dict of MatchSpecs

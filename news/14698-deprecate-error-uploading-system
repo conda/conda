@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.exception_handler.ExceptionHandler._upload` as pending deprecation, to be removed in 27.3.  (#13900 via #14698)
+* Mark `conda.exception_handler.ExceptionHandler._ask_upload` as pending deprecation, to be removed in 27.3.  (#13900 via #14698)
+* Mark `conda.exception_handler.ExceptionHandler._execute_upload` as pending deprecation, to be removed in 27.3.  (#13900 via #14698)
+* Mark `conda.exception_handler.ExceptionHandler._post_upload` as pending deprecation, to be removed in 27.3.  (#13900 via #14698)
+
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Disable uploading error reports.  (#13900 via #14698)
