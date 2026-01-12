@@ -56,8 +56,6 @@ if TYPE_CHECKING:
 
     from conda.testing.fixtures import CondaCLIFixture
 
-CONDA_EXE = "conda.exe" if on_win else "conda"
-
 
 @pytest.fixture
 def verbose():
@@ -452,8 +450,8 @@ def test_install_conda_sh(verbose):
         *lines, remainder = created_file_contents.split("\n", 7)
         if on_win:
             assert lines == [
-                f"export CONDA_EXE=\"$(cygpath '{context.conda_exe}')\"",
-                f"export _CONDA_EXE=\"$(cygpath '{context.conda_exe}')\"",
+                f"export CONDA_EXE=\"$(cygpath '{context.conda_exe_vars_dict['CONDA_EXE']}')\"",
+                f"export _CONDA_EXE=\"$(cygpath '{context.conda_exe_vars_dict['CONDA_EXE']}')\"",
                 "export _CE_M=''",
                 "export _CE_CONDA=''",
                 f"export CONDA_PYTHON_EXE=\"$(cygpath '{sys.executable}')\"",
@@ -462,8 +460,8 @@ def test_install_conda_sh(verbose):
             ]
         else:
             assert lines == [
-                f"export CONDA_EXE='{context.conda_exe}'",
-                f"export _CONDA_EXE='{context.conda_exe}'",
+                f"export CONDA_EXE='{context.conda_exe_vars_dict['CONDA_EXE']}'",
+                f"export _CONDA_EXE='{context.conda_exe_vars_dict['CONDA_EXE']}'",
                 "export _CE_M=''",
                 "export _CE_CONDA=''",
                 f"export CONDA_PYTHON_EXE='{sys.executable}'",
@@ -483,7 +481,6 @@ def test_install_conda_sh(verbose):
 
 def test_install_conda_fish(verbose):
     with tempdir() as conda_temp_prefix:
-        conda_exe = join(context.conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "etc", "fish", "conf.d", "conda.fish")
         result = install_conda_fish(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
@@ -494,8 +491,8 @@ def test_install_conda_fish(verbose):
         *lines, remainder = created_file_contents.split("\n", 7)
         if on_win:
             assert lines == [
-                f'set -gx CONDA_EXE (cygpath "{conda_exe}");',
-                f'set -gx _CONDA_EXE (cygpath "{conda_exe}");',
+                f'set -gx CONDA_EXE (cygpath "{context.conda_exe_vars_dict["CONDA_EXE"]}");',
+                f'set -gx _CONDA_EXE (cygpath "{context.conda_exe_vars_dict["CONDA_EXE"]}");',
                 "set -e _CE_M || true;",
                 "set -e _CE_CONDA || true;",
                 f'set -gx CONDA_PYTHON_EXE (cygpath "{sys.executable}");',
@@ -504,8 +501,8 @@ def test_install_conda_fish(verbose):
             ]
         else:
             assert lines == [
-                f'set -gx CONDA_EXE "{conda_exe}";',
-                f'set -gx _CONDA_EXE "{conda_exe}";',
+                f'set -gx CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}";',
+                f'set -gx _CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}";',
                 "set -e _CE_M || true;",
                 "set -e _CE_CONDA || true;",
                 f'set -gx CONDA_PYTHON_EXE "{sys.executable}";',
@@ -538,8 +535,8 @@ def test_install_conda_xsh(verbose):
             original_contents = fh.read()
 
         assert created_file_contents == (
-            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
-            f"$_CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
+            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe_vars_dict['CONDA_EXE'])}'\n"
+            f"$_CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe_vars_dict['CONDA_EXE'])}'\n"
             f"try:\n"
             f"    del $_CE_M\n"
             f"except KeyError:\n"
@@ -576,8 +573,8 @@ def test_install_conda_csh(verbose):
         )
         if on_win:
             assert created_file_contents == (
-                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
-                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe_vars_dict['CONDA_EXE']}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe_vars_dict['CONDA_EXE']}'`\";\n"
                 f"unsetenv _CE_M;\n"
                 f"unsetenv _CE_CONDA;\n"
                 f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
@@ -587,8 +584,8 @@ def test_install_conda_csh(verbose):
             )
         else:
             assert created_file_contents == (
-                f'setenv CONDA_EXE "{context.conda_exe}";\n'
-                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}";\n'
+                f'setenv _CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}";\n'
                 f"unsetenv _CE_M;\n"
                 f"unsetenv _CE_CONDA;\n"
                 f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'

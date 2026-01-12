@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 import platform
 from typing import TYPE_CHECKING
 
@@ -94,7 +95,7 @@ def test_duplicated(plugin_manager):
 def test_cuda_detection(clear_cuda_version):
     # confirm that CUDA detection doesn't raise exception
     version = cuda.cuda_version()
-    assert version is None or isinstance(version, str)
+    assert version is NULL or isinstance(version, str)
 
 
 @pytest.mark.parametrize(
@@ -124,20 +125,27 @@ def test_cuda_override(
         assert pkg_record is NULL
 
 
-def get_virtual_precs() -> Iterable[PackageRecord]:
-    index = conda.core.index.ReducedIndex(
-        prefix=context.default_prefix,
-        channels=context.default_channels,
-        subdirs=context.subdirs,
-        specs=(),
-        repodata_fn=context.repodata_fns[0],
-    )
+def test_no_gpu_cuda():
+    """
+    __cuda should not be exposed when there's no GPU detected
+    """
+    if cuda.cuda_version() or os.environ.get("CONDA_OVERRIDE_CUDA"):
+        pytest.skip()
+    pkg = next(cuda.conda_virtual_packages())
+    assert pkg.to_virtual_package() is NULL
 
-    yield from (
-        prec
-        for prec in index
-        if prec.channel.name == "@" and prec.name.startswith("__")
-    )
+
+def test_no_gpu_cuda_patched(monkeypatch):
+    """
+    __cuda should not be exposed when there's no GPU detected
+    """
+    monkeypatch.setattr(cuda, "cuda_version", lambda: NULL)
+    pkg = next(cuda.conda_virtual_packages())
+    assert pkg.to_virtual_package() is NULL
+
+
+def get_virtual_precs() -> Iterable[PackageRecord]:
+    yield from conda.core.index.Index().system_packages.values()
 
 
 @pytest.mark.parametrize(

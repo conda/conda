@@ -278,6 +278,7 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         help="Use locally built packages. Identical to '-c local'.",
     )
     channel_customization_options.add_argument(
+        "-O",
         "--override-channels",
         action="store_true",
         help="""Do not search default or .condarc channels.  Requires --channel.""",
