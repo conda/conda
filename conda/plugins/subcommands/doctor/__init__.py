@@ -17,6 +17,7 @@ from ....cli.helpers import (
     add_parser_prefix,
 )
 from ....core.prefix_data import PrefixData
+from ....exceptions import CondaSystemExit
 from ... import hookimpl
 from ...types import CondaSubcommand
 
@@ -107,6 +108,9 @@ def execute(args: Namespace) -> int:
                 result = check.fixer(prefix, args)
                 if result != 0:
                     exit_code = result
+            except CondaSystemExit:
+                # User cancelled the fix (e.g., answered 'n' to prompt)
+                pass
             except Exception as err:
                 log.warning(f"Error running fix: {name} ({err})")
                 exit_code = 1
