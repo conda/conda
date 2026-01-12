@@ -12,7 +12,9 @@ from ..types import CondaSupportedPkgFormats
 @hookimpl
 def conda_supported_pkg_formats():
     yield CondaSupportedPkgFormats(
-        name="Conda Package", extensions=[".tar.bz2", ".conda"], action=extract_tarball
+        name="Conda Package",
+        extensions=[".tar.bz2", ".conda"],
+        extractor=extract_tarball,
     )
 
 
