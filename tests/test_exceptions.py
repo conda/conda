@@ -664,7 +664,8 @@ def test_print_unexpected_error_message_upload_1(
     monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
     monkeypatch.setenv("CONDA_JSON", "false")
     reset_context()
-    assert context.report_errors is True
+    with pytest.deprecated_call():
+        assert context.report_errors is True
     assert not context.json
     assert not context.always_yes
 
@@ -707,7 +708,8 @@ def test_print_unexpected_error_message_upload_2(
     monkeypatch.setenv("CONDA_ALWAYS_YES", "true")
     monkeypatch.setenv("CONDA_JSON", "true")
     reset_context()
-    assert context.report_errors is None
+    with pytest.deprecated_call():
+        assert context.report_errors is None
     assert context.json
     assert context.always_yes
 
@@ -737,7 +739,8 @@ def test_print_unexpected_error_message_upload_3(
     monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
     monkeypatch.setenv("CONDA_JSON", "false")
     reset_context()
-    assert context.report_errors is None
+    with pytest.deprecated_call():
+        assert context.report_errors is None
     assert not context.json
     assert not context.always_yes
 
@@ -765,7 +768,8 @@ def test_print_unexpected_error_message_opt_out_1(
 
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "false")
     reset_context()
-    assert not context.report_errors
+    with pytest.deprecated_call():
+        assert not context.report_errors
 
     ExceptionHandler()(_raise_helper, AssertionError())
     stdout, stderr = capsys.readouterr()
