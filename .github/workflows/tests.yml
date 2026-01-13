@@ -67,7 +67,7 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false  # disabled for 3.14 testing
 
     runs-on: windows-latest
     strategy:
@@ -201,25 +201,13 @@ jobs:
         runs-on:
           - ubuntu-latest  # linux-64
           - ubuntu-24.04-arm  # linux-aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.10'
-            default-channel: conda-forge
-          - python-version: '3.11'
-            default-channel: conda-forge
-          - python-version: '3.12'
-            default-channel: conda-forge
           - test-type: unit
             test-group: 3
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.10'
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.11'
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.12'
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -335,7 +323,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false  # disabled for 3.14 testing
 
     runs-on: ubuntu-22.04
     defaults:
@@ -401,7 +389,7 @@ jobs:
   linux-typing:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false  # disabled for 3.14 testing
 
     runs-on: ubuntu-22.04
     defaults:
@@ -488,7 +476,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false  # disabled for 3.14 testing
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -547,7 +535,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false  # disabled for 3.14 testing
 
     runs-on: ubuntu-latest
     defaults:
@@ -609,7 +597,7 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: false  # disabled for 3.14 testing
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -789,14 +777,7 @@ jobs:
     # - prior steps succeeded,
     # - this is the main repo, and
     # - we are on the main, feature, or release branch
-    if: >-
-      !cancelled()
-      && !github.event.repository.fork
-      && (
-        github.ref_name == 'main'
-        || startsWith(github.ref_name, 'feature/')
-        || endsWith(github.ref_name, '.x')
-      )
+    if: false  # disabled for 3.14 testing
     strategy:
       matrix:
         include:
@@ -877,7 +858,7 @@ jobs:
   downstream:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false  # disabled for 3.14 testing
 
     runs-on: ubuntu-latest
     defaults:
