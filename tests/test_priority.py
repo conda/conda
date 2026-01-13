@@ -49,7 +49,7 @@ def test_reorder_channel_priority(
         assert PrefixData(prefix).get(package2).channel.name == "pkgs/main"
 
         # update --all
-        conda_cli(
+        out, err, rc = conda_cli(
             "update",
             f"--prefix={prefix}",
             "--override-channels",
@@ -57,6 +57,7 @@ def test_reorder_channel_priority(
             "--all",
             "--yes",
         )
+        assert not rc
         # check pinned package is unchanged but unpinned packages are updated from conda-forge
         PrefixData._cache_.clear()
         expected_channel = "pkgs/main" if pinned_package else "conda-forge"
