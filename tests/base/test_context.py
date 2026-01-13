@@ -32,7 +32,11 @@ from conda.base.context import (
     validate_channels,
     validate_prefix_name,
 )
-from conda.common.configuration import ValidationError, YamlRawParameter
+from conda.common.configuration import (
+    DefaultValueRawParameter,
+    ValidationError,
+    YamlRawParameter,
+)
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml
 from conda.common.url import join_url, path_to_url
@@ -902,3 +906,49 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(context, function)()
+
+
+def test_custom_multichannels_overrides_default_channels(reset_conda_context: None):
+    # default_channels
+    reset_context()
+    default_channels = ["default_channels_1", "default_channels_2"]
+    raw_data = {"default_channels": default_channels}
+    rd = {
+        "testdata": DefaultValueRawParameter.make_raw_parameters("testdata", raw_data)
+    }
+    context._set_raw_data(rd)
+
+    assert [channel.name for channel in context.default_channels] == default_channels
+    assert [
+        channel.name for channel in context.custom_multichannels["defaults"]
+    ] == default_channels
+
+    # custom_channels.defaults
+    reset_context()
+    custom_channels = ["custom_channel_1", "custom_channel_2"]
+    raw_data = {"custom_multichannels": {"defaults": custom_channels}}
+    rd = {
+        "testdata": DefaultValueRawParameter.make_raw_parameters("testdata", raw_data)
+    }
+    context._set_raw_data(rd)
+
+    assert [channel.name for channel in context.default_channels] == custom_channels
+    assert [
+        channel.name for channel in context.custom_multichannels["defaults"]
+    ] == custom_channels
+
+    # custom_channels.defaults overrides default_channels
+    reset_context()
+    raw_data = {
+        "default_channels": default_channels,
+        "custom_multichannels": {"defaults": custom_channels},
+    }
+    rd = {
+        "testdata": DefaultValueRawParameter.make_raw_parameters("testdata", raw_data)
+    }
+    context._set_raw_data(rd)
+
+    assert [channel.name for channel in context.default_channels] == custom_channels
+    assert [
+        channel.name for channel in context.custom_multichannels["defaults"]
+    ] == custom_channels
