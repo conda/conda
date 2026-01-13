@@ -56,6 +56,45 @@ CONDA_SESSION_SCHEMES = frozenset(
     )
 )
 
+# Forbidden headers, which should never be set by plugins. Based on
+# https://web.archive.org/web/20251124174612/https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
+# (last updated as of November 17, 2025). Set-Cookie is a response header and not a request header, but
+# it's semantically invalid, so we include it here.
+
+FORBIDDEN_HEADERS = frozenset(
+    [
+        "accept-charset",
+        "accept-encoding",
+        "access-control-request-headers",
+        "access-control-request-method",
+        "connection",
+        "content-length",
+        "cookie",
+        "date",
+        "dnt",
+        "expect",
+        "host",
+        "keep-alive",
+        "origin",
+        "referer",
+        "set-cookie",
+        "te",
+        "trailer",
+        "transfer-encoding",
+        "upgrade",
+        "via",
+    ]
+)
+# Headers that override HTTP methods, which are forbidden when they contain the following.
+FORBIDDEN_METHOD_OVERRIDE_HEADERS = frozenset(
+    [
+        "x-http-method",
+        "x-http-method-override",
+        "x-method-override",
+    ]
+)
+FORBIDDEN_HTTP_METHODS = frozenset(["connect", "trace", "track"])
+
 
 class EnforceUnusedAdapter(BaseAdapter):
     def send(self, request: Request, *args, **kwargs):
@@ -73,6 +112,46 @@ def get_channel_name_from_url(url: str) -> str | None:
     Given a URL, determine the channel it belongs to and return its name.
     """
     return Channel.from_url(url).canonical_name
+
+
+def _filter_forbidden_headers(headers: dict) -> dict:
+    """
+    Filter out forbidden headers from plugin-provided headers and return
+    a new dictionary with forbidden headers removed.
+    """
+    filtered = {}
+    for key, value in headers.items():
+        key_lower = key.lower()
+
+        if key_lower in FORBIDDEN_HEADERS:
+            log.warning(
+                "Forbidden header '%s' from plugin will be ignored. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
+                key,
+            )
+            continue
+
+        if key_lower.startswith("proxy-") or key_lower.startswith("sec-"):
+            log.warning(
+                "Forbidden header '%s' from plugin will be ignored. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
+                key,
+            )
+            continue
+
+        if key_lower in FORBIDDEN_METHOD_OVERRIDE_HEADERS:
+            if isinstance(value, str) and value.lower() in FORBIDDEN_HTTP_METHODS:
+                log.warning(
+                    "Header '%s' with forbidden method '%s' from plugin will be ignored. "
+                    "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
+                    key,
+                    value,
+                )
+                continue
+
+        filtered[key] = value
+
+    return filtered
 
 
 @cache
@@ -232,15 +311,20 @@ class CondaSession(Session, metaclass=CondaSessionType):
         # inject headers from plugins if this is a https/http request
         url = urlparse(request.url)
         if url.scheme in ("https", "http"):
+            session_headers = _filter_forbidden_headers(
+                context.plugin_manager.get_cached_session_headers(host=url.netloc)
+            )
+            request_headers = _filter_forbidden_headers(
+                context.plugin_manager.get_cached_request_headers(
+                    host=url.netloc, path=url.path
+                )
+            )
+
             request.headers = CaseInsensitiveDict(
                 {
                     # hardcoded session headers (self.headers) are injected in super().prepare_request
-                    **context.plugin_manager.get_cached_session_headers(
-                        host=url.netloc
-                    ),
-                    **context.plugin_manager.get_cached_request_headers(
-                        host=url.netloc, path=url.path
-                    ),
+                    **session_headers,
+                    **request_headers,
                     **(request.headers or {}),
                 }
             )
