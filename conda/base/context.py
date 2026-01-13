@@ -972,7 +972,7 @@ class Context(Configuration):
                 # order matters
                 DEFAULTS_CHANNEL_NAME: default_channels,  # default_channels is a legacy keyword
                 **self._custom_multichannels,  # custom_multichannels.defaults overrides default_channels
-                "local": self.conda_build_local_urls,  # local channel is always last
+                "local": self.conda_build_local_urls,  # always last, local is a reserved name and cannot be overridden
             }.items()
         }
 
