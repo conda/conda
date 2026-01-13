@@ -342,7 +342,7 @@ class ConfigurationFile:
         path = Path(path or self._path)
 
         try:
-            self._content = yaml.read(path=Path(path or self._path)) or {}
+            self._content = yaml.read(path=path) or {}
         except FileNotFoundError:
             self._content = {}
 
@@ -360,7 +360,7 @@ class ConfigurationFile:
 
         path: Path = Path(path or self._path)
         try:
-            path.write_text(yaml.dumps(self.content))
+            yaml.write(self.content, path=path)
         except OSError as e:
             raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
 
