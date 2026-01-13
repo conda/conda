@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 from . import CondaError
 from .activate import _build_activator_cls
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
-from .base.context import context as _context
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
 from .deprecations import deprecated
@@ -252,24 +251,18 @@ def wrap_subprocess_call(
 
             # We pursue activation inline here, which allows us to avoid
             # spawning a `conda activate` process at wrapper runtime.
-            try:
-                _context.changeps1 = False
+            activator_cls = _build_activator_cls("cmd.exe")
+            activator_args = ["activate"]
+            if dev_mode:
+                activator_args.append("--dev")
+            activator_args.append(prefix)
 
-                activator_cls = _build_activator_cls("cmd.exe")
-                activator_args = ["activate"]
-                if dev_mode:
-                    activator_args.append("--dev")
-                activator_args.append(prefix)
-
-                activator = activator_cls(activator_args)
-                activator._parse_and_set_args()
-                # CmdExeActivator writes an .env file by default; let's force in-memory output here
-                # so that we can embed the activation output directly into our wrapper script.
-                activator.tempfile_extension = None
-                activate_env = activator.activate()
-            finally:
-                _context.__dict__.pop("changeps1", None)
-                _context.__dict__.pop("dev", None)
+            activator = activator_cls(activator_args)
+            activator._parse_and_set_args()
+            # CmdExeActivator writes an .env file by default; let's force in-memory output here
+            # so that we can embed the activation output directly into our wrapper script.
+            activator.tempfile_extension = None
+            activate_env = activator.activate()
 
             for line in activate_env.splitlines():
                 line = line.rstrip("\r")
@@ -364,21 +357,15 @@ def wrap_subprocess_call(
 
             # We pursue activation inline here, which allows us to avoid
             # spawning a `conda activate` process at wrapper runtime.
-            try:
-                _context.changeps1 = False
+            activator_cls = _build_activator_cls("posix")
+            activator_args = ["activate"]
+            if dev_mode:
+                activator_args.append("--dev")
+            activator_args.append(prefix)
 
-                activator_cls = _build_activator_cls("posix")
-                activator_args = ["activate"]
-                if dev_mode:
-                    activator_args.append("--dev")
-                activator_args.append(prefix)
-
-                activator = activator_cls(activator_args)
-                activator._parse_and_set_args()
-                activate_code = activator.activate()
-            finally:
-                _context.__dict__.pop("changeps1", None)
-                _context.__dict__.pop("dev", None)
+            activator = activator_cls(activator_args)
+            activator._parse_and_set_args()
+            activate_code = activator.activate()
 
             fh.write(activate_code)
 
