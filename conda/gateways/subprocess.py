@@ -43,7 +43,7 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
     ) % (command_str, cwd, rc, stdout, stderr)
 
 
-def any_subprocess(args, prefix, env=None, cwd=None):
+def any_subprocess(args: Sequence[str], prefix, env=None, cwd=None):
     script_caller, command_args = wrap_subprocess_call(
         context.root_prefix,
         prefix,
