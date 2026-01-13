@@ -625,6 +625,8 @@ class UnlinkLinkTransaction:
             make_menu_action_groups,
             entry_point_action_groups,
             prefix_record_groups,
+            initial_action_groups=pre_transaction_actions,
+            final_action_groups=post_transaction_actions,
         )
 
     @staticmethod
