@@ -2,17 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from conda import plugins
+from conda.gateways.disk.create import extract_tarball
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.types import CondaSupportedPkgFormats
 
-if TYPE_CHECKING:
-    from conda.testing.fixtures import TmpEnvFixture
 
-
-def test_plugin_fetches_correct_extractor(tmp_env: TmpEnvFixture, plugin_manager):
+def test_plugin_fetches_correct_extractor(plugin_manager):
     """Test that the correct extractor function is fetched"""
 
     # pkg extractor function
@@ -35,3 +31,8 @@ def test_plugin_fetches_correct_extractor(tmp_env: TmpEnvFixture, plugin_manager
     # test
     extractor = CondaPluginManager.get_pkg_extraction_function_from_plugin(".random")
     assert extractor is random_extractor
+
+
+def test_plugin_fetches_extract_tarball(plugin_manager):
+    extractor = CondaPluginManager.get_pkg_extraction_function_from_plugin(".conda")
+    assert extractor is extract_tarball
