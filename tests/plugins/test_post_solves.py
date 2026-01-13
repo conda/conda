@@ -27,7 +27,7 @@ class PostSolvePlugin:
 
     @plugins.hookimpl
     def conda_post_solves(self):
-        yield plugins.CondaPostSolve(
+        yield plugins.types.CondaPostSolve(
             name="custom-post-solve",
             action=self.post_solve_action,
         )

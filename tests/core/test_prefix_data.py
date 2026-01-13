@@ -23,7 +23,7 @@ from conda.testing.helpers import record
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
@@ -395,17 +395,15 @@ def test_unset_reserved_env_vars(prefix_data: PrefixData):
 
 
 @pytest.mark.parametrize("remove_auth", (True, False))
-def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):
-    (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "conda-meta" / "history").touch()
+def test_no_tokens_dumped(empty_env: Path, remove_auth: bool):
     pkg_record = record(
         channel="fake",
         url="https://conda.anaconda.org/t/some-fake-token/fake/noarch/a-1.0-0.tar.bz2",
     )
-    pd = PrefixData(tmp_path)
+    pd = PrefixData(empty_env)
     pd.insert(pkg_record, remove_auth=remove_auth)
 
-    json_content = (tmp_path / "conda-meta" / "a-1.0-0.json").read_text()
+    json_content = (empty_env / "conda-meta" / "a-1.0-0.json").read_text()
     if remove_auth:
         assert "/t/<TOKEN>/" in json_content
     else:
@@ -933,9 +931,13 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
 
 
-def test_timestamps(tmp_env, conda_cli, test_recipes_channel):
+def test_timestamps(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
     start = datetime.now(tz=timezone.utc)
-    with tmp_env() as prefix:
+    with tmp_env(shallow=False) as prefix:
         pd = PrefixData(prefix)
         created = pd.created
         first_modification = pd.last_modified

@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from uuid import uuid4
 
 import pytest
 
 from conda.common.compat import on_win
-from conda.testing.integration import SPACER_CHARACTER
 
 from . import Shell
 
@@ -17,7 +15,7 @@ if TYPE_CHECKING:
 
     from pytest import FixtureRequest
 
-    from conda.testing.fixtures import PathFactoryFixture
+    from conda.testing.fixtures import TmpEnvFixture
 
 
 @pytest.fixture(scope="module")
@@ -32,25 +30,11 @@ def shell(request: FixtureRequest) -> Shell:
 
 @pytest.fixture
 def shell_wrapper_integration(
-    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
 ) -> Iterator[tuple[str, str, str]]:
-    prefix = path_factory(
-        prefix=uuid4().hex[:4],
-        name=SPACER_CHARACTER,
-        suffix=uuid4().hex[:4],
-    )
-    history = prefix / "conda-meta" / "history"
-    history.parent.mkdir(parents=True, exist_ok=True)
-    history.touch()
-
-    prefix2 = prefix / "envs" / "charizard"
-    history2 = prefix2 / "conda-meta" / "history"
-    history2.parent.mkdir(parents=True, exist_ok=True)
-    history2.touch()
-
-    prefix3 = prefix / "envs" / "venusaur"
-    history3 = prefix3 / "conda-meta" / "history"
-    history3.parent.mkdir(parents=True, exist_ok=True)
-    history3.touch()
-
-    yield str(prefix), str(prefix2), str(prefix3)
+    with (
+        tmp_env() as prefix,
+        tmp_env(prefix=prefix / "envs" / "charizard") as prefix2,
+        tmp_env(prefix=prefix / "envs" / "venusaur") as prefix3,
+    ):
+        yield str(prefix), str(prefix2), str(prefix3)
