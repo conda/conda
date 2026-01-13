@@ -242,12 +242,7 @@ def wrap_subprocess_call(
             # fh.write('@chcp 65001>NUL\n')
 
             # We pursue activation inline here, which allows us to avoid
-            # spawning a `conda activate` process at wrapper runtime. We
-            # ensure that a sentinel conda-meta directory exists to pass
-            # activation validation.
-            conda_meta_dir = Path(prefix) / "conda-meta"
-            conda_meta_dir.mkdir(parents=True, exist_ok=True)
-
+            # spawning a `conda activate` process at wrapper runtime.
             try:
                 _context.changeps1 = False
 
@@ -358,12 +353,7 @@ def wrap_subprocess_call(
             fh.write(f'eval "$({hook_quoted})"\n')
 
             # We pursue activation inline here, which allows us to avoid
-            # spawning a `conda activate` process at wrapper runtime. We
-            # ensure that a sentinel conda-meta directory exists to pass
-            # activation validation.
-            conda_meta_dir = Path(prefix) / "conda-meta"
-            conda_meta_dir.mkdir(parents=True, exist_ok=True)
-
+            # spawning a `conda activate` process at wrapper runtime.
             try:
                 _context.changeps1 = False
 
