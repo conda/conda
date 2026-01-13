@@ -261,6 +261,7 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Manually add conda-libmamba-solver (Py3.14)
+        # TODO: Remove this step once conda and conda-libmamba-solver have proper Python 3.14 builds
         # conda-libmamba-solver depends on conda which doesn't have a Python 3.14 build yet
         if: matrix.python-version == '3.14'
         run: >
