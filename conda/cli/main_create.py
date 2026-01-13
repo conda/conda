@@ -91,19 +91,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..exceptions import ArgumentError, CondaValueError, EnvironmentSpecPluginNotDetected, TooManyArgumentsError
-    from ..gateways.disk.delete import rm_rf
-    from ..reporters import confirm_yn
+    from ..exceptions import ArgumentError, TooManyArgumentsError
     from .common import (
         print_activate,
         validate_environment_files_consistency,
         validate_subdir_config,
-        validate_file_exists
     )
     from .install import install, install_clone
-    from ..env.env import print_result
-    from ..common.path import expand
-    from pathlib import Path
+    from .common import validate_requested_create_env_does_not_exist
     
     # Validate that input files are of the same format type
     validate_environment_files_consistency(args.file)
@@ -138,31 +133,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "`--file` and `--clone` arguments are mutually exclusive.",
             )
     prefix_data = PrefixData.from_context(validate=True)
-
-    if prefix_data.is_environment():
-        if context.dry_run:
-            # Taking the "easy" way out, rather than trying to fake removing
-            # the existing environment before creating a new one.
-            raise CondaValueError(
-                "Cannot `create --dry-run` with an existing conda environment"
-            )
-        confirm_yn(
-            f"WARNING: A conda environment already exists at '{context.target_prefix}'\n\n"
-            "Remove existing environment?\nThis will remove ALL directories contained within "
-            "this specified prefix directory, including any other conda environments.\n\n",
-            default="no",
-            dry_run=False,
-        )
-        log.info("Removing existing environment %s", context.target_prefix)
-        rm_rf(context.target_prefix)
-    elif prefix_data.exists():
-        confirm_yn(
-            f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
-            "but it is not a conda environment.\n"
-            "Continue creating environment",
-            default="no",
-            dry_run=False,
-        )
+    validate_requested_create_env_does_not_exist(prefix_data)
 
     # Ensure the subdir config is valid
     validate_subdir_config()

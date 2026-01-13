@@ -98,6 +98,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .install import install
     from ..base.context import context
     import contextlib
+    from ..core.prefix_data import PrefixData
+    from .common import validate_requested_create_env_does_not_exist
 
     if args.file:
         for file in args.file:
@@ -130,6 +132,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.name = name
     if args.prefix is None and args.name is None:
         args.prefix = prefix
+
+    prefix_data = PrefixData.from_context(validate=True)
+    validate_requested_create_env_does_not_exist(prefix_data)
+
 
     install(args, parser, "create")
     return 0

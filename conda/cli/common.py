@@ -29,6 +29,7 @@ from ..common.io import swallow_broken_pipe
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
+    CondaValueError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
@@ -41,6 +42,8 @@ from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
+from ..gateways.disk.delete import rm_rf
+from ..reporters import confirm_yn
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -357,3 +360,30 @@ def validate_file_exists(filename: str):
 
     if not exists(filename):
         raise EnvironmentFileNotFound(filename=filename)
+
+
+def validate_requested_create_env_does_not_exist(prefix_data):
+    if prefix_data.is_environment():
+        if context.dry_run:
+            # Taking the "easy" way out, rather than trying to fake removing
+            # the existing environment before creating a new one.
+            raise CondaValueError(
+                "Cannot `create --dry-run` with an existing conda environment"
+            )
+        confirm_yn(
+            f"WARNING: A conda environment already exists at '{context.target_prefix}'\n\n"
+            "Remove existing environment?\nThis will remove ALL directories contained within "
+            "this specified prefix directory, including any other conda environments.\n\n",
+            default="no",
+            dry_run=False,
+        )
+        log.info("Removing existing environment %s", context.target_prefix)
+        rm_rf(context.target_prefix)
+    elif prefix_data.exists():
+        confirm_yn(
+            f"WARNING: A directory already exists at the target location '{context.target_prefix}'\n"
+            "but it is not a conda environment.\n"
+            "Continue creating environment",
+            default="no",
+            dry_run=False,
+        )
