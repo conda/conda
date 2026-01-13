@@ -835,7 +835,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     return hook.extractor
 
         raise PluginError(
-            f"No registered 'supported extensions' plugin found for package: {source_full_path}"
+            f"No registered 'supported pkg formats' plugin found for package: {source_full_path}"
         )
 
 
