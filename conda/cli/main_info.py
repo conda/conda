@@ -13,13 +13,13 @@ import sys
 from argparse import SUPPRESS, _StoreTrueAction
 from functools import cached_property
 from logging import getLogger
-from os.path import exists, expanduser, isfile, islink, join
+from os.path import exists, expanduser, isfile, join
 from tempfile import gettempdir
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
 from ..deprecations import deprecated
-from ..exceptions import ArgumentError, EnvironmentNotReadableError
+from ..exceptions import ArgumentError
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -27,7 +27,6 @@ if TYPE_CHECKING:
     from typing import Any
 
     from ..base.context import Context
-    from ..common.path import PathType
     from ..models.records import PackageRecord
 
 log = getLogger(__name__)
@@ -140,31 +139,6 @@ def get_user_site() -> list[str]:  # pragma: no cover
     except OSError as e:
         log.debug("Error accessing user site directory.\n%r", e)
     return site_dirs
-
-
-def compute_prefix_size(prefix: PathType) -> int:
-    """
-    Compute the total size of a conda environment prefix.
-
-    :param prefix: Path to the environment prefix.
-    :returns: Total size in bytes.
-    :raises EnvironmentNotReadableError: Conda does not have permission to read the environment prefix.
-    """
-    total_size = 0
-
-    def handle_error(error: OSError):
-        raise EnvironmentNotReadableError(prefix, error)
-
-    try:
-        for dirpath, _, filenames in os.walk(prefix, onerror=handle_error):
-            for filename in filenames:
-                path = join(dirpath, filename)
-                if not islink(path):
-                    total_size += os.path.getsize(path)
-    except OSError as e:
-        raise EnvironmentNotReadableError(prefix, e)
-
-    return total_size
 
 
 IGNORE_FIELDS: set[str] = {"files", "auth", "preferred_env", "priority"}
@@ -502,7 +476,7 @@ class InfoRenderer:
                 "writable": prefix_data.is_writable,
             }
             if self._show_size:
-                result[prefix]["size"] = compute_prefix_size(prefix)
+                result[prefix]["size"] = prefix_data.size
         return result
 
     def render(self, components: Iterable[InfoComponents]):

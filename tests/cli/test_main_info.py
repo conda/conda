@@ -19,12 +19,12 @@ import pytest
 from conda.base.constants import PREFIX_FROZEN_FILE
 from conda.base.context import context
 from conda.cli.main_info import (
-    compute_prefix_size,
     get_info_components,
     iter_info_components,
 )
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
+from conda.core.prefix_data import PrefixData
 from conda.exceptions import ArgumentError, EnvironmentNotReadableError
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
@@ -332,12 +332,14 @@ def test_compute_prefix_size(tmp_path: Path):
     subdir.mkdir()
     (subdir / "file3.txt").write_text("test content 3")
 
-    size = compute_prefix_size(str(test_dir))
+    prefix_data = PrefixData(str(test_dir))
+    size = prefix_data.size
     assert size > 0
     assert size == len("test content 1") + len("test content 2") + len("test content 3")
 
     (test_dir / "symlink.txt").symlink_to(test_dir / "file1.txt")
-    size_with_symlink = compute_prefix_size(str(test_dir))
+    prefix_data = PrefixData(str(test_dir))
+    size_with_symlink = prefix_data.size
     assert size_with_symlink == size
 
 
@@ -345,7 +347,8 @@ def test_compute_prefix_size_with_metadata(
     conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
 ):
     with tmp_env("ca-certificates") as prefix:
-        size = compute_prefix_size(str(prefix))
+        prefix_data = PrefixData(str(prefix))
+        size = prefix_data.size
         assert size > 0
 
 
@@ -376,7 +379,8 @@ def test_compute_prefix_size_unreadable_directory(tmp_path: Path, request):
         request.addfinalizer(lambda: os.chmod(subdir, current))
 
     with pytest.raises(EnvironmentNotReadableError) as exc_info:
-        compute_prefix_size(str(test_dir))
+        prefix_data = PrefixData(str(test_dir))
+        _ = prefix_data.size
 
     assert str(test_dir) in str(exc_info.value)
 
@@ -385,7 +389,8 @@ def test_compute_prefix_size_empty_directory(tmp_path: Path):
     test_dir = tmp_path / "empty_env"
     test_dir.mkdir()
 
-    size = compute_prefix_size(str(test_dir))
+    prefix_data = PrefixData(str(test_dir))
+    size = prefix_data.size
     assert size == 0
 
 
@@ -394,7 +399,8 @@ def test_compute_prefix_size_with_path_object(tmp_path: Path):
     test_dir.mkdir()
     (test_dir / "file.txt").write_text("test")
 
-    size = compute_prefix_size(test_dir)
+    prefix_data = PrefixData(test_dir)
+    size = prefix_data.size
     assert size == len("test")
 
 

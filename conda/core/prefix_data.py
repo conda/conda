@@ -9,6 +9,7 @@ import re
 import warnings
 from collections import UserDict
 from datetime import datetime, timezone
+from functools import cached_property
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
@@ -49,6 +50,7 @@ from ..exceptions import (
     EnvironmentIsFrozenError,
     EnvironmentLocationNotFound,
     EnvironmentNameNotFound,
+    EnvironmentNotReadableError,
     EnvironmentNotWritableError,
     maybe_raise,
 )
@@ -426,6 +428,32 @@ class PrefixData(metaclass=PrefixDataType):
             return None
         else:
             return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+
+    @cached_property
+    def size(self) -> int:
+        """
+        Compute the total size of a conda environment prefix.
+
+        :returns: Total size in bytes.
+        :raises EnvironmentNotReadableError: Conda does not have permission to read the environment prefix.
+        """
+
+        def compute_directory_size(path):
+            total = 0
+            with os.scandir(path) as entries:
+                for entry in entries:
+                    if entry.is_symlink():
+                        continue
+                    elif entry.is_file(follow_symlinks=False):
+                        total += entry.stat(follow_symlinks=False).st_size
+                    elif entry.is_dir(follow_symlinks=False):
+                        total += compute_directory_size(entry.path)
+            return total
+
+        try:
+            return compute_directory_size(self.prefix_path)
+        except OSError as e:
+            raise EnvironmentNotReadableError(self.prefix_path, e)
 
     # endregion
     # region Records
