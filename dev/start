@@ -312,7 +312,7 @@ fi
 if updating; then
     echo "Updating ${_INSTALLER_TYPE}..."
 
-    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all > /dev/null; then
+    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all "--prefix=${_ENV}" > /dev/null; then
         echo "Error: failed to update ${_INSTALLER_TYPE}" 1>&2
         return 1
     fi

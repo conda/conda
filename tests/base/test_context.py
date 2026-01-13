@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from argparse import Namespace
+from contextlib import nullcontext
 from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
@@ -47,6 +48,8 @@ from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pytest import MonkeyPatch
 
     from conda.testing import PathFactoryFixture
@@ -629,14 +632,15 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         mock_two.side_effect = [mock_return_values[1]]
 
         if isinstance(expected, CondaValueError):
-            with pytest.raises(CondaValueError) as exc:
+            with pytest.raises(CondaValueError) as exc, pytest.deprecated_call():
                 validate_prefix_name(prefix, ctx, allow_base=allow_base)
 
             # We fuzzy match the error message here. Doing this exactly is not important
             assert str(expected) in str(exc)
 
         else:
-            actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
+            with pytest.deprecated_call():
+                actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
 
 
@@ -760,6 +764,41 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 
+@pytest.mark.parametrize(
+    "channels,expected_channels",
+    [
+        (
+            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
+            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
+        ),
+        (
+            (
+                "defaults",
+                "https://beta.conda.anaconda.org/conda-test",
+                "conda-forge",
+                None,
+            ),
+            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
+        ),
+        (
+            (None,),
+            (),
+        ),
+        (
+            (""),
+            (),
+        ),
+        (
+            (),
+            (),
+        ),
+    ],
+)
+def test_validate_channels(channels: Iterator[str], expected_channels: tuple[str, ...]):
+    validated_channels = validate_channels(channels)
+    assert expected_channels == validated_channels
+
+
 def test_default_activation_prefix(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -867,3 +906,13 @@ def test_export_platforms(monkeypatch: MonkeyPatch):
         )
     )
     assert context.export_platforms == ("linux-32",)
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [("error_upload_url", TypeError)],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(context, function)()

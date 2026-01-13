@@ -2,13 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.cli import main_compare
-from conda.cli.main_compare import get_packages
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import EnvironmentLocationNotFound
 
@@ -35,20 +32,11 @@ def test_compare(mocker: MockerFixture, tmp_path: Path, conda_cli: CondaCLIFixtu
 def test_get_packages(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
     with tmp_env("dependent") as prefix:
         prefix_data = PrefixData(prefix, interoperability=True)
+
         assert prefix_data.get("dependent")
         assert len(list(prefix_data.iter_records())) == 2
-        assert {
-            package.name: package for package in get_packages(prefix)
-        } == prefix_data.map_records()
 
+        records = prefix_data.map_records()
 
-@pytest.mark.parametrize(
-    "function,raises",
-    [
-        ("get_packages", TypeError),
-    ],
-)
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(main_compare, function)()
+        assert len(records) == 2
+        assert "dependent" in records

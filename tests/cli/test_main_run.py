@@ -125,6 +125,34 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
 
 
 @pytest.mark.parametrize(
+    "stream,expected_stdout,expected_stderr",
+    [
+        pytest.param("stdout", "hello", "", id="stdout"),
+        pytest.param("stderr", "", "hello", id="stderr"),
+    ],
+)
+def test_no_newline_in_output(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    stream: str,
+    expected_stdout: str,
+    expected_stderr: str,
+):
+    with tmp_env("python") as prefix:
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "python",
+            "-c",
+            f'import sys; sys.{stream}.write("hello")',
+        )
+        assert stdout == expected_stdout
+        assert stderr == expected_stderr
+
+        assert not err
+
+
+@pytest.mark.parametrize(
     "args,expected_output",
     [
         # no separator: arguments after the executable are passed through to the executable
