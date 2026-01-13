@@ -71,6 +71,7 @@ from .constants import (
     RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
     SEARCH_PATH,
+    UNIVERSAL_PLATFORMS,
     UNKNOWN_CHANNEL,
     ChannelPriority,
     DepsModifier,
@@ -340,6 +341,9 @@ class Context(Configuration):
     _export_platforms = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", str)),
         aliases=("export_platforms", "extra_platforms"),
+    )
+    universal_lockfile = ParameterLoader(
+        PrimitiveParameter(False, element_type=bool),
     )
 
     local_repodata_ttl = ParameterLoader(
@@ -745,8 +749,17 @@ class Context(Configuration):
 
     @property
     def export_platforms(self) -> tuple[str, ...]:
-        # detect if platforms are overridden by the user
         argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
+
+        # --universal CLI flag takes highest priority
+        if argparse_args.get("universal"):
+            return UNIVERSAL_PLATFORMS
+
+        # Check if universal_lockfile is enabled in condarc (but CLI args override)
+        if self.universal_lockfile and not argparse_args.get("export_platforms"):
+            return UNIVERSAL_PLATFORMS
+
+        # detect if platforms are overridden by the user
         if argparse_args.get("override_platforms"):
             platforms = argparse_args.get("export_platforms") or ()
         else:

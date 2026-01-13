@@ -905,3 +905,83 @@ def test_export_single_platform_different_platform(
     pprint(yaml_data)
     assert yaml_data["name"] == name
     assert yaml_data["single-platform"] == platform
+
+
+def test_export_universal_flag(
+    conda_cli: CondaCLIFixture,
+    plugin_manager_with_exporters: CondaPluginManager,
+    tmp_path: Path,
+) -> None:
+    """Test export with --universal flag exports for all common platforms."""
+    from conda.base.constants import UNIVERSAL_PLATFORMS
+
+    name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
+    stdout, stderr, code = conda_cli(
+        "export",
+        f"--name={name}",
+        "--universal",
+        "--format=test-multi-platform",
+        f"--file={output}",
+    )
+    assert "Collecting package metadata" in stdout
+    assert not stderr
+    assert not code
+
+    # Verify the output is valid YAML
+    yaml_data = yaml_safe_load(output.read_text())
+    assert yaml_data["name"] == name
+    assert yaml_data["multi-platforms"] == list(UNIVERSAL_PLATFORMS)
+
+
+def test_export_universal_flag_requires_multiplatform_exporter(
+    conda_cli: CondaCLIFixture,
+    plugin_manager_with_exporters: CondaPluginManager,
+    tmp_path: Path,
+) -> None:
+    """Test that --universal flag fails with single-platform exporter."""
+    name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
+
+    with pytest.raises(
+        CondaValueError,
+        match="Multiple platforms are not supported",
+    ):
+        conda_cli(
+            "export",
+            f"--name={name}",
+            "--universal",
+            "--format=test-single-platform",
+            f"--file={output}",
+        )
+
+
+def test_export_universal_lockfile_config(
+    conda_cli: CondaCLIFixture,
+    plugin_manager_with_exporters: CondaPluginManager,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test export with universal_lockfile config option."""
+    from conda.base.constants import UNIVERSAL_PLATFORMS
+
+    # Enable universal_lockfile in config
+    monkeypatch.setenv("CONDA_UNIVERSAL_LOCKFILE", "true")
+    context.__init__()  # re-initialize context to pick up the env var
+
+    name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
+    stdout, stderr, code = conda_cli(
+        "export",
+        f"--name={name}",
+        "--format=test-multi-platform",
+        f"--file={output}",
+    )
+    assert "Collecting package metadata" in stdout
+    assert not stderr
+    assert not code
+
+    # Verify the output is valid YAML
+    yaml_data = yaml_safe_load(output.read_text())
+    assert yaml_data["name"] == name
+    assert yaml_data["multi-platforms"] == list(UNIVERSAL_PLATFORMS)

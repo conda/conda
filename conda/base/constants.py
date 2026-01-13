@@ -108,6 +108,13 @@ PLATFORMS: Final = (
 )
 KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
+# Universal platforms are the most common platforms for cross-platform lockfiles
+UNIVERSAL_PLATFORMS: Final = (
+    "linux-64",
+    "osx-64",
+    "osx-arm64",
+    "win-64",
+)
 
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
 

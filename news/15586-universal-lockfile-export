@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add `--universal` flag to `conda export` for multi-platform lockfile generation. (#15586)
+* Add `universal_lockfile` config option to enable universal lockfile export by default. (#15586)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

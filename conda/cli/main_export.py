@@ -77,6 +77,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Override the platforms specified in the condarc",
     )
+    p.add_argument(
+        "--universal",
+        action="store_true",
+        help="Export for all common platforms (linux-64, osx-64, osx-arm64, win-64)",
+    )
     add_parser_prefix(p)
 
     p.add_argument(
