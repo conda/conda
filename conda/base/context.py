@@ -1731,7 +1731,7 @@ class Context(Configuration):
             universal_export=dals(
                 f"""
                 When True, conda export will generate exports for all common platforms
-                ({', '.join(UNIVERSAL_PLATFORMS)}) by default.
+                ({", ".join(UNIVERSAL_PLATFORMS)}) by default.
                 """
             ),
             fetch_threads=dals(
