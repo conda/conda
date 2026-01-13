@@ -19,7 +19,7 @@ from conda.exceptions import (
     EnvironmentLocationNotFound,
 )
 from conda.gateways.logging import initialize_logging
-from conda.testing.integration import env_or_set, which_or_where
+from conda.testing.integration import env_or_set
 from conda.utils import wrap_subprocess_call
 
 if TYPE_CHECKING:
@@ -116,7 +116,7 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
             dals(
                 f"""
                 {env_or_set}
-                {which_or_where} conda
+                git --version
                 """
             ),
         )
