@@ -259,8 +259,8 @@ def test_info_envs_size(conda_cli: CondaCLIFixture):
         if len(parts) >= 2:
             last_part = parts[-1]
             assert any(
-                last_part.endswith(suffix) for suffix in ["B", "KiB", "MiB", "GiB"]
-            )
+                last_part.endswith(suffix) for suffix in ["B", "KB", "MB", "GB"]
+            ), f"Expected size suffix in line: {line}"
 
 
 def test_info_envs_size_json(conda_cli: CondaCLIFixture):
