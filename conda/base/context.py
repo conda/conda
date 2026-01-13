@@ -342,7 +342,7 @@ class Context(Configuration):
         SequenceParameter(PrimitiveParameter("", str)),
         aliases=("export_platforms", "extra_platforms"),
     )
-    universal_lockfile = ParameterLoader(
+    universal_export = ParameterLoader(
         PrimitiveParameter(False, element_type=bool),
     )
 
@@ -751,12 +751,10 @@ class Context(Configuration):
     def export_platforms(self) -> tuple[str, ...]:
         argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
 
-        # --universal CLI flag takes highest priority
-        if argparse_args.get("universal"):
-            return UNIVERSAL_PLATFORMS
-
-        # Check if universal_lockfile is enabled in condarc (but CLI args override)
-        if self.universal_lockfile and not argparse_args.get("export_platforms"):
+        # --universal CLI flag or universal_export config (when no explicit platforms set)
+        if argparse_args.get("universal") or (
+            self.universal_export and not argparse_args.get("export_platforms")
+        ):
             return UNIVERSAL_PLATFORMS
 
         # detect if platforms are overridden by the user
@@ -1414,7 +1412,7 @@ class Context(Configuration):
                 "number_channel_notices",
                 "envvars_force_uppercase",
                 "export_platforms",
-                "universal_lockfile",
+                "universal_export",
                 "override_virtual_packages",
             ),
             "CLI-only": (
@@ -1730,10 +1728,10 @@ class Context(Configuration):
                 platform is always included.
                 """
             ),
-            universal_lockfile=dals(
-                """
-                When True, conda export will generate lockfiles for all common platforms
-                (linux-64, osx-64, osx-arm64, win-64) by default.
+            universal_export=dals(
+                f"""
+                When True, conda export will generate exports for all common platforms
+                ({', '.join(UNIVERSAL_PLATFORMS)}) by default.
                 """
             ),
             fetch_threads=dals(

@@ -12,6 +12,7 @@ from argparse import (
 )
 
 from ..auxlib.ish import dals
+from ..base.constants import UNIVERSAL_PLATFORMS
 from ..base.context import context
 from ..common.constants import NULL
 from ..models.environment import Environment
@@ -80,7 +81,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "--universal",
         action="store_true",
-        help="Export for all common platforms (linux-64, osx-64, osx-arm64, win-64)",
+        help=f"Export for all common platforms ({', '.join(UNIVERSAL_PLATFORMS)})",
     )
     add_parser_prefix(p)
 

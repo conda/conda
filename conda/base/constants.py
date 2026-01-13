@@ -111,7 +111,6 @@ PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 # Universal platforms are the most common platforms for cross-platform lockfiles
 UNIVERSAL_PLATFORMS: Final = (
     "linux-64",
-    "osx-64",
     "osx-arm64",
     "win-64",
 )
