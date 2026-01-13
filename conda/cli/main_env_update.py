@@ -143,13 +143,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     prefix = determine_target_prefix(context, args)
     prefix_data = PrefixData(prefix)
+    install_type = "install"
     if prefix_data.is_environment():
         prefix_data.assert_writable()
         if context.protect_frozen_envs:
             prefix_data.assert_not_frozen()
-
-    # CAN'T Check with this function since it assumes we will create prefix.
-    # cli_install.check_prefix(prefix, json=args.json)
-
-    install(args, parser, "install")
+    else:
+        install_type = "create"
+    
+    install(args, parser, install_type)
+        
     return 0

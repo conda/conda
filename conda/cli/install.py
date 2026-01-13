@@ -342,7 +342,7 @@ def install(args, parser, command="install"):
     isinstall = command == "install"
 
     # fail early if using a deprecated option
-    if newenv and args.clone:
+    if newenv and getattr(args, "clone", False):
         deprecated.topic(
             "25.9",
             "26.3",
@@ -362,7 +362,7 @@ def install(args, parser, command="install"):
 
     env = Environment.from_cli(
         args=args,
-        add_default_packages=command == "create" and not args.no_default_packages,
+        add_default_packages=command == "create" and not getattr(args, "no_default_packages", False),
     )
 
     # for 'conda update' make sure:
