@@ -1414,6 +1414,7 @@ class Context(Configuration):
                 "number_channel_notices",
                 "envvars_force_uppercase",
                 "export_platforms",
+                "universal_lockfile",
                 "override_virtual_packages",
             ),
             "CLI-only": (
@@ -1727,6 +1728,12 @@ class Context(Configuration):
                 """
                 Additional platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64), current
                 platform is always included.
+                """
+            ),
+            universal_lockfile=dals(
+                """
+                When True, conda export will generate lockfiles for all common platforms
+                (linux-64, osx-64, osx-arm64, win-64) by default.
                 """
             ),
             fetch_threads=dals(
