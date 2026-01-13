@@ -17,7 +17,7 @@ from conda.base.context import (
 from conda.common.compat import on_win
 from conda.common.configuration import YamlRawParameter
 from conda.common.io import env_unmodified
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml
 from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -423,7 +423,7 @@ def testdata() -> None:
         {
             "testdata": YamlRawParameter.make_raw_parameters(
                 "testdata",
-                yaml_round_trip_load(
+                yaml.loads(
                     dals(
                         """
                         custom_channels:
@@ -778,7 +778,7 @@ def testdata2() -> None:
         {
             "testdata": YamlRawParameter.make_raw_parameters(
                 "testdata",
-                yaml_round_trip_load(
+                yaml.loads(
                     dals(
                         """
                         channels:
@@ -820,7 +820,7 @@ def testdata3() -> None:
         {
             "testdata": YamlRawParameter.make_raw_parameters(
                 "testdata",
-                yaml_round_trip_load(
+                yaml.loads(
                     dals(
                         """
                         custom_channels:
@@ -1236,7 +1236,7 @@ def testdata4() -> None:
         {
             "testdata": YamlRawParameter.make_raw_parameters(
                 "testdata",
-                yaml_round_trip_load(
+                yaml.loads(
                     dals(
                         """
                         default_channels:

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from .....base.constants import OK_MARK, X_MARK
 from .....base.context import context
 from .....cli.install import reinstall_packages
-from .....common.serialize import yaml_safe_dump
+from .....common.serialize import yaml
 from .....core.prefix_data import PrefixData
 from .....models.match_spec import MatchSpec
 from .... import hookimpl
@@ -82,7 +82,7 @@ def consistent_env_check(prefix: str, verbose: bool) -> None:
     if issues:
         print(f"{X_MARK} The environment is not consistent.\n")
         if verbose:
-            print(yaml_safe_dump(issues))
+            print(yaml.dumps(issues))
     else:
         print(f"{OK_MARK} The environment is consistent.\n")
 
