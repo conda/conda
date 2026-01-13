@@ -222,6 +222,7 @@ class PrefixActions:
             yield getattr(self, field.name)
 
 
+@deprecated("25.9", "26.3", addendum="Use PrefixActions instead.")
 class PrefixActionGroup(NamedTuple):
     remove_menu_action_groups: Iterable[ActionGroup]
     unlink_action_groups: Iterable[ActionGroup]
@@ -232,8 +233,6 @@ class PrefixActionGroup(NamedTuple):
     make_menu_action_groups: Iterable[ActionGroup]
     entry_point_action_groups: Iterable[ActionGroup]
     prefix_record_groups: Iterable[ActionGroup]
-    initial_action_groups: Iterable[ActionGroup] = ()
-    final_action_groups: Iterable[ActionGroup] = ()
 
 
 class ChangeReport(NamedTuple):
@@ -616,7 +615,7 @@ class UnlinkLinkTransaction:
             neutered_specs,
         )
 
-        return PrefixActionGroup(
+        return PrefixActions(
             remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,
