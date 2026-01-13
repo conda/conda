@@ -12,8 +12,8 @@ from argparse import (
     _SubParsersAction,
 )
 
-from .. import CondaError
 from ..notices import notices
+from pathlib import Path
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -21,10 +21,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import (
         add_parser_environment_specifier,
         add_parser_frozen_env,
-        add_parser_json,
-        add_parser_prefix,
         add_parser_solver,
+        add_parser_create_install_update,
     )
+    from ..common.path import expand
 
     summary = "Update the current environment based on environment file."
     description = summary
@@ -49,18 +49,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         **kwargs,
     )
 
+    # Common args for create/install/update
+    # Includes parser prefix, networking, output and prompt options
+    add_parser_create_install_update(p)
+
     # Add environment spec plugin args
     add_parser_environment_specifier(p)
 
     add_parser_frozen_env(p)
-    add_parser_prefix(p)
-    p.add_argument(
-        "-f",
-        "--file",
-        action="store",
-        help="environment definition (default: environment.yml)",
-        default="environment.yml",
-    )
     p.add_argument(
         "--prune",
         action="store_true",
@@ -68,8 +64,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="remove installed packages not defined in environment.yml",
     )
 
-    add_parser_json(p)
     add_parser_solver(p)
+
+    # HACK: recreate the default environment file is `environment.yml` behaviour
+    env_yml_default_file = Path(expand("environment.yml"))
+    if env_yml_default_file.is_file():
+        p.set_defaults(file=["environment.yml"])
+   
     p.set_defaults(func="conda.cli.main_env_update.execute")
 
     return p
@@ -80,21 +81,40 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
-    from ..env.env import print_result
-    from ..env.installers.base import get_installer
-    from ..exceptions import CondaEnvException, InvalidInstaller
+    from ..exceptions import CondaEnvException, EnvironmentSpecPluginNotDetected
     from .common import validate_file_exists
+    from .install import install
+    import contextlib
 
     # validate incoming arguments
-    validate_file_exists(args.file)
+    for file in args.file:
+        validate_file_exists(file)
 
-    # detect the file format and get the env representation
-    spec_hook = context.plugin_manager.get_environment_specifier(
-        source=args.file,
-        name=context.environment_specifier,
-    )
-    spec = spec_hook.environment_spec(args.file)
-    env = spec.env
+    # HACK: get the name and prefix from the file if possible
+    name = None
+    prefix = None
+    if args.file:
+        # Validate incoming arguments
+        for file in args.file:
+            try:
+                with contextlib.redirect_stdout(None):
+                    # detect the file format and get the env representation
+                    spec_hook = context.plugin_manager.get_environment_specifier(
+                        source=file,
+                        name=context.environment_specifier,
+                    )
+                    spec = spec_hook.environment_spec(file)
+                    env = spec.env
+                    # HACK: continued, get the name and prefix
+                    name = name or env.name
+                    prefix = prefix or env.prefix
+            except EnvironmentSpecPluginNotDetected:
+                pass
+    # HACK: continued, set args.name and args.prefix
+    if args.name is None:
+        args.name = name
+    if args.prefix is None and args.name is None:
+        args.prefix = prefix
 
     if not (args.name or args.prefix):
         if not env.name:
@@ -131,51 +151,5 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # CAN'T Check with this function since it assumes we will create prefix.
     # cli_install.check_prefix(prefix, json=args.json)
 
-    # TODO, add capability
-    # common.ensure_override_channels_requires_channel(args)
-    # channel_urls = args.channel or ()
-
-    # create installers before running any of them
-    # to avoid failure to import after the file being deleted
-    # e.g. due to conda_env being upgraded or Python version switched.
-    installers = {}
-
-    # Ensure we have all the right external package installers before starting
-    # to install anything.
-    for installer_type in env.external_packages:
-        try:
-            installers[installer_type] = get_installer(installer_type)
-        except InvalidInstaller:
-            raise CondaError(
-                dals(
-                    f"""
-                    Unable to install package for {0}.
-
-                    Please double check and ensure you dependencies file has
-                    the correct spelling.  You might also try installing the
-                    conda-env-{0} package to see if provides the required
-                    installer.
-                    """
-                )
-            )
-
-    result = {"conda": None, "pip": None}
-    # install conda packages
-    if env.requested_packages:
-        installer_type = "conda"
-        installer = get_installer(installer_type)
-        result[installer_type] = installer.install(
-            prefix, env.requested_packages, args, env
-        )
-    # install all other external packages
-    for installer_type, specs in env.external_packages.items():
-        installer = installers[installer_type]
-        result[installer_type] = installer.install(prefix, specs, args, env)
-
-    if env.variables:
-        prefix_data.set_environment_env_vars(env.variables)
-
-    prefix_data.set_nonadmin()
-    print_result(args, prefix, result)
-
+    install(args, parser, "install")
     return 0

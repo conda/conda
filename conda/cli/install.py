@@ -392,7 +392,7 @@ def install(args, parser, command="install"):
         not in (UpdateModifier.FREEZE_INSTALLED, UpdateModifier.UPDATE_SPECS)
     ) and not newenv
 
-    if isinstall and args.update_modifier == NULL:
+    if isinstall and getattr(args, "update_modifier", NULL) == NULL:
         update_modifier = UpdateModifier.FREEZE_INSTALLED
     else:
         update_modifier = env.config.update_modifier
