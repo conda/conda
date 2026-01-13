@@ -16,6 +16,7 @@ from os.path import join
 from typing import TYPE_CHECKING
 
 from ..common.compat import on_win
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from typing import Final
@@ -74,6 +75,15 @@ SEARCH_PATH += (
 DEFAULT_CHANNEL_ALIAS: Final = "https://conda.anaconda.org"
 CONDA_HOMEPAGE_URL: Final = "https://conda.io"
 ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "ERROR_UPLOAD_URL",
+    ERROR_UPLOAD_URL,
+)
+del ERROR_UPLOAD_URL
+
 DEFAULTS_CHANNEL_NAME: Final = "defaults"
 
 PLATFORMS: Final = (
@@ -393,6 +403,10 @@ NO_PLUGINS: Final = False
 # When this string is present in an environment file, it indicates that the file
 # describes an explicit environment spec.
 EXPLICIT_MARKER: Final = "@EXPLICIT"
+
+# Status marks for health check output
+OK_MARK: Final = "✅"
+X_MARK: Final = "❌"
 
 # These variables describe the various sources for config that are supported by conda.
 # In addition to these sources, conda also supports configuration from condarc config
