@@ -342,6 +342,9 @@ def wrap_subprocess_call(
             dev_arg = ""
             dev_args = []
         with Utf8NamedTemporaryFile(mode="w", delete=False) as fh:
+            # If any of these calls to the activation hook scripts fail, we want
+            # to exit the wrapper immediately and abort `conda run` right away.
+            fh.write("set -e\n")
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
 
@@ -374,6 +377,8 @@ def wrap_subprocess_call(
 
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
+            # Disable exit-on-error for the user's command so we can capture its exit code.
+            fh.write("set +e\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
