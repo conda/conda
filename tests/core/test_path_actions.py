@@ -189,6 +189,10 @@ def test_CompileMultiPycAction_noarch_python(prefix: Path):
     mkdir_p(dirname(python_full_path))
     create_link(sys.executable, python_full_path, LinkType.softlink)
 
+    # create conda-meta directory like _execute_actions does in real installation
+    conda_meta_dir = join(prefix, "conda-meta")
+    mkdir_p(conda_meta_dir)
+
     axn.execute()
     assert isfile(target_full_path0)
     assert isfile(target_full_path1)
