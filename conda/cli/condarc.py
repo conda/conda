@@ -342,7 +342,7 @@ class ConfigurationFile:
         path = Path(path or self._path)
 
         try:
-            self._content = yaml.loads(Path(path or self._path).read_text()) or {}
+            self._content = yaml.read(path=Path(path or self._path)) or {}
         except FileNotFoundError:
             self._content = {}
 

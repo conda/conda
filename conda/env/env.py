@@ -419,9 +419,7 @@ class EnvironmentYaml:
     def to_yaml(self, stream=None):
         """Convert information related to the ``EnvironmentYaml`` into a ``yaml`` string"""
         d = self.to_dict()
-        if stream is None:
-            return yaml.dumps(d)
-        yaml.dump(d, stream)
+        return yaml.write(d, fp=stream)
 
     def save(self):
         """Save the ``EnvironmentYaml`` data to a ``yaml`` file"""
