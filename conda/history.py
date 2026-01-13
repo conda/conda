@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import codecs
 import logging
 import os
 import re
@@ -396,7 +397,7 @@ class History:
     def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
-        with open(self.path, mode="a", encoding="utf-8") as fo:
+        with codecs.open(self.path, mode="ab", encoding="utf-8") as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
                 fo.write(f"-{fn}\n")
@@ -408,7 +409,7 @@ class History:
         update_specs = [str(MatchSpec(s)) for s in update_specs]
         neutered_specs = [str(MatchSpec(s)) for s in neutered_specs]
         if any((update_specs, remove_specs, neutered_specs)):
-            with open(self.path, mode="a", encoding="utf-8") as fh:
+            with codecs.open(self.path, mode="ab", encoding="utf-8") as fh:
                 if remove_specs:
                     fh.write(f"# remove specs: {remove_specs}\n")
                 if update_specs:

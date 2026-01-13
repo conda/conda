@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import codecs
 import os
 from collections import defaultdict
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
@@ -553,7 +554,7 @@ class UrlsData:
         return iter(self._urls_data)
 
     def add_url(self, url):
-        with open(self.urls_txt_path, mode="a", encoding="utf-8") as fh:
+        with codecs.open(self.urls_txt_path, mode="ab", encoding="utf-8") as fh:
             linefeed = "\r\n" if platform == "win32" else "\n"
             fh.write(url + linefeed)
         self._urls_data.insert(0, url)

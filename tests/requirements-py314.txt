@@ -8,7 +8,6 @@ frozendict >=2.4.2
 jsonpatch >=1.32  # jlap
 libmambapy
 menuinst >=2
-msgpack-python # conda-libmamba-solver dep; remove later
 packaging >=23.0
 platformdirs >=3.10.0
 pluggy >=1.0.0
