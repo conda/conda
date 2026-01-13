@@ -2,23 +2,37 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Detect whether this is Windows."""
 
-import os
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from ...base.context import context
-from .. import CondaVirtualPackage, hookimpl
+from .. import hookimpl
+from ..types import CondaVirtualPackage
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+
+def win_version() -> str | None:
+    dist_name, dist_version = context.os_distribution_name_version
+    if dist_name != "Windows":
+        # dist_version is only valid if we are on Windows
+        # this happens with `CONDA_SUBDIR=win-*`/`--platform=win-*` on a non-Windows machine
+        dist_version = None
+    return dist_version
 
 
 @hookimpl
-def conda_virtual_packages():
+def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
     if not context.subdir.startswith("win-"):
         return
 
-    dist_version = os.getenv("CONDA_OVERRIDE_WIN")
-    if dist_version is None:
-        dist_name, dist_version = context.os_distribution_name_version
-        if dist_name != "Windows":
-            # avoid reporting platform.version() of other OS
-            # this happens with CONDA_SUBDIR=win-* in a non Windows machine
-            dist_version = "0"
-    if dist_version:
-        yield CondaVirtualPackage("win", dist_version, None)
+    # 1: __win==VERSION=0
+    yield CondaVirtualPackage(
+        name="win",
+        version=win_version,
+        build=None,
+        override_entity="version",
+        # empty_override=NULL,  # falsy override → skip __win
+    )

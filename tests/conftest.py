@@ -4,12 +4,15 @@
 from __future__ import annotations
 
 import logging
+import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 import conda
+from conda import plugins
+from conda.base.constants import APP_NAME
 from conda.base.context import context, reset_context
 from conda.common.configuration import (
     Configuration,
@@ -18,18 +21,23 @@ from conda.common.configuration import (
 )
 from conda.core.package_cache_data import PackageCacheData
 from conda.gateways.connection.session import CondaSession, get_session
+from conda.plugins import environment_exporters, solvers
 from conda.plugins.config import PluginConfig
 from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
+from conda.plugins.types import CondaEnvironmentExporter
+from conda.testing import http_test_server
 
-from . import TEST_RECIPES_CHANNEL, http_test_server
+from . import TEST_RECIPES_CHANNEL
 
 if TYPE_CHECKING:
     import http.server
     from collections.abc import Iterable
 
     from pytest_mock import MockerFixture
+
+    from conda.models.environment import Environment
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
@@ -49,6 +57,14 @@ def pytest_report_header(config: pytest.Config):
 
 
 @pytest.fixture
+def tmp_env_python_spec() -> str:
+    """
+    Used to create a temporary enviroment with a bounded Python version.
+    """
+    return "python=3.13"
+
+
+@pytest.fixture
 def test_recipes_channel(mocker: MockerFixture) -> Path:
     mocker.patch(
         "conda.base.context.Context.channels",
@@ -59,6 +75,12 @@ def test_recipes_channel(mocker: MockerFixture) -> Path:
     assert context.channels == (channel_str,)
 
     return TEST_RECIPES_CHANNEL
+
+
+@pytest.fixture
+def wheelhouse() -> Path:
+    """Return the path to the directory containing pre-built wheel files used in tests."""
+    return Path(__file__).parent / "data" / "wheelhouse"
 
 
 @pytest.fixture
@@ -84,6 +106,22 @@ def support_file_server_port(
     support_file_server: http.server.ThreadingHTTPServer,
 ) -> int:
     return support_file_server.socket.getsockname()[1]
+
+
+@pytest.fixture
+def support_file_isolated(tmp_path):
+    """
+    Copy support files to temporary path, avoid polluting source checkout.
+    """
+    source = Path(__file__).parents[0] / "env" / "support"
+    base = tmp_path / "support"
+    if not base.exists():  # tmp_path is session scoped
+        shutil.copytree(source, base)
+
+    def inner(path):
+        return base / path
+
+    return inner
 
 
 @pytest.fixture
@@ -121,6 +159,75 @@ def plugin_manager_with_reporter_backends(plugin_manager) -> CondaPluginManager:
     plugin_manager.load_plugins(*reporter_backend_plugins)
 
     return plugin_manager
+
+
+class Exporters:
+    @staticmethod
+    def single_platform_export(env: Environment) -> str:
+        return "\n".join(
+            (
+                "# This is a single-platform export",
+                f"name: {env.name}",
+                f"single-platform: {env.platform}",
+                "packages:",
+                *(f"- {pkg}" for pkg in env.requested_packages),
+                *(f"- {pkg}" for pkg in env.explicit_packages),
+                *(f"- pip::{pkg}" for pkg in env.external_packages.get("pip", [])),
+            )
+        )
+
+    @staticmethod
+    def multi_platform_export(envs: Iterable[Environment]) -> str:
+        envs = tuple(envs)
+        return "\n".join(
+            (
+                "# This is a multi-platform export",
+                f"name: {envs[0].name}",
+                "multi-platforms:",
+                *(f"  - {env.platform}" for env in envs),
+                "packages:",
+                *(
+                    f"  - {pkg}"
+                    for env in envs
+                    for pkg in (
+                        *env.requested_packages,
+                        *env.explicit_packages,
+                        *(
+                            f"pip::{pkg}"
+                            for pkg in env.external_packages.get("pip", [])
+                        ),
+                    )
+                ),
+            )
+        )
+
+    @plugins.hookimpl
+    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
+        yield CondaEnvironmentExporter(
+            name="test-single-platform",
+            aliases=(),
+            default_filenames=(),
+            export=self.single_platform_export,
+        )
+        yield CondaEnvironmentExporter(
+            name="test-multi-platform",
+            aliases=(),
+            default_filenames=(),
+            multiplatform_export=self.multi_platform_export,
+        )
+
+
+@pytest.fixture
+def plugin_manager_with_exporters(
+    plugin_manager_with_reporter_backends: CondaPluginManager,
+) -> CondaPluginManager:
+    plugin_manager_with_reporter_backends.load_plugins(
+        solvers,
+        *environment_exporters.plugins,
+        Exporters(),
+    )
+    plugin_manager_with_reporter_backends.load_entrypoints(APP_NAME)
+    return plugin_manager_with_reporter_backends
 
 
 @pytest.fixture
@@ -199,16 +306,3 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             }
 
     return MockContext, app_name
-
-
-@pytest.fixture(scope="function")
-def minimal_env(tmp_path: Path) -> Path:
-    """
-    Provides a minimal environment that only contains the "magic" file identifying it as a
-    conda environment.
-    """
-    meta_dir = tmp_path.joinpath("conda-meta")
-    meta_dir.mkdir()
-    (meta_dir / "history").touch()
-
-    return tmp_path

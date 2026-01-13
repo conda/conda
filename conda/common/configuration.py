@@ -43,10 +43,11 @@ from .. import CondaError, CondaMultiError
 from ..auxlib.collection import AttrDict, first, last
 from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
+from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
-from .serialize import yaml_round_trip_load
+from .serialize import yaml
 
 if Enum not in _getFreezeConversionMap():
     # leave enums as is, deepfreeze will flatten it into a dict
@@ -59,7 +60,7 @@ del _register
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Sequence
     from re import Match
-    from typing import Any
+    from typing import Any, Final
 
     from ..common.path import PathsType
 
@@ -217,13 +218,14 @@ class RawParameter(metaclass=ABCMeta):
 
 
 class EnvRawParameter(RawParameter):
-    source = "envvars"
+    source = ENV_VARS_SOURCE
 
     def value(self, parameter_obj):
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, "string_delimiter"):
-            assert isinstance(self._raw_value, str)
+            if not isinstance(self._raw_value, str):
+                raise TypeError("Value is not a string.")
             string_delimiter = getattr(parameter_obj, "string_delimiter")
             # TODO: add stripping of !important, !top, and !bottom
             return tuple(
@@ -261,7 +263,7 @@ class EnvRawParameter(RawParameter):
 
 
 class ArgParseRawParameter(RawParameter):
-    source = "cmd_line"
+    source = CMD_LINE_SOURCE
 
     def value(self, parameter_obj):
         # note: this assumes ArgParseRawParameter will only have flat configuration of either
@@ -392,7 +394,7 @@ class YamlRawParameter(RawParameter):
     def make_raw_parameters_from_file(cls, filepath):
         with open(filepath) as fh:
             try:
-                yaml_obj = yaml_round_trip_load(fh)
+                yaml_obj = yaml.loads(fh)
             except ScannerError as err:
                 mark = err.problem_mark
                 raise ConfigurationLoadError(
@@ -1332,7 +1334,9 @@ class ConfigurationType(type):
         return self
 
 
-CONDARC_FILENAMES = (".condarc", "condarc")
+DEFAULT_CONDARC_FILENAME: Final = ".condarc"
+ALTERNATIVE_CONDARC_FILENAME: Final = "condarc"
+CONDARC_FILENAMES = (DEFAULT_CONDARC_FILENAME, ALTERNATIVE_CONDARC_FILENAME)
 YAML_EXTENSIONS = (".yml", ".yaml")
 _RE_CUSTOM_EXPANDVARS = compile(
     rf"""
@@ -1640,7 +1644,7 @@ class Configuration(metaclass=ConfigurationType):
     def post_build_validation(self):
         return ()
 
-    def collect_all(self):
+    def collect_all(self) -> dict[str | Path, dict]:
         typed_values = {}
         validation_errors = {}
         for source in self.raw_data:
@@ -1658,7 +1662,10 @@ class Configuration(metaclass=ConfigurationType):
             raise KeyError(parameter_name)
 
         parameter = parameter_loader.type
-        assert isinstance(parameter, Parameter)
+        if not isinstance(parameter, Parameter):
+            raise TypeError(
+                f"Name '{parameter_name}' did not return a Parameter object."
+            )
 
         # dedupe leading underscore from name
         name = parameter_loader.name.lstrip("_")
@@ -1713,7 +1720,10 @@ class Configuration(metaclass=ConfigurationType):
             raise KeyError(parameter_name)
 
         parameter = parameter_loader.type
-        assert isinstance(parameter, Parameter)
+        if not isinstance(parameter, Parameter):
+            raise TypeError(
+                f"Name '{parameter_name}' did not return a Parameter object."
+            )
 
         return parameter.typify(parameter_name, source, value)
 

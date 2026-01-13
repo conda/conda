@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common utilities for conda command line tools."""
 
+from __future__ import annotations
+
 import re
-import sys
 from logging import getLogger
 from os.path import (
     dirname,
@@ -13,21 +14,27 @@ from os.path import (
     join,
     normcase,
 )
+from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
-from ..base.constants import PREFIX_MAGIC_FILE
+from ..base.constants import (
+    CMD_LINE_SOURCE,
+    CONFIGURATION_SOURCES,
+    ENV_VARS_SOURCE,
+    EXPLICIT_MARKER,
+    PREFIX_MAGIC_FILE,
+)
 from ..base.context import context, env_name
-from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
-    CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
+    InvalidSpec,
     OperationNotAllowed,
 )
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -35,71 +42,10 @@ from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 log = getLogger(__name__)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.confirm_yn` instead.",
-)
-def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
-    assert default in choices, default
-    if (dry_run is NULL and context.dry_run) or dry_run:
-        from ..exceptions import DryRunExit
-
-        raise DryRunExit()
-
-    options = []
-    for option in choices:
-        if option == default:
-            options.append(f"[{option[0]}]")
-        else:
-            options.append(option[0])
-    message = "{} ({})? ".format(message, "/".join(options))
-    choices = {alt: choice for choice in choices for alt in [choice, choice[0]]}
-    choices[""] = default
-    while True:
-        # raw_input has a bug and prints to stderr, not desirable
-        sys.stdout.write(message)
-        sys.stdout.flush()
-        try:
-            user_choice = sys.stdin.readline().strip().lower()
-        except OSError as e:
-            raise CondaError(f"cannot read from stdin: {e}")
-        if user_choice not in choices:
-            print(f"Invalid choice: {user_choice}")
-        else:
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-            return choices[user_choice]
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.confirm_yn` instead.",
-)
-def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
-    if (dry_run is NULL and context.dry_run) or dry_run:
-        from ..exceptions import DryRunExit
-
-        raise DryRunExit()
-    if context.always_yes:
-        return True
-    try:
-        choice = confirm(
-            message=message, choices=("yes", "no"), default=default, dry_run=dry_run
-        )
-    except KeyboardInterrupt:  # pragma: no cover
-        from ..exceptions import CondaSystemExit
-
-        raise CondaSystemExit("\nOperation aborted.  Exiting.")
-    if choice == "no":
-        from ..exceptions import CondaSystemExit
-
-        raise CondaSystemExit("Exiting.")
-    return True
 
 
 def is_active_prefix(prefix: str) -> bool:
@@ -117,7 +63,12 @@ def is_active_prefix(prefix: str) -> bool:
     )
 
 
-def arg2spec(arg, json=False, update=False):
+@deprecated(
+    "26.3",
+    "26.9",
+    addendum="Use `spec = str(MatchSpec(arg))` instead",
+)
+def arg2spec(arg: str, update: bool = False) -> str:
     try:
         spec = MatchSpec(arg)
     except:
@@ -138,8 +89,9 @@ def arg2spec(arg, json=False, update=False):
     return str(spec)
 
 
-def specs_from_args(args, json=False):
-    return [arg2spec(arg, json=json) for arg in args]
+@deprecated.argument("26.3", "26.9", "json")
+def specs_from_args(args: Iterable[str]) -> list[str]:
+    return [str(MatchSpec(arg)) for arg in args]
 
 
 spec_pat = re.compile(
@@ -156,11 +108,11 @@ spec_pat = re.compile(
 )
 
 
-def strip_comment(line):
+def strip_comment(line: str) -> str:
     return line.split("#")[0].rstrip()
 
 
-def spec_from_line(line):
+def spec_from_line(line: str) -> str:
     m = spec_pat.match(strip_comment(line))
     if m is None:
         return None
@@ -169,10 +121,12 @@ def spec_from_line(line):
         return name + cc.replace("=", " ")
     elif pc:
         if pc.startswith("~= "):
-            assert pc.count("~=") == 1, (
-                f"Overly complex 'Compatible release' spec not handled {line}"
-            )
-            assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
+            if pc.count("~=") > 1:
+                raise InvalidSpec(
+                    f"Overly complex 'Compatible release' spec not handled {line}."
+                )
+            if not pc.count("."):
+                raise InvalidSpec(f"No '.' in 'Compatible release' version {line}")
             ver = pc.replace("~= ", "")
             ver2 = ".".join(ver.split(".")[:-1]) + ".*"
             return name + " >=" + ver + ",==" + ver2
@@ -182,7 +136,8 @@ def spec_from_line(line):
         return name
 
 
-def specs_from_url(url, json=False):
+@deprecated.argument("26.3", "26.9", "json")
+def specs_from_url(url: str) -> list[str]:
     from ..gateways.connection.download import TmpDownload
 
     explicit = False
@@ -193,7 +148,7 @@ def specs_from_url(url, json=False):
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
-                if line == "@EXPLICIT":
+                if line == EXPLICIT_MARKER:
                     explicit = True
                 if explicit:
                     specs.append(line)
@@ -238,15 +193,6 @@ def stdout_json_success(success=True, **kwargs):
         result["actions"] = actions
     result.update(kwargs)
     stdout_json(result)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.render(style='env_list')` instead.",
-)
-def print_envs_list(known_conda_prefixes, output=True):
-    render(known_conda_prefixes, style="envs_list", output=output)
 
 
 def check_non_admin():
@@ -313,9 +259,9 @@ def validate_subdir_config():
         # prevent a non-base env configured for a non-native subdir from leaking
         # its subdir to a newer env.
         context_sources = context.collect_all()
-        if context_sources.get("cmd_line", {}).get("subdir") == context.subdir:
+        if context_sources.get(CMD_LINE_SOURCE, {}).get("subdir") == context.subdir:
             pass  # this is ok
-        elif context_sources.get("envvars", {}).get("subdir") == context.subdir:
+        elif context_sources.get(ENV_VARS_SOURCE, {}).get("subdir") == context.subdir:
             pass  # this is ok too
         # config does not come from envvars or cmd_line, it must be a file
         # that's ok as long as it's a base env or a global file
@@ -325,9 +271,10 @@ def validate_subdir_config():
                 (
                     config
                     for path, config in context_sources.items()
-                    if paths_equal(context.active_prefix, path.parent)
+                    if path not in CONFIGURATION_SOURCES
+                    and paths_equal(context.active_prefix, path.parent)
                 ),
-                None,
+                {},
             )
             if active_env_config.get("subdir") == context.subdir:
                 # In practice this never happens; the subdir info is not even
@@ -343,7 +290,7 @@ def validate_subdir_config():
                 raise OperationNotAllowed(msg)
 
 
-def print_activate(env_name_or_prefix):  # pragma: no cover
+def print_activate(env_name_or_prefix):
     if not context.quiet and not context.json:
         if " " in env_name_or_prefix:
             env_name_or_prefix = f'"{env_name_or_prefix}"'

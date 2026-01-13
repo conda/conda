@@ -3,12 +3,12 @@
 import pytest
 
 from conda import plugins
-from conda.env.env import Environment
 from conda.exceptions import (
     CondaValueError,
     EnvironmentSpecPluginNotDetected,
     PluginError,
 )
+from conda.models.environment import Environment
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
@@ -19,7 +19,7 @@ class NaughtySpec(EnvironmentSpecBase):
     def can_handle(self):
         raise TypeError("This is a naughty spec")
 
-    def environment(self):
+    def env(self):
         raise TypeError("This is a naughty spec")
 
 
@@ -44,8 +44,8 @@ class RandomSpec(EnvironmentSpecBase):
                 return True
         return False
 
-    def environment(self):
-        return Environment(name="random-environment", dependencies=["python", "numpy"])
+    def env(self):
+        return Environment(prefix="/somewhere", platform=["linux-64"])
 
 
 class RandomSpecNoAutoDetect(RandomSpec):
@@ -118,19 +118,19 @@ def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
     filename = "test.random"
     env_spec_backend = dummy_random_spec_plugin.get_environment_specifier(filename)
     assert env_spec_backend.name == "rand-spec"
-    assert env_spec_backend.environment_spec(filename).environment is not None
+    assert env_spec_backend.environment_spec(filename).env is not None
 
     env_spec_backend = dummy_random_spec_plugin.get_environment_specifier_by_name(
         source=filename, name="rand-spec"
     )
     assert env_spec_backend.name == "rand-spec"
-    assert env_spec_backend.environment_spec(filename).environment is not None
+    assert env_spec_backend.environment_spec(filename).env is not None
 
     env_spec_backend = dummy_random_spec_plugin.detect_environment_specifier(
         source=filename
     )
     assert env_spec_backend.name == "rand-spec"
-    assert env_spec_backend.environment_spec(filename).environment is not None
+    assert env_spec_backend.environment_spec(filename).env is not None
 
 
 def test_raises_an_error_if_file_is_unhandleable(dummy_random_spec_plugin):
@@ -229,4 +229,4 @@ def test_naught_plugin_does_not_cause_unhandled_errors_during_detection(
     filename = "test.random"
     env_spec_backend = plugin_manager.detect_environment_specifier(filename)
     assert env_spec_backend.name == "rand-spec"
-    assert env_spec_backend.environment_spec(filename).environment is not None
+    assert env_spec_backend.environment_spec(filename).env is not None

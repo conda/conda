@@ -9,22 +9,15 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda.exceptions
+from conda.base.constants import SafetyChecks
 from conda.base.context import context, reset_context
-from conda.cli.main_config import (
-    _get_key,
-    _key_exists,
-    _read_rc,
-    _remove_item,
-    _remove_key,
-    _set_key,
-    _write_rc,
-    set_keys,
-)
+from conda.cli.condarc import MISSING, ConfigurationFile
+from conda.cli.main_config import set_keys
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Any
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
@@ -106,143 +99,157 @@ def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
     reset_context()
     assert context.json
 
-    json: dict[str, Any]
-    warnings: list[str]
-
+    warnings: list[str] = []
+    config = ConfigurationFile(
+        context=context, content={}, warning_handler=lambda msg: warnings.append(msg)
+    )
     # undefined
-    _get_key("changeps1", {}, json=(json := {}), warnings=(warnings := []))
-    assert not json
-    assert not warnings
-
-    # defined
-    config = {"changeps1": True, "auto_stack": 5, "channels": ["foo", "bar"]}
-    _get_key("changeps1", config, json=(json := {}), warnings=(warnings := []))
-    assert json == {"changeps1": True}
-    assert not warnings
-
-    _get_key("auto_stack", config, json=(json := {}), warnings=(warnings := []))
-    assert json == {"auto_stack": 5}
-    assert not warnings
-
-    _get_key("channels", config, json=(json := {}), warnings=(warnings := []))
-    assert json == {"channels": ["foo", "bar"]}
+    assert config.get_key("changeps1") == ("changeps1", MISSING)
     assert not warnings
 
     # unknown
-    _get_key("unknown", {}, json=(json := {}), warnings=(warnings := []))
-    assert not json
+    warnings = []
+    assert config.get_key("unknown") == ("unknown", MISSING)
     assert warnings == ["Unknown key: 'unknown'"]
+
+    # defined
+    config = ConfigurationFile(
+        context=context,
+        content={"changeps1": True, "auto_stack": 5, "channels": ["foo", "bar"]},
+    )
+    warnings = []
+    assert config.get_key("changeps1") == ("changeps1", True)
+    assert not warnings
+
+    assert config.get_key("auto_stack") == ("auto_stack", 5)
+    assert not warnings
+
+    assert config.get_key("channels") == ("channels", ["foo", "bar"])
+    assert not warnings
 
 
 def test_config_set_key(capsys) -> None:
-    config: dict[str, Any] = {}
+    config: ConfigurationFile = ConfigurationFile(content={})
 
     with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
-        _set_key("unknown", None, config)
+        config.set_key("unknown", None)
 
     # undefined
-    _set_key("changeps1", True, config)
-    assert config["changeps1"]
+    config.set_key("changeps1", True)
+    assert config.content["changeps1"]
 
-    _set_key("proxy_servers.http", "http://example.com", config)
-    assert config["proxy_servers"]["http"] == "http://example.com"
+    config.set_key("proxy_servers.http", "http://example.com")
+    assert config.content["proxy_servers"]["http"] == "http://example.com"
 
     # defined
-    _set_key("changeps1", False, config)
-    assert not config["changeps1"]
+    config.set_key("changeps1", False)
+    assert not config.content["changeps1"]
 
-    _set_key("proxy_servers.http", "http://other.com", config)
-    assert config["proxy_servers"]["http"] == "http://other.com"
+    config.set_key("proxy_servers.http", "http://other.com")
+    assert config.content["proxy_servers"]["http"] == "http://other.com"
 
     # invalid
     with pytest.raises(CondaKeyError, match=r"'channels': invalid parameter"):
-        _set_key("channels", None, config)
+        config.set_key("channels", None)
 
 
 def test_config_remove_item() -> None:
-    config: dict[str, Any] = {}
+    config: ConfigurationFile = ConfigurationFile(content={})
 
     # unknown
     with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
-        _remove_item("unknown", None, config)
+        config.remove_item("unknown", None)
 
     # undefined
     with pytest.raises(
         CondaKeyError,
         match=r"'create_default_packages': undefined in config",
     ):
-        _remove_item("create_default_packages", "python", config)
+        config.remove_item("create_default_packages", "python")
 
     # defined
-    _remove_item("channels", "defaults", config)
-    assert config["channels"] == []
+    config.remove_item("channels", "defaults")
+    assert config.content["channels"] == []
 
-    config = {"channels": ["foo", "bar"]}
+    config = ConfigurationFile(content={"channels": ["foo", "bar"]})
+    config.remove_item("channels", "foo")
+    assert config.content["channels"] == ["bar"]
 
-    _remove_item("channels", "foo", config)
-    assert config["channels"] == ["bar"]
-
-    _remove_item("channels", "bar", config)
-    assert config["channels"] == []
+    config.remove_item("channels", "bar")
+    assert config.content["channels"] == []
 
     # missing
     with pytest.raises(
         CondaKeyError,
         match=r"'channels': value 'bar' not present in config",
     ):
-        _remove_item("channels", "bar", config)
+        config.remove_item("channels", "bar")
 
     # invalid
     with pytest.raises(CondaKeyError, match=r"'changeps1': invalid parameter"):
-        _remove_item("changeps1", None, config)
+        config.remove_item("changeps1", None)
 
 
 def test_config_remove_key() -> None:
-    config: dict[str, Any] = {}
+    config: ConfigurationFile = ConfigurationFile(content={})
 
     # unknown/undefined
     with pytest.raises(CondaKeyError, match=r"'unknown': undefined in config"):
-        _remove_key("unknown", config)
+        config.remove_key("unknown")
 
     with pytest.raises(CondaKeyError, match=r"'changeps1': undefined in config"):
-        _remove_key("changeps1", config)
+        config.remove_key("changeps1")
 
     # defined
-    config = {
-        "auto_stack": 5,
-        "channels": ["foo", "bar"],
-        "conda_build": {"foo": {"bar": 1}},
-    }
+    config: ConfigurationFile = ConfigurationFile(
+        content={
+            "auto_stack": 5,
+            "channels": ["foo", "bar"],
+            "conda_build": {"foo": {"bar": 1}},
+        }
+    )
+    config.remove_key("auto_stack")
+    assert "auto_stack" not in config.content
 
-    _remove_key("auto_stack", config)
-    assert "auto_stack" not in config
+    config.remove_key("channels")
+    assert "channels" not in config.content
 
-    _remove_key("channels", config)
-    assert "channels" not in config
+    config.remove_key("conda_build.foo.bar")
+    assert "bar" not in config.content["conda_build"]["foo"]
 
-    _remove_key("conda_build.foo.bar", config)
-    assert "bar" not in config["conda_build"]["foo"]
-
-    _remove_key("conda_build", config)
-    assert "conda_build" not in config
+    config.remove_key("conda_build")
+    assert "conda_build" not in config.content
 
 
 def test_config_read_rc(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
     condarc.write_text("changeps1: false\nauto_stack: 5\n")
 
-    assert _read_rc(path=condarc) == {"changeps1": False, "auto_stack": 5}
+    assert ConfigurationFile(path=condarc).content == {
+        "changeps1": False,
+        "auto_stack": 5,
+    }
 
 
 def test_config_write_rc(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
-
-    _write_rc(condarc, {"changeps1": False, "auto_stack": 5})
-    assert condarc.read_text() == "changeps1: false\nauto_stack: 5\n"
+    target_path = tmp_path / DEFAULT_CONDARC_FILENAME
+    config = ConfigurationFile(
+        target_path,
+        content={
+            "changeps1": False,
+            "auto_stack": 5,
+            "safety_checks": SafetyChecks.disabled,
+        },
+    )
+    config.write()
+    assert (
+        target_path.read_text()
+        == "changeps1: false\nauto_stack: 5\nsafety_checks: disabled\n"
+    )
 
 
 def test_config_set_keys(tmp_path: Path) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
     set_keys(("changeps1", True), path=condarc)
     assert condarc.read_text() == "changeps1: true\n"
@@ -255,7 +262,7 @@ def test_config_set_keys(tmp_path: Path) -> None:
 
 
 def test_config_set_keys_aliases(tmp_path: Path, conda_cli) -> None:
-    condarc = tmp_path / ".condarc"
+    condarc = tmp_path / DEFAULT_CONDARC_FILENAME
 
     set_keys(("auto_activate_base", True), path=condarc)
     assert condarc.read_text() == "auto_activate: true\n"
@@ -287,7 +294,7 @@ def test_config_set_keys_aliases(tmp_path: Path, conda_cli) -> None:
 
 def test_config_set_and_get_key_for_env(
     conda_cli: CondaCLIFixture,
-    minimal_env: Path,
+    empty_env: Path,
 ) -> None:
     """
     Ensures that setting configuration for a specific environment works as expected.
@@ -295,18 +302,20 @@ def test_config_set_and_get_key_for_env(
     test_channel_name = "my-super-special-channel"
     # add config to prefix
     conda_cli(
-        "config", "--append", "channels", test_channel_name, "--prefix", minimal_env
+        "config", "--append", "channels", test_channel_name, "--prefix", empty_env
     )
 
-    # check config is added to the prefix config
-    stdout, _, _ = conda_cli("config", "--show", "--prefix", minimal_env, "--json")
-    parsed = json.loads(stdout.strip())
-    assert test_channel_name in parsed["channels"]
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        # check config is added to the prefix config
+        stdout, _, _ = conda_cli("config", "--show", "--prefix", empty_env, "--json")
+        parsed = json.loads(stdout.strip())
+        assert test_channel_name in parsed["channels"]
 
-    # check config is not added to the config of the base environment
-    stdout, _, _ = conda_cli("config", "--show", "--json")
-    parsed = json.loads(stdout.strip())
-    assert test_channel_name not in parsed["channels"]
+        # check config is not added to the config of the base environment
+        stdout, _, _ = conda_cli("config", "--show", "--json")
+        parsed = json.loads(stdout.strip())
+        assert test_channel_name not in parsed["channels"]
 
 
 def test_config_env_does_not_exist(
@@ -334,12 +343,14 @@ def test_key_exists(monkeypatch, plugin_config, is_json):
 
     assert mock_context.json == is_json
 
-    assert _key_exists("json", [], mock_context)
-    assert _key_exists("foo", [], mock_context)
-    assert _key_exists("plugins.bar", [], mock_context)
+    config = ConfigurationFile(content={}, context=mock_context)
 
-    assert not _key_exists("baz", [], mock_context)
-    assert not _key_exists("plugins.baz", [], mock_context)
+    assert config.key_exists("json")
+    assert config.key_exists("foo")
+    assert config.key_exists("plugins.bar")
+
+    assert not config.key_exists("baz")
+    assert not config.key_exists("plugins.baz")
 
 
 def test_config_show(
@@ -421,7 +432,8 @@ def test_config_describe(
         "# # plugins.bar (str)",
         "# #   Test plugins.bar",
         "# # ",
-        "# plugins.bar: ''",
+        "# plugins:",
+        "#   bar: ''",
         "",
         "",
     )
@@ -438,7 +450,8 @@ def test_config_describe(
         "# # plugins.bar (str)",
         "# #   Test plugins.bar",
         "# # ",
-        "# plugins.bar: ''",
+        "# plugins:",
+        "#   bar: ''",
         "",
         "",
     )
@@ -514,3 +527,121 @@ def test_config_describe_json(
             "parameter_type": "primitive",
         },
     ]
+
+
+def test_config_describe_plugins_yaml_format(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    plugin_config: tuple[type[Configuration], str],
+):
+    """
+    Regression test for the issue described in https://github.com/conda/conda/issues/15339.
+
+    Ensure that plugin configuration examples in `conda config --describe`
+    use valid nested YAML format. which is (plugins:\n  setting_name: value),
+    instead of dotted notation (plugins.setting_name: value), which is
+    syntactically invalid in YAML.
+    """
+    mock_context, app_name = plugin_config
+    mock_context = mock_context(search_path=())
+    mocker.patch("conda.base.context.context", mock_context)
+
+    monkeypatch.setenv(f"{app_name}_PLUGINS_BAR", "test_value")
+
+    out, err, rc = conda_cli("config", "--describe", "plugins.bar")
+
+    assert "plugins:" in out
+    assert "  bar: ''" in out
+
+    assert "plugins.bar: ''" not in out
+
+
+def test_config_file_from_user_condarc(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """Test ConfigurationFile.from_user_condarc() factory method."""
+    # Create a temporary user condarc
+    user_condarc = tmp_path / ".condarc"
+    user_condarc.write_text("channels:\n  - conda-forge\n")
+
+    # Mock the user_rc_path
+    monkeypatch.setattr("conda.base.context.user_rc_path", user_condarc)
+    reset_context()
+
+    # Test factory method
+    config = ConfigurationFile.from_user_condarc()
+    assert config.path == user_condarc
+    assert config.content == {"channels": ["conda-forge"]}
+
+
+def test_config_file_from_system_condarc(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """Test ConfigurationFile.from_system_condarc() factory method."""
+    # Create a temporary system condarc
+    sys_condarc = tmp_path / "system_condarc"
+    sys_condarc.write_text("auto_update_conda: false\n")
+
+    # Mock the sys_rc_path
+    monkeypatch.setattr("conda.base.context.sys_rc_path", sys_condarc)
+    reset_context()
+
+    # Test factory method
+    config = ConfigurationFile.from_system_condarc()
+    assert config.path == sys_condarc
+    assert config.content == {"auto_update_conda": False}
+
+
+def test_config_file_from_env_condarc(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    """Test ConfigurationFile.from_env_condarc() factory method."""
+    # Create a temporary environment with .condarc
+    env_prefix = tmp_path / "myenv"
+    env_prefix.mkdir()
+    env_condarc = env_prefix / ".condarc"
+    env_condarc.write_text("pip_interop_enabled: true\n")
+
+    # Test with explicit prefix
+    config = ConfigurationFile.from_env_condarc(prefix=env_prefix)
+    assert config.path == env_condarc
+    assert config.content == {"pip_interop_enabled": True}
+
+    # Test with CONDA_PREFIX environment variable
+    monkeypatch.setenv("CONDA_PREFIX", str(env_prefix))
+    config2 = ConfigurationFile.from_env_condarc()
+    assert config2.path == env_condarc
+    assert config2.content == {"pip_interop_enabled": True}
+
+
+def test_config_file_context_manager(tmp_path: Path) -> None:
+    """Test ConfigurationFile as context manager for atomic writes."""
+    config_path = tmp_path / ".condarc"
+
+    # Test that changes are written on successful exit
+    with ConfigurationFile(path=config_path, content={}) as config:
+        config.content["channels"] = ["defaults", "conda-forge"]
+        config.content["auto_update_conda"] = False
+
+    # Verify file was written
+    assert config_path.exists()
+    written_content = config_path.read_text()
+    assert "channels:" in written_content
+    assert "defaults" in written_content
+    assert "conda-forge" in written_content
+    assert "auto_update_conda: false" in written_content
+
+
+def test_config_file_context_manager_exception(tmp_path: Path) -> None:
+    """Test that ConfigurationFile context manager doesn't write on exception."""
+    config_path = tmp_path / ".condarc"
+
+    # Test that changes are NOT written if exception occurs
+    try:
+        with ConfigurationFile(path=config_path, content={}) as config:
+            config.content["channels"] = ["defaults"]
+            raise ValueError("Test exception")
+    except ValueError:
+        pass
+
+    # Verify file was NOT written (because exception occurred)
+    assert not config_path.exists()

@@ -40,6 +40,81 @@ environment with just ``program_name``.
    Replace ``envname`` with the name of the environment and
    replace ``program_name`` with the name of the program.
 
+.. _cep-23-glossary:
+
+CEP 23
+======
+
+Conda Enhancement Proposal 23, which defines the specification for
+explicit environment files. CEP 23 establishes two distinct environment
+file formats:
+
+* **Explicit format** - Files containing package URLs with ``@EXPLICIT`` header
+* **Text spec format** - Files containing MatchSpec strings (requirements format)
+
+This proposal standardizes environment export formats and ensures
+compatibility across conda tools. For more information, see the
+`CEP 23 specification <https://conda.org/learn/ceps/cep-0023/>`_.
+
+.. _environment-exporter-glossary:
+
+Environment Exporter
+====================
+
+A plugin that defines how conda environments are exported to specific
+file formats. Environment exporters are part of conda's plugin architecture
+and allow extending the ``conda export`` command with custom formats.
+
+Built-in exporters include:
+
+* ``environment-yaml`` - YAML format for cross-platform sharing
+* ``environment-json`` - JSON format for programmatic processing
+* ``explicit`` - CEP 23 compliant explicit URLs format
+* ``requirements`` - MatchSpec-based requirements format
+
+Custom exporters can be created through the conda plugin system.
+See :doc:`dev-guide/plugins/environment_exporters` for details.
+
+.. _explicit-format-glossary:
+
+Explicit Format
+===============
+
+A CEP 23 compliant environment file format that contains package URLs
+with full metadata for exact environment reproduction. Explicit files
+begin with an ``@EXPLICIT`` header followed by complete package URLs.
+
+Example:
+
+.. code-block:: text
+
+   @EXPLICIT
+   https://repo.anaconda.com/pkgs/main/osx-64/python-3.9.7-h88f2d9e_0.tar.bz2
+   https://repo.anaconda.com/pkgs/main/osx-64/numpy-1.21.0-py39h2e5f516_0.tar.bz2
+
+This format enables bit-for-bit identical environment reproduction on
+the same platform and architecture.
+
+.. _requirements-format-glossary:
+
+Requirements Format
+===================
+
+A CEP 23 compliant environment file format that contains MatchSpec
+strings for conda-compatible package specifications. This format is
+similar to pip's ``requirements.txt`` but uses conda's MatchSpec syntax.
+
+Example:
+
+.. code-block:: text
+
+   python=3.9.7
+   numpy=1.21.0
+   pandas>=1.3.0,<2.0
+
+This format provides a balance between exactness and flexibility,
+allowing some version ranges while remaining conda-compatible.
+
 
 .. _anaconda-glossary:
 

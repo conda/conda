@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from conda.env.env import Environment
 from conda.env.specs.explicit import ExplicitSpec
+from conda.models.environment import Environment
 
 from .. import support_file
 
@@ -24,9 +24,6 @@ def test_can_not_handle_requirements_txt():
 
 def test_environment():
     spec = ExplicitSpec(filename=support_file("explicit.txt"))
-    assert isinstance(spec.environment, Environment)
-    assert spec.environment.dependencies.explicit is True
-    assert (
-        "defaults/linux-64::python==3.9.0=h8bdb77d_3"
-        in spec.environment.dependencies["conda"]
-    )
+    assert isinstance(spec.env, Environment)
+    assert len(spec.env.explicit_packages) > 0
+    assert "ca-certificates" in [pkg.name for pkg in spec.env.explicit_packages]

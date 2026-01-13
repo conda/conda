@@ -251,7 +251,8 @@ def url_to_s3_info(url: str) -> tuple[str, str]:
         ('bucket-name.bucket', '/here/is/the/key')
     """
     parsed_url = urlparse(url)
-    assert parsed_url.scheme == "s3", f"You can only use s3: urls (not {url!r})"
+    if parsed_url.scheme != "s3":
+        raise ValueError(f"You can only use s3: urls (not {url!r})")
     bucket, key = parsed_url.hostname, parsed_url.path
     return bucket, key
 

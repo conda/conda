@@ -5,24 +5,21 @@
 Creates new conda environments with the specified packages.
 """
 
-import json
 from argparse import (
     ArgumentParser,
     Namespace,
-    _StoreAction,
     _SubParsersAction,
 )
 from pathlib import Path
 
 from .. import CondaError
 from ..cli.main_config import set_keys
-from ..deprecations import deprecated
+from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..common.constants import NULL
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -88,18 +85,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     # Add environment spec plugin args
     add_parser_environment_specifier(p)
 
-    p.add_argument(
-        "remote_definition",
-        help="Remote environment definition / IPython notebook",
-        action=deprecated.action(
-            "24.7",
-            "25.9",
-            _StoreAction,
-            addendum="Use `conda env create --file=URL` instead.",
-        ),
-        default=NULL,
-        nargs="?",
-    )
     add_parser_default_packages(p)
     add_output_and_prompt_options(p)
     add_parser_solver(p)
@@ -114,6 +99,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
+    from ..common.serialize import json
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
     from ..env.installers.base import get_installer
@@ -130,7 +116,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         name=context.environment_specifier,
     )
     spec = spec_hook.environment_spec(args.file)
-    env = spec.environment
+    env = spec.env
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
@@ -170,12 +156,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         installer_type = "conda"
         installer = get_installer(installer_type)
 
-        pkg_specs = env.dependencies.get(installer_type, [])
-        pkg_specs.extend(args_packages)
+        pkg_specs = [*env.requested_packages, *args_packages]
 
         solved_env = installer.dry_run(pkg_specs, args, env)
         if args.json:
-            print(json.dumps(solved_env.to_dict(), indent=2))
+            print(json.dumps(solved_env.to_dict()))
         else:
             print(solved_env.to_yaml(), end="")
 
@@ -185,36 +170,36 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             installer = get_installer(installer_type)
             result[installer_type] = installer.install(prefix, args_packages, args, env)
 
-        if len(env.dependencies.items()) == 0:
-            installer_type = "conda"
-            pkg_specs = []
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, pkg_specs, args, env)
-        else:
-            for installer_type, pkg_specs in env.dependencies.items():
-                try:
-                    installer = get_installer(installer_type)
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env
-                    )
-                except InvalidInstaller:
-                    raise CondaError(
-                        dals(
-                            f"""
-                            Unable to install package for {installer_type}.
+        # install conda packages
+        installer_type = "conda"
+        installer = get_installer(installer_type)
+        result[installer_type] = installer.install(
+            prefix, env.requested_packages, args, env
+        )
 
-                            Please double check and ensure your dependencies file has
-                            the correct spelling. You might also try installing the
-                            conda-env-{installer_type} package to see if provides
-                            the required installer.
-                            """
-                        )
+        # install all other external packages
+        for installer_type, pkg_specs in env.external_packages.items():
+            try:
+                installer = get_installer(installer_type)
+                result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+            except InvalidInstaller:
+                raise CondaError(
+                    dals(
+                        f"""
+                        Unable to install package for {installer_type}.
+
+                        Please double check and ensure your dependencies file has
+                        the correct spelling. You might also try installing the
+                        conda-env-{installer_type} package to see if provides
+                        the required installer.
+                        """
                     )
+                )
 
         if context.subdir != context._native_subdir():
             set_keys(
                 ("subdir", context.subdir),
-                path=Path(prefix, ".condarc"),
+                path=Path(prefix, DEFAULT_CONDARC_FILENAME),
             )
 
         if env.variables:

@@ -53,6 +53,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda list ^py
 
+        List name and version only::
+
+            conda list --fields name,version
+
         Save packages for future use::
 
             conda list --export > package-list.txt
@@ -79,7 +83,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         type=comma_separated_stripped,
         dest="list_fields",
         help="Comma-separated list of fields to print. "
-        f"Valid values: {sorted(CONDA_LIST_FIELDS)}.",
+        f"Valid values: {','.join(sorted(CONDA_LIST_FIELDS))}.",
     )
     p.add_argument(
         "--reverse",
@@ -179,6 +183,7 @@ def list_packages(
     show_channel_urls=None,
     reload_records=True,
     fields=None,
+    regex_is_full_name=False,
 ) -> tuple[int, list[str] | list[dict[str, Any]]]:
     from ..base.constants import (
         CONDA_LIST_FIELDS,
@@ -187,7 +192,7 @@ def list_packages(
     )
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..exceptions import CondaValueError
+    from ..exceptions import CondaValueError, PackageNotInstalledError
     from .common import disp_features
 
     exitcode = 0
@@ -195,7 +200,17 @@ def list_packages(
     prefix_data = PrefixData(prefix, interoperability=True)
     if reload_records:
         prefix_data.load()
-    installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
+    if regex:
+        if regex_is_full_name:
+            record = prefix_data.get(regex, None)
+            prefix_records = (record,) if record else ()
+        else:
+            prefix_records = sorted(
+                get_packages(prefix_data.iter_records(), regex),
+                key=lambda x: x.name,
+            )
+    else:
+        prefix_records = sorted(prefix_data.iter_records(), key=lambda x: x.name)
     show_channel_urls = show_channel_urls or context.show_channel_urls
     fields = fields or context.list_fields
     if invalid_fields := set(fields).difference(CONDA_LIST_FIELDS):
@@ -209,14 +224,14 @@ def list_packages(
         widths = [23, 15, 15, 1]
     else:
         widths = [len(title) for title in titles]
-    for prec in get_packages(installed, regex) if regex else installed:
+    for prec in prefix_records:
         if format == "canonical":
             packages.append(
                 prec.dist_fields_dump() if context.json else prec.dist_str()
             )
             continue
         if format == "export":
-            packages.append("=".join((prec.name, prec.version, prec.build)))
+            packages.append(prec.spec)
             continue
 
         # this is for format == "human"
@@ -235,6 +250,8 @@ def list_packages(
                     value = str(channel_name)
                 else:
                     value = ""
+            elif field == "dist_str":
+                value = prec.dist_str()
             else:
                 value = str(prec.get(field, None) or "").strip()
                 if value == "None":
@@ -244,6 +261,11 @@ def list_packages(
                 widths[idx] = value_length
 
         packages.append(row)
+
+    if regex and not packages:
+        if regex_is_full_name:
+            raise PackageNotInstalledError(prefix, regex)
+        raise CondaValueError(f"No packages match '{regex}'.")
 
     if reverse:
         packages = reversed(packages)
@@ -272,6 +294,7 @@ def print_packages(
     json=False,
     show_channel_urls=None,
     fields=None,
+    regex_is_full_name=False,
 ) -> int:
     from ..base.context import context
     from .common import stdout_json
@@ -292,6 +315,7 @@ def print_packages(
         reverse=reverse,
         show_channel_urls=show_channel_urls,
         fields=fields,
+        regex_is_full_name=regex_is_full_name,
     )
     if context.json:
         stdout_json(output)
@@ -303,7 +327,7 @@ def print_packages(
 
 
 def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
-    from ..base.constants import UNKNOWN_CHANNEL
+    from ..base.constants import EXPLICIT_MARKER, UNKNOWN_CHANNEL
     from ..base.context import context
     from ..common import url as common_url
     from ..core.prefix_data import PrefixData
@@ -315,7 +339,7 @@ def print_explicit(prefix, add_md5=False, remove_auth=True, add_sha256=False):
 
         raise EnvironmentLocationNotFound(prefix)
     print_export_header(context.subdir)
-    print("@EXPLICIT")
+    print(EXPLICIT_MARKER)
     for prefix_record in PrefixData(prefix).iter_records_sorted():
         url = prefix_record.get("url")
         if not url or url.startswith(UNKNOWN_CHANNEL):
@@ -349,8 +373,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     regex = args.regex
-    if args.full_name:
-        regex = rf"^{regex}$"
 
     if args.revisions:
         h = History(prefix)
@@ -387,4 +409,5 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         piplist=args.pip,
         json=context.json,
         show_channel_urls=context.show_channel_urls,
+        regex_is_full_name=args.full_name,
     )

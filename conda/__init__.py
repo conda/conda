@@ -6,11 +6,9 @@ from __future__ import annotations
 
 import os
 import sys
-from json import JSONEncoder
+from json import JSONEncoder  # noqa: TID251
 from os.path import abspath, dirname
 from typing import TYPE_CHECKING
-
-from frozendict import frozendict
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -60,13 +58,15 @@ __url__ = "https://github.com/conda/conda"
 if os.getenv("CONDA_ROOT") is None:
     os.environ["CONDA_ROOT"] = sys.prefix
 
-#: The conda package directory.
 CONDA_PACKAGE_ROOT = abspath(dirname(__file__))
-#: The path within which to find the conda package.
-#:
-#: If `conda` is statically installed this is the site-packages. If `conda` is an editable install
-#: or otherwise uninstalled this is the git repo.
+"""The conda package directory."""
+
 CONDA_SOURCE_ROOT = dirname(CONDA_PACKAGE_ROOT)
+"""The path within which to find the conda package.
+
+If ``conda`` is statically installed this is the site-packages. If ``conda`` is an editable
+install or otherwise uninstalled this is the git repo.
+"""
 
 
 class CondaError(Exception):
@@ -166,12 +166,29 @@ def conda_signal_handler(signum: int, frame: Any):
 
 
 def _default(self, obj):
+    from frozendict import frozendict
+
+    from .deprecations import deprecated
+
     if isinstance(obj, frozendict):
+        deprecated.topic(
+            "26.3",
+            "26.9",
+            topic="Monkey-patching `json.JSONEncoder` to support `frozendict`",
+            addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
+        )
         return dict(obj)
-    if hasattr(obj, "to_json"):
+    elif hasattr(obj, "to_json"):
+        deprecated.topic(
+            "26.3",
+            "26.9",
+            topic="Monkey-patching `json.JSONEncoder` to support `obj.to_json()`",
+            addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
+        )
         return obj.to_json()
     return _default.default(obj)
 
 
+# FUTURE: conda 26.3, remove the following monkey patching
 _default.default = JSONEncoder().default
 JSONEncoder.default = _default

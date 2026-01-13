@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 from base64 import b64encode
 from collections import namedtuple
@@ -22,10 +21,11 @@ from ...auxlib.compat import shlex_split_unicode
 from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import open_utf8
+from ...common.serialize import json
 from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
-from ...models.enums import FileMode, PathType
+from ...models.enums import FileMode, PathEnum
 from ...models.package_info import PackageInfo, PackageMetadata
 from ...models.records import PathData, PathDataV1, PathsData
 from .create import TemporaryDirectory
@@ -193,9 +193,9 @@ def read_paths_json(extracted_package_directory):
                 if f in no_link:
                     path_info["no_link"] = True
                 if islink(join(extracted_package_directory, f)):
-                    path_info["path_type"] = PathType.softlink
+                    path_info["path_type"] = PathEnum.softlink
                 else:
-                    path_info["path_type"] = PathType.hardlink
+                    path_info["path_type"] = PathEnum.hardlink
                 yield PathData(**path_info)
 
         paths = tuple(read_files_file())

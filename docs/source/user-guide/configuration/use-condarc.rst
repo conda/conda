@@ -162,7 +162,8 @@ The precedence by which the conda configuration is built out is shown below.
 Each new arrow takes precedence over the ones before it. For example, config
 files (by parse order) will be superseded by any of the other configuration
 options. Configuration environment variables (formatted like ``CONDA_<CONFIG NAME>``)
-will always take precedence over the other 3.
+will always take precedence over all config files. Command line parameters
+have the highest precedence.
 
 .. figure:: /img/config-precedence.png
 
@@ -251,6 +252,14 @@ it can be edited directly. Below is an example ``.condarc`` file:
   # Show channel URLs when displaying what is going to be downloaded
   # and in 'conda list'. The default is False.
   show_channel_urls: True
+
+  # Development environment settings (used by dev/start scripts)
+  # Custom path for conda development environments
+  devenv: ~/my-conda-devenv
+
+  # Preferred installer type for conda development environments
+  # Options: miniconda, miniforge
+  installer_type: miniforge
 
   # For more information about this file see:
   # https://conda.io/docs/user-guide/configuration/use-condarc.html

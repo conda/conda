@@ -20,7 +20,7 @@ exclude: |
 repos:
   # generic verification and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -62,20 +62,28 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.19.1
+    rev: 1.20.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.0
+    rev: v0.14.11
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       # compatible replacement for black
       - id: ruff-format
+  - repo: local
+    hooks:
+      # sphinx-autoapi doesn't support #: comments, use trailing docstrings instead
+      - id: no-sphinx-autodoc-comments
+        name: 'Disallow #: comments, require trailing docstrings'
+        entry: '^\s*#:'
+        language: pygrep
+        types: [python]
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.14.0
+    rev: v2.16.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix, --trailing-commas]
@@ -92,7 +100,7 @@ repos:
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.33.1
+    rev: 0.36.0
     hooks:
       # verify github syntaxes
       - id: check-github-workflows
@@ -102,11 +110,3 @@ repos:
     hooks:
       - id: check-hooks-apply
       - id: check-useless-excludes
-  - repo: local
-    hooks:
-      - id: git-diff
-        name: git diff
-        entry: git diff --exit-code
-        language: system
-        pass_filenames: false
-        always_run: true

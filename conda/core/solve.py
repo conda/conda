@@ -8,7 +8,6 @@ import copy
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
-from os.path import exists, join
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -25,6 +24,7 @@ from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
+    NoChannelsConfiguredError,
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -71,7 +71,7 @@ class Solver:
     def __init__(
         self,
         prefix: str,
-        channels: Iterable[Channel],
+        channels: Iterable[Channel] | None = None,
         subdirs: Iterable[str] = (),
         specs_to_add: Iterable[MatchSpec] = (),
         specs_to_remove: Iterable[MatchSpec] = (),
@@ -103,7 +103,8 @@ class Solver:
         self.neutered_specs = ()
         self._command = command
 
-        assert all(s in context.known_subdirs for s in self.subdirs)
+        if unknown_subdirs := set(self.subdirs) - context.known_subdirs:
+            raise ValueError(f"Unknown subdir(s):{dashlist(sorted(unknown_subdirs))}")
         self._repodata_fn = repodata_fn
         self._index = None
         self._r = None
@@ -141,6 +142,11 @@ class Solver:
             UnlinkLinkTransaction:
 
         """
+        if self.specs_to_add and (not self.channels or len(self.channels) == 0):
+            raise NoChannelsConfiguredError(
+                packages=[spec.name for spec in self.specs_to_add if spec.name],
+            )
+
         if self.prefix == context.root_prefix and context.enable_private_envs:
             # This path has the ability to generate a multi-prefix transaction. The basic logic
             # is in the commented out get_install_transaction() function below. Exercised at
@@ -290,6 +296,12 @@ class Solver:
                 the solved state of the environment.
 
         """
+
+        if self.specs_to_add and (not self.channels or len(self.channels) == 0):
+            raise NoChannelsConfiguredError(
+                packages=[spec.name for spec in self.specs_to_add if spec.name],
+            )
+
         if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
             update_modifier = NULL
         if update_modifier is NULL:
@@ -1387,23 +1399,13 @@ class SolverStateContainer:
         self.final_environment_specs = None
 
 
-def get_pinned_specs(prefix):
+def get_pinned_specs(prefix: str) -> tuple[MatchSpec]:
     """Find pinned specs from file and return a tuple of MatchSpec."""
-    pinfile = join(prefix, "conda-meta", "pinned")
-    if exists(pinfile):
-        with open(pinfile) as f:
-            from_file = (
-                i
-                for i in f.read().strip().splitlines()
-                if i and not i.strip().startswith("#")
-            )
-    else:
-        from_file = ()
-
-    return tuple(
-        MatchSpec(spec, optional=True)
-        for spec in (*context.pinned_packages, *from_file)
+    context_pinned_packages = tuple(
+        MatchSpec(spec, optional=True) for spec in context.pinned_packages
     )
+    prefix_data = PrefixData(prefix_path=prefix)
+    return context_pinned_packages + prefix_data.get_pinned_specs()
 
 
 def diff_for_unlink_link_precs(
@@ -1414,12 +1416,10 @@ def diff_for_unlink_link_precs(
 ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
     # Ensure final_precs supports the IndexedSet interface
     if not isinstance(final_precs, IndexedSet):
-        assert hasattr(final_precs, "__getitem__"), (
-            "final_precs must support list indexing"
-        )
-        assert hasattr(final_precs, "__sub__"), (
-            "final_precs must support set difference"
-        )
+        if not hasattr(final_precs, "__getitem__"):
+            raise TypeError("final_precs must support list indexing")
+        if not hasattr(final_precs, "__sub__"):
+            raise TypeError("final_precs must support set difference")
 
     previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
     force_reinstall = (
@@ -1439,7 +1439,8 @@ def diff_for_unlink_link_precs(
     if force_reinstall:
         for spec in specs_to_add:
             prec = next((rec for rec in final_precs if spec.match(rec)), None)
-            assert prec
+            if not prec:
+                raise RuntimeError(f"Could not find record for spec {spec}")
             _add_to_unlink_and_link(prec)
 
     # add back 'noarch: python' packages to unlink and link if python version changes

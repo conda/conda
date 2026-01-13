@@ -12,7 +12,6 @@ See conda.cli.main.main_sourced for the entry point into this module.
 from __future__ import annotations
 
 import abc
-import json
 import os
 import re
 import sys
@@ -38,11 +37,14 @@ from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
     PREFIX_STATE_FILE,
+    RESERVED_ENV_NAMES,
+    RESERVED_ENV_VARS,
 )
-from .base.context import ROOT_ENV_NAME, context, locate_prefix_by_name
+from .base.context import context, locate_prefix_by_name
 from .common.compat import on_win
-from .common.path import _cygpath, paths_equal, unix_path_to_win, win_path_to_unix
 from .common.path import path_identity as _path_identity
+from .common.path import paths_equal, unix_path_to_win, win_path_to_unix
+from .common.serialize import json
 from .deprecations import deprecated
 from .exceptions import ActivateHelp, ArgumentError, DeactivateHelp, GenericHelp
 
@@ -90,8 +92,9 @@ class _Activator(metaclass=abc.ABCMeta):
         [str | Iterable[str] | None], str | tuple[str, ...] | None
     ]
     script_extension: str
-    #: temporary file's extension, None writes to stdout instead
+
     tempfile_extension: str | None
+    """Temporary file's extension, None writes to stdout instead."""
     command_join: str
 
     unset_var_tmpl: str
@@ -102,6 +105,8 @@ class _Activator(metaclass=abc.ABCMeta):
 
     hook_source_path: Path | None
     inline_hook_source: bool
+
+    needs_line_ending_fix: bool
 
     def __init__(self, arguments=None):
         self._raw_arguments = arguments
@@ -148,13 +153,18 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _finalize(self, commands, ext):
         commands = (*commands, "")  # add terminating newline
+        content = self.command_join.join(commands)
+
+        # Normalize line endings for Unix shells on Windows
+        if on_win and self.path_conversion == win_path_to_unix:
+            content = content.replace("\r\n", "\n")
+
         if ext is None:
-            return self.command_join.join(commands)
+            return content
         elif ext:
             with Utf8NamedTemporaryFile("w+", suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
-                # command_join should account for that
-                tf.write(self.command_join.join(commands))
+                tf.write(content)
             return tf.name
         else:
             raise NotImplementedError()
@@ -205,35 +215,6 @@ class _Activator(metaclass=abc.ABCMeta):
         context.plugin_manager.invoke_post_commands(self.command)
         return response
 
-    @deprecated(
-        "25.3",
-        "25.9",
-        addendum="Use `conda commands` instead.",
-        # these commands are already pretty hidden in their implementation and access (`conda shell.posix commands`)
-        # so we opt to not warn end users that this is going away, we only need to notify tab-completion devs
-        # deprecation_type=FutureWarning,
-    )
-    def commands(self):
-        """
-        Returns a list of possible subcommands that are valid
-        immediately following `conda` at the command line.
-        This method is generally only used by tab-completion.
-        """
-        # Import locally to reduce impact on initialization time.
-        from .cli.conda_argparse import find_builtin_commands, generate_parser
-        from .cli.find_commands import find_commands
-
-        # return value meant to be written to stdout
-        # Hidden commands to provide metadata to shells.
-        return "\n".join(
-            sorted(
-                {
-                    *find_builtin_commands(generate_parser()),
-                    *find_commands(True),
-                }
-            )
-        )
-
     def template_unset_var(self, key: str) -> str:
         return self.unset_var_tmpl % key
 
@@ -259,7 +240,6 @@ class _Activator(metaclass=abc.ABCMeta):
     def _hook_postamble(self) -> str | None:
         return None
 
-    @deprecated.argument("25.3", "25.9", "arguments")
     def _parse_and_set_args(self) -> None:
         command, *arguments = self._raw_arguments or [None]
         help_flags = ("-h", "--help", "/?")
@@ -355,7 +335,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 from .exceptions import EnvironmentLocationNotFound
 
                 raise EnvironmentLocationNotFound(prefix)
-        elif env_name_or_prefix in (ROOT_ENV_NAME, "root"):
+        elif env_name_or_prefix in (RESERVED_ENV_NAMES):
             prefix = context.root_prefix
         else:
             prefix = locate_prefix_by_name(env_name_or_prefix)
@@ -488,7 +468,8 @@ class _Activator(metaclass=abc.ABCMeta):
             activate_scripts = ()
             export_path = {"PATH": new_path}
         else:
-            assert old_conda_shlvl > 1
+            if old_conda_shlvl <= 1:
+                raise ValueError("'old_conda_shlvl' must be 2 or larger")
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
@@ -828,63 +809,30 @@ class _Activator(metaclass=abc.ABCMeta):
                     print(f"variable {dup} duplicated", file=sys.stderr)
                 env_vars.update(prefix_state_env_vars)
 
+        # Remove reserved environment variables and warn if they're being set
+        collect_reserved_vars = []
+        for reserved in RESERVED_ENV_VARS:
+            if reserved in env_vars:
+                # Only warn if the variable is actually being set (not unset)
+                if env_vars[reserved] != CONDA_ENV_VARS_UNSET_VAR:
+                    collect_reserved_vars.append(reserved)
+                # Remove from env_vars regardless
+                env_vars.pop(reserved)
+
+        if collect_reserved_vars:
+            print_reserved_vars = ", ".join(collect_reserved_vars)
+            print(
+                f"WARNING: the configured environment variable(s) for prefix '{prefix}' "
+                f"are reserved and will be ignored: {print_reserved_vars}.\n\n"
+                f"Remove the invalid configuration with `conda env config vars unset "
+                f"-p {prefix} {' '.join(collect_reserved_vars)}`.\n",
+                file=sys.stderr,
+            )
         return env_vars
 
 
 def expand(path):
     return abspath(expanduser(expandvars(path)))
-
-
-@deprecated("25.3", "25.9", addendum="Use `conda.common.compat.ensure_binary` instead.")
-def ensure_binary(value):
-    try:
-        return value.encode("utf-8")
-    except AttributeError:  # pragma: no cover
-        # AttributeError: '<>' object has no attribute 'encode'
-        # In this case assume already binary type and do nothing
-        return value
-
-
-@deprecated("25.3", "25.9")
-def ensure_fs_path_encoding(value):
-    from .common.compat import FILESYSTEM_ENCODING
-
-    try:
-        return value.decode(FILESYSTEM_ENCODING)
-    except AttributeError:
-        return value
-
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "_Cygpath",
-    _cygpath,
-    addendum="Use `conda.common.path._cygpath` instead.",
-)
-del _cygpath
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "native_path_to_unix",
-    win_path_to_unix,
-    addendum="Use `conda.common.path.win_path_to_unix` instead.",
-)
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "unix_path_to_native",
-    unix_path_to_win,
-    addendum="Use `conda.common.path.unix_path_to_win` instead.",
-)
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "path_identity",
-    _path_identity,
-    addendum="Use `conda.common.path.path_identity` instead.",
-)
 
 
 def backslash_to_forwardslash(
@@ -905,6 +853,7 @@ class PosixActivator(_Activator):
     script_extension = ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = True
 
     # Using `unset %s` would cause issues for people running
     # with shell flag -u set (error on unset).
@@ -949,6 +898,7 @@ class CshActivator(_Activator):
     script_extension = ".csh"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
+    needs_line_ending_fix = True
 
     unset_var_tmpl = "unsetenv %s"
     export_var_tmpl = 'setenv %s "%s"'
@@ -990,6 +940,7 @@ class XonshActivator(_Activator):
     script_extension = ".bat" if on_win else ".sh"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = False
 
     unset_var_tmpl = "try:\n    del $%s\nexcept KeyError:\n    pass"
     export_var_tmpl = "$%s = '%s'"
@@ -1015,6 +966,7 @@ class CmdExeActivator(_Activator):
     script_extension = ".bat"
     tempfile_extension = ".env"
     command_join = "\n"
+    needs_line_ending_fix = False
 
     # we are not generating a script to run but rather an INI style file
     # with key=value pairs to set environment variables, key= to unset them,
@@ -1048,8 +1000,9 @@ class FishActivator(_Activator):
     script_extension = ".fish"
     tempfile_extension = None  # output to stdout
     command_join = ";\n"
+    needs_line_ending_fix = True
 
-    unset_var_tmpl = "set -e %s"
+    unset_var_tmpl = "set -e %s || true"
     export_var_tmpl = 'set -gx %s "%s"'
     path_var_tmpl = 'set -gx %s (cygpath "%s")' if on_win else export_var_tmpl
     set_var_tmpl = 'set -g %s "%s"'
@@ -1073,6 +1026,7 @@ class PowerShellActivator(_Activator):
     script_extension = ".ps1"
     tempfile_extension = None  # output to stdout
     command_join = "\n"
+    needs_line_ending_fix = False
 
     unset_var_tmpl = "$Env:%s = $null"
     export_var_tmpl = '$Env:%s = "%s"'
@@ -1118,7 +1072,7 @@ class JSONFormatMixin(_Activator):
             with Utf8NamedTemporaryFile("w+", suffix=ext, delete=False) as tf:
                 # the default mode is 'w+b', and universal new lines don't work in that mode
                 # command_join should account for that
-                json.dump(commands, tf, indent=2)
+                json.dump(commands, tf)
             return tf.name
         else:
             raise NotImplementedError()

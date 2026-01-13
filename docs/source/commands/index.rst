@@ -25,6 +25,7 @@ The following commands are part of conda:
    deactivate
    doctor
    env/index
+   export
    info
    init
    install
@@ -37,6 +38,7 @@ The following commands are part of conda:
    run
    search
    update
+   commands
 
 Conda vs. pip vs. virtualenv commands
 =====================================
@@ -96,7 +98,7 @@ Scroll to the right to see the entire table.
      - ``pip list``
      - X
    * - Create requirements file
-     - ``conda list --export``
+     - ``conda export --format=requirements`` or ``conda list --export``
      - ``pip freeze``
      - X
    * - List all environments

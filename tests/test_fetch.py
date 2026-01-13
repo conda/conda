@@ -43,7 +43,8 @@ from conda.gateways.connection.download import (
 from conda.models.channel import Channel
 
 if TYPE_CHECKING:
-    from typing import Any, Callable
+    from collections.abc import Callable
+    from typing import Any
 
     from pytest import MonkeyPatch
 
@@ -114,7 +115,6 @@ def test_resume_download(tmp_path):
     responses.add(
         responses.GET,
         url_pattern,
-        stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
     )
@@ -143,7 +143,6 @@ def test_resume_download(tmp_path):
     responses.replace(
         responses.GET,
         url_pattern,
-        stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
         status=206,  # partial content
@@ -192,7 +191,6 @@ def test_download_when_ranges_not_supported(tmp_path):
     responses.add(
         responses.GET,
         url_pattern,
-        stream=True,
         content_type="application/octet-stream",
         headers={"Accept-Ranges": "none"},
     )
@@ -384,7 +382,6 @@ def test_download_text():
     responses.add(
         responses.GET,
         url_pattern,
-        stream=True,
         content_type="application/octet-stream",
         body=test_file,
     )

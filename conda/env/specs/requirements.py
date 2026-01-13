@@ -10,10 +10,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import ClassVar
 
+from ...base.context import context
 from ...deprecations import deprecated
+from ...exceptions import CondaValueError
 from ...gateways.disk.read import yield_lines
+from ...models.environment import Environment
+from ...models.match_spec import MatchSpec
 from ...plugins.types import EnvironmentSpecBase
-from ..env import Environment
+from ..env import EnvironmentYaml
 
 
 class RequirementsSpec(EnvironmentSpecBase):
@@ -40,12 +44,12 @@ class RequirementsSpec(EnvironmentSpecBase):
 
     @property
     @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
-    def name(self):
+    def name(self):  # type: ignore[misc]
         return self._name
 
-    @name.setter
+    @name.setter  # type: ignore[misc]
     @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
-    def name(self, value):
+    def name(self, value):  # type: ignore[misc]
         self._name = value
 
     @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
@@ -54,7 +58,7 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         :return: True if the file exists, False otherwise
         """
-        if os.path.exists(self.filename):
+        if self.filename and os.path.exists(self.filename):
             return True
         else:
             self.msg = "There is no requirements.txt"
@@ -66,10 +70,11 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         :return: True if the name is valid, False otherwise
         """
-        if self._name:
+        if self.name is None:
+            self.msg = "The environment does not have a name"
+            return False
+        else:
             return True
-        self.msg = "The environment does not have a name"
-        return False
 
     def can_handle(self) -> bool:
         """
@@ -77,6 +82,8 @@ class RequirementsSpec(EnvironmentSpecBase):
         This checks if:
             * a filename was provided
             * the file has a supported extension
+            * the file exists
+            * the file content is valid for this specifier type
 
         :return: True if the file can be handled, False otherwise
         """
@@ -97,15 +104,33 @@ class RequirementsSpec(EnvironmentSpecBase):
         dependencies_list = list(yield_lines(self.filename))
         if "@EXPLICIT" in dependencies_list:
             return False
-
         return True
 
     @property
-    def environment(self) -> Environment:
+    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
+    def environment(self) -> EnvironmentYaml:
         """
         Build an environment from the requirements file.
 
-        This method reads the file as a generator and passes it directly to Environment.
+        This method reads the file as a generator and passes it directly to EnvironmentYaml.
+
+        :return: An Environment object containing the package specifications
+        :raises ValueError: If the file cannot be read
+        """
+        if not self.filename:
+            raise CondaValueError("No filename provided")
+
+        # Convert generator to list since Dependencies needs to access it multiple times
+        dependencies_list = list(yield_lines(self.filename))
+        return EnvironmentYaml(
+            dependencies=dependencies_list,
+            filename=self.filename,
+        )
+
+    @property
+    def env(self) -> Environment:
+        """
+        Build an environment from the requirements file.
 
         :return: An Environment object containing the package specifications
         :raises ValueError: If the file cannot be read
@@ -115,7 +140,9 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         # Convert generator to list since Dependencies needs to access it multiple times
         dependencies_list = list(yield_lines(self.filename))
+        requested_packages = [MatchSpec(dep) for dep in dependencies_list]
+
         return Environment(
-            dependencies=dependencies_list,
-            filename=self.filename,
+            platform=context.subdir,
+            requested_packages=requested_packages,
         )
