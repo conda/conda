@@ -737,7 +737,7 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_supported_extensions(self) -> Iterable[CondaSupportedPkgFormats]:
+    def conda_supported_pkg_formats(self) -> Iterable[CondaSupportedPkgFormats]:
         """
         Register supported package extensions and their extraction handlers.
 
@@ -749,7 +749,7 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_supported_extensions():
+            def conda_supported_pkg_formats():
                 yield plugins.CondaSupportedPkgFormats(
                     name="wheel-package",
                     extensions=[".whl"],

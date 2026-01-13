@@ -15,12 +15,16 @@ if TYPE_CHECKING:
 def test_invoked(
     conda_cli: CondaCLIFixture, mocker: MockerFixture, tmp_env: TmpEnvFixture
 ):
-    with tmp_env() as prefix:
-        # mocker.patch.object(context.plugin_manager, "get_cached_solver_backend")
-        mocked = mocker.patch.object(
-            CondaPluginManager, "get_pkg_extraction_function_from_plugin"
-        )
+    mocked_extractor = mocker.Mock(name="extractor")
+    mocked_extractor.return_value = "extractor"
 
-        conda_cli("install", f"--prefix={prefix}", "python=3.11", "--yes")
+    mocked = mocker.patch.object(
+        CondaPluginManager,
+        "get_pkg_extraction_function_from_plugin",
+        return_value=mocked_extractor,
+    )
 
-        mocked.assert_called()
+    conda_cli("install", "numpy", "--yes")
+
+    mocked.assert_called()
+    mocked_extractor.assert_called()
