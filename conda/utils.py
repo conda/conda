@@ -288,9 +288,7 @@ def wrap_subprocess_call(
                     continue
 
                 key, value = line.split("=", 1)
-                fh.write(f'{silencer}SET "{key}="\n') if value == "" else fh.write(
-                    f'{silencer}SET "{key}={value}"\n'
-                )
+                fh.write(f'{silencer}SET "{key}={value}"\n')
 
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
