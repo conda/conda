@@ -35,7 +35,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_json(p)
 
     p.add_argument(
-        "-s",
         "--size",
         action="store_true",
         help="Show disk usage for each environment.",
