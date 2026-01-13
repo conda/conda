@@ -10,24 +10,18 @@ from argparse import (
     Namespace,
     _SubParsersAction,
 )
-import contextlib
 from pathlib import Path
 
-from .. import CondaError
 from ..cli.main_config import set_keys
-from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
-        add_output_and_prompt_options,
         add_parser_default_packages,
         add_parser_environment_specifier,
-        add_parser_networking,
         add_parser_platform,
-        add_parser_prefix,
         add_parser_solver,
         add_parser_create_install_update,
     )
@@ -101,7 +95,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..exceptions import EnvironmentFileNotFound, EnvironmentSpecPluginNotDetected
     from .common import validate_file_exists
-    from .main_create import execute as create_execute
+    from .install import install
     from ..base.context import context
     import contextlib
 
@@ -137,5 +131,5 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.prefix is None and args.name is None:
         args.prefix = prefix
 
-    create_execute(args, parser)
+    install(args, parser, "create")
     return 0
