@@ -827,8 +827,8 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
-    def get_pkg_extraction_function_from_plugin(source_full_path: str) -> Callable:
-        hooks = context.plugin_manager.get_hook_results("supported_pkg_formats")
+    def get_pkg_extraction_function_from_plugin(self, source_full_path: str) -> Callable:
+        hooks = self.get_hook_results("supported_pkg_formats")
         for hook in hooks:
             for ext in hook.extensions:
                 if source_full_path.lower().endswith(ext.lower()):
