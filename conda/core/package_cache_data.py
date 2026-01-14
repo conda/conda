@@ -428,7 +428,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         try:
-                            extractor = CondaPluginManager.get_pkg_extraction_function_from_plugin(
+                            extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
                                 package_tarball_full_path
                             )
                             extractor(package_tarball_full_path, extracted_package_dir)
