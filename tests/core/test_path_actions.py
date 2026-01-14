@@ -1,11 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import importlib.util
 import os
 import sys
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, lexists
-from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
@@ -16,7 +18,7 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
-    get_bin_directory_short_path,
+    BIN_DIRECTORY,
     get_python_noarch_target_path,
     get_python_short_path,
     get_python_site_packages_short_path,
@@ -36,10 +38,14 @@ from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.channel import Channel
-from conda.models.enums import LinkType, NoarchType, PathType
+from conda.models.enums import LinkType, NoarchType, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathData, PathDataV1, PathsData
-from conda.testing import PathFactoryFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.testing.fixtures import PathFactoryFixture
 
 log = getLogger(__name__)
 
@@ -240,9 +246,9 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
     command, module, func = parse_entry_point_def("command1=some.module:main")
     assert command == "command1"
     if on_win:
-        target_short_path = f"{get_bin_directory_short_path()}\\{command}-script.py"
+        target_short_path = f"{BIN_DIRECTORY}\\{command}-script.py"
     else:
-        target_short_path = f"{get_bin_directory_short_path()}/{command}"
+        target_short_path = f"{BIN_DIRECTORY}/{command}"
     assert py_ep_axn.target_full_path == join(prefix, target_short_path)
     assert py_ep_axn.module == module == "some.module"
     assert py_ep_axn.func == func == "main"
@@ -277,7 +283,7 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
 
     if on_win:
         windows_exe_axn = windows_exe_axns[0]
-        target_short_path = f"{get_bin_directory_short_path()}\\{command}.exe"
+        target_short_path = f"{BIN_DIRECTORY}\\{command}.exe"
         assert windows_exe_axn.target_full_path == join(prefix, target_short_path)
 
         mkdir_p(dirname(windows_exe_axn.target_full_path))
@@ -299,7 +305,7 @@ def test_simple_LinkPathAction_hardlink(prefix: Path, pkgs_dir: Path):
 
     correct_sha256 = compute_sum(source_full_path, "sha256")
     correct_size_in_bytes = getsize(source_full_path)
-    path_type = PathType.hardlink
+    path_type = PathEnum.hardlink
 
     source_path_data = PathDataV1(
         _path=source_short_path,
@@ -339,7 +345,7 @@ def test_simple_LinkPathAction_softlink(prefix: Path, pkgs_dir: Path):
 
     correct_sha256 = compute_sum(source_full_path, "sha256")
     correct_size_in_bytes = getsize(source_full_path)
-    path_type = PathType.hardlink
+    path_type = PathEnum.hardlink
 
     source_path_data = PathDataV1(
         _path=source_short_path,
@@ -402,7 +408,7 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     correct_sha256 = compute_sum(source_full_path, "sha256")
     correct_size_in_bytes = getsize(source_full_path)
-    path_type = PathType.hardlink
+    path_type = PathEnum.hardlink
 
     source_path_data = PathDataV1(
         _path=source_short_path,
@@ -461,8 +467,8 @@ def test_create_file_link_actions(tmp_path):
     # site-packages should be renamed to Python's site packages (given as
     # target_site_packages_short_path) whie test/path/2 should be left alone.
     paths = [
-        PathData(_path="site-packages/1", path_type=PathType.hardlink),
-        PathData(_path="test/path/2", path_type=PathType.hardlink),
+        PathData(_path="site-packages/1", path_type=PathEnum.hardlink),
+        PathData(_path="test/path/2", path_type=PathEnum.hardlink),
     ]
     paths_data = PathsData(paths_version=0, paths=paths)
 

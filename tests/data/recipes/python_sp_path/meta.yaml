@@ -1,0 +1,8 @@
+# empty python package with python_site_packages_path defined
+package:
+  name: python
+  version: 3.99.99
+
+build:
+  noarch: generic
+  python_site_packages_path: "lib/python3.99t/site-packages"

@@ -11,11 +11,11 @@ from .core.prefix_data import PrefixData as _PrefixData
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
-#: Flags to enable alternate handling of dependencies.
 DepsModifier = _DepsModifier
+"""Flags to enable alternate handling of dependencies."""
 
-#: Flags to enable alternate handling for updates of existing packages in the environment.
 UpdateModifier = _UpdateModifier
+"""Flags to enable alternate handling for updates of existing packages in the environment."""
 
 
 class Solver:
@@ -208,7 +208,8 @@ class SubdirData:
                     * Channel('conda-forge/osx-64')
         """
         channel = Channel(channel)
-        assert channel.subdir
+        if not channel.subdir:
+            raise ValueError("SubdirData requires platform-aware Channel objects.")
         self._internal = _SubdirData(channel)
 
     def query(self, package_ref_or_match_spec):

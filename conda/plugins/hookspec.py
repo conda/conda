@@ -14,39 +14,50 @@ from typing import TYPE_CHECKING
 
 import pluggy
 
+from ..base.constants import APP_NAME
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from .types import (
         CondaAuthHandler,
+        CondaEnvironmentExporter,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPostCommand,
         CondaPostSolve,
+        CondaPostTransactionAction,
         CondaPreCommand,
+        CondaPrefixDataLoader,
         CondaPreSolve,
+        CondaPreTransactionAction,
         CondaRepodataPatch,
+        CondaReporterBackend,
+        CondaRequestHeader,
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
     )
 
-spec_name = "conda"
-"""Name used for organizing conda hook specifications"""
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "spec_name",
+    APP_NAME,
+    addendum="Use `conda.base.constants.APP_NAME` instead.",
+)
 
-_hookspec = pluggy.HookspecMarker(spec_name)
-"""
-The conda plugin hook specifications, to be used by developers
-"""
+_hookspec = pluggy.HookspecMarker(APP_NAME)
+"""Decorator to mark conda plugin hook specifications, used to register plugin hook types."""
 
-hookimpl = pluggy.HookimplMarker(spec_name)
-"""
-Decorator used to mark plugin hook implementations
-"""
+hookimpl = pluggy.HookimplMarker(APP_NAME)
+"""Decorator to mark plugin hook implementations, used to register plugins."""
 
 
 class CondaSpecs:
-    """The conda plugin hookspecs, to be used by developers."""
+    """Collection of all supported conda plugin hookspecs."""
 
     @_hookspec
     def conda_solvers(self) -> Iterable[CondaSolver]:
@@ -73,13 +84,14 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_solvers():
-                yield plugins.CondaSolver(
+                yield plugins.types.CondaSolver(
                     name="verbose-classic",
                     backend=VerboseSolver,
                 )
 
         :return: An iterable of solver entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_subcommands(self) -> Iterable[CondaSubcommand]:
@@ -99,7 +111,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_subcommands():
-                yield plugins.CondaSubcommand(
+                yield plugins.types.CondaSubcommand(
                     name="example",
                     summary="example command",
                     action=example_command,
@@ -107,6 +119,7 @@ class CondaSpecs:
 
         :return: An iterable of subcommand entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_virtual_packages(self) -> Iterable[CondaVirtualPackage]:
@@ -122,7 +135,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_virtual_packages():
-                yield plugins.CondaVirtualPackage(
+                yield plugins.types.CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
                     build="x86_64",
@@ -130,6 +143,7 @@ class CondaSpecs:
 
         :return: An iterable of virtual package entries.
         """
+        yield from ()
 
     @_hookspec
     def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
@@ -149,12 +163,13 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_pre_commands():
-               yield plugins.CondaPreCommand(
+               yield plugins.types.CondaPreCommand(
                    name="example-pre-command",
                    action=example_pre_command,
                    run_for={"install", "create"},
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
@@ -174,12 +189,13 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_post_commands():
-               yield plugins.CondaPostCommand(
+               yield plugins.types.CondaPostCommand(
                    name="example-post-command",
                    action=example_post_command,
                    run_for={"install", "create"},
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_auth_handlers(self) -> Iterable[CondaAuthHandler]:
@@ -212,11 +228,12 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_auth_handlers():
-                yield plugins.CondaAuthHandler(
+                yield plugins.types.CondaAuthHandler(
                     name="environment-header-auth",
-                    auth_handler=EnvironmentHeaderAuth,
+                    handler=EnvironmentHeaderAuth,
                 )
         """
+        yield from ()
 
     @_hookspec
     def conda_health_checks(self) -> Iterable[CondaHealthCheck]:
@@ -227,7 +244,10 @@ class CondaSpecs:
         that you can write to diagnose problems in your conda environment.
         Check out the health checks already shipped with conda for inspiration.
 
-        **Example:**
+        Health checks can optionally provide a ``fixer`` callable that is invoked
+        via ``conda doctor --fix`` or ``conda doctor --fix <check-name>``.
+
+        **Example (check only):**
 
         .. code-block:: python
 
@@ -240,11 +260,146 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_health_checks():
-                yield plugins.CondaHealthCheck(
+                yield plugins.types.CondaHealthCheck(
                     name="example-health-check",
                     action=example_health_check,
                 )
+
+        **Example (check with fix):**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def my_health_check(prefix: str, verbose: bool):
+                # Check and report issues
+                print("Checking for issues...")
+
+
+            def my_health_fix(prefix: str, args) -> int:
+                # Fix the issues
+                print("Fixing issues...")
+                return 0  # exit code
+
+
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="my-check",
+                    action=my_health_check,
+                    fixer=my_health_fix,
+                    summary="Check for common issues",
+                    fix="Repair detected issues",
+                )
+
+        :return: An iterable of health check entries.
         """
+        yield from ()
+
+    @_hookspec
+    def conda_pre_transaction_actions(self) -> Iterable[CondaPreTransactionAction]:
+        """Register pre-transaction hooks.
+
+        Pre-transaction hooks run before all other actions run in a
+        UnlinkLinkTransaction. For information about the Action class,
+        see :class:`~conda.core.path_actions.Action`.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.plugins.types import CondaPreTransactionAction
+            from conda.core.path_actions import Action
+
+
+            class PrintAction(Action):
+                def verify(self):
+                    print("Performing verification...")
+                    self._verified = True
+
+                def execute(self):
+                    print(
+                        self.transaction_context,
+                        self.target_prefix,
+                        self.unlink_precs,
+                        self.link_precs,
+                        self.remove_specs,
+                        self.update_specs,
+                        self.neutered_specs,
+                    )
+
+                def reverse(self):
+                    print("Reversing only happens when `execute` raises an exception.")
+
+                def cleanup(self):
+                    print("Carrying out cleanup...")
+
+
+            class PrintActionPlugin:
+                @plugins.hookimpl
+                def conda_pre_transaction_actions(
+                    self,
+                ) -> Iterable[CondaPreTransactionAction]:
+                    yield CondaPreTransactionAction(
+                        name="example-pre-transaction-action",
+                        action=PrintAction,
+                    )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_post_transaction_actions(self) -> Iterable[CondaPostTransactionAction]:
+        """Register post-transaction hooks.
+
+        Post-transaction hooks run after all other actions run in a
+        UnlinkLinkTransaction. For information about the Action class,
+        see :class:`~conda.core.path_actions.Action`.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.plugins.types import CondaPostTransactionAction
+            from conda.core.path_actions import Action
+
+
+            class PrintAction(Action):
+                def verify(self):
+                    print("Performing verification...")
+                    self._verified = True
+
+                def execute(self):
+                    print(
+                        self.transaction_context,
+                        self.target_prefix,
+                        self.unlink_precs,
+                        self.link_precs,
+                        self.remove_specs,
+                        self.update_specs,
+                        self.neutered_specs,
+                    )
+
+                def reverse(self):
+                    print("Reversing only happens when `execute` raises an exception.")
+
+                def cleanup(self):
+                    print("Carrying out cleanup...")
+
+
+            class PrintActionPlugin:
+                @plugins.hookimpl
+                def conda_post_transaction_actions(
+                    self,
+                ) -> Iterable[CondaPostTransactionAction]:
+                    yield CondaPostTransactionAction(
+                        name="example-post-transaction-action",
+                        action=PrintAction,
+                    )
+        """
+        yield from ()
 
     @_hookspec
     def conda_pre_solves(self) -> Iterable[CondaPreSolve]:
@@ -271,11 +426,12 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_pre_solves():
-               yield plugins.CondaPreSolve(
+               yield plugins.types.CondaPreSolve(
                    name="example-pre-solve",
                    action=example_pre_solve,
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_post_solves(self) -> Iterable[CondaPostSolve]:
@@ -303,11 +459,12 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_post_solves():
-               yield plugins.CondaPostSolve(
+               yield plugins.types.CondaPostSolve(
                    name="example-post-solve",
                    action=example_post_solve,
                )
         """
+        yield from ()
 
     @_hookspec
     def conda_settings(self) -> Iterable[CondaSetting]:
@@ -326,13 +483,293 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_settings():
-               yield plugins.CondaSetting(
+               yield plugins.types.CondaSetting(
                    name="example_option",
                    description="This is an example option",
                    parameter=PrimitiveParameter("default_value", element_type=str),
                    aliases=("example_option_alias",),
                )
         """
+        yield from ()
+
+    @_hookspec
+    def conda_reporter_backends(self) -> Iterable[CondaReporterBackend]:
+        """
+        Register new reporter backend
+
+        The example below defines a reporter backend that uses the ``pprint`` module in Python.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from pprint import pformat
+
+           from conda import plugins
+           from conda.plugins.types import (
+               CondaReporterBackend,
+               ReporterRendererBase,
+               ProgressBarBase,
+           )
+
+
+           class PprintReporterRenderer(ReporterRendererBase):
+               "Implementation of the ReporterRendererBase"
+
+               def detail_view(self, data):
+                   return pformat(data)
+
+               def envs_list(self, data):
+                   formatted_data = pformat(data)
+                   return f"Environments: {formatted_data}"
+
+               def progress_bar(self, description, io_context_manager) -> ProgressBarBase:
+                   "Returns our custom progress bar implementation"
+                   return PprintProgressBar(description, io_context_manager)
+
+
+           class PprintProgressBar(ProgressBarBase):
+               "Blank implementation of ProgressBarBase which does nothing"
+
+               def update_to(self, fraction) -> None:
+                   pass
+
+               def refresh(self) -> None:
+                   pass
+
+               def close(self) -> None:
+                   pass
+
+
+           @plugins.hookimpl
+           def conda_reporter_backends():
+               yield CondaReporterBackend(
+                   name="pprint",
+                   description="Reporter backend based on the pprint module",
+                   renderer=PprintReporterRenderer,
+               )
+
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_session_headers(self, host: str) -> Iterable[CondaRequestHeader]:
+        """
+        Register new HTTP request headers
+
+        The example below defines how to add HTTP headers for all requests
+        with the hostname of ``example.com``.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+           HOSTS = {"example.com", "sub.example.com"}
+
+
+           @plugins.hookimpl
+           def conda_session_headers(host: str):
+               if host in HOSTS:
+                   yield plugins.types.CondaRequestHeader(
+                       name="Example-Header",
+                       value="example",
+                   )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_request_headers(
+        self, host: str, path: str
+    ) -> Iterable[CondaRequestHeader]:
+        """
+        Register new HTTP request headers
+
+        The example below defines how to add HTTP headers for all requests
+        with the hostname of ``example.com`` and a ``path/to/endpoint.json`` path.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+           HOSTS = {"example.com", "sub.example.com"}
+           ENDPOINT = "/path/to/endpoint.json"
+
+
+           @plugins.hookimpl
+           def conda_request_headers(host: str, path: str):
+               if host in HOSTS and path == ENDPOINT:
+                   yield plugins.types.CondaRequestHeader(
+                       name="Example-Header",
+                       value="example",
+                   )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_prefix_data_loaders() -> Iterable[CondaPrefixDataLoader]:
+        """
+        Register new loaders for PrefixData
+
+        The example below defines how to expose the packages installed
+        by a hypothetical 'penguin' tool as conda packages.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from pathlib import Path
+
+            from conda import plugins
+            from conda.common.path import PathType
+            from conda.models.records import PrefixRecord
+            from conda.plugins.types import CondaPrefixDataLoader
+
+
+            @plugins.hookimpl
+            def conda_prefix_data_loaders():
+                yield CondaPrefixDataLoader(
+                    "hypothetical",
+                    load_hypothetical_packages,
+                )
+
+
+            def load_hypothetical_packages(
+                prefix: PathType, records: dict[str, PrefixRecord]
+            ) -> dict[str, PrefixRecord]:
+                penguin_records = {}
+                for info in Path(prefix).glob("lib/penguin/*.penguin-info"):
+                    name, version = info.name.rsplit("-", 1)
+                    kwargs = {}  # retrieve extra fields here
+                    penguin_records[name] = PrefixRecord(
+                        name=name, version=version, build_number=0, build="0", **kwargs
+                    )
+                records.update(penguin_records)
+                return penguin_records
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_environment_specifiers(self) -> Iterable[CondaEnvironmentSpecifier]:
+        """
+        **EXPERIMENTAL**
+        Register new conda env spec type
+
+        The example below defines a type of conda env file called "random". It
+        can parse a file with the file extension `.random`. This plugin will ignore
+        whatever is in the input environment file and produce an environment with a
+        random name and with random packages.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import json
+            import random
+            from pathlib import Path
+            from subprocess import run
+            from conda import plugins
+            from ...plugins.types import EnvironmentSpecBase
+            from conda.env.env import Environment
+
+            packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
+
+
+            class RandomSpec(EnvironmentSpecBase):
+                extensions = {".random"}
+
+                def __init__(self, filename: str):
+                    self.filename = filename
+
+                def can_handle(self):
+                    # Return early if no filename was provided
+                    if self.filename is None:
+                        return False
+
+                    # Extract the file extension (e.g., '.txt' or '' if no extension)
+                    file_ext = os.path.splitext(self.filename)[1]
+
+                    # Check if the file has a supported extension and exists
+                    return any(
+                        spec_ext == file_ext and os.path.exists(self.filename)
+                        for spec_ext in RandomSpec.extensions
+                    )
+
+                def env(self):
+                    return Environment(
+                        name="".join(random.choice("0123456789abcdef") for i in range(6)),
+                        dependencies=[random.choice(packages) for i in range(6)],
+                    )
+
+
+            @plugins.hookimpl
+            def conda_environment_specifiers():
+                yield plugins.CondaEnvSpec(
+                    name="random",
+                    environment_spec=RandomSpec,
+                )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
+        """
+        Register new conda environment exporter
+
+        Environment exporters serialize conda Environment objects to different
+        output formats (JSON, TOML, XML, etc.) for the 'conda export' command.
+        This is separate from environment specifiers which parse input files.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import tomlkit
+            from conda import plugins
+            from conda.exceptions import CondaValueError
+            from conda.models.environment import Environment
+            from conda.plugins.types import CondaEnvironmentExporter
+
+
+            def export_toml(env: Environment) -> str:
+                # Export Environment to TOML format
+                # For formats that use the standard dictionary structure,
+                # you can use the shared utility:
+                from conda.plugins.environment_exporters.standard import to_dict
+
+                env_dict = to_dict(env)
+
+                # Create TOML document
+                toml_doc = tomlkit.document()
+
+                if env_dict.get("name"):
+                    toml_doc["name"] = env_dict["name"]
+
+                if env_dict.get("channels"):
+                    toml_doc["channels"] = env_dict["channels"]
+
+                if env_dict.get("dependencies"):
+                    toml_doc["dependencies"] = env_dict["dependencies"]
+
+                if env_dict.get("variables"):
+                    toml_doc["variables"] = env_dict["variables"]
+
+                return tomlkit.dumps(toml_doc)
+
+
+            @plugins.hookimpl
+            def conda_environment_exporters():
+                yield CondaEnvironmentExporter(
+                    name="environment-toml",
+                    aliases=("toml",),
+                    default_filenames=("environment.toml",),
+                    export=export_toml,
+                )
+        """
+        yield from ()
 
     @_hookspec
     def conda_repodata_patches(self) -> Iterable[CondaRepodataPatch]:
@@ -354,3 +791,4 @@ class CondaSpecs:
                     action=example_repodata_patch,
                 )
         """
+        yield from ()

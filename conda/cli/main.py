@@ -4,15 +4,7 @@
 
 import sys
 
-from ..deprecations import deprecated
 
-
-@deprecated.argument(
-    "24.3",
-    "24.9",
-    "context",
-    addendum="The context is a global state, no need to pass it around.",
-)
 def init_loggers():
     import logging
 
@@ -30,21 +22,6 @@ def init_loggers():
     set_log_level(context.log_level)
 
 
-@deprecated(
-    "24.3",
-    "24.9",
-    addendum="Use `conda.cli.conda_argparse.generate_parser` instead.",
-)
-def generate_parser(*args, **kwargs):
-    """
-    Some code paths import this function directly from this module instead
-    of from conda_argparse. We add the forwarder for backwards compatibility.
-    """
-    from .conda_argparse import generate_parser
-
-    return generate_parser(*args, **kwargs)
-
-
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
@@ -54,7 +31,8 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     args = args or ["--help"]
 
     pre_parser = generate_pre_parser(add_help=False)
-    pre_args, _ = pre_parser.parse_known_args(args)
+    args_subset = args[: args.index("--")] if "--" in args else args
+    pre_args, _ = pre_parser.parse_known_args(args_subset)
 
     # the arguments that we want to pass to the main parser later on
     override_args = {
@@ -94,6 +72,7 @@ def main_sourced(shell, *args, **kwargs):
 
     # This is called any way later in conda.activate, so no point in removing it
     from ..base.context import context
+    from ..common.compat import on_win
 
     context.__init__()
 
@@ -107,7 +86,14 @@ def main_sourced(shell, *args, **kwargs):
         raise CondaError(f"{shell} is not a supported shell.")
 
     activator = activator_cls(args)
-    print(activator.execute(), end="")
+    result = activator.execute()
+
+    # Fix line endings for shells that need it on Windows
+    if on_win and activator.needs_line_ending_fix:
+        result = result.replace("\r", "")
+        sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+
+    print(result, end="")
     return 0
 
 

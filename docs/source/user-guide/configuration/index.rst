@@ -13,8 +13,8 @@ Configuration
    disable-ssl-verification
    non-standard-certs
    custom-env-and-pkg-locations
+   temp-files
    pip-interoperability
-   free-channel
 
 The following pages have information on how conda can be customized further through
 configuration.
@@ -44,8 +44,8 @@ configuration.
     :doc:`Using Custom Locations for Environment and Package Cache <custom-env-and-pkg-locations>`
         How to configure different locations for storing environments and package cache
 
+    :doc:`Configuring Temporary File Locations <temp-files>`
+        Control where conda creates temporary files using ``TMPDIR``/``TEMP``/``TMP`` environment variables
+
     :doc:`Pip interoperability (experimental) <pip-interoperability>`
         An experimental feature that makes conda operate better with pip (no longer supported)
-
-    :doc:`Free channel (deprecated) <free-channel>`
-        Explanation of our deprecation of the free channel and how to restore it

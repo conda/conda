@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from shutil import which
 from subprocess import CalledProcessError, check_output, run
@@ -17,7 +17,7 @@ REPO_ROOT = (Path(HERE) / "..").resolve().absolute()
 STUB_FOLDER = REPO_ROOT / "conda" / "shell"
 
 
-@lru_cache(maxsize=None)
+@cache
 def find_signtool() -> str | None:
     """Tries to find signtool
 
@@ -65,7 +65,7 @@ def find_signtool() -> str | None:
     return signtool_path
 
 
-@lru_cache(maxsize=None)
+@cache
 def signtool_unsupported_because() -> str:
     reason = ""
     if not on_win:

@@ -83,7 +83,7 @@ class LinkType(Enum):
         return self.name
 
 
-class PathType(Enum):
+class PathEnum(Enum):
     """
     Refers to if the file in question is hard linked or soft linked. Originally designed to be used
     in paths.json
@@ -104,7 +104,7 @@ class PathType(Enum):
 
     @classproperty
     def basic_types(self):
-        return (PathType.hardlink, PathType.softlink, PathType.directory)
+        return (PathEnum.hardlink, PathEnum.softlink, PathEnum.directory)
 
     def __str__(self):
         return self.name
@@ -113,20 +113,13 @@ class PathType(Enum):
         return self.name
 
 
-class LeasedPathType(Enum):
-    application_entry_point = "application_entry_point"
-    application_entry_point_windows_exe = "application_entry_point_windows_exe"
-    application_softlink = "application_softlink"
-
-    def __str__(self):
-        return self.name
-
-    def __json__(self):
-        return self.name
-
-
-deprecated.constant("24.3", "24.9", "LeasedPathType", LeasedPathType)
-del LeasedPathType
+deprecated.constant(
+    deprecate_in="26.3",
+    remove_in="26.9",
+    constant="PathType",
+    value=PathEnum,
+    addendum="Use `conda.models.enums.PathEnum` instead.",
+)
 
 
 class PackageType(Enum):
@@ -178,7 +171,7 @@ class NoarchType(Enum):
                 val = NoarchType.generic
             else:
                 try:
-                    val = NoarchType.generic if boolify(val) else None
+                    val = NoarchType.generic if boolify(val, nullable=True) else None
                 except TypeCoercionError:
                     raise CondaUpgradeError(
                         dals(

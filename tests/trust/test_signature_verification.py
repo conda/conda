@@ -15,16 +15,21 @@ from conda.base.context import context, reset_context
 from conda.gateways.connection import HTTPError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
-from conda.trust.constants import KEY_MGR_FILE
-from conda.trust.signature_verification import SignatureError, _SignatureVerification
+
+with pytest.deprecated_call():
+    from conda.trust.constants import KEY_MGR_FILE
+    from conda.trust.signature_verification import (
+        SignatureError,
+        _SignatureVerification,
+    )
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from collections.abc import Callable
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing import PathFactoryFixture
+    from conda.testing.fixtures import PathFactoryFixture
 
 
 TESTDATA = Path(__file__).parent / "testdata"

@@ -1,16 +1,24 @@
 """Collection of functions to coerce conversion of types with an intelligent guess."""
+
+from __future__ import annotations
+
 from collections.abc import Mapping
+from enum import Enum
 from itertools import chain
 from re import IGNORECASE, compile
-
-from enum import Enum
+from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
-from .compat import isiterable
+from ..common.compat import isiterable
 from .decorators import memoizedproperty
 from .exceptions import AuxlibError
 
-__all__ = ["boolify", "typify", "maybecall", "listify", "numberify"]
+if TYPE_CHECKING:
+    from typing import Callable, TypeVar
+
+    T = TypeVar("T")
+
+__all__ = ["boolify", "typify", "maybecall", "numberify"]
 
 BOOLISH_TRUE = ("true", "yes", "on", "y")
 BOOLISH_FALSE = ("false", "off", "n", "no", "non", "none", "")
@@ -170,15 +178,6 @@ def boolify(value, nullable=False, return_string=False):
             raise TypeCoercionError(value, "The value %r cannot be boolified." % value)
 
 
-@deprecated("24.3", "24.9")
-def boolify_truthy_string_ok(value):
-    try:
-        return boolify(value)
-    except ValueError:
-        assert isinstance(value, str), repr(value)
-        return True
-
-
 def typify_str_no_hint(value):
     candidate = _REGEX.convert(value)
     return candidate if candidate is not NO_MATCH else value
@@ -269,28 +268,5 @@ def typify_data_structure(value, type_hint=None):
     else:
         return typify(value, type_hint)
 
-
-def maybecall(value):
+def maybecall(value: Callable[[], T] | T) -> T:
     return value() if callable(value) else value
-
-
-@deprecated("24.3", "24.9")
-def listify(val, return_type=tuple):
-    """
-    Examples:
-        >>> listify('abc', return_type=list)
-        ['abc']
-        >>> listify(None)
-        ()
-        >>> listify(False)
-        (False,)
-        >>> listify(('a', 'b', 'c'), return_type=list)
-        ['a', 'b', 'c']
-    """
-    # TODO: flatlistify((1, 2, 3), 4, (5, 6, 7))
-    if val is None:
-        return return_type()
-    elif isiterable(val):
-        return return_type(val)
-    else:
-        return return_type((val, ))

@@ -50,7 +50,7 @@ To update conda, in your terminal window, run:
 
 .. code::
 
-   conda update conda
+   conda update --name base conda
 
 Conda compares versions and reports what is available to install.
 It also tells you about other packages that will be automatically
@@ -74,7 +74,7 @@ to update conda to the latest version:
     current version: 4.6.13
     latest version: 4.8.0
 
-Update conda by running: ``conda update -n base conda``
+Update conda by running: ``conda update --name base conda``
 
 Run the following command from your terminal:
 ``conda config --set notify_outdated_conda false``

@@ -12,6 +12,8 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from .helpers import _ValidatePackages
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
 
@@ -107,6 +109,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "match_spec",
         default="*",
         nargs="?",
+        action=_ValidatePackages,
         help=SUPPRESS,
     )
     p.add_argument(
@@ -163,13 +166,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
     from ..base.context import context
     from ..cli.common import stdout_json
-    from ..common.io import Spinner
     from ..core.envs_manager import query_all_prefixes
-    from ..core.index import calculate_channel_urls
     from ..core.subdir_data import SubdirData
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from ..models.version import VersionOrder
+    from ..reporters import get_spinner
 
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value("subdir"):
@@ -178,11 +180,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         subdirs = context.subdirs
 
     if args.envs:
-        with Spinner(
-            f"Searching environments for {spec}",
-            not context.verbose and not context.quiet,
-            context.json,
-        ):
+        with get_spinner(f"Searching environments for {spec}"):
             prefix_matches = query_all_prefixes(spec)
             ordered_result = tuple(
                 {
@@ -231,11 +229,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             print("\n".join(builder))
         return 0
 
-    with Spinner(
-        "Loading channels",
-        not context.verbose and not context.quiet,
-        context.json,
-    ):
+    with get_spinner("Loading channels"):
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
 
@@ -253,17 +247,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     if not matches:
-        channels_urls = tuple(
-            calculate_channel_urls(
-                channel_urls=context.channels,
-                prepend=not args.override_channels,
-                platform=subdirs[0],
-                use_local=args.use_local,
-            )
-        )
         from ..exceptions import PackagesNotFoundError
+        from ..models.channel import all_channel_urls
 
-        raise PackagesNotFoundError((str(spec),), channels_urls)
+        raise PackagesNotFoundError([spec], all_channel_urls(context.channels, subdirs))
 
     if context.json:
         json_obj = defaultdict(list)
@@ -299,12 +286,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     return 0
 
 
-def pretty_record(record: PackageRecord) -> None:
+def _pretty_record_format(record: PackageRecord) -> str:
     """
-    Pretty prints a `PackageRecord`.
+    Format a `PackageRecord` for `pretty_record()`
+    """
 
-    :param record:  The `PackageRecord` object to print.
-    """
     from ..common.io import dashlist
     from ..utils import human_bytes
 
@@ -314,7 +300,7 @@ def pretty_record(record: PackageRecord) -> None:
             builder.append("%-12s: %s" % (display_name, value))
 
     builder = []
-    builder.append(record.name + " " + record.version + " " + record.build)
+    builder.append(f"{record.name} {record.version} {record.build}")
     builder.append("-" * len(builder[0]))
 
     push_line("file name", "fn")
@@ -329,7 +315,7 @@ def pretty_record(record: PackageRecord) -> None:
     push_line("subdir", "subdir")
     push_line("url", "url")
     push_line("md5", "md5")
-    if record.timestamp:
+    if record.timestamp and isinstance(record.timestamp, (int, float)):
         date_str = datetime.fromtimestamp(record.timestamp, timezone.utc).strftime(
             "%Y-%m-%d %H:%M:%S %Z"
         )
@@ -345,4 +331,13 @@ def pretty_record(record: PackageRecord) -> None:
         % ("dependencies", dashlist(record.depends) if record.depends else "[]")
     )
     builder.append("\n")
-    print("\n".join(builder))
+    return "\n".join(builder)
+
+
+def pretty_record(record: PackageRecord, print=print) -> None:
+    """
+    Pretty prints a `PackageRecord`.
+
+    :param record:  The `PackageRecord` object to print.
+    """
+    print(_pretty_record_format(record))

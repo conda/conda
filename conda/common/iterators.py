@@ -9,7 +9,8 @@ import itertools
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any, Generator, Sequence
+    from collections.abc import Generator, Sequence
+    from typing import Any
 
 
 def groupby_to_dict(keyfunc, sequence):

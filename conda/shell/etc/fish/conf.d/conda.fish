@@ -85,16 +85,8 @@ end
 # Autocompletions below
 
 
-# Faster but less tested (?)
 function __fish_conda_commands
-    string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_*.py
-    for f in $_CONDA_ROOT/bin/conda-*
-        if test -x "$f" -a ! -d "$f"
-            string replace -r '^.*/conda-' '' "$f"
-        end
-    end
-    echo activate
-    echo deactivate
+    conda commands
 end
 
 function __fish_conda_env_commands

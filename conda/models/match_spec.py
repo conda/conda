@@ -6,6 +6,8 @@ The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.
 `cryptography * *_0`) and is used to communicate the desired packages to install.
 """
 
+from __future__ import annotations
+
 import re
 import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty
@@ -97,9 +99,9 @@ class MatchSpec(metaclass=MatchSpecType):
     :class:`MatchSpec` can also be composed using a single positional argument, with optional
     keyword arguments.  Keyword arguments also override any conflicting information provided in
     the positional argument.  The positional argument can be either an existing :class:`MatchSpec`
-    instance or a string.  Conda has historically had several string representations for equivalent
-    :class:`MatchSpec`s.  This :class:`MatchSpec` should accept any existing valid spec string, and
-    correctly compose a :class:`MatchSpec` instance.
+    instance or a string.  Conda has historically supported more than one string representation
+    for equivalent :class:`MatchSpec` queries.  This :class:`MatchSpec` should accept any existing
+    valid spec string, and correctly compose a :class:`MatchSpec` instance.
 
     A series of rules are now followed for creating the canonical string representation of a
     :class:`MatchSpec` instance.  The canonical string representation can generically be
@@ -340,6 +342,10 @@ class MatchSpec(metaclass=MatchSpecType):
                     builder.append(version)
             elif version[-2:] == ".*":
                 builder.append("=" + version[:-2])
+            # Skip wildcard-only versions, to avoid an empty "=" in the output.
+            # See https://github.com/conda/conda/issues/14357 for more info.
+            elif version == "*":
+                pass
             elif version[-1] == "*":
                 builder.append("=" + version[:-1])
             elif version.startswith("=="):
@@ -385,19 +391,51 @@ class MatchSpec(metaclass=MatchSpecType):
     def conda_build_form(self):
         builder = []
         name = self.get_exact_value("name")
-        assert name
+        if not name:
+            raise ValueError(".conda_build_form() requires a non-empty spec name.")
         builder.append(name)
 
         build = self.get_raw_value("build")
         version = self.get_raw_value("version")
 
         if build:
-            assert version
+            version = version or "*"
             builder += [version, build]
         elif version:
             builder.append(version)
 
         return " ".join(builder)
+
+    def conda_env_form(self):
+        """
+        Return the package specification in conda environment export format.
+
+        This produces the format used by `conda env export`: name=version=build
+        (single equals), without channel prefixes and without .* patterns.
+
+        Examples:
+            >>> MatchSpec("numpy==1.21.0=py39h1234567_0").conda_env_form()
+            'numpy=1.21.0=py39h1234567_0'
+            >>> MatchSpec("numpy=1.21.0").conda_env_form()  # no-builds case
+            'numpy=1.21.0'
+            >>> MatchSpec("conda-forge::numpy==1.21.0=py39h1234567_0").conda_env_form()
+            'numpy=1.21.0=py39h1234567_0'  # channel prefix removed
+
+        Returns:
+            str: Package specification in conda env export format
+        """
+        # Get the full string representation (avoids .* patterns)
+        spec_str = str(self)
+
+        # Remove channel prefix if present (e.g., "conda-forge::package" -> "package")
+        if "::" in spec_str:
+            spec_str = spec_str.split("::", 1)[1]
+
+        # Convert MatchSpec format (name==version=build) to conda env format (name=version=build)
+        if "==" in spec_str:
+            spec_str = spec_str.replace("==", "=", 1)  # Only replace first occurrence
+
+        return spec_str
 
     def __eq__(self, other):
         if isinstance(other, MatchSpec):
@@ -479,7 +517,8 @@ class MatchSpec(metaclass=MatchSpecType):
         val = self.get_raw_value("fn") or self.get_raw_value("url")
         if val:
             val = basename(val)
-        assert val
+        if not val:
+            raise ValueError(".fn cannot be empty.")
         return val
 
     @classmethod
@@ -595,6 +634,61 @@ def _parse_channel(channel_val):
 _PARSE_CACHE = {}
 
 
+def _sanitize_version_str(version: str, build: str | None) -> str:
+    """
+    Sanitize version strings for MatchSpec parsing.
+
+    Handles edge cases and translates version patterns for proper MatchSpec processing.
+
+    Empty operators like "==" are passed through so existing error handling code can
+    treat them like other incomplete operators ("<=" or ">="). This is necessary because
+    downstream translation code would mangle "==" into an empty string, resulting in an
+    empty version field that breaks logic expecting missing versions to be represented
+    as operators like "==", "<=", and ">=".
+
+    These missing version cases result from match specs like "numpy==", "numpy<=",
+    "numpy>=", "numpy= " (with trailing space), which should be treated as errors.
+    Note: "numpy=" (no trailing space) is treated as valid.
+
+    For simple versions starting with "=", translates patterns like "=1.2.3" to "1.2.3*"
+    when appropriate conditions are met.
+
+    Args:
+        version: The version string to sanitize
+        build: Optional build string that affects sanitization behavior
+
+    Returns:
+        Sanitized version string
+
+    Examples:
+        "==" or "=" -> passed through for error handling
+        "==1.2.3" -> "1.2.3" (when build is None)
+        "=1.2.3" -> "1.2.3*" (when build is None and no special chars)
+        ">=1.0" -> ">=1.0" (unchanged, doesn't start with "=")
+    """
+    # Pass through empty operators for proper error handling downstream
+    if version in ("==", "="):
+        return version
+
+    # We will only sanitize versions starting with "=" (e.g., "=1.2.3", "==1.2.3")
+    if not version.startswith("="):
+        return version
+
+    version_without_equals = version.lstrip("=")
+
+    # For exact matches like "==1.2.3", strip the "==" when no build specified
+    if version.startswith("==") and build is None:
+        return version_without_equals
+
+    # For simple versions like "=1.2.3", add wildcard if conditions are met
+    if not any(char in version_without_equals for char in "=,|"):
+        if build is None and not version_without_equals.endswith("*"):
+            return version_without_equals + "*"
+        return version_without_equals
+
+    return version
+
+
 def _parse_spec_str(spec_str):
     cached_result = _PARSE_CACHE.get(spec_str)
     if cached_result:
@@ -671,6 +765,8 @@ def _parse_spec_str(spec_str):
                 raise InvalidMatchSpec(
                     original_spec_str, "key-value mismatch in brackets"
                 )
+            if key == "version" and value:
+                value = _sanitize_version_str(value, match.groupdict().get("build"))
             brackets[key] = value
 
     # Step 4. strip off parens portion
@@ -736,32 +832,7 @@ def _parse_spec_str(spec_str):
             )
 
         version, build = _parse_version_plus_build(spec_str)
-
-        # Catch cases where version ends up as "==" and pass it through so existing error
-        # handling code can treat it like cases where version ends up being "<=" or ">=".
-        # This is necessary because the "Translation" code below mangles "==" into a empty
-        # string, which results in an empty version field on "components." The set of fields
-        # on components drives future logic which breaks on an empty string but will deal with
-        # missing versions like "==", "<=", and ">=" "correctly."
-        #
-        # All of these "missing version" cases result from match specs like "numpy==",
-        # "numpy<=", "numpy>=", "numpy= " (with trailing space). Existing code indicates
-        # these should be treated as an error and an exception raised.
-        # IMPORTANT: "numpy=" (no trailing space) is treated as valid.
-        if version == "==" or version == "=":
-            pass
-        # Otherwise,
-        # translate version '=1.2.3' to '1.2.3*'
-        # is it a simple version starting with '='? i.e. '=1.2.3'
-        elif version[0] == "=":
-            test_str = version[1:]
-            if version[:2] == "==" and build is None:
-                version = version[2:]
-            elif not any(c in test_str for c in "=,|"):
-                if build is None and test_str[-1] != "*":
-                    version = test_str + "*"
-                else:
-                    version = test_str
+        version = _sanitize_version_str(version, build)
     else:
         version, build = None, None
 
@@ -915,6 +986,72 @@ class GlobStrMatch(_StrMatchMixin, MatchInterface):
     @property
     def matches_all(self):
         return self._raw_value == "*"
+
+    def merge(self, other):
+        # exact match
+        if self.raw_value == other.raw_value:
+            return self.raw_value
+
+        if not self._re_match and isinstance(other, GlobStrMatch) and other._re_match:
+            # swap order, so `self` always has an actual pattern if there is only one
+            other, self = self, other
+
+        # the other component might not have str 'raw_value' (e.g. Channel or MultiChannel)
+        other_as_str = str(other)
+
+        if "*" not in other_as_str:
+            # other is an exact literal,
+            # check our pattern against it
+            # if we match, other is more strict
+            if self._re_match and self._re_match(other_as_str):
+                return other.raw_value
+            else:
+                # Raise on incompatible pattern
+                return super().merge(other)
+
+        # Both are patterns!
+        # We distinguish four types of glob patterns
+        # - 'needle*' as "prefix glob"
+        # - '*needle*' as "infix glob"
+        # - '*needle' as "suffix glob"
+        # - '*ne*dle*' as "regex-required glob"
+        # The only combination of globs we can express with
+        # pure globs is prefix+prefix and suffix+suffix
+        # Every other combination requires computing their
+        # regular expression intersection
+        # Details in https://github.com/conda/conda/pull/11612#discussion_r954545863
+
+        # Check if we have suffix+suffix or prefix+prefix
+        # In these cases, we keep the longest one, since it's more restrictive
+        if (self.raw_value.count("*") == other_as_str.count("*") == 1) and (
+            (self.raw_value[0] == other_as_str[0] == "*")  # both prefixes
+            or (self.raw_value[-1] == other_as_str[-1] == "*")  # suffixes
+        ):
+            self_stripped = self.raw_value.strip("*")
+            other_stripped = other_as_str.strip("*")
+            if self_stripped in other_stripped:
+                return other.raw_value
+            if other_stripped in self_stripped:
+                return self.raw_value
+            # They are not substrings! Guaranteed incompatibility; raise
+            return super().merge(other)
+
+        # Generalized case: regular expression intersection
+        # We don't reject anything here! We just write the expression
+        # and will let the index filtering steps detect whether there's
+        # a package record that matches the expression
+        patterns = []
+        for value in (self.raw_value, other_as_str):
+            if value.startswith("^") and value.endswith("$"):
+                patterns.append(value[1:-1])
+            elif "*" in value:
+                value = re.escape(value).replace(r"\*", r".*")
+                patterns.append(value)
+            else:
+                patterns.append(value)
+
+        # lookahead assertion followed by non-capture group
+        return rf"^(?={patterns[0]})(?:{patterns[1]})$"
 
 
 class GlobLowerStrMatch(GlobStrMatch):

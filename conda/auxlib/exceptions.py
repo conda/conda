@@ -12,31 +12,6 @@ class AuxlibError:
     """Mixin to identify exceptions associated with the auxlib package."""
 
 
-@deprecated("24.3", "24.9")
-class AuthenticationError(AuxlibError, ValueError):
-    pass
-
-
-@deprecated("24.3", "24.9")
-class NotFoundError(AuxlibError, KeyError):
-    pass
-
-
-@deprecated("24.3", "24.9")
-class InitializationError(AuxlibError, EnvironmentError):
-    pass
-
-
-@deprecated("24.3", "24.9")
-class SenderError(AuxlibError, IOError):
-    pass
-
-
-@deprecated("24.3", "24.9")
-class AssignmentError(AuxlibError, AttributeError):
-    pass
-
-
 class ValidationError(AuxlibError, TypeError):
 
     def __init__(self, key, value=None, valid_types=None, msg=None):

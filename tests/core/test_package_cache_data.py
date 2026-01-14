@@ -8,13 +8,12 @@ from pathlib import Path
 import pytest
 from pytest import MonkeyPatch
 
-import conda.core.package_cache
 from conda import CondaError, CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core import package_cache_data
-from conda.core.index import get_index
+from conda.core.index import Index
 from conda.core.package_cache_data import (
     PackageCacheData,
     PackageCacheRecord,
@@ -87,7 +86,7 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatc
     assert not context.use_only_tar_bz2
     assert context.subdir == "linux-64"
 
-    index = get_index([CONDA_PKG_REPO], prepend=False)
+    index = Index(channels=[CONDA_PKG_REPO], prepend=False)
     rec = next(iter(index))
     for rec in index:
         # zlib is the one package in the test index that has a .conda file record
@@ -543,8 +542,3 @@ def test_cover_extract_bad_package(tmp_path):
     with open(fullpath, "w") as archive:
         archive.write("")
     PackageCacheData.first_writable()._make_single_record(str(fullpath))
-
-
-def test_conda_build_alias():
-    """conda-build wants to use an old import."""
-    assert conda.core.package_cache.ProgressiveFetchExtract
