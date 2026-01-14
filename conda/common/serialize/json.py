@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, overload
 
@@ -113,10 +114,12 @@ def read(
         return json.loads(text, **kwargs)
 
 
+@cache
 def load(fp: IO[str], **kwargs) -> Any:
     return read(fp=fp, **kwargs)
 
 
+@cache
 def loads(s: str, **kwargs) -> Any:
     return read(text=s, **kwargs)
 
