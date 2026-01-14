@@ -905,3 +905,46 @@ def test_export_single_platform_different_platform(
     pprint(yaml_data)
     assert yaml_data["name"] == name
     assert yaml_data["single-platform"] == platform
+
+
+def test_export_invalid_platform_fails_fast(conda_cli):
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): idontexist"
+    ):
+        conda_cli(
+            "export",
+            "--override-platforms",
+            "--platform",
+            "idontexist",
+        )
+
+
+def test_export_invalid_subdir_fails_fast(conda_cli):
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): idontexist"
+    ):
+        conda_cli(
+            "export",
+            "--override-platforms",
+            "--subdir",
+            "idontexist",
+        )
+
+
+def test_export_invalid_platform_from_condarc_fails_fast(
+    conda_cli, tmp_path, monkeypatch
+):
+    condarc = tmp_path / ".condarc"
+    condarc.write_text("export_platforms:\n  - doesnotexist\n")
+
+    monkeypatch.setenv("CONDARC", str(condarc))
+
+    # Import lazily to avoid collection-time failures
+    from conda.base.context import reset_context
+
+    reset_context()
+
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): doesnotexist"
+    ):
+        conda_cli("export")
