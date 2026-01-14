@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Ensure an appropriate error code is returned when `conda run` is invoked with an invalid environment name or prefix. (#15534)
 
 ### Deprecations
 
