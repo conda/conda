@@ -498,8 +498,8 @@ class CondaPluginManager(pluggy.PluginManager):
             hook.action(repodata_fn, unlink_precs, link_precs)
 
     def apply_repodata_patches(self, channel: Channel, parsed: dict) -> dict:
-        for pre_solve in context.plugin_manager.get_hook_results("repodata_patches"):
-            parsed = pre_solve.action(channel, parsed)
+        for patch in self.get_hook_results("repodata_patches"):
+            parsed = patch.action(channel, parsed)
         return parsed
 
     def load_settings(self) -> None:
