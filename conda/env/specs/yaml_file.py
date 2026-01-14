@@ -8,7 +8,7 @@ import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ...common.serialize import yaml_safe_load
+from ...common.serialize import yaml
 from ...deprecations import deprecated
 from ...exceptions import CondaValueError
 from ...plugins.types import EnvironmentSpecBase
@@ -58,7 +58,7 @@ class YamlFileSpec(EnvironmentSpecBase):
 
         try:
             yamlstr = env.load_file(self.filename)
-            data = yaml_safe_load(yamlstr)
+            data = yaml.loads(yamlstr)
             if data is None:
                 return False
         except Exception:

@@ -337,14 +337,12 @@ class ConfigurationFile:
         :param path: Optional path to read from. If None, uses the instance path.
         :returns: Dictionary containing configuration content.
         """
-        from ..common.serialize import yaml_round_trip_load
+        from ..common.serialize import yaml
 
         path = Path(path or self._path)
 
         try:
-            self._content = (
-                yaml_round_trip_load(Path(path or self._path).read_text()) or {}
-            )
+            self._content = yaml.read(path=path) or {}
         except FileNotFoundError:
             self._content = {}
 
@@ -358,11 +356,11 @@ class ConfigurationFile:
         :raises CondaError: If the file cannot be written.
         """
         from .. import CondaError
-        from ..common.serialize import yaml_round_trip_dump
+        from ..common.serialize import yaml
 
         path: Path = Path(path or self._path)
         try:
-            path.write_text(yaml_round_trip_dump(self.content))
+            yaml.write(self.content, path=path)
         except OSError as e:
             raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
 
