@@ -27,7 +27,7 @@ from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
 from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
-from ..common.serialize import json, yaml_round_trip_load
+from ..common.serialize import json, yaml
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
@@ -666,7 +666,7 @@ def context_testdata() -> None:
     context._set_raw_data(
         {
             "testdata": YamlRawParameter.make_raw_parameters(
-                "testdata", yaml_round_trip_load(TEST_CONDARC)
+                "testdata", yaml.loads(TEST_CONDARC)
             )
         }
     )
