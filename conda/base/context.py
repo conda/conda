@@ -476,8 +476,9 @@ class Context(Configuration):
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
-    report_errors = ParameterLoader(
-        PrimitiveParameter(None, element_type=(bool, NoneType))
+    _report_errors = ParameterLoader(
+        PrimitiveParameter(None, element_type=(bool, NoneType)),
+        aliases=("report_errors",),
     )
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
@@ -608,6 +609,14 @@ class Context(Configuration):
     )
     def error_upload_url(self) -> str:
         return self._error_upload_url
+
+    @property
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
+    def report_errors(self) -> str:
+        return self._report_errors
 
     @property
     def conda_build_local_paths(self) -> tuple[PathType, ...]:

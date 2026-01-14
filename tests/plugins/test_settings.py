@@ -15,8 +15,8 @@ from conda.common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     YamlRawParameter,
-    yaml_round_trip_load,
 )
+from conda.common.serialize import yaml
 from conda.exceptions import ArgumentError, CondaKeyError
 from conda.plugins.manager import CondaPluginManager
 
@@ -114,7 +114,7 @@ def condarc_plugin_manager(setting_plugin_manager):
     context._set_raw_data(
         {
             "testdata": YamlRawParameter.make_raw_parameters(
-                "testdata", yaml_round_trip_load(CONDARC_TEST_ONE)
+                "testdata", yaml.loads(CONDARC_TEST_ONE)
             )
         }
     )
