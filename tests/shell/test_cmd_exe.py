@@ -13,12 +13,14 @@ import pytest
 
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as CONDA_VERSION
-from conda.base.context import context
+from conda.base.context import reset_context
 from conda.common.compat import on_linux, on_mac
 
 from . import activate, deactivate, dev_arg, install
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
     from . import Shell
 
 log = getLogger(__name__)
@@ -124,8 +126,10 @@ def test_cmd_exe_basic_integration(
 def test_cmd_exe_activate_error(
     shell_wrapper_integration: tuple[str, str, str],
     shell: Shell,
+    monkeypatch: MonkeyPatch,
 ) -> None:
-    context.dev = True
+    monkeypatch.setenv("CONDA_DEV", "1")
+    reset_context()
     with shell.interactive() as sh:
         sh.sendline("set")
         sh.expect(".*")

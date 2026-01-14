@@ -433,10 +433,11 @@ def test_make_entry_point_exe(verbose):
         assert result == Result.NO_CHANGE
 
 
-def test_install_conda_sh(verbose):
+def test_install_conda_sh(verbose, monkeypatch: MonkeyPatch):
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, "etc", "profile.d", "conda.sh")
-        context.dev = False
+        monkeypatch.setenv("CONDA_DEV", "0")
+        reset_context()
         result = install_conda_sh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
@@ -479,10 +480,11 @@ def test_install_conda_sh(verbose):
         assert result == Result.NO_CHANGE
 
 
-def test_install_conda_fish(verbose):
+def test_install_conda_fish(verbose, monkeypatch: MonkeyPatch):
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "etc", "fish", "conf.d", "conda.fish")
-        context.dev = False
+        monkeypatch.setenv("CONDA_DEV", "0")
+        reset_context()
         result = install_conda_fish(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
@@ -521,12 +523,13 @@ def test_install_conda_fish(verbose):
         assert result == Result.NO_CHANGE
 
 
-def test_install_conda_xsh(verbose):
+def test_install_conda_xsh(verbose, monkeypatch: MonkeyPatch):
     from conda.activate import XonshActivator
 
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "Lib", "site-packages", "conda.xsh")
-        context.dev = False
+        monkeypatch.setenv("CONDA_DEV", "0")
+        reset_context()
         result = install_conda_xsh(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
@@ -557,10 +560,11 @@ def test_install_conda_xsh(verbose):
         assert result == Result.NO_CHANGE
 
 
-def test_install_conda_csh(verbose):
+def test_install_conda_csh(verbose, monkeypatch: MonkeyPatch):
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "etc", "profile.d", "conda.csh")
-        context.dev = False
+        monkeypatch.setenv("CONDA_DEV", "0")
+        reset_context()
         result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
