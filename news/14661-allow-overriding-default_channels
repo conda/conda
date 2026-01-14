@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Add documentation for `custom_multichannels` setting, including its ability to override the `defaults` multichannel. (#14661)
 
 ### Other
 

@@ -62,6 +62,49 @@ repository, an administrator can set both :ref:`channel alias <channel-alias>` a
     - http://some.custom/channel
     - file:///some/local/directory
 
+.. seealso::
+
+   :ref:`custom_multichannels <custom-multichannels>` can also be used to override the
+   ``defaults`` multichannel.
+
+.. _custom-multichannels:
+
+``custom_multichannels``: Define custom multichannels
+-----------------------------------------------------
+
+A multichannel is a metachannel composed of multiple channels. The two reserved
+multichannels are ``defaults`` and ``local``. Other multichannels can be defined with
+``custom_multichannels``, where the key is the multichannel name and the value is
+a list of channel names and/or channel URLs.
+
+**Example:**
+
+.. code-block:: yaml
+
+  custom_multichannels:
+    my-multichannel:
+      - http://some.custom/channel
+      - conda-forge
+
+.. versionchanged:: 26.1.0
+
+   ``custom_multichannels`` can now be used to override the ``defaults`` multichannel,
+   providing an alternative to the :ref:`default_channels <default-channels>` setting.
+   This is part of an ongoing effort to remove hardcoded references to the "defaults" channel.
+
+   For example, to point the ``defaults`` multichannel to a custom mirror:
+
+   .. code-block:: yaml
+
+     custom_multichannels:
+       defaults:
+         - https://my-mirror.com/pkgs/main
+         - https://my-mirror.com/pkgs/r
+
+   This is equivalent to setting ``default_channels`` to the same list of channels.
+   If both ``default_channels`` and ``custom_multichannels.defaults`` are defined,
+   ``custom_multichannels.defaults`` takes precedence.
+
 .. _auto-update-conda:
 
 
