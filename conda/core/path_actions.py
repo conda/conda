@@ -1432,7 +1432,7 @@ class ExtractPackageAction(PathAction):
             rm_rf(self.target_full_path)
 
         # find the right extractor function from registered plugins
-        extractor = CondaPluginManager.get_pkg_extraction_function_from_plugin(
+        extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
             self.source_full_path
         )
 
