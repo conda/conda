@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from conda import plugins
+from conda.base.context import context
 from conda.gateways.disk.create import extract_tarball
-from conda.plugins.manager import CondaPluginManager
 from conda.plugins.types import CondaSupportedPkgFormats
 
 
@@ -29,10 +29,14 @@ def test_plugin_fetches_correct_extractor(plugin_manager):
     plugin_manager.register(random_pkg_format_plugin)
 
     # test
-    extractor = CondaPluginManager.get_pkg_extraction_function_from_plugin(".random")
+    extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
+        "something.random"
+    )
     assert extractor is random_extractor
 
 
 def test_plugin_fetches_extract_tarball(plugin_manager):
-    extractor = CondaPluginManager.get_pkg_extraction_function_from_plugin(".conda")
+    extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
+        "something.tar.bz2"
+    )
     assert extractor is extract_tarball
