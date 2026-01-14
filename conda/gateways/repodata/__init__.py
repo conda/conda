@@ -238,7 +238,7 @@ Exception: {e}
 
     except (ConnectionError, HTTPError, ChunkedEncodingError) as e:
         status_code = getattr(e.response, "status_code", None)
-        if status_code in (403, 404):
+        if status_code == 404:
             if not url.endswith("/noarch"):
                 log.info(
                     "Unable to retrieve repodata (response: %d) for %s",
@@ -268,6 +268,51 @@ Exception: {e}
                         status_code,
                         response=e.response,
                     )
+
+        elif status_code == 403:
+            channel = Channel(url)
+            if channel.token:
+                help_message = """\
+The token '{}' given for the URL has insufficient permissions to access this resource.
+
+You may not have the required permissions to access this channel or package.
+Consider requesting access from the channel owner.
+
+You can verify your access with `anaconda show <channel>/<package>`.
+
+Use `conda config --show` to view your configuration's current state.
+Further configuration help can be found at <{}>.
+""".format(
+                    channel.token,
+                    join_url(CONDA_HOMEPAGE_URL, "docs/config.html"),
+                )
+
+            elif context.channel_alias.location in url:
+                help_message = """\
+The remote server has indicated you do not have permission to access this resource.
+
+This may mean:
+  (a) You are not authenticated. Try `anaconda login` to authenticate, or
+  (b) You do not have access to this private channel or package. Contact the
+      channel owner to request access.
+
+You can verify your access with `anaconda show <channel>/<package>`.
+
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
+            else:
+                help_message = """\
+You do not have permission to access this resource.
+
+This may indicate:
+  - The channel requires authentication. Check your credentials.
+  - You do not have access to this private channel or package.
+
+You will need to modify your conda configuration to proceed.
+Use `conda config --show` to view your configuration's current state.
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
         elif status_code == 401:
             channel = Channel(url)

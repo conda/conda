@@ -16,8 +16,10 @@ from pathlib import Path
 from ... import CondaError
 from ...auxlib.ish import dals
 from ...auxlib.logz import stringify
+from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
 from ...common.io import time_recorder
+from ...common.url import join_url
 from ...exceptions import (
     BasicClobberError,
     ChecksumMismatchError,
@@ -28,6 +30,7 @@ from ...exceptions import (
     ProxyError,
     maybe_raise,
 )
+from ...models.channel import Channel
 from ..disk.delete import rm_rf
 from ..disk.lock import lock
 from . import (
@@ -320,16 +323,111 @@ def download_http_errors(url: str):
             )
 
     except (ConnectionError, HTTPError) as e:
-        help_message = dals(
-            """
-        An HTTP error occurred when trying to retrieve this URL.
-        HTTP errors are often intermittent, and a simple retry will get you on your way.
-        """
-        )
+        status_code = getattr(e.response, "status_code", None)
+
+        if status_code == 403:
+            channel = Channel(url)
+            if channel.token:
+                help_message = dals(
+                    f"""
+                    The token '{channel.token}' given for the URL has insufficient permissions
+                    to access this resource.
+
+                    You may not have the required permissions to access this channel or package.
+                    Consider requesting access from the channel owner.
+
+                    You can verify your access with `anaconda show <channel>/<package>`.
+
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
+                    """
+                )
+            elif context.channel_alias.location in url:
+                help_message = dals(
+                    f"""
+                    The remote server has indicated you do not have permission to access
+                    this resource.
+
+                    This may mean:
+                      (a) You are not authenticated. Try `anaconda login` to authenticate, or
+                      (b) You do not have access to this private channel or package. Contact the
+                          channel owner to request access.
+
+                    You can verify your access with `anaconda show <channel>/<package>`.
+
+                    Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
+                    """
+                )
+            else:
+                help_message = dals(
+                    f"""
+                    You do not have permission to access this resource.
+
+                    This may indicate:
+                      - The channel requires authentication. Check your credentials.
+                      - You do not have access to this private channel or package.
+
+                    You will need to modify your conda configuration to proceed.
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
+                    """
+                )
+
+        elif status_code == 401:
+            channel = Channel(url)
+            if channel.token:
+                help_message = dals(
+                    f"""
+                    The token '{channel.token}' given for the URL is invalid.
+
+                    If this token was pulled from anaconda-client, you will need to use
+                    anaconda-client to reauthenticate.
+
+                    If you supplied this token to conda directly, you will need to adjust your
+                    conda configuration to proceed.
+
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
+                    """
+                )
+            elif context.channel_alias.location in url:
+                help_message = dals(
+                    f"""
+                    The remote server has indicated you are using invalid credentials for
+                    this channel.
+
+                    If the remote site is anaconda.org or follows the Anaconda Server API, you
+                    will need to
+                        (a) remove the invalid token from your system with `anaconda logout`,
+                            optionally followed by collecting a new token with `anaconda login`, or
+                        (b) provide conda with a valid token directly.
+
+                    Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
+                    """
+                )
+            else:
+                help_message = dals(
+                    f"""
+                    The credentials you have provided for this URL are invalid.
+
+                    You will need to modify your conda configuration to proceed.
+                    Use `conda config --show` to view your configuration's current state.
+                    Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
+                    """
+                )
+
+        else:
+            help_message = dals(
+                """
+                An HTTP error occurred when trying to retrieve this URL.
+                HTTP errors are often intermittent, and a simple retry will get you on your way.
+                """
+            )
+
         raise CondaHTTPError(
             help_message,
             url,
-            getattr(e.response, "status_code", None),
+            status_code,
             getattr(e.response, "reason", None),
             getattr(e.response, "elapsed", None),
             e.response,
