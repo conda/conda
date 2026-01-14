@@ -1614,13 +1614,15 @@ class Context(Configuration):
             ),
             custom_multichannels=dals(
                 """
-                A multichannel is a metachannel composed of multiple channels. The two reserved
-                multichannels are 'defaults' and 'local'. The 'defaults' multichannel is
-                customized using the 'default_channels' parameter. The 'local'
-                multichannel is a list of file:// channel locations where conda-build stashes
-                successfully-built packages.  Other multichannels can be defined with
+                A multichannel is a metachannel composed of multiple channels. The only reserved
+                multichannel is 'local', which is a list of file:// channel locations where
+                conda-build stashes successfully-built packages and cannot be overridden.
+                Other multichannels, including 'defaults', can be defined or customized with
                 custom_multichannels, where the key is the multichannel name and the value is
-                a list of channel names and/or channel urls.
+                a list of channel names and/or channel urls. The 'defaults' multichannel can
+                also be customized using the 'default_channels' parameter (a historical setting
+                from when 'defaults' was reserved). If both are defined,
+                'custom_multichannels.defaults' takes precedence.
                 """
             ),
             default_activation_env=dals(
@@ -1633,6 +1635,7 @@ class Context(Configuration):
             default_channels=dals(
                 """
                 The list of channel names and/or urls used for the 'defaults' multichannel.
+                Can be overridden by 'custom_multichannels.defaults'.
                 """
             ),
             # default_python=dals(

@@ -72,8 +72,11 @@ repository, an administrator can set both :ref:`channel alias <channel-alias>` a
 ``custom_multichannels``: Define custom multichannels
 -----------------------------------------------------
 
-A multichannel is a metachannel composed of multiple channels. The two reserved
-multichannels are ``defaults`` and ``local``. Other multichannels can be defined with
+A multichannel is a metachannel composed of multiple channels. The only reserved
+multichannel is ``local``, which is a list of ``file://`` channel locations where
+conda-build stashes successfully-built packages and cannot be overridden.
+
+Other multichannels, including ``defaults``, can be defined or customized with
 ``custom_multichannels``, where the key is the multichannel name and the value is
 a list of channel names and/or channel URLs.
 
@@ -88,9 +91,10 @@ a list of channel names and/or channel URLs.
 
 .. versionchanged:: 26.1.0
 
-   ``custom_multichannels`` can now be used to override the ``defaults`` multichannel,
+   ``custom_multichannels`` can now be used to define the ``defaults`` multichannel,
    providing an alternative to the :ref:`default_channels <default-channels>` setting.
-   This is part of an ongoing effort to remove hardcoded references to the "defaults" channel.
+   The ``default_channels`` setting exists for historical reasons when ``defaults``
+   was a reserved multichannel name.
 
    For example, to point the ``defaults`` multichannel to a custom mirror:
 
