@@ -642,6 +642,7 @@ class CondaEnvironmentExporter(CondaPlugin):
             )
 
 
+@dataclass
 class CondaRepodataPatch(CondaPlugin):
     """
     A conda repodata patch.
