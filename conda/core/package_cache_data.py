@@ -18,8 +18,6 @@ from sys import platform
 from tarfile import ReadError
 from typing import TYPE_CHECKING
 
-from conda.plugins.manager import CondaPluginManager
-
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from ..auxlib.collection import first
 from ..auxlib.decorators import memoizemethod
