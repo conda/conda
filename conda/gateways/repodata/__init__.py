@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
-from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
+from ...base.constants import CACHE_ENCODING, CONDA_HOMEPAGE_URL, REPODATA_FN
 from ...base.context import context
 from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
@@ -485,6 +485,46 @@ class RepodataState(UserDict):
         return super().__getitem__(key)
 
 
+def read_cache_text(path: pathlib.Path) -> str:
+    """
+    Read a cache file with UTF-8 encoding, with fallback for migration.
+
+    Handles encoding migration: if a file cannot be decoded as UTF-8,
+    tries common fallback encodings and logs a warning. If all encodings
+    fail, deletes the corrupt cache file and raises FileNotFoundError
+    to trigger a cache refresh through the normal code path.
+
+    :raises FileNotFoundError: If file doesn't exist or was deleted due to corruption.
+    """
+    # Try UTF-8 first (preferred encoding)
+    try:
+        return path.read_text(encoding=CACHE_ENCODING)
+    except UnicodeDecodeError:
+        pass
+
+    # Try fallback encodings for migration from older cache files
+    fallback_encodings = ("latin-1", "cp1252", "utf-16")
+    raw_bytes = path.read_bytes()
+    for encoding in fallback_encodings:
+        try:
+            content = raw_bytes.decode(encoding)
+            log.warning(
+                f"Cache file {path} was encoded with {encoding} instead of "
+                f"{CACHE_ENCODING}. The cache will be updated on next write."
+            )
+            return content
+        except (UnicodeDecodeError, LookupError):
+            continue
+
+    # If all encodings fail, delete corrupt cache and raise to trigger refresh
+    log.warning(f"Could not decode cache file {path}. Removing corrupt cache.")
+    try:
+        path.unlink()
+    except OSError:
+        pass
+    raise FileNotFoundError(f"Removed corrupt cache file: {path}")
+
+
 class RepodataCache:
     """
     Handle caching for a single repodata.json + repodata.info.json
@@ -551,7 +591,7 @@ class RepodataCache:
                 if binary:
                     json_data = cache_path.read_bytes()
                 else:
-                    json_data = cache_path.read_text(encoding="utf-8")
+                    json_data = read_cache_text(cache_path)
 
             json_stat = cache_path.stat()
             if not (
@@ -591,18 +631,13 @@ class RepodataCache:
         """Write data to <repodata> cache path, by calling self.replace()."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
         if isinstance(data, bytes):
-            mode = "bx"
             target = self.cache_path_shards
-            encoding = {}  # none for binary mode
+            temp_path.write_bytes(data)
         else:
-            mode = "x"
             target = self.cache_path_json
-            encoding = {"encoding": "utf-8"}  # explicit utf-8 for text mode
+            temp_path.write_text(data, encoding=CACHE_ENCODING)
 
         try:
-            with temp_path.open(mode, **encoding) as temp:  # type: ignore ; exclusive mode, error if exists
-                temp.write(data)
-
             return self.replace(temp_path, target)
 
         finally:
@@ -657,7 +692,7 @@ class RepodataCache:
         mode: "a+" then seek(0) to write/create; "r+" to read.
         """
         with (
-            self.cache_path_state.open(mode, encoding="utf-8") as state_file,
+            self.cache_path_state.open(mode, encoding=CACHE_ENCODING) as state_file,
             lock(state_file),
         ):
             yield state_file
@@ -881,7 +916,7 @@ class RepodataFetch:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
-                    raw_repodata = self.cache_path_json.read_text(encoding="utf-8")
+                    raw_repodata = read_cache_text(self.cache_path_json)
                     stat = self.cache_path_json.stat()
                     cache.state["size"] = stat.st_size  # type: ignore
                     mtime_ns = stat.st_mtime_ns
