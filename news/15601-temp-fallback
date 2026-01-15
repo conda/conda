@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Fix `conda activate` failing on Windows when `%TEMP%` is not writable by adding fallback to `%LOCALAPPDATA%\Temp` and `%USERPROFILE%\AppData\Local\Temp`. (#15601)
