@@ -29,14 +29,14 @@ def test_plugin_fetches_correct_extractor(plugin_manager):
     plugin_manager.register(random_pkg_format_plugin)
 
     # test
-    extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
+    extractor_func = context.plugin_manager.get_pkg_extraction_function_from_plugin(
         "something.random"
     )
-    assert extractor is random_extractor
+    assert extractor_func is random_extractor
 
 
 def test_plugin_fetches_extract_tarball(plugin_manager):
     extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
-        "something.tar.bz2"
+        "something.conda"
     )
     assert extractor is extract_tarball

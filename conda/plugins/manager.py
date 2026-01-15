@@ -73,6 +73,7 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
+        CondaSupportedPkgFormats,
         CondaVirtualPackage,
     )
 
@@ -266,6 +267,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_specifiers"]
     ) -> list[CondaEnvironmentSpecifier]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["supported_pkg_formats"]
+    ) -> list[CondaSupportedPkgFormats]: ...
 
     @overload
     def get_hook_results(
@@ -827,7 +833,9 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
-    def get_pkg_extraction_function_from_plugin(self, source_full_path: str) -> Callable:
+    def get_pkg_extraction_function_from_plugin(
+        self, source_full_path: str
+    ) -> Callable:
         hooks = self.get_hook_results("supported_pkg_formats")
         for hook in hooks:
             for ext in hook.extensions:
@@ -835,7 +843,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     return hook.extractor
 
         raise PluginError(
-            f"No registered 'supported pkg formats' plugin found for package: {source_full_path}"
+            f"No registered 'supported_pkg_formats' plugin found for package: {source_full_path}"
         )
 
 
