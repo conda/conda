@@ -84,7 +84,7 @@ def test_run_uncaptured(
 def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request):
     with tmp_env() as prefix:
         # Remove write permissions
-        if sys.platform == "win32":
+        if on_win:
             username = os.environ.get("USERNAME")
             subprocess.run(
                 ["icacls", str(prefix), "/deny", f"{username}:W"],
