@@ -15,6 +15,7 @@ from shutil import which
 from typing import TYPE_CHECKING
 
 from . import CondaError
+from .activate import _build_activator_cls
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
@@ -250,8 +251,6 @@ def wrap_subprocess_call(
 
             # We pursue activation inline here, which allows us to avoid
             # spawning a `conda activate` process at wrapper runtime.
-            from .activate import _build_activator_cls
-
             activator_cls = _build_activator_cls("cmd.exe")
             activator_args = ["activate"]
             if dev_mode:
@@ -358,8 +357,6 @@ def wrap_subprocess_call(
 
             # We pursue activation inline here, which allows us to avoid
             # spawning a `conda activate` process at wrapper runtime.
-            from .activate import _build_activator_cls
-
             activator_cls = _build_activator_cls("posix")
             activator_args = ["activate"]
             if dev_mode:
