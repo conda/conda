@@ -3,7 +3,13 @@
 :: Helper routine for activation, deactivation, and reactivation.
 @ECHO OFF
 SETLOCAL
-SET "__conda_tmp=%TEMP%\__conda_tmp_%RANDOM%.txt"
+
+:: Generate a unique temporary filename using a GUID to support parallel workflows
+:: (e.g., `start /b conda run ...`). %RANDOM% is insufficient because processes
+:: started simultaneously get identical time-based seeds, producing collisions.
+:: See: https://devblogs.microsoft.com/oldnewthing/20100617-00/?p=13673
+FOR /F "delims=" %%G IN ('powershell -NoProfile -Command New-Guid') DO SET "__conda_guid=%%G"
+SET "__conda_tmp=%TEMP%\__conda_tmp_%__conda_guid%.txt"
 
 :: Run conda command and get its output
 :: WARNING: This cannot be simplified into a FOR /F parsing loop because of the way
