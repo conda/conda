@@ -13,8 +13,6 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from conda.plugins.manager import CondaPluginManager
-
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
