@@ -35,7 +35,7 @@ def test_plugin_fetches_correct_extractor(plugin_manager):
     assert extractor_func is random_extractor
 
 
-def test_plugin_fetches_extract_tarball(plugin_manager):
+def test_plugin_fetches_extract_tarball():
     extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
         "something.conda"
     )
