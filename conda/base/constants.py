@@ -184,6 +184,10 @@ CONDA_LOGS_DIR: Final = ".logs"
 UNKNOWN_CHANNEL: Final = "<unknown>"
 REPODATA_FN: Final = "repodata.json"
 
+# Explicit encoding for cached repodata JSON and state files.
+# Use this constant to ensure consistent UTF-8 encoding across all cache file operations.
+CACHE_ENCODING: Final = "utf-8"
+
 NOTICES_FN: Final = "notices.json"
 """Default name of the notices file on the server we look for."""
 
