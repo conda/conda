@@ -8,7 +8,7 @@ SETLOCAL
 :: (e.g., `start /b conda run ...`). %RANDOM% is insufficient because processes
 :: started simultaneously get identical time-based seeds, producing collisions.
 :: See: https://devblogs.microsoft.com/oldnewthing/20100617-00/?p=13673
-FOR /F "delims=" %%G IN ('powershell -NoProfile -Command New-Guid') DO SET "__conda_guid=%%G"
+FOR /F "delims=" %%G IN ('powershell -NoProfile -Command "[guid]::NewGuid()"') DO SET "__conda_guid=%%G"
 SET "__conda_tmp=%TEMP%\__conda_tmp_%__conda_guid%.txt"
 
 :: Run conda command and get its output
