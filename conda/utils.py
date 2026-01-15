@@ -7,7 +7,6 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from contextlib import contextmanager, nullcontext
 from functools import cache, wraps
 from os import environ
 from os.path import abspath, basename, dirname, isfile, join
@@ -197,23 +196,6 @@ def massage_arguments(arguments, errors="assert"):
     return arguments
 
 
-@contextmanager
-def _suppress_dev_mode_env():
-    """unset dev mode indicators for creating the activators"""
-    old_pythonpath = environ.pop("PYTHONPATH", None)
-    old_conda_dev = environ.pop("CONDA_DEV", None)
-    try:
-        environ["CONDA_DEV"] = "0"
-        yield
-    finally:
-        if old_pythonpath is not None:
-            environ["PYTHONPATH"] = old_pythonpath
-        if old_conda_dev is not None:
-            environ["CONDA_DEV"] = old_conda_dev
-        else:
-            environ.pop("CONDA_DEV", None)
-
-
 @deprecated.argument(
     "26.9",
     "27.3",
@@ -275,14 +257,12 @@ def wrap_subprocess_call(
                 activator_args.append("--dev")
             activator_args.append(prefix)
 
-            ctx_mgr = nullcontext() if dev_mode else _suppress_dev_mode_env()
-            with ctx_mgr:
-                activator = activator_cls(activator_args)
-                activator._parse_and_set_args()
-                # CmdExeActivator writes an .env file by default; let's force in-memory output here
-                # so that we can embed the activation output directly into our wrapper script.
-                activator.tempfile_extension = None
-                activate_env = activator.activate()
+            activator = activator_cls(activator_args)
+            activator._parse_and_set_args()
+            # CmdExeActivator writes an .env file by default; let's force in-memory output here
+            # so that we can embed the activation output directly into our wrapper script.
+            activator.tempfile_extension = None
+            activate_env = activator.activate()
 
             for line in activate_env.splitlines():
                 line = line.rstrip("\r")
@@ -383,11 +363,9 @@ def wrap_subprocess_call(
                 activator_args.append("--dev")
             activator_args.append(prefix)
 
-            ctx_mgr = nullcontext() if dev_mode else _suppress_dev_mode_env()
-            with ctx_mgr:
-                activator = activator_cls(activator_args)
-                activator._parse_and_set_args()
-                activate_code = activator.activate()
+            activator = activator_cls(activator_args)
+            activator._parse_and_set_args()
+            activate_code = activator.activate()
 
             fh.write(activate_code)
 
