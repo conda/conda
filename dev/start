@@ -279,7 +279,7 @@ if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
         if [ "${_MACH}" = "Darwin" ] || [ "${_MACH}" = "Linux" ]; then
             curl -L --fail --silent --show-error "${_DOWNLOAD_URL}" -o "${_INSTALLER_FILE}"
         else
-            powershell.exe -Command "Invoke-WebRequest -Uri '${_DOWNLOAD_URL}' -OutFile '${_INSTALLER_FILE}' | Out-Null"
+            powershell.exe -NoProfile -Command "Invoke-WebRequest -Uri '${_DOWNLOAD_URL}' -OutFile '${_INSTALLER_FILE}' | Out-Null"
         fi
         if ! [ $? = 0 ] || [ ! -s "${_INSTALLER_FILE}" ]; then
             echo "Error: failed to download ${_INSTALLER_TYPE} (file missing or empty)" 1>&2
