@@ -46,6 +46,7 @@ class FakeStream:
 
 
 def get_environment(filename):
+    yaml.loads.cache_clear()
     return from_file(support_file(filename))
 
 

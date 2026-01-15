@@ -462,6 +462,9 @@ def test_jlap_sought(
     state["refresh_ns"] = state["refresh_ns"] - int(1e9 * 60)
     cache.cache_path_state.write_text(json.dumps(dict(state)))
 
+    from conda.common.serialize import json as common_json
+    common_json.loads.cache_clear()
+
     sd.load()
 
     patched = json.loads(sd.cache_path_json.read_text())
@@ -851,7 +854,6 @@ def make_test_jlap(original: bytes, changes=1):
         yield json.dumps(footer).encode("utf-8")
 
     j = core.JLAP.from_lines(jlap_lines(), iv=core.DEFAULT_IV, verify=False)
-
     return j
 
 

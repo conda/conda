@@ -326,6 +326,8 @@ def test_repodata_fetch_formats(
     """
     Test that repodata fetch can return parsed or Path.
     """
+    from conda.common.serialize import json as common_json
+    common_json.loads.cache_clear()
     assert temp_package_cache.exists()
 
     # Remove leftover test data.
