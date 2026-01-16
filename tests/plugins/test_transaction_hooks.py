@@ -63,7 +63,9 @@ def transaction_plugin(plugin_manager_with_reporter_backends, mocker):
     """Test that post transaction actions get called."""
     # Explicitly load the solver, since this is a dummy plugin manager and not the default
     plugin_manager_with_reporter_backends.load_plugins(plugins.solvers)
-    plugin_manager_with_reporter_backends.load_plugins(*plugins.supported_pkg_formats.plugins)
+    plugin_manager_with_reporter_backends.load_plugins(
+        *plugins.supported_pkg_formats.plugins
+    )
 
     pre_plugin = DummyPreActionPlugin()
     mock_pre_verify = mocker.spy(DummyPreTransactionAction, "verify")
