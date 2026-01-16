@@ -228,7 +228,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def is_environment(self) -> bool:
         """
-        Check whether the PrefixData path is a valida conda environment.
+        Check whether the PrefixData path is a valid conda environment.
 
         This is assessed by checking if `conda-meta/history` marker file exists.
         """
