@@ -21,7 +21,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
-from functools import wraps
+from functools import cache, wraps
 from itertools import chain
 from logging import getLogger
 from os import environ
@@ -391,6 +391,7 @@ class YamlRawParameter(RawParameter):
         return EMPTY_MAP
 
     @classmethod
+    @cache
     def make_raw_parameters_from_file(cls, filepath):
         with open(filepath) as fh:
             try:
@@ -410,6 +411,10 @@ class YamlRawParameter(RawParameter):
                     position=err.position,
                 )
             return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
+
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls.make_raw_parameters_from_file.cache_clear()
 
 
 class DefaultValueRawParameter(RawParameter):
