@@ -58,7 +58,7 @@ def cuda_version():
         return NULL
 
     result = queue.get()
-    return result
+    return result if result is not None else NULL
 
 
 @functools.cache

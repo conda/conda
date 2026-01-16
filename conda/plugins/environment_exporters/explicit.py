@@ -22,8 +22,8 @@ if TYPE_CHECKING:
     from ...models.environment import Environment
 
 
-#: The name of the explicit format
 EXPLICIT_FORMAT: Final = "explicit"
+"""The name of the explicit format."""
 
 
 def export_explicit(env: Environment) -> str:

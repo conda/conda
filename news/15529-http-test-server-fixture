@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add reusable `http_test_server` fixture to `conda.testing` module for serving mock conda channels and remote files in tests. Fixture uses standard `@pytest.mark.parametrize()` with `indirect=True` for configuring directories, supporting both pre-existing directories and dynamic content generation. Provides clean API with `get_url()` helper method and `directory` attribute. (#15528 via #15529)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Add comprehensive guide for using HTTP test server fixture in `docs/source/dev-guide/writing-tests/http-test-server.md`. Includes usage examples, API reference, and troubleshooting tips. (#15528 via #15529)
+
+### Other
+
+* <news item>

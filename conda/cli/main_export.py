@@ -11,6 +11,8 @@ from argparse import (
     _SubParsersAction,
 )
 
+from conda.base.constants import KNOWN_SUBDIRS
+
 from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.constants import NULL
@@ -53,6 +55,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     p.add_argument(
+        "-O",
         "--override-channels",
         action="store_true",
         help="Do not include .condarc channels",
@@ -139,7 +142,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..exceptions import CondaValueError
     from .common import stdout_json
 
-    # TODO: Check if platform targets are valid
+    unknown = set(context.export_platforms) - set(KNOWN_SUBDIRS)
+    if unknown:
+        raise CondaValueError(
+            f"Could not find platform(s): {', '.join(sorted(unknown))}. "
+            f"Valid platforms include: {', '.join(sorted(KNOWN_SUBDIRS))}"
+        )
 
     # Early format validation - fail fast if format is unsupported
     target_format = args.format
