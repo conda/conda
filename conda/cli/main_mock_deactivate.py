@@ -27,4 +27,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    raise CondaError("Run 'conda init' before 'conda deactivate'")
+    import os
+
+    if os.environ.get("_CONDA_SUBSHELL") not in ("", "0"):
+        raise CondaError("Deactivate current shell session by running `exit` or pressing Ctrl+D.")
+    return 0
