@@ -425,10 +425,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         try:
-                            extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
+                            extract = context.plugin_manager.get_pkg_extraction_function_from_plugin(
                                 package_tarball_full_path
                             )
-                            extractor(package_tarball_full_path, extracted_package_dir)
+                            extract(package_tarball_full_path, extracted_package_dir)
                         except (OSError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
                                 # FileNotFoundError(2, 'No such file or directory')

@@ -1429,13 +1429,13 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        # find the right extractor function from registered plugins
-        extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
+        # find the right extract function from registered plugins
+        extract = context.plugin_manager.get_pkg_extraction_function_from_plugin(
             self.source_full_path
         )
 
-        # Call the extractor function
-        extractor(
+        # Call the extract function
+        extract(
             self.source_full_path,
             self.target_full_path,
             progress_update_callback=progress_update_callback,

@@ -648,9 +648,9 @@ class CondaPackageExtractor(CondaPlugin):
 
     :param name: name of the supported extension
     :extensions: the extension (eg. `.conda`, `.whl`)
-    :extractor: the extraction function
+    :extract: the extraction function
     """
 
     name: str
     extensions: list[str]
-    extractor: Callable
+    extract: Callable

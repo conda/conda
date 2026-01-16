@@ -833,7 +833,7 @@ class CondaPluginManager(pluggy.PluginManager):
         for hook in hooks:
             for ext in hook.extensions:
                 if source_full_path.lower().endswith(ext.lower()):
-                    return hook.extractor
+                    return hook.extract
 
         raise PluginError(
             f"No registered 'pkg_extractors' plugin found for package: {source_full_path}"
