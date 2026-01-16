@@ -28,7 +28,7 @@ from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_p
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
-from .version import BuildNumberMatch, VersionSpec
+from .version import BuildNumberMatch, TimestampMatch, VersionSpec
 
 try:
     from frozendict import frozendict
@@ -173,6 +173,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "version",
         "build",
         "build_number",
+        "timestamp",
         "track_features",
         "features",
         "url",
@@ -1203,6 +1204,7 @@ _implementors = {
     "version": VersionSpec,
     "build": GlobStrMatch,
     "build_number": BuildNumberMatch,
+    "timestamp": TimestampMatch,
     "track_features": FeatureMatch,
     "features": FeatureMatch,
     "license": CaseInsensitiveStrMatch,

@@ -32,6 +32,7 @@ if TYPE_CHECKING:
         CondaPrefixDataLoader,
         CondaPreSolve,
         CondaPreTransactionAction,
+        CondaRepodataPatch,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -766,6 +767,28 @@ class CondaSpecs:
                     aliases=("toml",),
                     default_filenames=("environment.toml",),
                     export=export_toml,
+                )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_repodata_patches(self) -> Iterable[CondaRepodataPatch]:
+        """
+        Register repodata patches in conda.
+        **Example:**
+        .. code-block:: python
+            from conda import plugins
+
+
+            def example_repodata_patch(repodata):
+                print("repodata patch action")
+
+
+            @plugins.hookimpl
+            def conda_repodata_patches():
+                yield CondaRepodataPatch(
+                    name="example-repodata-patch",
+                    action=example_repodata_patch,
                 )
         """
         yield from ()

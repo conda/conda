@@ -711,3 +711,134 @@ class BuildNumberMatch(BaseSpec, metaclass=SingleStrArgCachingType):
 
     def __repr__(self):
         return str(self.spec)
+
+
+class TimestampMatch(BaseSpec, metaclass=SingleStrArgCachingType):
+    """Match timestamps with comparison operators and date parsing.
+
+    Supports:
+      - Date strings: "2024-01-01", "2024-01-01T00:00:00", "2024-01-01T00:00:00Z"
+      - Unix timestamps in seconds: "1704067200"
+      - Operators: <, >, <=, >=, ==, !=
+
+    Note: Repodata timestamps are stored in milliseconds. This class handles
+    the conversion automatically when matching.
+
+    Examples:
+        >>> TimestampMatch("<2024-01-01").match(1703980800000)  # ms timestamp
+        True
+        >>> TimestampMatch(">=2024-06-01").match(1717200000000)
+        True
+    """
+
+    _cache_ = {}
+
+    # Date formats to try when parsing
+    _DATE_FORMATS = (
+        "%Y-%m-%d",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%SZ",
+        "%Y/%m/%d",
+    )
+
+    def __init__(self, vspec):
+        vspec_str, matcher, is_exact = self.get_matcher(vspec)
+        super().__init__(vspec_str, matcher, is_exact)
+
+    @classmethod
+    def _parse_timestamp(cls, value: str) -> float | None:
+        """Parse a date string or timestamp into seconds since epoch."""
+        from datetime import datetime
+
+        value = str(value).strip()
+
+        # Try parsing as date string
+        for fmt in cls._DATE_FORMATS:
+            try:
+                dt = datetime.strptime(value, fmt)
+                return dt.timestamp()
+            except ValueError:
+                continue
+
+        # Try parsing as numeric timestamp (seconds)
+        try:
+            return float(value)
+        except ValueError:
+            return None
+
+    def get_matcher(self, vspec):
+        vspec_str = str(vspec).strip()
+
+        if vspec_str == "*":
+            return vspec_str, self.always_true_match, False
+
+        # Check for operator prefix
+        if vspec_str.startswith(("=", "<", ">", "!")):
+            m = version_relation_re.match(vspec_str)
+            if m is None:
+                raise InvalidVersionSpec(vspec_str, "invalid timestamp operator")
+            operator_str, ts_str = m.groups()
+
+            try:
+                self.operator_func = OPERATOR_MAP[operator_str]
+            except KeyError:
+                raise InvalidVersionSpec(vspec_str, f"invalid operator: {operator_str}")
+
+            self.matcher_ts = self._parse_timestamp(ts_str)
+            if self.matcher_ts is None:
+                raise InvalidVersionSpec(vspec_str, f"invalid timestamp: {ts_str}")
+
+            return vspec_str, self.operator_match, operator_str == "=="
+
+        # No operator - treat as exact match
+        self.operator_func = OPERATOR_MAP["=="]
+        self.matcher_ts = self._parse_timestamp(vspec_str)
+        if self.matcher_ts is None:
+            raise InvalidVersionSpec(vspec_str, f"invalid timestamp: {vspec_str}")
+
+        return vspec_str, self.operator_match, True
+
+    def operator_match(self, other_ts):
+        """Match against another timestamp.
+
+        Handles both millisecond timestamps (from repodata) and second timestamps.
+        PackageRecord already converts ms to seconds, so we typically receive seconds.
+        The heuristic handles raw milliseconds just in case.
+        """
+        if other_ts is None:
+            return False
+
+        try:
+            other_ts = float(other_ts)
+        except (TypeError, ValueError):
+            return False
+
+        # PackageRecord.TimestampField already converts ms to seconds
+        # This heuristic handles raw millisecond values if they slip through
+        if other_ts > 253402300799:  # 9999-12-31 (same as TimestampField)
+            other_ts = other_ts / 1000.0
+
+        return self.operator_func(other_ts, self.matcher_ts)
+
+    def merge(self, other):
+        if self.raw_value != other.raw_value:
+            raise ValueError(
+                f"Incompatible component merge:\n  - {self.raw_value!r}\n  - {other.raw_value!r}"
+            )
+        return self.raw_value
+
+    def union(self, other):
+        options = {self.raw_value, other.raw_value}
+        return "|".join(sorted(options))
+
+    @property
+    def exact_value(self) -> float | None:
+        if self._is_exact:
+            return self.matcher_ts
+        return None
+
+    def __str__(self):
+        return str(self.spec)
+
+    def __repr__(self):
+        return str(self.spec)

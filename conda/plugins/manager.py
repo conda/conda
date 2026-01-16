@@ -35,6 +35,7 @@ from . import (
     environment_specifiers,
     post_solves,
     prefix_data_loaders,
+    repodata_patches,
     reporter_backends,
     solvers,
     subcommands,
@@ -52,6 +53,7 @@ if TYPE_CHECKING:
 
     from ..core.path_actions import Action
     from ..core.solve import Solver
+    from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from .types import (
@@ -67,6 +69,7 @@ if TYPE_CHECKING:
         CondaPrefixDataLoaderCallable,
         CondaPreSolve,
         CondaPreTransactionAction,
+        CondaRepodataPatch,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -267,6 +270,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["repodata_patches"]
+    ) -> list[CondaRepodataPatch]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -489,6 +497,11 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
+
+    def apply_repodata_patches(self, channel: Channel, parsed: dict) -> dict:
+        for patch in self.get_hook_results("repodata_patches"):
+            parsed = patch.action(channel, parsed)
+        return parsed
 
     def load_settings(self) -> None:
         """
@@ -830,6 +843,7 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
         solvers,
+        repodata_patches,
         *virtual_packages.plugins,
         *subcommands.plugins,
         *health_checks.plugins,
