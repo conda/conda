@@ -33,7 +33,7 @@ from ..exceptions import (
 from . import (
     environment_exporters,
     environment_specifiers,
-    pkg_extractors,
+    package_extractors,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
@@ -267,7 +267,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["pkg_extractors"]
+        self, name: Literal["package_extractors"]
     ) -> list[CondaPackageExtractor]: ...
 
     @overload
@@ -829,14 +829,14 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_pkg_extraction_function_from_plugin(
         self, source_full_path: str
     ) -> Callable:
-        hooks = self.get_hook_results("pkg_extractors")
+        hooks = self.get_hook_results("package_extractors")
         for hook in hooks:
             for ext in hook.extensions:
                 if source_full_path.lower().endswith(ext.lower()):
                     return hook.extract
 
         raise PluginError(
-            f"No registered 'pkg_extractors' plugin found for package: {source_full_path}"
+            f"No registered 'package_extractors' plugin found for package: {source_full_path}"
         )
 
 
@@ -855,7 +855,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *health_checks.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
-        *pkg_extractors.plugins,
+        *package_extractors.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,

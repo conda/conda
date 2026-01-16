@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import pytest
+
 from conda import plugins
 from conda.base.context import context
+from conda.exceptions import PluginError
 from conda.gateways.disk.create import extract_tarball
 from conda.plugins.types import CondaPackageExtractor
 
@@ -19,7 +22,7 @@ def test_plugin_fetches_correct_extractor(plugin_manager):
         @plugins.hookimpl
         def conda_package_extractors(self):
             yield CondaPackageExtractor(
-                name="Random Format", extensions=[".random"], extractor=random_extractor
+                name="Random Format", extensions=[".random"], extract=random_extractor
             )
 
     # create plugin
@@ -36,7 +39,14 @@ def test_plugin_fetches_correct_extractor(plugin_manager):
 
 
 def test_plugin_fetches_extract_tarball():
-    extractor = context.plugin_manager.get_pkg_extraction_function_from_plugin(
+    extractor_func = context.plugin_manager.get_pkg_extraction_function_from_plugin(
         "something.conda"
     )
-    assert extractor is extract_tarball
+    assert extractor_func is extract_tarball
+
+
+def test_plugin_raises_error_for_unsupported_format():
+    with pytest.raises(PluginError):
+        context.plugin_manager.get_pkg_extraction_function_from_plugin(
+            "something.no_supported"
+        )
