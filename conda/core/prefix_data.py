@@ -438,7 +438,12 @@ class PrefixData(metaclass=PrefixDataType):
         :raises DirectoryNotACondaEnvironmentError: If the path is not a valid environment.
         :raises EnvironmentNotReadableError: If the environment cannot be read.
         """
-        self.assert_environment()
+        self.assert_exists()
+        try:
+            if not self._magic_file.is_file():
+                raise DirectoryNotACondaEnvironmentError(self.prefix_path)
+        except OSError as e:
+            raise EnvironmentNotReadableError(self.prefix_path, e)
 
         total_size = 0
         try:
