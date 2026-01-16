@@ -63,7 +63,6 @@ from .constants import (
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
     ENV_VARS_SOURCE,
-    ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
@@ -72,6 +71,7 @@ from .constants import (
     RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
     SEARCH_PATH,
+    UNKNOWN_CHANNEL,
     ChannelPriority,
     DepsModifier,
     PathConflict,
@@ -456,7 +456,10 @@ class Context(Configuration):
     _trace = ParameterLoader(PrimitiveParameter(False), aliases=["trace"])
     dev = ParameterLoader(PrimitiveParameter(False))
     dry_run = ParameterLoader(PrimitiveParameter(False))
-    error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
+    _error_upload_url = ParameterLoader(
+        PrimitiveParameter("https://conda.io/conda-post/unexpected-error"),
+        aliases=("error_upload_url",),
+    )
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
     _console = ParameterLoader(
@@ -473,8 +476,9 @@ class Context(Configuration):
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
-    report_errors = ParameterLoader(
-        PrimitiveParameter(None, element_type=(bool, NoneType))
+    _report_errors = ParameterLoader(
+        PrimitiveParameter(None, element_type=(bool, NoneType)),
+        aliases=("report_errors",),
     )
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
@@ -597,6 +601,22 @@ class Context(Configuration):
         """
         self.plugin_manager.load_settings()
         return self.plugin_manager.get_config(self.raw_data)
+
+    @property
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
+    def error_upload_url(self) -> str:
+        return self._error_upload_url
+
+    @property
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
+    def report_errors(self) -> str:
+        return self._report_errors
 
     @property
     def conda_build_local_paths(self) -> tuple[PathType, ...]:
@@ -1404,7 +1424,7 @@ class Context(Configuration):
                 "dev",
                 "default_python",
                 "enable_private_envs",
-                "error_upload_url",  # should remain undocumented
+                "error_upload_url",  # TODO: Remove after deprecation ended
                 "force_32bit",
                 "root_prefix",
                 "sat_solver",
@@ -2261,7 +2281,11 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
                 if allowlist and url not in allowlist:
                     raise ChannelNotAllowed(channel)
 
-    return tuple(dict.fromkeys(channels))
+    return tuple(
+        channel
+        for channel in dict.fromkeys(channels)
+        if Channel(channel).canonical_name != UNKNOWN_CHANNEL
+    )
 
 
 @deprecated(
