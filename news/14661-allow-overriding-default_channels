@@ -1,0 +1,19 @@
+### Enhancements
+
+* Allow `custom_multichannels.defaults` to override `default_channels`. Continuation of effort to devendor conda and remove hardcoded "defaults" channel. (#14661)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Add documentation for `custom_multichannels` setting, including its ability to override the `defaults` multichannel. (#14661)
+
+### Other
+
+* <news item>
