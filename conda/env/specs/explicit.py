@@ -19,14 +19,6 @@ class ExplicitSpec(EnvironmentSpecBase):
     which are marked with the @EXPLICIT marker.
     """
 
-    def __init__(self, filename: str | None = None, **kwargs) -> None:
-        """Initialize the explicit specification.
-
-        :param filename: Path to the requirements file
-        :param kwargs: Additional arguments
-        """
-        self.filename = filename
-
     def can_handle(self) -> bool:
         """
         Validates that this spec can process the environment definition.

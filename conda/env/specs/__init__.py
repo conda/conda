@@ -6,6 +6,7 @@ import os
 from typing import TYPE_CHECKING
 
 from ...base.context import context
+from ...common.io import load_file
 from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,
@@ -77,4 +78,5 @@ def detect(
     except EnvironmentSpecPluginNotDetected as e:
         raise SpecNotFound(e.message)
 
-    return spec_hook.environment_spec(filename)
+    data = load_file(filename)
+    return spec_hook.environment_spec(data=data, filename=filename)

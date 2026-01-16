@@ -24,9 +24,6 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
     _environment = None
     extensions = {".yaml", ".yml"}
 
-    def __init__(self, filename: str | None = None, **kwargs):
-        self.filename = filename
-
     def can_handle(self):
         """
         Validates loader can process environment definition.
@@ -39,7 +36,7 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
         """
         if not self.filename:
             return False
-
+        
         # Extract the file extension (e.g., '.txt' or '' if no extension)
         _, file_ext = os.path.splitext(self.filename)
 
@@ -61,5 +58,5 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
     @property
     def env(self) -> Environment:
         if not self._environment:
-            self._environment = env.from_file(self.filename)
+            self._environment = env.from_yaml(self.data)
         return self._environment.to_environment_model()
