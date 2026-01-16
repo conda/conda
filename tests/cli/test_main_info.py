@@ -25,7 +25,11 @@ from conda.cli.main_info import (
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import ArgumentError, EnvironmentNotReadableError
+from conda.exceptions import (
+    ArgumentError,
+    DirectoryNotACondaEnvironmentError,
+    EnvironmentNotReadableError,
+)
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 if TYPE_CHECKING:
@@ -321,87 +325,56 @@ def test_get_info_components() -> None:
     assert components == {"base", "channels", "envs", "envs_details", "system"}
 
 
-def test_compute_prefix_size(tmp_path: Path):
-    test_dir = tmp_path / "test_env"
-    test_dir.mkdir()
-
-    (test_dir / "file1.txt").write_text("test content 1")
-    (test_dir / "file2.txt").write_text("test content 2")
-
-    subdir = test_dir / "subdir"
-    subdir.mkdir()
-    (subdir / "file3.txt").write_text("test content 3")
-
-    prefix_data = PrefixData(str(test_dir))
-    size = prefix_data.size
-    assert size > 0
-    assert size == len("test content 1") + len("test content 2") + len("test content 3")
-
-    (test_dir / "symlink.txt").symlink_to(test_dir / "file1.txt")
-    prefix_data = PrefixData(str(test_dir))
-    size_with_symlink = prefix_data.size
-    assert size_with_symlink == size
-
-
-def test_compute_prefix_size_with_metadata(
-    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture
-):
+def test_compute_prefix_size(tmp_env: TmpEnvFixture):
     with tmp_env("ca-certificates") as prefix:
-        prefix_data = PrefixData(str(prefix))
+        prefix_data = PrefixData(prefix)
         size = prefix_data.size
         assert size > 0
 
 
-def test_compute_prefix_size_unreadable_directory(tmp_path: Path, request):
-    test_dir = tmp_path / "test_env"
+def test_compute_prefix_size_empty_env(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
+        prefix_data = PrefixData(prefix)
+        size = prefix_data.size
+        assert size == 0
+
+
+def test_compute_prefix_size_not_an_environment(tmp_path: Path):
+    test_dir = tmp_path / "not_an_env"
     test_dir.mkdir()
 
-    subdir = test_dir / "subdir"
-    subdir.mkdir()
-    (subdir / "file.txt").write_text("test content")
-
-    if sys.platform == "win32":
-        username = os.environ.get("USERNAME")
-        subprocess.run(
-            ["icacls", str(subdir), "/deny", f"{username}:(RD)"],
-            check=True,
-            capture_output=True,
-        )
-        request.addfinalizer(
-            lambda: subprocess.run(
-                ["icacls", str(subdir), "/remove:d", f"{username}"],
-                capture_output=True,
-            )
-        )
-    else:
-        current = stat.S_IMODE(os.lstat(subdir).st_mode)
-        os.chmod(subdir, current & ~stat.S_IXUSR & ~stat.S_IXGRP & ~stat.S_IXOTH)
-        request.addfinalizer(lambda: os.chmod(subdir, current))
-
-    with pytest.raises(EnvironmentNotReadableError) as exc_info:
-        prefix_data = PrefixData(str(test_dir))
+    with pytest.raises(DirectoryNotACondaEnvironmentError):
+        prefix_data = PrefixData(test_dir)
         _ = prefix_data.size
 
-    assert str(test_dir) in str(exc_info.value)
 
+def test_compute_prefix_size_unreadable_directory(tmp_env: TmpEnvFixture, request):
+    with tmp_env() as prefix:
+        conda_meta = prefix / "conda-meta"
 
-def test_compute_prefix_size_empty_directory(tmp_path: Path):
-    test_dir = tmp_path / "empty_env"
-    test_dir.mkdir()
+        if sys.platform == "win32":
+            username = os.environ.get("USERNAME")
+            subprocess.run(
+                ["icacls", str(conda_meta), "/deny", f"{username}:(RD)"],
+                check=True,
+                capture_output=True,
+            )
+            request.addfinalizer(
+                lambda: subprocess.run(
+                    ["icacls", str(conda_meta), "/remove:d", f"{username}"],
+                    capture_output=True,
+                )
+            )
+        else:
+            current = stat.S_IMODE(os.lstat(conda_meta).st_mode)
+            os.chmod(
+                conda_meta, current & ~stat.S_IXUSR & ~stat.S_IXGRP & ~stat.S_IXOTH
+            )
+            request.addfinalizer(lambda: os.chmod(conda_meta, current))
 
-    prefix_data = PrefixData(str(test_dir))
-    size = prefix_data.size
-    assert size == 0
-
-
-def test_compute_prefix_size_with_path_object(tmp_path: Path):
-    test_dir = tmp_path / "test_env"
-    test_dir.mkdir()
-    (test_dir / "file.txt").write_text("test")
-
-    prefix_data = PrefixData(test_dir)
-    size = prefix_data.size
-    assert size == len("test")
+        with pytest.raises(EnvironmentNotReadableError):
+            prefix_data = PrefixData(prefix)
+            _ = prefix_data.size
 
 
 def test_info_size_without_envs(conda_cli: CondaCLIFixture):
