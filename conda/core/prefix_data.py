@@ -435,25 +435,23 @@ class PrefixData(metaclass=PrefixDataType):
         Compute the total size of a conda environment prefix.
 
         :returns: Total size in bytes.
-        :raises EnvironmentNotReadableError: Conda does not have permission to read the environment prefix.
+        :raises DirectoryNotACondaEnvironmentError: If the path is not a valid environment.
+        :raises EnvironmentNotReadableError: If the environment cannot be read.
         """
+        self.assert_environment()
 
-        def compute_directory_size(path):
-            total = 0
-            with os.scandir(path) as entries:
-                for entry in entries:
-                    if entry.is_symlink():
-                        continue
-                    elif entry.is_file(follow_symlinks=False):
-                        total += entry.stat(follow_symlinks=False).st_size
-                    elif entry.is_dir(follow_symlinks=False):
-                        total += compute_directory_size(entry.path)
-            return total
-
+        total_size = 0
         try:
-            return compute_directory_size(self.prefix_path)
+            for meta_file in (self.prefix_path / "conda-meta").glob("*.json"):
+                with open(meta_file) as f:
+                    data = json.load(f)
+                for entry in data.get("paths_data", {}).get("paths", []):
+                    if entry.get("path_type") != "softlink":
+                        total_size += entry.get("size_in_bytes") or 0
         except OSError as e:
             raise EnvironmentNotReadableError(self.prefix_path, e)
+
+        return total_size
 
     # endregion
     # region Records
