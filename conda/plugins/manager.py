@@ -33,12 +33,12 @@ from ..exceptions import (
 from . import (
     environment_exporters,
     environment_specifiers,
+    pkg_extractors,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
     solvers,
     subcommands,
-    supported_pkg_formats,
     virtual_packages,
 )
 from .config import PluginConfig
@@ -60,6 +60,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaPkgExtractors,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -73,7 +74,6 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
-        CondaSupportedPkgFormats,
         CondaVirtualPackage,
     )
 
@@ -270,8 +270,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["supported_pkg_formats"]
-    ) -> list[CondaSupportedPkgFormats]: ...
+        self, name: Literal["pkg_extractors"]
+    ) -> list[CondaPkgExtractors]: ...
 
     @overload
     def get_hook_results(
@@ -836,14 +836,14 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_pkg_extraction_function_from_plugin(
         self, source_full_path: str
     ) -> Callable:
-        hooks = self.get_hook_results("supported_pkg_formats")
+        hooks = self.get_hook_results("pkg_extractors")
         for hook in hooks:
             for ext in hook.extensions:
                 if source_full_path.lower().endswith(ext.lower()):
                     return hook.extractor
 
         raise PluginError(
-            f"No registered 'supported_pkg_formats' plugin found for package: {source_full_path}"
+            f"No registered 'pkg_extractors' plugin found for package: {source_full_path}"
         )
 
 
@@ -862,7 +862,7 @@ def get_plugin_manager() -> CondaPluginManager:
         health_checks,
         *post_solves.plugins,
         *reporter_backends.plugins,
-        *supported_pkg_formats.plugins,
+        *pkg_extractors.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,

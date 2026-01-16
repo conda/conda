@@ -25,6 +25,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaPkgExtractors,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -37,7 +38,6 @@ if TYPE_CHECKING:
         CondaSetting,
         CondaSolver,
         CondaSubcommand,
-        CondaSupportedPkgFormats,
         CondaVirtualPackage,
     )
 
@@ -737,7 +737,7 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_supported_pkg_formats(self) -> Iterable[CondaSupportedPkgFormats]:
+    def conda_pkg_extractors(self) -> Iterable[CondaPkgExtractors]:
         """
         Register supported package extensions and their extraction handlers.
 
@@ -749,13 +749,13 @@ class CondaSpecs:
 
 
             @plugins.hookimpl
-            def conda_supported_pkg_formats():
-                yield plugins.CondaSupportedPkgFormats(
+            def conda_pkg_extractors():
+                yield plugins.CondaPkgExtractors(
                     name="wheel-package",
                     extensions=[".whl"],
                     action=extract_whl_as_conda_pkg,
                 )
 
-        :return: An iterable of CondaSupportedPkgFormats entries.
+        :return: An iterable of CondaPkgExtractors entries.
         """
         yield from ()
