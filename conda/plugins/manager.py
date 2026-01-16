@@ -85,17 +85,14 @@ class CondaPluginManager(pluggy.PluginManager):
     The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
-    #: method.
     get_cached_solver_backend: Callable[[str | None], type[Solver]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend` method."""
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers`
-    #: method.
     get_cached_session_headers: Callable[[str], dict[str, str]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers` method."""
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers`
-    #: method.
     get_cached_request_headers: Callable[[str, str], dict[str, str]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers` method."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(APP_NAME, *args, **kwargs)
@@ -418,6 +415,10 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    def get_health_checks(self) -> dict[str, CondaHealthCheck]:
+        """Return a mapping of health check name to health check."""
+        return {check.name: check for check in self.get_hook_results("health_checks")}
+
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
         return tuple(self.get_hook_results("reporter_backends"))
 
@@ -465,14 +466,6 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
         for hook in self.get_hook_results("prefix_data_loaders"):
             yield hook.loader
-
-    def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
-        for hook in self.get_hook_results("health_checks"):
-            try:
-                hook.action(prefix, verbose)
-            except Exception as err:
-                log.warning(f"Error running health check: {hook.name} ({err})")
-                continue
 
     def invoke_pre_solves(
         self,
@@ -859,7 +852,7 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
-        health_checks,
+        *health_checks.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
         *supported_pkg_formats.plugins,

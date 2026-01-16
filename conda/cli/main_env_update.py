@@ -140,9 +140,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # e.g. due to conda_env being upgraded or Python version switched.
     installers = {}
 
-    if env.requested_packages:
-        installers["conda"] = get_installer("conda")
-
+    # Ensure we have all the right external package installers before starting
+    # to install anything.
     for installer_type in env.external_packages:
         try:
             installers[installer_type] = get_installer(installer_type)
@@ -160,15 +159,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 )
             )
 
-            return -1
-
     result = {"conda": None, "pip": None}
     # install conda packages
-    installer_type = "conda"
-    installer = installers[installer_type]
-    result[installer_type] = installer.install(
-        prefix, env.requested_packages, args, env
-    )
+    if env.requested_packages:
+        installer_type = "conda"
+        installer = get_installer(installer_type)
+        result[installer_type] = installer.install(
+            prefix, env.requested_packages, args, env
+        )
     # install all other external packages
     for installer_type, specs in env.external_packages.items():
         installer = installers[installer_type]

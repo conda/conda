@@ -47,7 +47,7 @@ from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
-from .serialize import yaml_round_trip_load
+from .serialize import yaml
 
 if Enum not in _getFreezeConversionMap():
     # leave enums as is, deepfreeze will flatten it into a dict
@@ -394,7 +394,7 @@ class YamlRawParameter(RawParameter):
     def make_raw_parameters_from_file(cls, filepath):
         with open(filepath) as fh:
             try:
-                yaml_obj = yaml_round_trip_load(fh)
+                yaml_obj = yaml.loads(fh)
             except ScannerError as err:
                 mark = err.problem_mark
                 raise ConfigurationLoadError(
