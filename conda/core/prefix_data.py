@@ -9,6 +9,7 @@ import re
 import warnings
 from collections import UserDict
 from datetime import datetime, timezone
+from functools import cached_property
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
@@ -49,6 +50,7 @@ from ..exceptions import (
     EnvironmentIsFrozenError,
     EnvironmentLocationNotFound,
     EnvironmentNameNotFound,
+    EnvironmentNotReadableError,
     EnvironmentNotWritableError,
     maybe_raise,
 )
@@ -226,7 +228,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def is_environment(self) -> bool:
         """
-        Check whether the PrefixData path is a valida conda environment.
+        Check whether the PrefixData path is a valid conda environment.
 
         This is assessed by checking if `conda-meta/history` marker file exists.
         """
@@ -426,6 +428,35 @@ class PrefixData(metaclass=PrefixDataType):
             return None
         else:
             return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+
+    @cached_property
+    def size(self) -> int:
+        """
+        Compute the total size of a conda environment prefix.
+
+        :returns: Total size in bytes.
+        :raises DirectoryNotACondaEnvironmentError: If the path is not a valid environment.
+        :raises EnvironmentNotReadableError: If the environment cannot be read.
+        """
+        self.assert_exists()
+        try:
+            if not self._magic_file.is_file():
+                raise DirectoryNotACondaEnvironmentError(self.prefix_path)
+        except OSError as e:
+            raise EnvironmentNotReadableError(self.prefix_path, e)
+
+        total_size = 0
+        try:
+            for meta_file in (self.prefix_path / "conda-meta").glob("*.json"):
+                with open(meta_file) as f:
+                    data = json.load(f)
+                for entry in data.get("paths_data", {}).get("paths", []):
+                    if entry.get("path_type") != "softlink":
+                        total_size += entry.get("size_in_bytes") or 0
+        except OSError as e:
+            raise EnvironmentNotReadableError(self.prefix_path, e)
+
+        return total_size
 
     # endregion
     # region Records

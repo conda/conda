@@ -766,12 +766,11 @@ def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert (prefix / PREFIX_MAGIC_FILE).exists()
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
-        assert stdout == dals(
-            f"""
-            # packages in environment at {prefix}:
-            #
-            # Name                     Version          Build            Channel
-            """
+        assert f"# packages in environment at {prefix}:" in stdout
+        assert "# environment size:" in stdout
+        assert (
+            "# Name                     Version          Build            Channel"
+            in stdout
         )
         assert not stderr
         assert not code

@@ -693,3 +693,34 @@ def test_list_info_envs(conda_cli: CondaCLIFixture):
     stdout_env, _, _ = conda_cli("env", "list", "--json")
     stdout_info, _, _ = conda_cli("info", "--envs", "--json")
     assert stdout_env == stdout_info
+
+
+def test_env_list_size(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("env", "list", "--size")
+    assert not stderr
+    assert not err
+
+    lines = stdout.strip().split("\n")
+    non_comment_lines = [line for line in lines if line and not line.startswith("#")]
+    for line in non_comment_lines:
+        parts = line.split()
+        if len(parts) >= 2:
+            last_part = parts[-1]
+            assert any(
+                last_part.endswith(suffix) for suffix in ["B", "KB", "MB", "GB"]
+            ), f"Expected size suffix in line: {line}"
+
+
+def test_env_list_size_json(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("env", "list", "--size", "--json")
+    assert not stderr
+    assert not err
+
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+    assert "envs_details" in parsed
+
+    for prefix, details in parsed["envs_details"].items():
+        assert "size" in details
+        assert isinstance(details["size"], int)
+        assert details["size"] >= 0

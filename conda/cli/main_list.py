@@ -13,6 +13,7 @@ from os.path import isdir, isfile
 from typing import TYPE_CHECKING
 
 from .. import __version__
+from ..utils import human_bytes
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -272,8 +273,10 @@ def list_packages(
 
     if format == "human":
         template_line = "  ".join([f"%-{width}s" for width in widths])
+        env_size = human_bytes(prefix_data.size)
         result = [
             f"# packages in environment at {prefix}:",
+            f"# environment size: {env_size}",
             "#",
             f"# {template_line}" % tuple(titles),
         ]
