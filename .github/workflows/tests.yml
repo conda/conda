@@ -74,7 +74,7 @@ jobs:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        python-version: ['3.10', '3.13']
+        python-version: ['3.10', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -223,7 +223,7 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' && matrix.python-version != '3.14' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
 
     steps:
       - name: Checkout Source
@@ -346,7 +346,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
@@ -412,7 +412,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
@@ -504,7 +504,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
         image:
           - condaforge/miniforge3:latest
         platform: [ppc64le]
@@ -558,7 +558,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
@@ -624,13 +624,13 @@ jobs:
         runs-on:
           - macos-15-intel  # osx-64
           - macos-latest  # osx-arm64
-        python-version: ['3.10', '3.13']
+        python-version: ['3.10', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - runs-on: macos-15-intel
-            python-version: '3.13'
+            python-version: '3.14'
           - runs-on: macos-15-intel
             default-channel: defaults
           - runs-on: macos-15-intel
@@ -889,7 +889,7 @@ jobs:
       fail-fast: false
       matrix:
         # check missing imports in one representative environment
-        python-version: ['3.13']
+        python-version: ['3.14']
         default-channel: [defaults]
 
     steps:
