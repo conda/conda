@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove use of deprecated `codecs.open` (deprecated since Python 3.14)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

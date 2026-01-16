@@ -4,5 +4,5 @@
 
 from . import signature_verification
 
-#: The list of post-solve plugins for easier registration with pluggy
 plugins = [signature_verification]
+"""The list of post-solve plugins for easier registration with pluggy."""

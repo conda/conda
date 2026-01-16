@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add support for Python 3.14. (#15080)
+
+### Bug fixes
+
+* Replace deprecated `codecs.open()` with built-in `open()` for Python 3.14 compatibility. (#15080)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
