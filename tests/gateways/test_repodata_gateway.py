@@ -246,6 +246,36 @@ def test_coverage_conda_http_errors(monkeypatch: MonkeyPatch):
     ):
         raise HTTPError(response=Response(404))
 
+    # 403 should have context-aware error messages (unlike 404)
+    # Test 403 on anaconda.org channel
+    with (
+        pytest.raises(CondaHTTPError, match="do not have permission"),
+        conda_http_errors("https://conda.anaconda.org/noarch", "repodata.json"),
+    ):
+        raise HTTPError(response=Response(403))
+
+    # Test 403 with a token - should trigger a different message
+    with (
+        pytest.raises(CondaHTTPError, match="insufficient permissions"),
+        conda_http_errors(
+            "/t/dh-73683400-b3ee-4f87-ade8-37de6d395bdb/conda-forge/noarch",
+            "repodata.json",
+        ),
+    ):
+        raise HTTPError(response=Response(403))
+
+    # Test 403 on non-anaconda URL
+    monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "1")
+    reset_context()
+    with (
+        pytest.raises(CondaHTTPError, match="do not have permission"),
+        conda_http_errors("https://example.org/main/linux-64", "repodata.json"),
+    ):
+        context.channel_alias.location = "xyzzy"
+        raise HTTPError(response=Response(403))
+
+    reset_context()
+
     # A variety of helpful error messages should follow
     with (
         pytest.raises(CondaHTTPError, match="invalid credentials"),

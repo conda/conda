@@ -336,11 +336,45 @@ def test_download_http_errors():
         raise SSLError()
 
     # A variety of helpful error messages should follow
+
+    # 401 on generic URL
     with (
-        pytest.raises(CondaHTTPError, match=str(401)),
+        pytest.raises(CondaHTTPError, match="credentials you have provided"),
         download_http_errors("https://example.org/file"),
     ):
         raise HTTPError(response=Response(401))
+
+    # 401 with token should trigger token-specific message
+    with (
+        pytest.raises(CondaHTTPError, match="token.*is invalid"),
+        download_http_errors(
+            "/t/dh-73683400-b3ee-4f87-ade8-37de6d395bdb/conda-forge/file"
+        ),
+    ):
+        raise HTTPError(response=Response(401))
+
+    # 403 on generic URL
+    with (
+        pytest.raises(CondaHTTPError, match="do not have permission"),
+        download_http_errors("https://example.org/file"),
+    ):
+        raise HTTPError(response=Response(403))
+
+    # 403 with token should trigger token-specific message
+    with (
+        pytest.raises(CondaHTTPError, match="insufficient permissions"),
+        download_http_errors(
+            "/t/dh-73683400-b3ee-4f87-ade8-37de6d395bdb/conda-forge/file"
+        ),
+    ):
+        raise HTTPError(response=Response(403))
+
+    # Other HTTP errors should use generic message
+    with (
+        pytest.raises(CondaHTTPError, match="An HTTP error"),
+        download_http_errors("https://example.org/file"),
+    ):
+        raise HTTPError(response=Response(500))
 
 
 @pytest.mark.parametrize(
