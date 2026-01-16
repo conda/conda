@@ -64,7 +64,7 @@ def transaction_plugin(plugin_manager_with_reporter_backends, mocker):
     # Explicitly load the solver, since this is a dummy plugin manager and not the default
     plugin_manager_with_reporter_backends.load_plugins(plugins.solvers)
     plugin_manager_with_reporter_backends.load_plugins(
-        *plugins.supported_pkg_formats.plugins
+        *plugins.package_extractors.plugins
     )
 
     pre_plugin = DummyPreActionPlugin()

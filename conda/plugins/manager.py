@@ -60,7 +60,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
-        CondaPkgExtractors,
+        CondaPackageExtractor,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -268,7 +268,7 @@ class CondaPluginManager(pluggy.PluginManager):
     @overload
     def get_hook_results(
         self, name: Literal["pkg_extractors"]
-    ) -> list[CondaPkgExtractors]: ...
+    ) -> list[CondaPackageExtractor]: ...
 
     @overload
     def get_hook_results(

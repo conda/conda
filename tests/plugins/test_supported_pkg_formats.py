@@ -5,7 +5,7 @@ from __future__ import annotations
 from conda import plugins
 from conda.base.context import context
 from conda.gateways.disk.create import extract_tarball
-from conda.plugins.types import CondaPkgExtractors
+from conda.plugins.types import CondaPackageExtractor
 
 
 def test_plugin_fetches_correct_extractor(plugin_manager):
@@ -17,8 +17,8 @@ def test_plugin_fetches_correct_extractor(plugin_manager):
 
     class RandomPkgFormatPlugin:
         @plugins.hookimpl
-        def conda_pkg_extractors(self):
-            yield CondaPkgExtractors(
+        def conda_package_extractors(self):
+            yield CondaPackageExtractor(
                 name="Random Format", extensions=[".random"], extractor=random_extractor
             )
 

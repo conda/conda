@@ -6,12 +6,12 @@
 from conda.gateways.disk.create import extract_tarball
 
 from ..hookspec import hookimpl
-from ..types import CondaPkgExtractors
+from ..types import CondaPackageExtractor
 
 
 @hookimpl
-def conda_pkg_extractors():
-    yield CondaPkgExtractors(
+def conda_package_extractors():
+    yield CondaPackageExtractor(
         name="Conda Package",
         extensions=[".tar.bz2", ".conda"],
         extractor=extract_tarball,
