@@ -116,10 +116,12 @@ def read(
     return _yaml().load(text)
 
 
+@cache
 def load(fp: IO[str]) -> Any:
     return read(fp=fp)
 
 
+@cache
 def loads(s: str) -> Any:
     return read(text=s)
 
