@@ -46,7 +46,6 @@ from ..gateways.disk.create import (
     create_hard_link_or_copy,
     create_link,
     create_python_entry_point,
-    extract_tarball,
     make_menu,
     mkdir_p,
     write_as_json_to_file,
@@ -1430,7 +1429,13 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        extract_tarball(
+        # find the right extract function from registered plugins
+        extract = context.plugin_manager.get_pkg_extraction_function_from_plugin(
+            self.source_full_path
+        )
+
+        # Call the extract function
+        extract(
             self.source_full_path,
             self.target_full_path,
             progress_update_callback=progress_update_callback,

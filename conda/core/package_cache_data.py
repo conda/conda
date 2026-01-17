@@ -38,7 +38,6 @@ from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
-    extract_tarball,
     write_as_json_to_file,
 )
 from ..gateways.disk.delete import rm_rf
@@ -426,9 +425,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         try:
-                            extract_tarball(
-                                package_tarball_full_path, extracted_package_dir
+                            extract = context.plugin_manager.get_pkg_extraction_function_from_plugin(
+                                package_tarball_full_path
                             )
+                            extract(package_tarball_full_path, extracted_package_dir)
                         except (OSError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
                                 # FileNotFoundError(2, 'No such file or directory')

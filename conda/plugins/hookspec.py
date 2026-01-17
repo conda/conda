@@ -25,6 +25,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaPackageExtractor,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -767,5 +768,29 @@ class CondaSpecs:
                     default_filenames=("environment.toml",),
                     export=export_toml,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_package_extractors(self) -> Iterable[CondaPackageExtractor]:
+        """
+        Register supported package extensions and their extraction handlers.
+
+        Example:
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            @plugins.hookimpl
+            def conda_package_extractors():
+                yield plugins.CondaPackageExtractor(
+                    name="wheel-package",
+                    extensions=[".whl"],
+                    action=extract_whl_as_conda_pkg,
+                )
+
+        :return: An iterable of CondaPackageExtractor entries.
         """
         yield from ()
