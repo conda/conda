@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
     from .records import PackageRecord
 
+RE_CONDITIONAL = re.compile(r"(.*?)\s*;\s*if\s+(.*)\s*")
 log = getLogger(__name__)
 
 
@@ -727,7 +728,7 @@ def _parse_spec_str(spec_str):
 
     # Step 1.b save '; if ...' conditions
     # NOTE: Conditional specs are experimental and subject to changes in syntax
-    if condition := re.match(r"(.*?)\s*;\s*if\s+(.*)\s*", spec_str):
+    if condition := RE_CONDITIONAL.match(spec_str):
         spec_str = condition.group(1)
         condition = condition.group(2)
     else:
