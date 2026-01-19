@@ -215,6 +215,10 @@ class ProgressFileWrapper:
         self.progress_update_callback(rel_pos)
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+)
 def extract_tarball(
     tarball_full_path, destination_directory=None, progress_update_callback=None
 ):
