@@ -21,7 +21,6 @@ from conda.exceptions import (
     CondaHTTPError,
     CondaKeyError,
     DirectoryNotFoundError,
-    EnvironmentNotReadableError,
     ExceptionHandler,
     KnownPackageClobberError,
     PackagesNotFoundError,
@@ -282,43 +281,6 @@ def test_DirectoryNotFoundError(
 
     assert not stdout
     assert stderr == "\n".join(("", "DirectoryNotFoundError: Groot", "", ""))
-
-
-def test_EnvironmentNotReadableError(
-    monkeypatch: MonkeyPatch,
-    capsys: CaptureFixture,
-) -> None:
-    environment_location = "/path/to/env"
-    exc = EnvironmentNotReadableError(environment_location)
-
-    monkeypatch.setenv("CONDA_JSON", "yes")
-    reset_context()
-    assert context.json
-
-    conda_exception_handler(_raise_helper, exc)
-    stdout, stderr = capsys.readouterr()
-
-    json_obj = json.loads(stdout)
-    assert not stderr
-    assert (
-        json_obj["exception_type"]
-        == "<class 'conda.exceptions.EnvironmentNotReadableError'>"
-    )
-    assert json_obj["exception_name"] == "EnvironmentNotReadableError"
-    assert json_obj["message"] == str(exc)
-    assert json_obj["error"] == repr(exc)
-    assert json_obj["environment_location"] == environment_location
-
-    monkeypatch.setenv("CONDA_JSON", "no")
-    reset_context()
-    assert not context.json
-
-    conda_exception_handler(_raise_helper, exc)
-    stdout, stderr = capsys.readouterr()
-
-    assert not stdout
-    assert "EnvironmentNotReadableError" in stderr
-    assert environment_location in stderr
 
 
 def test_MD5MismatchError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:

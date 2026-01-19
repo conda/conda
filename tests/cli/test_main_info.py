@@ -4,10 +4,6 @@
 from __future__ import annotations
 
 import json
-import os
-import stat
-import subprocess
-import sys
 from collections.abc import Iterable
 from os.path import isdir
 from pathlib import Path
@@ -25,11 +21,7 @@ from conda.cli.main_info import (
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import (
-    ArgumentError,
-    DirectoryNotACondaEnvironmentError,
-    EnvironmentNotReadableError,
-)
+from conda.exceptions import ArgumentError, DirectoryNotACondaEnvironmentError
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 if TYPE_CHECKING:
@@ -346,35 +338,6 @@ def test_compute_prefix_size_not_an_environment(tmp_path: Path):
     with pytest.raises(DirectoryNotACondaEnvironmentError):
         prefix_data = PrefixData(test_dir)
         _ = prefix_data.size
-
-
-def test_compute_prefix_size_unreadable_directory(tmp_env: TmpEnvFixture, request):
-    with tmp_env() as prefix:
-        conda_meta = prefix / "conda-meta"
-
-        if sys.platform == "win32":
-            username = os.environ.get("USERNAME")
-            subprocess.run(
-                ["icacls", str(conda_meta), "/deny", f"{username}:(RD)"],
-                check=True,
-                capture_output=True,
-            )
-            request.addfinalizer(
-                lambda: subprocess.run(
-                    ["icacls", str(conda_meta), "/remove:d", f"{username}"],
-                    capture_output=True,
-                )
-            )
-        else:
-            current = stat.S_IMODE(os.lstat(conda_meta).st_mode)
-            os.chmod(
-                conda_meta, current & ~stat.S_IXUSR & ~stat.S_IXGRP & ~stat.S_IXOTH
-            )
-            request.addfinalizer(lambda: os.chmod(conda_meta, current))
-
-        with pytest.raises(EnvironmentNotReadableError):
-            prefix_data = PrefixData(prefix)
-            _ = prefix_data.size
 
 
 def test_info_size_without_envs(conda_cli: CondaCLIFixture):
