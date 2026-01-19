@@ -439,15 +439,25 @@ class PrefixData(metaclass=PrefixDataType):
         :raises EnvironmentNotReadableError: If the environment cannot be read.
         """
         self.assert_exists()
+
+        conda_meta = self.prefix_path / "conda-meta"
+
         try:
-            if not self._magic_file.is_file():
-                raise DirectoryNotACondaEnvironmentError(self.prefix_path)
+            next(conda_meta.iterdir(), None)
         except OSError as e:
             raise EnvironmentNotReadableError(self.prefix_path, e)
 
+        try:
+            magic_file_exists = self._magic_file.is_file()
+        except OSError as e:
+            raise EnvironmentNotReadableError(self.prefix_path, e)
+
+        if not magic_file_exists:
+            raise DirectoryNotACondaEnvironmentError(self.prefix_path)
+
         total_size = 0
         try:
-            for meta_file in (self.prefix_path / "conda-meta").glob("*.json"):
+            for meta_file in conda_meta.glob("*.json"):
                 with open(meta_file) as f:
                     data = json.load(f)
                 for entry in data.get("paths_data", {}).get("paths", []):
