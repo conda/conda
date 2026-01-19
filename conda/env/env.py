@@ -14,7 +14,7 @@ from ..cli import common
 from ..common.io import dashlist
 from ..common.iterators import unique
 from ..common.path import expand
-from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
+from ..common.serialize import json, yaml
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -277,7 +277,7 @@ def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
         is found to be invalid
     :returns EnvironmentYaml: A representation of the environment file
     """
-    data = yaml_safe_load(yamlstr)
+    data = yaml.loads(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
@@ -419,9 +419,7 @@ class EnvironmentYaml:
     def to_yaml(self, stream=None):
         """Convert information related to the ``EnvironmentYaml`` into a ``yaml`` string"""
         d = self.to_dict()
-        out = yaml_safe_dump(d, stream)
-        if stream is None:
-            return out
+        return yaml.write(d, fp=stream)
 
     def save(self):
         """Save the ``EnvironmentYaml`` data to a ``yaml`` file"""

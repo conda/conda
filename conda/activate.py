@@ -92,8 +92,9 @@ class _Activator(metaclass=abc.ABCMeta):
         [str | Iterable[str] | None], str | tuple[str, ...] | None
     ]
     script_extension: str
-    #: temporary file's extension, None writes to stdout instead
+
     tempfile_extension: str | None
+    """Temporary file's extension, None writes to stdout instead."""
     command_join: str
 
     unset_var_tmpl: str
