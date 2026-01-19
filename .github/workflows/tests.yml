@@ -115,7 +115,27 @@ jobs:
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
 
+      - name: Conda Install (Py3.14)
+        if: matrix.python-version == '3.14'
+        run: >
+          conda install
+          --yes
+          --file tests\requirements-py314.txt
+          --file tests\requirements-${{ runner.os }}.txt
+          --file tests\requirements-ci.txt
+          --file tests\requirements-s3.txt
+          python=${{ matrix.python-version }}
+
+      - name: Manually add conda-libmamba-solver (Py3.14)
+        # TODO: Remove this step once conda and conda-libmamba-solver have proper Python 3.14 builds
+        # conda-libmamba-solver depends on conda which doesn't have a Python 3.14 build yet
+        if: matrix.python-version == '3.14'
+        run: >
+          conda install --yes
+          ${{ matrix.default-channel == 'conda-forge' && 'https://conda.anaconda.org/conda-forge/noarch/conda-libmamba-solver-25.11.0-pyhd8ed1ab_0.conda' || 'https://conda.anaconda.org/main/noarch/conda-libmamba-solver-25.11.0-pyhdf14ebd_0.tar.bz2' }}
+
       - name: Conda Install
+        if: matrix.python-version != '3.14'
         run: >
           conda install
           --yes
@@ -125,6 +145,13 @@ jobs:
           --file tests\requirements-s3.txt
           --file tests\requirements-truststore.txt
           python=${{ matrix.python-version }}
+
+      - name: Install conda in dev mode
+        if: matrix.python-version == '3.14'
+        run: |
+          python -m pip install -e .  --no-deps
+          # Ensure conda executable is available
+          python -m conda --version
 
       - name: Conda Info
         # view test env info (not base)
@@ -671,7 +698,26 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
+      - name: Conda Install (Py3.14)
+        if: matrix.python-version == '3.14'
+        run: >
+          conda install
+          --yes
+          --file tests/requirements-py314.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          python=${{ matrix.python-version }}
+
+      - name: Manually add conda-libmamba-solver (Py3.14)
+        # TODO: Remove this step once conda and conda-libmamba-solver have proper Python 3.14 builds
+        # conda-libmamba-solver depends on conda which doesn't have a Python 3.14 build yet
+        if: matrix.python-version == '3.14'
+        run: >
+          conda install --yes
+          ${{ matrix.default-channel == 'conda-forge' && 'https://conda.anaconda.org/conda-forge/noarch/conda-libmamba-solver-25.11.0-pyhd8ed1ab_0.conda' || 'https://conda.anaconda.org/main/noarch/conda-libmamba-solver-25.11.0-pyhdf14ebd_0.tar.bz2' }}
+
       - name: Conda Install
+        if: matrix.python-version != '3.14'
         run: >
           conda install
           --yes
@@ -680,6 +726,13 @@ jobs:
           --file tests/requirements-s3.txt
           --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
+
+      - name: Install conda in dev mode
+        if: matrix.python-version == '3.14'
+        run: |
+          python -m pip install -e .  --no-deps
+          # Ensure conda executable is available
+          python -m conda --version
 
       - name: Conda Info
         # view test env info (not base)
