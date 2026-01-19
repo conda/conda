@@ -608,7 +608,6 @@ class PrefixData(metaclass=PrefixDataType):
         return self.__prefix_records or self.load() or self.__prefix_records
 
     def _load_single_record(self, prefix_record_json_path: PathType) -> None:
-        log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
                 data = json.load(fh)
