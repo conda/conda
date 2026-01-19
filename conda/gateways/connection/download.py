@@ -378,7 +378,7 @@ def download_http_errors(url: str):
             if channel.token:
                 help_message = dals(
                     f"""
-                    The token '{channel.token}' given for the URL is invalid.
+                    The token given for the URL is invalid.
 
                     If this token was pulled from anaconda-client, you will need to use
                     anaconda-client to reauthenticate.
