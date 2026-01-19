@@ -40,7 +40,7 @@ except ImportError:
 if TYPE_CHECKING:
     from typing import Any
 
-    from conda.models.records import PackageRecord
+    from .records import PackageRecord
 
 log = getLogger(__name__)
 
