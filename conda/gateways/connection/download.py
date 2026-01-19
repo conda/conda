@@ -330,7 +330,7 @@ def download_http_errors(url: str):
             if channel.token:
                 help_message = dals(
                     f"""
-                    The token '{channel.token}' given for the URL has insufficient permissions
+                    The token given for the URL has insufficient permissions
                     to access this resource.
 
                     You may not have the required permissions to access this channel or package.
