@@ -7,7 +7,7 @@ import pytest
 from conda import plugins
 from conda.base.context import context
 from conda.exceptions import PluginError
-from conda.gateways.disk.create import extract_tarball
+from conda.plugins.package_extractors.conda_pkg import extract_tarball
 from conda.plugins.types import CondaPackageExtractor
 
 
@@ -48,5 +48,8 @@ def test_plugin_fetches_extract_tarball():
 def test_plugin_raises_error_for_unsupported_format():
     with pytest.raises(PluginError):
         context.plugin_manager.get_pkg_extraction_function_from_plugin(
-            "something.no_supported"
+            "something.not_supported"
         )
+
+
+def test_conda_pkg_extraction(): ...
