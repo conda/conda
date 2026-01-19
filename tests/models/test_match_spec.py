@@ -1545,12 +1545,12 @@ def test_conditional_specs():
     assert ms.get("condition") == "__win"
     assert str(ms) == input_spec
 
-    # This is the normal syntax, with version
+    # This is the normal syntax, with version and build string
     ms = MatchSpec("python 2.* *cpython*; if __win")
     assert ms.get("condition") == "__win"
     assert str(ms) == "python=2[build=*cpython*]; if __win"
 
-    # This is the normal syntax, with version
+    # This is the normal syntax, with version in brackets
     ms = MatchSpec("python[version=2]; if __win")
     assert ms.get("condition") == "__win"
     assert str(ms) == "python==2; if __win"
