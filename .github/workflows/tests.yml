@@ -143,7 +143,6 @@ jobs:
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
-          --file tests\requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Install conda in dev mode
@@ -284,7 +283,6 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          ${{ env.REQUIREMENTS_TRUSTSTORE }}
           python=${{ matrix.python-version }}
 
       - name: Manually add conda-libmamba-solver (Py3.14)
@@ -304,7 +302,6 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Install conda in dev mode
@@ -763,7 +760,6 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Install conda in dev mode
