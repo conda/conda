@@ -1429,13 +1429,8 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        # find the right extract function from registered plugins
-        extract = context.plugin_manager.get_pkg_extraction_function_from_plugin(
-            self.source_full_path
-        )
-
-        # Call the extract function
-        extract(
+        # extract the package using the appropriate plugin
+        context.plugin_manager.extract_package(
             self.source_full_path,
             self.target_full_path,
         )

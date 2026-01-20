@@ -774,23 +774,34 @@ class CondaSpecs:
     @_hookspec
     def conda_package_extractors(self) -> Iterable[CondaPackageExtractor]:
         """
-        Register supported package extensions and their extraction handlers.
+        Register package extractors for different archive formats.
 
-        Example:
+        Package extractors handle the unpacking of package archives. Each extractor
+        specifies which file extensions it supports (e.g., ``.conda``, ``.tar.bz2``,
+        ``.whl``) and provides an extraction function that takes the source archive
+        path and destination directory.
+
+        **Example:**
 
         .. code-block:: python
 
             from conda import plugins
+            from conda.common.path import PathType
+
+
+            def extract_whl(source_path: PathType, destination_directory: PathType) -> None:
+                # Custom extraction logic for wheel packages
+                ...
 
 
             @plugins.hookimpl
             def conda_package_extractors():
-                yield plugins.CondaPackageExtractor(
+                yield plugins.types.CondaPackageExtractor(
                     name="wheel-package",
                     extensions=[".whl"],
-                    action=extract_whl_as_conda_pkg,
+                    extract=extract_whl,
                 )
 
-        :return: An iterable of CondaPackageExtractor entries.
+        :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
         """
         yield from ()

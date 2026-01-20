@@ -32,24 +32,18 @@ def test_plugin_fetches_correct_extractor(plugin_manager):
     plugin_manager.register(random_pkg_format_plugin)
 
     # test
-    extractor_func = context.plugin_manager.get_pkg_extraction_function_from_plugin(
-        "something.random"
-    )
-    assert extractor_func is random_extractor
+    extractor = context.plugin_manager.get_package_extractor("something.random")
+    assert extractor.extract is random_extractor
 
 
 def test_plugin_fetches_extract_tarball():
-    extractor_func = context.plugin_manager.get_pkg_extraction_function_from_plugin(
-        "something.conda"
-    )
-    assert extractor_func is extract_conda_or_tarball
+    extractor = context.plugin_manager.get_package_extractor("something.conda")
+    assert extractor.extract is extract_conda_or_tarball
 
 
 def test_plugin_raises_error_for_unsupported_format():
     with pytest.raises(PluginError):
-        context.plugin_manager.get_pkg_extraction_function_from_plugin(
-            "something.not_supported"
-        )
+        context.plugin_manager.get_package_extractor("something.not_supported")
 
 
 def test_conda_pkg_extraction(): ...

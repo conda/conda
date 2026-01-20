@@ -51,6 +51,7 @@ if TYPE_CHECKING:
 
     from requests.auth import AuthBase
 
+    from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
@@ -826,18 +827,48 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
-    def get_pkg_extraction_function_from_plugin(
-        self, source_full_path: str
-    ) -> Callable:
+    def get_package_extractor(
+        self,
+        source_full_path: PathType,
+    ) -> CondaPackageExtractor:
+        """
+        Get the package extractor plugin for a given package path.
+
+        Searches through registered package extractor plugins to find one that
+        handles the file extension of the provided package path.
+
+        :param source_full_path: Full path to the package archive file.
+        :return: The matching :class:`~conda.plugins.types.CondaPackageExtractor` plugin.
+        :raises PluginError: If no registered extractor handles the file extension.
+        """
+        source_str = os.fspath(source_full_path)
         hooks = self.get_hook_results("package_extractors")
         for hook in hooks:
             for ext in hook.extensions:
-                if source_full_path.lower().endswith(ext.lower()):
-                    return hook.extract
+                if source_str.lower().endswith(ext.lower()):
+                    return hook
 
         raise PluginError(
             f"No registered 'package_extractors' plugin found for package: {source_full_path}"
         )
+
+    def extract_package(
+        self,
+        source_full_path: PathType,
+        destination_directory: PathType,
+    ) -> None:
+        """
+        Extract a package archive to a destination directory.
+
+        Finds the appropriate extractor plugin based on the file extension
+        and extracts the package.
+
+        :param source_full_path: Full path to the package archive file.
+        :param destination_directory: Directory to extract the package contents to.
+        :raises PluginError: If no registered extractor handles the file extension.
+        """
+        extractor = self.get_package_extractor(source_full_path)
+        extractor.extract(source_full_path, destination_directory)
 
 
 @functools.cache
