@@ -278,8 +278,6 @@ The token '{}' given for the URL has insufficient permissions to access this res
 You may not have the required permissions to access this channel or package.
 Consider requesting access from the channel owner.
 
-You can verify your access with `anaconda show <channel>/<package>`.
-
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <{}>.
 """.format(
@@ -292,11 +290,10 @@ Further configuration help can be found at <{}>.
 The remote server has indicated you do not have permission to access this resource.
 
 This may mean:
-  (a) You are not authenticated. Try `anaconda login` to authenticate, or
+  (a) You are not authenticated. Check if authentication is required for this channel
+      and verify your credentials are correctly configured.
   (b) You do not have access to this private channel or package. Contact the
       channel owner to request access.
-
-You can verify your access with `anaconda show <channel>/<package>`.
 
 Further configuration help can be found at <{}>.
 """.format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
