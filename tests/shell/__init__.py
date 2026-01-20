@@ -144,6 +144,9 @@ class InteractiveShellType(type):
             "args": ("--interactive",),
             "init_command": f'__xonsh__.execer.exec($("{EXE_UNIX}" -m conda shell.xonsh hook))',
             "print_env_var": "print($%s)",
+            # Workaround for some issues with prompt_toolkit
+            # https://github.com/conda/conda/issues/15611
+            "env": {"SHELL_TYPE": "readline"},
         },
     }
 
