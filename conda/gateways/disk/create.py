@@ -218,6 +218,7 @@ class ProgressFileWrapper:
 @deprecated(
     "26.9",
     "27.3",
+    addendum="Use `conda.base.context.context.plugin_manager.extract_package` instead.",
 )
 def extract_tarball(
     tarball_full_path, destination_directory=None, progress_update_callback=None
