@@ -16,9 +16,7 @@ from ..types import CondaPackageExtractor
 log = getLogger(__name__)
 
 
-def extract_tarball(
-    tarball_full_path, destination_directory=None, progress_update_callback=None
-):
+def extract_conda_or_tarball(tarball_full_path, destination_directory=None):
     import conda_package_handling.api
 
     if destination_directory is None:
@@ -60,7 +58,7 @@ def conda_package_extractors():
     yield CondaPackageExtractor(
         name="Conda Package",
         extensions=[".tar.bz2", ".conda"],
-        extract=extract_tarball,
+        extract=extract_conda_or_tarball,
     )
 
 

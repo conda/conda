@@ -1438,7 +1438,6 @@ class ExtractPackageAction(PathAction):
         extract(
             self.source_full_path,
             self.target_full_path,
-            progress_update_callback=progress_update_callback,
         )
 
         try:
