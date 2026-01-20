@@ -437,11 +437,14 @@ class PrefixData(metaclass=PrefixDataType):
         """
         total_size = 0
         for meta_file in (self.prefix_path / "conda-meta").glob("*.json"):
+            total_size += meta_file.stat().st_size
+
             with open(meta_file) as f:
                 data = json.load(f)
             for entry in data.get("paths_data", {}).get("paths", []):
                 if entry.get("path_type") != "softlink":
                     total_size += entry.get("size_in_bytes") or 0
+
         return total_size
 
     # endregion
