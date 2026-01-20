@@ -777,9 +777,9 @@ class CondaSpecs:
         Register package extractors for different archive formats.
 
         Package extractors handle the unpacking of package archives. Each extractor
-        specifies which file extensions it supports (e.g., ``.conda``, ``.tar.bz2``,
-        ``.whl``) and provides an extraction function that takes the source archive
-        path and destination directory.
+        specifies which file extensions it supports (e.g., ``.conda``, ``.tar.bz2``)
+        and provides an extraction function that takes the source archive path and
+        destination directory.
 
         **Example:**
 
@@ -789,17 +789,17 @@ class CondaSpecs:
             from conda.common.path import PathType
 
 
-            def extract_whl(source_path: PathType, destination_directory: PathType) -> None:
-                # Custom extraction logic for wheel packages
+            def extract_custom(source_path: PathType, destination_directory: PathType) -> None:
+                # Custom extraction logic for a hypothetical package format
                 ...
 
 
             @plugins.hookimpl
             def conda_package_extractors():
                 yield plugins.types.CondaPackageExtractor(
-                    name="wheel-package",
-                    extensions=[".whl"],
-                    extract=extract_whl,
+                    name="custom-package",
+                    extensions=[".custom"],
+                    extract=extract_custom,
                 )
 
         :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.

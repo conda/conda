@@ -4,7 +4,7 @@ Package extractors
 
 Package extractors handle the unpacking of different package archive formats.
 Each extractor specifies which file extensions it supports (e.g., ``.conda``,
-``.tar.bz2``, ``.whl``) and provides an extraction function.
+``.tar.bz2``) and provides an extraction function.
 
 This plugin hook allows adding support for new package formats without
 modifying conda's core code.
