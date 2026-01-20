@@ -260,10 +260,36 @@ class Channel(metaclass=ChannelType):
         with_credentials: bool = False,
         subdirs: Iterable[str] | None = None,
     ) -> list[str]:
-        if subdirs is None:
-            subdirs = context.subdirs
+        """Generate URLs for this channel across specified platforms.
 
-        assert isiterable(subdirs), subdirs  # subdirs must be a non-string iterable
+        Args:
+            with_credentials: If True, include authentication credentials (token, auth) in URLs.
+            subdirs: Specific platform subdirs to generate URLs for. If None, uses the channel's
+                    platform (if defined) or falls back to `context.subdirs`. If this is explicitly
+                    provided, overrides any platform defined in the channel.
+
+        Examples:
+            >>> channel = Channel("conda-forge")
+            >>> channel.urls()  # Uses context.subdirs
+            ['https://conda.anaconda.org/conda-forge/linux-64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+            >>> channel = Channel("conda-forge/linux-aarch64")
+            >>> channel.urls()  # Uses channel's platform
+            ['https://conda.anaconda.org/conda-forge/linux-aarch64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+            >>> channel.urls(subdirs=("osx-64", "noarch"))
+            ['https://conda.anaconda.org/conda-forge/osx-64',
+            'https://conda.anaconda.org/conda-forge/noarch']
+
+        Returns:
+            list[str]: List of URLs for accessing this channel's specified subdirectories.
+        """
+        if subdirs is not None and not isiterable(subdirs):
+            raise ValueError(
+                f"`subdirs` must be an iterable of strings. Got: {subdirs}."
+            )
 
         if self.canonical_name == UNKNOWN_CHANNEL:
             return Channel(DEFAULTS_CHANNEL_NAME).urls(with_credentials, subdirs)
@@ -275,12 +301,15 @@ class Channel(metaclass=ChannelType):
         base = join_url(*base)
 
         def _platforms() -> Iterator[str]:
-            if self.platform:
+            # kwargs 'subdir' takes precedence, if passed explicitly
+            if subdirs is not None:
+                yield from subdirs
+            elif self.platform:
                 yield self.platform
                 if self.platform != "noarch":
                     yield "noarch"
             else:
-                yield from subdirs
+                yield from context.subdirs
 
         bases = (join_url(base, p) for p in _platforms())
         if with_credentials and self.auth:
@@ -348,17 +377,25 @@ class Channel(metaclass=ChannelType):
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Channel):
-            return self.location == other.location and self.name == other.name
+            return (
+                self.location == other.location
+                and self.name == other.name
+                and self.platform == other.platform
+            )
         else:
             try:
                 _other = Channel(other)
-                return self.location == _other.location and self.name == _other.name
+                return (
+                    self.location == _other.location
+                    and self.name == _other.name
+                    and self.platform == _other.platform
+                )
             except Exception as e:
                 log.debug("%r", e)
                 return False
 
     def __hash__(self) -> int:
-        return hash((self.location, self.name))
+        return hash((self.location, self.name, self.platform))
 
     def __nonzero__(self) -> bool:
         return any((self.location, self.name))
@@ -569,7 +606,8 @@ def _read_channel_configuration(
     # Step 6. not-otherwise-specified file://-type urls
     if host is None:
         # this should probably only happen with a file:// type url
-        assert port is None
+        if port is not None:
+            raise ValueError("Port should not be set if host is not set either.")
         location, name = test_url.rsplit("/", 1)
         if not location:
             location = "/"
@@ -616,7 +654,8 @@ def parse_conda_channel_url(url: str) -> Channel:
 
     # if we came out with no channel_location or channel_name, we need to figure it out
     # from host, port, path
-    assert channel_location is not None or channel_name is not None
+    if channel_location is None and channel_name is None:
+        raise ValueError("channel_location and channel_name cannot both be None")
     # These two fields might have URL-encodable characters that we should decode
     # We don't decode the full URL because some %XX values might be part of some auth values
     if channel_name:

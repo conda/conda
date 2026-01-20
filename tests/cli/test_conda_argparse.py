@@ -17,7 +17,8 @@ from conda.cli.conda_argparse import (
 )
 
 if TYPE_CHECKING:
-    from typing import Any, Callable
+    from collections.abc import Callable
+    from typing import Any
 
     from conda.testing.fixtures import CondaCLIFixture
 

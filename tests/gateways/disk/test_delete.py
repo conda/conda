@@ -12,11 +12,12 @@ from conda.common.compat import on_win
 from conda.gateways.disk.create import TemporaryDirectory, create_link, mkdir_p
 from conda.gateways.disk.delete import backoff_rmdir, rm_rf
 from conda.gateways.disk.link import islink, symlink
+from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
 
-from .test_permissions import _make_read_only, _try_open, tempdir
+from .test_permissions import _try_open, tempdir
 
 
 def _write_file(path, content):
@@ -31,19 +32,7 @@ def test_remove_file():
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
-        _make_read_only(test_path)
-        pytest.raises((IOError, OSError), _try_open, test_path)
-        assert rm_rf(test_path)
-        assert not isfile(test_path)
-
-
-def test_remove_file_to_trash():
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        assert isfile(test_path)
-        _try_open(test_path)
-        _make_read_only(test_path)
+        make_read_only(test_path)
         pytest.raises((IOError, OSError), _try_open, test_path)
         assert rm_rf(test_path)
         assert not isfile(test_path)

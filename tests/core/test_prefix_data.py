@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,7 +23,7 @@ from conda.testing.helpers import record
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
@@ -380,18 +381,37 @@ def test_set_unset_environment_env_vars_no_exist(prefix_data: PrefixData):
     assert env_vars_one == env_vars
 
 
+def test_warn_setting_reserved_env_vars(prefix_data: PrefixData):
+    warning_message = r"WARNING: the given environment variable\(s\) are reserved and will be ignored: PATH.+"
+    with pytest.warns(UserWarning, match=warning_message):
+        prefix_data.set_environment_env_vars({"PATH": "very naughty"})
+
+    # Ensure the PATH is still set in the env vars
+    env_vars = prefix_data.get_environment_env_vars()
+    assert env_vars.get("PATH") == "very naughty"
+
+
+def test_unset_reserved_env_vars(prefix_data: PrefixData):
+    # Setup prefix data with reserved env var
+    with pytest.warns(UserWarning):
+        prefix_data.set_environment_env_vars({"PATH": "very naughty"})
+
+    prefix_data.unset_environment_env_vars(["PATH"])
+    # Ensure that the PATH is fully removed from the state tile
+    env_state_file = prefix_data._get_environment_state_file()
+    assert "PATH" not in env_state_file.get("env_vars", {})
+
+
 @pytest.mark.parametrize("remove_auth", (True, False))
-def test_no_tokens_dumped(tmp_path: Path, remove_auth: bool):
-    (tmp_path / "conda-meta").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "conda-meta" / "history").touch()
+def test_no_tokens_dumped(empty_env: Path, remove_auth: bool):
     pkg_record = record(
         channel="fake",
         url="https://conda.anaconda.org/t/some-fake-token/fake/noarch/a-1.0-0.tar.bz2",
     )
-    pd = PrefixData(tmp_path)
+    pd = PrefixData(empty_env)
     pd.insert(pkg_record, remove_auth=remove_auth)
 
-    json_content = (tmp_path / "conda-meta" / "a-1.0-0.json").read_text()
+    json_content = (empty_env / "conda-meta" / "a-1.0-0.json").read_text()
     if remove_auth:
         assert "/t/<TOKEN>/" in json_content
     else:
@@ -917,3 +937,22 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
         pinned_specs = prefix_data.get_pinned_specs()
         assert pinned_specs != specs
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_timestamps(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    start = datetime.now(tz=timezone.utc)
+    with tmp_env(shallow=False) as prefix:
+        pd = PrefixData(prefix)
+        created = pd.created
+        first_modification = pd.last_modified
+        # On Linux, we allow a rounding error of a <1 second (usually ~5ms)
+        assert abs(created.timestamp() - first_modification.timestamp()) < 1
+        conda_cli("install", "--yes", "--prefix", prefix, "small-executable")
+        second_modification = pd.last_modified
+        assert created == pd.created
+        assert first_modification < second_modification
+        assert start < pd.created < second_modification < datetime.now(tz=timezone.utc)

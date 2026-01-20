@@ -14,6 +14,9 @@ from typing import TYPE_CHECKING
 
 import pluggy
 
+from ..base.constants import APP_NAME
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
@@ -37,22 +40,23 @@ if TYPE_CHECKING:
         CondaVirtualPackage,
     )
 
-spec_name = "conda"
-"""Name used for organizing conda hook specifications"""
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "spec_name",
+    APP_NAME,
+    addendum="Use `conda.base.constants.APP_NAME` instead.",
+)
 
-_hookspec = pluggy.HookspecMarker(spec_name)
-"""
-The conda plugin hook specifications, to be used by developers
-"""
+_hookspec = pluggy.HookspecMarker(APP_NAME)
+"""Decorator to mark conda plugin hook specifications, used to register plugin hook types."""
 
-hookimpl = pluggy.HookimplMarker(spec_name)
-"""
-Decorator used to mark plugin hook implementations
-"""
+hookimpl = pluggy.HookimplMarker(APP_NAME)
+"""Decorator to mark plugin hook implementations, used to register plugins."""
 
 
 class CondaSpecs:
-    """The conda plugin hookspecs, to be used by developers."""
+    """Collection of all supported conda plugin hookspecs."""
 
     @_hookspec
     def conda_solvers(self) -> Iterable[CondaSolver]:
@@ -79,7 +83,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_solvers():
-                yield plugins.CondaSolver(
+                yield plugins.types.CondaSolver(
                     name="verbose-classic",
                     backend=VerboseSolver,
                 )
@@ -106,7 +110,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_subcommands():
-                yield plugins.CondaSubcommand(
+                yield plugins.types.CondaSubcommand(
                     name="example",
                     summary="example command",
                     action=example_command,
@@ -130,7 +134,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_virtual_packages():
-                yield plugins.CondaVirtualPackage(
+                yield plugins.types.CondaVirtualPackage(
                     name="my_custom_os",
                     version="1.2.3",
                     build="x86_64",
@@ -158,7 +162,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_pre_commands():
-               yield plugins.CondaPreCommand(
+               yield plugins.types.CondaPreCommand(
                    name="example-pre-command",
                    action=example_pre_command,
                    run_for={"install", "create"},
@@ -184,7 +188,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_post_commands():
-               yield plugins.CondaPostCommand(
+               yield plugins.types.CondaPostCommand(
                    name="example-post-command",
                    action=example_post_command,
                    run_for={"install", "create"},
@@ -223,7 +227,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_auth_handlers():
-                yield plugins.CondaAuthHandler(
+                yield plugins.types.CondaAuthHandler(
                     name="environment-header-auth",
                     handler=EnvironmentHeaderAuth,
                 )
@@ -239,7 +243,10 @@ class CondaSpecs:
         that you can write to diagnose problems in your conda environment.
         Check out the health checks already shipped with conda for inspiration.
 
-        **Example:**
+        Health checks can optionally provide a ``fixer`` callable that is invoked
+        via ``conda doctor --fix`` or ``conda doctor --fix <check-name>``.
+
+        **Example (check only):**
 
         .. code-block:: python
 
@@ -252,10 +259,40 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_health_checks():
-                yield plugins.CondaHealthCheck(
+                yield plugins.types.CondaHealthCheck(
                     name="example-health-check",
                     action=example_health_check,
                 )
+
+        **Example (check with fix):**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def my_health_check(prefix: str, verbose: bool):
+                # Check and report issues
+                print("Checking for issues...")
+
+
+            def my_health_fix(prefix: str, args) -> int:
+                # Fix the issues
+                print("Fixing issues...")
+                return 0  # exit code
+
+
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="my-check",
+                    action=my_health_check,
+                    fixer=my_health_fix,
+                    summary="Check for common issues",
+                    fix="Repair detected issues",
+                )
+
+        :return: An iterable of health check entries.
         """
         yield from ()
 
@@ -272,6 +309,7 @@ class CondaSpecs:
         .. code-block:: python
 
             from conda import plugins
+            from conda.plugins.types import CondaPreTransactionAction
             from conda.core.path_actions import Action
 
 
@@ -302,8 +340,8 @@ class CondaSpecs:
                 @plugins.hookimpl
                 def conda_pre_transaction_actions(
                     self,
-                ) -> Iterable[plugins.CondaPreTransactionAction]:
-                    yield plugins.CondaPreTransactionAction(
+                ) -> Iterable[CondaPreTransactionAction]:
+                    yield CondaPreTransactionAction(
                         name="example-pre-transaction-action",
                         action=PrintAction,
                     )
@@ -323,6 +361,7 @@ class CondaSpecs:
         .. code-block:: python
 
             from conda import plugins
+            from conda.plugins.types import CondaPostTransactionAction
             from conda.core.path_actions import Action
 
 
@@ -353,8 +392,8 @@ class CondaSpecs:
                 @plugins.hookimpl
                 def conda_post_transaction_actions(
                     self,
-                ) -> Iterable[plugins.CondaPostTransactionAction]:
-                    yield plugins.CondaPostTransactionAction(
+                ) -> Iterable[CondaPostTransactionAction]:
+                    yield CondaPostTransactionAction(
                         name="example-post-transaction-action",
                         action=PrintAction,
                     )
@@ -386,7 +425,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_pre_solves():
-               yield plugins.CondaPreSolve(
+               yield plugins.types.CondaPreSolve(
                    name="example-pre-solve",
                    action=example_pre_solve,
                )
@@ -419,7 +458,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_post_solves():
-               yield plugins.CondaPostSolve(
+               yield plugins.types.CondaPostSolve(
                    name="example-post-solve",
                    action=example_post_solve,
                )
@@ -443,7 +482,7 @@ class CondaSpecs:
 
            @plugins.hookimpl
            def conda_settings():
-               yield plugins.CondaSetting(
+               yield plugins.types.CondaSetting(
                    name="example_option",
                    description="This is an example option",
                    parameter=PrimitiveParameter("default_value", element_type=str),
@@ -532,7 +571,7 @@ class CondaSpecs:
            @plugins.hookimpl
            def conda_session_headers(host: str):
                if host in HOSTS:
-                   yield plugins.CondaRequestHeader(
+                   yield plugins.types.CondaRequestHeader(
                        name="Example-Header",
                        value="example",
                    )
@@ -562,7 +601,7 @@ class CondaSpecs:
            @plugins.hookimpl
            def conda_request_headers(host: str, path: str):
                if host in HOSTS and path == ENDPOINT:
-                   yield plugins.CondaRequestHeader(
+                   yield plugins.types.CondaRequestHeader(
                        name="Example-Header",
                        value="example",
                    )

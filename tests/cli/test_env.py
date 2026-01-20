@@ -9,9 +9,10 @@ from uuid import uuid4
 
 import pytest
 
+from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import context
 from conda.common.compat import on_win
-from conda.common.serialize import yaml_safe_dump, yaml_safe_load
+from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     CondaEnvException,
@@ -42,7 +43,7 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 TEST_ENV1 = "env1"
 
 # Environment config files we use for our tests
-ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
@@ -50,7 +51,7 @@ ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
@@ -63,7 +64,7 @@ ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates", "zlib"],
@@ -71,7 +72,7 @@ ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
+ENVIRONMENT_PIP_CLICK = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click"]}],
@@ -79,7 +80,7 @@ ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
+ENVIRONMENT_PIP_CLICK_ATTRS = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click", "attrs"]}],
@@ -87,7 +88,7 @@ ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
+ENVIRONMENT_PIP_NONEXISTING = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["nonexisting_"]}],
@@ -95,7 +96,7 @@ ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_UNSOLVABLE = yaml_safe_dump(
+ENVIRONMENT_UNSOLVABLE = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["does-not-exist"],
@@ -203,7 +204,7 @@ def test_create_dry_run_yaml(
     else:
         pytest.fail("Didn't find YAML data in output")
 
-    output = yaml_safe_load("\n".join(lines[lineno:]))
+    output = yaml.loads("\n".join(lines[lineno:]))
     assert output["name"] == "env1"
     assert len(output["dependencies"]) > 0
 
@@ -283,7 +284,7 @@ def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
         f"--prefix={tmp_path}",
         "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
     )
-    assert (tmp_path / "conda-meta" / "history").is_file()
+    assert (tmp_path / PREFIX_MAGIC_FILE).is_file()
 
 
 @pytest.mark.integration
@@ -538,7 +539,7 @@ def test_env_export(
             "env", "export", f"--prefix={prefix}", "--no-builds"
         )
         assert not stderr
-        env_description = yaml_safe_load(stdout)
+        env_description = yaml.loads(stdout)
         assert len(env_description["dependencies"])
         for spec_str in env_description["dependencies"]:
             assert spec_str.count("=") == 1  # package=version (no-builds format)
@@ -576,7 +577,7 @@ def test_env_export_with_variables(
             "env", "export", f"--prefix={prefix}", "--no-builds"
         )
         assert not stderr
-        env_description = yaml_safe_load(stdout)
+        env_description = yaml.loads(stdout)
         assert len(env_description["variables"])
         assert env_description["variables"].keys()
 
@@ -681,3 +682,14 @@ def test_invalid_extensions(
 
     with pytest.raises(SpecNotFound):
         conda_cli("env", "create", f"--file={env_yml}", "--yes")
+
+
+# conda env list [--json]
+def test_list_info_envs(conda_cli: CondaCLIFixture):
+    stdout_env, _, _ = conda_cli("env", "list")
+    stdout_info, _, _ = conda_cli("info", "--envs")
+    assert stdout_env == stdout_info
+
+    stdout_env, _, _ = conda_cli("env", "list", "--json")
+    stdout_info, _, _ = conda_cli("info", "--envs", "--json")
+    assert stdout_env == stdout_info

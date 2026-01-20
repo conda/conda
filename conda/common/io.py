@@ -7,8 +7,7 @@ import os
 import signal
 import sys
 from collections import defaultdict
-from concurrent.futures import Executor, Future, ThreadPoolExecutor, _base, as_completed
-from concurrent.futures.thread import _WorkItem
+from concurrent.futures import Executor, Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
@@ -428,40 +427,18 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
     def __init__(self, max_workers=10):
         super().__init__(max_workers)
 
-    def submit(self, fn, *args, **kwargs):
-        """
-        This is an exact reimplementation of the `submit()` method on the parent class, except
-        with an added `try/except` around `self._adjust_thread_count()`.  So long as there is at
-        least one living thread, this thread pool will not throw an exception if threads cannot
-        be expanded to `max_workers`.
-
-        In the implementation, we use "protected" attributes from concurrent.futures (`_base`
-        and `_WorkItem`). Consider vendoring the whole concurrent.futures library
-        as an alternative to these protected imports.
-
-        https://github.com/agronholm/pythonfutures/blob/3.2.0/concurrent/futures/thread.py#L121-L131  # NOQA
-        https://github.com/python/cpython/blob/v3.6.4/Lib/concurrent/futures/thread.py#L114-L124
-        """
-        with self._shutdown_lock:
-            if self._shutdown:
-                raise RuntimeError("cannot schedule new futures after shutdown")
-
-            f = _base.Future()
-            w = _WorkItem(f, fn, args, kwargs)
-
-            self._work_queue.put(w)
-            try:
-                self._adjust_thread_count()
-            except RuntimeError:
-                # RuntimeError: can't start new thread
-                # See https://github.com/conda/conda/issues/6624
-                if len(self._threads) > 0:
-                    # It's ok to not be able to start new threads if we already have at least
-                    # one thread alive.
-                    pass
-                else:
-                    raise
-            return f
+    def _adjust_thread_count(self):
+        try:
+            return super()._adjust_thread_count()
+        except RuntimeError:
+            # RuntimeError: can't start new thread
+            # See https://github.com/conda/conda/issues/6624
+            if len(self._threads) > 0:
+                # It's ok to not be able to start new threads if we already have at least
+                # one thread alive.
+                pass
+            else:
+                raise
 
 
 as_completed = as_completed

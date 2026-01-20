@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for creating new files or directories."""
 
-import codecs
 import os
 import sys
 import tempfile
@@ -118,7 +117,7 @@ if __name__ == '__main__':
 
 def write_as_json_to_file(file_path, obj):
     log.log(TRACE, "writing json to file %s", file_path)
-    with codecs.open(file_path, mode="wb", encoding="utf-8") as fo:
+    with open(file_path, mode="w", encoding="utf-8") as fo:
         json.dump(obj, fo)
 
 
@@ -146,7 +145,7 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
     else:
         shebang = None
 
-    with codecs.open(target_full_path, mode="wb", encoding="utf-8") as fo:
+    with open(target_full_path, mode="w", encoding="utf-8") as fo:
         if shebang is not None:
             fo.write(shebang)
         fo.write(pyscript)
@@ -315,7 +314,8 @@ def _do_softlink(src, dst):
 
 @deprecated("26.3", "26.9")
 def create_fake_executable_softlink(src, dst):
-    assert on_win
+    if not on_win:
+        raise RuntimeError("Only runs on Windows.")
     src_root, _ = splitext(src)
     # TODO: this open will clobber, consider raising
     with open(dst, "w") as f:

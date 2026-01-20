@@ -17,7 +17,6 @@ from conda.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.cli.common import stdout_json
 from conda.common.compat import on_win, open_utf8
-from conda.common.io import captured
 from conda.common.path import (
     BIN_DIRECTORY,
     get_python_short_path,
@@ -56,8 +55,6 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture
-
-CONDA_EXE = "conda.exe" if on_win else "conda"
 
 
 @pytest.fixture
@@ -453,8 +450,8 @@ def test_install_conda_sh(verbose):
         *lines, remainder = created_file_contents.split("\n", 7)
         if on_win:
             assert lines == [
-                f"export CONDA_EXE=\"$(cygpath '{context.conda_exe}')\"",
-                f"export _CONDA_EXE=\"$(cygpath '{context.conda_exe}')\"",
+                f"export CONDA_EXE=\"$(cygpath '{context.conda_exe_vars_dict['CONDA_EXE']}')\"",
+                f"export _CONDA_EXE=\"$(cygpath '{context.conda_exe_vars_dict['CONDA_EXE']}')\"",
                 "export _CE_M=''",
                 "export _CE_CONDA=''",
                 f"export CONDA_PYTHON_EXE=\"$(cygpath '{sys.executable}')\"",
@@ -463,8 +460,8 @@ def test_install_conda_sh(verbose):
             ]
         else:
             assert lines == [
-                f"export CONDA_EXE='{context.conda_exe}'",
-                f"export _CONDA_EXE='{context.conda_exe}'",
+                f"export CONDA_EXE='{context.conda_exe_vars_dict['CONDA_EXE']}'",
+                f"export _CONDA_EXE='{context.conda_exe_vars_dict['CONDA_EXE']}'",
                 "export _CE_M=''",
                 "export _CE_CONDA=''",
                 f"export CONDA_PYTHON_EXE='{sys.executable}'",
@@ -484,7 +481,6 @@ def test_install_conda_sh(verbose):
 
 def test_install_conda_fish(verbose):
     with tempdir() as conda_temp_prefix:
-        conda_exe = join(context.conda_prefix, BIN_DIRECTORY, CONDA_EXE)
         target_path = join(conda_temp_prefix, "etc", "fish", "conf.d", "conda.fish")
         result = install_conda_fish(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
@@ -495,8 +491,8 @@ def test_install_conda_fish(verbose):
         *lines, remainder = created_file_contents.split("\n", 7)
         if on_win:
             assert lines == [
-                f'set -gx CONDA_EXE (cygpath "{conda_exe}");',
-                f'set -gx _CONDA_EXE (cygpath "{conda_exe}");',
+                f'set -gx CONDA_EXE (cygpath "{context.conda_exe_vars_dict["CONDA_EXE"]}");',
+                f'set -gx _CONDA_EXE (cygpath "{context.conda_exe_vars_dict["CONDA_EXE"]}");',
                 "set -e _CE_M || true;",
                 "set -e _CE_CONDA || true;",
                 f'set -gx CONDA_PYTHON_EXE (cygpath "{sys.executable}");',
@@ -505,8 +501,8 @@ def test_install_conda_fish(verbose):
             ]
         else:
             assert lines == [
-                f'set -gx CONDA_EXE "{conda_exe}";',
-                f'set -gx _CONDA_EXE "{conda_exe}";',
+                f'set -gx CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}";',
+                f'set -gx _CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}";',
                 "set -e _CE_M || true;",
                 "set -e _CE_CONDA || true;",
                 f'set -gx CONDA_PYTHON_EXE "{sys.executable}";',
@@ -539,8 +535,8 @@ def test_install_conda_xsh(verbose):
             original_contents = fh.read()
 
         assert created_file_contents == (
-            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
-            f"$_CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe)}'\n"
+            f"$CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe_vars_dict['CONDA_EXE'])}'\n"
+            f"$_CONDA_EXE = '{XonshActivator.path_conversion(context.conda_exe_vars_dict['CONDA_EXE'])}'\n"
             f"try:\n"
             f"    del $_CE_M\n"
             f"except KeyError:\n"
@@ -577,8 +573,8 @@ def test_install_conda_csh(verbose):
         )
         if on_win:
             assert created_file_contents == (
-                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
-                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe}'`\";\n"
+                f"setenv CONDA_EXE \"`cygpath '{context.conda_exe_vars_dict['CONDA_EXE']}'`\";\n"
+                f"setenv _CONDA_EXE \"`cygpath '{context.conda_exe_vars_dict['CONDA_EXE']}'`\";\n"
                 f"unsetenv _CE_M;\n"
                 f"unsetenv _CE_CONDA;\n"
                 f"setenv CONDA_PYTHON_EXE \"`cygpath '{sys.executable}'`\";\n"
@@ -588,8 +584,8 @@ def test_install_conda_csh(verbose):
             )
         else:
             assert created_file_contents == (
-                f'setenv CONDA_EXE "{context.conda_exe}";\n'
-                f'setenv _CONDA_EXE "{context.conda_exe}";\n'
+                f'setenv CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}";\n'
+                f'setenv _CONDA_EXE "{context.conda_exe_vars_dict["CONDA_EXE"]}";\n'
                 f"unsetenv _CE_M;\n"
                 f"unsetenv _CE_CONDA;\n"
                 f'setenv CONDA_PYTHON_EXE "{sys.executable}";\n'
@@ -631,7 +627,9 @@ def test__get_python_info(verbose):
     assert site_packages_dir.endswith("site-packages")
 
 
-def test_print_plan_results_dry_run_with_changes(verbose, monkeypatch: MonkeyPatch):
+def test_print_plan_results_dry_run_with_changes(
+    verbose, monkeypatch: MonkeyPatch, capsys
+):
     plan = [
         {
             "function": "make_entry_point",
@@ -647,10 +645,10 @@ def test_print_plan_results_dry_run_with_changes(verbose, monkeypatch: MonkeyPat
 
     monkeypatch.setenv("CONDA_DRY_RUN", "true")
     reset_context()
-    with captured() as c:
-        print_plan_results(plan)
 
-    output = c.stdout
+    print_plan_results(plan)
+
+    output = capsys.readouterr().out
     assert "modified" in output
     assert (
         "DRY RUN: The above changes would have been made. NO ACTUAL CHANGES WERE MADE."
@@ -659,7 +657,9 @@ def test_print_plan_results_dry_run_with_changes(verbose, monkeypatch: MonkeyPat
     assert "For changes to take effect" not in output
 
 
-def test_print_plan_results_dry_run_with_no_changes(verbose, monkeypatch: MonkeyPatch):
+def test_print_plan_results_dry_run_with_no_changes(
+    verbose, monkeypatch: MonkeyPatch, capsys
+):
     plan = [
         {
             "function": "make_entry_point",
@@ -675,16 +675,18 @@ def test_print_plan_results_dry_run_with_no_changes(verbose, monkeypatch: Monkey
 
     monkeypatch.setenv("CONDA_DRY_RUN", "true")
     reset_context()
-    with captured() as c:
-        print_plan_results(plan)
 
-    output = c.stdout
+    print_plan_results(plan)
+
+    output = capsys.readouterr().out
     assert "no change" in output
     assert "DRY RUN: No action would have been taken." in output
     assert "No action taken." not in output
 
 
-def test_print_plan_results_real_run_with_changes(verbose, monkeypatch: MonkeyPatch):
+def test_print_plan_results_real_run_with_changes(
+    verbose, monkeypatch: MonkeyPatch, capsys
+):
     plan = [
         {
             "function": "make_entry_point",
@@ -695,16 +697,18 @@ def test_print_plan_results_real_run_with_changes(verbose, monkeypatch: MonkeyPa
 
     monkeypatch.setenv("CONDA_DRY_RUN", "false")
     reset_context()
-    with captured() as c:
-        print_plan_results(plan)
 
-    output = c.stdout
+    print_plan_results(plan)
+
+    output = capsys.readouterr().out
     assert "modified" in output
     assert "For changes to take effect, close and re-open your current shell." in output
     assert "DRY RUN" not in output
 
 
-def test_print_plan_results_real_run_no_changes(verbose, monkeypatch: MonkeyPatch):
+def test_print_plan_results_real_run_no_changes(
+    verbose, monkeypatch: MonkeyPatch, capsys
+):
     plan = [
         {
             "function": "make_entry_point",
@@ -715,10 +719,10 @@ def test_print_plan_results_real_run_no_changes(verbose, monkeypatch: MonkeyPatc
 
     monkeypatch.setenv("CONDA_DRY_RUN", "false")
     reset_context()
-    with captured() as c:
-        print_plan_results(plan)
 
-    output = c.stdout
+    print_plan_results(plan)
+
+    output = capsys.readouterr().out
     assert "no change" in output
     assert "No action taken." in output
     assert "DRY RUN" not in output
@@ -735,16 +739,17 @@ def test_conda_init_dry_run(conda_cli: CondaCLIFixture):
     )
 
 
-def test_install_1(verbose, monkeypatch: MonkeyPatch):
+def test_install_1(verbose, monkeypatch: MonkeyPatch, capsys):
     monkeypatch.setenv("CONDA_DRY_RUN", "true")
     monkeypatch.setenv("CONDA_VERBOSITY", "0")
     reset_context()
 
     with tempdir() as conda_temp_prefix:
-        with captured() as c:
-            install(conda_temp_prefix)
+        install(conda_temp_prefix)
 
-    assert "WARNING: Cannot install xonsh wrapper" in c.stderr
+    captured_output = capsys.readouterr()
+
+    assert "WARNING: Cannot install xonsh wrapper" in captured_output.err
     if on_win:
         modified_files = (
             "conda.exe",
@@ -782,16 +787,20 @@ def test_install_1(verbose, monkeypatch: MonkeyPatch):
             "conda.csh",
         )
 
-    print(c.stdout)
-    print(c.stderr, file=sys.stderr)
+    print(captured_output.out)
+    print(captured_output.err, file=sys.stderr)
 
-    assert c.stdout.count("modified") == len(modified_files)
+    assert captured_output.out.count("modified") == len(modified_files)
     for fn in modified_files:
-        line = next(line for line in c.stdout.splitlines() if line.strip().endswith(fn))
+        line = next(
+            line
+            for line in captured_output.out.splitlines()
+            if line.strip().endswith(fn)
+        )
         assert line.strip().startswith("modified"), line
 
 
-def test_initialize_dev_bash(verbose, monkeypatch: MonkeyPatch):
+def test_initialize_dev_bash(verbose, monkeypatch: MonkeyPatch, capsys):
     with pytest.raises(CondaValueError):
         initialize_dev("bash", conda_source_root=join("a", "b", "c"))
 
@@ -807,15 +816,16 @@ def test_initialize_dev_bash(verbose, monkeypatch: MonkeyPatch):
             new_py,
             LinkType.hardlink if on_win else LinkType.softlink,
         )
-        with captured() as c:
-            initialize_dev(
-                "bash",
-                dev_env_prefix=conda_temp_prefix,
-                conda_source_root=CONDA_SOURCE_ROOT,
-            )
+        initialize_dev(
+            "bash",
+            dev_env_prefix=conda_temp_prefix,
+            conda_source_root=CONDA_SOURCE_ROOT,
+        )
 
-    print(c.stdout)
-    print(c.stderr, file=sys.stderr)
+    captured_output = capsys.readouterr()
+
+    print(captured_output.out)
+    print(captured_output.err, file=sys.stderr)
 
     if on_win:
         modified_files = (
@@ -864,17 +874,17 @@ def test_initialize_dev_bash(verbose, monkeypatch: MonkeyPatch):
             "conda.egg-info",
         )
 
-    stderr = c.stderr.replace("no change", "modified")
+    stderr = captured_output.err.replace("no change", "modified")
     assert stderr.count("modified") == len(modified_files)
 
     for fn in modified_files:
         line = next(line for line in stderr.splitlines() if line.strip().endswith(fn))
         assert line.strip().startswith("modified"), line
 
-    assert "unset CONDA_SHLVL" in c.stdout
+    assert "unset CONDA_SHLVL" in captured_output.out
 
 
-def test_initialize_dev_cmd_exe(verbose, monkeypatch: MonkeyPatch):
+def test_initialize_dev_cmd_exe(verbose, monkeypatch: MonkeyPatch, capsys):
     monkeypatch.setenv("CONDA_DRY_RUN", "true")
     monkeypatch.setenv("CONDA_VERBOSITY", "0")
     reset_context()
@@ -887,15 +897,16 @@ def test_initialize_dev_cmd_exe(verbose, monkeypatch: MonkeyPatch):
             new_py,
             LinkType.hardlink if on_win else LinkType.softlink,
         )
-        with captured() as c:
-            initialize_dev(
-                "cmd.exe",
-                dev_env_prefix=conda_temp_prefix,
-                conda_source_root=CONDA_SOURCE_ROOT,
-            )
+        initialize_dev(
+            "cmd.exe",
+            dev_env_prefix=conda_temp_prefix,
+            conda_source_root=CONDA_SOURCE_ROOT,
+        )
 
-    print(c.stdout)
-    print(c.stderr, file=sys.stderr)
+    captured_output = capsys.readouterr()
+
+    print(captured_output.out)
+    print(captured_output.err, file=sys.stderr)
 
     if on_win:
         modified_files = (
@@ -944,7 +955,7 @@ def test_initialize_dev_cmd_exe(verbose, monkeypatch: MonkeyPatch):
             "conda.egg-info",
         )
 
-    stderr = c.stderr.replace("no change", "modified")
+    stderr = captured_output.err.replace("no change", "modified")
     assert stderr.count("modified") == len(modified_files)
 
     for fn in modified_files:
@@ -1143,7 +1154,7 @@ def test_init_sh_user_windows(verbose):
 
 
 @pytest.mark.skipif(not on_win, reason="win-only test")
-def test_init_cmd_exe_registry(verbose, monkeypatch: MonkeyPatch):
+def test_init_cmd_exe_registry(verbose, monkeypatch: MonkeyPatch, capsys):
     def _read_windows_registry_mock(target_path, value=None):
         if not value:
             value = "yada\\yada\\conda_hook.bat"
@@ -1163,14 +1174,14 @@ def test_init_cmd_exe_registry(verbose, monkeypatch: MonkeyPatch):
         monkeypatch.setenv("CONDA_DRY_RUN", "true")
         reset_context()
 
-        with captured() as c:
-            initialize.init_cmd_exe_registry(target_path, conda_prefix)
+        initialize.init_cmd_exe_registry(target_path, conda_prefix)
     finally:
         initialize._read_windows_registry = orig_read_windows_registry
         initialize.join = orig_join
 
+    captured_output = capsys.readouterr()
     expected = 'echo hello & if exist "c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat" "c:\\Users\\Lars\\miniconda\\condabin\\conda_hook.bat" & echo "world"'
-    assert c.stdout.strip().splitlines()[-1][1:] == expected
+    assert captured_output.out.strip().splitlines()[-1][1:] == expected
 
     # test the reverse (remove the key)
     initialize._read_windows_registry = lambda x: _read_windows_registry_mock(
@@ -1184,14 +1195,15 @@ def test_init_cmd_exe_registry(verbose, monkeypatch: MonkeyPatch):
         monkeypatch.setenv("CONDA_DRY_RUN", "true")
         reset_context()
 
-        with captured() as c:
-            initialize.init_cmd_exe_registry(target_path, conda_prefix, reverse=True)
+        initialize.init_cmd_exe_registry(target_path, conda_prefix, reverse=True)
     finally:
         initialize._read_windows_registry = orig_read_windows_registry
         initialize.join = orig_join
 
+    captured_output = capsys.readouterr()
+
     expected = 'echo hello & echo "world"'
-    assert c.stdout.strip().splitlines()[-1][1:] == expected
+    assert captured_output.out.strip().splitlines()[-1][1:] == expected
 
 
 REG_EXPAND_SZ = 2

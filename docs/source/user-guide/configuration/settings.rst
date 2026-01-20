@@ -62,6 +62,53 @@ repository, an administrator can set both :ref:`channel alias <channel-alias>` a
     - http://some.custom/channel
     - file:///some/local/directory
 
+.. seealso::
+
+   :ref:`custom_multichannels <custom-multichannels>` can also be used to override the
+   ``defaults`` multichannel.
+
+.. _custom-multichannels:
+
+``custom_multichannels``: Define custom multichannels
+-----------------------------------------------------
+
+A multichannel is a metachannel composed of multiple channels. The only reserved
+multichannel is ``local``, which is a list of ``file://`` channel locations where
+conda-build stashes successfully-built packages and cannot be overridden.
+
+Other multichannels, including ``defaults``, can be defined or customized with
+``custom_multichannels``, where the key is the multichannel name and the value is
+a list of channel names and/or channel URLs.
+
+**Example:**
+
+.. code-block:: yaml
+
+  custom_multichannels:
+    my-multichannel:
+      - http://some.custom/channel
+      - conda-forge
+
+.. versionchanged:: 26.1.0
+
+   ``custom_multichannels`` can now be used to define the ``defaults`` multichannel,
+   providing an alternative to the :ref:`default_channels <default-channels>` setting.
+   The ``default_channels`` setting exists for historical reasons when ``defaults``
+   was a reserved multichannel name.
+
+   For example, to point the ``defaults`` multichannel to a custom mirror:
+
+   .. code-block:: yaml
+
+     custom_multichannels:
+       defaults:
+         - https://my-mirror.com/pkgs/main
+         - https://my-mirror.com/pkgs/r
+
+   This is equivalent to setting ``default_channels`` to the same list of channels.
+   If both ``default_channels`` and ``custom_multichannels.defaults`` are defined,
+   ``custom_multichannels.defaults`` takes precedence.
+
 .. _auto-update-conda:
 
 
@@ -649,6 +696,38 @@ or specify it on the command line with the ``--console`` option
 
    conda info --console=colors
 
+.. _override-virtual-packages:
+
+``override_virtual_packages``: Set version or build variables for virtual packages
+----------------------------------------------------------------------------------
+
+.. note::
+   You can also use ``virtual_packages`` for this setting.
+
+The ``override_virtual_packages`` setting is a dictionary that allows you set
+specific version or build overrides for virtual package installs.
+
+Conda sets virtual package version and/or build numbers in three ways:
+
+1. By passing an enviroment variable with the ``conda install`` command (highest priority)
+
+   For example: ``CONDA_OVERRIDE_CUDA="12.0" conda install -c conda-forge tensorflow``
+
+1. The ``override_virtual_packages`` dictionary in the ``.condarc`` file
+
+1. The variables set up in the virtual package's code (lowest priority)
+
+For more information on virtual packages, see :ref:`Managing virtual packages <manage-virtual>`.
+
+Your ``override_virtual_packages`` dictionary could look like the following:
+
+.. code-block:: yaml
+
+    override_virtual_packages:
+      cuda: "12.8"
+      glbc: "2.17"
+      osx: "11.0"
+      archspec: "x86_64"
 
 Conda-build configuration
 =========================

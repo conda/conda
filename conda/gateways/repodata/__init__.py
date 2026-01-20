@@ -126,11 +126,11 @@ def get_repo_interface() -> type[RepoInterface]:
 class CondaRepoInterface(RepoInterface):
     """Provides an interface for retrieving repodata data from channels."""
 
-    #: Channel URL
     _url: str
+    """Channel URL."""
 
-    #: Filename of the repodata file; defaults to value of conda.base.constants.REPODATA_FN
     _repodata_fn: str
+    """Filename of the repodata file; defaults to value of conda.base.constants.REPODATA_FN."""
 
     def __init__(self, url: str, repodata_fn: str | None, **kwargs) -> None:
         log.debug("Using CondaRepoInterface")
@@ -896,8 +896,7 @@ class RepodataFetch:
                         raw_repodata = "{}"
                     cache.save(raw_repodata)
                 else:  # pragma: no cover
-                    # it can be a dict?
-                    assert False, f"Unreachable {raw_repodata}"
+                    raise RuntimeError(f"Unreachable {raw_repodata}")
             except OSError as e:
                 if e.errno in (errno.EACCES, errno.EPERM, errno.EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)

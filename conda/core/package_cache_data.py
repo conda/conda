@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import codecs
 import os
 from collections import defaultdict
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
@@ -145,8 +144,9 @@ class PackageCacheData(metaclass=PackageCacheType):
         self.load()
         return self
 
-    def get(self, package_ref, default=NULL):
-        assert isinstance(package_ref, PackageRecord)
+    def get(self, package_ref: PackageRecord, default=NULL):
+        if not isinstance(package_ref, PackageRecord):
+            raise TypeError("`package_ref` must be a PackageRecord instance.")
         try:
             return self._package_cache_records[package_ref]
         except KeyError:
@@ -173,7 +173,8 @@ class PackageCacheData(metaclass=PackageCacheType):
                 if param.match(pcrec)
             )
         else:
-            assert isinstance(param, PackageRecord)
+            if not isinstance(param, PackageRecord):
+                raise TypeError("`package_ref` must be a PackageRecord instance.")
             return (
                 pcrec
                 for pcrec in self._package_cache_records.values()
@@ -552,7 +553,7 @@ class UrlsData:
         return iter(self._urls_data)
 
     def add_url(self, url):
-        with codecs.open(self.urls_txt_path, mode="ab", encoding="utf-8") as fh:
+        with open(self.urls_txt_path, mode="a", encoding="utf-8") as fh:
             linefeed = "\r\n" if platform == "win32" else "\n"
             fh.write(url + linefeed)
         self._urls_data.insert(0, url)
@@ -579,7 +580,8 @@ class UrlsData:
 class ProgressiveFetchExtract:
     @staticmethod
     def make_actions_for_record(pref_or_spec):
-        assert pref_or_spec is not None
+        if pref_or_spec is None:
+            raise TypeError("`pref_or_spec` cannot be None.")
         # returns a cache_action and extract_action
 
         # if the pref or spec has an md5 value
@@ -702,7 +704,8 @@ class ProgressiveFetchExtract:
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get("url")
-        assert url
+        if not url:
+            raise ValueError(".url field is required and must be non-empty.")
 
         cache_action = CacheUrlAction(
             url=url,
@@ -783,7 +786,8 @@ class ProgressiveFetchExtract:
         if not self._prepared:
             self.prepare()
 
-        assert not context.dry_run
+        if context.dry_run:
+            raise RuntimeError("Cannot run .execute() in dry-run mode.")
 
         with get_progress_bar_context_manager() as pbar_context:
             if self._executed:

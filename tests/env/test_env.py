@@ -10,11 +10,10 @@ from unittest.mock import patch
 
 import pytest
 
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
-    Environment,
     EnvironmentYaml,
     channels_validation,
     dependencies_validation,
@@ -237,7 +236,7 @@ def test_to_yaml_returns_yaml_parseable_string():
         "dependencies": ["nodejs"],
     }
 
-    actual = yaml_round_trip_load(StringIO(e.to_yaml()))
+    actual = yaml.loads(StringIO(e.to_yaml()))
     assert expected == actual
 
 
@@ -312,7 +311,7 @@ def test_valid_keys():
 def test_invalid_keys():
     with pytest.warns(
         PendingDeprecationWarning,
-        match="Using a non-compliant CEP-0024 environment file",
+        match="The environment file is not fully CEP 24 compliant",
     ):
         e = get_invalid_keys_environment()
         e_dict = e.to_dict()
@@ -321,7 +320,11 @@ def test_invalid_keys():
 
 
 def test_empty_deps():
-    e = get_environment("empty_deps.yml")
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="The environment file is not fully CEP 24 compliant",
+    ):
+        e = get_environment("empty_deps.yml")
     e_dict = e.to_dict()
     assert "name" in e_dict
     assert "channels" in e_dict
@@ -364,6 +367,37 @@ def test_env_advanced_pip(
     assert package_is_installed(prefix, "argh==0.26.2")
 
 
+@pytest.mark.integration
+def test_create_and_update_env_with_just_vars(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    support_file_isolated,
+):
+    """
+    Ensures that files with empty dependency sections work.
+
+    Regression fix for: https://github.com/conda/conda/issues/15569
+    """
+    prefix = path_factory()
+    assert not prefix.exists()
+
+    env_file = support_file_isolated("just_vars.yml")
+
+    conda_cli(
+        *("env", "create"),
+        *("--prefix", prefix),
+        *("--file", str(env_file)),
+    )
+    assert prefix.exists()
+
+    conda_cli(
+        *("env", "update"),
+        *("--prefix", prefix),
+        *("--file", str(env_file)),
+    )
+    assert prefix.exists()
+
+
 def test_from_history():
     # We're not testing that get_requested_specs_map() actually works
     # assume it gives us back a dict of MatchSpecs
@@ -383,8 +417,7 @@ def test_from_history():
 
 
 def test_environment_deprecated() -> None:
-    with pytest.deprecated_call():
-        Environment(filename="idontexist", name="simple")
+    EnvironmentYaml(filename="idontexist", name="simple")
 
 
 @pytest.mark.parametrize(

@@ -19,8 +19,9 @@ from typing import TYPE_CHECKING, overload
 
 import pluggy
 
+from ..auxlib import NULL
 from ..auxlib.ish import dals
-from ..base.constants import DEFAULT_CONSOLE_REPORTER_BACKEND
+from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
 from ..exceptions import (
@@ -40,12 +41,12 @@ from . import (
     virtual_packages,
 )
 from .config import PluginConfig
-from .hookspec import CondaSpecs, spec_name
+from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-    from typing import Callable, Literal
+    from collections.abc import Callable, Iterable
+    from typing import Literal
 
     from requests.auth import AuthBase
 
@@ -82,23 +83,17 @@ class CondaPluginManager(pluggy.PluginManager):
     The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
-    #: method.
     get_cached_solver_backend: Callable[[str | None], type[Solver]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend` method."""
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers`
-    #: method.
     get_cached_session_headers: Callable[[str], dict[str, str]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers` method."""
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers`
-    #: method.
     get_cached_request_headers: Callable[[str, str], dict[str, str]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers` method."""
 
-    def __init__(self, project_name: str | None = None, *args, **kwargs):
-        # Setting the default project name to the spec name for ease of use
-        if project_name is None:
-            project_name = spec_name
-        super().__init__(project_name, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(APP_NAME, *args, **kwargs)
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
@@ -413,6 +408,10 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    def get_health_checks(self) -> dict[str, CondaHealthCheck]:
+        """Return a mapping of health check name to health check."""
+        return {check.name: check for check in self.get_hook_results("health_checks")}
+
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
         return tuple(self.get_hook_results("reporter_backends"))
 
@@ -440,8 +439,9 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def get_virtual_package_records(self) -> tuple[PackageRecord, ...]:
         return tuple(
-            hook.to_virtual_package()
+            virtual_package
             for hook in self.get_hook_results("virtual_packages")
+            if (virtual_package := hook.to_virtual_package()) is not NULL
         )
 
     def get_session_headers(self, host: str) -> dict[str, str]:
@@ -459,14 +459,6 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
         for hook in self.get_hook_results("prefix_data_loaders"):
             yield hook.loader
-
-    def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
-        for hook in self.get_hook_results("health_checks"):
-            try:
-                hook.action(prefix, verbose)
-            except Exception as err:
-                log.warning(f"Error running health check: {hook.name} ({err})")
-                continue
 
     def invoke_pre_solves(
         self,
@@ -840,12 +832,12 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
-        health_checks,
+        *health_checks.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,
     )
-    plugin_manager.load_entrypoints(spec_name)
+    plugin_manager.load_entrypoints(APP_NAME)
     return plugin_manager

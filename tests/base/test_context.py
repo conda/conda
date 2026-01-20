@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from argparse import Namespace
+from contextlib import nullcontext
 from itertools import chain
 from os.path import abspath, join
 from pathlib import Path
@@ -31,9 +32,13 @@ from conda.base.context import (
     validate_channels,
     validate_prefix_name,
 )
-from conda.common.configuration import ValidationError, YamlRawParameter
+from conda.common.configuration import (
+    DefaultValueRawParameter,
+    ValidationError,
+    YamlRawParameter,
+)
 from conda.common.path import expand, win_path_backout
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml
 from conda.common.url import join_url, path_to_url
 from conda.exceptions import (
     ChannelDenied,
@@ -47,6 +52,8 @@ from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pytest import MonkeyPatch
 
     from conda.testing import PathFactoryFixture
@@ -99,9 +106,7 @@ def test_signing_metadata_url_base(context_testdata: None):
     string = f"signing_metadata_url_base: {SIGNING_URL_BASE}"
     reset_context()
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.signing_metadata_url_base == SIGNING_URL_BASE
@@ -115,9 +120,7 @@ def test_signing_metadata_url_base_empty_default_channels(context_testdata: None
     )
     reset_context()
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert len(context.default_channels) == 0
@@ -132,9 +135,7 @@ def test_client_ssl_cert(context_testdata: None):
     )
     reset_context()
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     pytest.raises(ValidationError, context.validate_configuration)
@@ -266,6 +267,18 @@ def test_context_parameters_have_descriptions(context_testdata: None):
         pprint(context.describe_parameter(name))
 
 
+def test_context_override_with_reset(monkeypatch):
+    from conda.base.context import context, reset_context
+
+    original = context.add_pip_as_python_dependency
+    with context._override("add_pip_as_python_dependency", False):
+        assert context.add_pip_as_python_dependency is False
+        monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "True")
+        reset_context()
+        assert context.add_pip_as_python_dependency is False
+    assert context.add_pip_as_python_dependency is original
+
+
 def test_local_build_root_custom_rc(
     context_testdata: None,
     monkeypatch: MonkeyPatch,
@@ -393,9 +406,7 @@ def test_channels_defaults_condarc(context_testdata: None):
         """
     )
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.channels == ("defaults", "conda-forge")
@@ -424,9 +435,7 @@ def test_specify_channels_cli_condarc(context_testdata: None):
         """
     )
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.channels == ("defaults", "conda-forge")
@@ -446,9 +455,7 @@ def test_specify_different_channels_cli_condarc(context_testdata: None):
         """
     )
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.channels == ("conda-forge", "other")
@@ -470,9 +477,7 @@ def test_specify_same_channels_cli_as_in_condarc(context_testdata: None):
         """
     )
     rd = {
-        "testdata": YamlRawParameter.make_raw_parameters(
-            "testdata", yaml_round_trip_load(string)
-        )
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
     assert context.channels == ("conda-forge",)
@@ -487,7 +492,7 @@ def test_expandvars(context_testdata: None):
             string = f"{attr}: {config_expr}"
             rd = {
                 "testdata": YamlRawParameter.make_raw_parameters(
-                    "testdata", yaml_round_trip_load(string)
+                    "testdata", yaml.loads(string)
                 )
             }
             context._set_raw_data(rd)
@@ -617,14 +622,15 @@ def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
         mock_two.side_effect = [mock_return_values[1]]
 
         if isinstance(expected, CondaValueError):
-            with pytest.raises(CondaValueError) as exc:
+            with pytest.raises(CondaValueError) as exc, pytest.deprecated_call():
                 validate_prefix_name(prefix, ctx, allow_base=allow_base)
 
             # We fuzzy match the error message here. Doing this exactly is not important
             assert str(expected) in str(exc)
 
         else:
-            actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
+            with pytest.deprecated_call():
+                actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
             assert actual == str(expected)
 
 
@@ -748,6 +754,41 @@ def test_check_allowlist_and_denylist(monkeypatch: MonkeyPatch):
     validate_channels((DEFAULT_CHANNELS[0], DEFAULT_CHANNELS[1]))
 
 
+@pytest.mark.parametrize(
+    "channels,expected_channels",
+    [
+        (
+            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
+            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
+        ),
+        (
+            (
+                "defaults",
+                "https://beta.conda.anaconda.org/conda-test",
+                "conda-forge",
+                None,
+            ),
+            ("defaults", "https://beta.conda.anaconda.org/conda-test", "conda-forge"),
+        ),
+        (
+            (None,),
+            (),
+        ),
+        (
+            (""),
+            (),
+        ),
+        (
+            (),
+            (),
+        ),
+    ],
+)
+def test_validate_channels(channels: Iterator[str], expected_channels: tuple[str, ...]):
+    validated_channels = validate_channels(channels)
+    assert expected_channels == validated_channels
+
+
 def test_default_activation_prefix(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -762,15 +803,15 @@ def test_default_activation_prefix(
 
     with tmp_env() as prefix:
         name = env_name(prefix)
-        monkeypatch.setenv(key, context.root_prefix)
+        monkeypatch.setenv(key, str(context.root_prefix))
         reset_context()
         assert prefix != context.default_activation_prefix
 
-        monkeypatch.setenv(key, prefix)
+        monkeypatch.setenv(key, str(prefix))
         reset_context()
         assert prefix == context.default_activation_prefix
 
-        monkeypatch.setenv(key, name)
+        monkeypatch.setenv(key, str(name))
         reset_context()
         assert prefix == context.default_activation_prefix
 
@@ -829,22 +870,19 @@ def test_create_default_packages_will_warn_for_explicit_packages(
 
 
 def test_export_platforms(monkeypatch: MonkeyPatch):
-    def remove_subdir(*platforms) -> tuple[str, ...]:
-        return tuple(platform for platform in platforms if platform != context.subdir)
-
     reset_context([])
-    assert not context.export_platforms
+    assert context.export_platforms == (context.subdir,)
 
     monkeypatch.setenv("CONDA_EXPORT_PLATFORMS", "linux-64,osx-64")
     reset_context()
-    assert context.export_platforms == remove_subdir("linux-64", "osx-64")
+    assert context.export_platforms == ("linux-64", "osx-64")
 
     monkeypatch.setenv("CONDA_EXPORT_PLATFORMS", "linux-64,osx-64,win-64")
     reset_context()
-    assert context.export_platforms == remove_subdir("linux-64", "osx-64", "win-64")
+    assert context.export_platforms == ("linux-64", "osx-64", "win-64")
 
     reset_context(argparse_args=Namespace(export_platforms=["linux-32"]))
-    assert context.export_platforms == remove_subdir(
+    assert context.export_platforms == (
         "linux-32",
         "linux-64",
         "osx-64",
@@ -857,4 +895,60 @@ def test_export_platforms(monkeypatch: MonkeyPatch):
             override_platforms=True,
         )
     )
-    assert context.export_platforms == remove_subdir("linux-32")
+    assert context.export_platforms == ("linux-32",)
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [("error_upload_url", TypeError)],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(context, function)()
+
+
+def test_custom_multichannels_overrides_default_channels(reset_conda_context: None):
+    # default_channels
+    reset_context()
+    default_channels = ["default_channels_1", "default_channels_2"]
+    raw_data = {"default_channels": default_channels}
+    rd = {
+        "testdata": DefaultValueRawParameter.make_raw_parameters("testdata", raw_data)
+    }
+    context._set_raw_data(rd)
+
+    assert [channel.name for channel in context.default_channels] == default_channels
+    assert [
+        channel.name for channel in context.custom_multichannels["defaults"]
+    ] == default_channels
+
+    # custom_channels.defaults
+    reset_context()
+    custom_channels = ["custom_channel_1", "custom_channel_2"]
+    raw_data = {"custom_multichannels": {"defaults": custom_channels}}
+    rd = {
+        "testdata": DefaultValueRawParameter.make_raw_parameters("testdata", raw_data)
+    }
+    context._set_raw_data(rd)
+
+    assert [channel.name for channel in context.default_channels] == custom_channels
+    assert [
+        channel.name for channel in context.custom_multichannels["defaults"]
+    ] == custom_channels
+
+    # custom_channels.defaults overrides default_channels
+    reset_context()
+    raw_data = {
+        "default_channels": default_channels,
+        "custom_multichannels": {"defaults": custom_channels},
+    }
+    rd = {
+        "testdata": DefaultValueRawParameter.make_raw_parameters("testdata", raw_data)
+    }
+    context._set_raw_data(rd)
+
+    assert [channel.name for channel in context.default_channels] == custom_channels
+    assert [
+        channel.name for channel in context.custom_multichannels["defaults"]
+    ] == custom_channels

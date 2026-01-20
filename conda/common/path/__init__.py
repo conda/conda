@@ -45,9 +45,8 @@ from .windows import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Union
 
-    PathType = Union[str, os.PathLike[str]]
+    PathType = str | os.PathLike[str]
     PathsType = Iterable[PathType]
 
 __all__ = [
