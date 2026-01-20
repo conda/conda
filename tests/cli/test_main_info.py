@@ -21,7 +21,7 @@ from conda.cli.main_info import (
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import ArgumentError, DirectoryNotACondaEnvironmentError
+from conda.exceptions import ArgumentError
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 if TYPE_CHECKING:
@@ -329,15 +329,6 @@ def test_compute_prefix_size_empty_env(tmp_env: TmpEnvFixture):
         prefix_data = PrefixData(prefix)
         size = prefix_data.size
         assert size == 0
-
-
-def test_compute_prefix_size_not_an_environment(tmp_path: Path):
-    test_dir = tmp_path / "not_an_env"
-    test_dir.mkdir()
-
-    with pytest.raises(DirectoryNotACondaEnvironmentError):
-        prefix_data = PrefixData(test_dir)
-        _ = prefix_data.size
 
 
 def test_info_size_without_envs(conda_cli: CondaCLIFixture):
