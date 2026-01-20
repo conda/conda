@@ -433,17 +433,25 @@ class PrefixData(metaclass=PrefixDataType):
         """
         Compute the total size of a conda environment prefix.
 
+        This aggregates the installed size of all packages in the environment,
+        plus the size of the conda-meta/*.json manifest files.
+
         :returns: Total size in bytes.
         """
         total_size = 0
-        for meta_file in (self.prefix_path / "conda-meta").glob("*.json"):
-            total_size += meta_file.stat().st_size
 
-            with open(meta_file) as f:
-                data = json.load(f)
-            for entry in data.get("paths_data", {}).get("paths", []):
-                if entry.get("path_type") != "softlink":
-                    total_size += entry.get("size_in_bytes") or 0
+        # 1. sum up the installed size of each package
+        for record in self.iter_records():
+            total_size += record.package_size(self.prefix_path)
+
+        # 2. add up the size of the conda-meta/*.json manifests
+        conda_meta_dir = self.prefix_path / "conda-meta"
+        if conda_meta_dir.is_dir():
+            for meta_file in conda_meta_dir.glob("*.json"):
+                try:
+                    total_size += meta_file.stat().st_size
+                except OSError:
+                    pass
 
         return total_size
 
