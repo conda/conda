@@ -765,6 +765,17 @@ class CompileMultiPycAction(MultiPathAction):
         )
         self._execute_successful = True
 
+        # Update prefix_paths_data with the file sizes now that the .pyc files exist.
+        # Note: when used via AggregateCompileMultiPycAction, this updates the
+        # aggregate's prefix_paths_data. The aggregate's execute() will separately
+        # update each individual action's data.
+        for path_data in self.prefix_paths_data:
+            pyc_full_path = join(self.target_prefix, win_path_ok(path_data._path))
+            try:
+                path_data.size_in_bytes = getsize(pyc_full_path)
+            except OSError:
+                log.log(TRACE, "could not get size for %s", pyc_full_path)
+
     def reverse(self):
         # this removes all pyc files even if they were not created
         if self._execute_successful:
@@ -782,6 +793,7 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
     """
 
     def __init__(self, *individuals, **kw):
+        self._individuals = individuals
         transaction_context = individuals[0].transaction_context
         # not used; doesn't matter
         package_info = individuals[0].package_info
@@ -798,6 +810,18 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
             source_short_paths,
             target_short_paths,
         )
+
+    def execute(self):
+        super().execute()
+        # Update each individual action's prefix_paths_data with file sizes.
+        # The manifest is written using individual actions' data, not the aggregate's.
+        for individual in self._individuals:
+            for path_data in individual.prefix_paths_data:
+                pyc_full_path = join(self.target_prefix, win_path_ok(path_data._path))
+                try:
+                    path_data.size_in_bytes = getsize(pyc_full_path)
+                except OSError:
+                    log.log(TRACE, "could not get size for %s", pyc_full_path)
 
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
