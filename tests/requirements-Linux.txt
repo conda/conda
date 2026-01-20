@@ -1,2 +1,2 @@
-conda-forge::xonsh>=0.22.1
+conda-forge::xonsh
 patchelf
