@@ -3,27 +3,40 @@
 
 """Package extractor plugin for .conda and .tar.bz2 formats."""
 
+from __future__ import annotations
+
 import os
 from logging import getLogger
 from os.path import join
+from typing import TYPE_CHECKING
 
-from ...base.constants import CONDA_PACKAGE_EXTENSION_V1
 from ...common.compat import on_linux
 from ...gateways.disk.delete import path_is_clean
 from ..hookspec import hookimpl
 from ..types import CondaPackageExtractor
 
+if TYPE_CHECKING:
+    from ...common.path import PathType
+
 log = getLogger(__name__)
 
 
-def extract_conda_or_tarball(tarball_full_path, destination_directory=None):
+def extract_conda_or_tarball(
+    tarball_full_path: PathType,
+    destination_directory: PathType,
+) -> None:
+    """
+    Extract a .conda or .tar.bz2 package to the specified destination.
+
+    :param tarball_full_path: Path to the package archive.
+    :param destination_directory: Directory to extract the package contents to.
+    """
     import conda_package_handling.api
 
-    if destination_directory is None:
-        if tarball_full_path[-8:] == CONDA_PACKAGE_EXTENSION_V1:
-            destination_directory = tarball_full_path[:-8]
-        else:
-            destination_directory = tarball_full_path.splitext()[0]
+    # Convert PathType to string for conda_package_handling compatibility
+    tarball_full_path = os.fspath(tarball_full_path)
+    destination_directory = os.fspath(destination_directory)
+
     log.debug("extracting %s\n  to %s", tarball_full_path, destination_directory)
 
     # the most common reason this happens is due to hard-links, windows thinks
@@ -56,11 +69,7 @@ def extract_conda_or_tarball(tarball_full_path, destination_directory=None):
 @hookimpl
 def conda_package_extractors():
     yield CondaPackageExtractor(
-        name="Conda Package",
+        name="conda-package",
         extensions=[".tar.bz2", ".conda"],
         extract=extract_conda_or_tarball,
     )
-
-
-# TODO
-# add a verification/parsing function also

@@ -2,6 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Package extractor plugins."""
 
-from . import conda_pkg
+from . import conda
 
-plugins = [conda_pkg]
+plugins = [conda]

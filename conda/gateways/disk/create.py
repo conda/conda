@@ -223,7 +223,7 @@ class ProgressFileWrapper:
 def extract_tarball(
     tarball_full_path, destination_directory=None, progress_update_callback=None
 ):
-    from ...plugins.package_extractors.conda_pkg import extract_conda_or_tarball
+    from ...plugins.package_extractors.conda import extract_conda_or_tarball
 
     return extract_conda_or_tarball(tarball_full_path, destination_directory)
 
