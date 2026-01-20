@@ -13,6 +13,11 @@ from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
 class NaughtySpec(EnvironmentSpecBase):
+    def __init__(self, filename: str, data: str | None = None):
+        """Initialize the plugin. For testing purposes, data is always empty."""
+        self.filename = filename
+        self.data = ""
+
     def can_handle(self):
         raise TypeError("This is a naughty spec")
 
@@ -31,6 +36,11 @@ class NaughtySpecPlugin:
 
 class RandomSpec(EnvironmentSpecBase):
     extensions = {".random"}
+
+    def __init__(self, filename: str, data: str | None = None):
+        """Initialize the plugin. For testing purposes, data is always empty."""
+        self.filename = filename
+        self.data = ""
 
     def can_handle(self):
         for ext in RandomSpec.extensions:
