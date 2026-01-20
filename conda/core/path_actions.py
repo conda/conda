@@ -911,6 +911,10 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         create_python_entry_point(
             self.target_full_path, python_full_path, self.module, self.func
         )
+        try:
+            self.prefix_path_data.size_in_bytes = getsize(self.target_full_path)
+        except OSError:
+            log.log(TRACE, "could not get size for %s", self.target_full_path)
         self._execute_successful = True
 
     def reverse(self):
