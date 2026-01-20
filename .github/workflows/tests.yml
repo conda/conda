@@ -298,7 +298,8 @@ jobs:
         # for tests/shell, so only necessary for integration tests
         if: matrix.test-type == 'integration'
         run: |
-          sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
+          sudo apt update && sudo apt install ash csh fish tcsh zsh
+          # xonsh is installed with conda in step above
           # Initialize all shells
           python -m conda init --all
 
