@@ -1,8 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from unittest import mock
 
-from conda.env import env
 from conda.env.specs.yaml_file import YamlFileSpec
 
 from .. import support_file

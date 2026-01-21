@@ -6,7 +6,6 @@ import os
 from typing import TYPE_CHECKING
 
 from ...base.context import context
-from ...common.io import load_file
 from ...deprecations import deprecated
 from ...exceptions import (
     EnvironmentFileExtensionNotValid,

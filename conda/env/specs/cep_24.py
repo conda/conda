@@ -36,7 +36,7 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
         """
         if not self.filename:
             return False
-        
+
         # Extract the file extension (e.g., '.txt' or '' if no extension)
         _, file_ext = os.path.splitext(self.filename)
 

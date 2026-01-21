@@ -106,7 +106,6 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..common.io import load_file
     from ..gateways.connection.session import CONDA_SESSION_SCHEMES
     from .common import stdout_json
 

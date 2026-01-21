@@ -36,9 +36,8 @@ IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 def load_file(filename: str) -> str:
     """Load and return a string from a given file"""
     from ..exceptions import CondaFileIOError
-    from ..gateways.connection.session import CONDA_SESSION_SCHEMES
     from ..gateways.connection.download import download_text
-
+    from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:

@@ -80,7 +80,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
-    from ..common.io import load_file
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..exceptions import CondaEnvException, InvalidInstaller

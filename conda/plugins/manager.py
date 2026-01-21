@@ -23,7 +23,7 @@ from ..auxlib import NULL
 from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
-from ..common.io import dashlist, load_file
+from ..common.io import dashlist
 from ..exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
