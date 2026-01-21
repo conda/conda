@@ -21,24 +21,27 @@ SET "__conda_tmp=%TEMP%\__conda_tmp_%__conda_guid%.txt"
 ::   The filename, directory name, or volume label syntax is incorrect.
 :: Instead we run the command and store the output for subsequent processing.
 "%CONDA_EXE%" %_CE_M% %_CE_CONDA% shell.cmd.exe %* > "%__conda_tmp%"
-IF %ERRORLEVEL% NEQ 0 (
-    ECHO ERROR: Failed to run 'conda %*'.>&2
+IF NOT EXIST "%__conda_tmp%" (
+    ECHO ERROR: Failed to create temp file for 'conda %*'.>&2
     ECHO.>&2
-    ECHO This could be a conda error or a TEMP directory issue>&2
+    ECHO This is likely a TEMP directory issue>&2
     ECHO ^(permissions, disk space, or invalid path^).>&2
     ECHO.>&2
-    ECHO If TEMP-related, ensure TEMP or TMP point to a writable location.>&2
+    ECHO Ensure TEMP or TMP environment variables point to a writable location.>&2
     ECHO See: https://docs.conda.io/projects/conda/en/stable/user-guide/troubleshooting.html#temp-file-errors>&2
-    IF EXIST "%__conda_tmp%" DEL /F /Q "%__conda_tmp%" 2>NUL
     ENDLOCAL & EXIT /B 1
+) ELSE IF %ERRORLEVEL% NEQ 0 (
+    ECHO ERROR: 'conda %*' exited with code %ERRORLEVEL%.>&2
+    DEL /F /Q "%__conda_tmp%" 2>NUL
+    ENDLOCAL & EXIT /B 2
 )
 
 :: Check if conda produced output
 FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
     IF NOT EXIST "%%T" (
-        ECHO ERROR: Failed to run 'conda %*'.>&2
+        ECHO ERROR: Activation file missing for 'conda %*'.>&2
         DEL /F /Q "%__conda_tmp%" 2>NUL
-        ENDLOCAL & EXIT /B 2
+        ENDLOCAL & EXIT /B 3
     ) ELSE ENDLOCAL & (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
             IF "%%A"=="_CONDA_SCRIPT" (
@@ -60,6 +63,6 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
 )
 
 :: If we get here, the FOR loop never ran which means no output
-ECHO ERROR: Failed to run 'conda %*'.>&2
+ECHO ERROR: No output from 'conda %*'.>&2
 IF EXIST "%__conda_tmp%" DEL /F /Q "%__conda_tmp%" 2>NUL
-ENDLOCAL & EXIT /B 3
+ENDLOCAL & EXIT /B 4
