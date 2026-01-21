@@ -192,6 +192,10 @@ def test_CompileMultiPycAction_noarch_python(prefix: Path):
     axn.execute()
     assert isfile(target_full_path0)
     assert isfile(target_full_path1)
+    for path_data, target_full_path in zip(
+        axn.prefix_paths_data, (target_full_path0, target_full_path1), strict=True
+    ):
+        assert path_data.size_in_bytes == getsize(target_full_path)
 
     # remove the source .py file so we're sure we're importing the pyc file below
     rm_rf(source_full_path0)
@@ -256,6 +260,9 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
     mkdir_p(dirname(py_ep_axn.target_full_path))
     py_ep_axn.execute()
     assert isfile(py_ep_axn.target_full_path)
+    assert py_ep_axn.prefix_path_data.size_in_bytes == getsize(
+        py_ep_axn.target_full_path
+    )
     if not on_win:
         assert is_executable(py_ep_axn.target_full_path)
     with open(py_ep_axn.target_full_path) as fh:
