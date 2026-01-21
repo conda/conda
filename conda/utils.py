@@ -265,7 +265,6 @@ def wrap_subprocess_call(
             activate_env = activator.activate()
 
             for line in activate_env.splitlines():
-                line = line.rstrip("\r")
                 key, value = line.split("=", 1)
                 if key == "_CONDA_SCRIPT":
                     fh.write(f'{silencer}CALL "{value}"\n')
