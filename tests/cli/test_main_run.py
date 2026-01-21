@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import stat
 import subprocess
-import sys
 import uuid
 from logging import WARNING, getLogger
 from pathlib import Path
