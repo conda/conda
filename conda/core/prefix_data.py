@@ -444,14 +444,17 @@ class PrefixData(metaclass=PrefixDataType):
         for record in self.iter_records():
             total_size += record.package_size(self.prefix_path)
 
-        # 2. add up the size of the conda-meta/*.json manifests
+        # 2. add up the size of files under conda-meta (history, manifests, markers)
         conda_meta_dir = self.prefix_path / "conda-meta"
-        if conda_meta_dir.is_dir():
-            for meta_file in conda_meta_dir.glob("*.json"):
-                try:
-                    total_size += meta_file.stat().st_size
-                except OSError:
-                    pass
+        if self.exists():
+            try:
+                for meta_file in conda_meta_dir.iterdir():
+                    try:
+                        total_size += meta_file.stat().st_size
+                    except OSError:
+                        pass
+            except OSError:
+                pass
 
         return total_size
 

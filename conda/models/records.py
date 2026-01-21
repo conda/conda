@@ -696,7 +696,10 @@ class PrefixRecord(SolvedRecord):
                 continue
 
             file_path = Path(prefix_path) / path_data._path
-            total_size += file_path.stat().st_size
+            try:
+                total_size += file_path.stat().st_size
+            except OSError:
+                pass
 
         return total_size
 
