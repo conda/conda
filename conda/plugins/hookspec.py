@@ -25,6 +25,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaPackageExtractor,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -767,5 +768,40 @@ class CondaSpecs:
                     default_filenames=("environment.toml",),
                     export=export_toml,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_package_extractors(self) -> Iterable[CondaPackageExtractor]:
+        """
+        Register package extractors for different archive formats.
+
+        Package extractors handle the unpacking of package archives. Each extractor
+        specifies which file extensions it supports (e.g., ``.conda``, ``.tar.bz2``)
+        and provides an extraction function that takes the source archive path and
+        destination directory.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.common.path import PathType
+
+
+            def extract_custom(source_path: PathType, destination_directory: PathType) -> None:
+                # Custom extraction logic for a hypothetical package format
+                ...
+
+
+            @plugins.hookimpl
+            def conda_package_extractors():
+                yield plugins.types.CondaPackageExtractor(
+                    name="custom-package",
+                    extensions=[".custom"],
+                    extract=extract_custom,
+                )
+
+        :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
         """
         yield from ()

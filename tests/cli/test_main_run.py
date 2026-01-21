@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import stat
+import subprocess
 import uuid
 from logging import WARNING, getLogger
 from pathlib import Path
@@ -79,12 +80,26 @@ def test_run_uncaptured(
         assert not err
 
 
-@pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
-def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request):
     with tmp_env() as prefix:
         # Remove write permissions
-        current = stat.S_IMODE(os.lstat(prefix).st_mode)
-        os.chmod(prefix, current & ~stat.S_IWRITE)
+        if on_win:
+            username = os.environ.get("USERNAME")
+            subprocess.run(
+                ["icacls", str(prefix), "/deny", f"{username}:W"],
+                check=True,
+                capture_output=True,
+            )
+            request.addfinalizer(
+                lambda: subprocess.run(
+                    ["icacls", str(prefix), "/grant", f"{username}:F"],
+                    capture_output=True,
+                )
+            )
+        else:
+            current = stat.S_IMODE(os.lstat(prefix).st_mode)
+            os.chmod(prefix, current & ~stat.S_IWRITE)
+            request.addfinalizer(lambda: os.chmod(prefix, current))
 
         # Confirm we do not have write access
         with pytest.raises(PermissionError):

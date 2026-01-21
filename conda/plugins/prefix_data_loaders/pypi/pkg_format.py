@@ -8,6 +8,7 @@ import platform
 import re
 import sys
 import warnings
+from base64 import urlsafe_b64decode
 from collections import namedtuple
 from configparser import ConfigParser
 from csv import reader as csv_reader
@@ -268,7 +269,11 @@ class PythonDistribution:
                                     f"Invalid checksum {checksum} at {cleaned_path}. "
                                     f"Check {self._metadata_dir_full_path}."
                                 )
-                            checksum = checksum[7:]
+                            checksum = checksum[7:]  # remove the 'sha256=' prefix
+                            # Checksum is base64 encoded, but may not be padded;
+                            # fix before decoding!
+                            pad = "=" * (4 - (len(checksum) & 3))
+                            checksum = urlsafe_b64decode(checksum + pad).hex()
                         else:
                             checksum = None
                         size = int(size) if size else None
