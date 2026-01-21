@@ -4,12 +4,21 @@ import pytest
 
 from conda import plugins
 from conda.exceptions import (
+    CondaFileIOError,
     CondaValueError,
     EnvironmentSpecPluginNotDetected,
     PluginError,
 )
 from conda.models.environment import Environment
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
+
+
+class EmptySpec(EnvironmentSpecBase):
+    def can_handle(self):
+        return True
+
+    def env(self):
+        return Environment()
 
 
 class NaughtySpec(EnvironmentSpecBase):
@@ -113,6 +122,11 @@ def naughty_spec_plugin(plugin_manager):
     plugin_manager.register(plg)
 
     return plugin_manager
+
+
+def test_no_environment_file():
+    with pytest.raises(CondaFileIOError):
+        EmptySpec(filename="")
 
 
 def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
