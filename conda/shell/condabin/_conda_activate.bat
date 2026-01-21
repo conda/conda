@@ -8,7 +8,7 @@ SETLOCAL EnableDelayedExpansion
 SET "__conda_test_dir=%TEMP%\__conda_test_%RANDOM%"
 MKDIR "!__conda_test_dir!" 2>NUL
 IF NOT EXIST "!__conda_test_dir!" (
-    ECHO ERROR: Cannot write to temporary directory '%%TEMP%%'.>&2
+    ECHO ERROR: Failed to create activation temp file (permissions, disk space, or invalid path).>&2
     ECHO This is required for conda activate to work.>&2
     ECHO.>&2
     ECHO To fix this, set a user-level TEMP environment variable:>&2
@@ -17,7 +17,7 @@ IF NOT EXIST "!__conda_test_dir!" (
     ECHO.>&2
     ECHO Then restart your terminal for the changes to take effect.>&2
     ECHO.>&2
-    ECHO See: https://docs.conda.io/projects/conda/en/stable/user-guide/troubleshooting.html#temp-directory>&2
+    ECHO See: https://docs.conda.io/projects/conda/en/stable/user-guide/troubleshooting.html#temp-file-errors>&2
     ENDLOCAL & EXIT /B 1
 )
 RMDIR "!__conda_test_dir!" 2>NUL
