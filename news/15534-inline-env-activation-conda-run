@@ -1,6 +1,6 @@
 ### Enhancements
 
-* `conda run` activates environments inline instead of using a subprocess, thus speeding up the runtime (#15534)
+* Speedup `conda run` by inlining environment activation instead of using a subprocess. (#15534)
 
 ### Bug fixes
 
