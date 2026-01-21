@@ -1,10 +1,12 @@
 ### Enhancements
 
 * Add a `--size` flag to the `conda info --envs` and `conda env list` commands to display disk usage for each environment. (#8040 and #15544)
+* Add `PrefixRecord.package_size()` and `PrefixData.size` for programmatic access to conda-managed disk usage.
+* Show environment size in `conda list -n <myenv>` output.
 
 ### Bug fixes
 
-* Ensure `size_in_bytes` is recorded for generated entry points and compiled `.pyc` files in the prefix manifests (#15544).
+* Record `size_in_bytes` for generated entry points and compiled `.pyc` files in the prefix manifests (#15544).
 
 ### Deprecations
 
