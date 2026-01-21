@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
+    from ..models.channel import Channel
     from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
@@ -639,3 +640,16 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+
+@dataclass
+class CondaRepodataPatch(CondaPlugin):
+    """
+    A conda repodata patch.
+
+    :param name: Repodata patch name
+    :param action: Callable that will be run when the repodata is patched.
+    """
+
+    name: str
+    action: Callable[[Channel, dict], dict]
