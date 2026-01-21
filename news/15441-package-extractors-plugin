@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `conda_package_extractors` plugin hook to allow plugins to register custom package archive extractors. (#15603 via #15441)
+* Add `conda_package_extractors` plugin hook to allow plugins to register custom package archive extractors. (#15524 via #15441)
 
 ### Bug fixes
 
@@ -8,11 +8,11 @@
 
 ### Deprecations
 
-* Mark `conda.gateways.disk.create.extract_tarball` as pending deprecation, to be removed in 27.3. Use `conda.base.context.context.plugin_manager.extract_package` instead. (#15603 via #15441)
+* Mark `conda.gateways.disk.create.extract_tarball` as pending deprecation, to be removed in 27.3. Use `conda.base.context.context.plugin_manager.extract_package` instead. (#15524 via #15441)
 
 ### Docs
 
-* Add documentation for the new `conda_package_extractors` plugin hook. (#15603 via #15441)
+* Add documentation for the new `conda_package_extractors` plugin hook. (#15524 via #15441)
 
 ### Other
 
