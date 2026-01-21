@@ -86,7 +86,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "--size",
         action="store_true",
-        help="Show disk usage for each environment.",
+        help="Show conda-managed disk usage for each environment (excludes untracked files created after installation).",
     )
     p.add_argument(
         "--root",
