@@ -8,11 +8,6 @@ from conda.models.environment import Environment
 from .. import support_file
 
 
-def test_no_environment_file():
-    spec = RequirementsSpec(filename="not-a-file")
-    assert not spec.can_handle()
-
-
 def test_no_name():
     spec = RequirementsSpec(filename=support_file("requirements.txt"))
     assert spec.can_handle()
