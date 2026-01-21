@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
-from ...base.constants import CACHE_ENCODING, CONDA_HOMEPAGE_URL, REPODATA_FN
+from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
 from ...base.context import context
 from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
@@ -496,7 +496,7 @@ def read_cache_text(path: pathlib.Path) -> str:
     :raises FileNotFoundError: If file doesn't exist or was deleted due to corruption.
     """
     try:
-        return path.read_text(encoding=CACHE_ENCODING)
+        return path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         log.warning(f"Could not decode cache file {path}. Removing corrupt cache.")
         try:
@@ -616,7 +616,7 @@ class RepodataCache:
             temp_path.write_bytes(data)
         else:
             target = self.cache_path_json
-            temp_path.write_text(data, encoding=CACHE_ENCODING)
+            temp_path.write_text(data, encoding="utf-8")
 
         try:
             return self.replace(temp_path, target)
@@ -673,7 +673,7 @@ class RepodataCache:
         mode: "a+" then seek(0) to write/create; "r+" to read.
         """
         with (
-            self.cache_path_state.open(mode, encoding=CACHE_ENCODING) as state_file,
+            self.cache_path_state.open(mode, encoding="utf-8") as state_file,
             lock(state_file),
         ):
             yield state_file
