@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Ensure `size_in_bytes` is recorded for generated entry points and compiled `.pyc` files in the prefix manifests (#15544).
 
 ### Deprecations
 
