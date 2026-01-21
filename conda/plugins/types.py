@@ -44,6 +44,11 @@ if TYPE_CHECKING:
         dict[str, PrefixRecord],
     ]
 
+    PackageExtract: TypeAlias = Callable[
+        [PathType, PathType],  # (source_path, destination_directory)
+        None,
+    ]
+
     SinglePlatformEnvironmentExport = Callable[[Environment], str]
     MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
 
@@ -639,3 +644,28 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+
+@dataclass
+class CondaPackageExtractor(CondaPlugin):
+    """
+    Return type to use when defining a conda package extractor plugin hook.
+
+    Package extractors handle the extraction of different package archive formats.
+    Each extractor specifies which file extensions it supports and provides an
+    extraction function to unpack the archive.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_package_extractors`.
+
+    :param name: Extractor name (e.g., ``conda-package``, ``wheel-package``).
+    :param extensions: List of file extensions this extractor handles
+                       (e.g., ``[".conda", ".tar.bz2"]`` or ``[".whl"]``).
+    :param extract: Callable that extracts the package archive. Takes the source
+                    archive path and the destination directory where the package
+                    contents should be extracted.
+    """
+
+    name: str
+    extensions: list[str]
+    extract: PackageExtract
