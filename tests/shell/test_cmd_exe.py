@@ -121,10 +121,7 @@ def test_cmd_exe_basic_integration(
 
 
 @PARAMETRIZE_CMD_EXE
-def test_cmd_exe_activate_error(
-    shell_wrapper_integration: tuple[str, str, str],
-    shell: Shell,
-) -> None:
+def test_cmd_exe_activate_error(shell: Shell) -> None:
     context.dev = True
     with shell.interactive() as sh:
         sh.sendline("set")
@@ -134,7 +131,7 @@ def test_cmd_exe_activate_error(
             "Could not find conda environment: environment-not-found-doesnt-exist"
         )
         sh.expect(".*")
-        sh.assert_env_var("errorlevel", "1")
+        sh.assert_env_var("errorlevel", "2")
 
         sh.sendline("conda activate -h blah blah")
         sh.expect("usage: conda activate")
