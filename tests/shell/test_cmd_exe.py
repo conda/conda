@@ -138,6 +138,20 @@ def test_cmd_exe_activate_error(shell: Shell) -> None:
 
 
 @PARAMETRIZE_CMD_EXE
+def test_cmd_exe_activate_invalid_temp(shell: Shell) -> None:
+    """Test that activation fails gracefully with an invalid TEMP directory."""
+    with shell.interactive() as sh:
+        # Set TEMP to invalid path
+        sh.sendline("set TEMP=C:\\path\\that\\does\\not\\exist")
+
+        # Try to activate - should fail with TEMP error
+        sh.sendline(f"conda {activate} base")
+        sh.expect("ERROR: Failed to create temp file")
+        sh.expect("TEMP directory issue")
+        sh.assert_env_var("errorlevel", "1")
+
+
+@PARAMETRIZE_CMD_EXE
 def test_legacy_activate_deactivate_cmd_exe(
     shell_wrapper_integration: tuple[str, str, str],
     shell: Shell,
