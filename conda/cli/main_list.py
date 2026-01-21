@@ -13,7 +13,6 @@ from os.path import isdir, isfile
 from typing import TYPE_CHECKING
 
 from .. import __version__
-from ..utils import human_bytes
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -194,6 +193,7 @@ def list_packages(
     from ..base.context import context
     from ..core.prefix_data import PrefixData
     from ..exceptions import CondaValueError, PackageNotInstalledError
+    from ..utils import human_bytes
     from .common import disp_features
 
     exitcode = 0
