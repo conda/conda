@@ -485,6 +485,27 @@ class RepodataState(UserDict):
         return super().__getitem__(key)
 
 
+def read_cache_text(path: pathlib.Path) -> str:
+    """
+    Read a cache file with UTF-8 encoding.
+
+    If the file cannot be decoded as UTF-8, it logs a warning,
+    deletes the corrupt cache file and raises FileNotFoundError
+    to trigger a cache refresh through the normal code path.
+
+    :raises FileNotFoundError: If file doesn't exist or was deleted due to corruption.
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        log.warning(f"Could not decode cache file {path}. Removing corrupt cache.")
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        raise FileNotFoundError(f"Removed corrupt cache file: {path}")
+
+
 class RepodataCache:
     """
     Handle caching for a single repodata.json + repodata.info.json
@@ -551,7 +572,7 @@ class RepodataCache:
                 if binary:
                     json_data = cache_path.read_bytes()
                 else:
-                    json_data = cache_path.read_text(encoding="utf-8")
+                    json_data = read_cache_text(cache_path)
 
             json_stat = cache_path.stat()
             if not (
@@ -591,18 +612,13 @@ class RepodataCache:
         """Write data to <repodata> cache path, by calling self.replace()."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
         if isinstance(data, bytes):
-            mode = "bx"
             target = self.cache_path_shards
-            encoding = {}  # none for binary mode
+            temp_path.write_bytes(data)
         else:
-            mode = "x"
             target = self.cache_path_json
-            encoding = {"encoding": "utf-8"}  # explicit utf-8 for text mode
+            temp_path.write_text(data, encoding="utf-8")
 
         try:
-            with temp_path.open(mode, **encoding) as temp:  # type: ignore ; exclusive mode, error if exists
-                temp.write(data)
-
             return self.replace(temp_path, target)
 
         finally:
@@ -842,8 +858,13 @@ class RepodataFetch:
                     self.cache_path_json,
                     timeout,
                 )
-                _internal_state = self.read_cache()
-                return _internal_state
+                try:
+                    _internal_state = self.read_cache()
+                    return _internal_state
+                except FileNotFoundError:
+                    log.debug("Cache file missing or corrupted, fetching new.")
+                    # Clear state to ensure we don't send conditional headers for missing data
+                    cache.state.clear()
 
             log.debug(
                 "Local cache timed out for %s at %s",
@@ -881,7 +902,7 @@ class RepodataFetch:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
-                    raw_repodata = self.cache_path_json.read_text(encoding="utf-8")
+                    raw_repodata = read_cache_text(self.cache_path_json)
                     stat = self.cache_path_json.stat()
                     cache.state["size"] = stat.st_size  # type: ignore
                     mtime_ns = stat.st_mtime_ns
