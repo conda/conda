@@ -266,22 +266,16 @@ def wrap_subprocess_call(
 
             for line in activate_env.splitlines():
                 line = line.rstrip("\r")
-                if not line:
-                    continue
-
-                if line.startswith("_CONDA_SCRIPT="):
-                    script = line.split("=", 1)[1]
-                    fh.write(f'{silencer}CALL "{script}"\n')
+                key, value = line.split("=", 1)
+                if key == "_CONDA_SCRIPT":
+                    fh.write(f'{silencer}CALL "{value}"\n')
                     # If any of these calls to the activation hook scripts fail, we want
                     # to exit the wrapper immediately and abort `conda run` right away.
                     fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
-                    continue
-
-                if "=" not in line:
-                    continue
-
-                key, value = line.split("=", 1)
-                fh.write(f'{silencer}SET "{key}={value}"\n')
+                elif not value:
+                    fh.write(f'{silencer}SET "{key}="\n')
+                else:
+                    fh.write(f'{silencer}SET "{key}={value}"\n')
 
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
