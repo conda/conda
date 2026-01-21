@@ -5,6 +5,8 @@
 from __future__ import annotations
 
 import os
+import signal
+import subprocess
 import sys
 from collections import namedtuple
 from logging import getLogger
@@ -16,7 +18,7 @@ from .. import ACTIVE_SUBPROCESSES
 from ..auxlib.compat import shlex_split_unicode
 from ..auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import encode_environment, isiterable
+from ..common.compat import encode_environment, isiterable, on_win
 from ..common.constants import TRACE
 from ..common.signals import signal_handler
 from ..gateways.disk.delete import rm_rf
@@ -106,6 +108,11 @@ def subprocess_call(
         stdin = None
 
     # spawn subprocess
+    creationflags = 0
+    start_new_session = True
+    if on_win:
+        creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        start_new_session = False
     process = Popen(
         command,
         cwd=cwd,
@@ -115,20 +122,42 @@ def subprocess_call(
         env=env,
         text=True,  # open streams in text mode so that we don't have to decode
         errors="replace",
-        start_new_session=True,
+        start_new_session=start_new_session,
+        creationflags=creationflags,
     )
     ACTIVE_SUBPROCESSES.add(process)
 
-    def _handler(signum, frame):
-        os.killpg(os.getpgid(process.pid), signum)
+    def _forward_signal(signum):
+        if process.poll() is not None:
+            return
+        try:
+            if on_win:
+                if signum == signal.SIGINT:
+                    signum = getattr(signal, "CTRL_C_EVENT", signum)
+                elif signum in (signal.SIGBREAK, signal.SIGTERM):
+                    signum = getattr(signal, "CTRL_BREAK_EVENT", signum)
+                process.send_signal(signum)
+            else:
+                os.killpg(os.getpgid(process.pid), signum)
+        except ProcessLookupError:
+            pass
+        except Exception as e:
+            log.debug(
+                "failed to forward signal %s to pid %s: %r", signum, process.pid, e
+            )
 
-    with signal_handler(_handler):
-        # decode output, if not PIPE, stdout/stderr will be None
-        stdout, stderr = process.communicate(input=stdin)
+    def _handler(signum, frame):
+        _forward_signal(signum)
+
+    try:
+        with signal_handler(_handler):
+            # decode output, if not PIPE, stdout/stderr will be None
+            stdout, stderr = process.communicate(input=stdin)
+    finally:
+        if process in ACTIVE_SUBPROCESSES:
+            ACTIVE_SUBPROCESSES.remove(process)
 
     rc = process.returncode
-    ACTIVE_SUBPROCESSES.remove(process)
-
     if (raise_on_error and rc != 0) or log.isEnabledFor(TRACE):
         formatted_output = _format_output(command_str, cwd, rc, stdout, stderr)
     if raise_on_error and rc != 0:
