@@ -31,7 +31,13 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
             IF "%%A"=="_CONDA_SCRIPT" (
                 :: Script execution
-                CALL "%%B"
+                :: If any of these calls to the activation hook scripts fail, we want
+                :: to exit immediately and abort activation right away.
+                CALL "%%B" || (
+                    DEL /F /Q "%%T" 2>NUL
+                    DEL /F /Q "%__conda_tmp%" 2>NUL
+                    EXIT /B 1
+                )
             ) ELSE IF "%%B"=="" (
                 :: Unset variable
                 SET "%%A="
