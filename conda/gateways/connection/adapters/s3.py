@@ -1,9 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Defines S3 transport adapter for CondaSession (requests.Session)."""
+"""S3 transport adapter using shared TransferManager for parallel downloads."""
 
 from __future__ import annotations
 
+import os
+import tempfile
+import threading
 from logging import LoggerAdapter, getLogger
 from tempfile import SpooledTemporaryFile
 from typing import TYPE_CHECKING
@@ -18,6 +21,38 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 stderrlog = LoggerAdapter(getLogger("conda.stderrlog"), extra=dict(terminator="\n"))
+
+# Module-level singleton for shared TransferManager
+_transfer_manager = None
+_transfer_lock = threading.Lock()
+
+
+def get_transfer_manager():
+    """Lazily initialize a shared S3Transfer singleton."""
+    global _transfer_manager
+    if _transfer_manager is None:
+        with _transfer_lock:
+            if _transfer_manager is None:
+                from boto3.s3.transfer import S3Transfer, TransferConfig
+                from boto3.session import Session
+
+                from ....base.context import context
+
+                client = Session().client("s3")
+                config = TransferConfig(
+                    max_concurrency=context.s3_max_concurrency,
+                    multipart_threshold=context.s3_multipart_chunksize,
+                    multipart_chunksize=context.s3_multipart_chunksize,
+                )
+                _transfer_manager = S3Transfer(client, config)
+    return _transfer_manager
+
+
+def reset_transfer_manager():
+    """Reset singleton for testing or credential refresh."""
+    global _transfer_manager
+    with _transfer_lock:
+        _transfer_manager = None
 
 
 class S3Adapter(BaseAdapter):
@@ -54,16 +89,40 @@ class S3Adapter(BaseAdapter):
         from botocore.exceptions import BotoCoreError, ClientError
 
         bucket_name, key_string = url_to_s3_info(request.url)
-        # https://github.com/conda/conda/issues/8993
-        # creating a separate boto3 session to make this thread safe
+        key = key_string[1:]  # strip leading /
+
         session = Session()
-        # create a resource client using this thread's session object
-        s3 = session.resource("s3")
-        # finally get the S3 object
-        key = s3.Object(bucket_name, key_string[1:])
+        client = session.client("s3")
+        transfer = get_transfer_manager()
 
         try:
-            response = key.get()
+            head = client.head_object(Bucket=bucket_name, Key=key)
+
+            fd, tmp_path = tempfile.mkstemp()
+            os.close(fd)
+
+            try:
+                transfer.download_file(bucket_name, key, tmp_path)
+
+                fh = SpooledTemporaryFile()
+                with open(tmp_path, "rb") as f:
+                    fh.write(f.read())
+                fh.seek(0)
+            finally:
+                os.unlink(tmp_path)
+
+            resp.headers = CaseInsensitiveDict(
+                {
+                    "Content-Type": head.get("ContentType", "text/plain"),
+                    "Content-Length": str(head["ContentLength"]),
+                    "Last-Modified": head["LastModified"].strftime(
+                        "%a, %d %b %Y %H:%M:%S GMT"
+                    ),
+                }
+            )
+            resp.raw = fh
+            resp.close = fh.close
+
         except (BotoCoreError, ClientError) as e:
             resp.status_code = 404
             message = {
@@ -71,28 +130,10 @@ class S3Adapter(BaseAdapter):
                 "path": request.url,
                 "exception": repr(e),
             }
-            resp.raw = self._write_tempfile(
-                lambda x: x.write(ensure_binary(json.dumps(message)))
-            )
-            resp.close = resp.raw.close
-            return resp
-
-        key_headers = response["ResponseMetadata"]["HTTPHeaders"]
-        resp.headers = CaseInsensitiveDict(
-            {
-                "Content-Type": key_headers.get("content-type", "text/plain"),
-                "Content-Length": key_headers["content-length"],
-                "Last-Modified": key_headers["last-modified"],
-            }
-        )
-
-        resp.raw = self._write_tempfile(key.download_fileobj)
-        resp.close = resp.raw.close
+            fh = SpooledTemporaryFile()
+            fh.write(ensure_binary(json.dumps(message)))
+            fh.seek(0)
+            resp.raw = fh
+            resp.close = fh.close
 
         return resp
-
-    def _write_tempfile(self, writer_callable):
-        fh = SpooledTemporaryFile()
-        writer_callable(fh)
-        fh.seek(0)
-        return fh

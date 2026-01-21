@@ -48,6 +48,36 @@ pytest_plugins = (
 )
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-s3-benchmark",
+        action="store_true",
+        default=False,
+        help="Run S3 benchmark tests (requires AWS credentials)",
+    )
+    parser.addoption(
+        "--s3-benchmark-bucket-name",
+        action="store",
+        default=None,
+        help="S3 bucket name for benchmark (creates random bucket if not set)",
+    )
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "s3_benchmark: mark test as S3 benchmark (skipped by default)"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--run-s3-benchmark"):
+        return
+    skip_s3 = pytest.mark.skip(reason="need --run-s3-benchmark option to run")
+    for item in items:
+        if "s3_benchmark" in item.keywords:
+            item.add_marker(skip_s3)
+
+
 @pytest.hookimpl
 def pytest_report_header(config: pytest.Config):
     # ensuring the expected development conda is being run

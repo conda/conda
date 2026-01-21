@@ -139,24 +139,24 @@ def inner_s3_test(
     import boto3
     from botocore.client import Config
 
-    # We patch the default kwargs values in boto3.session.Session.resource(...)
-    # which is used in conda.gateways.connection.s3.S3Adapter to initialize the S3
-    # connection; otherwise it would default to a real AWS instance
-    monkeypatch.setattr(
-        boto3.session.Session.resource,
-        "__defaults__",
-        (
-            "us-east-1",  # region_name
-            None,  # api_version
-            True,  # use_ssl
-            None,  # verify
-            endpoint_url,  # endpoint_url
-            "minioadmin",  # aws_access_key_id
-            "minioadmin",  # aws_secret_access_key
-            None,  # aws_session_token
-            Config(signature_version="s3v4"),  # config
-        ),
-    )
+    from conda.gateways.connection.adapters.s3 import reset_transfer_manager
+
+    # Reset the singleton so it picks up our patched client
+    reset_transfer_manager()
+
+    # Wrap Session.client to inject test endpoint and credentials;
+    # otherwise it would default to a real AWS instance
+    original_client = boto3.session.Session.client
+
+    def patched_client(self, service_name, **kwargs):
+        kwargs.setdefault("region_name", "us-east-1")
+        kwargs.setdefault("endpoint_url", endpoint_url)
+        kwargs.setdefault("aws_access_key_id", "minioadmin")
+        kwargs.setdefault("aws_secret_access_key", "minioadmin")
+        kwargs.setdefault("config", Config(signature_version="s3v4"))
+        return original_client(self, service_name, **kwargs)
+
+    monkeypatch.setattr(boto3.session.Session, "client", patched_client)
 
     monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "True")
     monkeypatch.setenv("CONDA_SUBDIR", "linux-64")

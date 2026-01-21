@@ -375,6 +375,12 @@ class Context(Configuration):
     remote_max_retries = ParameterLoader(PrimitiveParameter(3))
     remote_backoff_factor = ParameterLoader(PrimitiveParameter(1))
 
+    # S3 transfer settings
+    s3_max_concurrency = ParameterLoader(PrimitiveParameter(10, element_type=int))
+    s3_multipart_chunksize = ParameterLoader(
+        PrimitiveParameter(8 * 1024 * 1024, element_type=int)
+    )
+
     add_anaconda_token = ParameterLoader(
         PrimitiveParameter(True), aliases=("add_binstar_token",)
     )
@@ -1864,6 +1870,17 @@ class Context(Configuration):
                 """
                 Threads to use when downloading and reading repodata.  When not set,
                 defaults to None, which uses the default ThreadPoolExecutor behavior.
+                """
+            ),
+            s3_max_concurrency=dals(
+                """
+                Maximum number of concurrent S3 transfer threads for multipart downloads.
+                """
+            ),
+            s3_multipart_chunksize=dals(
+                """
+                Chunk size in bytes for S3 multipart transfers. Also used as the
+                threshold above which multipart transfers are used.
                 """
             ),
             report_errors=dals(
