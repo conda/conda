@@ -40,7 +40,7 @@ from conda.gateways.disk.test import softlink_supported
 from conda.models.channel import Channel
 from conda.models.enums import LinkType, NoarchType, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
-from conda.models.records import PackageRecord, PathData, PathDataV1, PathsData
+from conda.models.records import PackageRecord, PathDataV1, PathsData
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -467,8 +467,8 @@ def test_create_file_link_actions(tmp_path):
     # site-packages should be renamed to Python's site packages (given as
     # target_site_packages_short_path) whie test/path/2 should be left alone.
     paths = [
-        PathData(_path="site-packages/1", path_type=PathEnum.hardlink),
-        PathData(_path="test/path/2", path_type=PathEnum.hardlink),
+        PathDataV1(_path="site-packages/1", path_type=PathEnum.hardlink),
+        PathDataV1(_path="test/path/2", path_type=PathEnum.hardlink),
     ]
     paths_data = PathsData(paths_version=0, paths=paths)
 
