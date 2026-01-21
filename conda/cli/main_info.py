@@ -426,7 +426,7 @@ class InfoRenderer:
     Provides a ``render`` method for rendering ``InfoComponents``
     """
 
-    def __init__(self, context, show_size=False):
+    def __init__(self, context: Context, show_size: bool = False):
         self._context = context
         self._show_size = show_size
         self._component_style_map = {
