@@ -320,14 +320,14 @@ def test_get_info_components() -> None:
 def test_compute_prefix_size(tmp_env: TmpEnvFixture):
     with tmp_env("ca-certificates") as prefix:
         prefix_data = PrefixData(prefix)
-        size = prefix_data.size
+        size = prefix_data.size()
         assert size > 0
 
 
 def test_compute_prefix_size_empty_env(tmp_env: TmpEnvFixture):
     with tmp_env() as prefix:
         prefix_data = PrefixData(prefix)
-        size = prefix_data.size
+        size = prefix_data.size()
         assert size == 0
 
 

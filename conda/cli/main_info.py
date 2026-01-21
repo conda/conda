@@ -476,7 +476,7 @@ class InfoRenderer:
                 "writable": prefix_data.is_writable,
             }
             if self._show_size:
-                result[prefix]["size"] = prefix_data.size
+                result[prefix]["size"] = prefix_data.size()
         return result
 
     def render(self, components: Iterable[InfoComponents]):

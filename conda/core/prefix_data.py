@@ -9,7 +9,6 @@ import re
 import warnings
 from collections import UserDict
 from datetime import datetime, timezone
-from functools import cached_property
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
@@ -428,7 +427,6 @@ class PrefixData(metaclass=PrefixDataType):
         else:
             return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
 
-    @cached_property
     def size(self) -> int:
         """
         Compute the total size of a conda environment prefix.
