@@ -432,7 +432,7 @@ class PrefixData(metaclass=PrefixDataType):
         Compute the total size of a conda environment prefix.
 
         This aggregates the installed size of all packages in the environment,
-        plus the size of the conda-meta/*.json manifest files.
+        plus the size of files under conda-meta (history, manifests, markers).
 
         :returns: Total size in bytes.
         """
