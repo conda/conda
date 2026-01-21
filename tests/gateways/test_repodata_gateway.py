@@ -40,6 +40,7 @@ from conda.gateways.repodata import (
     RepodataState,
     conda_http_errors,
     get_cache_control_max_age,
+    read_cache_text,
 )
 from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 from conda.models.channel import Channel
@@ -434,3 +435,31 @@ def test_get_cache_control_max_age():
     """
     assert get_cache_control_max_age('cache_control = "public, max-age=30"') == 30
     assert get_cache_control_max_age(None) == 0
+
+
+def test_read_cache_text_utf8(tmp_path):
+    """
+    Ensure that we can read a UTF-8 encoded file, including non-ASCII characters.
+    """
+    p = tmp_path / "repodata.json"
+    content = '{"foo": "bar", "euro": "€", "unicode": "✓"}'
+    p.write_text(content, encoding="utf-8")
+
+    assert read_cache_text(p) == content
+    assert p.exists()
+
+
+def test_read_cache_text_latin1_fail(tmp_path):
+    """
+    Ensure that a non-UTF-8 encoded file triggers a FileNotFoundError and deletion.
+    """
+    p = tmp_path / "repodata.json"
+    # Create content that is valid latin-1 but invalid utf-8
+    # 0xE9 is é in latin-1, but invalid start byte in utf-8
+    content_bytes = b'{"foo": "bar", "cafe": "caf\xe9"}'
+    p.write_bytes(content_bytes)
+
+    with pytest.raises(FileNotFoundError, match="Removed corrupt cache file"):
+        read_cache_text(p)
+
+    assert not p.exists()

@@ -487,42 +487,23 @@ class RepodataState(UserDict):
 
 def read_cache_text(path: pathlib.Path) -> str:
     """
-    Read a cache file with UTF-8 encoding, with fallback for migration.
+    Read a cache file with UTF-8 encoding.
 
-    Handles encoding migration: if a file cannot be decoded as UTF-8,
-    tries common fallback encodings and logs a warning. If all encodings
-    fail, deletes the corrupt cache file and raises FileNotFoundError
+    If the file cannot be decoded as UTF-8, it logs a warning,
+    deletes the corrupt cache file and raises FileNotFoundError
     to trigger a cache refresh through the normal code path.
 
     :raises FileNotFoundError: If file doesn't exist or was deleted due to corruption.
     """
-    # Try UTF-8 first (preferred encoding)
     try:
         return path.read_text(encoding=CACHE_ENCODING)
     except UnicodeDecodeError:
-        pass
-
-    # Try fallback encodings for migration from older cache files
-    fallback_encodings = ("latin-1", "cp1252", "utf-16")
-    raw_bytes = path.read_bytes()
-    for encoding in fallback_encodings:
+        log.warning(f"Could not decode cache file {path}. Removing corrupt cache.")
         try:
-            content = raw_bytes.decode(encoding)
-            log.warning(
-                f"Cache file {path} was encoded with {encoding} instead of "
-                f"{CACHE_ENCODING}. The cache will be updated on next write."
-            )
-            return content
-        except (UnicodeDecodeError, LookupError):
-            continue
-
-    # If all encodings fail, delete corrupt cache and raise to trigger refresh
-    log.warning(f"Could not decode cache file {path}. Removing corrupt cache.")
-    try:
-        path.unlink()
-    except OSError:
-        pass
-    raise FileNotFoundError(f"Removed corrupt cache file: {path}")
+            path.unlink()
+        except OSError:
+            pass
+        raise FileNotFoundError(f"Removed corrupt cache file: {path}")
 
 
 class RepodataCache:
@@ -877,8 +858,13 @@ class RepodataFetch:
                     self.cache_path_json,
                     timeout,
                 )
-                _internal_state = self.read_cache()
-                return _internal_state
+                try:
+                    _internal_state = self.read_cache()
+                    return _internal_state
+                except FileNotFoundError:
+                    log.debug("Cache file missing or corrupted, fetching new.")
+                    # Clear state to ensure we don't send conditional headers for missing data
+                    cache.state.clear()
 
             log.debug(
                 "Local cache timed out for %s at %s",
