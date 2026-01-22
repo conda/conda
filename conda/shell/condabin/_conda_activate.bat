@@ -49,9 +49,10 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
                 :: If any of these calls to the activation hook scripts fail, we want
                 :: to exit immediately and abort activation right away.
                 CALL "%%B" || (
+                    ECHO ERROR: Activation script '%%B' failed with code %ERRORLEVEL%.>&2
                     DEL /F /Q "%%T" 2>NUL
                     DEL /F /Q "%__conda_tmp%" 2>NUL
-                    EXIT /B 1
+                    EXIT /B 4
                 )
             ) ELSE IF "%%B"=="" (
                 :: Unset variable
@@ -71,4 +72,4 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
 :: If we get here, the FOR loop never ran which means no output
 ECHO ERROR: No output from 'conda %*'.>&2
 IF EXIST "%__conda_tmp%" DEL /F /Q "%__conda_tmp%" 2>NUL
-ENDLOCAL & EXIT /B 4
+ENDLOCAL & EXIT /B 5
