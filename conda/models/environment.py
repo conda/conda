@@ -26,7 +26,7 @@ from .match_spec import MatchSpec
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
-    from typing import TypeVar
+    from typing import Final, TypeVal
 
     from ..base.constants import (
         ChannelPriority,
@@ -40,6 +40,9 @@ if TYPE_CHECKING:
     T = TypeVar("T")
 
 log = getLogger(__name__)
+
+
+EXTERNAL_PACKAGES_PYPI_KEY: Final = "pypi"
 
 
 @dataclass
@@ -430,7 +433,7 @@ class Environment:
                     f"{python_prec.name}=={python_prec.version}"
                     for python_prec in python_precs
                 ]
-                external_packages["pip"] = python_deps
+                external_packages[EXTERNAL_PACKAGES_PYPI_KEY] = python_deps
 
         # Always populate explicit_packages from prefix data (for explicit export format)
         explicit_packages = list(prefix_data.iter_records())

@@ -13,7 +13,7 @@ from conda.base.constants import ChannelPriority
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
-from conda.models.environment import Environment, EnvironmentConfig
+from conda.models.environment import Environment, EnvironmentConfig, EXTERNAL_PACKAGES_PYPI_KEY
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
@@ -90,7 +90,7 @@ def test_environments_merge():
             channel_settings=({"channel": "one", "a": 1},),
         ),
         external_packages={
-            "pip": ["one", "two", {"special": "type"}],
+            EXTERNAL_PACKAGES_PYPI_KEY: ["one", "two", {"special": "type"}],
             "other": ["three"],
         },
         explicit_packages=[],
@@ -107,7 +107,7 @@ def test_environments_merge():
             channel_settings=({"channel": "two", "b": 2},),
             repodata_fns=("repodata2.json",),
         ),
-        external_packages={"pip": ["two", "flask"], "a": ["nother"]},
+        external_packages={EXTERNAL_PACKAGES_PYPI_KEY: ["two", "flask"], "a": ["nother"]},
         explicit_packages=[],
         requested_packages=[MatchSpec("numpy"), MatchSpec("flask")],
         variables={"VAR": "IABLE"},
@@ -132,7 +132,7 @@ def test_environments_merge():
         repodata_fns=("repodata2.json",),
     )
     assert merged.external_packages == {
-        "pip": ["one", "two", {"special": "type"}, "flask"],
+        EXTERNAL_PACKAGES_PYPI_KEY: ["one", "two", {"special": "type"}, "flask"],
         "other": ["three"],
         "a": ["nother"],
     }
