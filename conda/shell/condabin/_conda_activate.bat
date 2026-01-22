@@ -45,9 +45,7 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
     ) ELSE ENDLOCAL & (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
             IF "%%A"=="_CONDA_SCRIPT" (
-                :: Script execution
-                :: If any of these calls to the activation hook scripts fail, we want
-                :: to exit immediately and abort activation right away.
+                :: Script execution, fast exit if activation scripts fail
                 CALL "%%B" || (
                     ECHO ERROR: Activation script '%%B' failed with code %ERRORLEVEL%.>&2
                     DEL /F /Q "%%T" 2>NUL
