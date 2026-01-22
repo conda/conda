@@ -1017,28 +1017,21 @@ jobs:
       - name: Conda Install
         working-directory: conda
         run: |
-          # Filter out conda and conda-libmamba-solver from conda-build requirements to assure no confilects with conda and conda-build.
+          # Filter out conda and conda-libmamba-solver from conda-build from requirements.txt to assure no conflicts with conda and conda-build.
           # We are removing conda and conda-libmamba-solver so we don't depend on non-existent builds (a.k.a. missing Python 3.14 builds)
 
-          # Regex pattern: ^conda( |$|-libmamba-solver)
-          # Matches (excluded):
-          #   - "conda >=24.11.0"  (conda followed by space)
-          #   - "conda"             (conda at end of line)
-          #   - "conda-libmamba-solver >=25.4.0"
-          for req_file in ../conda-build/tests/requirements.txt ../conda-build/tests/requirements-ci.txt ../conda-build/tests/requirements-${{ runner.os }}.txt; do
-            if [ -f "$req_file" ]; then
-              grep -vE "^conda( |$|-libmamba-solver)" "$req_file" > "${req_file}.filtered" || cp "$req_file" "${req_file}.filtered"
-            fi
-          done
+          if [ -f ../conda-build/tests/requirements.txt ]; then
+            sed -i '/^conda /d; /^conda$/d; /^conda-libmamba-solver/d' ../conda-build/tests/requirements.txt || true
+          fi
           conda install \
             --yes \
             --file tests/requirements-py314.txt \
             --file tests/requirements-${{ runner.os }}.txt \
             --file tests/requirements-ci.txt \
             --file tests/requirements-s3.txt \
-            --file ../conda-build/tests/requirements.txt.filtered \
-            --file ../conda-build/tests/requirements-ci.txt.filtered \
-            --file ../conda-build/tests/requirements-${{ runner.os }}.txt.filtered \
+            --file ../conda-build/tests/requirements.txt \
+            --file ../conda-build/tests/requirements-ci.txt \
+            --file ../conda-build/tests/requirements-${{ runner.os }}.txt \
             python=${{ matrix.python-version }}
 
       - name: Manually add conda-libmamba-solver (Py3.14)
