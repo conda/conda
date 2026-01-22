@@ -15,6 +15,7 @@ from conda.gateways.disk import create
         ("create_application_entry_point", TypeError),
         ("ProgressFileWrapper", TypeError),
         ("create_fake_executable_softlink", TypeError),
+        ("extract_tarball", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
