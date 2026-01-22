@@ -1,0 +1,3 @@
+### Enhancements
+
+* Improve error message when `conda activate` fails on Windows due to unwritable `%TEMP%` directory. (#15601 via #15602)
