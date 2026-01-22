@@ -336,8 +336,6 @@ def download_http_errors(url: str):
                     You may not have the required permissions to access this channel or package.
                     Consider requesting access from the channel owner.
 
-                    You can verify your access with `anaconda show <channel>/<package>`.
-
                     Use `conda config --show` to view your configuration's current state.
                     Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
                     """
@@ -349,11 +347,10 @@ def download_http_errors(url: str):
                     this resource.
 
                     This may mean:
-                      (a) You are not authenticated. Try `anaconda login` to authenticate, or
+                      (a) You are not authenticated. Check if authentication is required for
+                          this channel and verify your credentials are correctly configured.
                       (b) You do not have access to this private channel or package. Contact the
                           channel owner to request access.
-
-                    You can verify your access with `anaconda show <channel>/<package>`.
 
                     Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
                     """
@@ -380,11 +377,7 @@ def download_http_errors(url: str):
                     f"""
                     The token given for the URL is invalid.
 
-                    If this token was pulled from anaconda-client, you will need to use
-                    anaconda-client to reauthenticate.
-
-                    If you supplied this token to conda directly, you will need to adjust your
-                    conda configuration to proceed.
+                    You will need to adjust your conda configuration to proceed.
 
                     Use `conda config --show` to view your configuration's current state.
                     Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
@@ -396,11 +389,9 @@ def download_http_errors(url: str):
                     The remote server has indicated you are using invalid credentials for
                     this channel.
 
-                    If the remote site is anaconda.org or follows the Anaconda Server API, you
-                    will need to
-                        (a) remove the invalid token from your system with `anaconda logout`,
-                            optionally followed by collecting a new token with `anaconda login`, or
-                        (b) provide conda with a valid token directly.
+                    You may need to:
+                      (a) Remove or update the invalid token from your configuration, or
+                      (b) Provide conda with a valid token directly.
 
                     Further configuration help can be found at <{join_url(CONDA_HOMEPAGE_URL, "docs/config.html")}>.
                     """

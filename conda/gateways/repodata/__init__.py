@@ -273,17 +273,14 @@ Exception: {e}
             channel = Channel(url)
             if channel.token:
                 help_message = """\
-The token '{}' given for the URL has insufficient permissions to access this resource.
+The token given for the URL has insufficient permissions to access this resource.
 
 You may not have the required permissions to access this channel or package.
 Consider requesting access from the channel owner.
 
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <{}>.
-""".format(
-                    channel.token,
-                    join_url(CONDA_HOMEPAGE_URL, "docs/config.html"),
-                )
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
             elif context.channel_alias.location in url:
                 help_message = """\
@@ -315,32 +312,21 @@ Further configuration help can be found at <{}>.
             channel = Channel(url)
             if channel.token:
                 help_message = """\
-The token '{}' given for the URL is invalid.
+The token given for the URL is invalid.
 
-If this token was pulled from anaconda-client, you will need to use
-anaconda-client to reauthenticate.
-
-If you supplied this token to conda directly, you will need to adjust your
-conda configuration to proceed.
+You will need to adjust your conda configuration to proceed.
 
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <{}>.
-""".format(
-                    channel.token,
-                    join_url(CONDA_HOMEPAGE_URL, "docs/config.html"),
-                )
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
             elif context.channel_alias.location in url:
-                # Note, this will not trigger if the binstar configured url does
-                # not match the conda configured one.
                 help_message = """\
 The remote server has indicated you are using invalid credentials for this channel.
 
-If the remote site is anaconda.org or follows the Anaconda Server API, you
-will need to
-    (a) remove the invalid token from your system with `anaconda logout`, optionally
-        followed by collecting a new token with `anaconda login`, or
-    (b) provide conda with a valid token directly.
+You may need to:
+  (a) Remove or update the invalid token from your configuration, or
+  (b) Provide conda with a valid token directly.
 
 Further configuration help can be found at <{}>.
 """.format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
