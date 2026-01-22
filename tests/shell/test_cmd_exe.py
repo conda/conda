@@ -152,6 +152,27 @@ def test_cmd_exe_activate_invalid_temp(shell: Shell) -> None:
 
 
 @PARAMETRIZE_CMD_EXE
+def test_cmd_exe_activate_script_failure(
+    shell_wrapper_integration: tuple[str, str, str],
+    shell: Shell,
+) -> None:
+    """Test that activation fails gracefully when an activation script fails."""
+    prefix, _, _ = shell_wrapper_integration
+
+    # Create a failing activation script in the environment
+    activate_d = Path(prefix) / "etc" / "conda" / "activate.d"
+    activate_d.mkdir(parents=True, exist_ok=True)
+    failing_script = activate_d / "fail.bat"
+    failing_script.write_text("@echo Failing activation script\n@exit /b 1\n")
+
+    with shell.interactive() as sh:
+        sh.sendline(f'conda {activate} "{prefix}"')
+        sh.expect("ERROR: Activation script")
+        sh.expect("failed with code")
+        sh.assert_env_var("errorlevel", "4")
+
+
+@PARAMETRIZE_CMD_EXE
 def test_legacy_activate_deactivate_cmd_exe(
     shell_wrapper_integration: tuple[str, str, str],
     shell: Shell,
