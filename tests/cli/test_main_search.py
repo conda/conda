@@ -119,26 +119,19 @@ def test_search_3(conda_cli: CondaCLIFixture):
 @pytest.mark.flaky(reruns=1)
 def test_search_4(
     conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # use test channel
     tmp_pkgs_dir: Path,  # empty cache
 ):
     """
     Show error when --use-index-cache is used but index cache is empty.
     """
-    try:
+    with pytest.raises(PackagesNotFoundError):
         conda_cli(
             "search",
             "--json",
-            "--override-channels",
-            "--channel=defaults",
             "--use-index-cache",
-            "python",
+            "small",
         )
-    except PackagesNotFoundError as e:
-        # conda_cli doesn't output json on exception; check that exception is
-        # json serializable with CondaJSONEncoder.
-
-        error = json.dumps(e.dump_map())
-        assert "PackagesNotFoundError" in error  # type: ignore[index]
 
 
 @pytest.mark.flaky(reruns=5)
