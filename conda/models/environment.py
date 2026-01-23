@@ -26,7 +26,7 @@ from .match_spec import MatchSpec
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
-    from typing import Final, TypeVal
+    from typing import Final, TypeVar
 
     from ..base.constants import (
         ChannelPriority,
@@ -438,7 +438,11 @@ class Environment:
         # Always populate explicit_packages from prefix data (for explicit export format).
         # But don't include packages installed by pip (or other external package formats).
         python_precs_names = [pkg.name for pkg in python_precs]
-        explicit_packages = list(pkg for pkg in prefix_data.iter_records() if pkg.name not in python_precs_names)
+        explicit_packages = list(
+            pkg
+            for pkg in prefix_data.iter_records()
+            if pkg.name not in python_precs_names
+        )
 
         # Build channels tuple
         environment_channels = tuple(channels or ())

@@ -13,7 +13,11 @@ from conda.base.constants import ChannelPriority
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
-from conda.models.environment import Environment, EnvironmentConfig, EXTERNAL_PACKAGES_PYPI_KEY
+from conda.models.environment import (
+    EXTERNAL_PACKAGES_PYPI_KEY,
+    Environment,
+    EnvironmentConfig,
+)
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
@@ -24,7 +28,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import TmpEnvFixture, PipCLIFixture
+    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
 
 
 def test_create_environment_missing_required_fields():
@@ -107,7 +111,10 @@ def test_environments_merge():
             channel_settings=({"channel": "two", "b": 2},),
             repodata_fns=("repodata2.json",),
         ),
-        external_packages={EXTERNAL_PACKAGES_PYPI_KEY: ["two", "flask"], "a": ["nother"]},
+        external_packages={
+            EXTERNAL_PACKAGES_PYPI_KEY: ["two", "flask"],
+            "a": ["nother"],
+        },
         explicit_packages=[],
         requested_packages=[MatchSpec("numpy"), MatchSpec("flask")],
         variables={"VAR": "IABLE"},
@@ -418,7 +425,17 @@ def test_from_prefix_behavior_with_pip_interoperability(
 
         # Check that expected conda packages are present. Note, purposefully leaving out some packages
         # that are not common for all platforms.
-        expected_conda_explicit_names = ["python", "python_abi", "setuptools", "tk", "bzip2", "readline", "xz", "openssl", "ca-certificates"]
+        expected_conda_explicit_names = [
+            "python",
+            "python_abi",
+            "setuptools",
+            "tk",
+            "bzip2",
+            "readline",
+            "xz",
+            "openssl",
+            "ca-certificates",
+        ]
         actual_explicit_package_names = [pkg.name for pkg in env.explicit_packages]
         for pkg in expected_conda_explicit_names:
             assert pkg in actual_explicit_package_names
@@ -426,7 +443,10 @@ def test_from_prefix_behavior_with_pip_interoperability(
         # Check that the pip install package is present in the set of externally
         # managed packages, but not in the explicit packages
         assert len(env.external_packages[EXTERNAL_PACKAGES_PYPI_KEY]) == 1
-        assert "small-python-package==1.0.0" == env.external_packages[EXTERNAL_PACKAGES_PYPI_KEY][0]
+        assert (
+            "small-python-package==1.0.0"
+            == env.external_packages[EXTERNAL_PACKAGES_PYPI_KEY][0]
+        )
         assert "small-python-package" not in [pkg.name for pkg in env.explicit_packages]
 
 
