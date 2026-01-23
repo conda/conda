@@ -936,8 +936,8 @@ def test_force_remove_1(tmpdir, request):
             )
         )
         if context.solver == "rattler":
-            # rattler puts numpy last; without python in the mix, its position
-            # is not topologically relevant
+            # rattler puts numpy last; but without python in the mix, its position
+            # is not topologically relevant, so it's ok
             assert sorted(convert_to_dist_str(final_state_2)) == sorted(order)
         else:
             assert convert_to_dist_str(final_state_2) == order
