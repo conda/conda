@@ -435,8 +435,10 @@ class Environment:
                 ]
                 external_packages[EXTERNAL_PACKAGES_PYPI_KEY] = python_deps
 
-        # Always populate explicit_packages from prefix data (for explicit export format)
-        explicit_packages = list(prefix_data.iter_records())
+        # Always populate explicit_packages from prefix data (for explicit export format).
+        # But don't include packages installed by pip (or other external package formats).
+        python_precs_names = [pkg.name for pkg in python_precs]
+        explicit_packages = list(pkg for pkg in prefix_data.iter_records() if pkg.name not in python_precs_names)
 
         # Build channels tuple
         environment_channels = tuple(channels or ())
