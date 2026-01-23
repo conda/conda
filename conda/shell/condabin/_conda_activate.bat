@@ -45,8 +45,13 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
     ) ELSE ENDLOCAL & (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
             IF "%%A"=="_CONDA_SCRIPT" (
-                :: Script execution
-                CALL "%%B"
+                :: Script execution, fast exit if activation scripts fail
+                CALL "%%B" || (
+                    ECHO ERROR: Activation script '%%B' failed with code %ERRORLEVEL%.>&2
+                    DEL /F /Q "%%T" 2>NUL
+                    DEL /F /Q "%__conda_tmp%" 2>NUL
+                    EXIT /B 4
+                )
             ) ELSE IF "%%B"=="" (
                 :: Unset variable
                 SET "%%A="
@@ -65,4 +70,4 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
 :: If we get here, the FOR loop never ran which means no output
 ECHO ERROR: No output from 'conda %*'.>&2
 IF EXIST "%__conda_tmp%" DEL /F /Q "%__conda_tmp%" 2>NUL
-ENDLOCAL & EXIT /B 4
+ENDLOCAL & EXIT /B 5
