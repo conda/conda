@@ -226,7 +226,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def is_environment(self) -> bool:
         """
-        Check whether the PrefixData path is a valida conda environment.
+        Check whether the PrefixData path is a valid conda environment.
 
         This is assessed by checking if `conda-meta/history` marker file exists.
         """
@@ -426,6 +426,35 @@ class PrefixData(metaclass=PrefixDataType):
             return None
         else:
             return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+
+    def size(self) -> int:
+        """
+        Compute the total size of a conda environment prefix.
+
+        This aggregates the installed size of all packages in the environment,
+        plus the size of files under conda-meta (history, manifests, markers).
+
+        :returns: Total size in bytes.
+        """
+        total_size = 0
+
+        # 1. sum up the installed size of each package
+        for record in self.iter_records():
+            total_size += record.package_size(self.prefix_path)
+
+        # 2. add up the size of files under conda-meta (history, manifests, markers)
+        conda_meta_dir = self.prefix_path / "conda-meta"
+        if self.exists():
+            try:
+                for meta_file in conda_meta_dir.iterdir():
+                    try:
+                        total_size += meta_file.stat().st_size
+                    except OSError:
+                        pass
+            except OSError:
+                pass
+
+        return total_size
 
     # endregion
     # region Records

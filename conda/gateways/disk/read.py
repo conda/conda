@@ -27,7 +27,7 @@ from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoun
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathEnum
 from ...models.package_info import PackageInfo, PackageMetadata
-from ...models.records import PathData, PathDataV1, PathsData
+from ...models.records import PathDataV1, PathsData
 from .create import TemporaryDirectory
 from .link import islink, lexists  # noqa
 
@@ -196,7 +196,7 @@ def read_paths_json(extracted_package_directory):
                     path_info["path_type"] = PathEnum.softlink
                 else:
                     path_info["path_type"] = PathEnum.hardlink
-                yield PathData(**path_info)
+                yield PathDataV1(**path_info)
 
         paths = tuple(read_files_file())
         paths_data = PathsData(
