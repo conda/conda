@@ -429,15 +429,13 @@ class Environment:
             # Add pip dependencies to external_packages if any exist
             if python_precs:
                 # Create pip dependencies list matching current conda format
-                python_deps = [
-                    f"{python_prec.name}=={python_prec.version}"
-                    for python_prec in python_precs
-                ]
-                external_packages[EXTERNAL_PACKAGES_PYPI_KEY] = python_deps
+                external_packages[EXTERNAL_PACKAGES_PYPI_KEY] = python_precs
 
         # Always populate explicit_packages from prefix data (for explicit export format).
         # But don't include packages installed by pip (or other external package formats).
-        python_precs_names = [pkg.name for pkg in python_precs]
+        python_precs_names = [
+            pkg.name for pkg in external_packages.get(EXTERNAL_PACKAGES_PYPI_KEY, [])
+        ]
         explicit_packages = list(
             pkg
             for pkg in prefix_data.iter_records()
