@@ -461,6 +461,7 @@ def record(
     channel=None,
     **kwargs,
 ):
+    kwargs.setdefault("fn", f"{name}-{version}-{build}.conda")
     return PackageRecord(
         name=name,
         version=version,
