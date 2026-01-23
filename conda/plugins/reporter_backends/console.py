@@ -223,8 +223,9 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             frozen = "+" if prefix.is_frozen() else " "
             if show_size:
                 size_str = human_bytes(prefix.size())
-                return f"{prefix.name:20} {active} {frozen} {str(prefix.prefix_path):60} {size_str:>10}"
-            return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
+                return f"{prefix.name:20} {active} {frozen} {size_str:>10} {prefix.prefix_path}"
+            else:
+                return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
 
         for env_prefix in prefixes:
             if not isinstance(env_prefix, PrefixData):

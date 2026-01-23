@@ -704,11 +704,13 @@ def test_env_list_size(conda_cli: CondaCLIFixture):
     non_comment_lines = [line for line in lines if line and not line.startswith("#")]
     for line in non_comment_lines:
         parts = line.split()
-        if len(parts) >= 2:
-            last_part = parts[-1]
-            assert any(
-                last_part.endswith(suffix) for suffix in ["B", "KB", "MB", "GB"]
-            ), f"Expected size suffix in line: {line}"
+        if len(parts) >= 3:
+            # Format: name (optional) active (optional) frozen (optional) size_val size_unit path
+            # With split(), unit is second to last, path is last.
+            size_unit = parts[-2]
+            assert any(size_unit == suffix for suffix in ["B", "KB", "MB", "GB"]), (
+                f"Expected size unit in line: {line}"
+            )
 
 
 def test_env_list_size_json(conda_cli: CondaCLIFixture):
