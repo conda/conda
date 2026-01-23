@@ -323,3 +323,46 @@ def test_exit_codes(conda_cli):
         "does-not-exist",
         raises=CondaValueError,
     )
+
+
+def test_list_size(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+) -> None:
+    pkg = "dependency"  # has no dependencies
+    with tmp_env(pkg) as prefix:
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size")
+        assert "# environment size:" in stdout
+
+        # Check for Size column in header
+        lines = stdout.splitlines()
+        header_line = next(line for line in lines if line.startswith("# Name"))
+        assert "Size" in header_line
+
+        # Check for size entries
+        package_lines = [line for line in lines if not line.startswith("#")]
+        assert len(package_lines) > 0
+        for line in package_lines:
+            # Size should be the last column
+            assert any(
+                line.strip().endswith(suffix) for suffix in ("B", "KB", "MB", "GB")
+            )
+
+
+def test_list_size_json(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+) -> None:
+    pkg = "dependency"
+    with tmp_env(pkg) as prefix:
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size", "--json")
+        parsed = json.loads(stdout)
+        assert isinstance(parsed, list)
+
+        item = next((i for i in parsed if i["name"] == pkg), None)
+        assert item is not None
+        assert "size" in item
+        assert isinstance(item["size"], int)
+        assert item["size"] >= 0

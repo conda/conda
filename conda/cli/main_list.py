@@ -135,6 +135,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="List the revision history.",
     )
     p.add_argument(
+        "--size",
+        action="store_true",
+        help="Show package and environment sizes.",
+    )
+    p.add_argument(
         "--no-pip",
         action="store_false",
         default=True,
@@ -184,6 +189,7 @@ def list_packages(
     reload_records=True,
     fields=None,
     regex_is_full_name=False,
+    show_size=False,
 ) -> tuple[int, list[str] | list[dict[str, Any]]]:
     from ..base.constants import (
         CONDA_LIST_FIELDS,
@@ -213,7 +219,10 @@ def list_packages(
     else:
         prefix_records = sorted(prefix_data.iter_records(), key=lambda x: x.name)
     show_channel_urls = show_channel_urls or context.show_channel_urls
-    fields = fields or context.list_fields
+    fields = list(fields or context.list_fields)
+    if show_size and "size" not in fields:
+        fields.append("size")
+
     if invalid_fields := set(fields).difference(CONDA_LIST_FIELDS):
         raise CondaValueError(
             f"Invalid fields passed: {sorted(invalid_fields)}. "
@@ -221,15 +230,19 @@ def list_packages(
         )
     packages = []
     titles = [CONDA_LIST_FIELDS[field] for field in fields]
-    if fields == DEFAULT_CONDA_LIST_FIELDS and len(fields) == 4:
-        widths = [23, 15, 15, 1]
+    if tuple(fields[:4]) == DEFAULT_CONDA_LIST_FIELDS:
+        widths = [23, 15, 15, 1] + [len(title) for title in titles[4:]]
     else:
         widths = [len(title) for title in titles]
     for prec in prefix_records:
         if format == "canonical":
-            packages.append(
-                prec.dist_fields_dump() if context.json else prec.dist_str()
-            )
+            if context.json:
+                package = prec.dist_fields_dump()
+                if show_size:
+                    package["size"] = prec.package_size(prefix_data.prefix_path)
+                packages.append(package)
+            else:
+                packages.append(prec.dist_str())
             continue
         if format == "export":
             packages.append(prec.spec)
@@ -253,6 +266,8 @@ def list_packages(
                     value = ""
             elif field == "dist_str":
                 value = prec.dist_str()
+            elif field == "size":
+                value = human_bytes(prec.package_size(prefix_data.prefix_path))
             else:
                 value = str(prec.get(field, None) or "").strip()
                 if value == "None":
@@ -273,13 +288,18 @@ def list_packages(
 
     if format == "human":
         template_line = "  ".join([f"%-{width}s" for width in widths])
-        env_size = human_bytes(prefix_data.size())
         result = [
             f"# packages in environment at {prefix}:",
-            f"# environment size: {env_size}",
-            "#",
-            f"# {template_line}" % tuple(titles),
         ]
+        if show_size:
+            env_size = human_bytes(prefix_data.size())
+            result.append(f"# environment size: {env_size}")
+        result.extend(
+            [
+                "#",
+                f"# {template_line}" % tuple(titles),
+            ]
+        )
         widths[0] += 2  # account for the '# ' prefix in the header line
         template_line = "  ".join([f"%-{width}s" for width in widths])
         result.extend([template_line % tuple(package) for package in packages])
@@ -298,6 +318,7 @@ def print_packages(
     show_channel_urls=None,
     fields=None,
     regex_is_full_name=False,
+    show_size=False,
 ) -> int:
     from ..base.context import context
     from .common import stdout_json
@@ -319,6 +340,7 @@ def print_packages(
         show_channel_urls=show_channel_urls,
         fields=fields,
         regex_is_full_name=regex_is_full_name,
+        show_size=show_size,
     )
     if context.json:
         stdout_json(output)
@@ -413,4 +435,5 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         json=context.json,
         show_channel_urls=context.show_channel_urls,
         regex_is_full_name=args.full_name,
+        show_size=args.size,
     )
