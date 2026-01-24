@@ -15,8 +15,6 @@ from conda.deprecations import DeprecatedError, DeprecationHandler
 if TYPE_CHECKING:
     from packaging.version import Version
 
-    from conda.deprecations import DevDeprecationType, UserDeprecationType
-
 PENDING = pytest.param(
     DeprecationHandler("1.0"),  # deprecated
     PendingDeprecationWarning,  # warning
@@ -55,7 +53,7 @@ parametrize_dev = pytest.mark.parametrize(
 @parametrize_dev
 def test_function(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated function displays associated warning (or error)."""
@@ -72,7 +70,7 @@ def test_function(
 @parametrize_dev
 def test_method(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated method displays associated warning (or error)."""
@@ -90,7 +88,7 @@ def test_method(
 @parametrize_dev
 def test_class(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated class displays associated warning (or error)."""
@@ -107,7 +105,7 @@ def test_class(
 @parametrize_dev
 def test_arguments(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated argument displays associated warning (or error)."""
@@ -132,7 +130,7 @@ def test_arguments(
 @parametrize_user
 def test_action(
     deprecated: DeprecationHandler,
-    warning: UserDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated argparse.Action displays associated warning (or error)."""
@@ -157,7 +155,7 @@ def test_action(
 @parametrize_dev
 def test_module(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Importing a deprecated module displays associated warning (or error)."""
@@ -172,7 +170,7 @@ def test_module(
 @parametrize_dev
 def test_constant(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Using a deprecated constant displays associated warning (or error)."""
@@ -217,7 +215,7 @@ def test_constant_multiple_same_module() -> None:
 @parametrize_dev
 def test_topic(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Reaching a deprecated topic displays associated warning (or error)."""
