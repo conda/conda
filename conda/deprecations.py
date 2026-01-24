@@ -7,6 +7,7 @@ from __future__ import annotations
 import sys
 import warnings
 from argparse import SUPPRESS, Action
+from dataclasses import dataclass, field
 from functools import wraps
 from types import ModuleType
 from typing import TYPE_CHECKING
@@ -319,33 +320,16 @@ class DeprecationHandler:
             raise DeprecatedError(message)
 
         # patch module level __getattr__ to alert user that it's time to remove something
-        super_getattr = getattr(module, "__getattr__", None)
-        if not super_getattr or not hasattr(super_getattr, "__deprecations__"):
-            # Create a single __getattr__ that handles all deprecated constants for this module
-            def __getattr__(name: str) -> Any:
-                if name in __getattr__.__deprecations__:  # type: ignore[attr-defined]
-                    message, category, value, stack = __getattr__.__deprecations__[name]  # type: ignore[attr-defined]
-                    warnings.warn(message, category, stacklevel=2 + stack)
-                    return value
+        if isinstance(
+            fallback := getattr(module, "__getattr__", None),
+            _ConstantDeprecationHandler,
+        ):
+            deprecations = fallback
+        else:
+            deprecations = _ConstantDeprecationHandler(fullname, fallback)
+            module.__getattr__ = deprecations  # type: ignore[method-assign]
 
-                if __getattr__.__super__:  # type: ignore[attr-defined]
-                    return __getattr__.__super__(name)  # type: ignore[attr-defined]
-
-                raise AttributeError(f"module '{fullname}' has no attribute '{name}'")
-
-            # Attach registry and original __getattr__ to the function itself
-            __getattr__.__deprecations__ = {}  # type: ignore[attr-defined]
-            __getattr__.__super__ = super_getattr  # type: ignore[attr-defined]
-
-            module.__getattr__ = __getattr__  # type: ignore[method-assign]
-
-        # Add this constant to the registry
-        module.__getattr__.__deprecations__[constant] = (  # type: ignore[attr-defined]
-            message,
-            category,
-            value,
-            stack,
-        )
+        deprecations.register(constant, message, category, stack, value)
 
     def topic(
         self: Self,
@@ -453,6 +437,46 @@ class DeprecationHandler:
             category,
             " ".join(filter(None, [prefix, warning, addendum])),  # message
         )
+
+
+@dataclass
+class _ConstantDeprecationHandler:
+    """Callable class to serve as a module's __getattr__ for deprecated constants.
+
+    This consolidates multiple deprecated constants into a single __getattr__,
+    avoiding nested __getattr__ functions that cause incorrect stacklevels.
+    See #15623 for details.
+    """
+
+    deprecations: dict[str, tuple[str, type[Warning], int, Any]] = field(
+        default_factory=dict,
+        init=False,
+        repr=False,
+    )
+    fullname: str
+    fallback: Callable[[str], Any] | None
+
+    def __call__(self, name: str) -> Any:
+        if name in self.deprecations:
+            message, category, stacklevel, value = self.deprecations[name]
+            warnings.warn(message, category, stacklevel=stacklevel)
+            return value
+
+        if self.fallback:
+            return self.fallback(name)
+
+        raise AttributeError(f"module '{self.fullname}' has no attribute '{name}'")
+
+    def register(
+        self,
+        constant: str,
+        message: str,
+        category: type[Warning],
+        stack: int,
+        value: Any,
+    ) -> None:
+        # stacklevel=2 points from __call__ to user code accessing the constant
+        self.deprecations[constant] = (message, category, 2 + stack, value)
 
 
 deprecated = DeprecationHandler(__version__)
