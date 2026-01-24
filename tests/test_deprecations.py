@@ -6,6 +6,7 @@ import sys
 import warnings
 from argparse import ArgumentParser, _StoreAction, _StoreTrueAction
 from contextlib import nullcontext
+from types import ModuleType
 from typing import TYPE_CHECKING
 
 import pytest
@@ -14,6 +15,7 @@ from conda.deprecations import DeprecatedError, DeprecationHandler
 
 if TYPE_CHECKING:
     from packaging.version import Version
+    from pytest_mock import MockerFixture
 
 PENDING = pytest.param(
     DeprecationHandler("1.0"),  # deprecated
@@ -48,6 +50,20 @@ parametrize_dev = pytest.mark.parametrize(
     "deprecated,warning,message",
     [PENDING, DEPRECATED, REMOVE],
 )
+
+
+@pytest.fixture
+def module(mocker: MockerFixture) -> ModuleType:
+    """Create a fresh module for testing deprecations in isolation."""
+    module = ModuleType("test_deprecations_fresh")
+
+    # Mock _get_module to return our fresh module
+    mocker.patch(
+        "conda.deprecations.DeprecationHandler._get_module",
+        return_value=(module, module.__name__),
+    )
+
+    return module
 
 
 @parametrize_dev
@@ -157,6 +173,7 @@ def test_module(
     deprecated: DeprecationHandler,
     warning: type[Warning] | None,
     message: str | None,
+    module: ModuleType,  # mock calling module
 ) -> None:
     """Importing a deprecated module displays associated warning (or error)."""
     with (
@@ -172,23 +189,22 @@ def test_constant(
     deprecated: DeprecationHandler,
     warning: type[Warning] | None,
     message: str | None,
+    module: ModuleType,
 ) -> None:
     """Using a deprecated constant displays associated warning (or error)."""
     with nullcontext() if warning else pytest.raises(DeprecatedError):
         deprecated.constant("2.0", "3.0", "SOME_CONSTANT", 42)
-        module = sys.modules[__name__]
 
         with pytest.warns(warning, match=message):
             module.SOME_CONSTANT
 
 
-def test_constant_multiple_same_module() -> None:
+def test_constant_multiple_same_module(module: ModuleType) -> None:
     """Multiple deprecated constants in the same module all report correct source location.
 
     Regression test for #15623.
     """
     deprecated = DeprecationHandler("2.0")
-    module = sys.modules[__name__]
 
     # Deprecate multiple constants in the same module
     deprecated.constant("2.0", "3.0", "CONST_A", "value_a")
@@ -225,6 +241,20 @@ def test_topic(
         else pytest.raises(DeprecatedError)
     ):
         deprecated.topic("2.0", "3.0", topic="Some special topic")
+
+
+def test_get_module() -> None:
+    """Test that _get_module correctly identifies the calling module."""
+    deprecated = DeprecationHandler("2.0")
+
+    # Wrapper simulates real-world usage where _get_module is called from
+    # within a deprecation method (e.g., constant, module, topic)
+    def wrapper():
+        return deprecated._get_module(0)
+
+    module, fullname = wrapper()
+    assert module is sys.modules[__name__]
+    assert fullname == __name__
 
 
 def test_version_fallback() -> None:
