@@ -322,11 +322,11 @@ class DeprecationHandler:
         # patch module level __getattr__ to alert user that it's time to remove something
         if isinstance(
             fallback := getattr(module, "__getattr__", None),
-            _ConstantDeprecationHandler,
+            _ConstantDeprecationRegistry,
         ):
             deprecations = fallback
         else:
-            deprecations = _ConstantDeprecationHandler(fullname, fallback)
+            deprecations = _ConstantDeprecationRegistry(fullname, fallback)
             module.__getattr__ = deprecations  # type: ignore[method-assign]
 
         deprecations.register(constant, message, category, stack, value)
@@ -440,12 +440,11 @@ class DeprecationHandler:
 
 
 @dataclass
-class _ConstantDeprecationHandler:
-    """Callable class to serve as a module's __getattr__ for deprecated constants.
+class _ConstantDeprecationRegistry:
+    """Registry of deprecated module constants.
 
-    This consolidates multiple deprecated constants into a single __getattr__,
-    avoiding nested __getattr__ functions that cause incorrect stacklevels.
-    See #15623 for details.
+    Serves as a module's __getattr__, issuing deprecation warnings
+    when registered constants are accessed.
     """
 
     deprecations: dict[str, tuple[str, type[Warning], int, Any]] = field(
