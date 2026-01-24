@@ -101,9 +101,9 @@ Conda looks in the following locations for a ``.condarc`` file:
 
   if on_win:
       SEARCH_PATH = (
-          "C:/ProgramData/conda/.condarc",
-          "C:/ProgramData/conda/condarc",
-          "C:/ProgramData/conda/condarc.d",
+          "$PROGRAMDATA/conda/.condarc",
+          "$PROGRAMDATA/conda/condarc",
+          "$PROGRAMDATA/conda/condarc.d",
       )
   else:
       SEARCH_PATH = (
@@ -141,6 +141,7 @@ to $HOME/.config should be used.
 ``CONDA_ROOT`` is the path for your base conda install.
 ``CONDA_PREFIX`` is the path to the current active environment.
 ``CONDARC`` must be a path to a file named ``.condarc``, ``condarc``, or end with a YAML suffix (``.yml`` or ``.yaml``).
+``PROGRAMDATA`` is the path to the ``ProgramData`` directory on Windows, typically ``C:\ProgramData``.
 
 .. note::
    Any condarc files that exist in any of these special search path
