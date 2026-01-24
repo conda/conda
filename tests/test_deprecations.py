@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import warnings
 from argparse import ArgumentParser, _StoreAction, _StoreTrueAction
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
@@ -181,6 +182,36 @@ def test_constant(
 
         with pytest.warns(warning, match=message):
             module.SOME_CONSTANT
+
+
+def test_constant_multiple_same_module() -> None:
+    """Multiple deprecated constants in the same module all report correct source location.
+
+    Regression test for #15623.
+    """
+    deprecated = DeprecationHandler("2.0")
+    module = sys.modules[__name__]
+
+    # Deprecate multiple constants in the same module
+    deprecated.constant("2.0", "3.0", "CONST_A", "value_a")
+    deprecated.constant("2.0", "3.0", "CONST_B", "value_b")
+    deprecated.constant("2.0", "3.0", "CONST_C", "value_c")
+
+    # Each access should warn with correct source location (this file, not deprecations.py)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+
+        module.CONST_A
+        assert len(w) == 1
+        assert w[0].filename == __file__
+
+        module.CONST_B
+        assert len(w) == 2
+        assert w[1].filename == __file__
+
+        module.CONST_C
+        assert len(w) == 3
+        assert w[2].filename == __file__
 
 
 @parametrize_dev
