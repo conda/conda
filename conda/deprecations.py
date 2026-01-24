@@ -320,18 +320,32 @@ class DeprecationHandler:
 
         # patch module level __getattr__ to alert user that it's time to remove something
         super_getattr = getattr(module, "__getattr__", None)
+        if not super_getattr or not hasattr(super_getattr, "__deprecations__"):
+            # Create a single __getattr__ that handles all deprecated constants for this module
+            def __getattr__(name: str) -> Any:
+                if name in __getattr__.__deprecations__:  # type: ignore[attr-defined]
+                    message, category, value, stack = __getattr__.__deprecations__[name]  # type: ignore[attr-defined]
+                    warnings.warn(message, category, stacklevel=2 + stack)
+                    return value
 
-        def __getattr__(name: str) -> Any:
-            if name == constant:
-                warnings.warn(message, category, stacklevel=3 + stack)
-                return value
+                if __getattr__.__super__:  # type: ignore[attr-defined]
+                    return __getattr__.__super__(name)  # type: ignore[attr-defined]
 
-            if super_getattr:
-                return super_getattr(name)
+                raise AttributeError(f"module '{fullname}' has no attribute '{name}'")
 
-            raise AttributeError(f"module '{fullname}' has no attribute '{name}'")
+            # Attach registry and original __getattr__ to the function itself
+            __getattr__.__deprecations__ = {}  # type: ignore[attr-defined]
+            __getattr__.__super__ = super_getattr  # type: ignore[attr-defined]
 
-        module.__getattr__ = __getattr__  # type: ignore[method-assign]
+            module.__getattr__ = __getattr__  # type: ignore[method-assign]
+
+        # Add this constant to the registry
+        module.__getattr__.__deprecations__[constant] = (
+            message,
+            category,
+            value,
+            stack,
+        )  # type: ignore[union-attr, attr-defined]
 
     def topic(
         self: Self,
