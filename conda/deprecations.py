@@ -340,12 +340,12 @@ class DeprecationHandler:
             module.__getattr__ = __getattr__  # type: ignore[method-assign]
 
         # Add this constant to the registry
-        module.__getattr__.__deprecations__[constant] = (
+        module.__getattr__.__deprecations__[constant] = (  # type: ignore[attr-defined]
             message,
             category,
             value,
             stack,
-        )  # type: ignore[union-attr, attr-defined]
+        )
 
     def topic(
         self: Self,
