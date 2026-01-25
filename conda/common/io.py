@@ -67,8 +67,8 @@ else:
     )
 
 
-def dashlist(iterable, indent=2):
-    return "".join("\n" + " " * indent + "- " + str(x) for x in iterable)
+def dashlist(iterable, indent=2, prefix="- "):
+    return "".join("\n" + " " * indent + prefix + str(x) for x in iterable)
 
 
 class ContextDecorator:

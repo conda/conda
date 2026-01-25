@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 import warnings
 from argparse import SUPPRESS, Action
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import wraps
 from types import ModuleType
@@ -14,7 +16,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
     from typing import Any, ParamSpec, Self, TypeVar
 
     from packaging.version import Version
@@ -37,6 +39,81 @@ class DeprecationHandler:
     _version: str | None
     _version_tuple: tuple[int, ...] | None
     _version_object: Version | None
+
+    # Logger for deprecation messages - used by DeprecationCollector for summary
+    # Uses a name outside the conda.* hierarchy to avoid conda's opinionated
+    # logging configuration (level overrides, TokenURLFilter, etc.)
+    # NullHandler prevents lastResort handler from outputting to stderr
+    # propagate=False prevents messages from going to root logger
+    _logger: logging.Logger = logging.getLogger("_conda_deprecations")
+    _logger.addHandler(logging.NullHandler())
+    _logger.propagate = False
+
+    @classmethod
+    def _warn(
+        cls,
+        message: str,
+        category: type[Warning],
+        stacklevel: int = 0,
+        removal_version: str | None = None,
+    ) -> None:
+        """Issue a deprecation warning and log it for the summary collector.
+
+        This hybrid approach maintains stdlib compatibility (warnings.warn) while
+        using logging for flexible summary collection.
+
+        :param message: The deprecation message.
+        :param category: The warning category (DeprecationWarning, FutureWarning, etc.)
+        :param stacklevel: Additional stack frames to skip (default 0).
+        :param removal_version: The version when this will be removed (for sorting).
+        """
+        # +3 accounts for: _warn -> caller (e.g., inner/decorator) -> user code
+        adjusted_stacklevel = stacklevel + 3
+        # Stdlib warning for compatibility with PYTHONWARNINGS, pytest, etc.
+        warnings.warn(message, category, stacklevel=adjusted_stacklevel)
+        # Log for DeprecationCollector to collect (if attached)
+        cls._logger.warning(
+            message,
+            stacklevel=adjusted_stacklevel,
+            extra={
+                "warning_category": category,
+                "removal_version": removal_version,
+            },
+        )
+
+    @contextmanager
+    def collect(self) -> Iterator[_DeprecationCollection]:
+        """Context manager that collects deprecation warnings.
+
+        Usage:
+            with deprecated.collect() as collected:
+                ...
+                # Inspect collected warnings if needed
+                for (msg, category, removal_version), callers in collected.items():
+                    ...
+                # Print summary
+                collected.print_summary()
+        """
+        collected = _DeprecationCollection()
+
+        class Handler(logging.Handler):
+            def emit(
+                _,  # type: ignore[reportSelfClsParameterName]
+                record: logging.LogRecord,
+            ) -> None:
+                # TODO: warning_category and removal_version should always be set
+                # by _warn(), consider raising an error if missing to surface bugs
+                category = getattr(record, "warning_category", DeprecationWarning)
+                removal_version = getattr(record, "removal_version", None)
+                key = (record.getMessage(), category, removal_version)
+                collected.setdefault(key, set()).add((record.pathname, record.lineno))
+
+        handler = Handler()
+        self._logger.addHandler(handler)
+        try:
+            yield collected
+        finally:
+            self._logger.removeHandler(handler)
 
     def __init__(self: Self, version: str) -> None:
         """Factory to create a deprecation handle for the specified version.
@@ -129,7 +206,7 @@ class DeprecationHandler:
             # alert user that it's time to remove something
             @wraps(func)  # type: ignore[reportArgumentType]
             def inner(*args: P.args, **kwargs: P.kwargs) -> T:
-                warnings.warn(message, category, stacklevel=2 + stack)
+                self._warn(message, category, stack, remove_in)
 
                 return func(*args, **kwargs)
 
@@ -184,7 +261,7 @@ class DeprecationHandler:
             def inner(*args: P.args, **kwargs: P.kwargs) -> T:
                 # only warn about argument deprecations if the argument is used
                 if argument in kwargs:
-                    warnings.warn(message, category, stacklevel=2 + stack)
+                    self._warn(message, category, stack, remove_in)
 
                     # rename argument deprecations as needed
                     value = kwargs.pop(argument, None)
@@ -251,10 +328,11 @@ class DeprecationHandler:
                 from conda.common.constants import NULL
 
                 if values is not NULL:
-                    warnings.warn(
+                    self._warn(
                         inner_self.deprecation,
                         inner_self.category,
-                        stacklevel=7 + stack,
+                        stack + 5,
+                        remove_in,
                     )
 
                 super().__call__(parser, namespace, values, option_string)
@@ -329,7 +407,7 @@ class DeprecationHandler:
             deprecations = _ConstantDeprecationRegistry(fullname, fallback)
             module.__getattr__ = deprecations  # type: ignore[method-assign]
 
-        deprecations.register(constant, message, category, stack, value)
+        deprecations.register(constant, message, category, stack, remove_in, value)
 
     def topic(
         self: Self,
@@ -363,7 +441,7 @@ class DeprecationHandler:
             raise DeprecatedError(message)
 
         # alert user that it's time to remove something
-        warnings.warn(message, category, stacklevel=2 + stack)
+        self._warn(message, category, stacklevel=stack, removal_version=remove_in)
 
     def _get_module(self: Self, stack: int) -> tuple[ModuleType, str]:
         """Detect the module from which we are being called.
@@ -447,7 +525,7 @@ class _ConstantDeprecationRegistry:
     when registered constants are accessed.
     """
 
-    deprecations: dict[str, tuple[str, type[Warning], int, Any]] = field(
+    deprecations: dict[str, tuple[str, type[Warning], int, str, Any]] = field(
         default_factory=dict,
         init=False,
         repr=False,
@@ -457,8 +535,10 @@ class _ConstantDeprecationRegistry:
 
     def __call__(self, name: str) -> Any:
         if name in self.deprecations:
-            message, category, stacklevel, value = self.deprecations[name]
-            warnings.warn(message, category, stacklevel=stacklevel)
+            message, category, stacklevel, removal_version, value = self.deprecations[
+                name
+            ]
+            DeprecationHandler._warn(message, category, stacklevel, removal_version)
             return value
 
         if self.fallback:
@@ -472,10 +552,43 @@ class _ConstantDeprecationRegistry:
         message: str,
         category: type[Warning],
         stack: int,
+        removal_version: str,
         value: Any,
     ) -> None:
-        # stacklevel=2 points from __call__ to user code accessing the constant
-        self.deprecations[constant] = (message, category, 2 + stack, value)
+        self.deprecations[constant] = (message, category, stack, removal_version, value)
+
+
+class _DeprecationCollection(dict):
+    """Collected deprecation warnings with print_summary capability.
+
+    A dict mapping (message, category, removal_version) -> set of (filename, lineno).
+    """
+
+    def print_summary(self) -> None:
+        """Print a summary of collected deprecation warnings to stderr.
+
+        Grouped by removal version (earliest first), with headers.
+        """
+        if not self:
+            return
+
+        from .common.io import dashlist
+        from .common.iterators import groupby_to_dict
+
+        # Group by removal_version, sort groups by version tuple (earliest first)
+        groups = groupby_to_dict(
+            lambda item: DeprecationHandler._get_version_tuple(item[0][2]), self.items()
+        )
+
+        print(f"\nDeprecation warnings ({len(self)}):", file=sys.stderr)
+        for removal_version, messages in sorted(groups.items()):
+            print(f"  Removing in {removal_version}:", file=sys.stderr)
+            for (message, _category, _removal_version), callers in messages:
+                caller_list = [f"{filename}:{lineno}" for filename, lineno in callers]
+                print(
+                    f"    {message}{dashlist(caller_list, indent=6, prefix='↳ ')}",
+                    file=sys.stderr,
+                )
 
 
 deprecated = DeprecationHandler(__version__)
