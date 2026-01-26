@@ -745,8 +745,7 @@ def test_windows_problematic_chars_currently_allowed(char):
         # Currently these are ALLOWED (no exception raised)
         result = validate_prefix_name(env_name, ctx)
         assert result == str(expected_path), (
-            f"Character '{char}' should currently be allowed. "
-            f"Got result: {result}"
+            f"Character '{char}' should currently be allowed. Got result: {result}"
         )
 
 

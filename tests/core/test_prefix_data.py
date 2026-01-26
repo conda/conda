@@ -1029,7 +1029,9 @@ def test_prefix_data_validate_name_disallowed_chars(tmp_path: Path, env_name: st
         pd.validate_name()
 
 
-def test_prefix_data_validate_name_base_not_allowed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_prefix_data_validate_name_base_not_allowed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
     """Test that 'base' is rejected when allow_base=False."""
     # Create a directory named 'base'
     envs_dir = tmp_path / "envs"
@@ -1046,7 +1048,9 @@ def test_prefix_data_validate_name_base_not_allowed(tmp_path: Path, monkeypatch:
         pd.validate_name(allow_base=False)
 
 
-def test_prefix_data_validate_name_base_allowed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_prefix_data_validate_name_base_allowed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
     """Test that 'base' is accepted when allow_base=True (default)."""
     # Create a directory named 'base'
     envs_dir = tmp_path / "envs"

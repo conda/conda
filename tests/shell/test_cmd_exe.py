@@ -363,14 +363,11 @@ def test_cmd_exe_special_char_prompt_display(
 
         # Log corruption detection
         if has_corruption:
-            log.warning(
-                f"Prompt corruption detected for '{special_char}': {prompt!r}"
-            )
+            log.warning(f"Prompt corruption detected for '{special_char}': {prompt!r}")
 
         # Assert no corruption (this test documents current behavior)
         assert expected_prefix in prompt or not has_corruption, (
-            f"Prompt corruption with '{special_char}' in env name. "
-            f"Prompt: {prompt!r}"
+            f"Prompt corruption with '{special_char}' in env name. Prompt: {prompt!r}"
         )
 
         sh.sendline(f"conda {deactivate}")
