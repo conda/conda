@@ -104,7 +104,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # Ensure provided combination of command line argments are valid
     # At least one of the arguments -n/--name -p/--prefix is required
     if not args.name and not args.prefix:
-        if context.dry_run:
+        if context.dry_run or context.download_only:
             args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
             context.__init__(argparse_args=args)
         else:

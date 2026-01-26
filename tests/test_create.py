@@ -24,6 +24,7 @@ import pytest
 from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
+    PACKAGE_CACHE_MAGIC_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_PINNED_FILE,
     ChannelPriority,
@@ -87,7 +88,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from typing import Literal
 
-    from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
+    from pytest import FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import (
@@ -2704,19 +2705,59 @@ def test_repodata_v2_base_url(
 
 
 def test_create_dry_run_without_prefix(
-    conda_cli: CondaCLIFixture, capsys: CaptureFixture
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel for isolated localized testing
 ):
-    with pytest.raises(DryRunExit):
-        conda_cli("create", "--dry-run", "--json", "ca-certificates")
-    out, _ = capsys.readouterr()
+    out, _, _ = conda_cli(
+        "create",
+        "--dry-run",
+        "--json",
+        "small-executable",
+        raises=DryRunExit,
+    )
     data = json.loads(out)
     assert any(
-        pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "ca-certificates"
+        pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "small-executable"
     )
 
 
-def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
-    conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
+def test_create_download_only_without_prefix(
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel for isolated localized testing
+    tmp_pkgs_dir: Path,  # mock pkgs dir for isolated localized testing
+):
+    # empty cache, only has package cache magic file
+    assert tmp_pkgs_dir.exists()
+    assert set(tmp_pkgs_dir.iterdir()) == {tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE}
+
+    # download package to pkgs dir
+    _, _, _ = conda_cli(
+        "create",
+        "--download-only",
+        "--yes",
+        "small-executable",
+        raises=CondaExitZero,
+    )
+
+    # check that package was downloaded/extracted
+    assert tmp_pkgs_dir.exists()
+    assert set(tmp_pkgs_dir.iterdir()) == {
+        tmp_pkgs_dir / "cache",
+        tmp_pkgs_dir / "small-executable-1.0.0-0",
+        tmp_pkgs_dir / "small-executable-1.0.0-0.conda",
+        tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE,
+    }
+
+
+def test_create_without_prefix_raises_argument_error(
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel for isolated localized testing
+):
+    with pytest.raises(
+        ArgumentError,
+        match="one of the arguments -n/--name -p/--prefix is required",
+    ):
+        conda_cli("create", "small-executable")
 
 
 def test_create_with_clone_and_packages_raises_argument_error(
