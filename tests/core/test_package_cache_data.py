@@ -146,6 +146,82 @@ def test_download_filename_from_url_basename():
     assert extract_action.target_extracted_dirname == "idna-3.10-py3-none-any.whl"
 
 
+def test_download_filename_backward_compat_old_repodata():
+    """
+    Test backward compatibility with old repodata format.
+
+    For traditional conda packages (repodata v1/v2), the fn attribute matches
+    the URL basename. This test ensures the fix for repodata v3 doesn't break
+    existing behavior.
+    """
+    # Create a package record that simulates traditional repodata format
+    # where fn matches the URL basename
+    package_url = "https://conda.anaconda.org/conda-forge/noarch/numpy-1.26.4-py312h8753938_0.conda"
+    package_prec = PackageRecord.from_objects(
+        {
+            "name": "numpy",
+            "version": "1.26.4",
+            "build": "py312h8753938_0",
+            "build_number": 0,
+            "depends": ["python >=3.12"],
+            "sha256": "abc123def456",
+            "size": 12345678,
+            "subdir": "noarch",
+        },
+        # Traditional repodata: fn matches the URL basename
+        fn="numpy-1.26.4-py312h8753938_0.conda",
+        url=package_url,
+    )
+
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        package_prec
+    )
+
+    # The cache action should use the URL basename (which matches fn)
+    assert cache_action is not None
+    assert cache_action.target_package_basename == "numpy-1.26.4-py312h8753938_0.conda"
+    assert cache_action.target_package_basename == package_prec.fn
+
+    # The extract action should correctly strip the .conda extension
+    assert extract_action is not None
+    assert extract_action.target_extracted_dirname == "numpy-1.26.4-py312h8753938_0"
+
+
+def test_download_filename_backward_compat_tar_bz2():
+    """
+    Test backward compatibility with .tar.bz2 packages.
+
+    Ensures the fix works correctly for the older .tar.bz2 package format.
+    """
+    package_url = "https://conda.anaconda.org/defaults/noarch/requests-2.32.3-py313h06a4308_0.tar.bz2"
+    package_prec = PackageRecord.from_objects(
+        {
+            "name": "requests",
+            "version": "2.32.3",
+            "build": "py313h06a4308_0",
+            "build_number": 0,
+            "depends": ["python >=3.13"],
+            "sha256": "def456abc789",
+            "size": 87654,
+            "subdir": "noarch",
+        },
+        fn="requests-2.32.3-py313h06a4308_0.tar.bz2",
+        url=package_url,
+    )
+
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        package_prec
+    )
+
+    # The cache action should use the URL basename
+    assert cache_action is not None
+    assert cache_action.target_package_basename == "requests-2.32.3-py313h06a4308_0.tar.bz2"
+
+    # The extract action should correctly strip the .tar.bz2 extension
+    assert extract_action is not None
+    assert extract_action.target_extracted_dirname == "requests-2.32.3-py313h06a4308_0"
+
+
 @pytest.mark.skipif(
     on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30),
     reason="time bomb",
