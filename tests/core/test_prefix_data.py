@@ -1029,12 +1029,16 @@ def test_prefix_data_validate_name_disallowed_chars(tmp_path: Path, env_name: st
         pd.validate_name()
 
 
-def test_prefix_data_validate_name_base_not_allowed(tmp_path: Path):
+def test_prefix_data_validate_name_base_not_allowed(tmp_path: Path, mocker: MockerFixture):
     """Test that 'base' is rejected when allow_base=False."""
     # Create a directory named 'base'
-    base_path = tmp_path / "envs" / "base"
+    envs_dir = tmp_path / "envs"
+    base_path = envs_dir / "base"
     base_path.mkdir(parents=True, exist_ok=True)
     (base_path / "conda-meta").mkdir(exist_ok=True)
+
+    # Mock envs_dirs to include our temp directory so PrefixData.name works
+    mocker.patch("conda.core.prefix_data.context.envs_dirs", [str(envs_dir)])
 
     pd = PrefixData(base_path)
 
@@ -1042,12 +1046,16 @@ def test_prefix_data_validate_name_base_not_allowed(tmp_path: Path):
         pd.validate_name(allow_base=False)
 
 
-def test_prefix_data_validate_name_base_allowed(tmp_path: Path):
+def test_prefix_data_validate_name_base_allowed(tmp_path: Path, mocker: MockerFixture):
     """Test that 'base' is accepted when allow_base=True (default)."""
     # Create a directory named 'base'
-    base_path = tmp_path / "envs" / "base"
+    envs_dir = tmp_path / "envs"
+    base_path = envs_dir / "base"
     base_path.mkdir(parents=True, exist_ok=True)
     (base_path / "conda-meta").mkdir(exist_ok=True)
+
+    # Mock envs_dirs to include our temp directory so PrefixData.name works
+    mocker.patch("conda.core.prefix_data.context.envs_dirs", [str(envs_dir)])
 
     pd = PrefixData(base_path)
 
