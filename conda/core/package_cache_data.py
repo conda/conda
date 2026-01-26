@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import codecs
 import os
 from collections import defaultdict
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
@@ -39,7 +38,6 @@ from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
-    extract_tarball,
     write_as_json_to_file,
 )
 from ..gateways.disk.delete import rm_rf
@@ -427,8 +425,9 @@ class PackageCacheData(metaclass=PackageCacheType):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         try:
-                            extract_tarball(
-                                package_tarball_full_path, extracted_package_dir
+                            context.plugin_manager.extract_package(
+                                package_tarball_full_path,
+                                extracted_package_dir,
                             )
                         except (OSError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
@@ -554,7 +553,7 @@ class UrlsData:
         return iter(self._urls_data)
 
     def add_url(self, url):
-        with codecs.open(self.urls_txt_path, mode="ab", encoding="utf-8") as fh:
+        with open(self.urls_txt_path, mode="a", encoding="utf-8") as fh:
             linefeed = "\r\n" if platform == "win32" else "\n"
             fh.write(url + linefeed)
         self._urls_data.insert(0, url)

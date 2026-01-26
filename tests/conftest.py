@@ -27,8 +27,9 @@ from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
 from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from conda.plugins.types import CondaEnvironmentExporter
+from conda.testing import http_test_server
 
-from . import TEST_RECIPES_CHANNEL, http_test_server
+from . import TEST_RECIPES_CHANNEL
 
 if TYPE_CHECKING:
     import http.server
@@ -305,16 +306,3 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             }
 
     return MockContext, app_name
-
-
-@pytest.fixture(scope="function")
-def minimal_env(tmp_path: Path) -> Path:
-    """
-    Provides a minimal environment that only contains the "magic" file identifying it as a
-    conda environment.
-    """
-    meta_dir = tmp_path.joinpath("conda-meta")
-    meta_dir.mkdir()
-    (meta_dir / "history").touch()
-
-    return tmp_path

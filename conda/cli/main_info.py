@@ -19,6 +19,7 @@ from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
 from ..deprecations import deprecated
+from ..exceptions import ArgumentError
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -81,6 +82,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--system",
         action="store_true",
         help="List environment variables.",
+    )
+    p.add_argument(
+        "--size",
+        action="store_true",
+        help="Show conda-managed disk usage for each environment (excludes untracked files created after installation).",
     )
     p.add_argument(
         "--root",
@@ -411,8 +417,8 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
     )
 
 
-#: Possible components for the info command to render
 InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_all"]
+"""Possible components for the info command to render."""
 
 
 class InfoRenderer:
@@ -420,8 +426,9 @@ class InfoRenderer:
     Provides a ``render`` method for rendering ``InfoComponents``
     """
 
-    def __init__(self, context):
+    def __init__(self, context: Context, show_size: bool = False):
         self._context = context
+        self._show_size = show_size
         self._component_style_map = {
             "base": None,
             "channels": None,
@@ -445,7 +452,7 @@ class InfoRenderer:
         return list_all_known_prefixes()
 
     @cached_property
-    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None]]:
+    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None | int]]:
         from ..core.prefix_data import PrefixData
 
         result = {}
@@ -468,6 +475,8 @@ class InfoRenderer:
                 "frozen": prefix_data.is_frozen(),
                 "writable": prefix_data.is_writable,
             }
+            if self._show_size:
+                result[prefix]["size"] = prefix_data.size()
         return result
 
     def render(self, components: Iterable[InfoComponents]):
@@ -487,7 +496,10 @@ class InfoRenderer:
             data = data_func()
 
             if data:
-                render(data, style=style)
+                kwargs = {}
+                if component == "envs" and self._show_size:
+                    kwargs["show_size"] = True
+                render(data, style=style, **kwargs)
 
     def _base_component(self) -> str | dict:
         if self._context.json:
@@ -604,8 +616,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.context import context
 
+    if args.size and not args.envs:
+        raise ArgumentError("--size can only be used with --envs")
+
     components = iter_info_components(args, context)
-    renderer = InfoRenderer(context)
+    show_size = getattr(args, "size", False)
+    renderer = InfoRenderer(context, show_size=show_size)
     renderer.render(components)
 
     return 0

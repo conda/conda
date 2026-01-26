@@ -44,8 +44,17 @@ if TYPE_CHECKING:
         dict[str, PrefixRecord],
     ]
 
+    PackageExtract: TypeAlias = Callable[
+        [PathType, PathType],  # (source_path, destination_directory)
+        None,
+    ]
+
     SinglePlatformEnvironmentExport = Callable[[Environment], str]
     MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
+
+    # Callback type for health check fixer confirmation prompts.
+    # Raises CondaSystemExit if user declines, or DryRunExit in dry-run mode.
+    ConfirmCallback: TypeAlias = Callable[[str], None]
 
 
 @dataclass
@@ -54,8 +63,8 @@ class CondaPlugin:
     Base class for all conda plugins.
     """
 
-    #: User-facing name of the plugin used for selecting & filtering plugins and error messages.
     name: str
+    """User-facing name of the plugin used for selecting & filtering plugins and error messages."""
 
     def __post_init__(self):
         try:
@@ -253,10 +262,55 @@ class CondaAuthHandler(CondaPlugin):
 class CondaHealthCheck(CondaPlugin):
     """
     Return type to use when defining conda health checks plugin hook.
+
+    Health checks are diagnostic actions that report on the state of a conda
+    environment. They are invoked via ``conda doctor``.
+
+    Health checks can optionally provide a fix capability, which is invoked
+    via ``conda doctor --fix`` or ``conda doctor --fix <name>``.
+
+    **Fixer guidelines:**
+
+    Fixers receive a ``confirm`` function that handles user confirmation and
+    dry-run mode automatically. Simply call it with your message:
+
+    - In normal mode: Prompts the user for confirmation (default: no).
+    - In dry-run mode: Raises ``DryRunExit`` (handled by the framework).
+    - If user declines: Raises ``CondaSystemExit`` (handled by the framework).
+
+    Example::
+
+        from conda.plugins.types import ConfirmCallback
+
+        def my_fixer(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
+            issues = find_issues(prefix)
+            if not issues:
+                print("No issues found.")
+                return 0
+
+            print(f"Found {len(issues)} issues")
+            confirm("Fix these issues?")
+            # ... perform fix ...
+            return 0
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_checks`.
+
+    :param name: Health check identifier (e.g., ``missing-files``).
+    :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
+    :param fixer: Optional callable that fixes issues:
+                  ``fixer(prefix, args, confirm) -> int``.
+                  The ``confirm`` parameter is a function to call for user confirmation.
+                  It raises an exception if the user declines or in dry-run mode.
+    :param summary: Short description of what the check detects (shown in ``--list``).
+    :param fix: Short description of what the fix does (shown in ``--list``).
     """
 
     name: str
     action: Callable[[str, bool], None]
+    fixer: Callable[[str, Namespace, ConfirmCallback], int] | None = None
+    summary: str | None = None
+    fix: str | None = None
 
 
 @dataclass
@@ -590,3 +644,28 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+
+@dataclass
+class CondaPackageExtractor(CondaPlugin):
+    """
+    Return type to use when defining a conda package extractor plugin hook.
+
+    Package extractors handle the extraction of different package archive formats.
+    Each extractor specifies which file extensions it supports and provides an
+    extraction function to unpack the archive.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_package_extractors`.
+
+    :param name: Extractor name (e.g., ``conda-package``, ``wheel-package``).
+    :param extensions: List of file extensions this extractor handles
+                       (e.g., ``[".conda", ".tar.bz2"]`` or ``[".whl"]``).
+    :param extract: Callable that extracts the package archive. Takes the source
+                    archive path and the destination directory where the package
+                    contents should be extracted.
+    """
+
+    name: str
+    extensions: list[str]
+    extract: PackageExtract

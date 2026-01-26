@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from conda.base.context import context
 from conda.models.channel import Channel
-from conda.models.enums import FileMode, PathType
+from conda.models.enums import FileMode, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
-from conda.models.records import PackageRecord, PathData, PathsData
+from conda.models.records import PackageRecord, PathDataV1, PathsData
 
 
 def test_package_info():
@@ -25,15 +25,15 @@ def test_package_info():
     )
 
     paths = [
-        PathData(
+        PathDataV1(
             _path="test/path/1",
             file_mode=FileMode.text,
-            path_type=PathType.hardlink,
+            path_type=PathEnum.hardlink,
             prefix_placeholder="/opt/anaconda1anaconda2anaconda3",
         ),
-        PathData(_path="test/path/2", no_link=True, path_type=PathType.hardlink),
-        PathData(_path="test/path/3", path_type=PathType.softlink),
-        PathData(_path="menu/test.json", path_type=PathType.hardlink),
+        PathDataV1(_path="test/path/2", no_link=True, path_type=PathEnum.hardlink),
+        PathDataV1(_path="test/path/3", path_type=PathEnum.softlink),
+        PathDataV1(_path="menu/test.json", path_type=PathEnum.hardlink),
     ]
     paths_data = PathsData(paths_version=0, paths=paths)
 
@@ -49,6 +49,6 @@ def test_package_info():
         paths_data=paths_data,
     )
 
-    assert isinstance(package_info.paths_data.paths[0], PathData)
+    assert isinstance(package_info.paths_data.paths[0], PathDataV1)
     assert isinstance(package_info.package_metadata.noarch, Noarch)
     assert package_info.paths_data.paths[0].path == "test/path/1"

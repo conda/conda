@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import warnings
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -161,13 +162,21 @@ def test_create_empty_env(
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    with pytest.deprecated_call():
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always", PendingDeprecationWarning)
         conda_cli(
             *("env", "create"),
             *("--name", env_name),
             *("--file", support_file("empty_env.yml")),
         )
-        assert prefix.exists()
+
+    cep24_warnings = [
+        w
+        for w in warning_list
+        if "The environment file is not fully CEP 24 compliant" in str(w.message)
+    ]
+    assert len(cep24_warnings) > 0
+    assert prefix.exists()
 
 
 @pytest.mark.integration
@@ -410,10 +419,8 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
 ):
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
 
-    with pytest.warns(
-        PendingDeprecationWarning,
-        match="Provided environment.yaml is invalid: Missing required field 'dependencies'",
-    ):
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always", PendingDeprecationWarning)
         prefix = path_factory()
         stdout, stderr, err = conda_cli(
             "env",
@@ -422,6 +429,14 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
             "--file",
             support_file("invalid_keys.yml"),
         )
+
+    cep24_warnings = [
+        w
+        for w in warning_list
+        if "Provided environment.yaml is invalid: Missing required field 'dependencies'"
+        in str(w.message)
+    ]
+    assert len(cep24_warnings) > 0
 
     # When splitting the output on "EnvironmentSectionNotValid", we should
     # get an array of length 2 if the string only appears once. If it appears

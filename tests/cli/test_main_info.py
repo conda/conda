@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable
 from os.path import isdir
 from pathlib import Path
@@ -14,15 +15,20 @@ import pytest
 
 from conda.base.constants import PREFIX_FROZEN_FILE
 from conda.base.context import context
-from conda.cli.main_info import get_info_components, iter_info_components
+from conda.cli.main_info import (
+    get_info_components,
+    iter_info_components,
+)
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import ArgumentError
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 BASE_KEYS = {"root_prefix"}
@@ -235,6 +241,42 @@ def test_info_envs_json(conda_cli: CondaCLIFixture):
     assert isdir(first_env)
     first_envs_details = parsed["envs_details"][first_env]
     assert isinstance(first_envs_details, dict)
+    assert "size" not in first_envs_details
+
+
+def test_info_envs_size(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("info", "--envs", "--size")
+    assert not stderr
+    assert not err
+
+    lines = stdout.strip().split("\n")
+    non_comment_lines = [line for line in lines if line and not line.startswith("#")]
+
+    # regex to match: <any prefix stuff> <number> <unit> <path>
+    # The path is at the end of the line.
+    pattern = re.compile(
+        r"\s+(?P<size>\d+(\.\d+)?)\s+(?P<unit>B|KB|MB|GB)\s+(?P<path>.*)$"
+    )
+
+    for line in non_comment_lines:
+        match = pattern.search(line)
+        assert match, f"Line did not match size pattern: {line}"
+        assert match.group("unit") in ["B", "KB", "MB", "GB"]
+
+
+def test_info_envs_size_json(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("info", "--envs", "--size", "--json")
+    assert not stderr
+    assert not err
+
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+    assert "envs_details" in parsed
+
+    for _, details in parsed["envs_details"].items():
+        assert "size" in details
+        assert isinstance(details["size"], int)
+        assert details["size"] >= 0
 
 
 # conda info --license
@@ -278,3 +320,22 @@ def test_get_info_components() -> None:
         )
     assert isinstance(components, set)
     assert components == {"base", "channels", "envs", "envs_details", "system"}
+
+
+def test_compute_prefix_size(tmp_env: TmpEnvFixture):
+    with tmp_env("ca-certificates") as prefix:
+        prefix_data = PrefixData(prefix)
+        size = prefix_data.size()
+        assert size > 0
+
+
+def test_compute_prefix_size_empty_env(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
+        prefix_data = PrefixData(prefix)
+        size = prefix_data.size()
+        assert size == 0
+
+
+def test_info_size_without_envs(conda_cli: CondaCLIFixture):
+    with pytest.raises(ArgumentError, match="--size can only be used with --envs"):
+        conda_cli("info", "--size")

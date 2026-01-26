@@ -13,7 +13,7 @@
 @IF "%~1"=="" @GOTO :ARGS_END
 
 :: convert to uppercase
-@FOR /F "usebackq delims=" %%I IN (`powershell.exe "'%~1'.toUpper()"`) DO @SET "_ARG=%%~I"
+@FOR /F "usebackq delims=" %%I IN (`powershell.exe -NoProfile -Command "'%~1'.toUpper()"`) DO @SET "_ARG=%%~I"
 
 @IF "%_ARG%"=="/P" (
     @SET "_PYTHON=%~2"
@@ -164,7 +164,7 @@
 
 @IF EXIST "%_INSTALLER_FILE%" @GOTO :DOWNLOADED
 @ECHO Downloading %_INSTALLER_TYPE%...
-@powershell.exe "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%_DOWNLOAD_URL%' -OutFile '%_INSTALLER_FILE%' | Out-Null"
+@powershell.exe -NoProfile -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%_DOWNLOAD_URL%' -OutFile '%_INSTALLER_FILE%' | Out-Null"
 @FOR %%F IN ("%_INSTALLER_FILE%") DO @IF NOT EXIST "%%F" (
     @ECHO Error: failed to download %_INSTALLER_TYPE% (file missing) 1>&2
     @EXIT /B 1
@@ -202,7 +202,7 @@
 @IF NOT %ErrorLevel%==0 @GOTO :UP_TO_DATE
 @ECHO Updating %_INSTALLER_TYPE%...
 
-@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all > NUL
+@CALL :CONDA "%_BASEEXE%" update --yes --quiet --all "--prefix=%_ENV%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update %_INSTALLER_TYPE% 1>&2
     @EXIT /B 1
@@ -325,7 +325,7 @@
 @FINDSTR /R /C:"^devenv:" "%USERPROFILE%\.condarc" > NUL
 @IF NOT %ErrorLevel%==0 @EXIT /B 0
 :: read devenv key (with path expansion)
-@FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
+@FOR /F "usebackq delims=" %%I IN (`powershell.exe -NoProfile -Command "(Select-String -Path '~\.condarc' -Pattern '^devenv:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value -replace '^~',""$Env:UserProfile"""`) DO @SET "_DEVENV=%%~fI"
 @GOTO :EOF
 
 :INSTALLER_TYPE_CONDARC
@@ -336,14 +336,14 @@
 @FINDSTR /R /C:"^installer_type:" "%USERPROFILE%\.condarc" > NUL
 @IF NOT %ErrorLevel%==0 @EXIT /B 0
 :: read installer_type key
-@FOR /F "usebackq delims=" %%I IN (`powershell.exe "(Select-String -Path '~\.condarc' -Pattern '^installer_type:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value"`) DO @SET "_INSTALLER_TYPE=%%I"
+@FOR /F "usebackq delims=" %%I IN (`powershell.exe -NoProfile -Command "(Select-String -Path '~\.condarc' -Pattern '^installer_type:\s*(.+)' | Select-Object -Last 1).Matches.Groups[1].Value"`) DO @SET "_INSTALLER_TYPE=%%I"
 @GOTO :EOF
 
 :UPDATING
 :: check if explicitly updating or if 24 hrs since last update
 @IF %_UPDATE%==0 @EXIT /B 0
 @IF NOT EXIST "%_UPDATED%" @EXIT /B 0
-@powershell.exe "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
+@powershell.exe -NoProfile -Command "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
 @EXIT /B %ErrorLevel%
 
 :DRYRUN
