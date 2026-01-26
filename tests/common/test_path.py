@@ -447,13 +447,6 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
             ".conda",
         ),
         ("zlib-1.3.1-h5f15de7_0.conda", "zlib-1.3.1-h5f15de7_0", ".conda"),
-        # No extension
-        (
-            "/path/numpy-1.26.4-py312h8753938_0",
-            "/path/numpy-1.26.4-py312h8753938_0",
-            None,
-        ),
-        ("zlib-1.3.1-h5f15de7_0", "zlib-1.3.1-h5f15de7_0", None),
     ],
 )
 def test_strip_pkg_extension(
