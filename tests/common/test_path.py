@@ -430,13 +430,29 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     "path,expected_base,expected_ext",
     [
         # .tar.bz2 packages
-        ("/path/numpy-1.26.4-py312h8753938_0.tar.bz2", "/path/numpy-1.26.4-py312h8753938_0", ".tar.bz2"),
-        ("requests-2.32.3-py313h06a4308_0.tar.bz2", "requests-2.32.3-py313h06a4308_0", ".tar.bz2"),
+        (
+            "/path/numpy-1.26.4-py312h8753938_0.tar.bz2",
+            "/path/numpy-1.26.4-py312h8753938_0",
+            ".tar.bz2",
+        ),
+        (
+            "requests-2.32.3-py313h06a4308_0.tar.bz2",
+            "requests-2.32.3-py313h06a4308_0",
+            ".tar.bz2",
+        ),
         # .conda packages
-        ("/path/pandas-2.2.3-py312h526ad5a_1.conda", "/path/pandas-2.2.3-py312h526ad5a_1", ".conda"),
+        (
+            "/path/pandas-2.2.3-py312h526ad5a_1.conda",
+            "/path/pandas-2.2.3-py312h526ad5a_1",
+            ".conda",
+        ),
         ("zlib-1.3.1-h5f15de7_0.conda", "zlib-1.3.1-h5f15de7_0", ".conda"),
         # No extension
-        ("/path/numpy-1.26.4-py312h8753938_0", "/path/numpy-1.26.4-py312h8753938_0", None),
+        (
+            "/path/numpy-1.26.4-py312h8753938_0",
+            "/path/numpy-1.26.4-py312h8753938_0",
+            None,
+        ),
         ("zlib-1.3.1-h5f15de7_0", "zlib-1.3.1-h5f15de7_0", None),
     ],
 )
