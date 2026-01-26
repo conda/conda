@@ -281,9 +281,9 @@ to include the activated environment. The default is ``True``.
 ``add_pip_as_python_dependency``: Add pip as Python dependency
 --------------------------------------------------------------
 
-Add pip, wheel, and setuptools as dependencies of Python. This
-ensures that pip, wheel, and setuptools are always installed any
-time Python is installed. The default is ``True``.
+Add pip as a dependency of Python.
+This ensures that pip is always installed any time Python is installed.
+The default is ``True``.
 
 **Example:**
 
