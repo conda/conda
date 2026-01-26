@@ -2706,7 +2706,7 @@ def test_repodata_v2_base_url(
 
 def test_create_dry_run_without_prefix(
     conda_cli: CondaCLIFixture,
-    test_recipes_channel: Path,  # mock channel for isolated localized testing
+    test_recipes_channel: Path,  # mock channel
 ):
     out, _, _ = conda_cli(
         "create",
@@ -2723,8 +2723,8 @@ def test_create_dry_run_without_prefix(
 
 def test_create_download_only_without_prefix(
     conda_cli: CondaCLIFixture,
-    test_recipes_channel: Path,  # mock channel for isolated localized testing
-    tmp_pkgs_dir: Path,  # mock pkgs dir for isolated localized testing
+    test_recipes_channel: Path,  # mock channel
+    tmp_pkgs_dir: Path,  # mock package cache so it will be empty
 ):
     # empty cache, only has package cache magic file
     assert tmp_pkgs_dir.exists()
@@ -2751,7 +2751,7 @@ def test_create_download_only_without_prefix(
 
 def test_create_without_prefix_raises_argument_error(
     conda_cli: CondaCLIFixture,
-    test_recipes_channel: Path,  # mock channel for isolated localized testing
+    test_recipes_channel: Path,  # mock channel
 ):
     with pytest.raises(
         ArgumentError,
