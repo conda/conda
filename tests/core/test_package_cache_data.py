@@ -100,6 +100,52 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatc
     assert extract_action.source_full_path.endswith(".conda")
 
 
+def test_download_filename_from_url_basename():
+    """
+    Test that the download filename is extracted from URL, not the fn attribute.
+
+    For repodata v3, the fn attribute may contain the repodata key which
+    differs from the actual filename. For example, wheel packages where
+    the key uses underscores (idna-3.10-py3_none_any_0) but the actual
+    filename uses hyphens (idna-3.10-py3-none-any.whl).
+
+    See: https://github.com/conda/conda/issues/15620
+    """
+    # Create a package record that simulates repodata v3 format
+    # where fn contains the repodata key but URL contains the actual filename
+    package_url = "https://example.com/noarch/idna-3.10-py3-none-any.whl"
+    package_prec = PackageRecord.from_objects(
+        {
+            "name": "idna",
+            "version": "3.10",
+            "build": "py3_none_any_0",
+            "build_number": 0,
+            "depends": ["python >=3.6"],
+            "sha256": "b49df1a1923a9398542b6a713875dcea6d8cd80b3c5b9ca68ecf1d76bcf1ff3e",
+            "size": 5718,
+            "subdir": "noarch",
+        },
+        # This simulates repodata v3 where fn is the repodata key (differs from URL)
+        fn="idna-3.10-py3_none_any_0.whl",
+        url=package_url,
+    )
+
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        package_prec
+    )
+
+    # The cache action should use the URL basename, not fn
+    assert cache_action is not None
+    assert cache_action.target_package_basename == "idna-3.10-py3-none-any.whl"
+    assert cache_action.target_package_basename != package_prec.fn
+
+    # The extract action uses strip_pkg_extension on the URL basename.
+    # Since .whl is not in KNOWN_EXTENSIONS (handled by conda-pypi plugin),
+    # the full filename is used as the extracted directory name.
+    assert extract_action is not None
+    assert extract_action.target_extracted_dirname == "idna-3.10-py3-none-any.whl"
+
+
 @pytest.mark.skipif(
     on_win and datetime.datetime.now() < datetime.datetime(2020, 1, 30),
     reason="time bomb",
