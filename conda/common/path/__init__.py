@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from ... import CondaError
+from ...deprecations import deprecated
 from ..compat import on_win
 from .directories import (
     explode_directories,
@@ -190,6 +191,11 @@ def strip_pkg_extension(path: str):
     return path, None
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.base.context.context.plugin_manager.is_package_file` instead.",
+)
 def is_package_file(path):
     """
     Examples:

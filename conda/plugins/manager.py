@@ -879,6 +879,13 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return registered_package_extensions
 
+    def is_package_file(self, source_full_path: PathType):
+        try:
+            self.get_package_extractor(source_full_path)
+            return True
+        except PluginError:
+            return False
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
