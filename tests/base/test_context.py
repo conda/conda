@@ -702,17 +702,17 @@ def test_always_disallowed_chars_rejected(char):
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test for #12558")
 @pytest.mark.parametrize(
-    "char,char_name",
+    "char",
     [
-        ("!", "exclamation"),
-        ("^", "caret"),
-        ("%", "percent"),
-        ("=", "equals"),
-        ("(", "open_paren"),
-        (")", "close_paren"),
+        pytest.param("!", id="exclamation"),
+        pytest.param("^", id="caret"),
+        pytest.param("%", id="percent"),
+        pytest.param("=", id="equals"),
+        pytest.param("(", id="open_paren"),
+        pytest.param(")", id="close_paren"),
     ],
 )
-def test_windows_problematic_chars_currently_allowed(char, char_name):
+def test_windows_problematic_chars_currently_allowed(char):
     """
     Document that Windows-problematic characters are currently ALLOWED.
 
@@ -745,7 +745,7 @@ def test_windows_problematic_chars_currently_allowed(char, char_name):
         # Currently these are ALLOWED (no exception raised)
         result = validate_prefix_name(env_name, ctx)
         assert result == str(expected_path), (
-            f"Character '{char}' ({char_name}) should currently be allowed. "
+            f"Character '{char}' should currently be allowed. "
             f"Got result: {result}"
         )
 

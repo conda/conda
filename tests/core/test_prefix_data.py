@@ -1033,20 +1033,19 @@ def test_prefix_data_validate_name_base_allowed(tmp_path: Path):
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test for #12558")
 @pytest.mark.parametrize(
-    "char,char_name",
+    "char",
     [
-        ("!", "exclamation"),
-        ("=", "equals"),
-        ("^", "caret"),
-        ("%", "percent"),
-        ("(", "open_paren"),
-        (")", "close_paren"),
+        pytest.param("!", id="exclamation"),
+        pytest.param("=", id="equals"),
+        pytest.param("^", id="caret"),
+        pytest.param("%", id="percent"),
+        pytest.param("(", id="open_paren"),
+        pytest.param(")", id="close_paren"),
     ],
 )
 def test_prefix_data_windows_problematic_chars_currently_allowed(
     tmp_path: Path,
     char: str,
-    char_name: str,
 ):
     """
     Document that Windows-problematic characters are currently ALLOWED.
