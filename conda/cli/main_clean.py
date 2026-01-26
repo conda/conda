@@ -13,6 +13,8 @@ from logging import getLogger
 from os.path import isdir, join
 from typing import TYPE_CHECKING
 
+from ..base.context import context
+
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
     from collections.abc import Iterable
@@ -150,8 +152,6 @@ def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
 
 
 def find_tarballs() -> dict[str, Any]:
-    from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_PARTS
-
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
@@ -159,7 +159,9 @@ def find_tarballs() -> dict[str, Any]:
         _, _, tars = next(os.walk(pkgs_dir))
         for tar in tars:
             # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
-            if not tar.endswith((*CONDA_PACKAGE_EXTENSIONS, *CONDA_PACKAGE_PARTS)):
+            package_extensions = context.plugin_manager.registered_package_extensions()
+            package_parts = [f"{ext}.part" for ext in package_extensions]
+            if not tar.endswith((*package_extensions, *package_parts)):
                 continue
 
             # get size

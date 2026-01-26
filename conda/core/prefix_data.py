@@ -19,7 +19,6 @@ from frozendict import frozendict
 
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
-    CONDA_PACKAGE_EXTENSIONS,
     PREFIX_CREATION_TIMESTAMP_FILE,
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
@@ -488,7 +487,9 @@ class PrefixData(metaclass=PrefixDataType):
         fn = prefix_record.fn
         known_ext = False
         # .dist-info is for things installed by pip
-        for ext in CONDA_PACKAGE_EXTENSIONS + (".dist-info",):
+        for ext in context.plugin_manager.registered_package_extensions() + (
+            ".dist-info",
+        ):
             if fn.endswith(ext):
                 fn = fn[: -len(ext)]
                 known_ext = True

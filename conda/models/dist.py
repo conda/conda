@@ -9,7 +9,6 @@ from typing import NamedTuple
 from .. import CondaError
 from ..auxlib.entity import Entity, EntityType, IntegerField, StringField
 from ..base.constants import (
-    CONDA_PACKAGE_EXTENSIONS,
     DEFAULTS_CHANNEL_NAME,
     UNKNOWN_CHANNEL,
 )
@@ -63,7 +62,7 @@ class DistType(EntityType):
 
 
 def strip_extension(original_dist):
-    for ext in CONDA_PACKAGE_EXTENSIONS:
+    for ext in context.plugin_manager.registered_package_extensions():
         if original_dist.endswith(ext):
             original_dist = original_dist[: -len(ext)]
     return original_dist
@@ -255,7 +254,10 @@ class Dist(Entity, metaclass=DistType):
         if not is_url(url):
             raise ValueError("'{url}' does not seem to be a valid URL")
         if (
-            not any(url.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
+            not any(
+                url.endswith(ext)
+                for ext in context.plugin_manager.registered_package_extensions()
+            )
             and "::" not in url
         ):
             raise CondaError(f"url '{url}' is not a conda package")
