@@ -23,33 +23,45 @@ if TYPE_CHECKING:
     from conda.plugins.manager import CondaPluginManager
 
 
+@pytest.fixture
+def extractor_plugin(
+    plugin_manager: CondaPluginManager, mocker: MockerFixture
+) -> CondaPackageExtractor:
+    """Returns a random package extractor plugin for testing."""
+    return CondaPackageExtractor(
+        name="random-package",
+        extensions=[".random", ".UPPER"],
+        extract=mocker.stub(name="random_extractor"),
+    )
+
+
+@pytest.fixture
+def extractor_plugin_manager(
+    extractor_plugin: CondaPackageExtractor, plugin_manager: CondaPluginManager
+) -> CondaPluginManager:
+    """Returns a plugin manager with a random package extractor plugin registered."""
+
+    class RandomExtractorPlugin:
+        """Test plugin that registers a random package extractor."""
+
+        @plugins.hookimpl
+        def conda_package_extractors(self):
+            yield extractor_plugin
+
+    plugin_manager.register(RandomExtractorPlugin())
+    return plugin_manager
+
+
 def test_plugin_fetches_correct_extractor(
-    plugin_manager: CondaPluginManager,
+    extractor_plugin_manager: CondaPluginManager,
+    extractor_plugin: CondaPackageExtractor,
     mocker: MockerFixture,
     tmp_path: Path,
 ) -> None:
     """Test that a custom plugin extractor is correctly registered, fetched, and invoked."""
-    random_extractor = mocker.stub(name="random_extractor")
-
-    class RandomPkgFormatPlugin:
-        @plugins.hookimpl
-        def conda_package_extractors(self):
-            yield CondaPackageExtractor(
-                name="random-package",
-                extensions=[".random"],
-                extract=random_extractor,
-            )
-
-    plugin_manager.register(RandomPkgFormatPlugin())
-
-    # Verify the correct extractor is fetched
     source = tmp_path / "source.random"
-    extractor = context.plugin_manager.get_package_extractor(source)
-    assert extractor.extract is random_extractor
-
-    # Verify extract_package invokes the correct extractor
-    context.plugin_manager.extract_package(source, tmp_path)
-    assert random_extractor.call_count == 1
+    extractor_plugin_manager.extract_package(source, tmp_path)
+    assert extractor_plugin.extract.call_count == 1
 
 
 @pytest.mark.parametrize(
@@ -86,3 +98,45 @@ def test_extract_package(tmp_path: Path) -> None:
     assert (
         destination / "etc" / "conda" / "activate.d" / "small_executable.sh"
     ).exists()
+
+
+def test_get_package_extractors(
+    extractor_plugin_manager: CondaPluginManager,
+    extractor_plugin: CondaPackageExtractor,
+) -> None:
+    """Test that get_package_extractors returns a dict mapping extensions to extractors."""
+    extractors = extractor_plugin_manager.get_package_extractors()
+
+    # Should return a dict
+    assert isinstance(extractors, dict)
+
+    # Should contain our registered extensions (lowercased)
+    assert ".random" in extractors
+    assert ".upper" in extractors  # .UPPER becomes .upper
+
+    # Keys should be lowercased, values should be CondaPackageExtractor instances
+    for extension, extractor in extractors.items():
+        assert extension == extension.lower()
+        assert isinstance(extractor, CondaPackageExtractor)
+
+
+@pytest.mark.parametrize(
+    "path,expected",
+    [
+        ("package.random", True),
+        ("/path/to/package.random", True),
+        ("package.RANDOM", True),  # case insensitive
+        ("package.upper", True),
+        ("package.UPPER", True),  # case insensitive
+        ("package.other", False),
+        ("package", False),
+        ("", False),
+    ],
+)
+def test_has_package_extension(
+    extractor_plugin_manager: CondaPluginManager,
+    path: str,
+    expected: bool,
+) -> None:
+    """Test that has_package_extension correctly identifies package files."""
+    assert extractor_plugin_manager.has_package_extension(path) == expected

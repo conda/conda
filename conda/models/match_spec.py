@@ -717,7 +717,7 @@ def _parse_spec_str(spec_str):
     spec_str = spec_split[0]
 
     # Step 2. done if spec_str is a tarball
-    if context.plugin_manager.is_package_file(spec_str):
+    if context.plugin_manager.has_package_extension(spec_str):
         # treat as a normal url
         if not is_url(spec_str):
             spec_str = unquote(path_to_url(expand(spec_str)))

@@ -62,7 +62,7 @@ class DistType(EntityType):
 
 
 def strip_extension(original_dist):
-    for ext in context.plugin_manager.registered_package_extensions():
+    for ext in context.plugin_manager.get_package_extractors():
         if original_dist.endswith(ext):
             original_dist = original_dist[: -len(ext)]
     return original_dist
@@ -253,13 +253,7 @@ class Dist(Entity, metaclass=DistType):
     def from_url(cls, url):
         if not is_url(url):
             raise ValueError("'{url}' does not seem to be a valid URL")
-        if (
-            not any(
-                url.endswith(ext)
-                for ext in context.plugin_manager.registered_package_extensions()
-            )
-            and "::" not in url
-        ):
+        if not context.plugin_manager.has_package_extension(url) and "::" not in url:
             raise CondaError(f"url '{url}' is not a conda package")
 
         dist_details = cls.parse_dist_name(url)

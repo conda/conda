@@ -487,9 +487,8 @@ class PrefixData(metaclass=PrefixDataType):
         fn = prefix_record.fn
         known_ext = False
         # .dist-info is for things installed by pip
-        for ext in context.plugin_manager.registered_package_extensions() + (
-            ".dist-info",
-        ):
+        extensions = (*context.plugin_manager.get_package_extractors(), ".dist-info")
+        for ext in extensions:
             if fn.endswith(ext):
                 fn = fn[: -len(ext)]
                 known_ext = True

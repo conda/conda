@@ -194,7 +194,7 @@ def strip_pkg_extension(path: str):
 @deprecated(
     "26.9",
     "27.3",
-    addendum="Use `conda.base.context.context.plugin_manager.is_package_file` instead.",
+    addendum="Use `conda.base.context.context.plugin_manager.has_package_extension` instead.",
 )
 def is_package_file(path):
     """

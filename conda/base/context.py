@@ -1238,7 +1238,7 @@ class Context(Configuration):
 
         grouped_packages = groupby_to_dict(
             lambda x: "explicit"
-            if context.plugin_manager.is_package_file(x)
+            if context.plugin_manager.has_package_extension(x)
             else "spec",
             sequence=self._create_default_packages,
         )

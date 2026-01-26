@@ -162,7 +162,7 @@ class Channel(metaclass=ChannelType):
             return Channel.from_url(value)
         elif is_path(value):
             return Channel.from_url(path_to_url(value))
-        elif context.plugin_manager.is_package_file(value):
+        elif context.plugin_manager.has_package_extension(value):
             if value.startswith("file:"):
                 value = win_path_backout(value)
             return Channel.from_url(value)

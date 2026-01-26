@@ -179,11 +179,20 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
-CONDA_PACKAGE_EXTENSIONS: Final = (
-    CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSION_V1,
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CONDA_PACKAGE_EXTENSIONS",
+    (CONDA_PACKAGE_EXTENSION_V2, CONDA_PACKAGE_EXTENSION_V1),
+    addendum="Use `conda.base.context.context.plugin_manager.get_package_extractors()` instead.",
 )
-CONDA_PACKAGE_PARTS: Final = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CONDA_PACKAGE_PARTS",
+    (f"{CONDA_PACKAGE_EXTENSION_V2}.part", f"{CONDA_PACKAGE_EXTENSION_V1}.part"),
+    addendum="Derive from `conda.base.context.context.plugin_manager.get_package_extractors()` instead.",
+)
 CONDA_TARBALL_EXTENSION: Final = (
     CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
 )

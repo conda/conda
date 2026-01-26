@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ntpath
 import re
+from contextlib import nullcontext
 from logging import getLogger
 from pathlib import PureWindowsPath
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context
+from conda.common import path
 from conda.common.compat import on_win
 from conda.common.path import (
     get_major_minor_version,
@@ -407,3 +409,15 @@ def test_path_conversion(
             cygdrive = f"/cygdrive{roundtrip}"
             path = win_path_to_unix(win, prefix=win_prefix, cygdrive=True)
             assert path == cygdrive, f"{win} → {path} ≠ {cygdrive}"
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("is_package_file", TypeError),
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(path, function)()
