@@ -870,6 +870,15 @@ class CondaPluginManager(pluggy.PluginManager):
         extractor = self.get_package_extractor(source_full_path)
         extractor.extract(source_full_path, destination_directory)
 
+    def registered_package_extensions(self) -> list[str]:
+        registered_package_extensions = []
+        hooks = self.get_hook_results("package_extractors")
+        for hook in hooks:
+            for ext in hook.extensions:
+                registered_package_extensions.append(ext)
+
+        return registered_package_extensions
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:

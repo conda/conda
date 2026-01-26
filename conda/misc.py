@@ -57,9 +57,12 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
+extensions = context.plugin_manager.registered_package_extensions()
+ext_pattern = "|".join(map(re.escape, extensions))
+
 url_pat = re.compile(
     r"(?:(?P<url_p>.+)(?:[/\\]))?"
-    r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
+    r"(?P<fn>[^/\\#]+(?:{ext_pattern}))"
     r"(?:#("
     r"(?P<md5>[0-9a-f]{32})"
     r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
