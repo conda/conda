@@ -967,11 +967,8 @@ def test_timestamps(
         ("my_env", False),
         ("my.env", False),
         ("MyEnv123", False),
-        # Invalid names (always disallowed) - should raise
-        ("my env", True),  # Space
-        ("my/env", True),  # Forward slash
-        ("my:env", True),  # Colon
-        ("my#env", True),  # Hash
+        # Invalid names - these contain chars that are invalid in filesystem paths
+        # so we test them separately below with mocking
         # Currently valid but problematic on Windows (issue #12558)
         # These should NOT raise currently, documenting existing behavior
         ("python=3.12", False),
@@ -1001,6 +998,34 @@ def test_prefix_data_validate_name(tmp_path: Path, env_name: str, should_raise: 
             pd.validate_name()
     else:
         # Should not raise
+        pd.validate_name()
+
+
+@pytest.mark.parametrize(
+    "env_name",
+    [
+        pytest.param("my env", id="space"),
+        pytest.param("my#env", id="hash"),
+        # Note: "/" and ":" are invalid filesystem characters and can't be
+        # tested with real directories. They are tested in test_context.py
+        # using mocks instead.
+    ],
+)
+def test_prefix_data_validate_name_disallowed_chars(tmp_path: Path, env_name: str):
+    """
+    Test that disallowed characters in env names raise CondaValueError.
+
+    Note: Some characters (like / and :) are also invalid in filesystem paths,
+    so they cannot be tested here with real directories. Those are tested
+    in tests/base/test_context.py using mocks.
+    """
+    env_path = tmp_path / "envs" / env_name
+    env_path.mkdir(parents=True, exist_ok=True)
+    (env_path / "conda-meta").mkdir(exist_ok=True)
+
+    pd = PrefixData(env_path)
+
+    with pytest.raises(CondaValueError):
         pd.validate_name()
 
 
