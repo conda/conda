@@ -700,6 +700,7 @@ def test_always_disallowed_chars_rejected(char):
         validate_prefix_name(env_name, ctx)
 
 
+@pytest.mark.skipif(not on_win, reason="Windows-specific test for #12558")
 @pytest.mark.parametrize(
     "char,char_name",
     [

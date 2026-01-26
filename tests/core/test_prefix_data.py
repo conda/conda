@@ -1031,6 +1031,7 @@ def test_prefix_data_validate_name_base_allowed(tmp_path: Path):
     pd.validate_name(allow_base=True)
 
 
+@pytest.mark.skipif(not on_win, reason="Windows-specific test for #12558")
 @pytest.mark.parametrize(
     "char,char_name",
     [
