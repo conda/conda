@@ -648,6 +648,161 @@ def test_channel_alias_validation(value, expected):
     assert channel_alias_validation(value) == expected
 
 
+# =============================================================================
+# Windows Special Character Tests (Issue #12558)
+# =============================================================================
+# These tests document and characterize the expected behavior for environment
+# names containing special characters that are problematic on Windows.
+#
+# Background:
+# - PR #13975 tried to disallow these characters but was reverted in #14065
+# - The revert happened because it broke existing environments
+# - These tests help plan the proper fix for #12558
+# =============================================================================
+
+
+# Characters that are currently disallowed on all platforms
+ALWAYS_DISALLOWED_CHARS = {"/", " ", ":", "#"}
+
+# Characters that are problematic specifically on Windows CMD.EXE
+# These are candidates for future restriction on Windows
+WINDOWS_PROBLEMATIC_CHARS = {
+    "!",  # EnableDelayedExpansion consumes this
+    "^",  # CMD escape character
+    "%",  # Environment variable expansion
+    "=",  # Causes prompt corruption
+    "(",  # Special meaning in CMD
+    ")",  # Special meaning in CMD
+}
+
+
+@pytest.mark.parametrize(
+    "char",
+    list(ALWAYS_DISALLOWED_CHARS),
+    ids=lambda c: f"char_{ord(c):02x}_{repr(c)}",
+)
+def test_always_disallowed_chars_rejected(char):
+    """
+    Verify that universally disallowed characters are rejected.
+
+    These characters (/, space, :, #) should always be rejected
+    regardless of platform.
+    """
+    ctx = mock.MagicMock()
+    env_name = f"test{char}env"
+
+    with (
+        mock.patch("conda.gateways.disk.create.first_writable_envs_dir"),
+        mock.patch("conda.base.context.locate_prefix_by_name"),
+        pytest.raises(CondaValueError, match="Invalid environment name"),
+        pytest.deprecated_call(),
+    ):
+        validate_prefix_name(env_name, ctx)
+
+
+@pytest.mark.parametrize(
+    "char,char_name",
+    [
+        ("!", "exclamation"),
+        ("^", "caret"),
+        ("%", "percent"),
+        ("=", "equals"),
+        ("(", "open_paren"),
+        (")", "close_paren"),
+    ],
+)
+def test_windows_problematic_chars_currently_allowed(char, char_name):
+    """
+    Document that Windows-problematic characters are currently ALLOWED.
+
+    These characters cause issues on Windows (prompt corruption, activation
+    failures) but are currently not blocked. This test documents the current
+    behavior.
+
+    See: https://github.com/conda/conda/issues/12558
+
+    When we implement the fix for #12558, this test should be updated to
+    expect these characters to be:
+    - Blocked immediately (for completely broken chars like !)
+    - Warned about (for partially broken chars like =)
+    """
+    ctx = mock.MagicMock()
+    env_name = f"test{char}env"
+    expected_path = VALIDATE_PREFIX_NAME_BASE_DIR / env_name
+
+    with (
+        mock.patch(
+            "conda.gateways.disk.create.first_writable_envs_dir",
+            return_value=VALIDATE_PREFIX_NAME_BASE_DIR,
+        ),
+        mock.patch(
+            "conda.base.context.locate_prefix_by_name",
+            side_effect=EnvironmentNameNotFound(env_name),
+        ),
+        pytest.deprecated_call(),
+    ):
+        # Currently these are ALLOWED (no exception raised)
+        result = validate_prefix_name(env_name, ctx)
+        assert result == str(expected_path), (
+            f"Character '{char}' ({char_name}) should currently be allowed. "
+            f"Got result: {result}"
+        )
+
+
+@pytest.mark.parametrize(
+    "env_name,should_be_valid",
+    [
+        # Valid names
+        ("myenv", True),
+        ("my-env", True),
+        ("my_env", True),
+        ("my.env", True),
+        ("MyEnv123", True),
+        ("env-with-dashes", True),
+        ("env_with_underscores", True),
+        # Currently valid but problematic on Windows (issue #12558)
+        ("python=3.12", True),  # Common pattern, causes prompt issues
+        ("myenv(test)", True),  # Parentheses are problematic
+        ("test!env", True),  # Exclamation is broken on Windows
+        # Invalid names (always disallowed)
+        ("my env", False),  # Space
+        ("my/env", False),  # Forward slash
+        ("my:env", False),  # Colon
+        ("my#env", False),  # Hash
+    ],
+)
+def test_env_name_validation_current_behavior(env_name, should_be_valid):
+    """
+    Document current validation behavior for various environment names.
+
+    This test serves as documentation for what names are currently accepted
+    or rejected. When implementing #12558, update the expected behavior.
+    """
+    ctx = mock.MagicMock()
+    expected_path = VALIDATE_PREFIX_NAME_BASE_DIR / env_name
+
+    with (
+        mock.patch(
+            "conda.gateways.disk.create.first_writable_envs_dir",
+            return_value=VALIDATE_PREFIX_NAME_BASE_DIR,
+        ),
+        mock.patch(
+            "conda.base.context.locate_prefix_by_name",
+            side_effect=EnvironmentNameNotFound(env_name),
+        ),
+    ):
+        if should_be_valid:
+            with pytest.deprecated_call():
+                result = validate_prefix_name(env_name, ctx)
+            assert result == str(expected_path)
+        else:
+            with (
+                pytest.raises(CondaValueError, match="Invalid environment name"),
+                pytest.deprecated_call(),
+            ):
+                validate_prefix_name(env_name, ctx)
+
+
 @pytest.mark.parametrize(
     "value,expected",
     (
