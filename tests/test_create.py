@@ -10,7 +10,7 @@ from importlib.metadata import version
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
-from os.path import basename, isdir
+from os.path import basename
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_output
@@ -40,7 +40,7 @@ from conda.common.path import (
     get_python_site_packages_short_path,
     pyc_path,
 )
-from conda.common.serialize import json, yaml_round_trip_load
+from conda.common.serialize import json, yaml
 from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
@@ -53,6 +53,7 @@ from conda.exceptions import (
     EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
     LinkError,
+    NoChannelsConfiguredError,
     OperationNotAllowed,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -632,6 +633,23 @@ def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixtu
         assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
 
 
+def test_no_channels(
+    monkeypatch: MonkeyPatch,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+) -> None:
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "zlib",
+        "--yes",
+        "--channel",
+        None,
+        "--override-channels",
+        raises=NoChannelsConfiguredError,
+    )
+
+
 def test_override_channels_disabled(
     monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
@@ -653,6 +671,14 @@ def test_override_channels_disabled(
     conda_cli(
         "search",
         "--override-channels",
+        "zlib",
+        "--json",
+        raises=OperationNotAllowed,
+    )
+
+    conda_cli(
+        "search",
+        "-O",
         "zlib",
         "--json",
         raises=OperationNotAllowed,
@@ -736,8 +762,8 @@ def test_search_override_channels_enabled(
 
 
 def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
-        assert (prefix / "conda-meta" / "history").exists()
+    with tmp_env(shallow=False) as prefix:
+        assert (prefix / PREFIX_MAGIC_FILE).exists()
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
         assert stdout == dals(
@@ -908,19 +934,19 @@ def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
         #   when using rm_rf on a file
         assert any(prefix in key for key in PrefixData._cache_)
         _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
-        assert prefix not in PrefixData._cache_
+        assert not any(prefix in key for key in PrefixData._cache_)
 
-    with tmp_env() as prefix:
-        assert isdir(prefix)
+    with tmp_env(shallow=False) as prefix:
+        assert prefix.is_dir()
         assert any(prefix in key for key in PrefixData._cache_)
 
         rmtree(prefix)
-        assert not isdir(prefix)
+        assert not prefix.is_dir()
         assert any(prefix in key for key in PrefixData._cache_)
 
         _rm_rf(prefix)
-        assert not isdir(prefix)
-        assert all(prefix not in key for key in PrefixData._cache_)
+        assert not prefix.is_dir()
+        assert not any(prefix in key for key in PrefixData._cache_)
 
 
 def test_install_tarball_from_file_based_channel(
@@ -1024,7 +1050,7 @@ def test_update_with_pinned_packages(
         assert package_is_installed(prefix, "dependency=1.0")
 
         # removing the history allows dependent to be updated too
-        (prefix / "conda-meta" / "history").write_text("")
+        (prefix / PREFIX_MAGIC_FILE).write_text("")
 
         conda_cli("update", f"--prefix={prefix}", "dependency", "--yes")
 
@@ -1813,19 +1839,19 @@ def test_conda_pip_interop_pip_clobbers_conda(
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/DESCRIPTION.rst",
                         "path_type": "hardlink",
-                        "sha256": "QWBtSTT2zzabwJv1NQbTfClSX13m-Qc6tqU4TRL1RLs",
+                        "sha256": "41606d4934f6cf369bc09bf53506d37c29525f5de6f9073ab6a5384d12f544bb",
                         "size_in_bytes": 774,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/INSTALLER",
                         "path_type": "hardlink",
-                        "sha256": "zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg",
+                        "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
                         "size_in_bytes": 4,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/METADATA",
                         "path_type": "hardlink",
-                        "sha256": "5HceJsUnHof2IRamlCKO2MwNjve1eSP4rLzVQDfwpCQ",
+                        "sha256": "e4771e26c5271e87f62116a694228ed8cc0d8ef7b57923f8acbcd54037f0a424",
                         "size_in_bytes": 1283,
                     },
                     {
@@ -1837,25 +1863,25 @@ def test_conda_pip_interop_pip_clobbers_conda(
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/WHEEL",
                         "path_type": "hardlink",
-                        "sha256": "GrqQvamwgBV4nLoJe0vhYRSWzWsx7xjlt74FT0SWYfE",
+                        "sha256": "1aba90bda9b08015789cba097b4be1611496cd6b31ef18e5b7be054f449661f1",
                         "size_in_bytes": 110,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/metadata.json",
                         "path_type": "hardlink",
-                        "sha256": "jtOeeTBubYDChl_5Ql5ZPlKoHgg6rdqRIjOz1e5Ek2U",
+                        "sha256": "8ed39e79306e6d80c2865ff9425e593e52a81e083aadda912233b3d5ee449365",
                         "size_in_bytes": 658,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/top_level.txt",
                         "path_type": "hardlink",
-                        "sha256": "_iVH_iYEtEXnD8nYGQYpYFUvkUW9sEO1GYbkeKSAais",
+                        "sha256": "fe2547fe2604b445e70fc9d819062960552f9145bdb043b51986e478a4806a2b",
                         "size_in_bytes": 4,
                     },
                     {
                         "_path": sp_dir + "/six.py",
                         "path_type": "hardlink",
-                        "sha256": "A6hdJZVjI3t_geebZ9BzUvwRrIXo0lfwzQlM2LcKyas",
+                        "sha256": "03a85d259563237b7f81e79b67d07352fc11ac85e8d257f0cd094cd8b70ac9ab",
                         "size_in_bytes": 30098,
                     },
                 ],
@@ -2408,15 +2434,10 @@ def test_create_env_different_platform(
 
         args = []
 
-    with tmp_env(*args) as prefix:
+    with tmp_env(*args, shallow=False) as prefix:
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
-        assert (
-            yaml_round_trip_load((prefix / DEFAULT_CONDARC_FILENAME).read_text())[
-                "subdir"
-            ]
-            == platform
-        )
+        assert yaml.read(path=prefix / DEFAULT_CONDARC_FILENAME)["subdir"] == platform
 
         stdout, stderr, excinfo = conda_cli(
             "install",
@@ -2585,7 +2606,7 @@ def test_neutering_of_historic_specs(
 ):
     with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
         conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
-        d = (prefix / "conda-meta" / "history").read_text()
+        d = (prefix / PREFIX_MAGIC_FILE).read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
         #    If this command runs successfully (does not raise), then all is well.

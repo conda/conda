@@ -33,6 +33,7 @@ from ..exceptions import (
 from . import (
     environment_exporters,
     environment_specifiers,
+    package_extractors,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
 
     from requests.auth import AuthBase
 
+    from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
@@ -59,6 +61,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaPackageExtractor,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -83,17 +86,14 @@ class CondaPluginManager(pluggy.PluginManager):
     The conda plugin manager to implement behavior additional to pluggy's default plugin manager.
     """
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend`
-    #: method.
     get_cached_solver_backend: Callable[[str | None], type[Solver]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_solver_backend` method."""
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers`
-    #: method.
     get_cached_session_headers: Callable[[str], dict[str, str]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_session_headers` method."""
 
-    #: Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers`
-    #: method.
     get_cached_request_headers: Callable[[str, str], dict[str, str]]
+    """Cached version of the :meth:`~conda.plugins.manager.CondaPluginManager.get_request_headers` method."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(APP_NAME, *args, **kwargs)
@@ -268,6 +268,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
+        self, name: Literal["package_extractors"]
+    ) -> list[CondaPackageExtractor]: ...
+
+    @overload
+    def get_hook_results(
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
 
@@ -411,6 +416,10 @@ class CondaPluginManager(pluggy.PluginManager):
             for subcommand in self.get_hook_results("subcommands")
         }
 
+    def get_health_checks(self) -> dict[str, CondaHealthCheck]:
+        """Return a mapping of health check name to health check."""
+        return {check.name: check for check in self.get_hook_results("health_checks")}
+
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
         return tuple(self.get_hook_results("reporter_backends"))
 
@@ -458,14 +467,6 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
         for hook in self.get_hook_results("prefix_data_loaders"):
             yield hook.loader
-
-    def invoke_health_checks(self, prefix: str, verbose: bool) -> None:
-        for hook in self.get_hook_results("health_checks"):
-            try:
-                hook.action(prefix, verbose)
-            except Exception as err:
-                log.warning(f"Error running health check: {hook.name} ({err})")
-                continue
 
     def invoke_pre_solves(
         self,
@@ -826,6 +827,49 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
+    def get_package_extractor(
+        self,
+        source_full_path: PathType,
+    ) -> CondaPackageExtractor:
+        """
+        Get the package extractor plugin for a given package path.
+
+        Searches through registered package extractor plugins to find one that
+        handles the file extension of the provided package path.
+
+        :param source_full_path: Full path to the package archive file.
+        :return: The matching :class:`~conda.plugins.types.CondaPackageExtractor` plugin.
+        :raises PluginError: If no registered extractor handles the file extension.
+        """
+        source_str = os.fspath(source_full_path)
+        hooks = self.get_hook_results("package_extractors")
+        for hook in hooks:
+            for ext in hook.extensions:
+                if source_str.lower().endswith(ext.lower()):
+                    return hook
+
+        raise PluginError(
+            f"No registered 'package_extractors' plugin found for package: {source_full_path}"
+        )
+
+    def extract_package(
+        self,
+        source_full_path: PathType,
+        destination_directory: PathType,
+    ) -> None:
+        """
+        Extract a package archive to a destination directory.
+
+        Finds the appropriate extractor plugin based on the file extension
+        and extracts the package.
+
+        :param source_full_path: Full path to the package archive file.
+        :param destination_directory: Directory to extract the package contents to.
+        :raises PluginError: If no registered extractor handles the file extension.
+        """
+        extractor = self.get_package_extractor(source_full_path)
+        extractor.extract(source_full_path, destination_directory)
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -839,9 +883,10 @@ def get_plugin_manager() -> CondaPluginManager:
         solvers,
         *virtual_packages.plugins,
         *subcommands.plugins,
-        health_checks,
+        *health_checks.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *package_extractors.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,

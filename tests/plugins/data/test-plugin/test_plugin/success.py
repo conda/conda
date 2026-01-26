@@ -9,7 +9,7 @@ from conda.core.solve import Solver
 @plugins.hookimpl
 def conda_solvers():
     """The conda plugin hook implementation to load the solver into conda."""
-    yield plugins.CondaSolver(
+    yield plugins.types.CondaSolver(
         name="test",
         backend=Solver,
     )

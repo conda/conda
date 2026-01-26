@@ -23,7 +23,7 @@ There are two hooks available for this purpose:
 
 .. autoapifunction:: conda.plugins.hookspec.CondaSpecs.conda_session_headers
 
-Both hook use the :class:`~conda.plugins.CondaRequestHeader` class to define headers:
+Both hook use the :class:`~conda.plugins.types.CondaRequestHeader` class to define headers:
 
 .. autoapiclass:: conda.plugins.types.CondaRequestHeader
    :members:

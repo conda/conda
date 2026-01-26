@@ -92,8 +92,9 @@ class _Activator(metaclass=abc.ABCMeta):
         [str | Iterable[str] | None], str | tuple[str, ...] | None
     ]
     script_extension: str
-    #: temporary file's extension, None writes to stdout instead
+
     tempfile_extension: str | None
+    """Temporary file's extension, None writes to stdout instead."""
     command_join: str
 
     unset_var_tmpl: str
@@ -470,6 +471,13 @@ class _Activator(metaclass=abc.ABCMeta):
             if old_conda_shlvl <= 1:
                 raise ValueError("'old_conda_shlvl' must be 2 or larger")
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
+            if not new_prefix:
+                raise ValueError(
+                    "This should not happen! You may have non-consecutive `CONDA_PREFIX_<number> "
+                    "environment variables. Try restarting your shell and, if it persists, "
+                    "check your shell profile to see what may be adding a faulty "
+                    "CONDA_PREFIX_<number> environment variable."
+                )
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
             new_conda_environment_env_vars = self._get_environment_env_vars(new_prefix)

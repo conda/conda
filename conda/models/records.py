@@ -16,6 +16,7 @@ Object inheritance:
 from __future__ import annotations
 
 from os.path import basename, join
+from pathlib import Path
 
 from boltons.timeutils import dt_to_timestamp, isoparse
 
@@ -35,7 +36,7 @@ from ..common.compat import isiterable
 from ..deprecations import deprecated
 from ..exceptions import PathNotFoundError
 from .channel import Channel
-from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
 from .match_spec import MatchSpec
 
 
@@ -222,7 +223,7 @@ class PathData(Entity):
     no_link = BooleanField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
-    path_type = EnumField(PathType)
+    path_type = EnumField(PathEnum)
 
     @property
     def path(self):
@@ -231,7 +232,7 @@ class PathData(Entity):
 
 
 class PathDataV1(PathData):
-    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory
+    # TODO: sha256 and size_in_bytes should be required for all PathEnum.hardlink, but not for softlink and directory
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(str, required=False, nullable=True)
@@ -242,7 +243,7 @@ class PathDataV1(PathData):
 class PathsData(Entity):
     # from info/paths.json
     paths_version = IntegerField()
-    paths = ListField(PathData)
+    paths = ListField(PathDataV1)
 
 
 class PackageRecord(DictSafeMixin, Entity):
@@ -263,64 +264,71 @@ class PackageRecord(DictSafeMixin, Entity):
     The subclasses do not add further attributes to the :attr:`_pkey`.
     """
 
-    #: str: The name of the package.
-    #:
-    #: Part of the :attr:`_pkey`.
     name = StringField()
+    """The name of the package.
 
-    #: str: The version of the package.
-    #:
-    #: Part of the :attr:`_pkey`.
+    Part of the :attr:`_pkey`.
+    """
+
     version = StringField()
+    """The version of the package.
 
-    #: str: The build string of the package.
-    #:
-    #: Part of the :attr:`_pkey`.
+    Part of the :attr:`_pkey`.
+    """
+
     build = StringField(aliases=("build_string",))
+    """The build string of the package.
 
-    #: int: The build number of the package.
-    #:
-    #: Part of the :attr:`_pkey`.
+    Part of the :attr:`_pkey`.
+    """
+
     build_number = IntegerField()
+    """The build number of the package.
+
+    Part of the :attr:`_pkey`.
+    """
 
     # the canonical code abbreviation for PackageRef is `pref`
     # fields required to uniquely identifying a package
 
-    #: :class:`conda.models.channel.Channel`: The channel where the package can be found.
     channel = ChannelField(aliases=("schannel",))
+    """The channel where the package can be found."""
 
-    #: str: The subdir, i.e. ``noarch`` or a platform (``linux-64`` or similar).
-    #:
-    #: Part of the :attr:`_pkey`.
     subdir = SubdirField()
+    """The subdir, i.e. ``noarch`` or a platform (``linux-64`` or similar).
 
-    #: str: The filename of the package.
-    #:
-    #: Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>` is ``true`` (default: ``false``).
+    Part of the :attr:`_pkey`.
+    """
+
     fn = FilenameField(aliases=("filename",))
+    """The filename of the package.
 
-    #: str: The md5 checksum of the package.
+    Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>`
+    is ``true`` (default: ``false``).
+    """
+
     md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+    """The md5 checksum of the package."""
 
-    #: str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the md5 checksum of that package.
     legacy_bz2_md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+    """If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the md5 checksum of that package."""
 
-    #: str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the size of that package.
     legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
+    """If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the size of that package."""
 
-    #: str: The download url of the package.
     url = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+    """The download url of the package."""
 
-    #: str: The sha256 checksum of the package.
     sha256 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+    """The sha256 checksum of the package."""
 
     @property
     def channel_name(self) -> str | None:
@@ -568,16 +576,17 @@ class PackageCacheRecord(PackageRecord):
     equal and will produce the same hash.
     """
 
-    #: str: Full path to the local package file.
     package_tarball_full_path = StringField()
+    """Full path to the local package file."""
 
-    #: str: Full path to the local extracted package.
     extracted_package_dir = StringField()
+    """Full path to the local extracted package."""
 
-    #: str: The md5 checksum of the package.
-    #:
-    #: If the package file exists locally, this class can calculate a missing checksum on-the-fly.
     md5 = Md5Field()
+    """The md5 checksum of the package.
+
+    If the package file exists locally, this class can calculate a missing checksum on-the-fly.
+    """
 
     @property
     def is_fetched(self):
@@ -622,8 +631,8 @@ class SolvedRecord(PackageRecord):
     disk.
     """
 
-    #: str: The :class:`MatchSpec` that the user requested or ``None`` if the package it was installed as a dependency.
     requested_spec = StringField(required=False)
+    """The :class:`MatchSpec` that the user requested or ``None`` if the package it was installed as a dependency."""
 
 
 class PrefixRecord(SolvedRecord):
@@ -640,29 +649,59 @@ class PrefixRecord(SolvedRecord):
     Objects of this class are generally constructed from metadata in json files inside `$prefix/conda-meta`.
     """
 
-    #: str: The path to the originating package file, usually in the local cache.
     package_tarball_full_path = StringField(required=False)
+    """The path to the originating package file, usually in the local cache."""
 
-    #: str: The path to the extracted package directory, usually in the local cache.
     extracted_package_dir = StringField(required=False)
+    """The path to the extracted package directory, usually in the local cache."""
 
-    #: list(str): The list of all files comprising the package as relative paths from the prefix root.
     files = ListField(str, default=(), required=False)
+    """The list of all files comprising the package as relative paths from the prefix root."""
 
-    #: list(str): List with additional information about the files, e.g. checksums and link type.
     paths_data = ComposableField(
         PathsData, required=False, nullable=True, default_in_dump=False
     )
+    """List with additional information about the files, e.g. checksums and link type."""
 
-    #: :class:`Link`: Information about how the package was linked into the prefix.
     link = ComposableField(Link, required=False)
+    """Information about how the package was linked into the prefix."""
 
     # app = ComposableField(App, required=False)
 
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.
-    #: str: Authentication information.
     auth = StringField(required=False, nullable=True)
+    """Authentication information."""
+
+    def package_size(self, prefix_path: Path) -> int:
+        """
+        Compute the installed size of this package within a prefix.
+
+        This sums up the size_in_bytes of all non-softlink paths in paths_data,
+        and stats the files on disk if size_in_bytes is missing.
+
+        :returns: Total size in bytes of all files installed by this package, or
+        0 if paths_data is missing or empty.
+        """
+        total_size = 0
+
+        if not self.paths_data.paths:
+            return total_size
+
+        for path_data in self.paths_data.paths:
+            if path_data.path_type in (PathEnum.softlink, PathEnum.directory):
+                continue
+            if getattr(path_data, "size_in_bytes", None) is not None:
+                total_size += path_data.size_in_bytes
+                continue
+
+            file_path = Path(prefix_path) / path_data._path
+            try:
+                total_size += file_path.stat().st_size
+            except OSError:
+                pass
+
+        return total_size
 
     # @classmethod
     # def load(cls, conda_meta_json_path):

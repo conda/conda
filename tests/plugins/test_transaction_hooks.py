@@ -40,8 +40,8 @@ class DummyPreActionPlugin:
     @plugins.hookimpl
     def conda_pre_transaction_actions(
         self,
-    ) -> Iterable[plugins.CondaPreTransactionAction]:
-        yield plugins.CondaPreTransactionAction(
+    ) -> Iterable[plugins.types.CondaPreTransactionAction]:
+        yield plugins.types.CondaPreTransactionAction(
             name="bar",
             action=DummyPreTransactionAction,
         )
@@ -51,8 +51,8 @@ class DummyPostActionPlugin:
     @plugins.hookimpl
     def conda_post_transaction_actions(
         self,
-    ) -> Iterable[plugins.CondaPostTransactionAction]:
-        yield plugins.CondaPostTransactionAction(
+    ) -> Iterable[plugins.types.CondaPostTransactionAction]:
+        yield plugins.types.CondaPostTransactionAction(
             name="foo",
             action=DummyPostTransactionAction,
         )
@@ -63,6 +63,9 @@ def transaction_plugin(plugin_manager_with_reporter_backends, mocker):
     """Test that post transaction actions get called."""
     # Explicitly load the solver, since this is a dummy plugin manager and not the default
     plugin_manager_with_reporter_backends.load_plugins(plugins.solvers)
+    plugin_manager_with_reporter_backends.load_plugins(
+        *plugins.package_extractors.plugins
+    )
 
     pre_plugin = DummyPreActionPlugin()
     mock_pre_verify = mocker.spy(DummyPreTransactionAction, "verify")

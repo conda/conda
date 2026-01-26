@@ -31,7 +31,8 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     args = args or ["--help"]
 
     pre_parser = generate_pre_parser(add_help=False)
-    pre_args, _ = pre_parser.parse_known_args(args)
+    args_subset = args[: args.index("--")] if "--" in args else args
+    pre_args, _ = pre_parser.parse_known_args(args_subset)
 
     # the arguments that we want to pass to the main parser later on
     override_args = {

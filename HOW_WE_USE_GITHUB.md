@@ -340,12 +340,6 @@ velocity.
 Normally, we use squash and merge to keep a clean git history. If you are
 merging a pull request, help ensure that the pull request title is updated.
 
-## Commit Signing
-
-For all maintainers, we require commit signing and strongly recommend it for all others wishing to contribute. More information about how to set this up within GitHub can be found here:
-
-- [GitHub's signing commits docs][docs-commit-signing]
-
 ## Types of Issues
 
 ### Standard Issue
