@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Validate plugin-provided HTTP headers and raise `PluginError` if forbidden headers are detected, preventing plugins from compromising conda's network stack (#15405 via #15436).
 
 ### Bug fixes
 
-* Filter forbidden HTTP headers from plugin-provided session and request headers (#15405 via #15436).
+* <news item>
 
 ### Deprecations
 

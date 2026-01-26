@@ -16,12 +16,13 @@ from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.context import context, reset_context
 from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
-from conda.exceptions import CondaExitZero, OfflineError
+from conda.exceptions import CondaExitZero, OfflineError, PluginError
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
+    _validate_plugin_headers,
     get_channel_name_from_url,
     get_session,
     get_session_storage_key,
@@ -429,20 +430,17 @@ def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
         "Via",
     ],
 )
-def test_filter_forbidden_headers(header, mocker):
-    from conda.gateways.connection.session import _filter_forbidden_headers
-
-    mock_log = mocker.patch("conda.gateways.connection.session.log")
-
+def test_validate_plugin_headers_forbidden(header):
     headers = {header: "test-value"}
-    filtered = _filter_forbidden_headers(headers)
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers(headers)
 
-    assert header not in filtered
-    assert mock_log.warning.called
+    assert header in str(exc_info.value)
+    assert "forbidden" in str(exc_info.value).lower()
 
 
 @pytest.mark.parametrize(
-    "header, method, should_filter",
+    "header, method, should_raise",
     [
         ("X-HTTP-Method", "TRACE", True),
         ("X-HTTP-Method", "CONNECT", True),
@@ -454,40 +452,54 @@ def test_filter_forbidden_headers(header, mocker):
         ("X-HTTP-Method-Override", "PUT", False),
     ],
 )
-def test_filter_forbidden_headers_method_override(
-    header, method, should_filter, mocker
-):
-    from conda.gateways.connection.session import _filter_forbidden_headers
-
-    mock_log = mocker.patch("conda.gateways.connection.session.log")
-
+def test_validate_plugin_headers_method_override(header, method, should_raise):
     headers = {header: method}
-    filtered = _filter_forbidden_headers(headers)
 
-    if should_filter:
-        assert header not in filtered
-        assert mock_log.warning.called
-        assert method in mock_log.warning.call_args[0][2]
+    if should_raise:
+        with pytest.raises(PluginError) as exc_info:
+            _validate_plugin_headers(headers)
+        assert header in str(exc_info.value)
+        assert method in str(exc_info.value)
     else:
-        assert filtered[header] == method
-        assert not mock_log.warning.called
+        # Should not raise - allowed method override
+        _validate_plugin_headers(headers)
 
 
-def test_prepare_request_filters_plugin_headers(mocker):
+def test_prepare_request_rejects_forbidden_plugin_headers(mocker):
     forbidden_header = "Host"
     forbidden_value = "malicious.com"
-    allowed_header = "X-Custom-Header"
-    allowed_value = "custom-value"
 
     mocker.patch(
         "conda.gateways.connection.session.context.plugin_manager.get_cached_session_headers",
-        return_value={forbidden_header: forbidden_value, allowed_header: allowed_value},
+        return_value={forbidden_header: forbidden_value},
     )
     mocker.patch(
         "conda.gateways.connection.session.context.plugin_manager.get_cached_request_headers",
         return_value={},
     )
-    mock_log = mocker.patch("conda.gateways.connection.session.log")
+
+    url = "http://localhost/test"
+    session_obj = get_session(url)
+
+    request = Request(method="GET", url=url)
+    with pytest.raises(PluginError) as exc_info:
+        session_obj.prepare_request(request)
+
+    assert forbidden_header in str(exc_info.value)
+
+
+def test_prepare_request_allows_valid_plugin_headers(mocker):
+    allowed_header = "X-Custom-Header"
+    allowed_value = "custom-value"
+
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_session_headers",
+        return_value={allowed_header: allowed_value},
+    )
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_request_headers",
+        return_value={},
+    )
 
     url = "http://localhost/test"
     session_obj = get_session(url)
@@ -495,21 +507,39 @@ def test_prepare_request_filters_plugin_headers(mocker):
     request = Request(method="GET", url=url)
     prepared = session_obj.prepare_request(request)
 
-    assert forbidden_header not in prepared.headers
     assert prepared.headers[allowed_header] == allowed_value
-    assert mock_log.warning.called
 
 
-def test_filter_forbidden_headers_case_insensitive(mocker):
-    from conda.gateways.connection.session import _filter_forbidden_headers
+def test_validate_plugin_headers_case_insensitive():
+    # Test uppercase variant
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers({"HOST": "malicious.com"})
+    assert "HOST" in str(exc_info.value)
 
-    mock_log = mocker.patch("conda.gateways.connection.session.log")
+    # Test mixed case variant
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers({"CoOkIe": "session=123"})
+    assert "CoOkIe" in str(exc_info.value)
 
-    headers = {"HOST": "malicious.com", "CoOkIe": "session=123"}
-    filtered = _filter_forbidden_headers(headers)
 
-    assert len(filtered) == 0
-    assert mock_log.warning.call_count == 2
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Proxy-Authorization",
+        "Proxy-Connection",
+        "Sec-Fetch-Dest",
+        "Sec-Fetch-Mode",
+        "Sec-Fetch-Site",
+        "sec-ch-ua",
+    ],
+)
+def test_validate_plugin_headers_forbidden_prefixes(header):
+    headers = {header: "test-value"}
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers(headers)
+
+    assert header in str(exc_info.value)
+    assert "Proxy-" in str(exc_info.value) or "Sec-" in str(exc_info.value)
 
 
 @pytest.mark.parametrize(

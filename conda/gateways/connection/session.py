@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.ish import dals
+from ...exceptions import PluginError
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
 from ...common.url import (
@@ -114,44 +115,40 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
-def _filter_forbidden_headers(headers: dict) -> dict:
+def _validate_plugin_headers(headers: dict) -> None:
     """
-    Filter out forbidden headers from plugin-provided headers and return
-    a new dictionary with forbidden headers removed.
+    Validate plugin-provided headers and raise PluginError if any forbidden
+    headers are detected. This prevents plugins from compromising conda's
+    core network stack.
+
+    :param headers: Dictionary of headers to validate
+    :raises PluginError: If any forbidden headers are detected
     """
-    filtered = {}
     for key, value in headers.items():
         key_lower = key.lower()
 
         if key_lower in FORBIDDEN_HEADERS:
-            log.warning(
-                "Forbidden header '%s' from plugin will be ignored. "
-                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
-                key,
+            raise PluginError(
+                f"Plugin attempted to set forbidden header '{key}'. "
+                "This header is not allowed as it could compromise conda's network stack. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
             )
-            continue
 
         if key_lower.startswith("proxy-") or key_lower.startswith("sec-"):
-            log.warning(
-                "Forbidden header '%s' from plugin will be ignored. "
-                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
-                key,
+            raise PluginError(
+                f"Plugin attempted to set forbidden header '{key}'. "
+                "Headers starting with 'Proxy-' or 'Sec-' are not allowed as they could "
+                "compromise conda's network stack. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
             )
-            continue
 
         if key_lower in FORBIDDEN_METHOD_OVERRIDE_HEADERS:
             if isinstance(value, str) and value.lower() in FORBIDDEN_HTTP_METHODS:
-                log.warning(
-                    "Header '%s' with forbidden method '%s' from plugin will be ignored. "
-                    "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header",
-                    key,
-                    value,
+                raise PluginError(
+                    f"Plugin attempted to set header '{key}' with forbidden method '{value}'. "
+                    "This method override is not allowed as it could compromise conda's network stack. "
+                    "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
                 )
-                continue
-
-        filtered[key] = value
-
-    return filtered
 
 
 @cache
@@ -311,14 +308,16 @@ class CondaSession(Session, metaclass=CondaSessionType):
         # inject headers from plugins if this is a https/http request
         url = urlparse(request.url)
         if url.scheme in ("https", "http"):
-            session_headers = _filter_forbidden_headers(
-                context.plugin_manager.get_cached_session_headers(host=url.netloc)
+            session_headers = context.plugin_manager.get_cached_session_headers(
+                host=url.netloc
             )
-            request_headers = _filter_forbidden_headers(
-                context.plugin_manager.get_cached_request_headers(
-                    host=url.netloc, path=url.path
-                )
+            request_headers = context.plugin_manager.get_cached_request_headers(
+                host=url.netloc, path=url.path
             )
+
+            # Validate plugin headers - raises PluginError if forbidden headers detected
+            _validate_plugin_headers(session_headers)
+            _validate_plugin_headers(request_headers)
 
             request.headers = CaseInsensitiveDict(
                 {
