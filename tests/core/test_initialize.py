@@ -479,11 +479,10 @@ def test_install_conda_sh(verbose):
         assert result == Result.NO_CHANGE
 
 
-def test_install_conda_fish(monkeypatch, verbose):
+def test_install_conda_fish(verbose):
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "etc", "fish", "conf.d", "conda.fish")
-        monkeypatch.setenv("CONDA_DEV", "0")
-        reset_context()
+        context.dev = False
         result = install_conda_fish(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
@@ -522,13 +521,12 @@ def test_install_conda_fish(monkeypatch, verbose):
         assert result == Result.NO_CHANGE
 
 
-def test_install_conda_xsh(monkeypatch, verbose):
+def test_install_conda_xsh(verbose):
     from conda.activate import XonshActivator
 
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "Lib", "site-packages", "conda.xsh")
-        monkeypatch.setenv("CONDA_DEV", "0")
-        reset_context()
+        context.dev = False
         result = install_conda_xsh(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
@@ -559,11 +557,10 @@ def test_install_conda_xsh(monkeypatch, verbose):
         assert result == Result.NO_CHANGE
 
 
-def test_install_conda_csh(monkeypatch, verbose):
+def test_install_conda_csh(verbose):
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "etc", "profile.d", "conda.csh")
-        monkeypatch.setenv("CONDA_DEV", "0")
-        reset_context()
+        context.dev = False
         result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
