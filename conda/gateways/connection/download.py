@@ -330,8 +330,7 @@ def download_http_errors(url: str):
             if channel.token:
                 help_message = dals(
                     f"""
-                    The token given for the URL has insufficient permissions
-                    to access this resource.
+                    The token given for the URL has insufficient permissions to access this resource.
 
                     You may not have the required permissions to access this channel or package.
                     Consider requesting access from the channel owner.
@@ -343,12 +342,11 @@ def download_http_errors(url: str):
             elif context.channel_alias.location in url:
                 help_message = dals(
                     f"""
-                    The remote server has indicated you do not have permission to access
-                    this resource.
+                    The remote server has indicated you do not have permission to access this resource.
 
                     This may mean:
-                      (a) You are not authenticated. Check if authentication is required for
-                          this channel and verify your credentials are correctly configured.
+                      (a) You are not authenticated. Check if authentication is required for this channel
+                          and verify your credentials are correctly configured.
                       (b) You do not have access to this private channel or package. Contact the
                           channel owner to request access.
 
@@ -386,8 +384,7 @@ def download_http_errors(url: str):
             elif context.channel_alias.location in url:
                 help_message = dals(
                     f"""
-                    The remote server has indicated you are using invalid credentials for
-                    this channel.
+                    The remote server has indicated you are using invalid credentials for this channel.
 
                     You may need to:
                       (a) Remove or update the invalid token from your configuration, or
