@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ....auxlib.exceptions import ValidationError
-from ....common.compat import on_win
 from ....common.path import (
     get_python_site_packages_short_path,
     win_path_ok,
@@ -34,10 +33,7 @@ log = getLogger(__name__)
 def resolved_short_path(short_path: str, prefix_path: Path) -> str:
     """Return short_path with any symlinks resolved."""
     resolved_path = (prefix_path / short_path).resolve()
-    result = str(resolved_path.relative_to(prefix_path.resolve()))
-    if on_win:
-        result = result.replace("\\", "/")
-    return result
+    return resolved_path.relative_to(prefix_path.resolve()).as_posix()
 
 
 def load_site_packages(
@@ -71,11 +67,9 @@ def load_site_packages(
     # The site-packages directory may include a symlink
     # for example if lib/python3.XY is a symlink to lib/python3.XYt
     resolved_site_packages_path = site_packages_path.resolve()
-    resolved_site_packages_dir = str(
-        resolved_site_packages_path.relative_to(prefix_path.resolve())
-    )
-    if on_win:
-        resolved_site_packages_dir = resolved_site_packages_dir.replace("\\", "/")
+    resolved_site_packages_dir = resolved_site_packages_path.relative_to(
+        prefix_path.resolve()
+    ).as_posix()
 
     if not resolved_site_packages_path.is_dir():
         return {}
