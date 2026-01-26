@@ -81,14 +81,20 @@ PATH_MATCH_REGEX = (
     r"|//"  # windows UNC path
 )
 
-# any other extension will be mangled by CondaSession.get() as it tries to find
-# channel names from URLs, through strip_pkg_extension()
-KNOWN_EXTENSIONS = (
-    ".conda",
-    ".tar.bz2",
+# Repodata file extensions (static, not plugin-dependent)
+KNOWN_REPODATA_EXTENSIONS = (
     ".json",
     ".jlap",
     ".json.zst",
+)
+
+# Deprecated: use split_known_extension() instead
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "KNOWN_EXTENSIONS",
+    (".conda", ".tar.bz2", *KNOWN_REPODATA_EXTENSIONS),
+    addendum="Use `conda.common.path.split_known_extension` instead.",
 )
 
 
@@ -173,21 +179,35 @@ def split_filename(path_or_url):
     return (dn or None, fn) if "." in fn else (path_or_url, None)
 
 
-def strip_pkg_extension(path: str):
+def strip_pkg_extension(path: str) -> tuple[str, str | None]:
     """
+    Split path into (base, extension) for known extensions.
+
+    Package extensions are determined dynamically from registered plugins.
+    Repodata extensions (.json, .jlap, .json.zst) are also recognized.
+
+    :param path: Path to split.
+    :return: Tuple of (base_path, extension) where extension is None if not found.
+
     Examples:
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")
         ('/path/_license-1.1-py27_1', '.tar.bz2')
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.conda")
         ('/path/_license-1.1-py27_1', '.conda')
+        >>> strip_pkg_extension("/path/repodata.json")
+        ('/path/repodata', '.json')
         >>> strip_pkg_extension("/path/_license-1.1-py27_1")
         ('/path/_license-1.1-py27_1', None)
     """
-    # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
-    #       import rules and to avoid a global lookup.
-    for extension in KNOWN_EXTENSIONS:
-        if path.endswith(extension):
-            return path[: -len(extension)], extension
+    from ...base.context import context
+
+    # Check package extensions first (dynamic from plugins)
+    if ext := context.plugin_manager.has_package_extension(path):
+        return path[: -len(ext)], ext
+    # Then additional extensions (static)
+    for ext in KNOWN_REPODATA_EXTENSIONS:
+        if path.endswith(ext):
+            return path[: -len(ext)], ext
     return path, None
 
 

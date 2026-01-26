@@ -61,16 +61,18 @@ class DistType(EntityType):
             return super().__call__(*args, **kwargs)
 
 
-def strip_extension(original_dist):
-    for ext in context.plugin_manager.get_package_extractors():
-        if original_dist.endswith(ext):
-            original_dist = original_dist[: -len(ext)]
+# TODO: Consider deprecating in favor of conda.common.path.strip_pkg_extension
+def strip_extension(original_dist: str) -> str:
+    if ext := context.plugin_manager.has_package_extension(original_dist):
+        return original_dist[: -len(ext)]
     return original_dist
 
 
-def split_extension(original_dist):
-    stripped = strip_extension(original_dist)
-    return stripped, original_dist[len(stripped) :]
+# TODO: Consider deprecating in favor of conda.common.path.strip_pkg_extension
+def split_extension(original_dist: str) -> tuple[str, str]:
+    if ext := context.plugin_manager.has_package_extension(original_dist):
+        return original_dist[: -len(ext)], ext
+    return original_dist, ""
 
 
 class Dist(Entity, metaclass=DistType):

@@ -883,15 +883,18 @@ class CondaPluginManager(pluggy.PluginManager):
         extractor = self.get_package_extractor(source_full_path)
         extractor.extract(source_full_path, destination_directory)
 
-    def has_package_extension(self, path: PathType) -> bool:
+    def has_package_extension(self, path: PathType) -> str | None:
         """
         Check if a path has a supported package file extension.
 
         :param path: Path to check.
-        :return: True if the path ends with a registered package extension.
+        :return: The matched extension (lowercased) if found, None otherwise.
         """
         path_str = os.fspath(path).lower()
-        return path_str.endswith(tuple(self.get_package_extractors()))
+        for ext in self.get_package_extractors():
+            if path_str.endswith(ext):
+                return ext
+        return None
 
 
 @functools.cache

@@ -415,6 +415,7 @@ def test_path_conversion(
     "function,raises",
     [
         ("is_package_file", TypeError),
+        ("KNOWN_EXTENSIONS", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

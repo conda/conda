@@ -123,20 +123,20 @@ def test_get_package_extractors(
 @pytest.mark.parametrize(
     "path,expected",
     [
-        ("package.random", True),
-        ("/path/to/package.random", True),
-        ("package.RANDOM", True),  # case insensitive
-        ("package.upper", True),
-        ("package.UPPER", True),  # case insensitive
-        ("package.other", False),
-        ("package", False),
-        ("", False),
+        ("package.random", ".random"),
+        ("/path/to/package.random", ".random"),
+        ("package.RANDOM", ".random"),  # case insensitive, returns lowercased
+        ("package.upper", ".upper"),
+        ("package.UPPER", ".upper"),  # case insensitive, returns lowercased
+        ("package.other", None),
+        ("package", None),
+        ("", None),
     ],
 )
 def test_has_package_extension(
     extractor_plugin_manager: CondaPluginManager,
     path: str,
-    expected: bool,
+    expected: str | None,
 ) -> None:
-    """Test that has_package_extension correctly identifies package files."""
+    """Test that has_package_extension returns the matched extension or None."""
     assert extractor_plugin_manager.has_package_extension(path) == expected
