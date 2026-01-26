@@ -1,0 +1,242 @@
+name: Slow Test Review
+
+on:
+  # every Monday at 04:00 UTC (after Sunday's update.yml at 02:36 UTC)
+  # https://crontab.guru/#0_4_*_*_1
+  schedule:
+    - cron: 0 4 * * 1
+
+  workflow_dispatch:
+    inputs:
+      force_add:
+        description: Force adding a new test even if conditions are not met
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: Dry run - do not create/modify issues
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  issues: write
+
+env:
+  # TODO: Replace with the actual epic issue number
+  EPIC_NUMBER: '0000'
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  review:
+    if: '!github.event.repository.fork'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get existing sub-issues
+        id: existing
+        run: |
+          # Search for sub-issues that reference the epic
+          subissues_json=$(gh issue list \
+            --search "\"Review slow test:\" \"#$EPIC_NUMBER\" in:body" \
+            --state all \
+            --json number,title,state,assignees \
+            --limit 100)
+
+          total_count=$(echo "$subissues_json" | jq 'length')
+          echo "Found $total_count existing sub-issues"
+
+          # Extract test names from titles (format: "Review slow test: <test_name>")
+          # Save to file for use in next step
+          echo "$subissues_json" | jq -r '.[].title' | sed 's/^Review slow test: //' > /tmp/tracked_tests.txt
+
+          echo "Already tracked tests:"
+          cat /tmp/tracked_tests.txt
+
+          # Check open, unassigned sub-issues
+          open_unassigned=$(echo "$subissues_json" | jq \
+            '[.[] | select(.state == "open" or .state == "OPEN") | select(.assignees | length == 0)] | length')
+
+          echo "Open unassigned sub-issues: $open_unassigned"
+          echo "open_unassigned=$open_unassigned" >> "$GITHUB_OUTPUT"
+
+      - name: Find slowest untracked test
+        id: slowest
+        run: |
+          # Fetch duration files directly from GitHub
+          base_url="https://raw.githubusercontent.com/${{ github.repository }}/main/durations"
+
+          # Combine all durations into one file, excluding already tracked tests
+          echo "{}" > /tmp/all_durations.json
+
+          for platform in Linux macOS Windows; do
+            url="${base_url}/${platform}.json"
+            echo "Fetching $url"
+
+            curl -fsSL "$url" -o "/tmp/${platform}.json" 2>/dev/null || {
+              echo "Failed to fetch $platform durations"
+              continue
+            }
+
+            # Merge with existing, keeping max duration per test
+            jq -s '
+              .[0] as $existing |
+              .[1] as $new |
+              ($existing | keys) + ($new | keys) | unique |
+              map({(.): ([($existing[.] // 0), ($new[.] // 0)] | max)}) |
+              add
+            ' /tmp/all_durations.json "/tmp/${platform}.json" > /tmp/merged.json
+            mv /tmp/merged.json /tmp/all_durations.json
+          done
+
+          # Find slowest test NOT in the tracked list
+          tracked_tests=$(cat /tmp/tracked_tests.txt | jq -R -s 'split("\n") | map(select(length > 0))')
+
+          result=$(jq -r --argjson tracked "$tracked_tests" '
+            to_entries |
+            map(select(.key as $k | $tracked | index($k) | not)) |
+            max_by(.value) |
+            "\(.key)\t\(.value)"
+          ' /tmp/all_durations.json)
+
+          if [[ -z "$result" || "$result" == "null" ]]; then
+            echo "::notice::All slow tests are already being tracked!"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          slowest_test=$(echo "$result" | cut -f1)
+          slowest_duration=$(echo "$result" | cut -f2)
+
+          # Find which platform has this test's max duration
+          slowest_platform=""
+          for platform in Linux macOS Windows; do
+            if [[ -f "/tmp/${platform}.json" ]]; then
+              platform_duration=$(jq -r --arg test "$slowest_test" '.[$test] // 0' "/tmp/${platform}.json")
+              if [[ "$platform_duration" == "$slowest_duration" ]]; then
+                slowest_platform=$platform
+                break
+              fi
+            fi
+          done
+
+          duration_minutes=$(echo "scale=2; $slowest_duration / 60" | bc)
+
+          echo "Slowest untracked test: $slowest_test"
+          echo "Duration: ${slowest_duration}s (${duration_minutes} min)"
+          echo "Platform: $slowest_platform"
+
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "test_name=$slowest_test" >> "$GITHUB_OUTPUT"
+          echo "duration_seconds=$slowest_duration" >> "$GITHUB_OUTPUT"
+          echo "duration_minutes=$duration_minutes" >> "$GITHUB_OUTPUT"
+          echo "platform=$slowest_platform" >> "$GITHUB_OUTPUT"
+
+      - name: Check if should create
+        id: check
+        if: steps.slowest.outputs.found == 'true'
+        run: |
+          open_unassigned=${{ steps.existing.outputs.open_unassigned }}
+
+          # Only create if all open sub-issues have been claimed (assigned)
+          if [[ "$open_unassigned" -eq 0 ]] || [[ "${{ inputs.force_add }}" == "true" ]]; then
+            echo "should_create=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping: there are $open_unassigned unassigned sub-issues waiting to be claimed"
+            echo "should_create=false" >> "$GITHUB_OUTPUT"
+            echo "unassigned_count=$open_unassigned" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare sub-issue content
+        if: steps.slowest.outputs.found == 'true' && steps.check.outputs.should_create == 'true' && inputs.dry_run != true
+        env:
+          SLOWEST_TEST: ${{ steps.slowest.outputs.test_name }}
+          SLOWEST_DURATION: ${{ steps.slowest.outputs.duration_seconds }}
+          SLOWEST_PLATFORM: ${{ steps.slowest.outputs.platform }}
+        run: |
+          cat > /tmp/slow-test-issue.md << EOF
+          ## Slow Test Review
+
+          **Test:** \`$SLOWEST_TEST\`
+          **Duration:** ${SLOWEST_DURATION}s
+          **Platform:** $SLOWEST_PLATFORM
+          **Identified:** $(date +%Y-%m-%d)
+
+          **Parent Epic:** #$EPIC_NUMBER
+
+          ## Task
+
+          This test has been identified as one of the slowest in the conda test suite. Please:
+
+          1. **Investigate** why this test is slow
+          2. **Optimize** the test if possible (reduce setup/teardown time, use fixtures, mock expensive operations, etc.)
+          3. **Document** if the test cannot be improved and why
+          4. **Submit a PR** with your changes
+          5. **Close this issue** when the PR is merged
+
+          ## Tips
+
+          - Check if the test has expensive setup/teardown that could be shared
+          - Look for unnecessary I/O operations or network calls
+          - Consider if the test could use mocking instead of real resources
+          - Check if parametrized tests could be consolidated
+
+          ---
+          _Created by the [slow-tests.yml](/.github/workflows/slow-tests.yml) workflow._
+          EOF
+
+      - name: Create sub-issue
+        id: subissue
+        if: steps.slowest.outputs.found == 'true' && steps.check.outputs.should_create == 'true' && inputs.dry_run != true
+        uses: peter-evans/create-issue-from-file@e8ef132d6df98ed982188571f480f3f559a70509 # v6.0.0
+        with:
+          title: 'Review slow test: ${{ steps.slowest.outputs.test_name }}'
+          content-filepath: /tmp/slow-test-issue.md
+          labels: type::testing
+
+      - name: Comment on epic
+        if: steps.subissue.outputs.issue-number != ''
+        env:
+          SLOWEST_TEST: ${{ steps.slowest.outputs.test_name }}
+          SLOWEST_DURATION: ${{ steps.slowest.outputs.duration_seconds }}
+          SLOWEST_PLATFORM: ${{ steps.slowest.outputs.platform }}
+          SUBISSUE_NUMBER: ${{ steps.subissue.outputs.issue-number }}
+        run: |
+          gh issue comment "$EPIC_NUMBER" --body "## 🐢 New Slow Test Identified
+
+          A new sub-issue has been created for the slowest test this week:
+
+          **Issue:** #$SUBISSUE_NUMBER
+          **Test:** \`$SLOWEST_TEST\`
+          **Duration:** ${SLOWEST_DURATION}s
+          **Platform:** $SLOWEST_PLATFORM
+
+          To claim this test, assign yourself to #$SUBISSUE_NUMBER.
+
+          ---
+          _Added by the [slow-tests.yml](/.github/workflows/slow-tests.yml) workflow._"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ steps.slowest.outputs.found }}" != "true" ]]; then
+            echo "**Status:** All slow tests are already being tracked" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          echo "**Slowest Untracked Test:** \`${{ steps.slowest.outputs.test_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Duration:** ${{ steps.slowest.outputs.duration_seconds }}s (${{ steps.slowest.outputs.duration_minutes }} min)" >> $GITHUB_STEP_SUMMARY
+          echo "**Platform:** ${{ steps.slowest.outputs.platform }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Epic:** #$EPIC_NUMBER" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ -n "${{ steps.subissue.outputs.issue-number }}" ]]; then
+            echo "**Sub-Issue:** #${{ steps.subissue.outputs.issue-number }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Action:** Created new sub-issue" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "**Action:** Dry run - no issue created" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${{ steps.check.outputs.should_create }}" == "false" ]]; then
+            echo "**Action:** Skipped - ${{ steps.check.outputs.unassigned_count }} unassigned sub-issues exist" >> $GITHUB_STEP_SUMMARY
+          fi
