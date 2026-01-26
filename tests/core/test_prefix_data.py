@@ -1052,9 +1052,7 @@ def test_prefix_data_validate_name_base_not_allowed(
         pd.validate_name(allow_base=False)
 
 
-def test_prefix_data_validate_name_base_allowed(
-    tmp_path: Path, mocker: MockerFixture
-):
+def test_prefix_data_validate_name_base_allowed(tmp_path: Path, mocker: MockerFixture):
     """Test that 'base' is accepted when allow_base=True (default)."""
     # Create a directory named 'base'
     envs_dir = tmp_path / "envs"
