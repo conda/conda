@@ -35,7 +35,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         {summary}
 
         To use the newly-created environment, use 'conda activate envname'.
-        This command requires either the -n NAME or -p PREFIX option.
+        This command requires either the -n NAME or -p PREFIX option unless
+        --dry-run or --download-only is specified.
         """
     )
     epilog = dals(
