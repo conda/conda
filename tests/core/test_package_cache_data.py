@@ -215,7 +215,10 @@ def test_download_filename_backward_compat_tar_bz2():
 
     # The cache action should use the URL basename
     assert cache_action is not None
-    assert cache_action.target_package_basename == "requests-2.32.3-py313h06a4308_0.tar.bz2"
+    assert (
+        cache_action.target_package_basename
+        == "requests-2.32.3-py313h06a4308_0.tar.bz2"
+    )
 
     # The extract action should correctly strip the .tar.bz2 extension
     assert extract_action is not None
