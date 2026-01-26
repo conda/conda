@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import re
 import sys
 import traceback
 from logging import getLogger
@@ -13,10 +12,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ....auxlib.exceptions import ValidationError
+from ....common.compat import on_win
 from ....common.path import (
     get_python_site_packages_short_path,
     win_path_ok,
 )
+from ....core.prefix_data import get_conda_anchor_files_and_records
 from ....gateways.disk.delete import rm_rf
 from ....models.prefix_graph import PrefixGraph
 from ... import hookimpl
@@ -33,7 +34,10 @@ log = getLogger(__name__)
 def resolved_short_path(short_path: str, prefix_path: Path) -> str:
     """Return short_path with any symlinks resolved."""
     resolved_path = (prefix_path / short_path).resolve()
-    return str(resolved_path.relative_to(prefix_path.resolve()))
+    result = str(resolved_path.relative_to(prefix_path.resolve()))
+    if on_win:
+        result = result.replace("\\", "/")
+    return result
 
 
 def load_site_packages(
@@ -70,6 +74,8 @@ def load_site_packages(
     resolved_site_packages_dir = str(
         resolved_site_packages_path.relative_to(prefix_path.resolve())
     )
+    if on_win:
+        resolved_site_packages_dir = resolved_site_packages_dir.replace("\\", "/")
 
     if not resolved_site_packages_path.is_dir():
         return {}
@@ -152,34 +158,6 @@ def load_site_packages(
         new_packages[python_record.name] = python_record
 
     return new_packages
-
-
-def get_conda_anchor_files_and_records(site_packages_short_path, python_records):
-    """Return the anchor files for the conda records of python packages."""
-    anchor_file_endings = (".egg-info/PKG-INFO", ".dist-info/RECORD", ".egg-info")
-    conda_python_packages = {}
-
-    matcher = re.compile(
-        r"^{}/[^/]+(?:{})$".format(
-            re.escape(site_packages_short_path),
-            r"|".join(re.escape(fn) for fn in anchor_file_endings),
-        )
-    ).match
-
-    for prefix_record in python_records:
-        anchor_paths = tuple(fpath for fpath in prefix_record.files if matcher(fpath))
-        if len(anchor_paths) > 1:
-            anchor_path = sorted(anchor_paths, key=len)[0]
-            log.info(
-                "Package %s has multiple python anchor files.\n  Using %s",
-                prefix_record.record_id(),
-                anchor_path,
-            )
-            conda_python_packages[anchor_path] = prefix_record
-        elif anchor_paths:
-            conda_python_packages[anchor_paths[0]] = prefix_record
-
-    return conda_python_packages
 
 
 @hookimpl(tryfirst=True)
