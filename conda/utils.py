@@ -63,6 +63,8 @@ def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
 
+    Note: Uses SI prefixes (KB, MB, GB) instead of binary prefixes (KiB, MiB, GiB).
+
     Examples:
         >>> human_bytes(42)
         '42 B'

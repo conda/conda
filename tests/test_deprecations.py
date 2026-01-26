@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import sys
+import warnings
 from argparse import ArgumentParser, _StoreAction, _StoreTrueAction
 from contextlib import nullcontext
+from types import ModuleType
 from typing import TYPE_CHECKING
 
 import pytest
@@ -13,8 +15,7 @@ from conda.deprecations import DeprecatedError, DeprecationHandler
 
 if TYPE_CHECKING:
     from packaging.version import Version
-
-    from conda.deprecations import DevDeprecationType, UserDeprecationType
+    from pytest_mock import MockerFixture
 
 PENDING = pytest.param(
     DeprecationHandler("1.0"),  # deprecated
@@ -51,10 +52,24 @@ parametrize_dev = pytest.mark.parametrize(
 )
 
 
+@pytest.fixture
+def module(mocker: MockerFixture) -> ModuleType:
+    """Create a fresh module for testing deprecations in isolation."""
+    module = ModuleType("test_deprecations_fresh")
+
+    # Mock _get_module to return our fresh module
+    mocker.patch(
+        "conda.deprecations.DeprecationHandler._get_module",
+        return_value=(module, module.__name__),
+    )
+
+    return module
+
+
 @parametrize_dev
 def test_function(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated function displays associated warning (or error)."""
@@ -71,7 +86,7 @@ def test_function(
 @parametrize_dev
 def test_method(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated method displays associated warning (or error)."""
@@ -89,7 +104,7 @@ def test_method(
 @parametrize_dev
 def test_class(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated class displays associated warning (or error)."""
@@ -106,7 +121,7 @@ def test_class(
 @parametrize_dev
 def test_arguments(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated argument displays associated warning (or error)."""
@@ -131,7 +146,7 @@ def test_arguments(
 @parametrize_user
 def test_action(
     deprecated: DeprecationHandler,
-    warning: UserDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Calling a deprecated argparse.Action displays associated warning (or error)."""
@@ -156,8 +171,9 @@ def test_action(
 @parametrize_dev
 def test_module(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
+    module: ModuleType,  # mock calling module
 ) -> None:
     """Importing a deprecated module displays associated warning (or error)."""
     with (
@@ -171,22 +187,51 @@ def test_module(
 @parametrize_dev
 def test_constant(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
+    module: ModuleType,
 ) -> None:
     """Using a deprecated constant displays associated warning (or error)."""
     with nullcontext() if warning else pytest.raises(DeprecatedError):
         deprecated.constant("2.0", "3.0", "SOME_CONSTANT", 42)
-        module = sys.modules[__name__]
 
         with pytest.warns(warning, match=message):
             module.SOME_CONSTANT
 
 
+def test_constant_multiple_same_module(module: ModuleType) -> None:
+    """Multiple deprecated constants in the same module all report correct source location.
+
+    Regression test for #15623.
+    """
+    deprecated = DeprecationHandler("2.0")
+
+    # Deprecate multiple constants in the same module
+    deprecated.constant("2.0", "3.0", "CONST_A", "value_a")
+    deprecated.constant("2.0", "3.0", "CONST_B", "value_b")
+    deprecated.constant("2.0", "3.0", "CONST_C", "value_c")
+
+    # Each access should warn with correct source location (this file, not deprecations.py)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+
+        module.CONST_A
+        assert len(w) == 1
+        assert w[0].filename == __file__
+
+        module.CONST_B
+        assert len(w) == 2
+        assert w[1].filename == __file__
+
+        module.CONST_C
+        assert len(w) == 3
+        assert w[2].filename == __file__
+
+
 @parametrize_dev
 def test_topic(
     deprecated: DeprecationHandler,
-    warning: DevDeprecationType | None,
+    warning: type[Warning] | None,
     message: str | None,
 ) -> None:
     """Reaching a deprecated topic displays associated warning (or error)."""
@@ -196,6 +241,20 @@ def test_topic(
         else pytest.raises(DeprecatedError)
     ):
         deprecated.topic("2.0", "3.0", topic="Some special topic")
+
+
+def test_get_module() -> None:
+    """Test that _get_module correctly identifies the calling module."""
+    deprecated = DeprecationHandler("2.0")
+
+    # Wrapper simulates real-world usage where _get_module is called from
+    # within a deprecation method (e.g., constant, module, topic)
+    def wrapper():
+        return deprecated._get_module(0)
+
+    module, fullname = wrapper()
+    assert module is sys.modules[__name__]
+    assert fullname == __name__
 
 
 def test_version_fallback() -> None:
