@@ -987,6 +987,26 @@ class CmdExeActivator(_Activator):
     hook_source_path = None
     inline_hook_source = None
 
+    @staticmethod
+    def _escape_cmd_special_chars(value: str) -> str:
+        """
+        Escape special characters for CMD.EXE batch processing.
+
+        When the batch script reads the INI file with FOR /F and uses SET,
+        the ^ character is interpreted as an escape character. We need to
+        double it (^^) to preserve literal ^ characters in paths.
+
+        See: https://github.com/conda/conda/issues/12558
+        """
+        # ^ must be doubled to be preserved through CMD.EXE SET processing
+        return value.replace("^", "^^")
+
+    def template_export_var(self, key: str, value: str) -> str:
+        return self.export_var_tmpl % (key, self._escape_cmd_special_chars(value))
+
+    def template_path_var(self, key: str, value: str) -> str:
+        return self.path_var_tmpl % (key, self._escape_cmd_special_chars(value))
+
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         prompt = os.getenv("PROMPT", "")
         current_prompt_modifier = os.getenv("CONDA_PROMPT_MODIFIER")
