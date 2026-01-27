@@ -179,10 +179,6 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
-CONDA_PACKAGE_EXTENSIONS: Final = (
-    CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSION_V1,
-)
 
 PARTIAL_EXTENSION: Final = ".partial"
 """Suffix appended to package filenames during incomplete downloads."""
@@ -190,8 +186,16 @@ PARTIAL_EXTENSION: Final = ".partial"
 deprecated.constant(
     "26.9",
     "27.3",
+    "CONDA_PACKAGE_EXTENSIONS",
+    (CONDA_PACKAGE_EXTENSION_V2, CONDA_PACKAGE_EXTENSION_V1),
+    addendum="Use `conda.base.context.context.plugin_manager.get_package_extractors()` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
     "CONDA_PACKAGE_PARTS",
-    tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS),
+    (f"{CONDA_PACKAGE_EXTENSION_V2}.part", f"{CONDA_PACKAGE_EXTENSION_V1}.part"),
     addendum=(
         "The `.part` suffix has not been used since 2014; use "
         "`conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with "

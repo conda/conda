@@ -1235,10 +1235,11 @@ class Context(Configuration):
     def create_default_packages(self) -> tuple[str, ...]:
         """Returns a list of `create_default_packages`, removing any explicit packages."""
         from ..common.io import dashlist
-        from ..common.path import is_package_file
 
         grouped_packages = groupby_to_dict(
-            lambda x: "explicit" if is_package_file(x) else "spec",
+            lambda x: "explicit"
+            if context.plugin_manager.has_package_extension(x)
+            else "spec",
             sequence=self._create_default_packages,
         )
 

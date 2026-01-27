@@ -12,11 +12,11 @@ import pytest
 
 from conda.base.constants import (
     CONDA_LOGS_DIR,
-    CONDA_PACKAGE_EXTENSIONS,
     CONDA_TEMP_EXTENSIONS,
     PACKAGE_CACHE_MAGIC_FILE,
     PARTIAL_EXTENSION,
 )
+from conda.base.context import context
 from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_log_level
@@ -37,7 +37,7 @@ def _get_tars(pkgs_dir: str | Path) -> list[Path]:
     return [
         file
         for file in Path(pkgs_dir).iterdir()
-        if file.is_file() and file.name.endswith(CONDA_PACKAGE_EXTENSIONS)
+        if file.is_file() and context.plugin_manager.has_package_extension(file.name)
     ]
 
 
@@ -175,9 +175,10 @@ def test_clean_tarballs_partial(
     assert set(tmp_pkgs_dir.iterdir()) == {magic_file}
 
     # create fake partial downloads
+    extensions = context.plugin_manager.get_package_extractors().keys()
     partial_paths = {
         tmp_pkgs_dir / f"fake-package-1.0-0{extension}{PARTIAL_EXTENSION}"
-        for extension in CONDA_PACKAGE_EXTENSIONS
+        for extension in extensions
     }
     for path in partial_paths:
         path.touch()

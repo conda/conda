@@ -27,6 +27,7 @@ def test_ChannelPriority():
     "function,raises",
     [
         ("ERROR_UPLOAD_URL", TypeError),
+        ("CONDA_PACKAGE_EXTENSIONS", TypeError),
         ("CONDA_PACKAGE_PARTS", TypeError),
     ],
 )

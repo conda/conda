@@ -24,7 +24,6 @@ from ..auxlib.entity import ValidationError
 from ..base.constants import (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSIONS,
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
@@ -114,7 +113,6 @@ class PackageCacheData(metaclass=PackageCacheType):
             # no directory exists, and we didn't have permissions to create it
             return
 
-        _CONDA_TARBALL_EXTENSIONS = CONDA_PACKAGE_EXTENSIONS
         pkgs_dir_contents = tuple(entry.name for entry in scandir(self.pkgs_dir))
         for base_name in self._dedupe_pkgs_dir_contents(pkgs_dir_contents):
             full_path = join(self.pkgs_dir, base_name)
@@ -124,7 +122,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                 isdir(full_path)
                 and isfile(join(full_path, "info", "index.json"))
                 or isfile(full_path)
-                and full_path.endswith(_CONDA_TARBALL_EXTENSIONS)
+                and context.plugin_manager.has_package_extension(full_path)
             ):
                 try:
                     package_cache_record = self._make_single_record(base_name)
@@ -567,7 +565,7 @@ class UrlsData:
         #       That's probably a good assumption going forward, because we should now always
         #       be recording the extension in urls.txt.  The extensionless situation should be
         #       legacy behavior only.
-        if not package_path.endswith(CONDA_PACKAGE_EXTENSIONS):
+        if not context.plugin_manager.has_package_extension(package_path):
             package_path += CONDA_PACKAGE_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
