@@ -17,6 +17,7 @@ from conda.base.constants import (
     PACKAGE_CACHE_MAGIC_FILE,
     PARTIAL_EXTENSION,
 )
+from conda.base.context import context
 from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_log_level
