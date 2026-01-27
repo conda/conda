@@ -302,24 +302,30 @@ class _Activator(metaclass=abc.ABCMeta):
 
         self.command = command
 
+    def template_set_var(self, key: str, value: str) -> str:
+        return self.set_var_tmpl % (key, value)
+
+    def template_run_script(self, script: str) -> str:
+        return self.run_script_tmpl % script
+
     def _yield_commands(self, cmds_dict):
         for key, value in sorted(cmds_dict.get("export_path", {}).items()):
-            yield self.export_var_tmpl % (key, value)
+            yield self.template_path_var(key, value)
 
         for script in cmds_dict.get("deactivate_scripts", ()):
-            yield self.run_script_tmpl % script
+            yield self.template_run_script(script)
 
         for key in cmds_dict.get("unset_vars", ()):
-            yield self.unset_var_tmpl % key
+            yield self.template_unset_var(key)
 
         for key, value in cmds_dict.get("set_vars", {}).items():
-            yield self.set_var_tmpl % (key, value)
+            yield self.template_set_var(key, value)
 
         for key, value in cmds_dict.get("export_vars", {}).items():
-            yield self.export_var_tmpl % (key, value)
+            yield self.template_export_var(key, value)
 
         for script in cmds_dict.get("activate_scripts", ()):
-            yield self.run_script_tmpl % script
+            yield self.template_run_script(script)
 
     def build_activate(self, env_name_or_prefix):
         return self._build_activate_stack(env_name_or_prefix, False)
@@ -1006,6 +1012,9 @@ class CmdExeActivator(_Activator):
 
     def template_path_var(self, key: str, value: str) -> str:
         return self.path_var_tmpl % (key, self._escape_cmd_special_chars(value))
+
+    def template_set_var(self, key: str, value: str) -> str:
+        return self.set_var_tmpl % (key, self._escape_cmd_special_chars(value))
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         prompt = os.getenv("PROMPT", "")
