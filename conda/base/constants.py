@@ -179,10 +179,7 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
-CONDA_PACKAGE_EXTENSIONS: Final = (
-    CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSION_V1,
-)
+
 deprecated.constant(
     "26.9",
     "27.3",
@@ -203,18 +200,6 @@ CONDA_TARBALL_EXTENSION: Final = (
 
 PARTIAL_EXTENSION: Final = ".partial"
 """Suffix appended to package filenames during incomplete downloads."""
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "CONDA_PACKAGE_PARTS",
-    tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS),
-    addendum=(
-        "The `.part` suffix has not been used since 2014; use "
-        "`conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with "
-        "`str.removesuffix()` instead."
-    ),
-)
 
 # legacy support for conda-build
 CONDA_TARBALL_EXTENSION: Final = CONDA_PACKAGE_EXTENSION_V1
