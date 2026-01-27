@@ -150,7 +150,6 @@ def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
 
 
 def find_tarballs() -> dict[str, Any]:
-    from ..base.context import context
     from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PARTIAL_EXTENSION
 
     warnings: list[str] = []
