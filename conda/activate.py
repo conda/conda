@@ -994,7 +994,7 @@ class CmdExeActivator(_Activator):
     inline_hook_source = None
 
     @staticmethod
-    def _escape_cmd_special_chars(value: str) -> str:
+    def _escape_cmd_special_chars(value: str | int) -> str:
         """
         Escape special characters for CMD.EXE batch processing.
 
@@ -1004,8 +1004,10 @@ class CmdExeActivator(_Activator):
 
         See: https://github.com/conda/conda/issues/12558
         """
+        # Convert to string first (e.g., CONDA_SHLVL is an int)
+        value_str = str(value)
         # ^ must be doubled to be preserved through CMD.EXE SET processing
-        return value.replace("^", "^^")
+        return value_str.replace("^", "^^")
 
     def template_export_var(self, key: str, value: str) -> str:
         return self.export_var_tmpl % (key, self._escape_cmd_special_chars(value))
