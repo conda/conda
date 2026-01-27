@@ -88,13 +88,12 @@ KNOWN_REPODATA_EXTENSIONS = (
     ".json.zst",
 )
 
-# Deprecated: use split_known_extension() instead
 deprecated.constant(
     "26.9",
     "27.3",
     "KNOWN_EXTENSIONS",
     (".conda", ".tar.bz2", *KNOWN_REPODATA_EXTENSIONS),
-    addendum="Use `conda.common.path.split_known_extension` instead.",
+    addendum="Use `conda.common.path.strip_known_extension` instead.",
 )
 
 
