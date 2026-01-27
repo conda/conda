@@ -391,3 +391,123 @@ def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
     local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     sd = SubdirData(channel=local_channel)
     sd._read_pickled({})  # type: ignore
+
+
+def test_key_equals_fn_for_traditional_packages(platform=OVERRIDE_PLATFORM):
+    """For traditional conda packages, key equals fn."""
+    local_channel = Channel(join(CHANNEL_DIR_V1, platform))
+    sd = SubdirData(channel=local_channel)
+    sd.load()
+
+    for prec in sd.iter_records():
+        # key should be set and equal to fn for traditional packages
+        assert prec.key is not None
+        assert prec.key == prec.fn
+        # stem should strip the extension
+        assert prec.stem == prec.fn.rsplit(".", 1)[0].replace(".tar", "")
+
+
+@pytest.mark.parametrize(
+    "key,fn,expected_stem",
+    [
+        pytest.param(
+            "numpy-1.26.4-py312h8753938_0.conda",
+            "numpy-1.26.4-py312h8753938_0.conda",
+            "numpy-1.26.4-py312h8753938_0",
+            id="conda-extension",
+        ),
+        pytest.param(
+            "requests-2.32.3-py313h06a4308_0.tar.bz2",
+            "requests-2.32.3-py313h06a4308_0.tar.bz2",
+            "requests-2.32.3-py313h06a4308_0",
+            id="tar-bz2-extension",
+        ),
+        pytest.param(
+            "idna-3.10-py3_none_any_0",  # no extension (wheel key)
+            "idna-3.10-py3-none-any.whl",  # actual filename
+            "idna-3.10-py3_none_any_0",  # stem uses key unchanged
+            id="wheel-key-no-extension",
+        ),
+    ],
+)
+def test_stem_with_various_extensions(key, fn, expected_stem):
+    """stem property correctly handles different package extensions."""
+    prec = PackageRecord(
+        name="test",
+        version="1.0",
+        build="0",
+        build_number=0,
+        channel="defaults",
+        subdir="linux-64",
+        key=key,
+        fn=fn,
+    )
+    assert prec.stem == expected_stem
+
+
+def test_stem_falls_back_to_fn_when_no_key():
+    """stem property falls back to fn when key is not set."""
+    prec = PackageRecord(
+        name="numpy",
+        version="1.26.4",
+        build="py312h8753938_0",
+        build_number=0,
+        channel="defaults",
+        subdir="linux-64",
+        fn="numpy-1.26.4-py312h8753938_0.conda",
+    )
+    # key is not set, so stem should use fn
+    assert prec.key is None
+    assert prec.stem == "numpy-1.26.4-py312h8753938_0"
+
+
+def test_fn_preserved_when_in_repodata_entry():
+    """When repodata entry has explicit fn, it should be preserved."""
+    # Simulate what subdir_data does when processing repodata
+    info = {
+        "name": "idna",
+        "version": "3.10",
+        "build": "py3_none_any_0",
+        "build_number": 0,
+        "depends": [],
+        "fn": "idna-3.10-py3-none-any.whl",  # explicit fn in entry
+    }
+    repodata_key = "idna-3.10-py3_none_any_0"  # dict key (no extension)
+
+    # Simulate _process_raw_repodata logic
+    info["key"] = repodata_key
+    if "fn" not in info:
+        info["fn"] = repodata_key
+    if "url" not in info:
+        info["url"] = f"https://example.com/{info['fn']}"
+
+    # fn should be preserved, not overwritten with key
+    assert info["fn"] == "idna-3.10-py3-none-any.whl"
+    assert info["key"] == "idna-3.10-py3_none_any_0"
+    assert info["url"] == "https://example.com/idna-3.10-py3-none-any.whl"
+
+
+def test_fn_falls_back_to_key_when_not_in_entry():
+    """When repodata entry has no fn, it should fall back to key."""
+    # Simulate what subdir_data does when processing repodata
+    info = {
+        "name": "numpy",
+        "version": "1.26.4",
+        "build": "py312h8753938_0",
+        "build_number": 0,
+        "depends": [],
+        # no "fn" in entry - typical for traditional conda packages
+    }
+    repodata_key = "numpy-1.26.4-py312h8753938_0.conda"
+
+    # Simulate _process_raw_repodata logic
+    info["key"] = repodata_key
+    if "fn" not in info:
+        info["fn"] = repodata_key
+    if "url" not in info:
+        info["url"] = f"https://example.com/{info['fn']}"
+
+    # fn should fall back to key
+    assert info["fn"] == "numpy-1.26.4-py312h8753938_0.conda"
+    assert info["key"] == "numpy-1.26.4-py312h8753938_0.conda"
+    assert info["url"] == "https://example.com/numpy-1.26.4-py312h8753938_0.conda"

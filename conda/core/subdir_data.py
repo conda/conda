@@ -690,8 +690,17 @@ class SubdirData(metaclass=SubdirDataType):
 
                 # lazy
                 # package_record = PackageRecord(**info)
-                info["fn"] = fn
-                info["url"] = join_url(base_url_w_credentials, fn)
+                # Store the repodata dict key
+                info["key"] = fn
+
+                # Preserve fn from entry if present, otherwise fall back to key
+                if "fn" not in info:
+                    info["fn"] = fn
+
+                # Preserve url from entry if present, otherwise construct from fn
+                if "url" not in info:
+                    info["url"] = join_url(base_url_w_credentials, info["fn"])
+
                 _package_records.append(info)
                 record_index = len(_package_records) - 1
                 _names_index[info["name"]].append(record_index)

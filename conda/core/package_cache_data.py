@@ -685,9 +685,7 @@ class ProgressiveFetchExtract:
                 size=pcrec_from_read_only_cache.get("size") or size,
                 md5=pcrec_from_read_only_cache.get("md5") or md5,
             )
-            trgt_extracted_dirname = strip_pkg_extension(pcrec_from_read_only_cache.fn)[
-                0
-            ]
+            trgt_extracted_dirname = pcrec_from_read_only_cache.stem
             extract_action = ExtractPackageAction(
                 source_full_path=cache_action.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
@@ -716,7 +714,7 @@ class ProgressiveFetchExtract:
         extract_action = ExtractPackageAction(
             source_full_path=cache_action.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
+            target_extracted_dirname=pref_or_spec.stem,
             record_or_spec=pref_or_spec,
             sha256=sha256,
             size=size,

@@ -33,6 +33,7 @@ from ..auxlib.entity import (
 )
 from ..base.context import context
 from ..common.compat import isiterable
+from ..common.path import strip_pkg_extension
 from ..deprecations import deprecated
 from ..exceptions import PathNotFoundError
 from .channel import Channel
@@ -306,6 +307,24 @@ class PackageRecord(DictSafeMixin, Entity):
     Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>`
     is ``true`` (default: ``false``).
     """
+
+    key = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
+    """The repodata dictionary key for this package (internal use).
+
+    For traditional conda packages, this equals the filename.
+    For wheel packages in repodata v3, this may differ from the filename.
+    """
+
+    @property
+    def stem(self) -> str:
+        """The base name for extracted package directory, conda-meta JSON, etc.
+
+        This is the key with any package extension removed.
+        """
+        key = self.key if self.key else self.fn
+        return strip_pkg_extension(key)[0]
 
     md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
