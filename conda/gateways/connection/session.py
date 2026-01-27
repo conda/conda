@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.ish import dals
-from ...exceptions import PluginError
 from ...base.constants import CONDA_HOMEPAGE_URL
 from ...base.context import context
 from ...common.url import (
@@ -21,7 +20,7 @@ from ...common.url import (
     split_anaconda_token,
     urlparse,
 )
-from ...exceptions import OfflineError, ProxyError
+from ...exceptions import OfflineError, PluginError, ProxyError
 from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
