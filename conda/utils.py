@@ -213,7 +213,7 @@ def wrap_subprocess_call(
 ):
     if dev_mode:
         deprecated.topic(
-            "26.1",
+            "26.9",
             "27.3",
             topic="`conda run --dev`",
             addendum="Set `PYTHONPATH` to the conda source root instead.",

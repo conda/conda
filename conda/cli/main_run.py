@@ -48,7 +48,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "--dev",
         action=deprecated.action(
-            "26.1",
+            "26.9",
             "27.3",
             NullCountAction,
             addendum="Set `PYTHONPATH` to the conda source root instead.",
