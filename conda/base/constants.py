@@ -179,6 +179,10 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
+CONDA_PACKAGE_EXTENSIONS: Final = (
+    CONDA_PACKAGE_EXTENSION_V2,
+    CONDA_PACKAGE_EXTENSION_V1,
+)
 deprecated.constant(
     "26.9",
     "27.3",
@@ -195,6 +199,7 @@ deprecated.constant(
 )
 CONDA_TARBALL_EXTENSION: Final = (
     CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
+)
 
 PARTIAL_EXTENSION: Final = ".partial"
 """Suffix appended to package filenames during incomplete downloads."""
