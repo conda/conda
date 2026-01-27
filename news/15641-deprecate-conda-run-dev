@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Deprecate `conda run --dev`, to be removed in 27.3. Set `PYTHONPATH` to the conda source root instead. (#15641)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
