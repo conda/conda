@@ -11,7 +11,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
+from conda.base.constants import (
+    PREFIX_PINNED_FILE,
+    PREFIX_STATE_FILE,
+    WINDOWS_PROBLEMATIC_CHARS,
+)
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CondaError, CondaValueError, CorruptedEnvironmentError
@@ -1069,17 +1073,7 @@ def test_prefix_data_validate_name_base_allowed(tmp_path: Path, mocker: MockerFi
 
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test for #12558")
-@pytest.mark.parametrize(
-    "char",
-    [
-        pytest.param("!", id="exclamation"),
-        pytest.param("=", id="equals"),
-        pytest.param("^", id="caret"),
-        pytest.param("%", id="percent"),
-        pytest.param("(", id="open_paren"),
-        pytest.param(")", id="close_paren"),
-    ],
-)
+@pytest.mark.parametrize("char", WINDOWS_PROBLEMATIC_CHARS)
 def test_prefix_data_windows_problematic_chars_currently_allowed(
     tmp_path: Path,
     char: str,
