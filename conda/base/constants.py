@@ -188,8 +188,8 @@ PARTIAL_EXTENSION: Final = ".partial"
 """Suffix appended to package filenames during incomplete downloads."""
 
 deprecated.constant(
-    "26.3",
     "26.9",
+    "27.3",
     "CONDA_PACKAGE_PARTS",
     tuple(f"{ext}{PARTIAL_EXTENSION}" for ext in CONDA_PACKAGE_EXTENSIONS),
     addendum="Use `conda.base.constants.PARTIAL_EXTENSION` with `str.removesuffix()` instead.",
