@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.base.constants.CONDA_PACKAGE_PARTS` as pending deprecation, to be removed in 27.3. Use `conda.base.constants.PARTIAL_EXTENSION` with `str.removesuffix()` instead. (#15634 via #15635)
+* Mark `conda.base.constants.CONDA_PACKAGE_PARTS` as pending deprecation, to be removed in 27.3. The `.part` suffix has not been used since 2014; use `conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with `str.removesuffix()` instead. (#15634 via #15635)
 
 ### Docs
 
