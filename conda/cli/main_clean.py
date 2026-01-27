@@ -150,7 +150,8 @@ def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
 
 
 def find_tarballs() -> dict[str, Any]:
-    from ..base.constants import CONDA_PACKAGE_EXTENSIONS, PARTIAL_EXTENSION
+    from ..base.constants import PARTIAL_EXTENSION
+    from ..base.context import context
 
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
@@ -160,7 +161,7 @@ def find_tarballs() -> dict[str, Any]:
         for file in files:
             # tarballs end in .tar.bz2, .conda (or .tar.bz2.partial, .conda.partial)
             package = file.removesuffix(PARTIAL_EXTENSION)
-            if not package.endswith(CONDA_PACKAGE_EXTENSIONS):
+            if not context.plugin_manager.has_package_extension(package):
                 continue
 
             # get size
