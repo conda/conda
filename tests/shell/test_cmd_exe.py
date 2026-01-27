@@ -335,6 +335,10 @@ def test_cmd_exe_special_char_prompt_display(
     (conda_meta / "history").write_text("")
 
     with shell.interactive() as sh:
+        # Ensure we use the default env_prompt format for consistent testing
+        # (env_prompt can be customized via condarc)
+        sh.sendline('set "CONDA_ENV_PROMPT=({default_env}) "')
+
         # Activate the environment
         sh.sendline(f'conda {activate} "{env_path}"')
         sh.sendline("echo ACTIVATION_COMPLETE")
@@ -348,8 +352,6 @@ def test_cmd_exe_special_char_prompt_display(
 
         # The prompt should start with the env name in parentheses
         # and should NOT have the corruption pattern
-        # TODO: The prompt format can be customized via condarc (env_prompt setting).
-        # This test assumes the default format. Consider patching context for robustness.
         expected_prefix = f"({env_name})"
 
         # Check for corruption patterns (e.g., repeated fragments)
