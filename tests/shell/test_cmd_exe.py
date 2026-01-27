@@ -30,6 +30,25 @@ pytestmark = [
 PARAMETRIZE_CMD_EXE = pytest.mark.parametrize("shell", ["cmd.exe"], indirect=True)
 
 
+@pytest.fixture
+def special_char_env(tmp_path: Path, request: pytest.FixtureRequest) -> Path:
+    """
+    Create a minimal conda environment with a special character in its name.
+
+    Usage with indirect parametrization:
+        @pytest.mark.parametrize("special_char_env", ["!", "=", "^"], indirect=True)
+        def test_something(special_char_env: Path):
+            env_path = special_char_env
+    """
+    char = getattr(request, "param", "!")
+    env_name = f"test{char}env"
+    env_path = tmp_path / "envs" / env_name
+    conda_meta = env_path / "conda-meta"
+    conda_meta.mkdir(parents=True)
+    (conda_meta / "history").write_text("")
+    return env_path
+
+
 @PARAMETRIZE_CMD_EXE
 def test_shell_available(shell: Shell) -> None:
     # the `shell` fixture does all the work
