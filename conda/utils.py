@@ -211,6 +211,14 @@ def wrap_subprocess_call(
     debug_wrapper_scripts,
     arguments: Sequence[str],
 ):
+    if dev_mode:
+        deprecated.topic(
+            "26.1",
+            "27.3",
+            topic="`conda run --dev`",
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        )
+
     # Ensure arguments is a tuple of strings
     if not isiterable(arguments):
         raise TypeError("`arguments` must be iterable")
