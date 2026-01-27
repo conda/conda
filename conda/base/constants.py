@@ -195,7 +195,24 @@ deprecated.constant(
 )
 CONDA_TARBALL_EXTENSION: Final = (
     CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
+
+PARTIAL_EXTENSION: Final = ".partial"
+"""Suffix appended to package filenames during incomplete downloads."""
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CONDA_PACKAGE_PARTS",
+    tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS),
+    addendum=(
+        "The `.part` suffix has not been used since 2014; use "
+        "`conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with "
+        "`str.removesuffix()` instead."
+    ),
 )
+
+# legacy support for conda-build
+CONDA_TARBALL_EXTENSION: Final = CONDA_PACKAGE_EXTENSION_V1
 CONDA_TEMP_EXTENSION: Final = ".c~"
 CONDA_TEMP_EXTENSIONS: Final = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR: Final = ".logs"

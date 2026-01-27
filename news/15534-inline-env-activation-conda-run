@@ -1,0 +1,19 @@
+### Enhancements
+
+* Speedup `conda run` by inlining environment activation instead of using a subprocess. (#15534)
+
+### Bug fixes
+
+* Ensure an appropriate error code is returned when `conda run` is invoked with an invalid environment name or prefix. (#15534)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

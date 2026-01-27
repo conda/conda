@@ -16,7 +16,7 @@ from pathlib import Path
 from ... import CondaError
 from ...auxlib.ish import dals
 from ...auxlib.logz import stringify
-from ...base.constants import CONDA_HOMEPAGE_URL
+from ...base.constants import CONDA_HOMEPAGE_URL, PARTIAL_EXTENSION
 from ...base.context import context
 from ...common.io import time_recorder
 from ...common.url import join_url
@@ -183,7 +183,7 @@ def download_partial_file(
     target_full_path = Path(target_full_path)
     parent = target_full_path.parent
     name = Path(target_full_path).name
-    partial_name = f"{name}.partial"
+    partial_name = f"{name}{PARTIAL_EXTENSION}"
     partial_path = parent / partial_name
 
     # read+ to open file, not truncate existing, or write+ to create file,
