@@ -1053,7 +1053,7 @@ def test_prefix_data_validate_name_base_not_allowed(
 
 
 def test_prefix_data_validate_name_base_allowed(tmp_path: Path, mocker: MockerFixture):
-    """Test that 'base' is accepted when allow_base=True (default)."""
+    """Test that 'base' is accepted when allow_base=True."""
     # Create a directory named 'base'
     envs_dir = tmp_path / "envs"
     base_path = envs_dir / "base"
@@ -1069,8 +1069,8 @@ def test_prefix_data_validate_name_base_allowed(tmp_path: Path, mocker: MockerFi
 
     pd = PrefixData(base_path)
 
-    # Should not raise with default allow_base=True
-    pd.validate_name()
+    # Should not raise when allow_base=True is explicitly passed
+    # Note: the default is allow_base=False, so we must pass True explicitly
     pd.validate_name(allow_base=True)
 
 
