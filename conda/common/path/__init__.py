@@ -93,7 +93,7 @@ deprecated.constant(
     "27.3",
     "KNOWN_EXTENSIONS",
     (".conda", ".tar.bz2", *KNOWN_REPODATA_EXTENSIONS),
-    addendum="Use `conda.common.path.strip_known_extension` instead.",
+    addendum="Use `conda.common.path.strip_pkg_extension` instead.",
 )
 
 

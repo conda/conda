@@ -196,9 +196,11 @@ deprecated.constant(
     "27.3",
     "CONDA_PACKAGE_PARTS",
     (f"{CONDA_PACKAGE_EXTENSION_V2}.part", f"{CONDA_PACKAGE_EXTENSION_V1}.part"),
-    addendum="The `.part` suffix has not been used since 2014; use "
-    "`conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with "
-    "`str.removesuffix()` instead.",
+    addendum=(
+        "The `.part` suffix has not been used since 2014; use "
+        "`conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with "
+        "`str.removesuffix()` instead."
+    ),
 )
 
 # legacy support for conda-build
