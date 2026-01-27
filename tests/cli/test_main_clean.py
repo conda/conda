@@ -10,11 +10,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import (
-    CONDA_LOGS_DIR,
-    CONDA_PACKAGE_EXTENSIONS,
-    CONDA_TEMP_EXTENSIONS,
-)
+from conda.base.constants import CONDA_LOGS_DIR, CONDA_TEMP_EXTENSIONS
+from conda.base.context import context
 from conda.cli.main_clean import _get_size
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_log_level
@@ -35,7 +32,7 @@ def _get_tars(pkgs_dir: str | Path) -> list[Path]:
     return [
         file
         for file in Path(pkgs_dir).iterdir()
-        if file.is_file() and file.name.endswith(CONDA_PACKAGE_EXTENSIONS)
+        if file.is_file() and context.plugin_manager.has_package_extension(file.name)
     ]
 
 
