@@ -21,6 +21,7 @@ from conda.base.constants import (
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
     PREFIX_NAME_DISALLOWED_CHARS,
+    WINDOWS_PROBLEMATIC_CHARS,
     ChannelPriority,
     PathConflict,
 )
@@ -660,11 +661,6 @@ def test_channel_alias_validation(value, expected):
 # - The revert happened because it broke existing environments
 # - These tests help plan the proper fix for #12558
 # =============================================================================
-
-
-# Characters that are problematic specifically on Windows CMD.EXE
-# These are candidates for future restriction on Windows
-WINDOWS_PROBLEMATIC_CHARS = ("!", "^", "%", "=", "(", ")")
 
 
 @pytest.mark.parametrize(

@@ -209,6 +209,10 @@ NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400  # in seconds
 DRY_RUN_PREFIX: Final = "Dry run action:"
 PREFIX_NAME_DISALLOWED_CHARS: Final = {"/", " ", ":", "#"}
 
+# Characters that are problematic specifically on Windows CMD.EXE
+# These are candidates for future restriction on Windows (issue #12558)
+WINDOWS_PROBLEMATIC_CHARS: Final = ("!", "^", "%", "=", "(", ")")
+
 
 class SafetyChecks(Enum):
     disabled = "disabled"
