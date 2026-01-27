@@ -183,10 +183,20 @@ CONDA_PACKAGE_EXTENSIONS: Final = (
     CONDA_PACKAGE_EXTENSION_V2,
     CONDA_PACKAGE_EXTENSION_V1,
 )
-CONDA_PACKAGE_PARTS: Final = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
-CONDA_TARBALL_EXTENSION: Final = (
-    CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
+
+PARTIAL_EXTENSION: Final = ".partial"
+"""Suffix appended to package filenames during incomplete downloads."""
+
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "CONDA_PACKAGE_PARTS",
+    tuple(f"{ext}{PARTIAL_EXTENSION}" for ext in CONDA_PACKAGE_EXTENSIONS),
+    addendum="Use `conda.base.constants.PARTIAL_EXTENSION` with `str.removesuffix()` instead.",
 )
+
+# legacy support for conda-build
+CONDA_TARBALL_EXTENSION: Final = CONDA_PACKAGE_EXTENSION_V1
 CONDA_TEMP_EXTENSION: Final = ".c~"
 CONDA_TEMP_EXTENSIONS: Final = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR: Final = ".logs"

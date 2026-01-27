@@ -13,6 +13,7 @@ import pytest
 from requests import HTTPError, Request
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.base.constants import PARTIAL_EXTENSION
 from conda.base.context import context, reset_context
 from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
@@ -454,7 +455,7 @@ def test_accept_range_none(package_server, tmp_path):
     tmp_dir.mkdir()
     filename = "test-file"
 
-    partial_file = Path(tmp_dir / f"{filename}.partial")
+    partial_file = Path(tmp_dir / f"{filename}{PARTIAL_EXTENSION}")
     complete_file = Path(tmp_dir / filename)
 
     partial_file.write_text(test_content[:12])
