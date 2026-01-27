@@ -348,6 +348,8 @@ def test_cmd_exe_special_char_prompt_display(
 
         # The prompt should start with the env name in parentheses
         # and should NOT have the corruption pattern
+        # TODO: The prompt format can be customized via condarc (env_prompt setting).
+        # This test assumes the default format. Consider patching context for robustness.
         expected_prefix = f"({env_name})"
 
         # Check for corruption patterns (e.g., repeated fragments)

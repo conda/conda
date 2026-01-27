@@ -1006,9 +1006,6 @@ def test_prefix_data_validate_name(tmp_path: Path, env_name: str, should_raise: 
     [
         pytest.param("my env", id="space"),
         pytest.param("my#env", id="hash"),
-        # Note: "/" and ":" are invalid filesystem characters and can't be
-        # tested with real directories. They are tested in test_context.py
-        # using mocks instead.
     ],
 )
 def test_prefix_data_validate_name_disallowed_chars(tmp_path: Path, env_name: str):
@@ -1020,8 +1017,7 @@ def test_prefix_data_validate_name_disallowed_chars(tmp_path: Path, env_name: st
     in tests/base/test_context.py using mocks.
     """
     env_path = tmp_path / "envs" / env_name
-    env_path.mkdir(parents=True, exist_ok=True)
-    (env_path / "conda-meta").mkdir(exist_ok=True)
+    (env_path / "conda-meta").mkdir(parents=True, exist_ok=True)
 
     pd = PrefixData(env_path)
 
@@ -1036,8 +1032,7 @@ def test_prefix_data_validate_name_base_not_allowed(
     # Create a directory named 'base'
     envs_dir = tmp_path / "envs"
     base_path = envs_dir / "base"
-    base_path.mkdir(parents=True, exist_ok=True)
-    (base_path / "conda-meta").mkdir(exist_ok=True)
+    (base_path / "conda-meta").mkdir(parents=True, exist_ok=True)
 
     # Mock mockable_context_envs_dirs to include our temp directory
     # so PrefixData.name property returns the correct name
@@ -1057,8 +1052,7 @@ def test_prefix_data_validate_name_base_allowed(tmp_path: Path, mocker: MockerFi
     # Create a directory named 'base'
     envs_dir = tmp_path / "envs"
     base_path = envs_dir / "base"
-    base_path.mkdir(parents=True, exist_ok=True)
-    (base_path / "conda-meta").mkdir(exist_ok=True)
+    (base_path / "conda-meta").mkdir(parents=True, exist_ok=True)
 
     # Mock mockable_context_envs_dirs to include our temp directory
     # so PrefixData.name property returns the correct name
@@ -1101,8 +1095,7 @@ def test_prefix_data_windows_problematic_chars_currently_allowed(
     """
     env_name = f"test{char}env"
     env_path = tmp_path / "envs" / env_name
-    env_path.mkdir(parents=True, exist_ok=True)
-    (env_path / "conda-meta").mkdir(exist_ok=True)
+    (env_path / "conda-meta").mkdir(parents=True, exist_ok=True)
 
     pd = PrefixData(env_path)
 
