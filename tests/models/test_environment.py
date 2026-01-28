@@ -428,11 +428,9 @@ def test_from_prefix_behavior_with_pip_interoperability(
         expected_conda_explicit_names = [
             "python",
             "python_abi",
-            "setuptools",
+            "pip",
             "tk",
             "bzip2",
-            "readline",
-            "xz",
             "openssl",
             "ca-certificates",
         ]
