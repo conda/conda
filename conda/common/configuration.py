@@ -398,7 +398,7 @@ class YamlRawParameter(RawParameter):
 
         This function will cache the result for each filepath. In order to re-read the same
         file path with updated content, be sure to clear this cache.
-        
+
         For example::
 
             YamlRawParameter.cache_clear()
