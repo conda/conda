@@ -397,11 +397,11 @@ class YamlRawParameter(RawParameter):
         Read the provided file path and convert the contents into configuration parameters.
 
         This function will cache the result for each filepath. In order to re-read the same
-        file path with updated content, be sure to clear this cache. For example
+        file path with updated content, be sure to clear this cache.
+        
+        For example::
 
-        ```
-        YamlRawParameter.cache_clear()
-        ```
+            YamlRawParameter.cache_clear()
         """
         with open(filepath) as fh:
             try:
