@@ -119,6 +119,26 @@ def get_channel_name_from_url(url: str) -> str | None:
 def get_channel_settings(channel_name: str, url: str) -> dict[str, Any]:
     """
     Return the specific item from the `channel_settings` list in the context.
+
+    When iterating through the list of potential items, we first look for an
+    exact match for the channel name, e.g.:
+
+    channel_settings:
+      - name: my-channel
+        auth: some-auth-handler
+
+    If the name does not match exactly, the value will be compared against the
+    request URL, with support for trailing wildcard. The scheme must be identical
+    (i.e. https:// or http://) between the specified pattern and the request URL,
+    to prevent downgrade attacks.
+
+    channel_settings:
+      - name: https://some-domain.com/some-prefix/*
+        auth: some-auth-handler
+
+    If multiple channel_settings items match a given request, the last one in the
+    list will be selected.
+
     """
 
     # We ensure here if there are duplicates defined, we choose the last one
