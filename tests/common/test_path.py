@@ -17,7 +17,6 @@ from conda.common import path
 from conda.common.compat import on_win
 from conda.common.path import (
     get_major_minor_version,
-    is_package_file,
     missing_pyc_files,
     path_identity,
     strip_pkg_extension,
@@ -463,23 +462,3 @@ def test_strip_pkg_extension(
     base, ext = strip_pkg_extension(path)
     assert base == expected_base
     assert ext == expected_ext
-
-
-@pytest.mark.parametrize(
-    "path,expected",
-    [
-        # .tar.bz2 packages
-        ("/path/numpy-1.26.4-py312h8753938_0.tar.bz2", True),
-        ("requests-2.32.3-py313h06a4308_0.tar.bz2", True),
-        # .conda packages
-        ("/path/pandas-2.2.3-py312h526ad5a_1.conda", True),
-        ("zlib-1.3.1-h5f15de7_0.conda", True),
-        # Not package files
-        ("/path/numpy-1.26.4-py312h8753938_0", False),
-        ("zlib-1.3.1-h5f15de7_0", False),
-        ("/path/repodata.json", False),
-        ("info/index.json", False),
-    ],
-)
-def test_is_package_file(path: str, expected: bool) -> None:
-    assert is_package_file(path) == expected
