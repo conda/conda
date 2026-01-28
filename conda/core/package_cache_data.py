@@ -706,10 +706,11 @@ class ProgressiveFetchExtract:
             raise ValueError(".url field is required and must be non-empty.")
 
         # Determine the target filename for the downloaded package.
-        # For repodata v3 (especially packages.whl), the package record's fn
-        # attribute may contain the repodata key (e.g., idna-3.10-py3_none_any_0)
-        # rather than the actual filename (e.g., idna-3.10-py3-none-any.whl).
-        # We extract from URL which always contains the correct filename.
+        # For the draft repodata v3 format (especially packages.whl), while the
+        # repodata contains the correct fn field (e.g., idna-3.10-py3-none-any.whl),
+        # rattler sanitizes it internally to a conda-style identifier
+        # (e.g., idna-3.10-py3_none_any_0). We extract from URL which always
+        # contains the correct filename.
         # See: https://github.com/conda/conda/issues/15620
         target_package_basename = basename(url) or pref_or_spec.fn
 
