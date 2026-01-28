@@ -40,6 +40,8 @@ from .adapters.localfs import LocalFSAdapter
 from .adapters.s3 import S3Adapter
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from requests.models import PreparedRequest, Request
 
 log = getLogger(__name__)
@@ -114,6 +116,37 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
+def get_channel_settings(channel_name: str, url: str) -> dict[str, Any]:
+    """
+    Return the specific item from the `channel_settings` list in the context.
+    """
+
+    # We ensure here if there are duplicates defined, we choose the last one
+    channel_settings = {}
+    for settings in context.channel_settings:
+        channel = settings.get("channel", "")
+        if channel == channel_name:
+            # First we check for exact match
+            channel_settings = settings
+            continue
+
+        # If we don't have an exact match, we attempt to match a URL pattern
+        parsed_url = urlparse(url)
+        parsed_setting = urlparse(channel)
+
+        # We require that the schemes must be identical to prevent downgrade attacks.
+        # This includes the case of a scheme-less pattern like "*", which is not allowed.
+        if parsed_setting.scheme != parsed_url.scheme:
+            continue
+
+        url_without_schema = parsed_url.netloc + parsed_url.path
+        pattern = parsed_setting.netloc + parsed_setting.path
+        if fnmatch(url_without_schema, pattern):
+            channel_settings = settings
+
+    return channel_settings
+
+
 def _validate_plugin_headers(headers: dict) -> None:
     """
     Validate plugin-provided headers and raise PluginError if any forbidden
@@ -163,29 +196,8 @@ def get_session(url: str):
     if channel_name is None:
         return CondaSession()
 
-    # We ensure here if there are duplicates defined, we choose the last one
-    channel_settings = {}
-    for settings in context.channel_settings:
-        channel = settings.get("channel", "")
-        if channel == channel_name:
-            # First we check for exact match
-            channel_settings = settings
-            continue
-
-        # If we don't have an exact match, we attempt to match a URL pattern
-        parsed_url = urlparse(url)
-        parsed_setting = urlparse(channel)
-
-        # We require that the schemes must be identical to prevent downgrade attacks.
-        # This includes the case of a scheme-less pattern like "*", which is not allowed.
-        if parsed_setting.scheme != parsed_url.scheme:
-            continue
-
-        url_without_schema = parsed_url.netloc + parsed_url.path
-        pattern = parsed_setting.netloc + parsed_setting.path
-        if fnmatch(url_without_schema, pattern):
-            channel_settings = settings
-
+    # Retrieve the channel settings from the context and select the handler
+    channel_settings = get_channel_settings(channel_name, url)
     auth_handler = channel_settings.get("auth", "").strip() or None
 
     # Return default session object
