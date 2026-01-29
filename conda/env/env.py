@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..cli import common
-from ..common.io import dashlist
 from ..common import io
+from ..common.io import dashlist
 from ..common.iterators import unique
 from ..common.path import expand
 from ..common.serialize import json, yaml
