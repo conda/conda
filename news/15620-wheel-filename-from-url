@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix package installation from repodata v3 channels by extracting the correct filename from the URL instead of using the repodata key. This resolves issues when installing packages where the repodata key differs from the actual filename (e.g., wheel packages where the key uses underscores but the filename uses hyphens). (#15620)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

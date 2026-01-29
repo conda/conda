@@ -705,10 +705,19 @@ class ProgressiveFetchExtract:
         if not url:
             raise ValueError(".url field is required and must be non-empty.")
 
+        # Determine the target filename for the downloaded package.
+        # For the draft repodata v3 format (especially packages.whl), while the
+        # repodata contains the correct fn field (e.g., idna-3.10-py3-none-any.whl),
+        # rattler sanitizes it internally to a conda-style identifier
+        # (e.g., idna-3.10-py3_none_any_0). We extract from URL which always
+        # contains the correct filename.
+        # See: https://github.com/conda/conda/issues/15620
+        target_package_basename = basename(url) or pref_or_spec.fn
+
         cache_action = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_package_basename=pref_or_spec.fn,
+            target_package_basename=target_package_basename,
             sha256=sha256,
             size=size,
             md5=md5,
@@ -716,7 +725,7 @@ class ProgressiveFetchExtract:
         extract_action = ExtractPackageAction(
             source_full_path=cache_action.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
+            target_extracted_dirname=strip_pkg_extension(target_package_basename)[0],
             record_or_spec=pref_or_spec,
             sha256=sha256,
             size=size,
