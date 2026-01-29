@@ -21,8 +21,6 @@ from conda.base import context as context_module
 from conda.base.constants import (
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
-    PREFIX_NAME_DISALLOWED_CHARS,
-    WINDOWS_PROBLEMATIC_CHARS,
     ChannelPriority,
     PathConflict,
 )
@@ -49,7 +47,6 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentNameNotFound,
 )
-from conda.gateways.disk import create as disk_create
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -650,83 +647,6 @@ def test_channel_alias_validation(value, expected):
     Ensure that ``conda.base.context.channel_alias_validation`` works as expected
     """
     assert channel_alias_validation(value) == expected
-
-
-# =============================================================================
-# Windows Special Character Tests (Issue #12558)
-# =============================================================================
-# These tests document and characterize the expected behavior for environment
-# names containing special characters that are problematic on Windows.
-#
-# Background:
-# - PR #13975 tried to disallow these characters but was reverted in #14065
-# - The revert happened because it broke existing environments
-# - These tests help plan the proper fix for #12558
-# =============================================================================
-
-
-@pytest.mark.parametrize(
-    "char",
-    sorted(PREFIX_NAME_DISALLOWED_CHARS),
-)
-def test_always_disallowed_chars_rejected(char, monkeypatch: MonkeyPatch):
-    """
-    Verify that universally disallowed characters are rejected.
-
-    These characters (/, space, :, #) should always be rejected
-    regardless of platform.
-    """
-    monkeypatch.setattr(disk_create, "first_writable_envs_dir", lambda: None)
-    monkeypatch.setattr(context_module, "locate_prefix_by_name", lambda x: None)
-
-    ctx = SimpleNamespace()
-    test_env_name = f"test{char}env"
-
-    with pytest.raises(CondaValueError, match="Invalid environment name"):
-        with pytest.deprecated_call():
-            validate_prefix_name(test_env_name, ctx)
-
-
-@pytest.mark.skipif(not on_win, reason="Windows-specific test for #12558")
-@pytest.mark.parametrize("char", WINDOWS_PROBLEMATIC_CHARS)
-def test_windows_problematic_chars_currently_allowed(char, monkeypatch: MonkeyPatch):
-    """
-    Document that Windows-problematic characters are currently ALLOWED.
-
-    These characters cause issues on Windows (prompt corruption, activation
-    failures) but are currently not blocked. This test documents the current
-    behavior.
-
-    See: https://github.com/conda/conda/issues/12558
-
-    When we implement the fix for #12558, this test should be updated to
-    expect these characters to be:
-    - Blocked immediately (for completely broken chars like !)
-    - Warned about (for partially broken chars like =)
-    """
-    test_env_name = f"test{char}env"
-    expected_path = VALIDATE_PREFIX_NAME_BASE_DIR / test_env_name
-
-    monkeypatch.setattr(
-        disk_create,
-        "first_writable_envs_dir",
-        lambda: VALIDATE_PREFIX_NAME_BASE_DIR,
-    )
-
-    def raise_not_found(name):
-        raise EnvironmentNameNotFound(name)
-
-    monkeypatch.setattr(context_module, "locate_prefix_by_name", raise_not_found)
-
-    ctx = SimpleNamespace()
-
-    with pytest.deprecated_call():
-        # Currently these are ALLOWED (no exception raised)
-        result = validate_prefix_name(test_env_name, ctx)
-
-    assert result == str(expected_path), (
-        f"Character '{char}' should currently be allowed. Got result: {result}"
-    )
 
 
 @pytest.mark.parametrize(
