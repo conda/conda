@@ -579,7 +579,7 @@ class RepodataCache:
                 if binary:
                     json_data = cache_path.read_bytes()
                 else:
-                    json_data = cache_path.read_text()
+                    json_data = cache_path.read_text(encoding="utf-8")
 
             json_stat = cache_path.stat()
             if not (
@@ -621,12 +621,14 @@ class RepodataCache:
         if isinstance(data, bytes):
             mode = "bx"
             target = self.cache_path_shards
+            encoding = {}  # none for binary mode
         else:
             mode = "x"
             target = self.cache_path_json
+            encoding = {"encoding": "utf-8"}  # explicit utf-8 for text mode
 
         try:
-            with temp_path.open(mode) as temp:  # exclusive mode, error if exists
+            with temp_path.open(mode, **encoding) as temp:  # type: ignore ; exclusive mode, error if exists
                 temp.write(data)
 
             return self.replace(temp_path, target)
@@ -682,7 +684,10 @@ class RepodataCache:
 
         mode: "a+" then seek(0) to write/create; "r+" to read.
         """
-        with self.cache_path_state.open(mode) as state_file, lock(state_file):
+        with (
+            self.cache_path_state.open(mode, encoding="utf-8") as state_file,
+            lock(state_file),
+        ):
             yield state_file
 
     def stale(self):
@@ -904,7 +909,7 @@ class RepodataFetch:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
                     # XXX use self._repo_cache.load() or replace after passing temp path to jlap
-                    raw_repodata = self.cache_path_json.read_text()
+                    raw_repodata = self.cache_path_json.read_text(encoding="utf-8")
                     stat = self.cache_path_json.stat()
                     cache.state["size"] = stat.st_size  # type: ignore
                     mtime_ns = stat.st_mtime_ns
