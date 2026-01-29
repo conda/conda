@@ -485,7 +485,7 @@ def test_cmd_exe_existing_env_with_equals_remains_usable(
 
         # Should be at shell level 1 if activation succeeded
         assert shlvl == "1", (
-            f"Failed to activate existing env with '=' in name. "
+            "Failed to activate existing env with '=' in name. "
             f"CONDA_SHLVL={shlvl}, expected 1"
         )
 
