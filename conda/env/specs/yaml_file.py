@@ -8,6 +8,7 @@ import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from ...common.io import load_file
 from ...common.serialize import yaml
 from ...deprecations import deprecated
 from ...exceptions import CondaValueError
@@ -32,10 +33,6 @@ class YamlFileSpec(EnvironmentSpecBase):
 
     extensions = {".yaml", ".yml"}
 
-    def __init__(self, filename=None, **kwargs):
-        self.filename = filename
-        self.msg = None
-
     def can_handle(self):
         """
         Validates loader can process environment definition.
@@ -57,8 +54,7 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
         try:
-            yamlstr = env.load_file(self.filename)
-            data = yaml.loads(yamlstr)
+            data = yaml.loads(self.data)
             if data is None:
                 return False
         except Exception:
@@ -73,7 +69,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         if not self._environment:
             if not self.can_handle():
                 raise CondaValueError(f"Cannot handle environment file: {self.msg}")
-            self._environment = env.from_file(self.filename)
+            self._environment = env.from_yaml(self.data)
 
         if self._environment is None:
             raise CondaValueError("Environment could not be loaded")
@@ -82,5 +78,5 @@ class YamlFileSpec(EnvironmentSpecBase):
     @property
     def env(self) -> Environment:
         if not self._environment:
-            self._environment = env.from_file(self.filename)
+            self._environment = env.from_yaml(self.data)
         return self._environment.to_environment_model()

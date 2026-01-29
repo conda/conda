@@ -548,7 +548,7 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             # Try to load the plugin and check if it can handle the environment spec
             try:
-                if plugin.environment_spec(source).can_handle():
+                if plugin.environment_spec(filename=source).can_handle():
                     return plugin
             except Exception as e:
                 raise PluginError(
@@ -582,7 +582,7 @@ class CondaPluginManager(pluggy.PluginManager):
             if hook.environment_spec.detection_supported:
                 log.debug("EnvironmentSpec hook: checking %s", hook_name)
                 try:
-                    if hook.environment_spec(source).can_handle():
+                    if hook.environment_spec(filename=source).can_handle():
                         log.debug(
                             "EnvironmentSpec hook: %s can be %s",
                             source,
