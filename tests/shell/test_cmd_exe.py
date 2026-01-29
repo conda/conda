@@ -20,6 +20,8 @@ from conda.common.compat import on_linux, on_mac
 from . import activate, deactivate, dev_arg, install
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
     from . import Shell
 
 log = getLogger(__name__)
@@ -351,6 +353,7 @@ def test_cmd_exe_special_char_env_activate_by_path(
 def test_cmd_exe_special_char_prompt_display(
     shell: Shell,
     special_char_env: SpecialCharEnv,
+    monkeypatch: MonkeyPatch,
 ) -> None:
     """
     Test that prompts display correctly with special characters in env names.
@@ -360,14 +363,14 @@ def test_cmd_exe_special_char_prompt_display(
 
     See: https://github.com/conda/conda/issues/12558
     """
+    # Patch context.env_prompt to ensure consistent format regardless of condarc
+    monkeypatch.setattr(context, "env_prompt", "({default_env}) ")
+
     env_path = special_char_env.path
     env_name = special_char_env.name
     special_char = special_char_env.char
 
     with shell.interactive() as sh:
-        # Ensure we use the default env_prompt format for consistent testing
-        # (env_prompt can be customized via condarc)
-        sh.sendline('set "CONDA_ENV_PROMPT=({default_env}) "')
 
         # Activate the environment
         sh.sendline(f'conda {activate} "{env_path}"')
