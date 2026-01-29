@@ -116,26 +116,26 @@
 ### Contributors
 
 * @agriyakhetarpal
-* @degerahmet
-* @Bhanuu01
-* @barabo
+* @degerahmet made their first contribution in <https://github.com/conda/conda/pull/14698>
+* @Bhanuu01 made their first contribution in <https://github.com/conda/conda/pull/15554>
+* @barabo made their first contribution in <https://github.com/conda/conda/pull/15418>
 * @conda-bot
 * @danyeaw
 * @dholth
-* @gayanMatch
-* @giacomo-ciro
+* @gayanMatch made their first contribution in <https://github.com/conda/conda/pull/15596>
+* @giacomo-ciro made their first contribution in <https://github.com/conda/conda/pull/15428>
 * @jaimergp
 * @jezdez
 * @jjhelmus
 * @kenodegard
 * @ForgottenProgramme
-* @matthewfeickert
+* @matthewfeickert made their first contribution in <https://github.com/conda/conda/pull/15622>
 * @opoplawski
-* @pirzada-ahmadfaraz
+* @pirzada-ahmadfaraz made their first contribution in <https://github.com/conda/conda/pull/15602>
 * @ryanskeith
 * @soapy1
 * @travishathaway
-* @vshevchenko-anaconda
+* @vshevchenko-anaconda made their first contribution in <https://github.com/conda/conda/pull/15376>
 * @dependabot[bot]
 * @pre-commit-ci[bot]
 
