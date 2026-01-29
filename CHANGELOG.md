@@ -6,7 +6,7 @@
 
 * Allow `custom_multichannels.defaults` to override `default_channels`. Continuation of effort to devendor conda and remove hardcoded "defaults" channel. (#14661)
 * Defer `PrefixData` record instantiation until they are accessed for faster query performance. (#14811)
-* Add support for Python 3.14. (#15080)
+* Add support for Python 3.14. (#15080, #15618)
 * Speed up the context initialization process by caching condarc file reads. (#15150)
 * Raise a `NoChannelsConfiguredError` when attempting to solve an environment with no channels configured, and provide a helpful message to guide users in adding channels. (#15262 via #15345)
 * Add `conda.cli.condarc.ConfigurationFile` class to expose configuration file manipulation interface programmatically. This allows other Python interfaces to read and modify conda configuration files without shelling out to `conda config` commands. (#15238 via #15376)
@@ -25,6 +25,8 @@
 * Improve error message when `conda activate` fails on Windows due to unwritable `%TEMP%` directory. (#15601 via #15602)
 * Package extension detection is now dynamic based on registered `conda_package_extractors` plugins. (#15629)
 * Allow `conda create --download-only` to run without specifying `-n/--name` or `-p/--prefix`, similar to `--dry-run`. (#15633)
+* Add `--fix` flag to `conda doctor` with health check fix capabilities. (#15530)
+* Improve error message when `conda env export` is invoked with an invalid platform. (#15561)
 
 ### Bug fixes
 
@@ -46,6 +48,9 @@
 * Fix incorrect source location in deprecation warnings when multiple constants are deprecated in the same module. (#15623 via #15624)
 * Fix `conda clean --tarballs` not cleaning up `.partial` download files. (#15634 via #15635)
 * Decode SHA256 fields in Python's `RECORD` metadata files. (#15591)
+* Fix `CondaJSONEncoder` to support serializing `frozendicts`. (#15532)
+* Fix argument parser aliases incorrectly defined as a string instead of a tuple. (#15418)
+* Raise an error when attempting to deactivate an environment that is not currently active. (#15609)
 
 ### Deprecations
 
@@ -83,6 +88,9 @@
 * Mark `conda.exports.CondaFileNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523 via #15526)
 * Mark `conda.exports.UnsatisfiableError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.UnsatisfiableError` instead. (#15523 via #15526)
 * Mark `conda.base.context.report_errors` as pending deprecation, to be removed in 27.3. (#13900 via #15580)
+* Mark `conda.base.constants.ERROR_UPLOAD_URL` as pending deprecation, to be removed in 27.3. (#13900 via #15558)
+* Mark `conda.base.context.error_upload_url` as pending deprecation, to be removed in 27.3. (#13900 via #15558)
+* Mark `conda.exception_handler.ExceptionHandler.error_upload_url` as pending deprecation, to be removed in 27.3. (#13900 via #15558)
 * Mark `conda.common.path.is_package_file` as pending deprecation, to be removed in 27.3. Use `conda.base.context.context.plugin_manager.has_package_extension` instead. (#15629)
 * Mark `conda.common.path.KNOWN_EXTENSIONS` as pending deprecation, to be removed in 27.3. Use `conda.common.path.strip_pkg_extension` instead. (#15629)
 * Mark `conda.misc.url_pat` as pending deprecation, to be removed in 27.3. Use `conda.misc._get_url_pattern()` instead. (#15629)
@@ -96,6 +104,9 @@
 * Document how to configure temporary file locations using `TMPDIR`/`TEMP`/`TMP` environment variables. Add comprehensive guide covering container environments, HPC systems, and troubleshooting read-only filesystem errors. (#15440 via #15442)
 * Add manual development environment setup instructions. (#15482)
 * Add comprehensive guide for using HTTP test server fixture in `docs/source/dev-guide/writing-tests/http-test-server.md`. Includes usage examples, API reference, and troubleshooting tips. (#15528 via #15529)
+* Update community support link in getting-started guide. (#15554)
+* Fix duplicated API Guide in documentation. (#15555)
+* Remove setuptools and wheel from `add_pip_as_python_dependency` configuration description. (#15622)
 
 ### Other
 
