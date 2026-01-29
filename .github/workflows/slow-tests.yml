@@ -82,6 +82,7 @@ jobs:
           fi
 
           # Get sub-issues of the epic
+          # jq: extract sub-issue number, state, and title as tab-separated values
           gh issue view "$EPIC_NUMBER" \
             --json subIssues \
             --jq '.subIssues[] | "\(.number)\t\(.state)\t\(.title)"' > /tmp/sub_issues.txt || true
@@ -125,7 +126,11 @@ jobs:
 
             fetched="${fetched:+$fetched, }$platform"
 
-            # Merge keeping max duration and its platform
+            # Merge durations keeping the max duration + platform
+            # jq: for each test, keep the max duration across platforms
+            # and record which platform had that max ensuring we report the
+            # slowest instance of each test regardless of platform
+            # Output format: {test_name: {duration: N, platform: "X"}, ...}
             jq -s --arg platform "$platform" '
               .[0] as $existing |
               .[1] as $new |
@@ -164,9 +169,12 @@ jobs:
           today=$(date +%Y-%m-%d)
 
           # Get tracked tests for exclusion
+          # jq: convert newline-separated text file to JSON array for filtering
           tracked_tests=$(cat /tmp/tracked_tests.txt 2>/dev/null | jq -R -s 'split("\n") | map(select(length > 0))' || echo '[]')
 
           # Get slowest untracked tests sorted by duration (with platform)
+          # jq: filter out already-tracked tests, sort by duration descending,
+          # output as tab-separated: test_name, duration, platform
           jq -r --argjson tracked "$tracked_tests" '
             to_entries |
             map(select(.key as $k | $tracked | index($k) | not)) |
@@ -194,6 +202,7 @@ jobs:
               echo "::endgroup::"
             else
               # Create sub-issue linked to the epic
+              # jq: extract the newly created issue number from JSON response
               issue_number=$(gh issue create \
                 --title "Review slow test: $test_name" \
                 --label "type::testing" \
