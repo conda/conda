@@ -8,6 +8,7 @@ import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from ...common.io import load_file
 from ...common.serialize import yaml
 from ...deprecations import deprecated
 from ...exceptions import CondaValueError
@@ -53,7 +54,7 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
         try:
-            yamlstr = env.load_file(self.filename)
+            yamlstr = load_file(self.filename)
             data = yaml.loads(yamlstr)
             if data is None:
                 return False

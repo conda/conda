@@ -8,6 +8,7 @@ import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from ...common.io import load_file
 from ...common.serialize import yaml
 from ...exceptions import CondaError
 from ...plugins.types import EnvironmentSpecBase
@@ -45,7 +46,7 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
             return False
 
         try:
-            yamlstr = env.load_file(self.filename)
+            yamlstr = load_file(self.filename)
             data = yaml.loads(yamlstr)
             errors = env.get_schema_errors(data)
             if errors:

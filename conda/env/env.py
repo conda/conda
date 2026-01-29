@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from ..base.context import context
 from ..cli import common
 from ..common.io import dashlist
+from ..common import io
 from ..common.iterators import unique
 from ..common.path import expand
 from ..common.serialize import json, yaml
@@ -314,6 +315,7 @@ def _expand_channels(data):
     ]
 
 
+@deprecated("26.9", "27.3", addendum="Use conda.common.io.load_file() instead.")
 def load_file(filename):
     """Load and return an yaml string from a given file"""
     url_scheme = filename.split("://", 1)[0]
@@ -333,7 +335,7 @@ def load_file(filename):
 
 def from_file(filename):
     """Load and return an ``EnvironmentYaml`` from a given file"""
-    yamlstr = load_file(filename)
+    yamlstr = io.load_file(filename)
     return from_yaml(yamlstr, filename=filename)
 
 
