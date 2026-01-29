@@ -1002,8 +1002,7 @@ def test_prefix_data_validate_name(tmp_path: Path, env_name: str, should_raise: 
     See: https://github.com/conda/conda/issues/12558
     """
     env_path = tmp_path / "envs" / env_name
-    env_path.mkdir(parents=True, exist_ok=True)
-    (env_path / "conda-meta").mkdir(exist_ok=True)
+    (env_path / "conda-meta").mkdir(parents=True, exist_ok=True)
 
     pd = PrefixData(env_path)
 
