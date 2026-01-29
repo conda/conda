@@ -679,7 +679,7 @@ def test_always_disallowed_chars_rejected(char, monkeypatch: MonkeyPatch):
     monkeypatch.setattr(disk_create, "first_writable_envs_dir", lambda: None)
     monkeypatch.setattr(context_module, "locate_prefix_by_name", lambda x: None)
 
-    ctx = mock.MagicMock()
+    ctx = SimpleNamespace()
     test_env_name = f"test{char}env"
 
     with pytest.raises(CondaValueError, match="Invalid environment name"):
@@ -718,7 +718,7 @@ def test_windows_problematic_chars_currently_allowed(char, monkeypatch: MonkeyPa
 
     monkeypatch.setattr(context_module, "locate_prefix_by_name", raise_not_found)
 
-    ctx = mock.MagicMock()
+    ctx = SimpleNamespace()
 
     with pytest.deprecated_call():
         # Currently these are ALLOWED (no exception raised)
