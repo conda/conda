@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1006,11 +1007,7 @@ def test_prefix_data_validate_name(tmp_path: Path, env_name: str, should_raise: 
 
     pd = PrefixData(env_path)
 
-    if should_raise:
-        with pytest.raises(CondaValueError):
-            pd.validate_name()
-    else:
-        # Should not raise
+    with pytest.raises(CondaValueError) if should_raise else nullcontext():
         pd.validate_name()
 
 
