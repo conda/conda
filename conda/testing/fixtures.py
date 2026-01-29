@@ -405,10 +405,22 @@ class PathFactoryFixture:
         Extends pytest's `tmp_path` fixture with a new unique, non-existent path for usage in cases
         where we need a temporary path that doesn't exist yet.
 
-        :param name: Path name to append to `tmp_path`
-        :param prefix: Prefix to prepend to unique name generated
-        :param infix: Infix to insert into unique name generated
-        :param suffix: Suffix to append to unique name generated
+        Default behavior (no arguments):
+           ``path_factory()`` → ``tmp_path/ab12cd34ef56`` (12-char UUID)
+
+        Two modes of operation (mutually exclusive):
+
+        1. Name mode: Pass a complete path name.
+           ``path_factory("myfile.txt")`` → ``tmp_path/myfile.txt``
+
+        2. Parts mode: Pass prefix/infix/suffix; unspecified parts get UUID defaults.
+           ``path_factory(infix="!")`` → ``tmp_path/ab12!ef56``
+           ``path_factory(suffix=".yml")`` → ``tmp_path/ab12cd34.yml``
+
+        :param name: Complete path name (mutually exclusive with prefix/infix/suffix)
+        :param prefix: Prefix for generated name (mutually exclusive with name param)
+        :param infix: Infix for generated name (mutually exclusive with name param)
+        :param suffix: Suffix for generated name (mutually exclusive with name param)
         :return: A new unique path
         """
         if name and (prefix or infix or suffix):
@@ -442,17 +454,23 @@ class TmpEnvFixture:
 
     def get_path(
         self,
+        name: str | None = None,
         prefix: str | None = None,
         infix: str | None = None,
         suffix: str | None = None,
     ) -> Path:
         if isinstance(self.path_factory, PathFactoryFixture):
             # scope=function
-            return self.path_factory(prefix=prefix, infix=infix, suffix=suffix)
+            return self.path_factory(
+                name=name,
+                prefix=prefix,
+                infix=infix,
+                suffix=suffix,
+            )
         else:
             # scope=session
             return self.path_factory.mktemp(
-                (prefix or "tmp_env-") + (infix or "") + (suffix or "")
+                name or ((prefix or "tmp_env-") + (infix or "") + (suffix or ""))
             )
 
     @contextmanager
@@ -460,30 +478,54 @@ class TmpEnvFixture:
         self,
         *args: str,
         prefix: str | os.PathLike | None = None,
-        shallow: bool | None = None,
+        name: str | None = None,
         path_prefix: str | None = None,
         path_infix: str | None = None,
         path_suffix: str | None = None,
+        shallow: bool | None = None,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
-        :param args: The arguments to pass to conda create (e.g., packages, flags, etc.)
-        :param prefix: The prefix at which to install the conda environment
-        :param shallow: Whether the environment is created only on disk without call to `conda create`
-        :param path_prefix: Prefix for generated path name (passed to path_factory as prefix parameter)
-        :param path_infix: Infix for generated path name (passed to path_factory as infix parameter)
-        :param path_suffix: Suffix for generated path name (passed to path_factory as suffix parameter)
+        Path customization (mutually exclusive options):
+
+        1. Auto-generated path (default): Unique path in tmp_path.
+           ``tmp_env()`` → ``tmp_path/ab12cd34ef56`` (12-char UUID)
+
+        2. Custom prefix: Specify exact location.
+           ``tmp_env(prefix="/path/to/env")`` → ``/path/to/env``
+
+        3. Name mode: Specify env name directly.
+           ``tmp_env(name="my-test-env")`` → ``tmp_path/my-test-env``
+
+        4. Parts mode: Customize path name generation (useful for special char testing).
+           ``tmp_env(path_infix="!")`` → ``tmp_path/ab12!ef56``
+
+        :param args: Arguments to pass to conda create (e.g., packages, flags)
+        :param prefix: Exact prefix path (mutually exclusive with name/path_* params)
+        :param name: Env name (mutually exclusive with prefix/path_* params)
+        :param path_prefix: Prefix for path name (mutually exclusive with prefix/name params)
+        :param path_infix: Infix for path name (mutually exclusive with prefix/name params)
+        :param path_suffix: Suffix for path name (mutually exclusive with prefix/name params)
+        :param shallow: If True, create env on disk only without conda create
         :return: The conda environment's prefix
         """
         if shallow and args:
             raise ValueError("shallow=True cannot be used with any arguments")
 
-        if prefix and (path_prefix or path_infix or path_suffix):
+        if prefix and (name or path_prefix or path_infix or path_suffix):
             raise ValueError(
-                "prefix and (path_prefix or path_infix or path_suffix) are mutually exclusive"
+                "prefix and (name or path_prefix or path_infix or path_suffix) are mutually exclusive"
             )
 
-        prefix = Path(prefix or self.get_path(path_prefix, path_infix, path_suffix))
+        prefix = Path(
+            prefix
+            or self.get_path(
+                name,
+                path_prefix,
+                path_infix,
+                path_suffix,
+            )
+        )
 
         if shallow or (shallow is None and not args):
             # no arguments, just create an empty environment

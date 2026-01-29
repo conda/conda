@@ -90,18 +90,14 @@ def test_path_factory_parts_mode(
     assert len(path.name) == length
 
 
-def test_path_factory_name_vs_parts_mutual_exclusivity(
-    path_factory: PathFactoryFixture,
-) -> None:
+def test_path_factory_mutual_exclusivity(path_factory: PathFactoryFixture) -> None:
     """Test that name and parts params are mutually exclusive."""
     with pytest.raises(ValueError, match="mutually exclusive"):
-        path_factory("myfile.txt", infix="!")
-
+        path_factory(name="myfile.txt", prefix="pre_")
     with pytest.raises(ValueError, match="mutually exclusive"):
-        path_factory("myfile.txt", prefix="pre_")
-
+        path_factory(name="myfile.txt", infix="!")
     with pytest.raises(ValueError, match="mutually exclusive"):
-        path_factory("myfile.txt", suffix="_suf")
+        path_factory(name="myfile.txt", suffix="_suf")
 
 
 def test_path_factory_uniqueness(path_factory: PathFactoryFixture) -> None:
@@ -116,28 +112,33 @@ def test_tmp_env(tmp_env: TmpEnvFixture) -> None:
 
 
 @pytest.mark.parametrize(
-    "path_prefix,path_infix,path_suffix",
+    "name,path_prefix,path_infix,path_suffix",
     [
-        pytest.param(None, None, None, id="no parts"),
-        pytest.param("prefix-", None, None, id="prefix only"),
-        pytest.param(None, "env", None, id="infix only"),
-        pytest.param(None, None, "-suffix", id="suffix only"),
-        pytest.param("prefix-", "env", "suffix", id="all parts"),
+        pytest.param(None, None, None, None, id="no parts"),
+        pytest.param("name", None, None, None, id="name only"),
+        pytest.param(None, "prefix-", None, None, id="prefix only"),
+        pytest.param(None, None, "env", None, id="infix only"),
+        pytest.param(None, None, None, "-suffix", id="suffix only"),
+        pytest.param(None, "prefix-", "env", "suffix", id="all parts"),
     ],
 )
 def test_tmp_env_path_parts(
     tmp_env: TmpEnvFixture,
+    name: str | None,
     path_prefix: str | None,
     path_infix: str | None,
     path_suffix: str | None,
 ) -> None:
     """Test tmp_env with path_infix for special character testing."""
     with tmp_env(
+        name=name,
         path_prefix=path_prefix,
         path_infix=path_infix,
         path_suffix=path_suffix,
         shallow=True,
     ) as prefix:
+        if name is not None:
+            assert prefix.name == name
         if path_prefix is not None:
             assert path_prefix in prefix.name
         if path_infix is not None:
@@ -147,13 +148,19 @@ def test_tmp_env_path_parts(
         assert PrefixData(prefix).is_environment()
 
 
-def test_tmp_env_prefix_vs_path_parts_mutual_exclusivity(
-    tmp_env: TmpEnvFixture,
-    path_factory: PathFactoryFixture,
-) -> None:
-    """Test that prefix and path_* params are mutually exclusive."""
+def test_tmp_env_mutual_exclusivity(tmp_env: TmpEnvFixture) -> None:
+    """Test that prefix, name, and path_* params are mutually exclusive."""
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        with tmp_env(prefix="prefix", name="name"):
+            pass
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        with tmp_env(prefix="prefix", path_prefix="prefix"):
+            pass
     with pytest.raises(ValueError, match="mutually exclusive"):
         with tmp_env(prefix="prefix", path_infix="infix"):
+            pass
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        with tmp_env(prefix="prefix", path_suffix="suffix"):
             pass
 
 
