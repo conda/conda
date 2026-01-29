@@ -1052,7 +1052,7 @@ def test_prefix_data_validate_name_base_not_allowed(
     monkeypatch.setattr(
         context_module,
         "mockable_context_envs_dirs",
-        lambda: (str(envs_dir),),
+        lambda root_writable, root_prefix, _envs_dirs: (str(envs_dir),),
     )
 
     pd = PrefixData(base_path)
@@ -1075,7 +1075,7 @@ def test_prefix_data_validate_name_base_allowed(
     monkeypatch.setattr(
         context_module,
         "mockable_context_envs_dirs",
-        lambda: (str(envs_dir),),
+        lambda root_writable, root_prefix, _envs_dirs: (str(envs_dir),),
     )
 
     pd = PrefixData(base_path)
