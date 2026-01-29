@@ -102,6 +102,13 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
         if size is not None and stat_result.st_size >= size:
             return  # moves partial onto target_path, checksum will be checked
 
+        # Check if adapter supports direct download (e.g., S3Adapter)
+        # This avoids an extra copy through a temporary buffer
+        adapter = session.get_adapter(url)
+        if hasattr(adapter, "download_to_fileobj"):
+            adapter.download_to_fileobj(url, target, progress_update_callback, size)
+            return  # checksum verified on context manager exit
+
         headers = {}
         if partial and stat_result.st_size > 0:
             headers = {"Range": f"bytes={stat_result.st_size}-"}
