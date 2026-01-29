@@ -153,16 +153,15 @@ jobs:
           INCOMPLETE_COUNT: ${{ steps.epic.outputs.incomplete_count }}
         run: |
           to_add=$((MAX_INCOMPLETE - INCOMPLETE_COUNT))
-          created=0
-          today=$(date +%Y-%m-%d)
-
           if [[ "$to_add" -le 0 ]]; then
             echo "Already at cap (${INCOMPLETE_COUNT} incomplete sub-issues)"
-            echo "created_count=0" >> "$GITHUB_OUTPUT"
+            echo "created_count=-1" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           echo "Will create up to $to_add new sub-issues"
+          created=0
+          today=$(date +%Y-%m-%d)
 
           # Get tracked tests for exclusion
           tracked_tests=$(cat /tmp/tracked_tests.txt 2>/dev/null | jq -R -s 'split("\n") | map(select(length > 0))' || echo '[]')
@@ -215,7 +214,7 @@ jobs:
         if: always()
         env:
           EPIC_MISSING: ${{ steps.epic.outputs.epic_missing }}
-          DRY_RUN: ${{ inputs.dry_run }}
+          DRY_RUN: ${{ inputs.dry_run || steps.epic.outputs.epic_missing }}
           INCOMPLETE_COUNT: ${{ steps.epic.outputs.incomplete_count }}
           CREATED_COUNT: ${{ steps.create.outputs.created_count }}
           PLATFORMS_FETCHED: ${{ steps.durations.outputs.platforms_fetched }}
@@ -223,7 +222,11 @@ jobs:
         run: |
           echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Epic:** #${EPIC_NUMBER}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${EPIC_MISSING}" == "true" ]]; then
+            echo "**Epic:** #${EPIC_NUMBER} (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Epic:** #${EPIC_NUMBER}" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "**Platforms:** ${PLATFORMS_FETCHED}" >> $GITHUB_STEP_SUMMARY
           if [[ -n "${PLATFORMS_MISSING}" ]]; then
             echo "**Missing:** ${PLATFORMS_MISSING}" >> $GITHUB_STEP_SUMMARY
@@ -232,10 +235,12 @@ jobs:
           echo "**Max allowed:** ${MAX_INCOMPLETE}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${EPIC_MISSING}" == "true" ]]; then
-            echo "**Action:** Epic missing - ran in dry-run mode, would create ${CREATED_COUNT} sub-issue(s)" >> $GITHUB_STEP_SUMMARY
+          if [[ "${CREATED_COUNT}" == "-1" ]]; then
+            echo "**Already at cap, no new sub-issues created**" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${CREATED_COUNT}" == "0" ]]; then
+            echo "**No untracked slow tests found**" >> $GITHUB_STEP_SUMMARY
           elif [[ "${DRY_RUN}" == "true" ]]; then
-            echo "**Action:** Dry run - would create ${CREATED_COUNT} sub-issue(s)" >> $GITHUB_STEP_SUMMARY
-          elif [[ -n "${CREATED_COUNT}" ]]; then
-            echo "**Created:** ${CREATED_COUNT} new sub-issue(s)" >> $GITHUB_STEP_SUMMARY
+            echo "**Dry run, would create ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Created ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
           fi
