@@ -373,7 +373,6 @@ def test_cmd_exe_special_char_prompt_display(
     special_char = special_char_env.char
 
     with shell.interactive() as sh:
-
         # Activate the environment
         sh.sendline(f'conda {activate} "{env_path}"')
         sh.sendline("echo ACTIVATION_COMPLETE")
