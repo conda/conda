@@ -17,7 +17,6 @@ import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base import context as context_module
 from conda.base.constants import (
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
