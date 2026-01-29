@@ -265,26 +265,8 @@ class CondaCLIFixture:
 
     @staticmethod
     def _cast_args(argv: tuple[PathType, ...]) -> Iterable[str]:
-        """Cast args to string and inspect for `conda run`.
-
-        `conda run` is a unique case that requires `--dev` to use the src shell scripts
-        and not the shell scripts provided by the installer.
-        """
-        # TODO: Refactor this so we don't expose testing infrastructure to the user
-        # (i.e., deprecate `conda run --dev`).
-        argv = map(str, argv)
-        for arg in argv:
-            yield arg
-
-            # detect if arg is the command (the first positional)
-            if arg[0] != "-":
-                # this is the first positional, return remaining arguments
-
-                # if this happens to be the `conda run` command, add --dev
-                if arg == "run":
-                    yield "--dev"  # use src, not installer's shell scripts
-
-                yield from argv
+        """Cast args to string."""
+        return map(str, argv)
 
 
 @pytest.fixture
