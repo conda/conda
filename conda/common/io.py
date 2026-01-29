@@ -15,9 +15,9 @@ from functools import lru_cache, partial, wraps
 from io import BytesIO, StringIO
 from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
+from pathlib import Path
 from threading import Lock
 from time import time
-from pathlib import Path
 
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.logz import NullHandler

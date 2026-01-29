@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 from ...base.context import context
 from ...deprecations import deprecated
 from ...exceptions import CondaValueError
-from ...gateways.disk.read import yield_lines
 from ...models.environment import Environment
 from ...models.match_spec import MatchSpec
 from ...plugins.types import EnvironmentSpecBase
@@ -101,7 +100,9 @@ class RequirementsSpec(EnvironmentSpecBase):
 
         # Ensure this is not an explicit file. Requirements.txt and explicit files
         # may sometimes share file extension.
-        dependencies_list = list(yield_lines(self.filename))
+        dependencies_list = [
+            dep for dep in self.data.split("\n") if (dep and not dep.startswith("#"))
+        ]
         if "@EXPLICIT" in dependencies_list:
             return False
         return True
@@ -121,7 +122,9 @@ class RequirementsSpec(EnvironmentSpecBase):
             raise CondaValueError("No filename provided")
 
         # Convert generator to list since Dependencies needs to access it multiple times
-        dependencies_list = list(yield_lines(self.filename))
+        dependencies_list = [
+            dep for dep in self.data.split("\n") if (dep and not dep.startswith("#"))
+        ]
         return EnvironmentYaml(
             dependencies=dependencies_list,
             filename=self.filename,
@@ -138,8 +141,11 @@ class RequirementsSpec(EnvironmentSpecBase):
         if not self.filename:
             raise ValueError("No filename provided")
 
-        # Convert generator to list since Dependencies needs to access it multiple times
-        dependencies_list = list(yield_lines(self.filename))
+        # Get all the dependencies from the file, excluding lines that have
+        # been excluded by being prefixed with "#"
+        dependencies_list = [
+            dep for dep in self.data.split("\n") if not dep.startswith("#")
+        ]
         requested_packages = [MatchSpec(dep) for dep in dependencies_list]
 
         return Environment(

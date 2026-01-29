@@ -1,5 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 
 from conda import plugins
@@ -11,6 +15,9 @@ from conda.exceptions import (
 )
 from conda.models.environment import Environment
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 class EmptySpec(EnvironmentSpecBase):
@@ -124,12 +131,27 @@ def naughty_spec_plugin(plugin_manager):
     return plugin_manager
 
 
+@pytest.fixture()
+def mock_empty_load_file(mocker: MockerFixture):
+    """
+    Fixture to mock out loading an environment spec file in the plugin manager.
+    This will return an empty string regardless of if the file passed into
+    `conda.plugins.manager.load_file` exists or not. Helpful for testing.
+    """
+    mocker.patch(
+        "conda.plugins.manager.load_file",
+        return_value="",
+    )
+
+
 def test_no_environment_file():
     with pytest.raises(CondaFileIOError):
         EmptySpec(filename="")
 
 
-def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
+def test_dummy_random_spec_is_registered(
+    dummy_random_spec_plugin, mock_empty_load_file
+):
     """
     Ensures that our dummy random spec has been registered and can recognize .random files
     """
@@ -151,7 +173,9 @@ def test_dummy_random_spec_is_registered(dummy_random_spec_plugin):
     assert env_spec_backend.environment_spec(filename).env is not None
 
 
-def test_raises_an_error_if_file_is_unhandleable(dummy_random_spec_plugin):
+def test_raises_an_error_if_file_is_unhandleable(
+    dummy_random_spec_plugin, mock_empty_load_file
+):
     """
     Ensures that our dummy random spec does not recognize non-".random" files
     """
@@ -159,7 +183,9 @@ def test_raises_an_error_if_file_is_unhandleable(dummy_random_spec_plugin):
         dummy_random_spec_plugin.detect_environment_specifier("test.random-not")
 
 
-def test_raises_an_error_if_plugin_name_does_not_exist(dummy_random_spec_plugin):
+def test_raises_an_error_if_plugin_name_does_not_exist(
+    dummy_random_spec_plugin, mock_empty_load_file
+):
     """
     Ensures that an error is raised if the user requests a plugin that doesn't exist
     """
@@ -170,7 +196,7 @@ def test_raises_an_error_if_plugin_name_does_not_exist(dummy_random_spec_plugin)
 
 
 def test_raises_an_error_if_named_plugin_can_not_be_handled(
-    dummy_random_spec_plugin,
+    dummy_random_spec_plugin, mock_empty_load_file
 ):
     """
     Ensures that an error is raised if the user requests a plugin exists, but can't be handled
@@ -187,6 +213,7 @@ def test_raises_an_error_if_named_plugin_can_not_be_handled(
 def test_raise_error_for_multiple_registered_installers(
     dummy_random_spec_plugin,
     dummy_random_spec_plugin2,
+    mock_empty_load_file,
 ):
     """
     Ensures that we raise an error when more than one env installer is found
@@ -197,7 +224,9 @@ def test_raise_error_for_multiple_registered_installers(
         dummy_random_spec_plugin.get_environment_specifier(filename)
 
 
-def test_raises_an_error_if_no_plugins_found(dummy_random_spec_plugin_no_autodetect):
+def test_raises_an_error_if_no_plugins_found(
+    dummy_random_spec_plugin_no_autodetect, mock_empty_load_file
+):
     """
     Ensures that our a plugin with autodetect disabled does not get detected
     """
@@ -206,7 +235,9 @@ def test_raises_an_error_if_no_plugins_found(dummy_random_spec_plugin_no_autodet
 
 
 def test_explicitly_select_a_non_autodetect_plugin(
-    dummy_random_spec_plugin, dummy_random_spec_plugin_no_autodetect
+    dummy_random_spec_plugin,
+    dummy_random_spec_plugin_no_autodetect,
+    mock_empty_load_file,
 ):
     """
     Ensures that our a plugin with autodetect disabled can be explicitly selected
@@ -223,6 +254,7 @@ def test_naught_plugin_does_not_cause_unhandled_errors(
     dummy_random_spec_plugin,
     dummy_random_spec_plugin_no_autodetect,
     naughty_spec_plugin,
+    mock_empty_load_file,
 ):
     """
     Ensures that explicitly selecting a plugin that has errors is handled appropriately
@@ -240,6 +272,7 @@ def test_naught_plugin_does_not_cause_unhandled_errors_during_detection(
     dummy_random_spec_plugin,
     dummy_random_spec_plugin_no_autodetect,
     naughty_spec_plugin,
+    mock_empty_load_file,
 ):
     """
     Ensure that plugins that cause errors does not break plugin detection
