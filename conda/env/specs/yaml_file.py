@@ -54,8 +54,7 @@ class YamlFileSpec(EnvironmentSpecBase):
             return False
 
         try:
-            yamlstr = load_file(self.filename)
-            data = yaml.loads(yamlstr)
+            data = yaml.loads(self.data)
             if data is None:
                 return False
         except Exception:

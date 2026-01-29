@@ -46,8 +46,7 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
             return False
 
         try:
-            yamlstr = load_file(self.filename)
-            data = yaml.loads(yamlstr)
+            data = yaml.loads(self.data)
             errors = env.get_schema_errors(data)
             if errors:
                 return False
