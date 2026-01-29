@@ -223,6 +223,12 @@ class _Activator(metaclass=abc.ABCMeta):
     def render_path_var(self, key: str, value: str) -> str:
         return self.path_var_tmpl % (key, value)
 
+    def render_set_var(self, key: str, value: str) -> str:
+        return self.set_var_tmpl % (key, value)
+
+    def render_run_script(self, script: str) -> str:
+        return self.run_script_tmpl % script
+
     def _hook_preamble(self) -> str | None:
         result = []
         for key, value in context.conda_exe_vars_dict.items():
@@ -300,12 +306,6 @@ class _Activator(metaclass=abc.ABCMeta):
             )
 
         self.command = command
-
-    def render_set_var(self, key: str, value: str) -> str:
-        return self.set_var_tmpl % (key, value)
-
-    def render_run_script(self, script: str) -> str:
-        return self.run_script_tmpl % script
 
     def _yield_commands(self, cmds_dict):
         for key, value in sorted(cmds_dict.get("export_path", {}).items()):
