@@ -2596,3 +2596,31 @@
   github: hoxbro
   num_commits: 2
   first_commit: 2025-10-14 14:44:11
+- name: Giacomo Cirò
+  email: 130163233+giacomo-ciro@users.noreply.github.com
+  github: giacomo-ciro
+- name: Vladyslav Shevchenko
+  email: vshevchenko@anaconda.com
+  github: vshevchenko-anaconda
+- name: Carl Anderson
+  email: barabo@users.noreply.github.com
+  github: barabo
+- name: Matthew Feickert
+  email: matthew.feickert@cern.ch
+  github: matthewfeickert
+- name: Ahmet Deger
+  email: ahmet@ahmetdeger.dev
+  github: degerahmet
+- name: Bhanuja Karumuru
+  aliases:
+  - Bhanuu
+  email: 79530528+Bhanuu01@users.noreply.github.com
+  github: Bhanuu01
+- name: Pirzada Ahmad Faraz
+  email: 136244856+pirzada-ahmadfaraz@users.noreply.github.com
+  github: pirzada-ahmadfaraz
+- name: Gayan Silva
+  aliases:
+  - Match
+  email: 132382032+gayanMatch@users.noreply.github.com
+  github: gayanMatch
