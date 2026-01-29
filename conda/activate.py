@@ -310,7 +310,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _yield_commands(self, cmds_dict):
         for key, value in sorted(cmds_dict.get("export_path", {}).items()):
-            yield self.template_path_var(key, value)
+            yield self.template_export_var(key, value)
 
         for script in cmds_dict.get("deactivate_scripts", ()):
             yield self.template_run_script(script)
