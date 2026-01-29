@@ -17,6 +17,7 @@ import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
+from conda.base import context as context_module
 from conda.base.constants import (
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
@@ -48,6 +49,7 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentNameNotFound,
 )
+from conda.gateways.disk import create as disk_create
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -57,7 +59,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from pytest import MonkeyPatch
-    from pytest_mock import MockerFixture
 
     from conda.testing import PathFactoryFixture
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -668,27 +669,27 @@ def test_channel_alias_validation(value, expected):
     "char",
     sorted(PREFIX_NAME_DISALLOWED_CHARS),
 )
-def test_always_disallowed_chars_rejected(char, mocker: MockerFixture):
+def test_always_disallowed_chars_rejected(char, monkeypatch: MonkeyPatch):
     """
     Verify that universally disallowed characters are rejected.
 
     These characters (/, space, :, #) should always be rejected
     regardless of platform.
     """
-    mocker.patch("conda.gateways.disk.create.first_writable_envs_dir")
-    mocker.patch("conda.base.context.locate_prefix_by_name")
+    monkeypatch.setattr(disk_create, "first_writable_envs_dir", lambda: None)
+    monkeypatch.setattr(context_module, "locate_prefix_by_name", lambda x: None)
 
-    ctx = mocker.MagicMock()
-    env_name = f"test{char}env"
+    ctx = mock.MagicMock()
+    test_env_name = f"test{char}env"
 
     with pytest.raises(CondaValueError, match="Invalid environment name"):
         with pytest.deprecated_call():
-            validate_prefix_name(env_name, ctx)
+            validate_prefix_name(test_env_name, ctx)
 
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test for #12558")
 @pytest.mark.parametrize("char", WINDOWS_PROBLEMATIC_CHARS)
-def test_windows_problematic_chars_currently_allowed(char, mocker: MockerFixture):
+def test_windows_problematic_chars_currently_allowed(char, monkeypatch: MonkeyPatch):
     """
     Document that Windows-problematic characters are currently ALLOWED.
 
@@ -703,23 +704,25 @@ def test_windows_problematic_chars_currently_allowed(char, mocker: MockerFixture
     - Blocked immediately (for completely broken chars like !)
     - Warned about (for partially broken chars like =)
     """
-    env_name = f"test{char}env"
-    expected_path = VALIDATE_PREFIX_NAME_BASE_DIR / env_name
+    test_env_name = f"test{char}env"
+    expected_path = VALIDATE_PREFIX_NAME_BASE_DIR / test_env_name
 
-    mocker.patch(
-        "conda.gateways.disk.create.first_writable_envs_dir",
-        return_value=VALIDATE_PREFIX_NAME_BASE_DIR,
-    )
-    mocker.patch(
-        "conda.base.context.locate_prefix_by_name",
-        side_effect=EnvironmentNameNotFound(env_name),
+    monkeypatch.setattr(
+        disk_create,
+        "first_writable_envs_dir",
+        lambda: VALIDATE_PREFIX_NAME_BASE_DIR,
     )
 
-    ctx = mocker.MagicMock()
+    def raise_not_found(name):
+        raise EnvironmentNameNotFound(name)
+
+    monkeypatch.setattr(context_module, "locate_prefix_by_name", raise_not_found)
+
+    ctx = mock.MagicMock()
 
     with pytest.deprecated_call():
         # Currently these are ALLOWED (no exception raised)
-        result = validate_prefix_name(env_name, ctx)
+        result = validate_prefix_name(test_env_name, ctx)
 
     assert result == str(expected_path), (
         f"Character '{char}' should currently be allowed. Got result: {result}"
