@@ -395,7 +395,9 @@ class PathFactoryFixture:
     def __call__(
         self,
         name: str | None = None,
+        *,
         prefix: str | None = None,
+        infix: str | None = None,
         suffix: str | None = None,
     ) -> Path:
         """Unique, non-existent path factory.
@@ -405,13 +407,22 @@ class PathFactoryFixture:
 
         :param name: Path name to append to `tmp_path`
         :param prefix: Prefix to prepend to unique name generated
+        :param infix: Infix to insert into unique name generated
         :param suffix: Suffix to append to unique name generated
         :return: A new unique path
         """
-        prefix = prefix or ""
-        name = name or uuid.uuid4().hex[:8]
-        suffix = suffix or ""
-        return self.tmp_path / (prefix + name + suffix)
+        if name and (prefix or infix or suffix):
+            raise ValueError(
+                "name and (prefix or infix or suffix) are mutually exclusive"
+            )
+        elif name:
+            return self.tmp_path / name
+        else:
+            random = uuid.uuid4().hex
+            prefix = prefix or random[:4]
+            infix = infix or random[4:8]
+            suffix = suffix or random[8:12]
+            return self.tmp_path / (prefix + infix + suffix)
 
 
 @pytest.fixture
@@ -429,10 +440,15 @@ class TmpEnvFixture:
     path_factory: PathFactoryFixture | TempPathFactory
     conda_cli: CondaCLIFixture
 
-    def get_path(self) -> Path:
+    def get_path(
+        self,
+        prefix: str | None = None,
+        infix: str | None = None,
+        suffix: str | None = None,
+    ) -> Path:
         if isinstance(self.path_factory, PathFactoryFixture):
             # scope=function
-            return self.path_factory()
+            return self.path_factory(prefix=prefix, infix=infix, suffix=suffix)
         else:
             # scope=session
             return self.path_factory.mktemp("tmp_env-")
@@ -443,6 +459,9 @@ class TmpEnvFixture:
         *args: str,
         prefix: str | os.PathLike | None = None,
         shallow: bool | None = None,
+        path_prefix: str | None = None,
+        path_infix: str | None = None,
+        path_suffix: str | None = None,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
@@ -454,7 +473,7 @@ class TmpEnvFixture:
         if shallow and args:
             raise ValueError("shallow=True cannot be used with any arguments")
 
-        prefix = Path(prefix or self.get_path())
+        prefix = Path(prefix or self.get_path(path_prefix, path_infix, path_suffix))
 
         if shallow or (shallow is None and not args):
             # no arguments, just create an empty environment
