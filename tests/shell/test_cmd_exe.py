@@ -7,7 +7,7 @@ import sys
 from logging import getLogger
 from pathlib import Path
 from re import escape
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import pytest
 
@@ -30,23 +30,65 @@ pytestmark = [
 PARAMETRIZE_CMD_EXE = pytest.mark.parametrize("shell", ["cmd.exe"], indirect=True)
 
 
+class SpecialCharEnv(NamedTuple):
+    """A minimal conda environment with a special character in its name."""
+
+    path: Path
+    char: str
+    name: str
+
+
+# Common parametrization for special character tests
+# Use tuples (char, suffix) for env names like "test!env_exclamation"
+SPECIAL_CHARS_WITH_SUFFIX = [
+    pytest.param(("!", "exclamation"), id="exclamation"),
+    pytest.param(("=", "equals"), id="equals"),
+    pytest.param(("^", "caret"), id="caret"),
+    pytest.param(("%", "percent"), id="percent"),
+    pytest.param(("(", "open_paren"), id="open_paren"),
+    pytest.param((")", "close_paren"), id="close_paren"),
+]
+
+# Use just the char for simple env names like "test!env"
+SPECIAL_CHARS_SIMPLE = [
+    pytest.param("!", id="exclamation"),
+    pytest.param("=", id="equals"),
+    pytest.param("^", id="caret"),
+    pytest.param("%", id="percent"),
+    pytest.param("(", id="open_paren"),
+    pytest.param(")", id="close_paren"),
+]
+
+
 @pytest.fixture
-def special_char_env(tmp_path: Path, request: pytest.FixtureRequest) -> Path:
+def special_char_env(tmp_path: Path, request: pytest.FixtureRequest) -> SpecialCharEnv:
     """
     Create a minimal conda environment with a special character in its name.
 
     Usage with indirect parametrization:
-        @pytest.mark.parametrize("special_char_env", ["!", "=", "^"], indirect=True)
-        def test_something(special_char_env: Path):
-            env_path = special_char_env
+        @pytest.mark.parametrize("special_char_env", SPECIAL_CHARS, indirect=True)
+        def test_something(special_char_env: SpecialCharEnv):
+            env_path = special_char_env.path
+            char = special_char_env.char
+            name = special_char_env.name
+
+    The param can be either:
+        - A string (the special char): creates env named "test{char}env"
+        - A tuple (char, suffix): creates env named "test{char}env_{suffix}"
     """
-    char = getattr(request, "param", "!")
-    env_name = f"test{char}env"
+    param = getattr(request, "param", "!")
+    if isinstance(param, tuple):
+        char, suffix = param
+        env_name = f"test{char}env_{suffix}"
+    else:
+        char = param
+        env_name = f"test{char}env"
+
     env_path = tmp_path / "envs" / env_name
     conda_meta = env_path / "conda-meta"
     conda_meta.mkdir(parents=True)
     (conda_meta / "history").write_text("")
-    return env_path
+    return SpecialCharEnv(path=env_path, char=char, name=env_name)
 
 
 @PARAMETRIZE_CMD_EXE
@@ -251,22 +293,10 @@ def test_legacy_activate_deactivate_cmd_exe(
 
 
 @PARAMETRIZE_CMD_EXE
-@pytest.mark.parametrize(
-    "special_char,env_suffix",
-    [
-        pytest.param("!", "exclamation", id="exclamation"),
-        pytest.param("=", "equals", id="equals"),
-        pytest.param("^", "caret", id="caret"),
-        pytest.param("%", "percent", id="percent"),
-        pytest.param("(", "open_paren", id="open_paren"),
-        pytest.param(")", "close_paren", id="close_paren"),
-    ],
-)
+@pytest.mark.parametrize("special_char_env", SPECIAL_CHARS_WITH_SUFFIX, indirect=True)
 def test_cmd_exe_special_char_env_activate_by_path(
     shell: Shell,
-    tmp_path: Path,
-    special_char: str,
-    env_suffix: str,
+    special_char_env: SpecialCharEnv,
 ) -> None:
     """
     Test activation of environments with special characters by path.
@@ -279,14 +309,8 @@ def test_cmd_exe_special_char_env_activate_by_path(
     These tests characterize current behavior. Some may fail, indicating
     which characters are truly problematic vs which work correctly.
     """
-    # Create an environment directory with the special character
-    env_name = f"test{special_char}env_{env_suffix}"
-    env_path = tmp_path / "envs" / env_name
-    conda_meta = env_path / "conda-meta"
-    conda_meta.mkdir(parents=True)
-
-    # Create minimal environment marker
-    (conda_meta / "history").write_text("")
+    env_path = special_char_env.path
+    special_char = special_char_env.char
 
     with shell.interactive() as sh:
         # Try to activate by path (should work even if name validation fails)
@@ -321,22 +345,10 @@ def test_cmd_exe_special_char_env_activate_by_path(
 
 
 @PARAMETRIZE_CMD_EXE
-@pytest.mark.parametrize(
-    "special_char,env_suffix",
-    [
-        pytest.param("!", "exclamation", id="exclamation"),
-        pytest.param("=", "equals", id="equals"),
-        pytest.param("^", "caret", id="caret"),
-        pytest.param("%", "percent", id="percent"),
-        pytest.param("(", "open_paren", id="open_paren"),
-        pytest.param(")", "close_paren", id="close_paren"),
-    ],
-)
+@pytest.mark.parametrize("special_char_env", SPECIAL_CHARS_SIMPLE, indirect=True)
 def test_cmd_exe_special_char_prompt_display(
     shell: Shell,
-    tmp_path: Path,
-    special_char: str,
-    env_suffix: str,
+    special_char_env: SpecialCharEnv,
 ) -> None:
     """
     Test that prompts display correctly with special characters in env names.
@@ -346,12 +358,9 @@ def test_cmd_exe_special_char_prompt_display(
 
     See: https://github.com/conda/conda/issues/12558
     """
-    # Create an environment directory with the special character
-    env_name = f"test{special_char}env"
-    env_path = tmp_path / "envs" / env_name
-    conda_meta = env_path / "conda-meta"
-    conda_meta.mkdir(parents=True)
-    (conda_meta / "history").write_text("")
+    env_path = special_char_env.path
+    env_name = special_char_env.name
+    special_char = special_char_env.char
 
     with shell.interactive() as sh:
         # Ensure we use the default env_prompt format for consistent testing
