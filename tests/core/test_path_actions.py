@@ -50,14 +50,11 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-def make_test_file(target_dir, suffix="", contents=""):
-    if not isdir(target_dir):
-        mkdir_p(target_dir)
-    fn = str(uuid4())[:8]
-    full_path = join(target_dir, fn + suffix)
-    with open(full_path, "w") as fh:
-        fh.write(contents or str(uuid4()))
-    return full_path
+def make_test_file(target_dir: Path) -> str:
+    """Create a test file with random content in target_dir."""
+    path = target_dir / uuid4().hex
+    path.write_text(uuid4().hex)
+    return str(path)
 
 
 def load_python_file(py_file_full_path):
