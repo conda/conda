@@ -68,7 +68,7 @@ env:
 jobs:
   review:
     if: '!github.event.repository.fork'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - name: Get epic sub-issues
         id: epic
