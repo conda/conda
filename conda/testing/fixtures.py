@@ -451,7 +451,9 @@ class TmpEnvFixture:
             return self.path_factory(prefix=prefix, infix=infix, suffix=suffix)
         else:
             # scope=session
-            return self.path_factory.mktemp("tmp_env-")
+            return self.path_factory.mktemp(
+                (prefix or "tmp_env-") + (infix or "") + (suffix or "")
+            )
 
     @contextmanager
     def __call__(
@@ -468,10 +470,18 @@ class TmpEnvFixture:
         :param args: The arguments to pass to conda create (e.g., packages, flags, etc.)
         :param prefix: The prefix at which to install the conda environment
         :param shallow: Whether the environment is created only on disk without call to `conda create`
+        :param path_prefix: Prefix for generated path name (passed to path_factory as prefix parameter)
+        :param path_infix: Infix for generated path name (passed to path_factory as infix parameter)
+        :param path_suffix: Suffix for generated path name (passed to path_factory as suffix parameter)
         :return: The conda environment's prefix
         """
         if shallow and args:
             raise ValueError("shallow=True cannot be used with any arguments")
+
+        if prefix and (path_prefix or path_infix or path_suffix):
+            raise ValueError(
+                "prefix and (path_prefix or path_infix or path_suffix) are mutually exclusive"
+            )
 
         prefix = Path(prefix or self.get_path(path_prefix, path_infix, path_suffix))
 
