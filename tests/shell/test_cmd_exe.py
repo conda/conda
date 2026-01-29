@@ -14,7 +14,7 @@ import pytest
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as CONDA_VERSION
 from conda.base.constants import WINDOWS_PROBLEMATIC_CHARS
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac
 
 from . import activate, deactivate, dev_arg, install
@@ -363,8 +363,10 @@ def test_cmd_exe_special_char_prompt_display(
 
     See: https://github.com/conda/conda/issues/12558
     """
-    # Patch context.env_prompt to ensure consistent format regardless of condarc
-    monkeypatch.setattr(context, "env_prompt", "({default_env}) ")
+    # Set env_prompt via environment variable and reload context
+    # (this is the standard pattern used in test_activate.py)
+    monkeypatch.setenv("CONDA_ENV_PROMPT", "({default_env}) ")
+    reset_context()
 
     env_path = special_char_env.path
     env_name = special_char_env.name
