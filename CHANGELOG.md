@@ -82,13 +82,11 @@
 * Mark `conda.exports.PathNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523 via #15526)
 * Mark `conda.exports.CondaFileNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523 via #15526)
 * Mark `conda.exports.UnsatisfiableError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.UnsatisfiableError` instead. (#15523 via #15526)
-* Remove use of deprecated `codecs.open` (deprecated since Python 3.14)
 * Mark `conda.base.context.report_errors` as pending deprecation, to be removed in 27.3.  (#13900 via #15580)
 * Mark `conda.common.path.is_package_file` as pending deprecation, to be removed in 27.3. Use `conda.base.context.context.plugin_manager.has_package_extension` instead. (#15629)
 * Mark `conda.common.path.KNOWN_EXTENSIONS` as pending deprecation, to be removed in 27.3. Use `conda.common.path.strip_pkg_extension` instead. (#15629)
 * Mark `conda.misc.url_pat` as pending deprecation, to be removed in 27.3. Use `conda.misc._get_url_pattern()` instead. (#15629)
 * Mark `conda.base.constants.CONDA_PACKAGE_EXTENSIONS` as pending deprecation, to be removed in 27.3. Use `conda.base.context.context.plugin_manager.get_package_extractors()` instead. (#15629)
-* Mark `conda.base.constants.CONDA_PACKAGE_PARTS` as pending deprecation, to be removed in 27.3. Derive from `conda.base.context.context.plugin_manager.get_package_extractors()` instead. (#15629)
 * Mark `conda.base.constants.CONDA_PACKAGE_PARTS` as pending deprecation, to be removed in 27.3. The `.part` suffix has not been used since 2014; use `conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with `str.removesuffix()` instead. (#15634 via #15635)
 
 ### Docs
