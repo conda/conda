@@ -23,7 +23,7 @@ from ..auxlib.collection import first
 from ..auxlib.ish import dals
 from ..base.constants import DEFAULTS_CHANNEL_NAME, PREFIX_MAGIC_FILE, SafetyChecks
 from ..base.context import context
-from ..common.compat import ensure_text_type, on_win
+from ..common.compat import ensure_text_type, on_mac, on_win
 from ..common.io import (
     DummyExecutor,
     ThreadLimitedThreadPoolExecutor,
@@ -676,9 +676,9 @@ class UnlinkLinkTransaction:
         unlink_action_groups = prefix_action_group.unlink_action_groups
         prefix_record_groups = prefix_action_group.prefix_record_groups
 
-        lower_on_win = lambda p: p.lower() if on_win else p
+        normalize_path = lambda p: p.lower() if (on_win or on_mac) else p
         unlink_paths = {
-            lower_on_win(axn.target_short_path)
+            normalize_path(axn.target_short_path)
             for grp in unlink_action_groups
             for axn in grp.actions
             if isinstance(axn, UnlinkPathAction)
@@ -707,7 +707,7 @@ class UnlinkLinkTransaction:
                         else ()
                     )
                 for path in target_short_paths:
-                    path = lower_on_win(path)
+                    path = normalize_path(path)
                     link_paths_dict[path].append(axn)
                     if path not in unlink_paths and lexists(join(target_prefix, path)):
                         # we have a collision; at least try to figure out where it came from
