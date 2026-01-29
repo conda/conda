@@ -69,14 +69,14 @@ def load_python_file(py_file_full_path):
 
 @pytest.fixture
 def prefix(path_factory: PathFactoryFixture) -> Path:
-    path = path_factory(prefix=uuid4().hex[:8], name=" ", suffix=uuid4().hex[:8])
+    path = path_factory(infix=" ")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 @pytest.fixture
 def pkgs_dir(path_factory: PathFactoryFixture) -> Path:
-    path = path_factory(prefix=uuid4().hex[:8], name=" ", suffix=uuid4().hex[:8])
+    path = path_factory(infix=" ")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
