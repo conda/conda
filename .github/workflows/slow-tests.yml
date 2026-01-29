@@ -23,7 +23,7 @@ concurrency:
 
 env:
   # TODO: Replace with the actual epic issue number
-  EPIC_NUMBER: '0000'
+  EPIC_NUMBER: '15637'
   # Maximum number of incomplete sub-issues before we stop adding more
   MAX_INCOMPLETE: '1'
   # Platforms to fetch duration files for
