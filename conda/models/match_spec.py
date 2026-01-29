@@ -627,8 +627,7 @@ def _parse_channel(channel_val):
     if not channel_val:
         return None, None
     chn = Channel(channel_val)
-    channel_name = chn.name or chn.base_url
-    return channel_name, chn.subdir
+    return chn, chn.subdir
 
 
 _PARSE_CACHE = {}
@@ -1171,13 +1170,16 @@ class ChannelMatch(GlobStrMatch):
         else:
             # assert ChannelMatch('pkgs/free').match('defaults') is False
             # assert ChannelMatch('defaults').match('pkgs/free') is True
+
+            # This should have been the following
+            # self._raw_value.name == _other_val.canonical_name or self._raw_value == _other_val
+            # but users may rely on this exact behaviour.
+            # For eg: conda install -c file::/path/to/distr distr::pkg as mentioned in
+            # https://anaconda.org/distr
             return self._raw_value.name in (_other_val.name, _other_val.canonical_name)
 
     def __str__(self):
-        try:
-            return f"{self._raw_value.name}"
-        except AttributeError:
-            return f"{self._raw_value}"
+        return f"{self._raw_value}"
 
     def __repr__(self):
         return f"'{self.__str__()}'"
