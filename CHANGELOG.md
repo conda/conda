@@ -59,7 +59,7 @@
 * Mark `conda.exception_handler.ExceptionHandler._execute_upload` as pending deprecation, to be removed in 27.3. (#13900 via #14698)
 * Mark `conda.exception_handler.ExceptionHandler._post_upload` as pending deprecation, to be removed in 27.3. (#13900 via #14698)
 * Mark private helper functions in `conda.cli.main_config` (`_key_exists`, `_get_key`, `_set_key`, `_remove_item`, `_remove_key`, `_read_rc`, `_write_rc`, `_validate_provided_parameters`) as pending deprecation, to be removed in 27.3. Use the new `ConfigurationFile` class instead. (#15376)
-* Mark `conda.models.enums.PathType` as pending deprecation, to be removed in 26.3. Use `conda.models.enums.PathEnum` instead. (#15428)
+* Mark `conda.models.enums.PathType` as pending deprecation, to be removed in 27.3. Use `conda.models.enums.PathEnum` instead. (#15428)
 * Mark `conda.utils.massage_arguments` as pending deprecation, to be removed in 27.3. (#15439)
 * Mark `conda.gateways.disk.create.extract_tarball` as pending deprecation, to be removed in 27.3. Use `conda.base.context.context.plugin_manager.extract_package` instead. (#15524 via #15441)
 * Mark the `use_system_tmp_path` argument of `conda.utils.wrap_subprocess_call(use_system_tmp_path=...)` as pending deprecation, to be removed in 27.3. Use the TMPDIR, TEMP, or TMP environment variables to set the system temporary directory location. (#15440 via #15442)
