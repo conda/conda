@@ -1,0 +1,20 @@
+### Enhancements
+
+* None
+
+### Bug Fixes
+
+* None
+
+### Deprecations
+
+* Remove `conda.trust` module. The implementation has been moved to `conda-content-trust`. (#TBD)
+* Remove built-in `signature-verification` post-solve plugin. Signature verification is now provided by the `conda-content-trust` plugin when installed. (#TBD)
+
+### Docs
+
+* None
+
+### Other
+
+* None
