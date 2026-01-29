@@ -7,17 +7,17 @@
 * Allow `custom_multichannels.defaults` to override `default_channels`. Continuation of effort to devendor conda and remove hardcoded "defaults" channel. (#14661)
 * Defer `PrefixData` record instantiation until they are accessed for faster query performance. (#14811)
 * Add support for Python 3.14. (#15080)
-* Speed up the context initialization process by caching reading condarc files. (#15150)
-* Raise a `NoChannelsConfiguredError` when attempting to solve an environment with no channels configured, and provide a helpful message to guide users in adding channels (#15262 via #15345).
+* Speed up the context initialization process by caching condarc file reads. (#15150)
+* Raise a `NoChannelsConfiguredError` when attempting to solve an environment with no channels configured, and provide a helpful message to guide users in adding channels. (#15262 via #15345)
 * Add `conda.cli.condarc.ConfigurationFile` class to expose configuration file manipulation interface programmatically. This allows other Python interfaces to read and modify conda configuration files without shelling out to `conda config` commands. (#15238 via #15376)
 * Add `-s` as a shorthand alias for `conda run --no-capture-output`. (#15426)
 * `conda run` now deactivates the environment on exiting the command. (#15427)
-* Renamed `conda.models.enums.PathType` enum to `conda.models.enums.PathEnum` to resolve a naming conflict with the `PathType` type annotation. This change follows modern Python conventions and establishes the `*Enum` suffix as the pattern for enums in the codebase. (#15428)
-* Validate plugin-provided HTTP headers and raise `PluginError` if forbidden headers are detected, preventing plugins from compromising conda's network stack (#15405 via #15436).
+* Rename `conda.models.enums.PathType` enum to `conda.models.enums.PathEnum` to resolve a naming conflict with the `PathType` type annotation. This change follows modern Python conventions and establishes the `*Enum` suffix as the pattern for enums in the codebase. (#15428)
+* Validate plugin-provided HTTP headers and raise `PluginError` if forbidden headers are detected, preventing plugins from compromising conda's network stack. (#15405 via #15436)
 * Add `conda_package_extractors` plugin hook to allow plugins to register custom package archive extractors. (#15524 via #15441)
 * Add `-O` as a flag alias for `--override-channels`. (#15499)
 * Add reusable `http_test_server` fixture to `conda.testing` module for serving mock conda channels and remote files in tests. Fixture uses standard `@pytest.mark.parametrize()` with `indirect=True` for configuring directories, supporting both pre-existing directories and dynamic content generation. Provides clean API with `get_url()` helper method and `directory` attribute. (#15528 via #15529)
-* Speedup `conda run` by inlining environment activation instead of using a subprocess. (#15534)
+* Speed up `conda run` by inlining environment activation instead of using a subprocess. (#15534)
 * Add a `--size` flag to the `conda info --envs` and `conda env list` commands to display disk usage for each environment. (#8040 and #15544)
 * Add `PrefixRecord.package_size()` and `PrefixData.size` for programmatic access to conda-managed disk usage. (#15544)
 * Add `--size` flag to `conda list` to show environment size and package sizes. (#15544)
@@ -30,16 +30,16 @@
 
 * Stop `conda run` from adding an additional new line after printing to `stdout` or `stderr`. (#11763)
 * Non-conda installed Python packages now show up in `conda list` in free-threading environments. (#14674)
-* Python packages not listed as from the `pypi` channel if the `site-packages` directory includes a symlink. (#14674)
+* Fix Python packages not being listed as from the `pypi` channel if the `site-packages` directory includes a symlink. (#14674)
 * Replace deprecated `codecs.open()` with built-in `open()` for Python 3.14 compatibility. (#15080)
 * Fix parallel conda command failures on Windows (e.g., `start /b`) by using GUIDs for unique temp filenames instead of `%RANDOM%`. (#15169)
-* Sanitizes channel config input to remove null values. (#15268 via #15323)
+* Sanitize channel config input to remove null values. (#15268 via #15323)
 * Fix `conda list --fields dist_str` representation. (#15420)
 * Add the `--` separator such that `conda run` can properly separate executable options from conda options when invoking commands. Now, executable options are correctly parsed and handled. (#15432)
-* Raise an error when no command is provided to `conda run`, instead of proceeding with an empty command (#15437).
+* Raise an error when no command is provided to `conda run`, instead of proceeding with an empty command. (#15437)
 * Do not expose `__cuda` virtual package when no CUDA version was detected. (#15500)
 * Ensure an appropriate error code is returned when `conda run` is invoked with an invalid environment name or prefix. (#15534)
-* Record `size_in_bytes` for generated entry points and compiled `.pyc` files in the prefix manifests (#15544).
+* Record `size_in_bytes` for generated entry points and compiled `.pyc` files in the prefix manifests. (#15544)
 * Allow `conda env update` to execute an update on an environment for environment files that do not have conda dependencies. (#15569 via #15570)
 * Terminate activation early on Windows when activation scripts fail. (#15616)
 * Fix package installation from repodata v3 channels by extracting the correct filename from the URL instead of using the repodata key. This resolves issues when installing packages where the repodata key differs from the actual filename (e.g., wheel packages where the key uses underscores but the filename uses hyphens). (#15620)
@@ -49,18 +49,18 @@
 
 ### Deprecations
 
-* Mark `conda.exception_handler.ExceptionHandler._upload` as pending deprecation, to be removed in 27.3.  (#13900 via #14698)
-* Mark `conda.exception_handler.ExceptionHandler._ask_upload` as pending deprecation, to be removed in 27.3.  (#13900 via #14698)
-* Mark `conda.exception_handler.ExceptionHandler._execute_upload` as pending deprecation, to be removed in 27.3.  (#13900 via #14698)
-* Mark `conda.exception_handler.ExceptionHandler._post_upload` as pending deprecation, to be removed in 27.3.  (#13900 via #14698)
-* Deprecate private helper functions in `conda.cli.main_config` (`_key_exists`, `_get_key`, `_set_key`, `_remove_item`, `_remove_key`, `_read_rc`, `_write_rc`, `_validate_provided_parameters`) in favor of the new `ConfigurationFile` class. These functions will be removed in conda 27.3. (#15376)
+* Mark `conda.exception_handler.ExceptionHandler._upload` as pending deprecation, to be removed in 27.3. (#13900 via #14698)
+* Mark `conda.exception_handler.ExceptionHandler._ask_upload` as pending deprecation, to be removed in 27.3. (#13900 via #14698)
+* Mark `conda.exception_handler.ExceptionHandler._execute_upload` as pending deprecation, to be removed in 27.3. (#13900 via #14698)
+* Mark `conda.exception_handler.ExceptionHandler._post_upload` as pending deprecation, to be removed in 27.3. (#13900 via #14698)
+* Mark private helper functions in `conda.cli.main_config` (`_key_exists`, `_get_key`, `_set_key`, `_remove_item`, `_remove_key`, `_read_rc`, `_write_rc`, `_validate_provided_parameters`) as pending deprecation, to be removed in 27.3. Use the new `ConfigurationFile` class instead. (#15376)
 * Mark `conda.models.enums.PathType` as pending deprecation, to be removed in 26.3. Use `conda.models.enums.PathEnum` instead. (#15428)
 * Mark `conda.utils.massage_arguments` as pending deprecation, to be removed in 27.3. (#15439)
 * Mark `conda.gateways.disk.create.extract_tarball` as pending deprecation, to be removed in 27.3. Use `conda.base.context.context.plugin_manager.extract_package` instead. (#15524 via #15441)
 * Mark the `use_system_tmp_path` argument of `conda.utils.wrap_subprocess_call(use_system_tmp_path=...)` as pending deprecation, to be removed in 27.3. Use the TMPDIR, TEMP, or TMP environment variables to set the system temporary directory location. (#15440 via #15442)
-* Deprecate private helper functions in `conda.common.serializers` (`_yaml_round_trip`, `_yaml_safe`) in favor of the new function `conda.common.serialize.yaml._yaml()`. These functions will be removed in conda 27.3. (#15503)
-* Deprecate functions in `conda.common.serializers` (`yaml_round_trip_load`, `yaml_safe_load`) in favor of the new function `conda.common.serialize.yaml.load()`. These functions will be removed in conda 27.3. (#15503)
-* Deprecate functions in `conda.common.serializers` (`yaml_round_trip_dump`, `yaml_safe_dump`) in favor of the new function `conda.common.serialize.yaml.dump()`. These functions will be removed in conda 27.3. (#15503)
+* Mark private helper functions in `conda.common.serializers` (`_yaml_round_trip`, `_yaml_safe`) as pending deprecation, to be removed in 27.3. Use `conda.common.serialize.yaml._yaml()` instead. (#15503)
+* Mark `conda.common.serializers.yaml_round_trip_load` and `conda.common.serializers.yaml_safe_load` as pending deprecation, to be removed in 27.3. Use `conda.common.serialize.yaml.load()` instead. (#15503)
+* Mark `conda.common.serializers.yaml_round_trip_dump` and `conda.common.serializers.yaml_safe_dump` as pending deprecation, to be removed in 27.3. Use `conda.common.serialize.yaml.dump()` instead. (#15503)
 * Mark `conda.cli.actions.NullCountAction._ensure_value` as pending deprecation, to be removed in 27.3. (#15512)
 * Mark `conda.exports.input` as pending deprecation, to be removed in 27.3. Use `builtins.input` instead. (#15523 via #15526)
 * Mark `conda.exports.StringIO` as pending deprecation, to be removed in 27.3. Use `io.StringIO` instead. (#15523 via #15526)
@@ -82,7 +82,7 @@
 * Mark `conda.exports.PathNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523 via #15526)
 * Mark `conda.exports.CondaFileNotFoundError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.PathNotFoundError` instead. (#15523 via #15526)
 * Mark `conda.exports.UnsatisfiableError` as pending deprecation, to be removed in 27.3. Use `conda.exceptions.UnsatisfiableError` instead. (#15523 via #15526)
-* Mark `conda.base.context.report_errors` as pending deprecation, to be removed in 27.3.  (#13900 via #15580)
+* Mark `conda.base.context.report_errors` as pending deprecation, to be removed in 27.3. (#13900 via #15580)
 * Mark `conda.common.path.is_package_file` as pending deprecation, to be removed in 27.3. Use `conda.base.context.context.plugin_manager.has_package_extension` instead. (#15629)
 * Mark `conda.common.path.KNOWN_EXTENSIONS` as pending deprecation, to be removed in 27.3. Use `conda.common.path.strip_pkg_extension` instead. (#15629)
 * Mark `conda.misc.url_pat` as pending deprecation, to be removed in 27.3. Use `conda.misc._get_url_pattern()` instead. (#15629)
@@ -99,7 +99,7 @@
 
 ### Other
 
-* Disable uploading error reports.  (#13900 via #14698)
+* Disable uploading error reports. (#13900 via #14698)
 * Deprecation warnings now raise errors during testing to better track and address them. (#15525)
 
 ### Contributors
