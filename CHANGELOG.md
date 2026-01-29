@@ -30,11 +30,11 @@
 
 ### Bug fixes
 
-* Stop `conda run` from adding an additional new line after printing to `stdout` or `stderr`. (#11763)
+* Stop `conda run` from adding an additional new line after printing to `stdout` or `stderr`. (#11763 via #15539)
 * Non-conda installed Python packages now show up in `conda list` in free-threading environments. (#14674)
 * Fix Python packages not being listed as from the `pypi` channel if the `site-packages` directory includes a symlink. (#14674)
 * Replace deprecated `codecs.open()` with built-in `open()` for Python 3.14 compatibility. (#15080)
-* Fix parallel conda command failures on Windows (e.g., `start /b`) by using GUIDs for unique temp filenames instead of `%RANDOM%`. (#15169)
+* Fix parallel conda command failures on Windows (e.g., `start /b`) by using GUIDs for unique temp filenames instead of `%RANDOM%`. (#15169 via #15598)
 * Sanitize channel config input to remove null values. (#15268 via #15323)
 * Fix `conda list --fields dist_str` representation. (#15420)
 * Add the `--` separator such that `conda run` can properly separate executable options from conda options when invoking commands. Now, executable options are correctly parsed and handled. (#15432)
@@ -44,7 +44,7 @@
 * Record `size_in_bytes` for generated entry points and compiled `.pyc` files in the prefix manifests. (#15544)
 * Allow `conda env update` to execute an update on an environment for environment files that do not have conda dependencies. (#15569 via #15570)
 * Terminate activation early on Windows when activation scripts fail. (#15616)
-* Fix package installation from repodata v3 channels by extracting the correct filename from the URL instead of using the repodata key. This resolves issues when installing packages where the repodata key differs from the actual filename (e.g., wheel packages where the key uses underscores but the filename uses hyphens). (#15620)
+* Fix package installation from repodata v3 channels by extracting the correct filename from the URL instead of using the repodata key. This resolves issues when installing packages where the repodata key differs from the actual filename (e.g., wheel packages where the key uses underscores but the filename uses hyphens). (#15620 via #15626)
 * Fix incorrect source location in deprecation warnings when multiple constants are deprecated in the same module. (#15623 via #15624)
 * Fix `conda clean --tarballs` not cleaning up `.partial` download files. (#15634 via #15635)
 * Decode SHA256 fields in Python's `RECORD` metadata files. (#15591)
