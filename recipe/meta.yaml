@@ -60,7 +60,8 @@ requirements:
     - zstandard >=0.15
   run_constrained:
     - conda-build >=25.9
-    - conda-content-trust >=0.1.1
+    # minimum version when conda-content-trust plugin is installed
+    - conda-content-trust >=0.3.0
     - conda-env >=2.6
 
 test:

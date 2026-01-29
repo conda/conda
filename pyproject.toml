@@ -170,8 +170,7 @@ filterwarnings = [
   "error::DeprecationWarning",
   "error::FutureWarning",
   # ##### external library deprecations that we cannot fix in the conda source code
-  # - conda_content_trust.plugin uses old CondaSubcommand import path; remove when conda-content-trust plugin is updated
-  "ignore:conda.plugins.CondaSubcommand:PendingDeprecationWarning:conda_content_trust.plugin",
+  # (none at the moment)
   # ##### internal conda deprecations that need some special handling right now
   # - ignore this until 26.3 due to a circular deprecation warning
   "ignore:conda.core.link.PrefixActions:DeprecationWarning:conda.core.link",
