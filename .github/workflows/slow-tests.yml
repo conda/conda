@@ -26,6 +26,11 @@ env:
   EPIC_NUMBER: '0000'
   # Maximum number of incomplete sub-issues before we stop adding more
   MAX_INCOMPLETE: '1'
+  # Platforms to fetch duration files for
+  PLATFORMS: |
+    Linux
+    macOS
+    Windows
   GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
   ISSUE_TEMPLATE: |
     [slow-tests.yml]: ${WORKFLOW_URL}
@@ -103,16 +108,22 @@ jobs:
           # Combine all durations, keeping max and tracking which platform
           # Format: {test_name: {duration: N, platform: "X"}}
           echo "{}" > /tmp/all_durations.json
+          fetched=""
+          missing=""
 
-          for platform in Linux macOS Windows; do
+          while IFS= read -r platform; do
+            [[ -z "$platform" ]] && continue
             url="${BASE_URL}/${platform}.json"
             echo "Fetching $url"
 
             # Fetch duration files directly from GitHub
             curl -fsSL "$url" -o "/tmp/${platform}.json" 2>/dev/null || {
-              echo "Failed to fetch $platform durations"
+              echo "::warning::Failed to fetch $platform durations"
+              missing="${missing:+$missing, }$platform"
               continue
             }
+
+            fetched="${fetched:+$fetched, }$platform"
 
             # Merge keeping max duration and its platform
             jq -s --arg platform "$platform" '
@@ -130,7 +141,10 @@ jobs:
               ) | add
             ' /tmp/all_durations.json "/tmp/${platform}.json" > /tmp/merged.json
             mv /tmp/merged.json /tmp/all_durations.json
-          done
+          done <<< "$PLATFORMS"
+
+          echo "platforms_fetched=${fetched:-none}" >> "$GITHUB_OUTPUT"
+          echo "platforms_missing=${missing}" >> "$GITHUB_OUTPUT"
 
       - name: Create sub-issues up to cap
         id: create
@@ -204,10 +218,16 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           INCOMPLETE_COUNT: ${{ steps.epic.outputs.incomplete_count }}
           CREATED_COUNT: ${{ steps.create.outputs.created_count }}
+          PLATFORMS_FETCHED: ${{ steps.durations.outputs.platforms_fetched }}
+          PLATFORMS_MISSING: ${{ steps.durations.outputs.platforms_missing }}
         run: |
           echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Epic:** #${EPIC_NUMBER}" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms:** ${PLATFORMS_FETCHED}" >> $GITHUB_STEP_SUMMARY
+          if [[ -n "${PLATFORMS_MISSING}" ]]; then
+            echo "**Missing:** ${PLATFORMS_MISSING}" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "**Incomplete sub-issues before:** ${INCOMPLETE_COUNT}" >> $GITHUB_STEP_SUMMARY
           echo "**Max allowed:** ${MAX_INCOMPLETE}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
