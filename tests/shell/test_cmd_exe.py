@@ -13,6 +13,7 @@ import pytest
 
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as CONDA_VERSION
+from conda.base.constants import WINDOWS_PROBLEMATIC_CHARS
 from conda.base.context import context
 from conda.common.compat import on_linux, on_mac
 
@@ -38,25 +39,26 @@ class SpecialCharEnv(NamedTuple):
     name: str
 
 
-# Common parametrization for special character tests
+# Mapping from special characters to human-readable test IDs
+_CHAR_IDS = {
+    "!": "exclamation",
+    "=": "equals",
+    "^": "caret",
+    "%": "percent",
+    "(": "open_paren",
+    ")": "close_paren",
+}
+
+# Derive parametrization from WINDOWS_PROBLEMATIC_CHARS constant
 # Use tuples (char, suffix) for env names like "test!env_exclamation"
 SPECIAL_CHARS_WITH_SUFFIX = [
-    pytest.param(("!", "exclamation"), id="exclamation"),
-    pytest.param(("=", "equals"), id="equals"),
-    pytest.param(("^", "caret"), id="caret"),
-    pytest.param(("%", "percent"), id="percent"),
-    pytest.param(("(", "open_paren"), id="open_paren"),
-    pytest.param((")", "close_paren"), id="close_paren"),
+    pytest.param((char, _CHAR_IDS[char]), id=_CHAR_IDS[char])
+    for char in WINDOWS_PROBLEMATIC_CHARS
 ]
 
 # Use just the char for simple env names like "test!env"
 SPECIAL_CHARS_SIMPLE = [
-    pytest.param("!", id="exclamation"),
-    pytest.param("=", id="equals"),
-    pytest.param("^", id="caret"),
-    pytest.param("%", id="percent"),
-    pytest.param("(", id="open_paren"),
-    pytest.param(")", id="close_paren"),
+    pytest.param(char, id=_CHAR_IDS[char]) for char in WINDOWS_PROBLEMATIC_CHARS
 ]
 
 
