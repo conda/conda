@@ -827,6 +827,21 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
+    def get_package_extractors(self) -> dict[str, CondaPackageExtractor]:
+        """
+        Return a mapping from file extension to package extractor plugin.
+
+        Extensions are lowercased for case-insensitive matching.
+
+        :return: Dictionary mapping lowercased extensions (e.g., ``".conda"``) to their
+            :class:`~conda.plugins.types.CondaPackageExtractor` plugins.
+        """
+        return {
+            extension.lower(): hook
+            for hook in self.get_hook_results("package_extractors")
+            for extension in hook.extensions
+        }
+
     def get_package_extractor(
         self,
         source_full_path: PathType,
@@ -841,12 +856,10 @@ class CondaPluginManager(pluggy.PluginManager):
         :return: The matching :class:`~conda.plugins.types.CondaPackageExtractor` plugin.
         :raises PluginError: If no registered extractor handles the file extension.
         """
-        source_str = os.fspath(source_full_path)
-        hooks = self.get_hook_results("package_extractors")
-        for hook in hooks:
-            for ext in hook.extensions:
-                if source_str.lower().endswith(ext.lower()):
-                    return hook
+        source_str = os.fspath(source_full_path).lower()
+        for extension, extractor in self.get_package_extractors().items():
+            if source_str.endswith(extension):
+                return extractor
 
         raise PluginError(
             f"No registered 'package_extractors' plugin found for package: {source_full_path}"
@@ -869,6 +882,19 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         extractor = self.get_package_extractor(source_full_path)
         extractor.extract(source_full_path, destination_directory)
+
+    def has_package_extension(self, path: PathType) -> str | None:
+        """
+        Check if a path has a supported package file extension.
+
+        :param path: Path to check.
+        :return: The matched extension (lowercased) if found, None otherwise.
+        """
+        path_str = os.fspath(path).lower()
+        for ext in self.get_package_extractors():
+            if path_str.endswith(ext):
+                return ext
+        return None
 
 
 @functools.cache

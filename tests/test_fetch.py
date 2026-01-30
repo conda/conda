@@ -17,7 +17,7 @@ import responses.matchers
 import responses.registries
 from conda_package_handling.utils import checksum
 
-from conda.base.constants import DEFAULT_CHANNEL_ALIAS
+from conda.base.constants import DEFAULT_CHANNEL_ALIAS, PARTIAL_EXTENSION
 from conda.base.context import context, reset_context
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import (
@@ -131,9 +131,9 @@ def test_resume_download(tmp_path):
     ):
         download(url, output_path, size=size, sha256=sha256)
 
-    # Check that only the .part file is present
+    # Check that only the partial file is present
     assert not os.path.exists(output_path)
-    assert os.path.exists(str(output_path) + ".partial")
+    assert os.path.exists(str(output_path) + PARTIAL_EXTENSION)
 
     # Download is resumed
     def iter_content_resumed(*args, **kwargs):
@@ -152,7 +152,7 @@ def test_resume_download(tmp_path):
         download(url, output_path, size=size, sha256=sha256)
 
     assert os.path.exists(output_path)
-    assert not os.path.exists(str(output_path) + ".partial")
+    assert not os.path.exists(str(output_path) + PARTIAL_EXTENSION)
 
     with open(output_path, "rb") as fh:
         assert fh.read() == b"first:second:last"
@@ -164,26 +164,26 @@ def test_resume_download(tmp_path):
         response.status_code = 416
         raise HTTPError(response=response)
 
-    # Download gets interrupted by HTTP 4xx exception; assert `.partial` deleted
-    assert not os.path.exists(str(output_path) + ".partial")
+    # Download gets interrupted by HTTP 4xx exception; assert partial file deleted
+    assert not os.path.exists(str(output_path) + PARTIAL_EXTENSION)
     with (
         pytest.raises(CondaHTTPError),
         patch("requests.Response.iter_content", side_effect=iter_content_interrupted_2),
     ):
         download(url, output_path, size=size, sha256=sha256)
-    assert not os.path.exists(str(output_path) + ".partial")
+    assert not os.path.exists(str(output_path) + PARTIAL_EXTENSION)
 
 
 @responses.activate
 def test_download_when_ranges_not_supported(tmp_path):
-    # partial mechanism and `.partial` files sidestepped when size, hash not given
+    # partial mechanism and partial files sidestepped when size, hash not given
     # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
     size = sum(len(line) for line in test_file)
     sha256 = hashlib.new("sha256", data=b"".join(test_file)).hexdigest()
 
     output_path = tmp_path / "download.tar.bz2"  # double extension
-    partial_path = str(output_path) + ".partial"
+    partial_path = str(output_path) + PARTIAL_EXTENSION
 
     url = DEFAULT_CHANNEL_ALIAS
     # allow the test to pass if we are using /t/<token> auth:
@@ -269,19 +269,19 @@ def test_resume_partial(tmp_path: Path, package_repository_base, package_server)
     assert called
 
     # simulate partial download
-    partial_path = Path(str(output_path) + ".partial")
+    partial_path = Path(str(output_path) + PARTIAL_EXTENSION)
     output_path.rename(partial_path)
 
     with partial_path.open("r+") as partial:
         partial.seek(10)
         partial.truncate()
 
-    # resume from `.partial` file
+    # resume from partial file
     download(url, output_path, size=size, sha256=sha256)
 
     # exercise code that avoids requesting 'range not satisfiable' if partial
     # file is full-size
-    partial_path = Path(str(output_path) + ".partial")
+    partial_path = Path(str(output_path) + PARTIAL_EXTENSION)
     output_path.rename(partial_path)
 
     download(url, output_path, size=size, sha256=sha256)
@@ -289,7 +289,7 @@ def test_resume_partial(tmp_path: Path, package_repository_base, package_server)
     # Get 'range not satisfiable' by requesting a start offset past the end of
     # the file. Imagine we partially download a file, and the remote is replaced
     # by a shorter one before we resume...
-    partial_path = Path(str(output_path) + ".partial")
+    partial_path = Path(str(output_path) + PARTIAL_EXTENSION)
     output_path.rename(partial_path)
 
     with pytest.raises(CondaHTTPError, match="416"):
@@ -458,10 +458,10 @@ def test_resume_bad_partial(tmp_path: Path):
     )
 
     # simulate partial download
-    partial_path = Path(str(output_path) + ".partial")
+    partial_path = Path(str(output_path) + PARTIAL_EXTENSION)
     partial_path.write_text("x")
 
-    # resume from `.partial` file
+    # resume from partial file
     download(url, output_path, size=size, sha256=sha256)
 
     assert output_path.read_bytes() == test_file

@@ -482,6 +482,7 @@ def test_install_conda_sh(verbose):
 def test_install_conda_fish(verbose):
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "etc", "fish", "conf.d", "conda.fish")
+        context.dev = False
         result = install_conda_fish(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
@@ -525,6 +526,7 @@ def test_install_conda_xsh(verbose):
 
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "Lib", "site-packages", "conda.xsh")
+        context.dev = False
         result = install_conda_xsh(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 
@@ -558,6 +560,7 @@ def test_install_conda_xsh(verbose):
 def test_install_conda_csh(verbose):
     with tempdir() as conda_temp_prefix:
         target_path = join(conda_temp_prefix, "etc", "profile.d", "conda.csh")
+        context.dev = False
         result = install_conda_csh(target_path, context.conda_prefix)
         assert result == Result.MODIFIED
 

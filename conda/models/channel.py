@@ -24,7 +24,7 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable
-from ..common.path import is_package_file, is_path, win_path_backout
+from ..common.path import is_path, win_path_backout
 from ..common.url import (
     Url,
     has_scheme,
@@ -162,7 +162,7 @@ class Channel(metaclass=ChannelType):
             return Channel.from_url(value)
         elif is_path(value):
             return Channel.from_url(path_to_url(value))
-        elif is_package_file(value):
+        elif context.plugin_manager.has_package_extension(value):
             if value.startswith("file:"):
                 value = win_path_backout(value)
             return Channel.from_url(value)
