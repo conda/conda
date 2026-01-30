@@ -658,18 +658,6 @@ class ChecksumMismatchError(CondaError):
         )
 
 
-class PackageNotInstalledError(CondaError):
-    def __init__(self, prefix: PathType, package_name: str):
-        message = dals(
-            """
-        Package is not installed in prefix.
-          prefix: %(prefix)s
-          package name: %(package_name)s
-        """
-        )
-        super().__init__(message, prefix=prefix, package_name=package_name)
-
-
 class CondaHTTPError(CondaError):
     def __init__(
         self,
@@ -834,6 +822,18 @@ class PackagesNotFoundInPrefixError(PackagesNotFoundError):
             channel_urls=[],
             channels_formatted="",
         )
+
+
+class PackageNotInstalledError(PackagesNotFoundInPrefixError):
+    def __init__(self, prefix: PathType, package_name: str):
+        message = dals(
+            """
+        Package is not installed in prefix.
+          prefix: %(prefix)s
+          package name: %(package_name)s
+        """
+        )
+        CondaError.__init__(self, message, prefix=prefix, package_name=package_name)
 
 
 class NoChannelsConfiguredError(CondaError):
