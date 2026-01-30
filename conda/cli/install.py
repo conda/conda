@@ -43,6 +43,8 @@ from ..exceptions import (
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
+    PackagesNotFoundInPrefixError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -252,8 +254,8 @@ class TryRepodata:
         ):
             return True
         elif isinstance(exc_value, ResolvePackageNotFound):
-            # convert the ResolvePackageNotFound into PackagesNotFoundError
-            raise PackagesNotFoundError(
+            # convert the ResolvePackageNotFound into PackagesNotFoundInChannelsError
+            raise PackagesNotFoundInChannelsError(
                 exc_value._formatted_chains,
                 all_channel_urls(context.channels),
             )
@@ -379,11 +381,22 @@ def install(args, parser, command="install"):
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
         return install_explicit_packages(env.explicit_packages, env.prefix)
 
-    repodata_fns = args.repodata_fns
-    if not repodata_fns:
-        repodata_fns = list(env.config.repodata_fns)
+    repodata_fns = list(args.repodata_fns or env.config.repodata_fns or ())
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
+
+    # TODO: libmamba backend seemingly currently doesn't benefit from conda's
+    # "try current_repodata.json then repodata.json"? I am avoid redundant work
+    # by using a single repodata file unless the user explicitly requested repodata_fns.
+    # Otherwise we are just solving the same problem twice with identical data...
+    _seen = set()
+    repodata_fns = [fn for fn in repodata_fns if not (fn in _seen or _seen.add(fn))]
+    if (
+        context.solver == "libmamba"
+        and not getattr(args, "repodata_fns", None)  # user did not explicitly set them
+        and len(repodata_fns) > 1
+    ):
+        repodata_fns = [REPODATA_FN]
 
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
@@ -434,6 +447,64 @@ def install(args, parser, command="install"):
                     )
                 else:
                     raise e
+            except PackagesNotFoundError as e:
+                # libmamba may raise the base PackagesNotFoundError without preserving
+                # structured fields like `packages` / `channel_urls`. Fall back to parsing
+                # the rendered message to choose the right disambiguated subclass.
+
+                if isinstance(
+                    e, (PackagesNotFoundInChannelsError, PackagesNotFoundInPrefixError)
+                ):
+                    raise
+
+                msg = str(e)
+
+                # This is a very unstructured hack because libmamba does not for some reason
+                # raise the base PackagesNotFoundError with structured data, so here we are
+                # parsing the rendered message to choose the right disambiguated subclass.
+                # TODO: fix this and see what libmamba is doing... right now we lose all
+                # context about what packages were not found and where.
+                packages = getattr(e, "packages", None)
+                if packages is None:
+                    lines = msg.splitlines()
+                    pkgs: list[str] = []
+                    in_pkgs = False
+                    for line in lines:
+                        if "Current channels:" in line:
+                            break
+                        if line.strip().startswith("- "):
+                            in_pkgs = True
+                            pkgs.append(line.strip()[2:].strip())
+                        elif in_pkgs and not line.strip():
+                            break
+                    packages = tuple(pkgs)
+
+                channel_urls = getattr(e, "channel_urls", None)
+                if not channel_urls:
+                    if (
+                        "Current channels:" in msg
+                        or "not available from current channels" in msg
+                    ):
+                        lines = msg.splitlines()
+                        chans: list[str] = []
+                        in_chans = False
+                        for line in lines:
+                            if "Current channels:" in line:
+                                in_chans = True
+                                continue
+                            if in_chans:
+                                if line.strip().startswith("- "):
+                                    chans.append(line.strip()[2:].strip())
+                                elif chans and not line.strip():
+                                    break
+                        channel_urls = tuple(chans)
+                    else:
+                        channel_urls = ()
+
+                if channel_urls:
+                    raise PackagesNotFoundInChannelsError(packages, channel_urls) from e
+                else:
+                    raise PackagesNotFoundInPrefixError(packages, prefix=prefix) from e
             except SystemExit as e:
                 if not getattr(e, "allow_retry", True):
                     raise e
