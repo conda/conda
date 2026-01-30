@@ -247,10 +247,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     if not matches:
-        from ..exceptions import PackagesNotFoundError
+        from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls
 
-        raise PackagesNotFoundError([spec], all_channel_urls(context.channels, subdirs))
+        raise PackagesNotFoundInChannelsError(
+            [spec], all_channel_urls(context.channels, subdirs)
+        )
 
     if context.json:
         json_obj = defaultdict(list)
