@@ -385,10 +385,10 @@ def install(args, parser, command="install"):
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
 
-    # TODO: libmamba backend seemingly currently doesn't benefit from conda's
-    # "try current_repodata.json then repodata.json"? I am avoid redundant work
-    # by using a single repodata file unless the user explicitly requested repodata_fns.
-    # Otherwise we are just solving the same problem twice with identical data...
+    # libmamba internally ignores current_repodata.json (see _maybe_ignore_current_repodata)
+    # unless explicitly set by the user. We optimise here to avoid the redundant iteration
+    # and solver setup that would occur if we passed both files.
+    # See https://github.com/conda/conda-libmamba-solver/blob/34aec802f890a3ece9c0f2f630de2ef136003624/conda_libmamba_solver/solver.py#L954-L967
     _seen = set()
     repodata_fns = [fn for fn in repodata_fns if not (fn in _seen or _seen.add(fn))]
     if (
