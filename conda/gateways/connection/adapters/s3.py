@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from logging import LoggerAdapter, getLogger
 from tempfile import SpooledTemporaryFile
-from typing import IO, TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from ....common.compat import ensure_binary
 from ....common.serialize import json
@@ -14,6 +14,9 @@ from ....common.url import url_to_s3_info
 from .. import BaseAdapter, CaseInsensitiveDict, Response
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import IO
+
     from .. import PreparedRequest
 
 log = getLogger(__name__)
