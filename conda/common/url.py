@@ -380,7 +380,7 @@ def split_platform(known_subdirs: Iterable[str], url: str) -> tuple[str, str]:
         start, stop = _platform_match.span(1)
         platform = url[start:stop]
         # "start-1" picks up preceding "/" that's not part of the capturing group
-        cleaned_url = url[:(start-1)] + url[stop:]
+        cleaned_url = url[: (start - 1)] + url[stop:]
     else:
         platform = None
         cleaned_url = url
