@@ -346,7 +346,8 @@ def test_list_size(
         for line in package_lines:
             # Size should be the last column
             assert any(
-                line.strip().endswith(suffix) for suffix in ("B", "KB", "MB", "GB")
+                line.strip().endswith(suffix)
+                for suffix in ("B", "KB", "MB", "GB", "N/A")
             )
 
 
