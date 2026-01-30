@@ -1438,3 +1438,20 @@ def test_prioritize_channels():
         for weight, (url, channel) in enumerate(urls)
         for subdir in context.subdirs
     }
+
+
+def test_channel_url_has_platform_as_substr():
+    test_platform = "linux-riscv64"
+
+    test_channel_name = f"some-channel/label/{test_platform}-testing"
+    channel = Channel(f"{test_channel_name}/{test_platform}")
+    assert channel.channel_location == "conda.anaconda.org"
+    assert channel.channel_name == test_channel_name
+    assert channel.platform == test_platform
+
+    test_host = "example.com"
+    test_channel_name = f"{test_platform}-testing"
+    channel = Channel(f"https://{test_host}/{test_channel_name}/{test_platform}")
+    assert channel.channel_location == test_host
+    assert channel.name == test_channel_name
+    assert channel.platform == test_platform
