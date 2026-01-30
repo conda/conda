@@ -373,18 +373,19 @@ def test_list_size_empty_paths_data(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    test_recipes_channel: Path,
 ) -> None:
     from conda.core.prefix_data import PrefixData
     from conda.models.records import PathsData
 
-    with tmp_env("ca-certificates") as prefix:
+    with tmp_env("small-executable") as prefix:
         prefix_data = PrefixData(prefix)
         original_iter_records = prefix_data.iter_records
 
         def mock_iter_records():
             for record in original_iter_records():
                 # Mock one package to have empty paths_data
-                if record.name == "ca-certificates":
+                if record.name == "small-executable":
                     record.paths_data = PathsData(paths_version=1, paths=[])
                 yield record
 
@@ -393,16 +394,16 @@ def test_list_size_empty_paths_data(
         # human-readable output
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size")
         lines = stdout.splitlines()
-        ca_cert_line = next(
-            (line for line in lines if line.startswith("ca-certificates")), None
+        pkg_line = next(
+            (line for line in lines if line.startswith("small-executable")), None
         )
-        assert ca_cert_line is not None
-        assert "N/A" in ca_cert_line
-        assert "0 B" not in ca_cert_line
+        assert pkg_line is not None
+        assert "N/A" in pkg_line
+        assert "0 B" not in pkg_line
 
         # machine-readable output
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size", "--json")
         parsed = json.loads(stdout)
-        ca_cert_item = next((i for i in parsed if i["name"] == "ca-certificates"), None)
-        assert ca_cert_item is not None
-        assert ca_cert_item["size"] == 0
+        pkg_item = next((i for i in parsed if i["name"] == "small-executable"), None)
+        assert pkg_item is not None
+        assert pkg_item["size"] == 0
