@@ -803,6 +803,39 @@ class PackagesNotFoundInChannelsError(PackagesNotFoundError):
         super().__init__(packages, channel_urls=channel_urls)
 
 
+class PackagesNotFoundInPrefixError(PackagesNotFoundError):
+    """
+    The requested packages are missing from the target environment/prefix.
+    """
+
+    def __init__(
+        self,
+        packages: Iterable[MatchSpec | PackageRecord | str],
+        prefix: PathType,
+    ):
+        message = dals(
+            """
+            The following packages are missing from the target environment:
+              prefix: %(prefix)s
+            %(packages_formatted)s
+            """
+        )
+        packages_formatted = dashlist(packages)
+
+        # We call CondaError directly here because PackagesNotFoundError decides
+        # the behaviour based on channel_urls, but is a case of the package(s) being
+        # specifically "missing from prefix" and not a more general "not found".
+        CondaError().__init__(
+            self,
+            message,
+            packages=packages,
+            packages_formatted=packages_formatted,
+            prefix=prefix,
+            channel_urls=[],
+            channels_formatted="",
+        )
+
+
 class NoChannelsConfiguredError(CondaError):
     def __init__(self, packages: Iterable[str] = ()):
         packages_str = ", ".join(packages) if packages else "the requested packages"
