@@ -448,63 +448,19 @@ def install(args, parser, command="install"):
                 else:
                     raise e
             except PackagesNotFoundError as e:
-                # libmamba may raise the base PackagesNotFoundError without preserving
-                # structured fields like `packages` / `channel_urls`. Fall back to parsing
-                # the rendered message to choose the right disambiguated subclass.
-
                 if isinstance(
                     e, (PackagesNotFoundInChannelsError, PackagesNotFoundInPrefixError)
                 ):
                     raise
 
-                msg = str(e)
-
-                # This is a very unstructured hack because libmamba does not for some reason
-                # raise the base PackagesNotFoundError with structured data, so here we are
-                # parsing the rendered message to choose the right disambiguated subclass.
-                # TODO: fix this and see what libmamba is doing... right now we lose all
-                # context about what packages were not found and where.
-                packages = getattr(e, "packages", None)
-                if packages is None:
-                    lines = msg.splitlines()
-                    pkgs: list[str] = []
-                    in_pkgs = False
-                    for line in lines:
-                        if "Current channels:" in line:
-                            break
-                        if line.strip().startswith("- "):
-                            in_pkgs = True
-                            pkgs.append(line.strip()[2:].strip())
-                        elif in_pkgs and not line.strip():
-                            break
-                    packages = tuple(pkgs)
-
-                channel_urls = getattr(e, "channel_urls", None)
-                if not channel_urls:
-                    if (
-                        "Current channels:" in msg
-                        or "not available from current channels" in msg
-                    ):
-                        lines = msg.splitlines()
-                        chans: list[str] = []
-                        in_chans = False
-                        for line in lines:
-                            if "Current channels:" in line:
-                                in_chans = True
-                                continue
-                            if in_chans:
-                                if line.strip().startswith("- "):
-                                    chans.append(line.strip()[2:].strip())
-                                elif chans and not line.strip():
-                                    break
-                        channel_urls = tuple(chans)
-                    else:
-                        channel_urls = ()
-
-                if channel_urls:
-                    raise PackagesNotFoundInChannelsError(packages, channel_urls) from e
+                if e.channel_urls:
+                    raise PackagesNotFoundInChannelsError(
+                        e.packages, e.channel_urls
+                    ) from e
                 else:
-                    raise PackagesNotFoundInPrefixError(packages, prefix=prefix) from e
+                    raise PackagesNotFoundInPrefixError(
+                        e.packages, prefix=prefix
+                    ) from e
             except SystemExit as e:
                 if not getattr(e, "allow_retry", True):
                     raise e

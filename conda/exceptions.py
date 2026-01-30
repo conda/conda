@@ -731,6 +731,9 @@ class PackagesNotFoundError(CondaError):
         packages: Iterable[MatchSpec | PackageRecord | str],
         channel_urls: Iterable[str] = (),
     ):
+        self.packages = tuple(packages)
+        self.channel_urls = tuple(channel_urls)
+
         if channel_urls:
             message = dals(
                 """
@@ -771,9 +774,9 @@ class PackagesNotFoundError(CondaError):
 
         super().__init__(
             message,
-            packages=packages,
+            packages=self.packages,
             packages_formatted=packages_formatted,
-            channel_urls=list(channel_urls),
+            channel_urls=list(self.channel_urls),
             channels_formatted=channels_formatted,
         )
 
