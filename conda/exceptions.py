@@ -825,7 +825,7 @@ class PackagesNotFoundInPrefixError(PackagesNotFoundError):
         # We call CondaError directly here because PackagesNotFoundError decides
         # the behaviour based on channel_urls, but is a case of the package(s) being
         # specifically "missing from prefix" and not a more general "not found".
-        CondaError().__init__(
+        CondaError.__init__(
             self,
             message,
             packages=packages,
