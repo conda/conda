@@ -790,6 +790,19 @@ class PackagesNotFoundError(CondaError):
         )
 
 
+class PackagesNotFoundInChannelsError(PackagesNotFoundError):
+    """
+    The requested packages are not available from the configured channels.
+    """
+
+    def __init__(
+        self,
+        packages: Iterable[MatchSpec | PackageRecord | str],
+        channel_urls: Iterable[str],
+    ):
+        super().__init__(packages, channel_urls=channel_urls)
+
+
 class NoChannelsConfiguredError(CondaError):
     def __init__(self, packages: Iterable[str] = ()):
         packages_str = ", ".join(packages) if packages else "the requested packages"
