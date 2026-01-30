@@ -246,6 +246,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
         )
 
+    # TODO handle bug with --envs; that should raise an error too but it doesn't currently
+    # and just prints out a row of headers with no data
     if not matches:
         from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls
