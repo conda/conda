@@ -315,7 +315,11 @@ def _expand_channels(data):
     ]
 
 
-@deprecated("26.9", "27.3", addendum="Use conda.common.io.load_file() instead.")
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.common.io.load_file() instead. Note conda.common.io.load_file() will produce a CondaFileIOError or CondaHTTPError instead of EnvironmentFileNotFound if the files is not found.",
+)
 def load_file(filename):
     """Load and return an yaml string from a given file"""
     url_scheme = filename.split("://", 1)[0]

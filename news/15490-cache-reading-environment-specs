@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* Update `EnvironmentSpecBase` api to accept `filename` and `data` during initialization. These will populate instance variables of the same name. If not provided, the `data` variable will automatically be populated from the contents of the file specified by `filename`. (#15490)
