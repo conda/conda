@@ -25,7 +25,7 @@ from .deprecations import deprecated
 from .exceptions import (
     DisallowedPackageError,
     DryRunExit,
-    PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
     ParseError,
     SpecNotFoundInPackageCache,
 )
@@ -318,7 +318,10 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                 drecs.remove(prec)
                 drecs.add(precs[0])
     if notfound:
-        raise PackagesNotFoundError(notfound)
+        # these specs were not found in the Index (i.e., not available from channels).
+        # index_args["channels"] was set from index_args.pop("channel_urls") above.
+        channel_urls = index_args.get("channels", ()) if index_args else ()
+        raise PackagesNotFoundInChannelsError(notfound, channel_urls)
 
     # Assemble the URL and channel list
     urls = {}
