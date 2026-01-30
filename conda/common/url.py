@@ -376,8 +376,14 @@ def split_platform(known_subdirs: Iterable[str], url: str) -> tuple[str, str]:
 
     """
     _platform_match = _split_platform_re(known_subdirs).search(url)
-    platform = _platform_match.groups()[0] if _platform_match else None
-    cleaned_url = url.replace("/" + platform, "", 1) if platform is not None else url
+    if _platform_match:
+        start, stop = _platform_match.span(1)
+        platform = url[start:stop]
+        # "start-1" picks up preceding "/" that's not part of the capturing group
+        cleaned_url = url[:(start-1)] + url[stop:]
+    else:
+        platform = None
+        cleaned_url = url
     return cleaned_url.rstrip("/"), platform
 
 
