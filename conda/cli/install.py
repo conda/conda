@@ -609,7 +609,10 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
             link_precs.add(precs[0])
 
     if not_found_in_index_specs:
-        raise PackagesNotFoundError(not_found_in_index_specs)
+        raise PackagesNotFoundInChannelsError(
+            not_found_in_index_specs,
+            all_channel_urls(context.channels, context.subdirs),
+        )
 
     final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
@@ -621,7 +624,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
-            raise PackagesNotFoundError(args.package_names)
+            raise PackagesNotFoundInPrefixError(args.package_names, prefix=prefix)
         elif not newenv:
             if context.json:
                 common.stdout_json_success(
