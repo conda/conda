@@ -26,6 +26,7 @@ from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
     NoChannelsConfiguredError,
     PackagesNotFoundError,
+    PackagesNotFoundInPrefixError,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
 )
@@ -622,8 +623,9 @@ class Solver:
                 if not any(spec.match(rec) for rec in all_removed_records)
             )
             if unmatched_specs_to_remove:
-                raise PackagesNotFoundError(
-                    tuple(sorted(str(s) for s in unmatched_specs_to_remove))
+                raise PackagesNotFoundInPrefixError(
+                    tuple(sorted(str(s) for s in unmatched_specs_to_remove)),
+                    prefix=self.prefix,
                 )
 
             for rec in all_removed_records:
