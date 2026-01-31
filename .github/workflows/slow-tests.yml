@@ -239,6 +239,13 @@ jobs:
               echo "::group::Would create: Review slow test: $test_name"
               cat /tmp/slow-test-issue.md
               echo "::endgroup::"
+              # Save for summary
+              echo "<details>" >> /tmp/dry_run_summary.md
+              echo "<summary>Would create: Review slow test: $test_name</summary>" >> /tmp/dry_run_summary.md
+              echo "" >> /tmp/dry_run_summary.md
+              cat /tmp/slow-test-issue.md >> /tmp/dry_run_summary.md
+              echo "</details>" >> /tmp/dry_run_summary.md
+              echo "" >> /tmp/dry_run_summary.md
             else
               # Create sub-issue linked to the epic
               # jq: extract the newly created issue number from JSON response
@@ -272,10 +279,8 @@ jobs:
           echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${EPIC_MISSING}" == "true" ]]; then
-            echo "**Epic:** #${EPIC_NUMBER} (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
             echo "**Epic:** [#${EPIC_NUMBER}](${EPIC_URL}) (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "**Epic:** #${EPIC_NUMBER}" >> $GITHUB_STEP_SUMMARY
             echo "**Epic:** [#${EPIC_NUMBER}](${EPIC_URL})" >> $GITHUB_STEP_SUMMARY
           fi
           echo "**Platforms:** ${PLATFORMS_FETCHED}" >> $GITHUB_STEP_SUMMARY
@@ -292,6 +297,8 @@ jobs:
             echo "**No untracked slow tests found**" >> $GITHUB_STEP_SUMMARY
           elif [[ "${DRY_RUN}" == "true" ]]; then
             echo "**Dry run, would create ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat /tmp/dry_run_summary.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
           else
             echo "**Created ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
           fi
