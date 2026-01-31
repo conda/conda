@@ -197,6 +197,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 }
                 for prefix, prefix_recs in prefix_matches
             )
+
+        if not ordered_result:
+            from ..exceptions import PackagesNotFoundInPrefixError
+
+            # TODO: improve the prefix indication message? Currently just says "any of the searched environments"
+            # which is not very user friendly and not very informative of it.
+            raise PackagesNotFoundInPrefixError(
+                [spec], prefix="any of the searched environments"
+            )
+
         if context.json:
             stdout_json(ordered_result)
         elif args.info:
@@ -247,10 +257,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     if not matches:
-        from ..exceptions import PackagesNotFoundError
+        from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls
 
-        raise PackagesNotFoundError([spec], all_channel_urls(context.channels, subdirs))
+        raise PackagesNotFoundInChannelsError(
+            [spec], all_channel_urls(context.channels, subdirs)
+        )
 
     if context.json:
         json_obj = defaultdict(list)
