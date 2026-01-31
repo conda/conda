@@ -72,6 +72,9 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-slim
     steps:
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext-base
+
       - name: Get epic sub-issues
         id: epic
         env:
