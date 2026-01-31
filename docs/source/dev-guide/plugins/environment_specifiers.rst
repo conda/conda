@@ -37,6 +37,10 @@ of its abstract methods:
 * ``can_handle`` Determines if the defined plugin can read and operate on the provided file.
 * ``env`` Expresses the provided environment file as a conda environment object.
 
+Classes building from :class:`~conda.plugins.types.EnvironmentSpecBase` must respect the api for
+initialization. This includes accepting arguments for ``filename`` (full path to the environment
+spec file) and ``data`` (the contents of the environment_spec file).
+
 The class may also define the boolean class variable `detection_supported`. When set to
 ``True``, the plugin will be included in the environment spec type discovery process. Otherwise,
 the plugin will only be able to be used when it is specifically selected. By default, this
@@ -91,8 +95,8 @@ in their plugin class
     class RandomSpec(EnvironmentSpecBase):
         detection_supported = False
 
-        def __init__(self, filename: str):
-            self.filename = filename
+        def __init__(self, filename: str, data: str | None = None):
+            super().__init__(filename=filename, data=data)
 
         def can_handle(self):
             return True
@@ -109,7 +113,7 @@ by configuring conda to use a particular installed plugin. This can be done by e
 
 Another example plugin
 -----------------------
-In this example, we want to build a more realistic environemnt spec plugin. This
+In this example, we want to build a more realistic environment spec plugin. This
 plugin has a scheme which expresses what it expects a valid environment file to
 contain. In this example, a valid environment file is a ``.json`` file that defines:
 
@@ -137,15 +141,9 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
 
 
    class MySimpleSpec(EnvironmentSpecBase):
-       def __init__(self, filename=None):
-           self.filename = filename
-
        def _parse_data(self) -> MySimpleEnvironment:
            """ "Validate and convert the provided file into a MySimpleEnvironment"""
-           with open(self.filename, "rb") as fp:
-               json_data = fp.read()
-
-           return MySimpleEnvironment.model_validate_json(json_data)
+           return MySimpleEnvironment.model_validate_json(self.data)
 
        def can_handle(self) -> bool:
            """
@@ -184,7 +182,7 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
        )
 
 We can test this out by trying to create a conda environment with a new file
-that is compatible with the definied spec. Create a file ``testenv.json``
+that is compatible with the defined spec. Create a file ``testenv.json``
 
 .. code-block::
 
