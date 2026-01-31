@@ -17,6 +17,7 @@ from conda.exceptions import (
     EnvironmentLocationNotFound,
     PackageNotInstalledError,
 )
+from conda.models.records import PathsData
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -346,8 +347,7 @@ def test_list_size(
         for line in package_lines:
             # Size should be the last column
             assert any(
-                line.strip().endswith(suffix)
-                for suffix in ("B", "KB", "MB", "GB", "N/A")
+                line.strip().endswith(suffix) for suffix in ("B", "KB", "MB", "GB")
             )
 
 
@@ -375,9 +375,6 @@ def test_list_size_empty_paths_data(
     mocker: MockerFixture,
     test_recipes_channel: Path,
 ) -> None:
-    from conda.core.prefix_data import PrefixData
-    from conda.models.records import PathsData
-
     with tmp_env("small-executable") as prefix:
         prefix_data = PrefixData(prefix)
         original_iter_records = prefix_data.iter_records
@@ -391,6 +388,14 @@ def test_list_size_empty_paths_data(
 
         mocker.patch.object(PrefixData, "iter_records", side_effect=mock_iter_records)
 
+        # For packages with no files, the size is that of the conda-meta manifest
+        # which is always > 0 (and usually a few KB).
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size", "--json")
+        parsed = json.loads(stdout)
+        pkg_item = next((i for i in parsed if i["name"] == "small-executable"), None)
+        assert pkg_item is not None
+        assert pkg_item["size"] > 0
+
         # human-readable output
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size")
         lines = stdout.splitlines()
@@ -398,12 +403,3 @@ def test_list_size_empty_paths_data(
             (line for line in lines if line.startswith("small-executable")), None
         )
         assert pkg_line is not None
-        assert "N/A" in pkg_line
-        assert "0 B" not in pkg_line
-
-        # machine-readable output
-        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size", "--json")
-        parsed = json.loads(stdout)
-        pkg_item = next((i for i in parsed if i["name"] == "small-executable"), None)
-        assert pkg_item is not None
-        assert pkg_item["size"] == 0

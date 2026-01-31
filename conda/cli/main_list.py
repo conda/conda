@@ -268,7 +268,7 @@ def list_packages(
                 value = prec.dist_str()
             elif field == "size":
                 pkg_size = prec.package_size(prefix_data.prefix_path)
-                value = "N/A" if pkg_size == 0 else human_bytes(pkg_size)
+                value = human_bytes(pkg_size)
             else:
                 value = str(prec.get(field, None) or "").strip()
                 if value == "None":
