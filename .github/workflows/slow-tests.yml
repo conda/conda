@@ -267,13 +267,16 @@ jobs:
           CREATED_COUNT: ${{ steps.create.outputs.created_count }}
           PLATFORMS_FETCHED: ${{ steps.durations.outputs.platforms_fetched }}
           PLATFORMS_MISSING: ${{ steps.durations.outputs.platforms_missing }}
+          EPIC_URL: ${{ github.server_url }}/${{ github.repository }}/issues/${{ env.EPIC_NUMBER }}
         run: |
           echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${EPIC_MISSING}" == "true" ]]; then
             echo "**Epic:** #${EPIC_NUMBER} (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
+            echo "**Epic:** [#${EPIC_NUMBER}](${EPIC_URL}) (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
           else
             echo "**Epic:** #${EPIC_NUMBER}" >> $GITHUB_STEP_SUMMARY
+            echo "**Epic:** [#${EPIC_NUMBER}](${EPIC_URL})" >> $GITHUB_STEP_SUMMARY
           fi
           echo "**Platforms:** ${PLATFORMS_FETCHED}" >> $GITHUB_STEP_SUMMARY
           if [[ -n "${PLATFORMS_MISSING}" ]]; then
