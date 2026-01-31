@@ -403,3 +403,6 @@ def test_list_size_empty_paths_data(
             (line for line in lines if line.startswith("small-executable")), None
         )
         assert pkg_line is not None
+
+        assert "0 B" not in pkg_line
+        assert pkg_line.strip().endswith(("B", "KB", "MB", "GB"))
