@@ -252,7 +252,7 @@ jobs:
               echo "Created sub-issue #$issue_number"
             fi
 
-            ((created++))
+            ((++created))
           done < /tmp/untracked_tests.txt
 
           echo "Processed $created tests"
