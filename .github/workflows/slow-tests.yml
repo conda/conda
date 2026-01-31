@@ -122,19 +122,20 @@ jobs:
 
           fetch_sub_issues > /tmp/sub_issues.txt
 
-          echo "Current sub-issues:"
-          cat /tmp/sub_issues.txt || echo "(none)"
+          # Count total and incomplete sub-issues
+          total_count=$(wc -l < /tmp/sub_issues.txt 2>/dev/null) || total_count=0
+          incomplete_count=$(grep -c $'\tOPEN\t' /tmp/sub_issues.txt 2>/dev/null) || incomplete_count=0
+          echo "Sub-issues: ${total_count} total, ${incomplete_count} incomplete"
+
+          if [[ -s /tmp/sub_issues.txt ]]; then
+            echo "::group::Sub-issue details"
+            cat /tmp/sub_issues.txt
+            echo "::endgroup::"
+          fi
 
           # Extract test names from sub-issue titles (format: "Review slow test: <test_name>")
           cut -f3 /tmp/sub_issues.txt | sed 's/^Review slow test: //' > /tmp/tracked_tests.txt || true
-
-          echo "Previously reported tests (excluded from future reports):"
-          cat /tmp/tracked_tests.txt || echo "(none)"
-
-          # Count open (incomplete) sub-issues
-          incomplete_count=$(grep -c $'\tOPEN\t' /tmp/sub_issues.txt || echo 0)
-          echo "Incomplete sub-issues: $incomplete_count"
-          echo "incomplete_count=$incomplete_count" >> "$GITHUB_OUTPUT"
+          echo "incomplete_count=${incomplete_count}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch duration files
         id: durations
