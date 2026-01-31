@@ -22,6 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Repository for gh CLI (no checkout means no git context)
+  GH_REPO: ${{ github.repository }}
   # TODO: Replace with the actual epic issue number
   EPIC_NUMBER: '15637'
   # Maximum number of incomplete sub-issues before we stop adding more
