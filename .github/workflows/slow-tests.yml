@@ -74,6 +74,9 @@ jobs:
     steps:
       - name: Get epic sub-issues
         id: epic
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           # Verify epic exists, default to dry-run if missing
           if ! gh issue view "${EPIC_NUMBER}" --json number > /dev/null 2>&1; then
@@ -83,11 +86,41 @@ jobs:
             exit 0
           fi
 
-          # Get sub-issues of the epic
-          # jq: extract sub-issue number, state, and title as tab-separated values
-          gh issue view "${EPIC_NUMBER}" \
-            --json subIssues \
-            --jq '.subIssues[] | "\(.number)\t\(.state)\t\(.title)"' > /tmp/sub_issues.txt || true
+          # GraphQL query to fetch sub-issues with pagination
+          # (gh CLI doesn't expose subIssues field yet: https://github.com/cli/cli/issues/10298)
+          fetch_sub_issues() {
+            local cursor=""
+            local has_next="true"
+
+            while [[ "$has_next" == "true" ]]; do
+              local after_clause=""
+              [[ -n "$cursor" ]] && after_clause=", after: \"$cursor\""
+
+              response=$(gh api graphql -f query='
+                query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    issue(number: $number) {
+                      subIssues(first: 100'"$after_clause"') {
+                        nodes { number state title }
+                        pageInfo { hasNextPage endCursor }
+                      }
+                    }
+                  }
+                }
+              ' -f owner="${REPO_OWNER}" -f repo="${REPO_NAME}" -F number="${EPIC_NUMBER}")
+
+              # jq: extract sub-issues as tab-separated values (number, state, title)
+              echo "$response" | jq -r '
+                .data.repository.issue.subIssues.nodes[] |
+                "\(.number)\t\(.state)\t\(.title)"
+              '
+
+              has_next=$(echo "$response" | jq -r '.data.repository.issue.subIssues.pageInfo.hasNextPage')
+              cursor=$(echo "$response" | jq -r '.data.repository.issue.subIssues.pageInfo.endCursor')
+            done
+          }
+
+          fetch_sub_issues > /tmp/sub_issues.txt
 
           echo "Current sub-issues:"
           cat /tmp/sub_issues.txt || echo "(none)"
