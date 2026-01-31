@@ -74,7 +74,7 @@ jobs:
         id: epic
         run: |
           # Verify epic exists, default to dry-run if missing
-          if ! gh issue view "$EPIC_NUMBER" --json number > /dev/null 2>&1; then
+          if ! gh issue view "${EPIC_NUMBER}" --json number > /dev/null 2>&1; then
             echo "::warning::Epic #${EPIC_NUMBER} does not exist. Running in dry-run mode."
             echo "epic_missing=true" >> "$GITHUB_OUTPUT"
             echo "incomplete_count=0" >> "$GITHUB_OUTPUT"
@@ -83,7 +83,7 @@ jobs:
 
           # Get sub-issues of the epic
           # jq: extract sub-issue number, state, and title as tab-separated values
-          gh issue view "$EPIC_NUMBER" \
+          gh issue view "${EPIC_NUMBER}" \
             --json subIssues \
             --jq '.subIssues[] | "\(.number)\t\(.state)\t\(.title)"' > /tmp/sub_issues.txt || true
 
@@ -146,7 +146,7 @@ jobs:
               ) | add
             ' /tmp/all_durations.json "/tmp/${platform}.json" > /tmp/merged.json
             mv /tmp/merged.json /tmp/all_durations.json
-          done <<< "$PLATFORMS"
+          done <<< "${PLATFORMS}"
 
           echo "platforms_fetched=${fetched:-none}" >> "$GITHUB_OUTPUT"
           echo "platforms_missing=${missing}" >> "$GITHUB_OUTPUT"
@@ -194,9 +194,9 @@ jobs:
             TODAY="$today" \
             WORKFLOW_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/main/.github/workflows/slow-tests.yml" \
             RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-            envsubst <<< "$ISSUE_TEMPLATE" > /tmp/slow-test-issue.md
+            envsubst <<< "${ISSUE_TEMPLATE}" > /tmp/slow-test-issue.md
 
-            if [[ "$DRY_RUN" == "true" ]]; then
+            if [[ "${DRY_RUN}" == "true" ]]; then
               echo "::group::Would create: Review slow test: $test_name"
               cat /tmp/slow-test-issue.md
               echo "::endgroup::"
@@ -207,7 +207,7 @@ jobs:
                 --title "Review slow test: $test_name" \
                 --label "type::testing" \
                 --body-file /tmp/slow-test-issue.md \
-                --parent-issue "$EPIC_NUMBER" \
+                --parent-issue "${EPIC_NUMBER}" \
                 --json number --jq '.number')
 
               echo "Created sub-issue #$issue_number"
