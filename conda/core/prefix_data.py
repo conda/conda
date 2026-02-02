@@ -461,9 +461,11 @@ class PrefixData(metaclass=PrefixDataType):
         conda_meta_dir = self.prefix_path / "conda-meta"
         if self.exists():
             try:
-                for meta_file in conda_meta_dir.iterdir():
-                    if meta_file.name in counted_manifests:
-                        continue
+                for meta_file in (
+                    file
+                    for file in conda_meta_dir.iterdir()
+                    if file.name not in counted_manifests
+                ):
                     try:
                         total_size += meta_file.stat().st_size
                     except OSError:
