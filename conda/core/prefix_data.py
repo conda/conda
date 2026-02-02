@@ -431,21 +431,35 @@ class PrefixData(metaclass=PrefixDataType):
         Compute the total size of a conda environment prefix.
 
         This aggregates the installed size of all packages in the environment,
-        plus the size of files under conda-meta (history, manifests, markers).
+        plus the size of files under conda-meta (history, markers, etc.).
+
+        Note: Package manifests for metapackages (packages with no files) are
+        already counted in their package_size(), so we skip them here to avoid
+        counting them twice.
 
         :returns: Total size in bytes.
         """
         total_size = 0
+        counted_manifests = set()
 
         # 1. sum up the installed size of each package
         for record in self.iter_records():
             total_size += record.package_size(self.prefix_path)
+            # Track manifests that have already been counted, i.e., for
+            # packages with no paths_data entries (such as metapackages
+            # or mutexes)
+            if not record.paths_data.paths:
+                manifest_name = f"{record.name}-{record.version}-{record.build}.json"
+                counted_manifests.add(manifest_name)
 
         # 2. add up the size of files under conda-meta (history, manifests, markers)
+        # that have not been counted already
         conda_meta_dir = self.prefix_path / "conda-meta"
         if self.exists():
             try:
                 for meta_file in conda_meta_dir.iterdir():
+                    if meta_file.name in counted_manifests:
+                        continue
                     try:
                         total_size += meta_file.stat().st_size
                     except OSError:

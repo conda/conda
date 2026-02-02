@@ -680,9 +680,12 @@ class PrefixRecord(SolvedRecord):
         This sums up the size_in_bytes of all non-softlink paths in paths_data,
         and stats the files on disk if size_in_bytes is missing.
 
-        :returns: Total size in bytes of all files installed by this package.
-        For packages with no installed files (metapackages, mutexes, etc.),
-        returns the size of the conda-meta JSON manifest file.
+        For packages with no installed files (metapackages, mutexes), this returns
+        the size of the conda-meta manifest file, as that is the only disk space
+        occupied by the package.
+
+        :returns: Total size in bytes of all files installed by this package,
+        or the conda-meta manifest size for packages with no files.
         """
         total_size = 0
 
