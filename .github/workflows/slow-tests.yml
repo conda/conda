@@ -24,6 +24,8 @@ concurrency:
 env:
   # Repository for gh CLI (no checkout means no git context)
   GH_REPO: ${{ github.repository }}
+  # Base URL for issue links
+  ISSUES_URL: ${{ github.server_url }}/${{ github.repository }}/issues
   # TODO: Replace with the actual epic issue number
   EPIC_NUMBER: '15637'
   # Maximum number of incomplete sub-issues before we stop adding more
@@ -269,7 +271,9 @@ jobs:
                 }
               ' -f parent="${EPIC_ID}" -f child="$issue_id" > /dev/null
 
-              echo "Created sub-issue #$issue_number"
+              echo "Created sub-issue #$issue_number (linked to epic #${EPIC_NUMBER})"
+              # Save for summary
+              echo "- [#${issue_number}](${ISSUES_URL}/${issue_number}): \`${test_name}\`" >> /tmp/created_summary.md
             fi
 
             ((++created))
@@ -287,14 +291,13 @@ jobs:
           CREATED_COUNT: ${{ steps.create.outputs.created_count }}
           PLATFORMS_FETCHED: ${{ steps.durations.outputs.platforms_fetched }}
           PLATFORMS_MISSING: ${{ steps.durations.outputs.platforms_missing }}
-          EPIC_URL: ${{ github.server_url }}/${{ github.repository }}/issues/${{ env.EPIC_NUMBER }}
         run: |
           echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${EPIC_MISSING}" == "true" ]]; then
-            echo "**Epic:** [#${EPIC_NUMBER}](${EPIC_URL}) (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
+            echo "**Epic:** #${EPIC_NUMBER} (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "**Epic:** [#${EPIC_NUMBER}](${EPIC_URL})" >> $GITHUB_STEP_SUMMARY
+            echo "**Epic:** [#${EPIC_NUMBER}](${ISSUES_URL}/${EPIC_NUMBER})" >> $GITHUB_STEP_SUMMARY
           fi
           echo "**Platforms:** ${PLATFORMS_FETCHED}" >> $GITHUB_STEP_SUMMARY
           if [[ -n "${PLATFORMS_MISSING}" ]]; then
@@ -314,4 +317,6 @@ jobs:
             cat /tmp/dry_run_summary.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
           else
             echo "**Created ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat /tmp/created_summary.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
           fi
