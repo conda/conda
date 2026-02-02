@@ -251,7 +251,7 @@ jobs:
               echo "</details>" >> /tmp/dry_run_summary.md
               echo "" >> /tmp/dry_run_summary.md
             else
-              # Create issue first (--parent-issue not available in older gh versions)
+              # Create issue
               # jq: extract the newly created issue id and number from JSON response
               response=$(gh issue create \
                 --title "Review slow test: $test_name" \
