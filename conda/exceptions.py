@@ -671,6 +671,8 @@ class PackageNotInstalledError(CondaError):
 
 
 class CondaHTTPError(CondaError):
+    status_code: int | str
+
     def __init__(
         self,
         message: str,
@@ -695,11 +697,20 @@ class CondaHTTPError(CondaError):
 
         # standardize arguments
         url = maybe_unquote(url)
-        status_code = status_code or "000"
+        # Extract status_code from response if not provided
+        # This allows networking code upstream to access status_code as a property
+        if not status_code or status_code == "000":
+            status_code = getattr(response, "status_code", None) if response else None
+        # Default to "000" if still not available
+        if not status_code:
+            status_code = "000"
         reason = reason or "CONNECTION FAILED"
         elapsed_time = elapsed_time or "-"
         if isinstance(elapsed_time, timedelta):
             elapsed_time = str(elapsed_time).split(":", 1)[-1]
+
+        # Store status_code as instance attribute for upstream networking code
+        self.status_code = status_code
 
         # extract CF-RAY
         try:
