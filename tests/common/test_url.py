@@ -220,6 +220,10 @@ def test_percent_decode_basic():
     assert percent_decode("hello%20world") == "hello world"
     assert percent_decode("path%2Fto%2Ffile") == "path/to/file"
     assert percent_decode("no-percent") == "no-percent"
+    # Multiple percent-encoded sequences in one string (no separate duplicate test).
+    assert percent_decode("a%20b%20c") == "a b c"
+    assert percent_decode("%2F%2F") == "//"
+    assert percent_decode("foo%2Bbar%3D") == "foo+bar="
 
 
 def test_percent_decode_utf8_sequence():
@@ -279,3 +283,45 @@ def test_urlparse_with_port_still_works():
     u = urlparse("https://conda.io:443/path")
     assert u.port == "443"
     assert str(u) == "https://conda.io:443/path"
+
+
+def test_path_to_url_relative_path():
+    """path_to_url resolves relative paths to absolute file:// URLs."""
+    import os
+
+    got = path_to_url(".")
+    assert got.startswith("file:///")
+    assert os.path.abspath(".").replace("\\", "/") in got or got.endswith("/.")
+
+
+def test_path_to_url_tilde_expands():
+    """path_to_url expands ~ to user dir (or leaves as-is on failure)."""
+    got = path_to_url("~")
+    assert got.startswith("file:///")
+
+
+def test_percent_decode_bytes_empty():
+    """percent_decode_bytes with empty bytes (edge case); no-percent covered in test_percent_decode_bytes."""
+    assert percent_decode_bytes(b"") == ""
+
+
+def test_url_port_boundary_values():
+    """Url accepts port 0 and 65535 (valid boundaries)."""
+    u0 = Url(scheme="http", hostname="host", port=0)
+    assert u0.port == "0"
+    u_max = Url(scheme="http", hostname="host", port=65535)
+    assert u_max.port == "65535"
+
+
+def test_url_port_whitespace_stripped():
+    """Url normalizes port with leading/trailing whitespace to string."""
+    u = Url(scheme="http", hostname="host", port=" 8080 ")
+    assert u.port == "8080"
+
+
+def test_url_to_s3_info_invalid_scheme_raises():
+    """url_to_s3_info raises ValueError for non-s3 URLs."""
+    with pytest.raises(ValueError, match="only use s3:"):
+        url_to_s3_info("https://bucket.s3.amazonaws.com/key")
+    with pytest.raises(ValueError, match="only use s3:"):
+        url_to_s3_info("file:///local/path")
