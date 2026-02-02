@@ -54,7 +54,7 @@ from ..exceptions import (
 from ..gateways.disk.create import first_writable_envs_dir, write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import file_path_is_writable
-from ..models.enums import PackageType
+from ..models.enums import PackageType, PathEnum
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
@@ -444,11 +444,15 @@ class PrefixData(metaclass=PrefixDataType):
 
         # 1. sum up the installed size of each package
         for record in self.iter_records():
-            total_size += record.package_size(self.prefix_path)
-            # Track manifests that have already been counted, i.e., for
-            # packages with no paths_data entries (such as metapackages
-            # or mutexes)
-            if not record.paths_data.paths:
+            pkg_size = record.package_size(self.prefix_path)
+            total_size += pkg_size
+            # track manifests that have already been counted in package_size():
+            # - packages with no paths_data entries (metapackages, mutexes)
+            # - packages with only softlinks/directories
+            if not record.paths_data.paths or all(
+                path.path_type in (PathEnum.softlink, PathEnum.directory)
+                for path in record.paths_data.paths
+            ):
                 manifest_name = f"{record.name}-{record.version}-{record.build}.json"
                 counted_manifests.add(manifest_name)
 
