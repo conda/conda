@@ -139,8 +139,8 @@ jobs:
             echo "::endgroup::"
           fi
 
-          # Extract test names from sub-issue titles (format: "Review slow test: <test_name>")
-          cut -f3 /tmp/sub_issues.txt | sed 's/^Review slow test: //' > /tmp/tracked_tests.txt || true
+          # Extract test names from sub-issue titles (format: "Review slow test: `<test_name>`")
+          cut -f3 /tmp/sub_issues.txt | sed 's/^Review slow test: `\(.*\)`$/\1/' > /tmp/tracked_tests.txt || true
           echo "incomplete_count=${incomplete_count}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch duration files
@@ -240,12 +240,12 @@ jobs:
             envsubst <<< "${ISSUE_TEMPLATE}" > /tmp/slow-test-issue.md
 
             if [[ "${DRY_RUN}" == "true" ]]; then
-              echo "::group::Would create: Review slow test: $test_name"
+              echo "::group::Would create: Review slow test: \`$test_name\`"
               cat /tmp/slow-test-issue.md
               echo "::endgroup::"
               # Save for summary
               echo "<details>" >> /tmp/dry_run_summary.md
-              echo "<summary>Would create: Review slow test: $test_name</summary>" >> /tmp/dry_run_summary.md
+              echo "<summary>Would create: Review slow test: <code>$test_name</code></summary>" >> /tmp/dry_run_summary.md
               echo "" >> /tmp/dry_run_summary.md
               cat /tmp/slow-test-issue.md >> /tmp/dry_run_summary.md
               echo "</details>" >> /tmp/dry_run_summary.md
@@ -253,7 +253,7 @@ jobs:
             else
               # Create issue (returns URL like https://github.com/owner/repo/issues/123)
               issue_url=$(gh issue create \
-                --title "Review slow test: $test_name" \
+                --title "Review slow test: \`$test_name\`" \
                 --label "type::testing" \
                 --body-file /tmp/slow-test-issue.md)
               issue_number="${issue_url##*/}"
