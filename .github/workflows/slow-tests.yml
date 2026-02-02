@@ -251,18 +251,18 @@ jobs:
               echo "</details>" >> /tmp/dry_run_summary.md
               echo "" >> /tmp/dry_run_summary.md
             else
-              # Create issue
-              # jq: extract the newly created issue id and number from JSON response
-              response=$(gh issue create \
+              # Create issue (returns URL like https://github.com/owner/repo/issues/123)
+              issue_url=$(gh issue create \
                 --title "Review slow test: $test_name" \
                 --label "type::testing" \
-                --body-file /tmp/slow-test-issue.md \
-                --json id,number)
-              issue_id=$(echo "$response" | jq -r '.id')
-              issue_number=$(echo "$response" | jq -r '.number')
+                --body-file /tmp/slow-test-issue.md)
+              issue_number="${issue_url##*/}"
 
-              # GraphQL query to add sub-issue to parent epic
-              # (gh CLI doesn't support parent issue linking yet: https://github.com/cli/cli/issues/10298)
+              # Get the node ID for GraphQL mutation
+              issue_id=$(gh issue view "$issue_number" --json id --jq '.id')
+
+              # GraphQL mutation to add sub-issue to parent epic
+              # (gh CLI doesn't support parent issue linking: https://github.com/cli/cli/issues/10298)
               gh api graphql -f query='
                 mutation($parent: ID!, $child: ID!) {
                   addSubIssue(input: {issueId: $parent, subIssueId: $child}) {
