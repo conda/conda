@@ -22,6 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Repository for gh CLI (no checkout means no git context)
+  GH_REPO: ${{ github.repository }}
   # TODO: Replace with the actual epic issue number
   EPIC_NUMBER: '15637'
   # Maximum number of incomplete sub-issues before we stop adding more
@@ -70,36 +72,73 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-slim
     steps:
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext-base
+
       - name: Get epic sub-issues
         id: epic
+        env:
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           # Verify epic exists, default to dry-run if missing
-          if ! gh issue view "$EPIC_NUMBER" --json number > /dev/null 2>&1; then
+          if ! gh issue view "${EPIC_NUMBER}" --json number > /dev/null 2>&1; then
             echo "::warning::Epic #${EPIC_NUMBER} does not exist. Running in dry-run mode."
             echo "epic_missing=true" >> "$GITHUB_OUTPUT"
             echo "incomplete_count=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Get sub-issues of the epic
-          # jq: extract sub-issue number, state, and title as tab-separated values
-          gh issue view "$EPIC_NUMBER" \
-            --json subIssues \
-            --jq '.subIssues[] | "\(.number)\t\(.state)\t\(.title)"' > /tmp/sub_issues.txt || true
+          # GraphQL query to fetch sub-issues with pagination
+          # (gh CLI doesn't expose subIssues field yet: https://github.com/cli/cli/issues/10298)
+          fetch_sub_issues() {
+            local cursor=""
+            local has_next="true"
 
-          echo "Current sub-issues:"
-          cat /tmp/sub_issues.txt || echo "(none)"
+            while [[ "$has_next" == "true" ]]; do
+              local after_clause=""
+              [[ -n "$cursor" ]] && after_clause=", after: \"$cursor\""
+
+              response=$(gh api graphql -f query='
+                query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    issue(number: $number) {
+                      subIssues(first: 100'"$after_clause"') {
+                        nodes { number state title }
+                        pageInfo { hasNextPage endCursor }
+                      }
+                    }
+                  }
+                }
+              ' -f owner="${REPO_OWNER}" -f repo="${REPO_NAME}" -F number="${EPIC_NUMBER}")
+
+              # jq: extract sub-issues as tab-separated values (number, state, title)
+              echo "$response" | jq -r '
+                .data.repository.issue.subIssues.nodes[] |
+                "\(.number)\t\(.state)\t\(.title)"
+              '
+
+              has_next=$(echo "$response" | jq -r '.data.repository.issue.subIssues.pageInfo.hasNextPage')
+              cursor=$(echo "$response" | jq -r '.data.repository.issue.subIssues.pageInfo.endCursor')
+            done
+          }
+
+          fetch_sub_issues > /tmp/sub_issues.txt
+
+          # Count total and incomplete sub-issues
+          total_count=$(wc -l < /tmp/sub_issues.txt 2>/dev/null) || total_count=0
+          incomplete_count=$(grep -c $'\tOPEN\t' /tmp/sub_issues.txt 2>/dev/null) || incomplete_count=0
+          echo "Sub-issues: ${total_count} total, ${incomplete_count} incomplete"
+
+          if [[ -s /tmp/sub_issues.txt ]]; then
+            echo "::group::Sub-issue details"
+            cat /tmp/sub_issues.txt
+            echo "::endgroup::"
+          fi
 
           # Extract test names from sub-issue titles (format: "Review slow test: <test_name>")
           cut -f3 /tmp/sub_issues.txt | sed 's/^Review slow test: //' > /tmp/tracked_tests.txt || true
-
-          echo "Previously reported tests (excluded from future reports):"
-          cat /tmp/tracked_tests.txt || echo "(none)"
-
-          # Count open (incomplete) sub-issues
-          incomplete_count=$(grep -c $'\tOPEN\t' /tmp/sub_issues.txt || echo 0)
-          echo "Incomplete sub-issues: $incomplete_count"
-          echo "incomplete_count=$incomplete_count" >> "$GITHUB_OUTPUT"
+          echo "incomplete_count=${incomplete_count}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch duration files
         id: durations
@@ -146,7 +185,7 @@ jobs:
               ) | add
             ' /tmp/all_durations.json "/tmp/${platform}.json" > /tmp/merged.json
             mv /tmp/merged.json /tmp/all_durations.json
-          done <<< "$PLATFORMS"
+          done <<< "${PLATFORMS}"
 
           echo "platforms_fetched=${fetched:-none}" >> "$GITHUB_OUTPUT"
           echo "platforms_missing=${missing}" >> "$GITHUB_OUTPUT"
@@ -194,12 +233,19 @@ jobs:
             TODAY="$today" \
             WORKFLOW_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/main/.github/workflows/slow-tests.yml" \
             RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-            envsubst <<< "$ISSUE_TEMPLATE" > /tmp/slow-test-issue.md
+            envsubst <<< "${ISSUE_TEMPLATE}" > /tmp/slow-test-issue.md
 
-            if [[ "$DRY_RUN" == "true" ]]; then
+            if [[ "${DRY_RUN}" == "true" ]]; then
               echo "::group::Would create: Review slow test: $test_name"
               cat /tmp/slow-test-issue.md
               echo "::endgroup::"
+              # Save for summary
+              echo "<details>" >> /tmp/dry_run_summary.md
+              echo "<summary>Would create: Review slow test: $test_name</summary>" >> /tmp/dry_run_summary.md
+              echo "" >> /tmp/dry_run_summary.md
+              cat /tmp/slow-test-issue.md >> /tmp/dry_run_summary.md
+              echo "</details>" >> /tmp/dry_run_summary.md
+              echo "" >> /tmp/dry_run_summary.md
             else
               # Create sub-issue linked to the epic
               # jq: extract the newly created issue number from JSON response
@@ -207,13 +253,13 @@ jobs:
                 --title "Review slow test: $test_name" \
                 --label "type::testing" \
                 --body-file /tmp/slow-test-issue.md \
-                --parent-issue "$EPIC_NUMBER" \
+                --parent-issue "${EPIC_NUMBER}" \
                 --json number --jq '.number')
 
               echo "Created sub-issue #$issue_number"
             fi
 
-            ((created++))
+            ((++created))
           done < /tmp/untracked_tests.txt
 
           echo "Processed $created tests"
@@ -228,13 +274,14 @@ jobs:
           CREATED_COUNT: ${{ steps.create.outputs.created_count }}
           PLATFORMS_FETCHED: ${{ steps.durations.outputs.platforms_fetched }}
           PLATFORMS_MISSING: ${{ steps.durations.outputs.platforms_missing }}
+          EPIC_URL: ${{ github.server_url }}/${{ github.repository }}/issues/${{ env.EPIC_NUMBER }}
         run: |
           echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${EPIC_MISSING}" == "true" ]]; then
-            echo "**Epic:** #${EPIC_NUMBER} (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
+            echo "**Epic:** [#${EPIC_NUMBER}](${EPIC_URL}) (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "**Epic:** #${EPIC_NUMBER}" >> $GITHUB_STEP_SUMMARY
+            echo "**Epic:** [#${EPIC_NUMBER}](${EPIC_URL})" >> $GITHUB_STEP_SUMMARY
           fi
           echo "**Platforms:** ${PLATFORMS_FETCHED}" >> $GITHUB_STEP_SUMMARY
           if [[ -n "${PLATFORMS_MISSING}" ]]; then
@@ -250,6 +297,8 @@ jobs:
             echo "**No untracked slow tests found**" >> $GITHUB_STEP_SUMMARY
           elif [[ "${DRY_RUN}" == "true" ]]; then
             echo "**Dry run, would create ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat /tmp/dry_run_summary.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
           else
             echo "**Created ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
           fi
