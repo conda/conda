@@ -324,7 +324,9 @@ def wrap_subprocess_call(
                 fh.write(">&2 echo '*** environment before ***'\n>&2 env\n")
 
             # We pursue activation inline here, which allows us to avoid
-            # spawning a `conda activate` process at wrapper runtime.
+            # spawning a `conda activate` subprocess at wrapper runtime.
+            # The inline activator sets all necessary environment variables
+            # (CONDA_EXE, PATH, CONDA_PREFIX, etc.) directly.
             activator_cls = _build_activator_cls("posix")
             activator_args = ["activate"]
             if dev_mode:
