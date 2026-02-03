@@ -388,8 +388,8 @@ def test_list_size_empty_paths_data(
 
         mocker.patch.object(PrefixData, "iter_records", side_effect=mock_iter_records)
 
-        # For packages with no files, the size is that of the conda-meta manifest
-        # which is always > 0 (and usually a few KB).
+        # the package size has to be > 0 as manifest files are still
+        # counted if there are no installed files
         stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size", "--json")
         parsed = json.loads(stdout)
         pkg_item = next((i for i in parsed if i["name"] == "small-executable"), None)

@@ -54,7 +54,7 @@ from ..exceptions import (
 from ..gateways.disk.create import first_writable_envs_dir, write_as_json_to_file
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.test import file_path_is_writable
-from ..models.enums import PackageType, PathEnum
+from ..models.enums import PackageType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.records import PackageRecord, PrefixRecord
@@ -431,41 +431,24 @@ class PrefixData(metaclass=PrefixDataType):
         Compute the total size of a conda environment prefix.
 
         This aggregates the installed size of all packages in the environment,
-        plus the size of files under conda-meta (history, markers, etc.).
-
-        Note: Package manifests for metapackages (packages with no files) are
-        already counted in their package_size(), so we skip them here to avoid
-        counting them twice.
+        plus the size of non-manifest files under conda-meta (history, markers,
+        etc.)
 
         :returns: Total size in bytes.
         """
         total_size = 0
-        counted_manifests = set()
 
         # 1. sum up the installed size of each package
         for record in self.iter_records():
-            pkg_size = record.package_size(self.prefix_path)
-            total_size += pkg_size
-            # track manifests that have already been counted in package_size():
-            # - packages with no paths_data entries (metapackages, mutexes)
-            # - packages with only softlinks/directories
-            if not record.paths_data.paths or all(
-                path.path_type in (PathEnum.softlink, PathEnum.directory)
-                for path in record.paths_data.paths
-            ):
-                manifest_name = f"{record.name}-{record.version}-{record.build}.json"
-                counted_manifests.add(manifest_name)
+            total_size += record.package_size(self.prefix_path)
 
-        # 2. add up the size of files under conda-meta (history, manifests, markers)
-        # that have not been counted already
+        # 2. add up the size of non-manifest files under conda-meta
         conda_meta_dir = self.prefix_path / "conda-meta"
         if self.exists():
             try:
-                for meta_file in (
-                    file
-                    for file in conda_meta_dir.iterdir()
-                    if file.name not in counted_manifests
-                ):
+                for meta_file in conda_meta_dir.iterdir():
+                    if meta_file.suffix == ".json":
+                        continue
                     try:
                         total_size += meta_file.stat().st_size
                     except OSError:
