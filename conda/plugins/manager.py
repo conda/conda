@@ -30,20 +30,7 @@ from ..exceptions import (
     EnvironmentSpecPluginNotDetected,
     PluginError,
 )
-from . import (
-    environment_exporters,
-    environment_specifiers,
-    package_extractors,
-    post_solves,
-    prefix_data_loaders,
-    reporter_backends,
-    solvers,
-    subcommands,
-    virtual_packages,
-)
 from .config import PluginConfig
-from .hookspec import CondaSpecs
-from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -903,6 +890,20 @@ def get_plugin_manager() -> CondaPluginManager:
     Get a cached version of the :class:`~conda.plugins.manager.CondaPluginManager` instance,
     with the built-in and entrypoints provided by the plugins loaded.
     """
+    from . import (
+        environment_exporters,
+        environment_specifiers,
+        package_extractors,
+        post_solves,
+        prefix_data_loaders,
+        reporter_backends,
+        solvers,
+        subcommands,
+        virtual_packages,
+    )
+    from .hookspec import CondaSpecs
+    from .subcommands.doctor import health_checks
+
     plugin_manager = CondaPluginManager()
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(

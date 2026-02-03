@@ -15,7 +15,6 @@ from shutil import which
 from typing import TYPE_CHECKING
 
 from . import CondaError
-from .activate import _build_activator_cls
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
@@ -215,6 +214,8 @@ def wrap_subprocess_call(
     if not isiterable(arguments):
         raise TypeError("`arguments` must be iterable")
     arguments = tuple(map(str, arguments))
+
+    from .activate import _build_activator_cls
 
     script_caller = None
     multiline = False
