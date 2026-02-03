@@ -203,9 +203,6 @@ def massage_arguments(arguments, errors="assert"):
     "use_system_tmp_path",
     addendum="Use the TMPDIR, TEMP, or TMP environment variables to set the system temporary directory location.",
 )
-@deprecated.argument(
-    "26.9", "27.3", "root_prefix", addendum="This argument is no longer used"
-)
 def wrap_subprocess_call(
     root_prefix,
     prefix,
