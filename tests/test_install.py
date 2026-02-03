@@ -212,10 +212,21 @@ def test_trash_outside_prefix(monkeypatch: MonkeyPatch):
     # drives). This is needed on Windows because we set TEMP to the D:
     # drive in CI tests to speed it up.
     if on_win and os.getenv("CI"):
-        root_drive = Path(context.root_prefix).drive
-        temp_on_same_drive = str(Path(root_drive) / "Temp")
-        monkeypatch.setenv("TEMP", temp_on_same_drive)
-        monkeypatch.setattr(tempfile, "tempdir", temp_on_same_drive)
+        prefix_drive = Path(context.root_prefix).drive.upper()
+        current_temp_drive = Path(tempfile.gettempdir()).drive.upper()
+
+        # Only adjust the paths when we have a cross-drive situation, for
+        # example in the conda repo CI tests where root_prefix is on C:
+        # drive and TEMP is on D: drive, but may not be set on other repos.
+        if prefix_drive and current_temp_drive and current_temp_drive != prefix_drive:
+            temp_on_same_drive = Path(f"{prefix_drive}\\") / "Temp"
+            temp_on_same_drive.mkdir(parents=True, exist_ok=True)
+
+            monkeypatch.setenv("TEMP", str(temp_on_same_drive))
+            monkeypatch.setenv("TMP", str(temp_on_same_drive))
+            monkeypatch.delenv("TMPDIR", raising=False)
+
+            monkeypatch.setattr(tempfile, "tempdir", str(temp_on_same_drive))
 
     tmp_dir = tempfile.mkdtemp()
     rel = relpath(tmp_dir, context.root_prefix)
