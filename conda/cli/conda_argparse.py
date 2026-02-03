@@ -45,6 +45,26 @@ from .helpers import (  # noqa: F401
     add_parser_update_modifiers,
     add_parser_verbose,
 )
+from .main_clean import configure_parser as configure_parser_clean
+from .main_commands import configure_parser as configure_parser_commands
+from .main_compare import configure_parser as configure_parser_compare
+from .main_config import configure_parser as configure_parser_config
+from .main_create import configure_parser as configure_parser_create
+from .main_env import configure_parser as configure_parser_env
+from .main_export import configure_parser as configure_parser_export
+from .main_info import configure_parser as configure_parser_info
+from .main_init import configure_parser as configure_parser_init
+from .main_install import configure_parser as configure_parser_install
+from .main_list import configure_parser as configure_parser_list
+from .main_mock_activate import configure_parser as configure_parser_activate
+from .main_mock_deactivate import configure_parser as configure_parser_deactivate
+from .main_notices import configure_parser as configure_parser_notices
+from .main_package import configure_parser as configure_parser_package
+from .main_remove import configure_parser as configure_parser_remove
+from .main_rename import configure_parser as configure_parser_rename
+from .main_run import configure_parser as configure_parser_run
+from .main_search import configure_parser as configure_parser_search
+from .main_update import configure_parser as configure_parser_update
 
 log = getLogger(__name__)
 
@@ -103,27 +123,6 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
 
 
 def generate_parser(**kwargs) -> ArgumentParser:
-    from .main_clean import configure_parser as configure_parser_clean
-    from .main_commands import configure_parser as configure_parser_commands
-    from .main_compare import configure_parser as configure_parser_compare
-    from .main_config import configure_parser as configure_parser_config
-    from .main_create import configure_parser as configure_parser_create
-    from .main_env import configure_parser as configure_parser_env
-    from .main_export import configure_parser as configure_parser_export
-    from .main_info import configure_parser as configure_parser_info
-    from .main_init import configure_parser as configure_parser_init
-    from .main_install import configure_parser as configure_parser_install
-    from .main_list import configure_parser as configure_parser_list
-    from .main_mock_activate import configure_parser as configure_parser_activate
-    from .main_mock_deactivate import configure_parser as configure_parser_deactivate
-    from .main_notices import configure_parser as configure_parser_notices
-    from .main_package import configure_parser as configure_parser_package
-    from .main_remove import configure_parser as configure_parser_remove
-    from .main_rename import configure_parser as configure_parser_rename
-    from .main_run import configure_parser as configure_parser_run
-    from .main_search import configure_parser as configure_parser_search
-    from .main_update import configure_parser as configure_parser_update
-
     parser = generate_pre_parser(**kwargs)
 
     parser.add_argument(
