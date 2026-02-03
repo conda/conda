@@ -329,7 +329,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
@@ -394,7 +394,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
@@ -487,7 +487,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
         image:
           - condaforge/miniforge3:latest
         platform: [ppc64le]
@@ -541,7 +541,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
@@ -872,7 +872,7 @@ jobs:
       fail-fast: false
       matrix:
         # check missing imports in one representative environment
-        python-version: ['3.13']
+        python-version: ['3.14']
         default-channel: [defaults]
 
     steps:
