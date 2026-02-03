@@ -37,6 +37,8 @@ env:
     Windows
   GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
   ISSUE_TEMPLATE: |
+    <!-- test_name: ${TEST_NAME} -->
+
     [slow-tests.yml]: ${WORKFLOW_URL}
 
     ## Slow Test Review
@@ -94,6 +96,7 @@ jobs:
 
           # GraphQL query to fetch sub-issues with pagination
           # (gh CLI doesn't expose sub-issue linking yet: https://github.com/cli/cli/issues/10298)
+          incomplete_count=0
           fetch_sub_issues() {
             local cursor=""
             local has_next="true"
@@ -107,7 +110,7 @@ jobs:
                   repository(owner: $owner, name: $repo) {
                     issue(number: $number) {
                       subIssues(first: 100'"$after_clause"') {
-                        nodes { number state title }
+                        nodes { number state body }
                         pageInfo { hasNextPage endCursor }
                       }
                     }
@@ -115,32 +118,31 @@ jobs:
                 }
               ' -f owner="${REPO_OWNER}" -f repo="${REPO_NAME}" -F number="${EPIC_NUMBER}")
 
-              # jq: extract sub-issues as tab-separated values (number, state, title)
-              echo "$response" | jq -r '
+              # jq: extract sub-issues as tab-separated values (number, state, test_name)
+              while IFS=$'\t' read -r number state test_name; do
+                # Only count sub-issues with our anchor (ignore manually linked)
+                [[ -z "$test_name" ]] && continue
+                [[ "$state" == "OPEN" ]] && ((++incomplete_count))
+                echo "#${number} [${state}] \`${test_name}\`"
+                echo "$test_name" >> /tmp/tracked_tests.txt
+              done < <(echo "$response" | jq -r '
                 .data.repository.issue.subIssues.nodes[] |
-                "\(.number)\t\(.state)\t\(.title)"
-              '
+                (.body | capture("<!-- test_name: (?<test>.+) -->") | .test) as $test |
+                "\(.number)\t\(.state)\t\($test // "")"
+              ')
 
               has_next=$(echo "$response" | jq -r '.data.repository.issue.subIssues.pageInfo.hasNextPage')
               cursor=$(echo "$response" | jq -r '.data.repository.issue.subIssues.pageInfo.endCursor')
             done
           }
 
-          fetch_sub_issues > /tmp/sub_issues.txt
+          echo "::group::Sub-issue details"
+          fetch_sub_issues
+          echo "::endgroup::"
 
-          # Count total and incomplete sub-issues
-          total_count=$(wc -l < /tmp/sub_issues.txt 2>/dev/null) || total_count=0
-          incomplete_count=$(grep -c $'\tOPEN\t' /tmp/sub_issues.txt 2>/dev/null) || incomplete_count=0
+          # Count total and report incomplete sub-issues count
+          total_count=$(wc -l < /tmp/tracked_tests.txt 2>/dev/null) || total_count=0
           echo "Sub-issues: ${total_count} total, ${incomplete_count} incomplete"
-
-          if [[ -s /tmp/sub_issues.txt ]]; then
-            echo "::group::Sub-issue details"
-            cat /tmp/sub_issues.txt
-            echo "::endgroup::"
-          fi
-
-          # Extract test names from sub-issue titles (format: "Review slow test: `<test_name>`")
-          cut -f3 /tmp/sub_issues.txt | sed 's/^Review slow test: `\(.*\)`$/\1/' > /tmp/tracked_tests.txt || true
           echo "incomplete_count=${incomplete_count}" >> "$GITHUB_OUTPUT"
 
       - name: Fetch duration files
