@@ -1015,6 +1015,9 @@ class CmdExeActivator(_Activator):
     def template_set_var(self, key: str, value: str) -> str:
         return self.set_var_tmpl % (key, self._escape_cmd_special_chars(value))
 
+    def template_run_script(self, script: str) -> str:
+        return self.run_script_tmpl % self._escape_cmd_special_chars(script)
+
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         prompt = os.getenv("PROMPT", "")
         current_prompt_modifier = os.getenv("CONDA_PROMPT_MODIFIER")
