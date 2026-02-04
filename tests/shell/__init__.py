@@ -12,6 +12,7 @@ from signal import SIGINT
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+import pexpect
 from pexpect.popen_spawn import PopenSpawn
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
@@ -190,33 +191,40 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.env = env or {}
 
     def __enter__(self):
-        self.p = PopenSpawn(
+        env = {
+            **os.environ,
+            "CONDA_AUTO_ACTIVATE": "false",
+            "CONDA_AUTO_STACK": "0",
+            "CONDA_CHANGEPS1": "true",
+            # CONDA_ENV_PROMPT uses default "({default_env}) " - uncomment to test custom formats
+            "PYTHONPATH": self.path_conversion(CONDA_SOURCE_ROOT),
+            "PATH": self.activator.pathsep_join(
+                self.path_conversion(
+                    (
+                        *self.activator._get_starting_path_list(),
+                        self.shell_dir,
+                    )
+                )
+            ),
+            # ensure PATH is shared with any msys2 bash shell, rather than starting fresh
+            "MSYS2_PATH_TYPE": "inherit",
+            "CHERE_INVOKING": "1",
+            **self.env,
+        }
+
+        # Fish shell needs a PTY to work properly with pexpect
+        # Use pexpect.spawn (PTY) for Fish instead of PopenSpawn (pipes)
+        use_pty = self.shell_name == "fish"
+        spawn_class = pexpect.spawn if use_pty else PopenSpawn
+
+        self.p = spawn_class(
             self.shell_exe,
             timeout=30,
             maxread=5000,
             searchwindowsize=None,
             logfile=sys.stdout,
             cwd=os.getcwd(),
-            env={
-                **os.environ,
-                "CONDA_AUTO_ACTIVATE": "false",
-                "CONDA_AUTO_STACK": "0",
-                "CONDA_CHANGEPS1": "true",
-                # "CONDA_ENV_PROMPT": "({default_env}) ",
-                "PYTHONPATH": self.path_conversion(CONDA_SOURCE_ROOT),
-                "PATH": self.activator.pathsep_join(
-                    self.path_conversion(
-                        (
-                            *self.activator._get_starting_path_list(),
-                            self.shell_dir,
-                        )
-                    )
-                ),
-                # ensure PATH is shared with any msys2 bash shell, rather than starting fresh
-                "MSYS2_PATH_TYPE": "inherit",
-                "CHERE_INVOKING": "1",
-                **self.env,
-            },
+            env=env,
             encoding="utf-8",
             codec_errors="strict",
         )
