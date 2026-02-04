@@ -8,6 +8,12 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
+from conda.testing.fixtures import (
+    PYTHON_VERSION,
+    TemplateEnvManager,
+    clone_env,
+    parse_python_spec,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -241,3 +247,143 @@ def test_tmp_pkgs_dir(tmp_pkgs_dir: Path) -> None:
 
 def test_tmp_envs_dir(tmp_envs_dir: Path) -> None:
     assert tmp_envs_dir.is_dir()
+
+
+def test_clone_env(path_factory: PathFactoryFixture) -> None:
+    """Test the clone_env utility function."""
+    # Create a source directory with some content
+    source = path_factory(name="source_env")
+    source.mkdir()
+    (source / "conda-meta").mkdir()
+    (source / "conda-meta" / "history").write_text("test")
+    (source / "test_file.txt").write_text("hello")
+
+    # Clone to target
+    target = path_factory(name="target_env")
+    assert clone_env(source, target)
+    assert target.exists()
+    assert (target / "conda-meta" / "history").read_text() == "test"
+    assert (target / "test_file.txt").read_text() == "hello"
+
+
+def test_clone_env_nonexistent_source(path_factory: PathFactoryFixture) -> None:
+    """Test clone_env fails gracefully with nonexistent source."""
+    source = path_factory(name="nonexistent")
+    target = path_factory(name="target")
+    # Should return False, not raise
+    assert not clone_env(source, target)
+
+
+def test_parse_python_spec() -> None:
+    """Test the parse_python_spec utility function."""
+    # Generic python spec
+    assert parse_python_spec("python") == PYTHON_VERSION
+
+    # Specific versions
+    assert parse_python_spec("python=3.11") == "3.11"
+    assert parse_python_spec("python==3.11") == "3.11"
+    assert parse_python_spec("python>=3.10") == "3.10"
+    assert parse_python_spec("python=3") == PYTHON_VERSION
+
+    # Glob patterns (MatchSpec converts "python=3" to "3.*")
+    assert parse_python_spec("python=3.11.*") == "3.11"
+
+    # Patch versions should extract minor version
+    assert parse_python_spec("python=3.11.5") == "3.11"
+    assert parse_python_spec("python==3.10.12") == "3.10"
+
+    # Non-python specs
+    assert parse_python_spec("pip") is None
+    assert parse_python_spec("numpy") is None
+
+    # Invalid specs should return None
+    assert parse_python_spec("") is None
+    assert parse_python_spec("invalid[[[") is None
+
+
+def test_template_env_manager(
+    template_env_manager: TemplateEnvManager | None,
+) -> None:
+    """Test that template_env_manager fixture is available."""
+    if template_env_manager is None:
+        pytest.skip("Template environment manager creation failed")
+    assert isinstance(template_env_manager, TemplateEnvManager)
+    assert template_env_manager.base_path.exists()
+
+
+def test_template_env_manager_find_matching_template(
+    template_env_manager: TemplateEnvManager | None,
+) -> None:
+    """Test TemplateEnvManager.find_matching_template logic."""
+    if template_env_manager is None:
+        pytest.skip("Template environment manager not available")
+
+    # Test Python-only spec - should create/return template with no delta
+    template, delta = template_env_manager.find_matching_template(("python=3.11",))
+    if template:  # Template creation might fail if Python 3.11 not available
+        assert template.exists()
+        assert delta == ()
+        assert PrefixData(template).is_environment()
+
+    # Test Python + pip - should create/return template with no delta
+    template2, delta2 = template_env_manager.find_matching_template(
+        ("python=3.11", "pip")
+    )
+    if template2:
+        assert delta2 == ()
+
+    # Test Python + other package - should return Python template with delta
+    template3, delta3 = template_env_manager.find_matching_template(
+        ("python=3.11", "numpy")
+    )
+    if template3:
+        assert "numpy" in delta3
+
+    # Test non-Python spec - should return None
+    template4, delta4 = template_env_manager.find_matching_template(("zlib",))
+    assert template4 is None
+    assert delta4 == ("zlib",)
+
+    # Test specs with flags - should return None (flags might affect env)
+    template5, delta5 = template_env_manager.find_matching_template(
+        ("python", "--solver=classic")
+    )
+    assert template5 is None
+
+
+def test_tmp_env_with_template_cloning(
+    tmp_env: TmpEnvFixture,
+    template_env_manager: TemplateEnvManager | None,
+) -> None:
+    """Test that tmp_env can clone from template for Python-only envs."""
+    if template_env_manager is None:
+        pytest.skip("Template environment manager not available")
+
+    # Create env with just Python - should clone from template
+    with tmp_env("python") as prefix:
+        assert PrefixData(prefix).is_environment()
+        # Verify Python is installed
+        python_records = [
+            rec
+            for rec in PrefixData(prefix).iter_records()
+            if rec.name == "python"
+        ]
+        assert python_records, "Python package should be installed"
+
+
+def test_tmp_env_clone_and_install_delta(
+    tmp_env: TmpEnvFixture,
+    template_env_manager: TemplateEnvManager | None,
+) -> None:
+    """Test that tmp_env can clone template and install delta packages."""
+    if template_env_manager is None:
+        pytest.skip("Template environment manager not available")
+
+    # Create env with Python + pip - should clone Python template and install pip
+    # (or clone python+pip template directly)
+    with tmp_env("python", "pip") as prefix:
+        assert PrefixData(prefix).is_environment()
+        # Verify both Python and pip are installed
+        records = {rec.name for rec in PrefixData(prefix).iter_records()}
+        assert "python" in records, "Python package should be installed"
+        assert "pip" in records, "pip package should be installed"
