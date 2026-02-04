@@ -978,14 +978,6 @@ def test_timestamps(
         assert start < pd.created < second_modification < datetime.now(tz=timezone.utc)
 
 
-# =============================================================================
-# PrefixData.validate_name() Tests (Issue #12558)
-# =============================================================================
-# These tests document the behavior of the validate_name() method for
-# environment names containing special characters.
-# =============================================================================
-
-
 @pytest.mark.parametrize(
     "env_name,should_raise",
     [

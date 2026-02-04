@@ -225,20 +225,6 @@ def test_legacy_activate_deactivate_cmd_exe(
         assert conda_shlvl == "0", conda_shlvl
 
 
-# =============================================================================
-# Special Character Tests (Issue #12558)
-# =============================================================================
-# These tests characterize the behavior of environment names containing special
-# characters that are problematic in Windows CMD.EXE batch scripts.
-#
-# Background:
-# - PR #13975 tried to disallow these characters but was reverted in #14065
-# - The `!` character was historically broken due to EnableDelayedExpansion
-# - PR #14607 rewrote the batch scripts to use static INI-style files
-# - These tests verify current behavior and will inform the fix for #12558
-# =============================================================================
-
-
 @PARAMETRIZE_CMD_EXE
 @PARAMETRIZE_WINDOWS_PROBLEMATIC_CHARS
 def test_cmd_exe_special_char_env_activate_by_path(
