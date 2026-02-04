@@ -74,15 +74,13 @@ SEARCH_PATH += (
 
 DEFAULT_CHANNEL_ALIAS: Final = "https://conda.anaconda.org"
 CONDA_HOMEPAGE_URL: Final = "https://conda.io"
-ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
 
 deprecated.constant(
     "26.9",
     "27.3",
     "ERROR_UPLOAD_URL",
-    ERROR_UPLOAD_URL,
+    "https://conda.io/conda-post/unexpected-error",
 )
-del ERROR_UPLOAD_URL
 
 DEFAULTS_CHANNEL_NAME: Final = "defaults"
 

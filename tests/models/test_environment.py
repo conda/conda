@@ -13,7 +13,11 @@ from conda.base.constants import ChannelPriority
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
-from conda.models.environment import Environment, EnvironmentConfig
+from conda.models.environment import (
+    EXTERNAL_PACKAGES_PYPI_KEY,
+    Environment,
+    EnvironmentConfig,
+)
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
@@ -24,7 +28,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import TmpEnvFixture
+    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
 
 
 def test_create_environment_missing_required_fields():
@@ -90,7 +94,7 @@ def test_environments_merge():
             channel_settings=({"channel": "one", "a": 1},),
         ),
         external_packages={
-            "pip": ["one", "two", {"special": "type"}],
+            EXTERNAL_PACKAGES_PYPI_KEY: ["one", "two", {"special": "type"}],
             "other": ["three"],
         },
         explicit_packages=[],
@@ -107,7 +111,10 @@ def test_environments_merge():
             channel_settings=({"channel": "two", "b": 2},),
             repodata_fns=("repodata2.json",),
         ),
-        external_packages={"pip": ["two", "flask"], "a": ["nother"]},
+        external_packages={
+            EXTERNAL_PACKAGES_PYPI_KEY: ["two", "flask"],
+            "a": ["nother"],
+        },
         explicit_packages=[],
         requested_packages=[MatchSpec("numpy"), MatchSpec("flask")],
         variables={"VAR": "IABLE"},
@@ -132,7 +139,7 @@ def test_environments_merge():
         repodata_fns=("repodata2.json",),
     )
     assert merged.external_packages == {
-        "pip": ["one", "two", {"special": "type"}, "flask"],
+        EXTERNAL_PACKAGES_PYPI_KEY: ["one", "two", {"special": "type"}, "flask"],
         "other": ["three"],
         "a": ["nother"],
     }
@@ -393,6 +400,52 @@ def test_from_prefix_options_affect_correct_packages(tmp_env: TmpEnvFixture):
 
         # ignore_channels: no "::" in specs
         assert not any("::" in spec for spec in no_channels_specs)
+
+
+def test_from_prefix_behavior_with_pip_interoperability(
+    tmp_env: TmpEnvFixture, pip_cli: PipCLIFixture, wheelhouse: Path
+):
+    """Test that extrapolating an env from a prefix behaves correctly with conda and pip packages."""
+    # Create environment with conda packages and pip
+    packages = ["python=3.13", "pip"]
+    with tmp_env(*packages) as prefix:
+        # Install small-python-package wheel for testing pip interoperability
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+        pip_stdout, pip_stderr, pip_code = pip_cli(
+            "install", str(wheel_path), prefix=prefix
+        )
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
+
+        # Clear prefix data cache to ensure fresh data
+        PrefixData._cache_.clear()
+
+        env = Environment.from_prefix(
+            str(prefix), "test", context.subdir, from_history=False
+        )
+
+        # Check that expected conda packages are present. Note, purposefully leaving out some packages
+        # that are not common for all platforms.
+        expected_conda_explicit_names = [
+            "python",
+            "python_abi",
+            "pip",
+            "tk",
+            "bzip2",
+            "openssl",
+            "ca-certificates",
+        ]
+        actual_explicit_package_names = [pkg.name for pkg in env.explicit_packages]
+        for pkg in expected_conda_explicit_names:
+            assert pkg in actual_explicit_package_names
+
+        # Check that the pip install package is present in the set of externally
+        # managed packages, but not in the explicit packages
+        assert len(env.external_packages[EXTERNAL_PACKAGES_PYPI_KEY]) == 1
+        assert (
+            "small-python-package==1.0.0"
+            == env.external_packages[EXTERNAL_PACKAGES_PYPI_KEY][0]
+        )
+        assert "small-python-package" not in [pkg.name for pkg in env.explicit_packages]
 
 
 def test_environment_config_channels_basic():
