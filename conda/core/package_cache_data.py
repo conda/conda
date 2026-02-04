@@ -24,7 +24,6 @@ from ..auxlib.entity import ValidationError
 from ..base.constants import (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSIONS,
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
@@ -38,7 +37,6 @@ from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
-    extract_tarball,
     write_as_json_to_file,
 )
 from ..gateways.disk.delete import rm_rf
@@ -115,7 +113,6 @@ class PackageCacheData(metaclass=PackageCacheType):
             # no directory exists, and we didn't have permissions to create it
             return
 
-        _CONDA_TARBALL_EXTENSIONS = CONDA_PACKAGE_EXTENSIONS
         pkgs_dir_contents = tuple(entry.name for entry in scandir(self.pkgs_dir))
         for base_name in self._dedupe_pkgs_dir_contents(pkgs_dir_contents):
             full_path = join(self.pkgs_dir, base_name)
@@ -125,7 +122,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                 isdir(full_path)
                 and isfile(join(full_path, "info", "index.json"))
                 or isfile(full_path)
-                and full_path.endswith(_CONDA_TARBALL_EXTENSIONS)
+                and context.plugin_manager.has_package_extension(full_path)
             ):
                 try:
                     package_cache_record = self._make_single_record(base_name)
@@ -426,8 +423,9 @@ class PackageCacheData(metaclass=PackageCacheType):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         try:
-                            extract_tarball(
-                                package_tarball_full_path, extracted_package_dir
+                            context.plugin_manager.extract_package(
+                                package_tarball_full_path,
+                                extracted_package_dir,
                             )
                         except (OSError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
@@ -567,7 +565,7 @@ class UrlsData:
         #       That's probably a good assumption going forward, because we should now always
         #       be recording the extension in urls.txt.  The extensionless situation should be
         #       legacy behavior only.
-        if not package_path.endswith(CONDA_PACKAGE_EXTENSIONS):
+        if not context.plugin_manager.has_package_extension(package_path):
             package_path += CONDA_PACKAGE_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
@@ -707,10 +705,19 @@ class ProgressiveFetchExtract:
         if not url:
             raise ValueError(".url field is required and must be non-empty.")
 
+        # Determine the target filename for the downloaded package.
+        # For the draft repodata v3 format (especially packages.whl), while the
+        # repodata contains the correct fn field (e.g., idna-3.10-py3-none-any.whl),
+        # rattler sanitizes it internally to a conda-style identifier
+        # (e.g., idna-3.10-py3_none_any_0). We extract from URL which always
+        # contains the correct filename.
+        # See: https://github.com/conda/conda/issues/15620
+        target_package_basename = basename(url) or pref_or_spec.fn
+
         cache_action = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_package_basename=pref_or_spec.fn,
+            target_package_basename=target_package_basename,
             sha256=sha256,
             size=size,
             md5=md5,
@@ -718,7 +725,7 @@ class ProgressiveFetchExtract:
         extract_action = ExtractPackageAction(
             source_full_path=cache_action.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
+            target_extracted_dirname=strip_pkg_extension(target_package_basename)[0],
             record_or_spec=pref_or_spec,
             sha256=sha256,
             size=size,

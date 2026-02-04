@@ -74,15 +74,13 @@ SEARCH_PATH += (
 
 DEFAULT_CHANNEL_ALIAS: Final = "https://conda.anaconda.org"
 CONDA_HOMEPAGE_URL: Final = "https://conda.io"
-ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
 
 deprecated.constant(
     "26.9",
     "27.3",
     "ERROR_UPLOAD_URL",
-    ERROR_UPLOAD_URL,
+    "https://conda.io/conda-post/unexpected-error",
 )
-del ERROR_UPLOAD_URL
 
 DEFAULTS_CHANNEL_NAME: Final = "defaults"
 
@@ -179,14 +177,32 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
-CONDA_PACKAGE_EXTENSIONS: Final = (
-    CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSION_V1,
+
+PARTIAL_EXTENSION: Final = ".partial"
+"""Suffix appended to package filenames during incomplete downloads."""
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CONDA_PACKAGE_EXTENSIONS",
+    (CONDA_PACKAGE_EXTENSION_V2, CONDA_PACKAGE_EXTENSION_V1),
+    addendum="Use `conda.base.context.context.plugin_manager.get_package_extractors()` instead.",
 )
-CONDA_PACKAGE_PARTS: Final = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
-CONDA_TARBALL_EXTENSION: Final = (
-    CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CONDA_PACKAGE_PARTS",
+    (f"{CONDA_PACKAGE_EXTENSION_V2}.part", f"{CONDA_PACKAGE_EXTENSION_V1}.part"),
+    addendum=(
+        "The `.part` suffix has not been used since 2014; use "
+        "`conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with "
+        "`str.removesuffix()` instead."
+    ),
 )
+
+# legacy support for conda-build
+CONDA_TARBALL_EXTENSION: Final = CONDA_PACKAGE_EXTENSION_V1
 CONDA_TEMP_EXTENSION: Final = ".c~"
 CONDA_TEMP_EXTENSIONS: Final = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR: Final = ".logs"

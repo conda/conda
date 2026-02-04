@@ -41,6 +41,7 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    YamlRawParameter,
 )
 from ..common.constants import TRACE
 from ..common.iterators import groupby_to_dict, unique
@@ -964,28 +965,16 @@ class Context(Configuration):
         else:
             default_channels = list(self._default_channels)
 
-        reserved_multichannel_urls = {
-            DEFAULTS_CHANNEL_NAME: default_channels,
-            "local": self.conda_build_local_urls,
-        }
-        reserved_multichannels = {
-            name: tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls
-            )
-            for name, urls in reserved_multichannel_urls.items()
-        }
-        custom_multichannels = {
-            name: tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls
-            )
-            for name, urls in self._custom_multichannels.items()
-        }
         return {
-            name: channels
-            for name, channels in (
-                *custom_multichannels.items(),
-                *reserved_multichannels.items(),  # order maters, reserved overrides custom
+            name: tuple(
+                Channel.make_simple_channel(self.channel_alias, url) for url in urls
             )
+            for name, urls in {
+                # order matters
+                DEFAULTS_CHANNEL_NAME: default_channels,  # default_channels is a legacy keyword
+                **self._custom_multichannels,  # custom_multichannels.defaults overrides default_channels
+                "local": self.conda_build_local_urls,  # always last, local is a reserved name and cannot be overridden
+            }.items()
         }
 
     @memoizedproperty
@@ -1247,10 +1236,11 @@ class Context(Configuration):
     def create_default_packages(self) -> tuple[str, ...]:
         """Returns a list of `create_default_packages`, removing any explicit packages."""
         from ..common.io import dashlist
-        from ..common.path import is_package_file
 
         grouped_packages = groupby_to_dict(
-            lambda x: "explicit" if is_package_file(x) else "spec",
+            lambda x: "explicit"
+            if context.plugin_manager.has_package_extension(x)
+            else "spec",
             sequence=self._create_default_packages,
         )
 
@@ -1626,13 +1616,15 @@ class Context(Configuration):
             ),
             custom_multichannels=dals(
                 """
-                A multichannel is a metachannel composed of multiple channels. The two reserved
-                multichannels are 'defaults' and 'local'. The 'defaults' multichannel is
-                customized using the 'default_channels' parameter. The 'local'
-                multichannel is a list of file:// channel locations where conda-build stashes
-                successfully-built packages.  Other multichannels can be defined with
+                A multichannel is a metachannel composed of multiple channels. The only reserved
+                multichannel is 'local', which is a list of file:// channel locations where
+                conda-build stashes successfully-built packages and cannot be overridden.
+                Other multichannels, including 'defaults', can be defined or customized with
                 custom_multichannels, where the key is the multichannel name and the value is
-                a list of channel names and/or channel urls.
+                a list of channel names and/or channel urls. The 'defaults' multichannel can
+                also be customized using the 'default_channels' parameter (a historical setting
+                from when 'defaults' was reserved). If both are defined,
+                'custom_multichannels.defaults' takes precedence.
                 """
             ),
             default_activation_env=dals(
@@ -1645,6 +1637,7 @@ class Context(Configuration):
             default_channels=dals(
                 """
                 The list of channel names and/or urls used for the 'defaults' multichannel.
+                Can be overridden by 'custom_multichannels.defaults'.
                 """
             ),
             # default_python=dals(
@@ -2073,6 +2066,7 @@ def reset_context(
 
     PluginConfig.remove_all_plugin_settings()
 
+    YamlRawParameter.cache_clear()
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)
     from ..models.channel import Channel
@@ -2230,8 +2224,8 @@ def env_name(prefix: PathType) -> PathType | str | None:
 
 
 def locate_prefix_by_name(name: str, envs_dirs: PathsType | None = None) -> PathType:
-    """Find the location of a prefix given a conda env name.  If the location does not exist, an
-    error is raised.
+    """Find the location of a prefix given a conda env name. If the location does not exist, an
+    error is raised. If the prefix is the base or root env, the root prefix is returned.
     """
     if not name:
         raise ValueError("'name' cannot be empty.")

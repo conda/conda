@@ -46,7 +46,6 @@ from ..gateways.disk.create import (
     create_hard_link_or_copy,
     create_link,
     create_python_entry_point,
-    extract_tarball,
     make_menu,
     mkdir_p,
     write_as_json_to_file,
@@ -765,6 +764,17 @@ class CompileMultiPycAction(MultiPathAction):
         )
         self._execute_successful = True
 
+        # Update prefix_paths_data with the file sizes now that the .pyc files exist.
+        # Note: when used via AggregateCompileMultiPycAction, this updates the
+        # aggregate's prefix_paths_data. The aggregate's execute() will separately
+        # update each individual action's data.
+        for path_data in self.prefix_paths_data:
+            pyc_full_path = join(self.target_prefix, win_path_ok(path_data._path))
+            try:
+                path_data.size_in_bytes = getsize(pyc_full_path)
+            except OSError:
+                log.log(TRACE, "could not get size for %s", pyc_full_path)
+
     def reverse(self):
         # this removes all pyc files even if they were not created
         if self._execute_successful:
@@ -782,6 +792,7 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
     """
 
     def __init__(self, *individuals, **kw):
+        self._individuals = individuals
         transaction_context = individuals[0].transaction_context
         # not used; doesn't matter
         package_info = individuals[0].package_info
@@ -798,6 +809,18 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
             source_short_paths,
             target_short_paths,
         )
+
+    def execute(self):
+        super().execute()
+        # Update each individual action's prefix_paths_data with file sizes.
+        # The manifest is written using individual actions' data, not the aggregate's.
+        for individual in self._individuals:
+            for path_data in individual.prefix_paths_data:
+                pyc_full_path = join(self.target_prefix, win_path_ok(path_data._path))
+                try:
+                    path_data.size_in_bytes = getsize(pyc_full_path)
+                except OSError:
+                    log.log(TRACE, "could not get size for %s", pyc_full_path)
 
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
@@ -887,6 +910,10 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         create_python_entry_point(
             self.target_full_path, python_full_path, self.module, self.func
         )
+        try:
+            self.prefix_path_data.size_in_bytes = getsize(self.target_full_path)
+        except OSError:
+            log.log(TRACE, "could not get size for %s", self.target_full_path)
         self._execute_successful = True
 
     def reverse(self):
@@ -1430,10 +1457,10 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        extract_tarball(
+        # extract the package using the appropriate plugin
+        context.plugin_manager.extract_package(
             self.source_full_path,
             self.target_full_path,
-            progress_update_callback=progress_update_callback,
         )
 
         try:

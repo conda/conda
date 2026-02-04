@@ -28,7 +28,7 @@ jobs:
           )
         )
       )
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - if: github.event_name == 'issue_comment'
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
@@ -44,7 +44,7 @@ jobs:
           echo REPOSITORY=$(curl --silent ${{ github.event.issue.pull_request.url }} | jq --raw-output '.head.repo.full_name') >> $GITHUB_ENV
           echo REF=$(curl --silent ${{ github.event.issue.pull_request.url }} | jq --raw-output '.head.ref') >> $GITHUB_ENV
 
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: ${{ env.REPOSITORY || github.repository }}
           ref: ${{ env.REF || '' }}
@@ -55,11 +55,11 @@ jobs:
           git config --global user.name 'Conda Bot'
           git config --global user.email '18747875+conda-bot@users.noreply.github.com'
 
-      - uses: conda/actions/combine-durations@f05161c6e6e37a49b17c8e0b436197b53830318a # v25.9.2
+      - uses: conda/actions/combine-durations@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
         id: durations
         continue-on-error: true
 
-      - uses: conda/actions/template-files@f05161c6e6e37a49b17c8e0b436197b53830318a # v25.9.2
+      - uses: conda/actions/template-files@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
         id: templates
         continue-on-error: true
 
@@ -80,7 +80,7 @@ jobs:
       - if: github.event.comment.body != '@conda-bot render'
         id: create
         # no-op if no commits were made
-        uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725 # v8.0.0
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
         with:
           push-to-fork: ${{ env.FORK }}
           token: ${{ secrets.SYNC_TOKEN }}

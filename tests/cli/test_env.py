@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
 
     from conda.testing.fixtures import (
         CondaCLIFixture,
+        HttpTestServerFixture,
         PathFactoryFixture,
         TmpEnvFixture,
     )
@@ -277,13 +279,20 @@ def test_conda_env_create_empty_file(
 
 
 @pytest.mark.integration
-def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
+@pytest.mark.parametrize(
+    "http_test_server",
+    [Path(__file__).parent.parent / "env/support"],
+    indirect=True,
+)
+def test_conda_env_create_http(
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    test_recipes_channel: Path,
+    http_test_server: HttpTestServerFixture,
+):
     """Test `conda env create --file=https://some-website.com/environment.yml`."""
-    conda_cli(
-        *("env", "create"),
-        f"--prefix={tmp_path}",
-        "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
-    )
+    url = http_test_server.get_url("small-executable.yml")
+    conda_cli("env", "create", f"--prefix={tmp_path}", f"--file={url}")
     assert (tmp_path / PREFIX_MAGIC_FILE).is_file()
 
 
@@ -693,3 +702,38 @@ def test_list_info_envs(conda_cli: CondaCLIFixture):
     stdout_env, _, _ = conda_cli("env", "list", "--json")
     stdout_info, _, _ = conda_cli("info", "--envs", "--json")
     assert stdout_env == stdout_info
+
+
+def test_env_list_size(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("env", "list", "--size")
+    assert not stderr
+    assert not err
+
+    lines = stdout.strip().split("\n")
+    non_comment_lines = [line for line in lines if line and not line.startswith("#")]
+
+    # regex to match: <any prefix stuff> <number> <unit> <path>
+    # The path is at the end of the line.
+    pattern = re.compile(
+        r"\s+(?P<size>\d+(\.\d+)?)\s+(?P<unit>B|KB|MB|GB)\s+(?P<path>.*)$"
+    )
+
+    for line in non_comment_lines:
+        match = pattern.search(line)
+        assert match, f"Line did not match size pattern: {line}"
+        assert match.group("unit") in ["B", "KB", "MB", "GB"]
+
+
+def test_env_list_size_json(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("env", "list", "--size", "--json")
+    assert not stderr
+    assert not err
+
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+    assert "envs_details" in parsed
+
+    for prefix, details in parsed["envs_details"].items():
+        assert "size" in details
+        assert isinstance(details["size"], int)
+        assert details["size"] >= 0
