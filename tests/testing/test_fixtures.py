@@ -261,13 +261,14 @@ def test_template_env_manager(
 def test_template_env_manager_can_satisfy_python(
     template_env_manager: TemplateEnvManager | None,
 ) -> None:
-    """Test can_satisfy returns True for specs the template has."""
+    """Test can_satisfy returns True for specs without version constraints."""
     if template_env_manager is None:
         pytest.skip("Template environment manager not available")
 
-    # Template has python - should satisfy
+    # Template has python - should satisfy when no version constraint
     assert template_env_manager.can_satisfy(("python",))
-    assert template_env_manager.can_satisfy(("python=3.10",))  # Version ignored
+    # Version constraints should NOT satisfy (conservative approach)
+    assert not template_env_manager.can_satisfy(("python=3.10",))
 
 
 def test_template_env_manager_can_satisfy_python_pip(
@@ -290,6 +291,20 @@ def test_template_env_manager_can_satisfy_missing_package(
 
     # Template doesn't have numpy (unlikely to be in python+pip template)
     assert not template_env_manager.can_satisfy(("python", "numpy"))
+
+
+def test_template_env_manager_can_satisfy_version_constraint(
+    template_env_manager: TemplateEnvManager | None,
+) -> None:
+    """Test can_satisfy returns False when specs have version constraints."""
+    if template_env_manager is None:
+        pytest.skip("Template environment manager not available")
+
+    # Version constraints should NOT match - template version may differ
+    assert not template_env_manager.can_satisfy(("python=3.10",))
+    assert not template_env_manager.can_satisfy(("python>=3.10",))
+    assert not template_env_manager.can_satisfy(("python==3.10",))
+    assert not template_env_manager.can_satisfy(("pip>=21.0",))
 
 
 def test_template_env_manager_can_satisfy_with_flags(

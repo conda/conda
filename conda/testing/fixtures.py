@@ -92,16 +92,20 @@ class TemplateEnvManager:
     def can_satisfy(self, specs: tuple[str, ...]) -> bool:
         """Check if template has all packages required by specs.
 
-        Uses package name matching only (not version). This means:
-        - "python" matches if template has any python
-        - "python=3.10" matches if template has python (version may differ)
-        - "numpy" matches if template has numpy
+        Only matches specs WITHOUT version constraints:
+        - "python" matches if template has python
+        - "pip" matches if template has pip
+        - "python=3.10" does NOT match (has version constraint)
+        - "numpy>=1.0" does NOT match (has version constraint)
+
+        This conservative approach ensures we only clone when the template
+        definitely has what the test needs.
 
         Args:
             specs: Package specs requested by the test
 
         Returns:
-            True if template has all required packages by name
+            True if template has all required packages and no version constraints
         """
         if not self.template_path or not self.template_path.exists():
             return False
@@ -120,7 +124,15 @@ class TemplateEnvManager:
                 has_flags = True
                 continue
             try:
-                required_names.add(MatchSpec(spec_str).name)
+                match_spec = MatchSpec(spec_str)
+                # If spec has ANY version constraint, don't clone
+                # Version might not match what's in template
+                if match_spec.version:
+                    log.debug(
+                        "Spec %r has version constraint, skipping clone", spec_str
+                    )
+                    return False
+                required_names.add(match_spec.name)
             except InvalidMatchSpec:
                 # If we can't parse the spec, be conservative
                 return False
