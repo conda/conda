@@ -7,7 +7,7 @@ import sys
 from logging import getLogger
 from pathlib import Path
 from re import escape
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -22,6 +22,8 @@ from . import activate, deactivate, dev_arg, install
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
+    from conda.testing.fixtures import TmpEnvFixture
+
     from . import Shell
 
 log = getLogger(__name__)
@@ -31,68 +33,9 @@ pytestmark = [
     pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
 ]
 PARAMETRIZE_CMD_EXE = pytest.mark.parametrize("shell", ["cmd.exe"], indirect=True)
-
-
-class SpecialCharEnv(NamedTuple):
-    """A minimal conda environment with a special character in its name."""
-
-    path: Path
-    char: str
-    name: str
-
-
-# Mapping from special characters to human-readable test IDs
-_CHAR_IDS = {
-    "!": "exclamation",
-    "=": "equals",
-    "^": "caret",
-    "%": "percent",
-    "(": "open_paren",
-    ")": "close_paren",
-}
-
-# Derive parametrization from WINDOWS_PROBLEMATIC_CHARS constant
-# Use tuples (char, suffix) for env names like "test!env_exclamation"
-SPECIAL_CHARS_WITH_SUFFIX = [
-    pytest.param((char, _CHAR_IDS[char]), id=_CHAR_IDS[char])
-    for char in WINDOWS_PROBLEMATIC_CHARS
-]
-
-# Use just the char for simple env names like "test!env"
-SPECIAL_CHARS_SIMPLE = [
-    pytest.param(char, id=_CHAR_IDS[char]) for char in WINDOWS_PROBLEMATIC_CHARS
-]
-
-
-@pytest.fixture
-def special_char_env(tmp_path: Path, request: pytest.FixtureRequest) -> SpecialCharEnv:
-    """
-    Create a minimal conda environment with a special character in its name.
-
-    Usage with indirect parametrization:
-        @pytest.mark.parametrize("special_char_env", SPECIAL_CHARS, indirect=True)
-        def test_something(special_char_env: SpecialCharEnv):
-            env_path = special_char_env.path
-            char = special_char_env.char
-            name = special_char_env.name
-
-    The param can be either:
-        - A string (the special char): creates env named "test{char}env"
-        - A tuple (char, suffix): creates env named "test{char}env_{suffix}"
-    """
-    param = getattr(request, "param", "!")
-    if isinstance(param, tuple):
-        char, suffix = param
-        env_name = f"test{char}env_{suffix}"
-    else:
-        char = param
-        env_name = f"test{char}env"
-
-    env_path = tmp_path / "envs" / env_name
-    conda_meta = env_path / "conda-meta"
-    conda_meta.mkdir(parents=True)
-    (conda_meta / "history").write_text("")
-    return SpecialCharEnv(path=env_path, char=char, name=env_name)
+PARAMETRIZE_WINDOWS_PROBLEMATIC_CHARS = pytest.mark.parametrize(
+    "special_char", WINDOWS_PROBLEMATIC_CHARS
+)
 
 
 @PARAMETRIZE_CMD_EXE
@@ -297,10 +240,11 @@ def test_legacy_activate_deactivate_cmd_exe(
 
 
 @PARAMETRIZE_CMD_EXE
-@pytest.mark.parametrize("special_char_env", SPECIAL_CHARS_WITH_SUFFIX, indirect=True)
+@PARAMETRIZE_WINDOWS_PROBLEMATIC_CHARS
 def test_cmd_exe_special_char_env_activate_by_path(
     shell: Shell,
-    special_char_env: SpecialCharEnv,
+    special_char: str,
+    tmp_env: TmpEnvFixture,
 ) -> None:
     """
     Test activation of environments with special characters by path.
@@ -313,10 +257,7 @@ def test_cmd_exe_special_char_env_activate_by_path(
     These tests characterize current behavior. Some may fail, indicating
     which characters are truly problematic vs which work correctly.
     """
-    env_path = special_char_env.path
-    special_char = special_char_env.char
-
-    with shell.interactive() as sh:
+    with tmp_env(path_infix=special_char) as env_path, shell.interactive() as sh:
         # Try to activate by path (should work even if name validation fails)
         sh.sendline(f'conda {activate} "{env_path}"')
 
@@ -349,10 +290,11 @@ def test_cmd_exe_special_char_env_activate_by_path(
 
 
 @PARAMETRIZE_CMD_EXE
-@pytest.mark.parametrize("special_char_env", SPECIAL_CHARS_SIMPLE, indirect=True)
+@PARAMETRIZE_WINDOWS_PROBLEMATIC_CHARS
 def test_cmd_exe_special_char_prompt_display(
     shell: Shell,
-    special_char_env: SpecialCharEnv,
+    special_char: str,
+    tmp_env: TmpEnvFixture,
     monkeypatch: MonkeyPatch,
 ) -> None:
     """
@@ -368,11 +310,7 @@ def test_cmd_exe_special_char_prompt_display(
     monkeypatch.setenv("CONDA_ENV_PROMPT", "({default_env}) ")
     reset_context()
 
-    env_path = special_char_env.path
-    env_name = special_char_env.name
-    special_char = special_char_env.char
-
-    with shell.interactive() as sh:
+    with tmp_env(path_infix=special_char) as env_path, shell.interactive() as sh:
         # Activate the environment
         sh.sendline(f'conda {activate} "{env_path}"')
         sh.sendline("echo ACTIVATION_COMPLETE")
@@ -386,13 +324,13 @@ def test_cmd_exe_special_char_prompt_display(
 
         # The prompt should start with the env name in parentheses
         # and should NOT have the corruption pattern
-        expected_prefix = f"({env_name})"
+        expected_prefix = f"({env_path.name})"
 
         # Check for corruption patterns (e.g., repeated fragments)
         # The = sign was known to cause: (python=3.12) 3.12) ==3.12)
         corruption_indicators = [
             f"{special_char}{special_char}",  # doubled special char
-            f") {env_name.split(special_char)[-1]})",  # partial name repeated
+            f") {env_path.name.split(special_char)[-1]})",  # partial name repeated
         ]
 
         has_corruption = any(
@@ -414,7 +352,7 @@ def test_cmd_exe_special_char_prompt_display(
 @PARAMETRIZE_CMD_EXE
 def test_cmd_exe_exclamation_mark_not_stripped(
     shell: Shell,
-    tmp_path: Path,
+    tmp_env: TmpEnvFixture,
 ) -> None:
     """
     Regression test: Verify that '!' is not stripped from environment paths.
@@ -426,12 +364,7 @@ def test_cmd_exe_exclamation_mark_not_stripped(
     PR #14607 rewrote the scripts to avoid this issue.
     """
     env_name = "test!important!env"
-    env_path = tmp_path / "envs" / env_name
-    conda_meta = env_path / "conda-meta"
-    conda_meta.mkdir(parents=True)
-    (conda_meta / "history").write_text("")
-
-    with shell.interactive() as sh:
+    with tmp_env(name=env_name) as env_path, shell.interactive() as sh:
         # The key test: does the ! survive through activation?
         sh.sendline(f'conda {activate} "{env_path}"')
         sh.sendline("echo CHECK_EXCLAMATION")
@@ -440,24 +373,16 @@ def test_cmd_exe_exclamation_mark_not_stripped(
         # Get CONDA_PREFIX and verify ! is present
         prefix = sh.get_env_var("CONDA_PREFIX", "")
 
-        # The ! should NOT be stripped
-        assert "!" in prefix or prefix == "", (
-            f"Exclamation mark was stripped from path! "
-            f"Expected path containing '!', got: {prefix!r}"
+        assert Path(prefix).name == env_name, (
+            f"Environment name mangled. Expected 'test!important!env' in path, "
+            f"got: {prefix!r}"
         )
-
-        # If activation worked, prefix should match
-        if prefix:
-            assert "test!important!env" in prefix, (
-                f"Environment name mangled. Expected 'test!important!env' in path, "
-                f"got: {prefix!r}"
-            )
 
 
 @PARAMETRIZE_CMD_EXE
 def test_cmd_exe_existing_env_with_equals_remains_usable(
     shell: Shell,
-    tmp_path: Path,
+    tmp_env,
 ) -> None:
     """
     Regression test: Existing environments with '=' must remain usable.
@@ -470,12 +395,7 @@ def test_cmd_exe_existing_env_with_equals_remains_usable(
     """
     # Simulate an existing environment named "python=3.12"
     env_name = "python=3.12"
-    env_path = tmp_path / "envs" / env_name
-    conda_meta = env_path / "conda-meta"
-    conda_meta.mkdir(parents=True)
-    (conda_meta / "history").write_text("")
-
-    with shell.interactive() as sh:
+    with tmp_env(name=env_name) as env_path, shell.interactive() as sh:
         # Activate by path (this should always work)
         sh.sendline(f'conda {activate} "{env_path}"')
         sh.sendline("echo ACTIVATION_DONE")
@@ -492,7 +412,7 @@ def test_cmd_exe_existing_env_with_equals_remains_usable(
 
         # Verify CONDA_PREFIX points to our env
         prefix = sh.get_env_var("CONDA_PREFIX", "")
-        assert "python=3.12" in prefix, (
+        assert Path(prefix).name == env_name, (
             f"CONDA_PREFIX doesn't contain env name. Got: {prefix!r}"
         )
 

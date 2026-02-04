@@ -1006,7 +1006,11 @@ def test_timestamps(
         ("myenv(test)", False),
     ],
 )
-def test_prefix_data_validate_name(tmp_path: Path, env_name: str, should_raise: bool):
+def test_prefix_data_validate_name(
+    tmp_env: TmpEnvFixture,
+    env_name: str,
+    should_raise: bool,
+):
     """
     Test PrefixData.validate_name() for various environment names.
 
@@ -1015,13 +1019,10 @@ def test_prefix_data_validate_name(tmp_path: Path, env_name: str, should_raise: 
 
     See: https://github.com/conda/conda/issues/12558
     """
-    env_path = tmp_path / "envs" / env_name
-    (env_path / "conda-meta").mkdir(parents=True, exist_ok=True)
-
-    pd = PrefixData(env_path)
-
-    with pytest.raises(CondaValueError) if should_raise else nullcontext():
-        pd.validate_name()
+    with tmp_env(name=env_name) as env_path:
+        pd = PrefixData(env_path)
+        with pytest.raises(CondaValueError) if should_raise else nullcontext():
+            pd.validate_name()
 
 
 @pytest.mark.parametrize(
@@ -1031,7 +1032,10 @@ def test_prefix_data_validate_name(tmp_path: Path, env_name: str, should_raise: 
         pytest.param("my#env", id="hash"),
     ],
 )
-def test_prefix_data_validate_name_disallowed_chars(tmp_path: Path, env_name: str):
+def test_prefix_data_validate_name_disallowed_chars(
+    tmp_env: TmpEnvFixture,
+    env_name: str,
+):
     """
     Test that disallowed characters in env names raise CondaValueError.
 
@@ -1039,66 +1043,56 @@ def test_prefix_data_validate_name_disallowed_chars(tmp_path: Path, env_name: st
     so they cannot be tested here with real directories. Those are tested
     in tests/base/test_context.py using mocks.
     """
-    env_path = tmp_path / "envs" / env_name
-    (env_path / "conda-meta").mkdir(parents=True, exist_ok=True)
-
-    pd = PrefixData(env_path)
-
-    with pytest.raises(CondaValueError):
-        pd.validate_name()
+    with tmp_env(name=env_name) as env_path:
+        pd = PrefixData(env_path)
+        with pytest.raises(CondaValueError):
+            pd.validate_name()
 
 
 def test_prefix_data_validate_name_base_not_allowed(
-    tmp_path: Path, monkeypatch: MonkeyPatch
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
 ):
     """Test that 'base' is rejected when allow_base=False."""
-    # Create a directory named 'base'
-    envs_dir = tmp_path / "envs"
-    base_path = envs_dir / "base"
-    (base_path / "conda-meta").mkdir(parents=True, exist_ok=True)
+    # Path envs/base so PrefixData.name resolves to "base" when envs_dir is mocked
+    with tmp_env(name="envs/base") as base_path:
+        envs_dir = base_path.parent
 
-    # Mock mockable_context_envs_dirs to include our temp directory
-    # so PrefixData.name property returns the correct name
-    monkeypatch.setattr(
-        context_module,
-        "mockable_context_envs_dirs",
-        lambda root_writable, root_prefix, _envs_dirs: (str(envs_dir),),
-    )
+        monkeypatch.setattr(
+            context_module,
+            "mockable_context_envs_dirs",
+            lambda root_writable, root_prefix, _envs_dirs: (str(envs_dir),),
+        )
 
-    pd = PrefixData(base_path)
-
-    with pytest.raises(CondaValueError, match="reserved environment name"):
-        pd.validate_name(allow_base=False)
+        pd = PrefixData(base_path)
+        with pytest.raises(CondaValueError, match="reserved environment name"):
+            pd.validate_name(allow_base=False)
 
 
 def test_prefix_data_validate_name_base_allowed(
-    tmp_path: Path, monkeypatch: MonkeyPatch
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
 ):
     """Test that 'base' is accepted when allow_base=True."""
-    # Create a directory named 'base'
-    envs_dir = tmp_path / "envs"
-    base_path = envs_dir / "base"
-    (base_path / "conda-meta").mkdir(parents=True, exist_ok=True)
+    # Path envs/base so PrefixData.name resolves to "base" when envs_dir is mocked
+    with tmp_env(name="envs/base") as base_path:
+        envs_dir = base_path.parent
 
-    # Mock mockable_context_envs_dirs to include our temp directory
-    # so PrefixData.name property returns the correct name
-    monkeypatch.setattr(
-        context_module,
-        "mockable_context_envs_dirs",
-        lambda root_writable, root_prefix, _envs_dirs: (str(envs_dir),),
-    )
+        monkeypatch.setattr(
+            context_module,
+            "mockable_context_envs_dirs",
+            lambda root_writable, root_prefix, _envs_dirs: (str(envs_dir),),
+        )
 
-    pd = PrefixData(base_path)
-
-    # Should not raise when allow_base=True is explicitly passed
-    # Note: the default is allow_base=False, so we must pass True explicitly
-    pd.validate_name(allow_base=True)
+        pd = PrefixData(base_path)
+        # Should not raise when allow_base=True is explicitly passed
+        pd.validate_name(allow_base=True)
 
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test for #12558")
 @pytest.mark.parametrize("char", WINDOWS_PROBLEMATIC_CHARS)
 def test_prefix_data_windows_problematic_chars_currently_allowed(
-    tmp_path: Path,
+    tmp_env: TmpEnvFixture,
     char: str,
 ):
     """
@@ -1110,11 +1104,7 @@ def test_prefix_data_windows_problematic_chars_currently_allowed(
     When we implement the fix for #12558, these tests should be updated to
     expect warnings or errors for these characters on Windows.
     """
-    env_name = f"test{char}env"
-    env_path = tmp_path / "envs" / env_name
-    (env_path / "conda-meta").mkdir(parents=True, exist_ok=True)
-
-    pd = PrefixData(env_path)
-
-    # Currently these should NOT raise - documenting existing behavior
-    pd.validate_name()  # No exception expected
+    with tmp_env(path_infix=char) as env_path:
+        pd = PrefixData(env_path)
+        # Currently these should NOT raise - documenting existing behavior
+        pd.validate_name()  # No exception expected
