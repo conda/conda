@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
     from conda.testing.fixtures import (
         CondaCLIFixture,
+        HttpTestServerFixture,
         PathFactoryFixture,
         TmpEnvFixture,
     )
@@ -278,13 +279,20 @@ def test_conda_env_create_empty_file(
 
 
 @pytest.mark.integration
-def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
+@pytest.mark.parametrize(
+    "http_test_server",
+    [Path(__file__).parent.parent / "env/support"],
+    indirect=True,
+)
+def test_conda_env_create_http(
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    test_recipes_channel: Path,
+    http_test_server: HttpTestServerFixture,
+):
     """Test `conda env create --file=https://some-website.com/environment.yml`."""
-    conda_cli(
-        *("env", "create"),
-        f"--prefix={tmp_path}",
-        "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
-    )
+    url = http_test_server.get_url("small-executable.yml")
+    conda_cli("env", "create", f"--prefix={tmp_path}", f"--file={url}")
     assert (tmp_path / PREFIX_MAGIC_FILE).is_file()
 
 
