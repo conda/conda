@@ -26,7 +26,7 @@ from .match_spec import MatchSpec
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
-    from typing import TypeVar
+    from typing import Final, TypeVar
 
     from ..base.constants import (
         ChannelPriority,
@@ -40,6 +40,9 @@ if TYPE_CHECKING:
     T = TypeVar("T")
 
 log = getLogger(__name__)
+
+
+EXTERNAL_PACKAGES_PYPI_KEY: Final = "pip"
 
 
 @dataclass
@@ -401,6 +404,8 @@ class Environment:
         requested_packages = []
         external_packages = {}
 
+        python_precs = prefix_data.get_python_packages()
+
         # Handle --from-history case
         if from_history:
             requested_packages = cls.from_history(prefix)
@@ -408,7 +413,6 @@ class Environment:
         else:
             # Use PrefixData's package extraction methods
             conda_precs = prefix_data.get_conda_packages()
-            python_precs = prefix_data.get_python_packages()
 
             # Create MatchSpecs for conda packages
             for conda_prec in conda_precs:
@@ -430,10 +434,16 @@ class Environment:
                     f"{python_prec.name}=={python_prec.version}"
                     for python_prec in python_precs
                 ]
-                external_packages["pip"] = python_deps
+                external_packages[EXTERNAL_PACKAGES_PYPI_KEY] = python_deps
 
-        # Always populate explicit_packages from prefix data (for explicit export format)
-        explicit_packages = list(prefix_data.iter_records())
+        # Always populate explicit_packages from prefix data (for explicit export format).
+        # But don't include packages installed by pip (or other external package formats).
+        python_precs_names = [pkg.name for pkg in python_precs]
+        explicit_packages = list(
+            pkg
+            for pkg in prefix_data.iter_records()
+            if pkg.name not in python_precs_names
+        )
 
         # Build channels tuple
         environment_channels = tuple(channels or ())
