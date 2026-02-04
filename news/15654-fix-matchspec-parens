@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix `MatchSpec` incorrectly stripping parentheses from version specifiers, enabling expressions like `* >=3,(<4|<5)` and `python (>=3.8,<3.10)|(>=3.11,<3.13)` to work correctly. (#15654)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Remove dead code from `_parse_spec_str()` that parsed but never used `(target=..., optional)` syntax. (#15654)
