@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import re
+import struct
 import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from itertools import chain
@@ -13,7 +14,7 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from .. import CondaError
+from .. import CONDA_PACKAGE_ROOT, CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
@@ -370,8 +371,12 @@ class LinkPathAction(CreateInPrefixPathAction):
         requested_link_type,
         entry_point_def,
     ):
-        source_directory = context.conda_prefix
-        source_short_path = "Scripts/conda.exe"
+        # Use the bundled stub executables from conda/shell/ instead of
+        # relying on Scripts/conda.exe existing in context.conda_prefix.
+        # This allows conda to work when installed via pip or during testing.
+        bits = 8 * struct.calcsize("P")
+        source_directory = CONDA_PACKAGE_ROOT
+        source_short_path = f"shell/cli-{bits}.exe"
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = f"Scripts/{command}.exe"
         source_path_data = PathDataV1(
