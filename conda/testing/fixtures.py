@@ -62,50 +62,80 @@ class TemplateEnvManager:
     """Manages a single template environment for fast cloning.
 
     Creates one template environment with Python + pip at session start.
-    Tests can clone from this template if all their required packages
-    are present in the template (checked by package name).
+    Tests can clone from this template if:
+    1. All required packages are present in the template
+    2. Version constraints (if any) are satisfied by template's versions
 
-    This is simpler than version-specific templates and benefits tests
-    that use generic "python" or "python" + "pip" specs.
+    Example: If template has Python 3.10.4 and pip 23.0:
+    - "python" → matches (no version constraint)
+    - "python=3.10" → matches (template has 3.10.x)
+    - "python=3.11" → does NOT match (template has 3.10)
+    - "python", "pip" → matches (both present)
+    - "python", "numpy" → does NOT match (numpy not in template)
     """
 
     template_path: Path | None = None
-    _installed_packages: set[str] | None = None
+    _package_versions: dict[str, str] | None = None
 
     @property
-    def installed_packages(self) -> set[str]:
-        """Get set of package names installed in the template."""
-        if self._installed_packages is None:
-            self._installed_packages = set()
+    def package_versions(self) -> dict[str, str]:
+        """Get dict of package name -> version installed in template."""
+        if self._package_versions is None:
+            self._package_versions = {}
             if self.template_path and self.template_path.exists():
                 from ..core.prefix_data import PrefixData
 
                 try:
-                    self._installed_packages = {
-                        rec.name
+                    self._package_versions = {
+                        rec.name: rec.version
                         for rec in PrefixData(self.template_path).iter_records()
                     }
                 except Exception:
                     pass
-        return self._installed_packages
+        return self._package_versions
+
+    @property
+    def installed_packages(self) -> set[str]:
+        """Get set of package names installed in the template."""
+        return set(self.package_versions.keys())
+
+    def _version_matches(self, spec: MatchSpec, installed_version: str) -> bool:
+        """Check if installed version satisfies the spec's version constraint.
+
+        Args:
+            spec: The MatchSpec with potential version constraint
+            installed_version: Version string from template (e.g., "3.10.4")
+
+        Returns:
+            True if installed version satisfies the constraint
+        """
+        if not spec.version:
+            # No version constraint - any version matches
+            return True
+
+        from ..models.version import VersionSpec
+
+        try:
+            version_spec = VersionSpec(spec.version)
+            return version_spec.match(installed_version)
+        except Exception:
+            # If we can't parse/match, be conservative
+            return False
 
     def can_satisfy(self, specs: tuple[str, ...]) -> bool:
-        """Check if template has all packages required by specs.
+        """Check if template can satisfy all specs including version constraints.
 
-        Only matches specs WITHOUT version constraints:
-        - "python" matches if template has python
+        Matches specs WITH version constraints if template has compatible version:
+        - "python" matches if template has python (any version)
+        - "python=3.10" matches if template has python 3.10.x
+        - "python>=3.9" matches if template has python >= 3.9
         - "pip" matches if template has pip
-        - "python=3.10" does NOT match (has version constraint)
-        - "numpy>=1.0" does NOT match (has version constraint)
-
-        This conservative approach ensures we only clone when the template
-        definitely has what the test needs.
 
         Args:
             specs: Package specs requested by the test
 
         Returns:
-            True if template has all required packages and no version constraints
+            True if template has all required packages with compatible versions
         """
         if not self.template_path or not self.template_path.exists():
             return False
@@ -113,9 +143,6 @@ class TemplateEnvManager:
         if not specs:
             return False
 
-        # Extract package names from specs
-        # Skip flags (start with -)
-        required_names: set[str] = set()
         has_flags = False
 
         for spec in specs:
@@ -125,26 +152,30 @@ class TemplateEnvManager:
                 continue
             try:
                 match_spec = MatchSpec(spec_str)
-                # If spec has ANY version constraint, don't clone
-                # Version might not match what's in template
-                if match_spec.version:
+                pkg_name = match_spec.name
+
+                # Check if package is in template
+                if pkg_name not in self.package_versions:
+                    log.debug("Template missing package: %s", pkg_name)
+                    return False
+
+                # Check if version constraint is satisfied
+                installed_version = self.package_versions[pkg_name]
+                if not self._version_matches(match_spec, installed_version):
                     log.debug(
-                        "Spec %r has version constraint, skipping clone", spec_str
+                        "Template %s=%s doesn't satisfy %r",
+                        pkg_name,
+                        installed_version,
+                        spec_str,
                     )
                     return False
-                required_names.add(match_spec.name)
+
             except InvalidMatchSpec:
                 # If we can't parse the spec, be conservative
                 return False
 
         # Don't clone if flags are present (might affect environment)
         if has_flags:
-            return False
-
-        # Check if template has all required packages
-        missing = required_names - self.installed_packages
-        if missing:
-            log.debug("Template missing packages: %s", missing)
             return False
 
         return True
