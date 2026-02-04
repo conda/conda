@@ -85,7 +85,7 @@ except ImportError:
 
 def lock(fd, *, lock_attempts=LOCK_ATTEMPTS):
     if not context.no_lock:
-        # locking required for jlap, now default for all
+        # locking is now enabled by default for all repodata cache operations
         return _lock_impl(fd, lock_attempts)
     return _lock_noop(fd, lock_attempts)
 
