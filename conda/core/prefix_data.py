@@ -464,9 +464,9 @@ class PrefixData(metaclass=PrefixDataType):
         _conda_meta_dir = self.prefix_path / "conda-meta"
         if lexists(_conda_meta_dir):
             conda_meta_json_paths = (
-                p
-                for p in (entry.path for entry in os.scandir(_conda_meta_dir))
-                if p[-5:] == ".json"
+                entry.path
+                for entry in os.scandir(_conda_meta_dir)
+                if entry.name.endswith(".json") and not entry.name.startswith("._")
             )
             for meta_file in conda_meta_json_paths:
                 self._load_single_record(meta_file)
