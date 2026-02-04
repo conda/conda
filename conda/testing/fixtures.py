@@ -5,9 +5,7 @@
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
-import sys
 import uuid
 import warnings
 from contextlib import contextmanager, nullcontext
@@ -58,267 +56,86 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-# Python version for template environments
-PYTHON_VERSION = f"{sys.version_info.major}.{sys.version_info.minor}"
-
-# Common Python versions used in tests - templates created on demand
-TEMPLATE_PYTHON_VERSIONS = ("3.10", "3.11", "3.12", "3.13")
-
-
-def clone_env(template_path: Path, target_path: Path) -> bool:
-    """Clone a conda environment using platform-specific fast copy methods.
-
-    Uses copy-on-write or reflink cloning where available:
-    - macOS (APFS): cp -c for copy-on-write (~1.8s vs ~10s for conda create)
-    - Linux: cp --reflink=auto for reflinks on btrfs/xfs, else regular copy
-    - Windows: robocopy /mir for multi-threaded copy, falls back to shutil.copytree
-
-    This is much faster than creating an environment from scratch because
-    it avoids the conda solver and package extraction steps.
-
-    Args:
-        template_path: Path to the template environment to clone
-        target_path: Path where the cloned environment should be created
-
-    Returns:
-        True if cloning succeeded, False otherwise
-    """
-    try:
-        if sys.platform == "darwin":
-            # macOS: APFS copy-on-write
-            result = subprocess.run(
-                ["cp", "-cR", str(template_path), str(target_path)],
-                capture_output=True,
-            )
-            if result.returncode == 0:
-                return True
-            # Fall through to shutil.copytree if APFS clone fails
-
-        elif sys.platform.startswith("linux"):
-            # Linux: try reflink (works on btrfs, xfs with reflink support)
-            # --reflink=auto falls back to regular copy if not supported
-            result = subprocess.run(
-                ["cp", "-R", "--reflink=auto", str(template_path), str(target_path)],
-                capture_output=True,
-            )
-            if result.returncode == 0:
-                return True
-            # Fall through to shutil.copytree if cp fails
-
-        elif sys.platform == "win32":
-            # Windows: use robocopy for faster multi-threaded copying
-            # /e = copy subdirectories including empty ones
-            # /mt:8 = multi-threaded with 8 threads
-            # /nfl /ndl /njh /njs = suppress output for speed
-            # robocopy returns 0-7 for success, 8+ for errors
-            result = subprocess.run(
-                [
-                    "robocopy",
-                    str(template_path),
-                    str(target_path),
-                    "/e",
-                    "/mt:8",
-                    "/nfl",
-                    "/ndl",
-                    "/njh",
-                    "/njs",
-                ],
-                capture_output=True,
-            )
-            # robocopy exit codes: 0-7 = success, 8+ = error
-            if result.returncode < 8:
-                return True
-            # Fall through to shutil.copytree if robocopy fails
-
-        # Fallback: use Python's cross-platform copy
-        shutil.copytree(template_path, target_path)
-        return True
-
-    except (OSError, shutil.Error, subprocess.SubprocessError):
-        # If clone fails, clean up and return False
-        if target_path.exists():
-            shutil.rmtree(target_path, ignore_errors=True)
-        return False
-
-
-def parse_python_spec(spec: str) -> str | None:
-    """Extract Python version from a spec string using MatchSpec.
-
-    Args:
-        spec: A package spec like "python", "python=3.11", "python>=3.10"
-
-    Returns:
-        The Python version string (e.g., "3.11") or None if not a Python spec
-    """
-    try:
-        match_spec = MatchSpec(spec)
-    except InvalidMatchSpec:
-        return None
-
-    # Check if this is a Python spec
-    if match_spec.name != "python":
-        return None
-
-    # If no version specified, use current Python version
-    if match_spec.version is None:
-        return PYTHON_VERSION
-
-    # Get the version spec string
-    version_spec = match_spec.version.spec
-
-    # Handle various version formats
-    # Strip any operators to get the base version
-    version_str = version_spec.lstrip(">=<!=")
-
-    # Normalize: "3" or "3.*" -> current minor version
-    # MatchSpec converts "python=3" to version spec "3.*"
-    if version_str in ("3", "3.*"):
-        return PYTHON_VERSION
-
-    # Handle glob patterns like "3.11.*" -> "3.11"
-    if version_str.endswith(".*"):
-        version_str = version_str[:-2]
-
-    # Return if it's a valid minor version (e.g., "3.11")
-    if version_str.startswith("3.") and version_str.count(".") == 1:
-        return version_str
-
-    # For patch versions (e.g., "3.11.5"), extract minor version
-    if version_str.startswith("3.") and version_str.count(".") >= 2:
-        parts = version_str.split(".")
-        return f"{parts[0]}.{parts[1]}"
-
-    return None
-
 
 @dataclass
 class TemplateEnvManager:
-    """Manages template environments for fast cloning.
+    """Manages a single template environment for fast cloning.
 
-    Creates and caches template environments on demand for different
-    Python versions and package combinations.
+    Creates one template environment with Python + pip at session start.
+    Tests can clone from this template if all their required packages
+    are present in the template (checked by package name).
+
+    This is simpler than version-specific templates and benefits tests
+    that use generic "python" or "python" + "pip" specs.
     """
 
-    base_path: Path
-    conda_cli: CondaCLIFixture
-    _templates: dict[str, Path] = None
+    template_path: Path | None = None
+    _installed_packages: set[str] | None = None
 
-    def __post_init__(self):
-        self._templates = {}
+    @property
+    def installed_packages(self) -> set[str]:
+        """Get set of package names installed in the template."""
+        if self._installed_packages is None:
+            self._installed_packages = set()
+            if self.template_path and self.template_path.exists():
+                from ..core.prefix_data import PrefixData
 
-    def get_template(self, key: str, specs: tuple[str, ...]) -> Path | None:
-        """Get or create a template environment.
+                try:
+                    self._installed_packages = {
+                        rec.name
+                        for rec in PrefixData(self.template_path).iter_records()
+                    }
+                except Exception:
+                    pass
+        return self._installed_packages
 
-        Args:
-            key: Unique key for this template (e.g., "python-3.11", "python-3.11-pip")
-            specs: Package specs to install in the template
+    def can_satisfy(self, specs: tuple[str, ...]) -> bool:
+        """Check if template has all packages required by specs.
 
-        Returns:
-            Path to the template environment, or None if creation failed
-        """
-        if key in self._templates:
-            return self._templates[key]
-
-        template_path = self.base_path / f"template_{key.replace('.', '_')}"
-        try:
-            _, stderr, exit_code = self.conda_cli(
-                "create",
-                f"--prefix={template_path}",
-                *specs,
-                "--yes",
-                "--quiet",
-            )
-            # Check if conda create succeeded
-            if exit_code != 0:
-                log.warning(
-                    "Failed to create template '%s' (exit code %d): %s",
-                    key,
-                    exit_code,
-                    stderr,
-                )
-                return None
-            self._templates[key] = template_path
-            log.info("Created template env '%s' at %s", key, template_path)
-            return template_path
-        except Exception as e:
-            log.warning("Failed to create template '%s': %s", key, e)
-            return None
-
-    def find_matching_template(
-        self, args: tuple[str, ...]
-    ) -> tuple[Path | None, tuple[str, ...]]:
-        """Find a template that can satisfy the given specs, with delta packages.
-
-        This implements the "clone + install delta" strategy:
-        1. Parse the specs to identify Python version and other packages
-        2. Find or create a matching Python template
-        3. Return the template and any additional packages to install
+        Uses package name matching only (not version). This means:
+        - "python" matches if template has any python
+        - "python=3.10" matches if template has python (version may differ)
+        - "numpy" matches if template has numpy
 
         Args:
-            args: Package specs requested by the test
+            specs: Package specs requested by the test
 
         Returns:
-            Tuple of (template_path, delta_packages) where delta_packages
-            are specs that need to be installed after cloning.
-            Returns (None, args) if no template can help.
+            True if template has all required packages by name
         """
-        if not args:
-            return None, args
+        if not self.template_path or not self.template_path.exists():
+            return False
 
-        # Convert all args to strings (in case Path objects are passed)
-        str_args = tuple(str(arg) for arg in args)
+        if not specs:
+            return False
 
-        # Parse specs to find Python version and other packages
-        python_version = None
-        has_pip = False
-        other_packages = []
-        flags = []
+        # Extract package names from specs
+        # Skip flags (start with -)
+        required_names: set[str] = set()
+        has_flags = False
 
-        for arg in str_args:
-            if arg.startswith("-"):
-                flags.append(arg)
+        for spec in specs:
+            spec_str = str(spec)
+            if spec_str.startswith("-"):
+                has_flags = True
                 continue
+            try:
+                required_names.add(MatchSpec(spec_str).name)
+            except InvalidMatchSpec:
+                # If we can't parse the spec, be conservative
+                return False
 
-            py_ver = parse_python_spec(arg)
-            if py_ver:
-                python_version = py_ver
-            elif arg == "pip":
-                has_pip = True
-            else:
-                other_packages.append(arg)
+        # Don't clone if flags are present (might affect environment)
+        if has_flags:
+            return False
 
-        # If there are flags (like --solver=classic), don't use template
-        # as they might affect the environment in ways we can't clone
-        if flags:
-            return None, args
+        # Check if template has all required packages
+        missing = required_names - self.installed_packages
+        if missing:
+            log.debug("Template missing packages: %s", missing)
+            return False
 
-        # If no Python spec found, can't use template
-        if python_version is None:
-            return None, args
-
-        # Determine template key and specs
-        if has_pip and not other_packages:
-            # Python + pip only - use pip template
-            template_key = f"python-{python_version}-pip"
-            template_specs = (f"python={python_version}", "pip")
-            delta = tuple()
-        elif not other_packages:
-            # Python only - use Python template
-            template_key = f"python-{python_version}"
-            template_specs = (f"python={python_version}",)
-            delta = tuple()
-        else:
-            # Python + other packages - clone Python, install delta
-            template_key = f"python-{python_version}"
-            template_specs = (f"python={python_version}",)
-            delta = tuple(other_packages) + (("pip",) if has_pip else ())
-
-        # Get or create template
-        template = self.get_template(template_key, template_specs)
-        if template:
-            return template, delta
-
-        return None, args
+        return True
 
 
 TEST_CONDARC = dals(
@@ -799,48 +616,36 @@ class TmpEnvFixture:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.touch()
         else:
-            # Try to clone from template and install delta packages
+            # Try to clone from template if it has all required packages
             # This is much faster than running conda create (~2s vs ~10s+)
             cloned = False
-            delta_packages: tuple[str, ...] = ()
 
-            if self.template_manager:
-                template, delta_packages = self.template_manager.find_matching_template(
-                    args
+            if self.template_manager and self.template_manager.can_satisfy(args):
+                # Use conda's native --clone functionality
+                # This properly handles prefix replacement in scripts and metadata
+                _, stderr, exit_code = self.conda_cli(
+                    "create",
+                    "--clone",
+                    str(self.template_manager.template_path),
+                    f"--prefix={prefix}",
+                    "--yes",
+                    "--quiet",
                 )
-                if template and template.exists():
-                    cloned = clone_env(template, prefix)
-                    if cloned:
-                        # Verify the cloned environment is valid
-                        from ..core.prefix_data import PrefixData
-
-                        if not PrefixData(prefix).is_environment():
-                            log.warning(
-                                "Cloned environment %s is not valid, falling back",
-                                prefix,
-                            )
-                            # Clean up invalid clone
-                            shutil.rmtree(prefix, ignore_errors=True)
-                            cloned = False
-                        else:
-                            log.debug(
-                                "Cloned template env %s -> %s (delta: %s)",
-                                template,
-                                prefix,
-                                delta_packages or "none",
-                            )
-
-            if cloned:
-                # Install any delta packages not in the template
-                if delta_packages:
-                    self.conda_cli(
-                        "install",
-                        f"--prefix={prefix}",
-                        *delta_packages,
-                        "--yes",
-                        "--quiet",
+                cloned = exit_code == 0
+                if cloned:
+                    log.debug(
+                        "Cloned template env %s -> %s",
+                        self.template_manager.template_path,
+                        prefix,
                     )
-            else:
+                else:
+                    log.debug(
+                        "Clone failed (exit %d): %s, falling back to create",
+                        exit_code,
+                        stderr,
+                    )
+
+            if not cloned:
                 # No template available or cloning failed - create from scratch
                 self.conda_cli(
                     "create",
@@ -860,38 +665,46 @@ def template_env_manager(
     tmp_path_factory: TempPathFactory,
     session_conda_cli: CondaCLIFixture,
 ) -> Iterator[TemplateEnvManager | None]:
-    """Create a session-scoped template environment manager for fast cloning.
+    """Create a session-scoped template environment for fast cloning.
 
-    This manager creates template environments on demand for different Python
-    versions and package combinations. Templates are cached and reused across
-    tests in the same session.
+    Creates ONE template environment with Python + pip at session start.
+    Tests can clone from this template if all their required packages
+    are present (checked by package name, not version).
 
-    The cloning optimization uses platform-specific fast copy methods:
-    - macOS (APFS): cp -c for copy-on-write (~1.8s vs ~10s for conda create)
-    - Linux: cp --reflink=auto for reflinks on btrfs/xfs
-    - Windows: robocopy for multi-threaded copy
+    The cloning optimization uses `conda create --clone` which properly handles
+    prefix replacement in scripts and metadata files (~2s vs ~10s for conda create).
 
-    Supported template types (created on demand):
-    - python-3.10, python-3.11, python-3.12, python-3.13
-    - python-3.xx-pip (Python + pip)
-
-    The manager also supports "clone + install delta" where a Python template
-    is cloned and additional packages are installed on top.
+    Benefits tests that request:
+    - "python" (generic)
+    - "python", "pip"
+    - Any subset of packages in the template
 
     Yields:
-        TemplateEnvManager instance, or None if initialization failed.
+        TemplateEnvManager instance, or None if template creation failed.
     """
+    template_path = tmp_path_factory.mktemp("template_env")
+
     try:
-        base_path = tmp_path_factory.mktemp("template_envs")
-        manager = TemplateEnvManager(
-            base_path=base_path,
-            conda_cli=session_conda_cli,
+        # Create template with Python + pip (common test requirements)
+        _, stderr, exit_code = session_conda_cli(
+            "create",
+            f"--prefix={template_path}",
+            "python",
+            "pip",
+            "--yes",
+            "--quiet",
         )
-        log.info("Created template environment manager at %s", base_path)
-        yield manager
+        if exit_code != 0:
+            log.warning("Failed to create template environment: %s", stderr)
+            yield None
+            return
+
+        log.info("Created template environment at %s", template_path)
+        yield TemplateEnvManager(template_path=template_path)
+
     except Exception as e:
-        # Don't fail tests if manager creation fails - just disable cloning
-        log.warning("Failed to create template environment manager: %s", e)
+        # Don't fail tests if template creation fails - just disable cloning
+        log.warning("Failed to create template environment: %s", e)
         yield None
 
 
@@ -905,14 +718,13 @@ def tmp_env(
 
     Use this when creating a conda environment that is local to the current test.
 
-    This fixture automatically uses environment cloning from session-scoped
-    templates when creating Python environments, which is much faster than
-    running `conda create` each time (~2s vs ~10s+).
+    This fixture automatically uses environment cloning from a session-scoped
+    template when all required packages are available in the template.
+    Cloning is much faster than `conda create` (~2s vs ~10s+).
 
-    Supported optimizations:
-    - Python-only envs: Clone matching Python version template
-    - Python + pip envs: Clone Python+pip template
-    - Python + other packages: Clone Python template, install delta packages
+    Cloning is used when the test requests packages that are all present
+    in the template (e.g., "python", "pip"). Otherwise, falls back to
+    regular `conda create`.
     """
     yield TmpEnvFixture(path_factory, conda_cli, template_env_manager)
 
@@ -937,9 +749,9 @@ def session_tmp_env(
 
     Use this when creating a conda environment that is shared across tests.
 
-    This fixture automatically uses environment cloning from session-scoped
-    templates when creating Python environments, which is much faster than
-    running `conda create` each time (~2s vs ~10s+).
+    This fixture automatically uses environment cloning from a session-scoped
+    template when all required packages are available. Cloning is much faster
+    than `conda create` (~2s vs ~10s+).
     """
     yield TmpEnvFixture(tmp_path_factory, session_conda_cli, template_env_manager)
 
