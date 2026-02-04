@@ -1,3 +1,4 @@
+conda  # for Windows shell ctivation tests
 coverage
 flask >=2.2  # jlap pytest fixture
 git
