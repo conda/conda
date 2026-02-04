@@ -2461,8 +2461,12 @@ def test_create_env_different_platform(
         )
 
 
+@pytest.mark.parametrize("test_recipes_channel", ["defaults"], indirect=True)
 def test_conda_downgrade(
-    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
 ):
     # Create an environment with the current conda under test, but include an earlier
     # version of conda and other packages in that environment.
@@ -2472,8 +2476,19 @@ def test_conda_downgrade(
     monkeypatch.setenv("CONDA_ALLOW_CONDA_DOWNGRADES", "true")
     monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "1")
 
+    # Performance optimizations: disable safety checks to speed up package operations
+    # The test is verifying conda downgrade/revision functionality, not package integrity
+    monkeypatch.setenv("CONDA_SAFETY_CHECKS", "disabled")
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "false")
+
     # elevate verbosity so we can inspect subprocess' stdout/stderr
     monkeypatch.setenv("CONDA_VERBOSE", "2")
+
+    # test_recipes_channel with "defaults" adds test-recipes as priority channel
+    # plus defaults. This allows: python/conda from defaults, dependency/dependent
+    # from test-recipes.
+    # Note: subprocess calls to env's conda still need explicit --channel flag
+    local_channel = str(test_recipes_channel)
 
     with tmp_env("python=3.11", "conda") as prefix:  # rev 0
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
@@ -2481,16 +2496,25 @@ def test_conda_downgrade(
         assert (conda_prec := package_is_installed(prefix, "conda"))
 
         # runs our current version of conda to install into the foreign env
-        conda_cli("install", f"--prefix={prefix}", "filelock", "--yes")  # rev 1
-        assert package_is_installed(prefix, "filelock")
+        # Use tiny local package from test-recipes channel (via fixture) instead of filelock
+        conda_cli("install", f"--prefix={prefix}", "dependency", "--yes")  # rev 1
+        assert package_is_installed(prefix, "dependency")
 
         # runs the conda in the env to install something new into the env
+        # Use tiny local package from test-recipes channel instead of itsdangerous
         PrefixData._cache_.clear()
         subprocess_call_with_clean_env(
-            [conda_exe, "install", f"--prefix={prefix}", "itsdangerous", "--yes"],
+            [
+                conda_exe,
+                "install",
+                f"--prefix={prefix}",
+                f"--channel={local_channel}",
+                "dependent",
+                "--yes",
+            ],
             path=prefix,
         )  # rev 2
-        assert package_is_installed(prefix, "itsdangerous")
+        assert package_is_installed(prefix, "dependent")
 
         # downgrade the version of conda in the env (using our current outer conda version)
         PrefixData._cache_.clear()
@@ -2506,8 +2530,8 @@ def test_conda_downgrade(
         conda_cli("install", f"--prefix={prefix}", "--rev=2", "--yes")
         assert package_is_installed(prefix, f"python={py_prec.version}")
         assert package_is_installed(prefix, f"conda={conda_prec.version}")
-        assert package_is_installed(prefix, "filelock")
-        assert package_is_installed(prefix, "itsdangerous")
+        assert package_is_installed(prefix, "dependency")
+        assert package_is_installed(prefix, "dependent")
 
         # use the conda in the env to revert to a previous state
         PrefixData._cache_.clear()
@@ -2517,8 +2541,8 @@ def test_conda_downgrade(
         )
         assert package_is_installed(prefix, f"python={py_prec.version}")
         assert package_is_installed(prefix, f"conda={conda_prec.version}")
-        assert package_is_installed(prefix, "filelock")
-        assert not package_is_installed(prefix, "itsdangerous")
+        assert package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "dependent")
 
         result = subprocess_call_with_clean_env(
             [conda_exe, "info", "--json"],
