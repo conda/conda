@@ -212,9 +212,9 @@ def test_create_env_no_default_packages(
     tmp_envs_dir: Path,
 ):
     # use "cheap" packages with no dependencies
-    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,zlib")
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,imagesize")
     reset_context()
-    assert context.create_default_packages == ("favicon", "zlib")
+    assert context.create_default_packages == ("favicon", "imagesize")
 
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
@@ -229,7 +229,7 @@ def test_create_env_no_default_packages(
     assert package_is_installed(prefix, "python")
     assert package_is_installed(prefix, "pytz")
     assert not package_is_installed(prefix, "favicon")
-    assert not package_is_installed(prefix, "zlib")
+    assert not package_is_installed(prefix, "imagesize")
 
 
 @pytest.mark.integration

@@ -169,8 +169,8 @@ def test_frozen_env_cep22(tmp_env, conda_cli, monkeypatch):
             "ca-certificates",
             "--dry-run",
             "--override-frozen",
+            raises=DryRunExit,
         )
-        assert rc == 0
 
         # Bypass protection with env var
         with monkeypatch.context() as monkeyctx:
@@ -197,8 +197,8 @@ def test_frozen_env_cep22(tmp_env, conda_cli, monkeypatch):
                 prefix,
                 "ca-certificates",
                 "--dry-run",
+                raises=DryRunExit,
             )
-            assert rc == 0
 
         # With message
         prefix_data._frozen_file.write_text('{"message": "EnvOnTheRocks"}')
@@ -232,5 +232,4 @@ def test_frozen_env_cep22(tmp_env, conda_cli, monkeypatch):
         conda_cli(
             "remove", "-p", prefix, "ca-certificates", "--dry-run", raises=DryRunExit
         )
-        out, err, rc = conda_cli("update", "-p", prefix, "ca-certificates", "--dry-run")
-        assert rc == 0
+        out, err, rc = conda_cli("update", "-p", prefix, "ca-certificates", "--dry-run", raises=DryRunExit)

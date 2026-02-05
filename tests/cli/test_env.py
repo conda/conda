@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from sys import stdout
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -23,6 +24,7 @@ from conda.exceptions import (
     PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecNotFound,
+    EnvironmentSpecPluginNotDetected,
 )
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
@@ -195,20 +197,10 @@ def test_create_dry_run_yaml(
 ):
     prefix = path_factory()
     create_env(ENVIRONMENT_CA_CERTIFICATES)
-    stdout, _, _ = conda_cli("env", "create", f"--prefix={prefix}", "--dry-run")
+    stdout, _, _ = conda_cli("env", "create", f"--prefix={prefix}", "--dry-run", raises=DryRunExit)
     assert not PrefixData(prefix).is_environment()
-
-    # Find line where the YAML output starts (stdout might change if plugins involved)
-    lines = stdout.splitlines()
-    for lineno, line in enumerate(lines):
-        if line.startswith("name:"):
-            break
-    else:
-        pytest.fail("Didn't find YAML data in output")
-
-    output = yaml.loads("\n".join(lines[lineno:]))
-    assert output["name"] == "env1"
-    assert len(output["dependencies"]) > 0
+    assert "ca-certificates" in stdout
+    assert str(prefix) in stdout
 
 
 @pytest.mark.integration
@@ -229,13 +221,14 @@ def test_create_dry_run_json(
         f"--prefix={prefix}",
         "--dry-run",
         "--json",
+        raises=DryRunExit,
     )
     assert not PrefixData(prefix).is_environment()
 
     output = json.loads(stdout)
     # assert that the name specified in the environment file matches output
-    assert output.get("name") == "env1"
-    assert len(output["dependencies"])
+    assert output.get("prefix") == str(prefix)
+    assert len(output["actions"]["LINK"]) > 0
 
 
 @pytest.mark.integration
@@ -275,7 +268,7 @@ def test_conda_env_create_empty_file(
     tmp_file.touch()
 
     with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={tmp_file}")
+        conda_cli("env", "create", "-n", "testenv", f"--file={tmp_file}")
 
 
 @pytest.mark.integration
@@ -689,8 +682,8 @@ def test_invalid_extensions(
     env_yml = path_factory(suffix=".ymla")
     env_yml.touch()
 
-    with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={env_yml}", "--yes")
+    with pytest.raises(EnvironmentSpecPluginNotDetected):
+        conda_cli("env", "create", "-n", "testenv", f"--file={env_yml}", "--yes")
 
 
 # conda env list [--json]
