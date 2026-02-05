@@ -50,8 +50,8 @@ def hex_octal_to_int(ho: str) -> int:
     return res
 
 
-@cache
-def percent_decode(path: str) -> str:
+def _percent_decode_impl(path: str) -> str:
+    """Internal implementation of percent_decode (uncached for bytes path handling)."""
     # This is not fast so avoid when we can.
     if "%" not in path:
         return path
@@ -69,17 +69,50 @@ def percent_decode(path: str) -> str:
         if skips > 0:
             skips -= 1
             continue
-        c = c.encode("ascii")
-        emit = c
-        if c == b"%":
+        try:
+            c_bytes = c.encode("ascii")
+        except UnicodeEncodeError:
+            # Non-ASCII character outside of percent-encoding; encode as utf-8
+            # and emit as-is (caller gets decoded result via utf_8_decode at end).
+            c_bytes = c.encode("utf-8")
+            result += c_bytes
+            continue
+        emit = c_bytes
+        if c_bytes == b"%":
             for r in ranges:
                 if i == r[0]:
-                    emit = struct.pack("B", int(path[i + 1 : i + 3], 16))
+                    hex_part = path[i + 1 : i + 3]
+                    if len(hex_part) != 2:
+                        # Incomplete percent-encoding at end of string; leave as literal %.
+                        break
+                    try:
+                        emit = struct.pack("B", int(hex_part, 16))
+                    except ValueError:
+                        # Non-hex digits (should not happen with regex); leave as literal.
+                        break
                     skips = 2
                     break
         if emit:
             result += emit
-    return codecs.utf_8_decode(result)[0]
+    decoded, _ = codecs.utf_8_decode(result)
+    return decoded
+
+
+@cache
+def percent_decode(path: str) -> str:
+    """Decode percent-encoded path. Accepts str only (bytes: use percent_decode_bytes)."""
+    return _percent_decode_impl(path)
+
+
+def percent_decode_bytes(path: bytes) -> str:
+    """Decode percent-encoded path from bytes (e.g. from filesystem). Robust to encoding."""
+    if not isinstance(path, bytes):
+        return _percent_decode_impl(str(path))
+    try:
+        path_str = path.decode("utf-8")
+    except UnicodeDecodeError:
+        path_str = path.decode("utf-8", errors="replace")
+    return _percent_decode_impl(path_str)
 
 
 file_scheme = "file://"
@@ -96,19 +129,23 @@ def url_to_path(url):
 """
 
 
-@cache
-def path_to_url(path: str) -> str:
+def _path_to_url_impl(path: str) -> str:
+    """Internal path_to_url implementation (uncached for bytes handling)."""
     if not path:
         raise ValueError(f"Not allowed: {path!r}")
     if path.startswith(file_scheme):
+        # Validate file:// URLs contain only ASCII (Python 3: str has no .decode).
         try:
-            path.decode("ascii")
-        except UnicodeDecodeError:
+            path.encode("ascii")
+        except UnicodeEncodeError:
             raise ValueError(
                 f"Non-ascii not allowed for things claiming to be URLs: {path!r}"
             )
         return path
-    path = abspath(expanduser(path)).replace("\\", "/")
+    try:
+        path = abspath(expanduser(path)).replace("\\", "/")
+    except OSError as e:
+        raise ValueError(f"Invalid or inaccessible path: {path!r}") from e
     # We do not use urljoin here because we want to take our own
     # *very* explicit control of how paths get encoded into URLs.
     #   We should not follow any RFCs on how to encode and decode
@@ -142,6 +179,17 @@ def path_to_url(path: str) -> str:
     return path
 
 
+@cache
+def path_to_url(path: str | bytes) -> str:
+    """Convert a path to a file:// URL. Accepts str or bytes (bytes decoded as utf-8)."""
+    if isinstance(path, bytes):
+        try:
+            path = path.decode("utf-8")
+        except UnicodeDecodeError:
+            path = path.decode("utf-8", errors="replace")
+    return _path_to_url_impl(path)
+
+
 url_attrs = (
     "scheme",
     "path",
@@ -152,6 +200,25 @@ url_attrs = (
     "hostname",
     "port",
 )
+
+
+def _validate_port(port: str | int | None) -> str | None:
+    """Validate and normalize port to string in 0-65535. Returns None for empty/None."""
+    if port is None or port == "":
+        return None
+    if isinstance(port, int):
+        port_str = str(port)
+    else:
+        port_str = str(port).strip()
+    if not port_str:
+        return None
+    try:
+        port_int = int(port_str)
+    except ValueError:
+        raise ValueError(f"Invalid port: {port!r} (must be numeric)")
+    if port_int < 0 or port_int > 65535:
+        raise ValueError(f"Invalid port: {port_int} (must be 0-65535)")
+    return port_str
 
 
 class Url(namedtuple("Url", url_attrs)):
@@ -173,7 +240,7 @@ class Url(namedtuple("Url", url_attrs)):
         username: str | None = None,
         password: str | None = None,
         hostname: str | None = None,
-        port: str | None = None,
+        port: str | int | None = None,
     ):
         if path and not path.startswith("/"):
             path = "/" + path
@@ -181,6 +248,7 @@ class Url(namedtuple("Url", url_attrs)):
             scheme = scheme.lower()
         if hostname:
             hostname = hostname.lower()
+        port = _validate_port(port)
         return super().__new__(
             cls, scheme, path, query, fragment, username, password, hostname, port
         )
