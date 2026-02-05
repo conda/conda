@@ -13,14 +13,12 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from .. import CondaError
+from .. import CONDA_PACKAGE_ROOT, CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
-from ..common.compat import on_win
 from ..common.constants import TRACE
 from ..common.path import (
-    BIN_DIRECTORY,
     get_leaf_directories,
     get_python_noarch_target_path,
     get_python_short_path,
@@ -369,9 +367,11 @@ class LinkPathAction(CreateInPrefixPathAction):
         target_prefix,
         requested_link_type,
         entry_point_def,
+        subdir,
     ):
-        source_directory = context.conda_prefix
-        source_short_path = "Scripts/conda.exe"
+        source_directory = join(CONDA_PACKAGE_ROOT, "shell")
+        subdir_arch = subdir.split("-")[-1]
+        source_short_path = f"cli-{subdir_arch}.exe"
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = f"Scripts/{command}.exe"
         source_path_data = PathDataV1(
@@ -829,13 +829,15 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         cls, transaction_context, package_info, target_prefix, requested_link_type
     ):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        subdir = context.subdir
         if noarch is not None and noarch.type == NoarchType.python:
 
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
-                target_short_path = f"{BIN_DIRECTORY}/{command}"
-                if on_win:
-                    target_short_path += "-script.py"
+                if subdir.startswith("win-"):
+                    target_short_path = f"Scripts/{command}-script.py"
+                else:
+                    target_short_path = f"bin/{command}"
                 return target_short_path, module, func
 
             actions = tuple(
@@ -848,7 +850,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                 for ep_def in noarch.entry_points or ()
             )
 
-            if on_win:  # pragma: unix no cover
+            if subdir.startswith("win-"):  # pragma: unix no cover
                 actions += tuple(
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context,
@@ -856,6 +858,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                         target_prefix,
                         requested_link_type,
                         ep_def,
+                        subdir,
                     )
                     for ep_def in noarch.entry_points or ()
                 )
@@ -884,7 +887,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         self.module = module
         self.func = func
 
-        if on_win:
+        if context.subdir.startswith("win-"):
             path_type = PathEnum.windows_python_entry_point_script
         else:
             path_type = PathEnum.unix_python_entry_point
@@ -897,7 +900,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     def execute(self):
         log.log(TRACE, "creating python entry point %s", self.target_full_path)
-        if on_win:
+        if context.subdir.startswith("win-"):
             python_full_path = None
         else:
             target_python_version = self.transaction_context["target_python_version"]
