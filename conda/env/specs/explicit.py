@@ -7,7 +7,6 @@ from __future__ import annotations
 from ...base.constants import EXPLICIT_MARKER
 from ...base.context import context
 from ...exceptions import CondaValueError
-from ...gateways.disk.read import yield_lines
 from ...misc import get_package_records_from_explicit
 from ...models.environment import Environment
 from ...plugins.types import EnvironmentSpecBase
@@ -18,14 +17,6 @@ class ExplicitSpec(EnvironmentSpecBase):
     The ExplicitSpec class handles explicit environment files. These are ones
     which are marked with the @EXPLICIT marker.
     """
-
-    def __init__(self, filename: str | None = None, **kwargs) -> None:
-        """Initialize the explicit specification.
-
-        :param filename: Path to the requirements file
-        :param kwargs: Additional arguments
-        """
-        self.filename = filename
 
     def can_handle(self) -> bool:
         """
@@ -41,7 +32,9 @@ class ExplicitSpec(EnvironmentSpecBase):
             return False
 
         # Ensure the file has the "@EXPLICIT" marker
-        dependencies_list = list(yield_lines(self.filename))
+        dependencies_list = [
+            dep for dep in self.data.split("\n") if (dep and not dep.startswith("#"))
+        ]
         if EXPLICIT_MARKER in dependencies_list:
             return True
         else:
@@ -58,8 +51,11 @@ class ExplicitSpec(EnvironmentSpecBase):
         if not self.filename:
             raise CondaValueError("No filename provided")
 
-        # Convert generator to list since Dependencies needs to access it multiple times
-        dependencies_list = list(yield_lines(self.filename))
+        # Get all the dependencies from the file, excluding lines that have
+        # been excluded by being prefixed with "#"
+        dependencies_list = [
+            dep for dep in self.data.split("\n") if (dep and not dep.startswith("#"))
+        ]
         explicit_packages = get_package_records_from_explicit(dependencies_list)
 
         return Environment(

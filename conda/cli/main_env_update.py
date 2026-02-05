@@ -93,7 +93,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         source=args.file,
         name=context.environment_specifier,
     )
-    spec = spec_hook.environment_spec(args.file)
+    spec = spec_hook.environment_spec(filename=args.file)
     env = spec.env
 
     if not (args.name or args.prefix):

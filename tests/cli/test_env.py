@@ -13,6 +13,7 @@ import pytest
 from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import context
 from conda.common.compat import on_win
+from conda.common.io import load_file
 from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
@@ -108,6 +109,7 @@ ENVIRONMENT_UNSOLVABLE = yaml.write(
 
 
 def create_env(content, filename="environment.yml"):
+    load_file.cache_clear()
     Path(filename).write_text(content)
 
 
