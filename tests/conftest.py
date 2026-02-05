@@ -65,14 +65,54 @@ def tmp_env_python_spec() -> str:
 
 
 @pytest.fixture
-def test_recipes_channel(mocker: MockerFixture) -> Path:
+def test_recipes_channel(request: pytest.FixtureRequest, mocker: MockerFixture) -> Path:
+    """Configure test-recipes channel with optional additional channels.
+
+    By default, replaces all channels with test-recipes only. Use indirect
+    parametrization to add other channels (test-recipes always has priority).
+
+    Args (via indirect parametrization):
+        - None (default): Only test-recipes channel
+        - "defaults": test-recipes + defaults channel
+        - "conda-forge": test-recipes + conda-forge channel
+        - ("defaults", "conda-forge"): test-recipes + multiple channels
+
+    Usage:
+        # Default - only test-recipes packages available
+        def test_only_test_recipes(test_recipes_channel, tmp_env):
+            with tmp_env("small-executable") as prefix:
+                ...
+
+        # test-recipes + defaults (for packages like python, conda)
+        @pytest.mark.parametrize("test_recipes_channel", ["defaults"], indirect=True)
+        def test_with_defaults(test_recipes_channel, tmp_env):
+            with tmp_env("python=3.11", "dependency") as prefix:
+                ...
+
+        # test-recipes + conda-forge
+        @pytest.mark.parametrize("test_recipes_channel", ["conda-forge"], indirect=True)
+        def test_with_conda_forge(test_recipes_channel, tmp_env):
+            ...
+    """
+    extra_channels = getattr(request, "param", None)
+
+    # Build channel list: test-recipes first, then any extra channels
+    channels = [str(TEST_RECIPES_CHANNEL)]
+
+    if extra_channels is not None:
+        if isinstance(extra_channels, str):
+            channels.append(extra_channels)
+        else:
+            # Assume iterable of channels
+            channels.extend(extra_channels)
+
     mocker.patch(
         "conda.base.context.Context.channels",
         new_callable=mocker.PropertyMock,
-        return_value=(channel_str := str(TEST_RECIPES_CHANNEL),),
+        return_value=tuple(channels),
     )
     reset_context()
-    assert context.channels == (channel_str,)
+    assert context.channels[0] == str(TEST_RECIPES_CHANNEL)
 
     return TEST_RECIPES_CHANNEL
 
