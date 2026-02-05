@@ -246,10 +246,7 @@ def test_cmd_exe_special_char_env_activate_by_path(
     with tmp_env(path_infix=special_char) as env_path, shell.interactive() as sh:
         # Try to activate by path (should work even if name validation fails)
         sh.sendline(f'conda {activate} "{env_path}"')
-
-        # Give it time to process
-        sh.sendline("echo ACTIVATION_COMPLETE")
-        sh.expect("ACTIVATION_COMPLETE")
+        sh.clear()
 
         # Check if activation succeeded by checking CONDA_PREFIX
         prefix = sh.get_env_var("CONDA_PREFIX", "")
@@ -299,8 +296,7 @@ def test_cmd_exe_special_char_prompt_display(
     with tmp_env(path_infix=special_char) as env_path, shell.interactive() as sh:
         # Activate the environment
         sh.sendline(f'conda {activate} "{env_path}"')
-        sh.sendline("echo ACTIVATION_COMPLETE")
-        sh.expect("ACTIVATION_COMPLETE")
+        sh.clear()
 
         # Get the prompt - it should contain the env name in parentheses
         prompt = sh.get_env_var("PROMPT", "")
@@ -353,8 +349,7 @@ def test_cmd_exe_exclamation_mark_not_stripped(
     with tmp_env(name=env_name) as env_path, shell.interactive() as sh:
         # The key test: does the ! survive through activation?
         sh.sendline(f'conda {activate} "{env_path}"')
-        sh.sendline("echo CHECK_EXCLAMATION")
-        sh.expect("CHECK_EXCLAMATION")
+        sh.clear()
 
         # Get CONDA_PREFIX and verify ! is present
         prefix = sh.get_env_var("CONDA_PREFIX", "")
@@ -384,8 +379,7 @@ def test_cmd_exe_existing_env_with_equals_remains_usable(
     with tmp_env(name=env_name) as env_path, shell.interactive() as sh:
         # Activate by path (this should always work)
         sh.sendline(f'conda {activate} "{env_path}"')
-        sh.sendline("echo ACTIVATION_DONE")
-        sh.expect("ACTIVATION_DONE")
+        sh.clear()
 
         # Verify we're in the environment
         shlvl = sh.get_env_var("CONDA_SHLVL", "0")
