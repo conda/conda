@@ -33,9 +33,6 @@ pytestmark = [
     pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
 ]
 PARAMETRIZE_CMD_EXE = pytest.mark.parametrize("shell", ["cmd.exe"], indirect=True)
-PARAMETRIZE_WINDOWS_PROBLEMATIC_CHARS = pytest.mark.parametrize(
-    "special_char", WINDOWS_PROBLEMATIC_CHARS
-)
 
 
 @PARAMETRIZE_CMD_EXE
@@ -226,10 +223,10 @@ def test_legacy_activate_deactivate_cmd_exe(
 
 
 @PARAMETRIZE_CMD_EXE
-@PARAMETRIZE_WINDOWS_PROBLEMATIC_CHARS
+@pytest.mark.parametrize("char", WINDOWS_PROBLEMATIC_CHARS)
 def test_cmd_exe_special_char_env_activate_by_path(
     shell: Shell,
-    special_char: str,
+    char: str,
     tmp_env: TmpEnvFixture,
 ) -> None:
     """
@@ -243,7 +240,7 @@ def test_cmd_exe_special_char_env_activate_by_path(
     These tests characterize current behavior. Some may fail, indicating
     which characters are truly problematic vs which work correctly.
     """
-    with tmp_env(path_infix=special_char) as env_path, shell.interactive() as sh:
+    with tmp_env(path_infix=char) as env_path, shell.interactive() as sh:
         # Try to activate by path (should work even if name validation fails)
         sh.sendline(f'conda {activate} "{env_path}"')
         sh.clear()
@@ -257,13 +254,12 @@ def test_cmd_exe_special_char_env_activate_by_path(
 
         # Log the result for debugging
         log.info(
-            f"Special char '{special_char}': "
-            f"expected={expected_path}, actual={actual_path}"
+            f"Special char '{char}': expected={expected_path}, actual={actual_path}"
         )
 
         # Assert activation worked
         assert actual_path == expected_path, (
-            f"Activation failed for env with '{special_char}' in name. "
+            f"Activation failed for env with '{char}' in name. "
             f"Expected CONDA_PREFIX='{expected_path}', got '{actual_path}'"
         )
 
@@ -273,10 +269,10 @@ def test_cmd_exe_special_char_env_activate_by_path(
 
 
 @PARAMETRIZE_CMD_EXE
-@PARAMETRIZE_WINDOWS_PROBLEMATIC_CHARS
+@pytest.mark.parametrize("char", WINDOWS_PROBLEMATIC_CHARS)
 def test_cmd_exe_special_char_prompt_display(
     shell: Shell,
-    special_char: str,
+    char: str,
     tmp_env: TmpEnvFixture,
     monkeypatch: MonkeyPatch,
 ) -> None:
@@ -293,7 +289,7 @@ def test_cmd_exe_special_char_prompt_display(
     monkeypatch.setenv("CONDA_ENV_PROMPT", "({default_env}) ")
     reset_context()
 
-    with tmp_env(path_infix=special_char) as env_path, shell.interactive() as sh:
+    with tmp_env(path_infix=char) as env_path, shell.interactive() as sh:
         # Activate the environment
         sh.sendline(f'conda {activate} "{env_path}"')
         sh.clear()
@@ -302,7 +298,7 @@ def test_cmd_exe_special_char_prompt_display(
         prompt = sh.get_env_var("PROMPT", "")
 
         # Log for debugging
-        log.info(f"Prompt with '{special_char}': {prompt!r}")
+        log.info(f"Prompt with '{char}': {prompt!r}")
 
         # The prompt should start with the env name in parentheses
         # and should NOT have the corruption pattern
@@ -311,8 +307,8 @@ def test_cmd_exe_special_char_prompt_display(
         # Check for corruption patterns (e.g., repeated fragments)
         # The = sign was known to cause: (python=3.12) 3.12) ==3.12)
         corruption_indicators = [
-            f"{special_char}{special_char}",  # doubled special char
-            f") {env_path.name.split(special_char)[-1]})",  # partial name repeated
+            f"{char}{char}",  # doubled special char
+            f") {env_path.name.split(char)[-1]})",  # partial name repeated
         ]
 
         has_corruption = any(
@@ -321,11 +317,11 @@ def test_cmd_exe_special_char_prompt_display(
 
         # Log corruption detection
         if has_corruption:
-            log.warning(f"Prompt corruption detected for '{special_char}': {prompt!r}")
+            log.warning(f"Prompt corruption detected for '{char}': {prompt!r}")
 
         # Assert no corruption (this test documents current behavior)
         assert expected_prefix in prompt or not has_corruption, (
-            f"Prompt corruption with '{special_char}' in env name. Prompt: {prompt!r}"
+            f"Prompt corruption with '{char}' in env name. Prompt: {prompt!r}"
         )
 
         sh.sendline(f"conda {deactivate}")
