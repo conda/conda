@@ -971,14 +971,30 @@ def test_parse_channel_subdir():
     }
 
 
-def test_parse_parens():
-    assert _parse_spec_str("conda-forge::foo[build=3](target=blarg,optional)") == {
-        "_original_spec_str": "conda-forge::foo[build=3](target=blarg,optional)",
-        "channel": "conda-forge",
-        "name": "foo",
-        "build": "3",
-        # "target": "blarg",  # suppressing these for now
-        # "optional": True,
+def test_parse_version_with_parens():
+    """Test that parentheses in version specifiers are preserved for precedence.
+
+    See https://github.com/conda/conda/issues/15654
+    """
+    # Parentheses for OR precedence: >=3 AND (<4 OR <5)
+    assert _parse_spec_str("* >=3,(<4|<5)") == {
+        "_original_spec_str": "* >=3,(<4|<5)",
+        "name": "*",
+        "version": ">=3,(<4|<5)",
+    }
+
+    # Complex version expression with channel
+    assert _parse_spec_str("numpy >=1.8,(<2|>=1.7.1)") == {
+        "_original_spec_str": "numpy >=1.8,(<2|>=1.7.1)",
+        "name": "numpy",
+        "version": ">=1.8,(<2|>=1.7.1)",
+    }
+
+    # Multiple OR groups: (Python 3.8-3.9) OR (Python 3.11-3.12)
+    assert _parse_spec_str("python (>=3.8,<3.10)|(>=3.11,<3.13)") == {
+        "_original_spec_str": "python (>=3.8,<3.10)|(>=3.11,<3.13)",
+        "name": "python",
+        "version": "(>=3.8,<3.10)|(>=3.11,<3.13)",
     }
 
 

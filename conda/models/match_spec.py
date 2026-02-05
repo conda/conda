@@ -769,23 +769,7 @@ def _parse_spec_str(spec_str):
                 value = _sanitize_version_str(value, match.groupdict().get("build"))
             brackets[key] = value
 
-    # Step 4. strip off parens portion
-    m4 = re.match(r".*(?:(\(.*\)))", spec_str)
-    parens = {}
-    if m4:
-        parens_str = m4.groups()[0]
-        spec_str = spec_str.replace(parens_str, "")
-        parens_str = parens_str[1:-1]
-        m4b = re.finditer(
-            r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', parens_str
-        )
-        for match in m4b:
-            key, _, value, _ = match.groups()
-            parens[key] = value
-        if "optional" in parens_str:
-            parens["optional"] = True
-
-    # Step 5. strip off '::' channel and namespace
+    # Step 4. strip off '::' channel and namespace
     m5 = spec_str.rsplit(":", 2)
     m5_len = len(m5)
     if m5_len == 3:
@@ -808,7 +792,7 @@ def _parse_spec_str(spec_str):
     if "subdir" in brackets:
         subdir = brackets.pop("subdir")
 
-    # Step 6. strip off package name from remaining version + build
+    # Step 5. strip off package name from remaining version + build
     m3 = re.match(r"([^ =<>!~]+)?([><!=~ ].+)?", spec_str)
     if m3:
         name, spec_str = m3.groups()
@@ -819,7 +803,7 @@ def _parse_spec_str(spec_str):
     else:
         raise InvalidMatchSpec(original_spec_str, "no package name found")
 
-    # Step 7. otherwise sort out version + build
+    # Step 6. otherwise sort out version + build
     spec_str = spec_str and spec_str.strip()
     # This was an attempt to make MatchSpec('numpy-1.11.0-py27_0') work like we'd want. It's
     # not possible though because plenty of packages have names with more than one '-'.
@@ -836,7 +820,7 @@ def _parse_spec_str(spec_str):
     else:
         version, build = None, None
 
-    # Step 8. now compile components together
+    # Step 7. now compile components together
     components = {}
     components["name"] = name or "*"
 
