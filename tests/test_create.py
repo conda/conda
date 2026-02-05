@@ -2534,7 +2534,9 @@ def test_conda_downgrade(
         assert package_is_installed(prefix, "dependent")
 
         # use the conda in the env to revert to a previous state
-        # Note: must pass channel for subprocess to find test-recipes packages
+        # Note: must pass both channels for subprocess to find all packages:
+        # - test-recipes for dependency/dependent packages
+        # - defaults for python/conda and their dependencies (openssl, ca-certificates, etc.)
         PrefixData._cache_.clear()
         subprocess_call_with_clean_env(
             [
@@ -2542,6 +2544,7 @@ def test_conda_downgrade(
                 "install",
                 f"--prefix={prefix}",
                 f"--channel={local_channel}",
+                "--channel=defaults",
                 "--rev=1",
                 "--yes",
             ],
