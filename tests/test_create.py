@@ -553,7 +553,14 @@ def test_noarch_python_package_with_entry_points(
 
     Note: win-arm64 is not tested because conda/shell/cli-arm64.exe does not exist yet
     """
-    extra = ["-c", "conda-forge"] if subdir == "win-arm64" else []
+    extra = []
+    if subdir.startswith("linux-") and not context.subdir.startswith("linux-"):
+        # ncurses package on defaults require a case sensitive file system
+        extra.extend(["-c", "conda-forge"])
+    elif subdir == "win-arm64":
+        # win-arm64 not on defaults yet
+        extra.extend(["-c", "conda-forge"])
+
     with tmp_env("pygments", "--subdir", subdir, *extra) as prefix:
         py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
         sp_dir = get_python_site_packages_short_path(py_ver, subdir)
