@@ -1,0 +1,22 @@
+### Enhancements
+
+* Support creating windows environments in other operating systems. This
+  fixes creating python entry points for windows from unixes by using
+  the stub executable even on other operating systems if the subdir is
+  windows. (#15690)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

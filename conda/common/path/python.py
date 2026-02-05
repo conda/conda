@@ -9,8 +9,6 @@ import re
 from logging import getLogger
 from os.path import join, split, splitext
 
-from ..compat import on_win
-
 log = getLogger(__name__)
 
 
@@ -83,15 +81,19 @@ def parse_entry_point_def(ep_definition):
     return command, module, func
 
 
-def get_python_short_path(python_version=None):
-    if on_win:
+def get_python_short_path(python_version=None, subdir=None):
+    from conda.base.context import context
+
+    if subdir is None:
+        subdir = context.subdir
+    if subdir.startswith("win-"):
         return "python.exe"
     if python_version and "." not in python_version:
         python_version = ".".join(python_version)
     return join("bin", "python%s" % (python_version or ""))
 
 
-def get_python_site_packages_short_path(python_version):
+def get_python_site_packages_short_path(python_version, subdir=None):
     """Get the default site-packages path for a given Python version.
 
     For unix systems, this is usually ``lib/pythonX.Y/site-packages``.
@@ -114,9 +116,13 @@ def get_python_site_packages_short_path(python_version):
             )
         ```
     """
+    from conda.base.context import context
+
+    if subdir is None:
+        subdir = context.subdir
     if python_version is None:
         return None
-    elif on_win:
+    elif subdir.startswith("win-"):
         version = get_major_minor_version(python_version)
         if version:
             major, minor = version.split(".")

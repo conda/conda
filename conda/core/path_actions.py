@@ -18,10 +18,8 @@ from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
-from ..common.compat import on_win
 from ..common.constants import TRACE
 from ..common.path import (
-    BIN_DIRECTORY,
     get_leaf_directories,
     get_python_noarch_target_path,
     get_python_short_path,
@@ -860,16 +858,18 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         source_package_infos=(),
     ):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
+        subdir = context.subdir
         if noarch is not None and noarch.type == NoarchType.python:
 
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
-                target_short_path = f"{BIN_DIRECTORY}/{command}"
-                if not normpath(target_short_path).startswith(BIN_DIRECTORY + os.sep):
+                bin_dir = "Scripts" if subdir.startswith("win-") else "bin"
+                target_short_path = f"{bin_dir}/{command}"
+                if not normpath(target_short_path).startswith(bin_dir + os.sep):
                     raise ValueError(
-                        f"target_short_path must point to {BIN_DIRECTORY}: {target_short_path!r}"
+                        f"target_short_path must point to {bin_dir}: {target_short_path!r}"
                     )
-                if on_win:
+                if subdir.startswith("win-"):
                     target_short_path += "-script.py"
                 return target_short_path, module, func
 
@@ -883,7 +883,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                 for ep_def in noarch.entry_points or ()
             )
 
-            if on_win:  # pragma: unix no cover
+            if subdir.startswith("win-"):  # pragma: unix no cover
                 actions += tuple(
                     LinkPathAction.create_python_entry_point_windows_exe_action(
                         transaction_context,
@@ -920,7 +920,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         self.module = module
         self.func = func
 
-        if on_win:
+        if context.subdir.startswith("win-"):
             path_type = PathEnum.windows_python_entry_point_script
         else:
             path_type = PathEnum.unix_python_entry_point
@@ -933,7 +933,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
 
     def execute(self):
         log.log(TRACE, "creating python entry point %s", self.target_full_path)
-        if on_win:
+        if context.subdir.startswith("win-"):
             python_full_path = None
         else:
             target_python_version = self.transaction_context["target_python_version"]
