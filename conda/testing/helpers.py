@@ -281,10 +281,12 @@ def _get_index_r_base(
     channels = []
     for subchannel, subchannel_pkgs in packages.items():
         repodata = {
+            "repodata_version": 2,
             "info": {
                 "subdir": subchannel,
                 "arch": context.arch_name,
                 "platform": context.platform,
+                "base_url": f"https://conda.anaconda.org/{channel_name}/{subchannel}",
             },
             "packages": subchannel_pkgs,
         }
@@ -459,6 +461,7 @@ def record(
     channel=None,
     **kwargs,
 ):
+    kwargs.setdefault("fn", f"{name}-{version}-{build}.conda")
     return PackageRecord(
         name=name,
         version=version,
