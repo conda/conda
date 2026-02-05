@@ -70,10 +70,20 @@ class S3Adapter(BaseAdapter):
         :param fileobj: File object to write to (must be opened in binary write mode)
         :param progress_callback: Optional callback(fraction) where fraction is 0.0-1.0
         :param size: Optional content length (required for progress reporting)
-        :raises ImportError: If boto3 is not installed
-        :raises BotoCoreError, ClientError: On S3 errors
+        :raises CondaError: On S3 errors or if boto3 is not installed
         """
-        from boto3.session import Session
+        from ....exceptions import CondaError
+
+        try:
+            from boto3.session import Session
+        except ImportError:
+            raise CondaError(
+                "boto3 is required for S3 channels. "
+                "Please install with `conda install boto3`\n"
+                "Make sure to run `conda deactivate` if you are in a conda environment."
+            )
+
+        from botocore.exceptions import BotoCoreError, ClientError
 
         bucket_name, key_string = url_to_s3_info(url)
         # Create separate boto3 session for thread safety
@@ -89,8 +99,19 @@ class S3Adapter(BaseAdapter):
             def boto_callback(bytes_transferred):
                 downloaded[0] += bytes_transferred
                 progress_callback(downloaded[0] / size)
+        elif progress_callback:
+            log.debug(
+                "Progress callback provided but size unknown; progress will not be reported"
+            )
 
-        key.download_fileobj(fileobj, Callback=boto_callback)
+        try:
+            key.download_fileobj(fileobj, Callback=boto_callback)
+        except (BotoCoreError, ClientError) as e:
+            raise CondaError(
+                "Error downloading file from S3: %(url)s\n%(exception)s",
+                url=url,
+                exception=repr(e),
+            ) from e
 
     def _send_boto3(self, resp: Response, request: PreparedRequest) -> Response:
         from boto3.session import Session

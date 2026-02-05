@@ -94,6 +94,10 @@ def test_local_file_adapter_200():
 
 
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
+@pytest.mark.skipif(
+    context.solver == "libmamba",
+    reason="libmamba solver has a bug with S3 URL construction, see conda-libmamba-solver#866",
+)
 @pytest.mark.integration
 def test_s3_server(
     minio_s3_server,
@@ -110,6 +114,10 @@ def test_s3_server(
 
 
 @pytest.mark.skipif(not BOTO3_AVAILABLE, reason="boto3 module not available")
+@pytest.mark.skipif(
+    context.solver == "libmamba",
+    reason="libmamba solver has a bug with S3 URL construction, see conda-libmamba-solver#866",
+)
 @pytest.mark.integration
 def test_s3_server_with_mock(
     package_server,
