@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add `PackagesNotFoundInChannelsError` and `PackagesNotFoundInPrefixError` as specialised cases of `PackagesNotFoundError`, to distinguish between packages missing from configured channels versus packages missing from a specific environment prefix. (#12197 via #15653)
+* `conda remove <spec>` with the classic solver now performs an early existence check for the spec to be removed. (#15653)
+
+### Bug fixes
+
+* `conda search --envs <package>` now raises an error when the package is not found in any environment. (#15653)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -43,6 +43,8 @@ from ..exceptions import (
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
+    PackagesNotFoundInPrefixError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -252,8 +254,8 @@ class TryRepodata:
         ):
             return True
         elif isinstance(exc_value, ResolvePackageNotFound):
-            # convert the ResolvePackageNotFound into PackagesNotFoundError
-            raise PackagesNotFoundError(
+            # convert the ResolvePackageNotFound into PackagesNotFoundInChannelsError
+            raise PackagesNotFoundInChannelsError(
                 exc_value._formatted_chains,
                 all_channel_urls(context.channels),
             )
@@ -379,11 +381,22 @@ def install(args, parser, command="install"):
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
         return install_explicit_packages(env.explicit_packages, env.prefix)
 
-    repodata_fns = args.repodata_fns
-    if not repodata_fns:
-        repodata_fns = list(env.config.repodata_fns)
+    repodata_fns = list(args.repodata_fns or env.config.repodata_fns or ())
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
+
+    # libmamba internally ignores current_repodata.json (see _maybe_ignore_current_repodata)
+    # unless explicitly set by the user. We optimise here to avoid the redundant iteration
+    # and solver setup that would occur if we passed both files.
+    # See https://github.com/conda/conda-libmamba-solver/blob/34aec802f890a3ece9c0f2f630de2ef136003624/conda_libmamba_solver/solver.py#L954-L967
+    _seen = set()
+    repodata_fns = [fn for fn in repodata_fns if not (fn in _seen or _seen.add(fn))]
+    if (
+        context.solver == "libmamba"
+        and not getattr(args, "repodata_fns", None)  # user did not explicitly set them
+        and len(repodata_fns) > 1
+    ):
+        repodata_fns = [REPODATA_FN]
 
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
@@ -434,6 +447,20 @@ def install(args, parser, command="install"):
                     )
                 else:
                     raise e
+            except PackagesNotFoundError as e:
+                if isinstance(
+                    e, (PackagesNotFoundInChannelsError, PackagesNotFoundInPrefixError)
+                ):
+                    raise
+
+                if e.channel_urls:
+                    raise PackagesNotFoundInChannelsError(
+                        e.packages, e.channel_urls
+                    ) from e
+                else:
+                    raise PackagesNotFoundInPrefixError(
+                        e.packages, prefix=prefix
+                    ) from e
             except SystemExit as e:
                 if not getattr(e, "allow_retry", True):
                     raise e
@@ -538,7 +565,10 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
             link_precs.add(precs[0])
 
     if not_found_in_index_specs:
-        raise PackagesNotFoundError(not_found_in_index_specs)
+        raise PackagesNotFoundInChannelsError(
+            not_found_in_index_specs,
+            all_channel_urls(context.channels, context.subdirs),
+        )
 
     final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
@@ -550,7 +580,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
-            raise PackagesNotFoundError(args.package_names)
+            raise PackagesNotFoundInPrefixError(args.package_names, prefix=prefix)
         elif not newenv:
             if context.json:
                 common.stdout_json_success(
