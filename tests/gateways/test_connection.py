@@ -231,9 +231,7 @@ def test_s3_download_uses_direct_path(mocker: MockerFixture, tmp_path: Path) -> 
     download_inner(url, target, None, checksum, len(test_data), None)
 
     # Verify boto3's download_fileobj was called (direct path)
-    assert len(download_fileobj_called) == 1, (
-        "direct_download should be called once"
-    )
+    assert len(download_fileobj_called) == 1, "direct_download should be called once"
 
     # Verify session.get was NOT called (streaming path avoided)
     assert session_get_spy.call_count == 0, (
