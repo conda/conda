@@ -94,6 +94,10 @@ def test_local_file_adapter_200():
 
 
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
+@pytest.mark.skipif(
+    context.solver == "libmamba",
+    reason="libmamba solver has a bug with S3 URL construction, see conda-libmamba-solver#866",
+)
 @pytest.mark.integration
 def test_s3_server(
     minio_s3_server,
@@ -110,6 +114,10 @@ def test_s3_server(
 
 
 @pytest.mark.skipif(not BOTO3_AVAILABLE, reason="boto3 module not available")
+@pytest.mark.skipif(
+    context.solver == "libmamba",
+    reason="libmamba solver has a bug with S3 URL construction, see conda-libmamba-solver#866",
+)
 @pytest.mark.integration
 def test_s3_server_with_mock(
     package_server,
@@ -177,6 +185,61 @@ def inner_s3_test(
         ):
             # we just want to run tmp_env and cleanup after
             pass
+
+
+@pytest.mark.skipif(not BOTO3_AVAILABLE, reason="boto3 module not available")
+def test_s3_download_uses_direct_path(mocker: MockerFixture, tmp_path: Path) -> None:
+    """
+    Verify S3 downloads use direct_download to avoid extra file copy.
+
+    The optimization in S3Adapter.direct_download downloads directly to the
+    target file using boto3's optimized download_fileobj, avoiding the extra copy
+    through a SpooledTemporaryFile that occurs with the streaming path.
+    """
+    from conda.gateways.connection.adapters.s3 import S3Adapter
+
+    # Mock boto3 to avoid actual S3 call
+    mock_boto3 = mocker.patch("boto3.session.Session")
+    mock_s3_obj = mock_boto3.return_value.resource.return_value.Object.return_value
+
+    # Track if download_fileobj was called
+    download_fileobj_called = []
+
+    def mock_download_fileobj(fileobj, Callback=None):
+        download_fileobj_called.append(True)
+        # Write test data with known checksum
+        fileobj.write(b"test package data" * 100)
+
+    mock_s3_obj.download_fileobj = mock_download_fileobj
+
+    # Mock get_session to return session with S3Adapter
+    mock_get_session = mocker.patch("conda.gateways.connection.download.get_session")
+    session = CondaSession()
+    adapter = S3Adapter()
+    session.mount("s3://", adapter)
+    mock_get_session.return_value = session
+
+    # Spy on session.get to verify streaming path is NOT used
+    session_get_spy = mocker.spy(session, "get")
+
+    url = "s3://test-bucket/path/package.tar.bz2"
+    target = tmp_path / "package.tar.bz2"
+    test_data = b"test package data" * 100
+    checksum = hashlib.sha256(test_data).hexdigest()
+
+    # Execute download
+    download_inner(url, target, None, checksum, len(test_data), None)
+
+    # Verify boto3's download_fileobj was called (direct path)
+    assert len(download_fileobj_called) == 1, "direct_download should be called once"
+
+    # Verify session.get was NOT called (streaming path avoided)
+    assert session_get_spy.call_count == 0, (
+        "session.get should not be called for S3 downloads"
+    )
+
+    # Verify file was created successfully
+    assert target.exists(), "Target file should exist after download"
 
 
 def test_get_session_returns_default():
