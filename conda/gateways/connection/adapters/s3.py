@@ -52,7 +52,7 @@ class S3Adapter(BaseAdapter):
     def close(self):
         pass
 
-    def download_to_fileobj(
+    def direct_download(
         self,
         url: str,
         fileobj: IO[bytes],

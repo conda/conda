@@ -34,7 +34,7 @@ class DirectDownloadAdapter(Protocol):
     and write directly to a file object, avoiding intermediate buffering.
     """
 
-    def download_to_fileobj(
+    def direct_download(
         self,
         url: str,
         fileobj: IO[bytes],

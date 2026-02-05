@@ -107,7 +107,7 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
         # (e.g., S3Adapter uses boto3's multipart download, avoiding intermediate buffering)
         adapter = session.get_adapter(url)
         if isinstance(adapter, DirectDownloadAdapter):
-            adapter.download_to_fileobj(url, target, progress_update_callback, size)
+            adapter.direct_download(url, target, progress_update_callback, size)
             return  # checksum verified on context manager exit
 
         headers = {}

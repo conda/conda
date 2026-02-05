@@ -190,9 +190,9 @@ def inner_s3_test(
 @pytest.mark.skipif(not BOTO3_AVAILABLE, reason="boto3 module not available")
 def test_s3_download_uses_direct_path(mocker: MockerFixture, tmp_path: Path) -> None:
     """
-    Verify S3 downloads use download_to_fileobj to avoid extra file copy.
+    Verify S3 downloads use direct_download to avoid extra file copy.
 
-    The optimization in S3Adapter.download_to_fileobj downloads directly to the
+    The optimization in S3Adapter.direct_download downloads directly to the
     target file using boto3's optimized download_fileobj, avoiding the extra copy
     through a SpooledTemporaryFile that occurs with the streaming path.
     """
@@ -232,7 +232,7 @@ def test_s3_download_uses_direct_path(mocker: MockerFixture, tmp_path: Path) -> 
 
     # Verify boto3's download_fileobj was called (direct path)
     assert len(download_fileobj_called) == 1, (
-        "download_to_fileobj should be called once"
+        "direct_download should be called once"
     )
 
     # Verify session.get was NOT called (streaming path avoided)
