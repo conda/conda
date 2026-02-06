@@ -3,6 +3,9 @@
 """
 Flask-based conda repository server for testing.
 
+Provides pytest fixtures for running a local HTTP server that serves
+conda repository data for testing purposes.
+
 Change contents to simulate an updating repository.
 
 Must be imported by conftest.py for pytest to see the fixtures.
