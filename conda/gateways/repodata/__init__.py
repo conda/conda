@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-# if repodata_shards.msgpack.zst, repodata.json.zst or repodata.jlap were unavailable, check again later.
+# if alternate formats were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 # repodata.info/state.json keys to keep up with the CEP
@@ -101,17 +101,6 @@ class Response304ContentUnchanged(Exception):
 
 
 def get_repo_interface() -> type[RepoInterface]:
-    if "jlap" in context.experimental:
-        try:
-            from .jlap.interface import JlapRepoInterface
-
-            return JlapRepoInterface
-        except ImportError as e:  # pragma: no cover
-            warnings.warn(
-                "Could not load the configured jlap repo interface. "
-                f"Is the required jsonpatch package installed?  {e}"
-            )
-
     if context.repodata_use_zst:
         try:
             from .jlap.interface import ZstdRepoInterface
@@ -903,7 +892,6 @@ class RepodataFetch:
                 if raw_repodata is RepodataOnDisk:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
-                    # XXX use self._repo_cache.load() or replace after passing temp path to jlap
                     raw_repodata = self.cache_path_json.read_text()
                     stat = self.cache_path_json.stat()
                     cache.state["size"] = stat.st_size  # type: ignore
