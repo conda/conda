@@ -169,6 +169,7 @@ def request_url_zstd_state(
     json_path = cache.cache_path_json
 
     hasher = hash()
+    is_fallback = False
     with timeme(f"Download complete {url} "):
         # Just try downloading .json.zst
         try:
@@ -193,6 +194,7 @@ def request_url_zstd_state(
 
             # zst format is not available, so fallback to .json
             state.set_has_format("zst", False)
+            is_fallback = True
             response = download_and_hash(
                 hasher,
                 withext(url, ".json"),
@@ -202,18 +204,23 @@ def request_url_zstd_state(
                 state=state,
             )
 
-        # will we use state['headers'] for caching against
-        state["_mod"] = response.headers.get("last-modified")
-        state["_etag"] = response.headers.get("etag")
-        state["_cache_control"] = response.headers.get("cache-control")
+    # Update state with response headers (common for both zstd and fallback)
+    state["_mod"] = response.headers.get("last-modified")
+    state["_etag"] = response.headers.get("etag")
+    state["_cache_control"] = response.headers.get("cache-control")
 
     # Handle 304 Not Modified
     if response.status_code == 304:
         raise Response304ContentUnchanged()
 
-    # If we downloaded new data (200), parse and return it
+    # If we downloaded new data (200)
     if response.status_code == 200:
         state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
+
+        # For fallback to .json, write to disk but don't parse (return None)
+        # For successful zstd download, parse and return the JSON
+        if is_fallback:
+            return None
 
         # Parse the downloaded JSON
         with temp_path.open("rb") as f:
@@ -315,6 +322,16 @@ class ZstdRepoInterface(RepoInterface):
     def _repodata_state_copy(self, state: dict | RepodataState) -> RepodataState:
         """Create a copy of state to avoid modifying the caller's dict."""
         if isinstance(state, RepodataState):
-            return RepodataState(dict(state))
+            return RepodataState(
+                cache_path_json=state.cache_path_json,
+                cache_path_state=state.cache_path_state,
+                repodata_fn=state.repodata_fn,
+                dict=dict(state),
+            )
         else:
-            return RepodataState(state)
+            return RepodataState(
+                cache_path_json=self._cache.cache_path_json,
+                cache_path_state=self._cache.cache_path_state,
+                repodata_fn=self._repodata_fn,
+                dict=state,
+            )
