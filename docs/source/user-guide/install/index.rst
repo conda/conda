@@ -126,4 +126,3 @@ Download the installer file and, before installing, verify it as follows:
    windows
    macos
    linux
-   rpm-debian
