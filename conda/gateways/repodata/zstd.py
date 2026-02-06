@@ -16,12 +16,12 @@ from typing import TYPE_CHECKING
 import zstandard
 from requests import HTTPError
 
-from ....base.context import context
-from ....common.serialize import json
-from ....common.url import mask_anaconda_token
-from ...connection.download import disable_ssl_verify_warning
-from ...connection.session import get_session
-from .. import (
+from ...base.context import context
+from ...common.serialize import json
+from ...common.url import mask_anaconda_token
+from ..connection.download import disable_ssl_verify_warning
+from ..connection.session import get_session
+from . import (
     URL_KEY,
     RepodataOnDisk,
     RepodataState,
