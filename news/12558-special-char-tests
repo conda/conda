@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix Windows CMD.EXE activation failing for environment paths containing `^` (caret) character. The caret was being consumed as an escape character during batch script processing. (#12558)
+* Fix Windows CMD.EXE activation failing for environment paths containing `^` (caret) character. The caret was previously consumed as an escape character during batch script processing. (#12558 via #15628)
 
 ### Deprecations
 
@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add comprehensive test cases to characterize environment name validation behavior for Windows special characters (`!`, `=`, `^`, `%`, `(`, `)`). Tests confirm that `!` now works (fixed by PR #14607's batch script rewrite) and identify `^` as broken. (#12558)
+* Add comprehensive test cases to characterize environment name validation behavior for Windows special characters (`!`, `=`, `^`, `%`, `(`, `)`). Tests confirm that `!` now works (previously fixed in #14607) and identify `^` as broken. (#12558 via #15628)
