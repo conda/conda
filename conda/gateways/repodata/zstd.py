@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 import zstandard
 from requests import HTTPError
 
+from ...base.constants import REPODATA_FN
 from ...base.context import context
 from ...common.serialize import json
 from ...common.url import mask_anaconda_token
@@ -33,8 +34,8 @@ from . import (
 if TYPE_CHECKING:
     import pathlib
 
-    from ...connection import Session
-    from .. import RepodataCache
+    from ..connection import Session
+    from . import RepodataCache
 
 log = logging.getLogger(__name__)
 
@@ -238,7 +239,7 @@ class ZstdRepoInterface(RepoInterface):
         self._cache = cache
 
         self._url = url
-        self._repodata_fn = repodata_fn
+        self._repodata_fn = repodata_fn or REPODATA_FN
 
         self._log = logging.getLogger(__name__)
         self._stderrlog = logging.getLogger("conda.stderrlog")
@@ -310,3 +311,10 @@ class ZstdRepoInterface(RepoInterface):
             raise RepodataOnDisk()
         else:
             return repodata_json_or_none
+
+    def _repodata_state_copy(self, state: dict | RepodataState) -> RepodataState:
+        """Create a copy of state to avoid modifying the caller's dict."""
+        if isinstance(state, RepodataState):
+            return RepodataState(dict(state))
+        else:
+            return RepodataState(state)

@@ -102,12 +102,10 @@ class Response304ContentUnchanged(Exception):
 
 def get_repo_interface() -> type[RepoInterface]:
     if context.repodata_use_zst:
-        try:
-            from .jlap.interface import ZstdRepoInterface
+        # We need lazy import to avoid circular imports.
+        from .zstd import ZstdRepoInterface
 
-            return ZstdRepoInterface
-        except ImportError:  # pragma: no cover
-            pass
+        return ZstdRepoInterface
 
     return CondaRepoInterface
 
