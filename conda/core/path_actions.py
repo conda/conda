@@ -13,6 +13,8 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from conda.common.io import dashlist
+
 from .. import CONDA_PACKAGE_ROOT, CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION, WINDOWS_LAUNCHER_STUB_PATH
@@ -370,6 +372,11 @@ class LinkPathAction(CreateInPrefixPathAction):
         requested_link_type,
         entry_point_def,
     ):
+        if context.subdir not in WINDOWS_LAUNCHER_STUB_PATH:
+            raise NotImplementedError(
+                f"Windows entry point stub not available for subdir {context.subdir!r}. "
+                f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
+            )
         source_directory = CONDA_PACKAGE_ROOT
         source_short_path = WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
         command, _, _ = parse_entry_point_def(entry_point_def)

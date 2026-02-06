@@ -63,6 +63,7 @@ from ..common.compat import (
     on_win,
     open_utf8,
 )
+from ..common.io import dashlist
 from ..common.path import (
     BIN_DIRECTORY,
     expand,
@@ -1205,6 +1206,11 @@ def make_entry_point(target_path, conda_prefix, module, func):
 
 def make_entry_point_exe(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
+    if context.subdir not in WINDOWS_LAUNCHER_STUB_PATH:
+        raise NotImplementedError(
+            f"Windows entry point stub not available for subdir {context.subdir!r}. "
+            f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
+        )
     exe_path = target_path
     source_exe_path = join(
         CONDA_PACKAGE_ROOT, WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
