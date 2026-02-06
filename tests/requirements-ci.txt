@@ -1,5 +1,5 @@
 coverage
-flask >=2.2  # jlap pytest fixture
+flask >=2.2  # package server pytest fixture
 git
 importlib_resources >= 5.10  # only necessary for Python < 3.12
 pexpect
@@ -14,4 +14,4 @@ pytest-xprocess
 responses
 tomli  # for coverage pyproject.toml, only necessary for Python <= 3.11.0a6
 truststore >=0.8.0
-werkzeug >=2.2  # jlap pytest fixture
+werkzeug >=2.2  # package server pytest fixture

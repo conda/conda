@@ -44,6 +44,7 @@ pytest_plugins = (
     "conda.testing.gateways.fixtures",
     "conda.testing.notices.fixtures",
     "conda.testing.fixtures",
+    "tests.fixtures_package_server",
 )
 
 
