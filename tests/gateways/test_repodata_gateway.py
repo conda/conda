@@ -41,7 +41,6 @@ from conda.gateways.repodata import (
     conda_http_errors,
     get_cache_control_max_age,
 )
-from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 from conda.models.channel import Channel
 
 if TYPE_CHECKING:
@@ -345,10 +344,8 @@ def test_ssl_unavailable_error_message():
         del sys.modules["ssl"]
 
 
-@pytest.mark.parametrize("use_jlap", [True, False])
 def test_repodata_fetch_formats(
     package_server: socket,
-    use_jlap: bool,
     tmp_path: Path,
     temp_package_cache: Path,
     package_repository_base: Path,
@@ -358,19 +355,11 @@ def test_repodata_fetch_formats(
     """
     assert temp_package_cache.exists()
 
-    # Remove leftover test data.
-    jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
-    if jlap_path.exists():
-        jlap_path.unlink()
-
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
 
-    if use_jlap:
-        repo_cls = JlapRepoInterface
-    else:
-        repo_cls = CondaRepoInterface
+    repo_cls = CondaRepoInterface
 
     # we always check for *and create* a writable cache dir before fetch
     cache_path_base = tmp_path / "fetch_formats" / "xyzzy"

@@ -84,7 +84,6 @@ PATH_MATCH_REGEX = (
 # Repodata file extensions (static, not plugin-dependent)
 KNOWN_REPODATA_EXTENSIONS = (
     ".json",
-    ".jlap",
     ".json.zst",
 )
 
@@ -183,7 +182,7 @@ def strip_pkg_extension(path: str) -> tuple[str, str | None]:
     Split path into (base, extension) for known extensions.
 
     Package extensions are determined dynamically from registered plugins.
-    Repodata extensions (.json, .jlap, .json.zst) are also recognized.
+    Repodata extensions (.json, .json.zst) are also recognized.
 
     :param path: Path to split.
     :return: Tuple of (base_path, extension) where extension is None if not found.

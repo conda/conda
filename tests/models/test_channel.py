@@ -1380,10 +1380,6 @@ def test_channel_mangles_urls():
             "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
         ),
-        (
-            "https://conda.anaconda.org/conda-forge/linux-64/repodata.jlap",
-            "https://conda.anaconda.org/conda-forge/linux-64",
-        ),
         # This strange behavior may need to change:
         (
             "https://conda.anaconda.org/conda-forge/linux-64/repodata.json.bz2",

@@ -301,9 +301,8 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     channel_customization_options.add_argument(
         "--experimental",
         action="append",
-        choices=["jlap", "lock"],
-        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+        choices=["lock"],
+        help="lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
     )
     channel_customization_options.add_argument(
         "--no-lock",
