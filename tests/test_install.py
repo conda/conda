@@ -2,14 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 import random
 import subprocess
 import sys
 import tempfile
-from os import chdir, getcwd, makedirs
+from os import makedirs
 from os.path import exists, join, relpath
+from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest import mock
 
 import pytest
 
@@ -17,14 +18,16 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
 from conda.gateways.connection.download import download
-from conda.gateways.disk.delete import move_path_to_trash
+from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
     from conda.testing.fixtures import PathFactoryFixture
 
-patch = mock.patch if mock else None
+PYZZER_DIR = Path(__file__).parent / "data" / "pyzzer"
 
 
 def generate_random_path():
@@ -117,70 +120,61 @@ def test_ends_with_newl(subdir):
 
 @pytest.mark.integration
 @pytest.mark.skipif(not on_win, reason="exe entry points only necessary on win")
-def test_windows_entry_point():
+def test_windows_entry_point(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     """
     This emulates pip-created entry point executables on windows.  For more info,
     refer to conda/install.py::replace_entry_point_shebang
     """
-    tmp_dir = tempfile.mkdtemp()
-    cwd = getcwd()
-    chdir(tmp_dir)
+    monkeypatch.chdir(tmp_path)
     original_prefix = "C:\\BogusPrefix\\python.exe"
-    try:
-        url = "https://s3.amazonaws.com/conda-dev/pyzzerw.pyz"
-        download(url, "pyzzerw.pyz")
-        url = (
-            "https://files.pythonhosted.org/packages/source/c/conda/conda-4.1.6.tar.gz"
-        )
-        download(url, "conda-4.1.6.tar.gz")
-        subprocess.check_call(
-            [
-                sys.executable,
-                "pyzzerw.pyz",
-                # output file
-                "-o",
-                "conda.exe",
-                # entry point
-                "-m",
-                "conda.cli.main:main",
-                # initial shebang
-                "-s",
-                "#! " + original_prefix,
-                # launcher executable to use (32-bit text should be compatible)
-                "-l",
-                "t32",
-                # source archive to turn into executable
-                "conda-4.1.6.tar.gz",
-            ],
-            cwd=tmp_dir,
-        )
-        # this is the actual test: change the embedded prefix and make sure that the exe runs.
-        data = open("conda.exe", "rb").read()
-        fixed_data = binary_replace(data, original_prefix, sys.executable)
-        with open("conda.fixed.exe", "wb") as f:
-            f.write(fixed_data)
-        # without a valid shebang in the exe, this should fail
-        with pytest.raises(subprocess.CalledProcessError):
-            subprocess.check_call(["conda.exe", "-h"])
+    # TODO: create a dummy Python package tarball instead of fetching conda from PyPI
+    download(
+        "https://files.pythonhosted.org/packages/source/c/conda/conda-4.1.6.tar.gz",
+        "conda-4.1.6.tar.gz",
+    )
+    subprocess.check_call(
+        [
+            sys.executable,
+            PYZZER_DIR / "pyzzerw.pyz",
+            # output file
+            "-o",
+            "conda.exe",
+            # entry point
+            "-m",
+            "conda.cli.main:main",
+            # initial shebang
+            "-s",
+            "#! " + original_prefix,
+            # launcher executable to use (32-bit text should be compatible)
+            "-l",
+            "t32",
+            # source archive to turn into executable
+            "conda-4.1.6.tar.gz",
+        ],
+        cwd=tmp_path,
+    )
+    # this is the actual test: change the embedded prefix and make sure that the exe runs.
+    data = Path("conda.exe").read_bytes()
+    fixed_data = binary_replace(data, original_prefix, sys.executable)
+    Path("conda.fixed.exe").write_bytes(fixed_data)
+    # without a valid shebang in the exe, this should fail
+    with pytest.raises(subprocess.CalledProcessError):
+        subprocess.check_call(["conda.exe", "-h"])
 
-        process = subprocess.Popen(
-            ["conda.fixed.exe", "-h"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        output, error = process.communicate()
-        output = output.decode("utf-8")
-        error = error.decode("utf-8")
-        print(output)
-        print(error, file=sys.stderr)
-        assert (
-            "conda is a tool for managing and deploying applications, "
-            "environments and packages."
-        ) in output
-    except:
-        raise
-    finally:
-        chdir(cwd)
+    process = subprocess.Popen(
+        ["conda.fixed.exe", "-h"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    output, error = process.communicate()
+    output = output.decode("utf-8")
+    error = error.decode("utf-8")
+    print(output)
+    print(error, file=sys.stderr)
+    assert (
+        "conda is a tool for managing and deploying applications, "
+        "environments and packages."
+    ) in output
 
 
 def test_default_text(path_factory: PathFactoryFixture):
@@ -212,14 +206,35 @@ def test_binary(path_factory: PathFactoryFixture, subdir: str):
     assert tmp.read_bytes() == b"\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0"
 
 
-def test_trash_outside_prefix():
+def test_trash_outside_prefix(monkeypatch: MonkeyPatch):
+    # Ensure temp dir is on the same drive as conda prefix on Windows
+    # so that relpath() works (as we can't compute relative path across
+    # drives). This is needed on Windows because we set TEMP to the D:
+    # drive in CI tests to speed it up.
+    if on_win and os.getenv("CI"):
+        prefix_drive = Path(context.root_prefix).drive.upper()
+        current_temp_drive = Path(tempfile.gettempdir()).drive.upper()
+
+        # Only adjust the paths when we have a cross-drive situation, for
+        # example in the conda repo CI tests where root_prefix is on C:
+        # drive and TEMP is on D: drive, but may not be set on other repos.
+        if prefix_drive and current_temp_drive and current_temp_drive != prefix_drive:
+            temp_on_same_drive = Path(f"{prefix_drive}\\") / "Temp"
+            temp_on_same_drive.mkdir(parents=True, exist_ok=True)
+
+            monkeypatch.setenv("TEMP", str(temp_on_same_drive))
+            monkeypatch.setenv("TMP", str(temp_on_same_drive))
+            monkeypatch.delenv("TMPDIR", raising=False)
+
+            monkeypatch.setattr(tempfile, "tempdir", str(temp_on_same_drive))
+
     tmp_dir = tempfile.mkdtemp()
     rel = relpath(tmp_dir, context.root_prefix)
     assert rel.startswith("..")
-    move_path_to_trash(tmp_dir)
+    rm_rf(tmp_dir)
     assert not exists(tmp_dir)
     makedirs(tmp_dir)
-    move_path_to_trash(tmp_dir)
+    rm_rf(tmp_dir)
     assert not exists(tmp_dir)
 
 

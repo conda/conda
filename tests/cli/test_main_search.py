@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import json
 import re
 from typing import TYPE_CHECKING
 
@@ -11,6 +10,7 @@ import requests
 
 from conda.base.context import context, reset_context
 from conda.cli.main_search import _pretty_record_format, pretty_record
+from conda.common.serialize import json
 from conda.exceptions import PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.models.records import PackageRecord
@@ -116,21 +116,22 @@ def test_search_3(conda_cli: CondaCLIFixture):
     assert not err
 
 
-@pytest.mark.flaky(reruns=5)
-def test_search_4(conda_cli: CondaCLIFixture):
-    stdout, stderr, err = conda_cli(
-        "search",
-        "--json",
-        "--override-channels",
-        "--channel",
-        "defaults",
-        "--use-index-cache",
-        "python",
-    )
-    parsed = json.loads(stdout.strip())
-    assert isinstance(parsed, dict)
-    assert not stderr
-    assert not err
+@pytest.mark.flaky(reruns=1)
+def test_search_4(
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # use test channel
+    tmp_pkgs_dir: Path,  # empty cache
+):
+    """
+    Show error when --use-index-cache is used but index cache is empty.
+    """
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli(
+            "search",
+            "--json",
+            "--use-index-cache",
+            "small",
+        )
 
 
 @pytest.mark.flaky(reruns=5)

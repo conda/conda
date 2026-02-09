@@ -64,6 +64,7 @@ def test_cmd_exe_basic_integration(
 
         sh.sendline("chcp")
         sh.clear()
+        sh.assert_env_var("PROMPT", "(charizard).*")
         sh.assert_env_var("CONDA_SHLVL", "1")
 
         PATH1 = sh.get_env_var("PATH", "").split(os.pathsep)
@@ -87,6 +88,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_EXE", escape(sys.executable))
         sh.assert_env_var("CONDA_SHLVL", "2")
         sh.assert_env_var("CONDA_PREFIX", prefix, True)
+        sh.assert_env_var("PROMPT", f"({os.path.basename(prefix)}).*")
 
         # install local tests/test-recipes/small-executable
         sh.sendline(
@@ -119,10 +121,7 @@ def test_cmd_exe_basic_integration(
 
 
 @PARAMETRIZE_CMD_EXE
-def test_cmd_exe_activate_error(
-    shell_wrapper_integration: tuple[str, str, str],
-    shell: Shell,
-) -> None:
+def test_cmd_exe_activate_error(shell: Shell) -> None:
     context.dev = True
     with shell.interactive() as sh:
         sh.sendline("set")
@@ -132,10 +131,45 @@ def test_cmd_exe_activate_error(
             "Could not find conda environment: environment-not-found-doesnt-exist"
         )
         sh.expect(".*")
-        sh.assert_env_var("errorlevel", "1")
+        sh.assert_env_var("errorlevel", "2")
 
         sh.sendline("conda activate -h blah blah")
         sh.expect("usage: conda activate")
+
+
+@PARAMETRIZE_CMD_EXE
+def test_cmd_exe_activate_invalid_temp(shell: Shell) -> None:
+    """Test that activation fails gracefully with an invalid TEMP directory."""
+    with shell.interactive() as sh:
+        # Set TEMP to invalid path
+        sh.sendline("set TEMP=C:\\path\\that\\does\\not\\exist")
+
+        # Try to activate - should fail with TEMP error
+        sh.sendline(f"conda {activate} base")
+        sh.expect("ERROR: Failed to create temp file")
+        sh.expect("TEMP directory issue")
+        sh.assert_env_var("errorlevel", "1")
+
+
+@PARAMETRIZE_CMD_EXE
+def test_cmd_exe_activate_script_failure(
+    shell_wrapper_integration: tuple[str, str, str],
+    shell: Shell,
+) -> None:
+    """Test that activation fails gracefully when an activation script fails."""
+    prefix, _, _ = shell_wrapper_integration
+
+    # Create a failing activation script in the environment
+    activate_d = Path(prefix) / "etc" / "conda" / "activate.d"
+    activate_d.mkdir(parents=True, exist_ok=True)
+    failing_script = activate_d / "fail.bat"
+    failing_script.write_text("@echo Failing activation script\n@exit /b 1\n")
+
+    with shell.interactive() as sh:
+        sh.sendline(f'conda {activate} "{prefix}"')
+        sh.expect("ERROR: Activation script")
+        sh.expect("failed with code")
+        sh.assert_env_var("errorlevel", "4")
 
 
 @PARAMETRIZE_CMD_EXE

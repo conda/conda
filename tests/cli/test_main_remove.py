@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.common.io import stderr_log_level
 from conda.exceptions import (
+    CondaEnvException,
     DryRunExit,
     EnvironmentLocationNotFound,
     PackagesNotFoundError,
@@ -24,6 +25,8 @@ from conda.testing.integration import (
 )
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 log = getLogger(__name__)
@@ -106,3 +109,28 @@ def test_remove_globbed_package_names(
 def test_remove_nonexistent_env(conda_cli: CondaCLIFixture):
     with pytest.raises(EnvironmentLocationNotFound):
         conda_cli("remove", "--prefix=/non/existent/path", "--all")
+
+
+def test_remove_all_default_activation_env(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """Check that removing the default_activation_env raises an exception."""
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", prefix)
+        reset_context()
+
+        assert prefix == context.default_activation_prefix
+        with pytest.raises(
+            CondaEnvException,
+            match=(
+                "Cannot remove an environment if it is configured "
+                "as `default_activation_env`."
+            ),
+        ):
+            conda_cli(
+                "remove",
+                "--all",
+                f"--prefix={prefix}",
+            )

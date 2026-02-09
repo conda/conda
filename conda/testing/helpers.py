@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of helper functions used in conda tests."""
 
-import json
+from __future__ import annotations
+
 import os
+import subprocess
+import sys
 from contextlib import contextmanager
 from functools import cache
 from os.path import abspath, dirname, join
@@ -15,9 +18,9 @@ from uuid import uuid4
 import pytest
 
 from ..base.constants import REPODATA_FN
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context
+from ..base.context import context
 from ..common.io import captured as common_io_captured
-from ..common.io import env_var
+from ..common.serialize import json
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData
 from ..gateways.disk.delete import rm_rf
@@ -290,12 +293,10 @@ def _get_index_r_base(
         channels.append(channel)
         sd = SubdirData(channel)
         subdir_datas.append(sd)
-        with env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            str(add_pip).lower(),
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
+
+        with context._override("add_pip_as_python_dependency", add_pip):
             sd._process_raw_repodata_str(json.dumps(repodata))
+
         sd._loaded = True
         SubdirData._cache_[(channel.url(with_credentials=True), REPODATA_FN)] = sd
         _patch_for_local_exports(channel_name, sd)
@@ -532,24 +533,18 @@ def _get_solver_base(
 
     subdirs = (context.subdir,) if merge_noarch else (context.subdir, "noarch")
 
-    with (
-        patch.object(History, "get_requested_specs_map", return_value=spec_map),
-        env_var(
-            "CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY",
-            str(add_pip).lower(),
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-    ):
-        # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
-        # get_index_r_*) to cover solver logics that need to load from disk instead of
-        # hitting the SubdirData cache
-        yield context.plugin_manager.get_solver_backend()(
-            tmpdir,
-            channels,
-            subdirs,
-            specs_to_add=specs_to_add,
-            specs_to_remove=specs_to_remove,
-        )
+    with context._override("add_pip_as_python_dependency", add_pip):
+        with patch.object(History, "get_requested_specs_map", return_value=spec_map):
+            # We need CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false here again (it's also in
+            # get_index_r_*) to cover solver logics that need to load from disk instead of
+            # hitting the SubdirData cache
+            yield context.plugin_manager.get_solver_backend()(
+                tmpdir,
+                channels,
+                subdirs,
+                specs_to_add=specs_to_add,
+                specs_to_remove=specs_to_remove,
+            )
 
 
 @contextmanager
@@ -729,17 +724,41 @@ def get_solver_cuda(
 
 
 def convert_to_dist_str(solution):
-    dist_str = []
-    for prec in solution:
-        # This is needed to remove the local path prefix in the
-        # dist_str() calls, otherwise we cannot compare them
-        canonical_name = prec.channel._Channel__canonical_name
-        prec.channel._Channel__canonical_name = prec.channel.name
-        dist_str.append(prec.dist_str())
-        prec.channel._Channel__canonical_name = canonical_name
-    return tuple(dist_str)
+    return tuple(prec.dist_str(canonical_name=False) for prec in solution)
 
 
 @pytest.fixture()
 def solver_class():
     return context.plugin_manager.get_solver_backend()
+
+
+def in_subprocess():
+    return bool(os.getenv("_RERUN_IN_SUBPROCESS"))
+
+
+def forward_to_subprocess(
+    request, *cli_args, **subprocess_kwargs
+) -> subprocess.CompletedProcess | None:
+    if in_subprocess():
+        return
+    args = cli_args or (
+        "--no-header",
+        "--disable-warnings",
+        "--color=no",
+        "-vvv",
+    )
+    env = os.environ.copy()
+    env["_RERUN_IN_SUBPROCESS"] = "1"
+    env.update(subprocess_kwargs.pop("env", {}))
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            *args,
+            f"{request.node.path}::{request.node.name}",
+        ],
+        check=subprocess_kwargs.pop("check", True),
+        env=env,
+        **subprocess_kwargs,
+    )

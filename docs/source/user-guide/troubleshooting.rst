@@ -331,6 +331,36 @@ If the repository is signed by a private certificate authority (CA), the file ne
 the root certificate and any intermediate certificates.
 
 
+.. _temp-file-errors:
+
+Temporary file errors during conda operations
+==============================================
+
+Conda creates temporary files during various operations including environment activation, package installation, and running commands. These errors typically occur when the temporary directory is read-only, has insufficient space, or has permission issues.
+
+You may see errors like:
+
+.. code-block::
+
+   PermissionError: [Errno 13] Permission denied: '/tmp/...'
+   OSError: [Errno 30] Read-only file system: '/tmp/...'
+   OSError: [Errno 28] No space left on device: '/tmp/...'
+
+Cause
+-----
+
+* The default temporary directory is read-only
+* Insufficient disk space in the temporary directory
+* Restrictive permissions on the temporary directory
+* Running in containers or HPC environments with limited or read-only temporary directories
+
+Solution
+--------
+
+Configure conda to use a different temporary directory by setting the ``TMPDIR``, ``TEMP``, or ``TMP`` environment variables.
+
+For detailed instructions, platform-specific examples, and information on how Python's ``tempfile`` module determines temporary directories, see :doc:`configuration/temp-files`.
+
 .. _permission-denied:
 
 Permission denied errors during installation
@@ -711,7 +741,7 @@ contains the command.
 This is a relatively rare problem, since this happens only in the
 following circumstances:
 
-#. You activate an environment or use the root environment, and
+#. You activate an environment or use the default environment, and
    then run a command from somewhere else.
 
 #. Then you ``conda install`` a program, and then try to run the
@@ -1053,7 +1083,7 @@ Solution
 
 If you receive this warning, you need to activate your environment.
 To do so on Windows, on a terminal via PowerShell or the Command Prompt, run:
-``call <your anaconda/miniconda install location>\Scripts\activate base``.
+``call <your anaconda/miniconda install location>\Scripts\activate``.
 
 .. _path-error:
 

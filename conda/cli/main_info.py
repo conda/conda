@@ -10,13 +10,16 @@ from __future__ import annotations
 import os
 import re
 import sys
-from argparse import SUPPRESS
+from argparse import SUPPRESS, _StoreTrueAction
+from functools import cached_property
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
+from tempfile import gettempdir
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
 from ..deprecations import deprecated
+from ..exceptions import ArgumentError
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -66,12 +69,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "-e",
         "--envs",
         action="store_true",
-        help="List all known conda environments.",
+        help="List all known conda environments. Combine with `--json` to obtain more details.",
     )
     p.add_argument(
         "-l",
         "--license",
-        action="store_true",
+        action=deprecated.action("25.9", "26.3", _StoreTrueAction),
         help=SUPPRESS,
     )
     p.add_argument(
@@ -81,8 +84,18 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="List environment variables.",
     )
     p.add_argument(
-        "--root",
+        "--size",
         action="store_true",
+        help="Show conda-managed disk usage for each environment (excludes untracked files created after installation).",
+    )
+    p.add_argument(
+        "--root",
+        action=deprecated.action(
+            "25.9",
+            "26.3",
+            _StoreTrueAction,
+            addendum="Use `--base` instead.",
+        ),
         help=SUPPRESS,
         dest="base",
     )
@@ -187,7 +200,6 @@ def pretty_package(prec: PackageRecord) -> None:
         print(f"    {dep}")
 
 
-@deprecated.argument("24.9", "25.3", "system")
 def get_info_dict() -> dict[str, Any]:
     """
     Returns a dictionary of contextual information.
@@ -206,7 +218,7 @@ def get_info_dict() -> dict[str, Any]:
     )
     from ..common.compat import on_win
     from ..common.url import mask_anaconda_token
-    from ..core.index import _supplement_index_with_system
+    from ..core.index import Index
     from ..models.channel import all_channel_urls, offline_keep
 
     try:
@@ -219,8 +231,7 @@ def get_info_dict() -> dict[str, Any]:
         log.error("Error importing conda-build: %s", err)
         conda_build_version = "error"
 
-    virtual_pkg_index = {}
-    _supplement_index_with_system(virtual_pkg_index)
+    virtual_pkg_index = Index().system_packages
     virtual_pkgs = [[p.name, p.version, p.build] for p in virtual_pkg_index.values()]
 
     channels = list(all_channel_urls(context.channels))
@@ -273,6 +284,7 @@ def get_info_dict() -> dict[str, Any]:
         netrc_file=netrc_file,
         virtual_pkgs=virtual_pkgs,
         solver=solver,
+        tmp_dir=gettempdir(),
     )
     if on_win:
         from ..common._os.windows import is_admin_on_windows
@@ -376,6 +388,7 @@ def get_main_info_display(info_dict: dict[str, Any]) -> dict[str, str]:
         yield ("channel URLs", flatten(info_dict["channels"]))
         yield ("package cache", flatten(info_dict["pkgs_dirs"]))
         yield ("envs directories", flatten(info_dict["envs_dirs"]))
+        yield ("temporary directory", info_dict["tmp_dir"])
         yield ("platform", info_dict["platform"])
         yield ("user-agent", info_dict["user_agent"])
 
@@ -404,8 +417,8 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
     )
 
 
-#: Possible components for the info command to render
 InfoComponents = Literal["base", "channels", "envs", "system", "detail", "json_all"]
+"""Possible components for the info command to render."""
 
 
 class InfoRenderer:
@@ -413,12 +426,9 @@ class InfoRenderer:
     Provides a ``render`` method for rendering ``InfoComponents``
     """
 
-    def __init__(self, context):
-        from ..core.envs_manager import list_all_known_prefixes
-
+    def __init__(self, context: Context, show_size: bool = False):
         self._context = context
-        self._info_dict = get_info_dict()
-        self._info_dict["envs"] = list_all_known_prefixes()
+        self._show_size = show_size
         self._component_style_map = {
             "base": None,
             "channels": None,
@@ -427,6 +437,47 @@ class InfoRenderer:
             "system": None,
             "json_all": None,
         }
+
+    @cached_property
+    def _info_dict(self):
+        info_dict = get_info_dict()
+        info_dict["envs"] = self._info_dict_envs
+        info_dict["envs_details"] = self._info_dict_envs_details
+        return info_dict
+
+    @cached_property
+    def _info_dict_envs(self) -> list[str]:
+        from ..core.envs_manager import list_all_known_prefixes
+
+        return list_all_known_prefixes()
+
+    @cached_property
+    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None | int]]:
+        from ..core.prefix_data import PrefixData
+
+        result = {}
+        if active_prefix := self._context.active_prefix:
+            active_prefix_data = PrefixData(active_prefix)
+        else:
+            active_prefix_data = None
+        for prefix in self._info_dict_envs:
+            prefix_data = PrefixData(prefix)
+            if created := prefix_data.created:
+                created = created.isoformat()
+            if last_modified := prefix_data.last_modified:
+                last_modified = last_modified.isoformat()
+            result[prefix] = {
+                "name": prefix_data.name,
+                "created": created,
+                "last_modified": last_modified,
+                "active": prefix_data == active_prefix_data,
+                "base": prefix_data.is_base(),
+                "frozen": prefix_data.is_frozen(),
+                "writable": prefix_data.is_writable,
+            }
+            if self._show_size:
+                result[prefix]["size"] = prefix_data.size()
+        return result
 
     def render(self, components: Iterable[InfoComponents]):
         """
@@ -445,7 +496,10 @@ class InfoRenderer:
             data = data_func()
 
             if data:
-                render(data, style=style)
+                kwargs = {}
+                if component == "envs" and self._show_size:
+                    kwargs["show_size"] = True
+                render(data, style=style, **kwargs)
 
     def _base_component(self) -> str | dict:
         if self._context.json:
@@ -464,8 +518,12 @@ class InfoRenderer:
         return get_main_info_display(self._info_dict)
 
     def _envs_component(self):
-        if not self._context.json:
-            return self._info_dict["envs"]
+        if self._context.json:
+            return {
+                "envs": self._info_dict_envs,
+                "envs_details": self._info_dict_envs_details,
+            }
+        return self._info_dict_envs
 
     def _system_component(self) -> str:
         from .find_commands import find_commands, find_executable
@@ -502,43 +560,46 @@ class InfoRenderer:
         return self._info_dict
 
 
+@deprecated(
+    "25.9",
+    "26.3",
+    addendum="Use `conda.cli.main_info.iter_info_components` instead.",
+)
 def get_info_components(args: Namespace, context: Context) -> set[InfoComponents]:
-    """
-    Based on values in ``args`` and ``context`` determine which components need to be displayed
-    and return them as a ``set``
-    """
-    components: set[InfoComponents] = set()
+    return set(iter_info_components(args, context))
 
+
+def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:
+    """
+    Determine which components to display.
+
+    :param args: The parsed command line arguments.
+    :param context: The conda context.
+    :returns: An iterable of components to display.
+    """
     if args.base:
-        components.add("base")
+        yield "base"
 
     if args.unsafe_channels:
-        components.add("channels")
-
-    options = "envs", "system"
-
-    if args.all or context.json:
-        for option in options:
-            setattr(args, option, True)
+        yield "channels"
 
     if (
-        (args.all or all(not getattr(args, opt) for opt in options))
+        (args.all or (not args.envs and not args.system))
         and not context.json
         and not args.base
         and not args.unsafe_channels
     ):
-        components.add("detail")
+        yield "detail"
 
-    if args.envs and not context.json:
-        components.add("envs")
+    if args.envs or (args.all and not context.json):
+        yield "envs"
+        yield "envs_details"
 
-    if args.system and not context.json:
-        components.add("system")
+    if (args.system or args.all) and not context.json:
+        yield "system"
 
-    if context.json and not args.base and not args.unsafe_channels:
-        components.add("json_all")
-
-    return components
+    if context.json and not args.base and not args.unsafe_channels and not args.envs:
+        yield "json_all"
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
@@ -555,8 +616,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.context import context
 
-    components = get_info_components(args, context)
-    renderer = InfoRenderer(context)
+    if args.size and not args.envs:
+        raise ArgumentError("--size can only be used with --envs")
+
+    components = iter_info_components(args, context)
+    show_size = getattr(args, "size", False)
+    renderer = InfoRenderer(context, show_size=show_size)
     renderer.render(components)
 
     return 0

@@ -12,6 +12,7 @@ from signal import SIGINT
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+import pexpect
 from pexpect.popen_spawn import PopenSpawn
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
@@ -71,8 +72,8 @@ class Shell:
         raise FileNotFoundError(f"{shell} not found")
 
     @contextmanager
-    def interactive(self) -> InteractiveShell:
-        with InteractiveShell(self) as interactive:
+    def interactive(self, *args, **kwargs) -> InteractiveShell:
+        with InteractiveShell(self, *args, **kwargs) as interactive:
             yield interactive
 
 
@@ -141,7 +142,12 @@ class InteractiveShellType(type):
         "pwsh-preview": {"base_shell": "powershell"},
         "xonsh": {
             "activator": "xonsh",
-            "args": ("--interactive",),
+            "args": (
+                "--interactive",
+                # Workaround for some issues with prompt_toolkit
+                # https://github.com/conda/conda/issues/15611
+                "--shell-type=readline",
+            ),
             "init_command": f'__xonsh__.execer.exec($("{EXE_UNIX}" -m conda shell.xonsh hook))',
             "print_env_var": "print($%s)",
         },
@@ -170,6 +176,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
         print_env_var: str,
         exit_cmd: str | None = None,
         base_shell: str | None = None,  # ignored
+        env: dict[str, str] | None = None,
     ):
         shell = Shell.resolve(shell)
         self.shell_name = shell.name
@@ -181,9 +188,15 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.init_command = init_command
         self.print_env_var = print_env_var
         self.exit_cmd = exit_cmd
+        self.env = env or {}
 
     def __enter__(self):
-        self.p = PopenSpawn(
+        # Fish shell needs a PTY to work properly with pexpect
+        # Use pexpect.spawn (PTY) for Fish instead of PopenSpawn (pipes)
+        use_pty = self.shell_name == "fish"
+        spawn_class = pexpect.spawn if use_pty else PopenSpawn
+
+        self.p = spawn_class(
             self.shell_exe,
             timeout=30,
             maxread=5000,
@@ -192,7 +205,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
             cwd=os.getcwd(),
             env={
                 **os.environ,
-                "CONDA_AUTO_ACTIVATE_BASE": "false",
+                "CONDA_AUTO_ACTIVATE": "false",
                 "CONDA_AUTO_STACK": "0",
                 "CONDA_CHANGEPS1": "true",
                 # "CONDA_ENV_PROMPT": "({default_env}) ",
@@ -208,6 +221,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
                 # ensure PATH is shared with any msys2 bash shell, rather than starting fresh
                 "MSYS2_PATH_TYPE": "inherit",
                 "CHERE_INVOKING": "1",
+                **self.env,
             },
             encoding="utf-8",
             codec_errors="strict",

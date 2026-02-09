@@ -25,6 +25,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         $ conda create -y -n my-python-env python=3
         $ conda run -n my-python-env python --version
+
+        Use '--' to separate `conda run`'s options from the executable's options::
+
+        $ conda run -n my-python-env -- python -v
+        $ conda run -v -n my-python-env -- tar -tvf file.tar
         """
     )
 
@@ -66,6 +71,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=os.getcwd(),
     )
     p.add_argument(
+        "-s",
         "--no-capture-output",
         "--live-stream",
         action="store_true",
@@ -77,7 +83,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "executable_call",
         nargs=REMAINDER,
         help="Executable name, with additional arguments to be passed to the executable "
-        "on invocation.",
+        "on invocation. Use '--' to separate conda options from executable options.",
     )
 
     p.set_defaults(func="conda.cli.main_run.execute")
@@ -88,19 +94,30 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..common.compat import encode_environment
+    from ..core.prefix_data import PrefixData
+    from ..exceptions import ArgumentError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.subprocess import subprocess_call
     from ..utils import wrap_subprocess_call
-    from .common import validate_prefix
+
+    prefix_data = PrefixData.from_context()
+    prefix_data.assert_environment()
+
+    # Used to separate subcommand from 'conda run' options
+    # e.g. conda run -v -- tar -tvf file.tar
+    if args.executable_call and args.executable_call[0] == "--":
+        args.executable_call = args.executable_call[1:]
+
+    if not args.executable_call:
+        raise ArgumentError("No command specified. Please provide a command to run.")
 
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
-        validate_prefix(context.target_prefix),  # ensure prefix exists
+        str(prefix_data.prefix_path),
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,
-        use_system_tmp_path=True,
     )
 
     # run script
@@ -115,9 +132,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # display stdout/stderr if it was captured
     if not args.no_capture_output:
         if response.stdout:
-            print(response.stdout, file=sys.stdout)
+            print(response.stdout, file=sys.stdout, end="")
         if response.stderr:
-            print(response.stderr, file=sys.stderr)
+            print(response.stderr, file=sys.stderr, end="")
 
     # log error
     if response.rc != 0:

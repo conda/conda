@@ -261,7 +261,7 @@ You can reach the entire CoC Committee by emailing [conduct@conda.org](mailto:co
 | ---- | ---- | ---- | --- |
 | [Eric Dill](https://github.com/ericdill) | [Anaconda](https://anaconda.com/) | | 2026-07-01 |
 | [Dasha Gurova](https://github.com/dashagurova) | [Anaconda](https://anaconda.com/) | | 2026-07-01 |
-| [Bianca Henderson](https://github.com/beeankha) | [Anaconda](https://anaconda.com/) | | 2026-07-01 |
+| [Bianca Henderson](https://github.com/beeankha) | [Red Hat](https://redhat.com/) | | 2026-07-01 |
 | [Katherine Kinnaman](https://github.com/kathatherine) | [Anaconda](https://anadonda.com/) | | 2026-07-01 |
 | [Mahe Iram Khan](https://github.com/ForgottenProgramme) | [Anaconda](https://anaconda.com/) | | 2025-07-01 |
 | [Ken Odegard](https://github.com/kenodegard) | [Anaconda](https://anaconda.com/) | | 2025-07-01 |

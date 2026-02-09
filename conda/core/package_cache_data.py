@@ -4,14 +4,12 @@
 
 from __future__ import annotations
 
-import codecs
 import os
 from collections import defaultdict
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
-from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
@@ -26,7 +24,6 @@ from ..auxlib.entity import ValidationError
 from ..base.constants import (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSIONS,
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
@@ -34,12 +31,12 @@ from ..common.constants import NULL, TRACE
 from ..common.io import IS_INTERACTIVE, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
+from ..common.serialize import json
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
-    extract_tarball,
     write_as_json_to_file,
 )
 from ..gateways.disk.delete import rm_rf
@@ -116,7 +113,6 @@ class PackageCacheData(metaclass=PackageCacheType):
             # no directory exists, and we didn't have permissions to create it
             return
 
-        _CONDA_TARBALL_EXTENSIONS = CONDA_PACKAGE_EXTENSIONS
         pkgs_dir_contents = tuple(entry.name for entry in scandir(self.pkgs_dir))
         for base_name in self._dedupe_pkgs_dir_contents(pkgs_dir_contents):
             full_path = join(self.pkgs_dir, base_name)
@@ -126,7 +122,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                 isdir(full_path)
                 and isfile(join(full_path, "info", "index.json"))
                 or isfile(full_path)
-                and full_path.endswith(_CONDA_TARBALL_EXTENSIONS)
+                and context.plugin_manager.has_package_extension(full_path)
             ):
                 try:
                     package_cache_record = self._make_single_record(base_name)
@@ -145,8 +141,9 @@ class PackageCacheData(metaclass=PackageCacheType):
         self.load()
         return self
 
-    def get(self, package_ref, default=NULL):
-        assert isinstance(package_ref, PackageRecord)
+    def get(self, package_ref: PackageRecord, default=NULL):
+        if not isinstance(package_ref, PackageRecord):
+            raise TypeError("`package_ref` must be a PackageRecord instance.")
         try:
             return self._package_cache_records[package_ref]
         except KeyError:
@@ -173,7 +170,8 @@ class PackageCacheData(metaclass=PackageCacheType):
                 if param.match(pcrec)
             )
         else:
-            assert isinstance(param, PackageRecord)
+            if not isinstance(param, PackageRecord):
+                raise TypeError("`package_ref` must be a PackageRecord instance.")
             return (
                 pcrec
                 for pcrec in self._package_cache_records.values()
@@ -385,10 +383,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
-            # EnvironmentError if info/repodata_record.json doesn't exists
-            # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
-            #   python 2.7 raises ValueError instead of JsonDecodeError
+        except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+            # EnvironmentError: info/repodata_record.json doesn't exists
+            # json.JSONDecodeError: info/repodata_record.json is partially extracted or corrupted
+            #   python 2.7 raises ValueError instead of json.JSONDecodeError
             #   ValueError("No JSON object could be decoded")
             log.debug(
                 "unable to read %s\n  because %r",
@@ -399,10 +397,10 @@ class PackageCacheData(metaclass=PackageCacheType):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
-                # EnvironmentError if info/index.json doesn't exist
-                # JsonDecodeError if info/index.json is partially extracted or corrupted
-                #   python 2.7 raises ValueError instead of JsonDecodeError
+            except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+                # EnvironmentError: info/index.json doesn't exist
+                # json.JSONDecodeError: info/index.json is partially extracted or corrupted
+                #   python 2.7 raises ValueError instead of json.JSONDecodeError
                 #   ValueError("No JSON object could be decoded")
                 log.debug(
                     "unable to read %s\n  because %r",
@@ -425,8 +423,9 @@ class PackageCacheData(metaclass=PackageCacheType):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         try:
-                            extract_tarball(
-                                package_tarball_full_path, extracted_package_dir
+                            context.plugin_manager.extract_package(
+                                package_tarball_full_path,
+                                extracted_package_dir,
                             )
                         except (OSError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
@@ -439,7 +438,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                                 return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
-                        except (OSError, JSONDecodeError, FileNotFoundError):
+                        except (OSError, json.JSONDecodeError, FileNotFoundError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
                             rm_rf(package_tarball_full_path)
@@ -552,7 +551,7 @@ class UrlsData:
         return iter(self._urls_data)
 
     def add_url(self, url):
-        with codecs.open(self.urls_txt_path, mode="ab", encoding="utf-8") as fh:
+        with open(self.urls_txt_path, mode="a", encoding="utf-8") as fh:
             linefeed = "\r\n" if platform == "win32" else "\n"
             fh.write(url + linefeed)
         self._urls_data.insert(0, url)
@@ -566,7 +565,7 @@ class UrlsData:
         #       That's probably a good assumption going forward, because we should now always
         #       be recording the extension in urls.txt.  The extensionless situation should be
         #       legacy behavior only.
-        if not package_path.endswith(CONDA_PACKAGE_EXTENSIONS):
+        if not context.plugin_manager.has_package_extension(package_path):
             package_path += CONDA_PACKAGE_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
@@ -579,7 +578,8 @@ class UrlsData:
 class ProgressiveFetchExtract:
     @staticmethod
     def make_actions_for_record(pref_or_spec):
-        assert pref_or_spec is not None
+        if pref_or_spec is None:
+            raise TypeError("`pref_or_spec` cannot be None.")
         # returns a cache_action and extract_action
 
         # if the pref or spec has an md5 value
@@ -702,12 +702,22 @@ class ProgressiveFetchExtract:
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get("url")
-        assert url
+        if not url:
+            raise ValueError(".url field is required and must be non-empty.")
+
+        # Determine the target filename for the downloaded package.
+        # For the draft repodata v3 format (especially packages.whl), while the
+        # repodata contains the correct fn field (e.g., idna-3.10-py3-none-any.whl),
+        # rattler sanitizes it internally to a conda-style identifier
+        # (e.g., idna-3.10-py3_none_any_0). We extract from URL which always
+        # contains the correct filename.
+        # See: https://github.com/conda/conda/issues/15620
+        target_package_basename = basename(url) or pref_or_spec.fn
 
         cache_action = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_package_basename=pref_or_spec.fn,
+            target_package_basename=target_package_basename,
             sha256=sha256,
             size=size,
             md5=md5,
@@ -715,7 +725,7 @@ class ProgressiveFetchExtract:
         extract_action = ExtractPackageAction(
             source_full_path=cache_action.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
+            target_extracted_dirname=strip_pkg_extension(target_package_basename)[0],
             record_or_spec=pref_or_spec,
             sha256=sha256,
             size=size,
@@ -783,7 +793,8 @@ class ProgressiveFetchExtract:
         if not self._prepared:
             self.prepare()
 
-        assert not context.dry_run
+        if context.dry_run:
+            raise RuntimeError("Cannot run .execute() in dry-run mode.")
 
         with get_progress_bar_context_manager() as pbar_context:
             if self._executed:

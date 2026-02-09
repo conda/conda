@@ -66,6 +66,14 @@
     color: '#91e4e5'
     aliases: [type-shell-xonsh]
 
+# OS
+  - name: os::cygwin
+    description: pertains to Cygwin, commonly run on Windows
+    color: '#d0e0e3'
+  - name: os::msys2
+    description: pertains to MSYS2 and Git for Windows
+    color: '#d0e0e3'
+
 # Plugins
   - name: plugins
     description: pertains to a plugin/subcommand

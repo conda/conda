@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from contextlib import nullcontext
 from importlib.util import find_spec
 from logging import getLogger
 from pathlib import Path
@@ -12,15 +13,17 @@ import pytest
 from requests import HTTPError, Request
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.base.constants import PARTIAL_EXTENSION
 from conda.base.context import context, reset_context
 from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
-from conda.exceptions import CondaExitZero
+from conda.exceptions import CondaExitZero, OfflineError, PluginError
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
 from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
+    _validate_plugin_headers,
     get_channel_name_from_url,
     get_session,
     get_session_storage_key,
@@ -30,6 +33,8 @@ from conda.plugins.types import ChannelAuthBase
 from conda.testing.gateways.fixtures import MINIO_EXE
 
 if TYPE_CHECKING:
+    import http.server
+
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
@@ -38,19 +43,7 @@ if TYPE_CHECKING:
 BOTO3_AVAILABLE = bool(find_spec("boto3"))
 log = getLogger(__name__)
 
-
-@pytest.fixture(autouse=True)
-def clean_up_object_cache():
-    """
-    We use this to clean up the class/function cache on various things in the
-    ``conda.gateways.connection.session`` module.
-    """
-    try:
-        del CondaSession._thread_local.sessions
-    except AttributeError:
-        pass
-
-    get_session.cache_clear()
+pytestmark = pytest.mark.usefixtures("clear_conda_session_cache")
 
 
 def test_add_binstar_token():
@@ -191,7 +184,7 @@ def test_get_session_returns_default():
     Tests to make sure that our session manager returns a regular
     CondaSession object when no other session classes are registered.
     """
-    url = "https://localhost/test"
+    url = "http://localhost/test"
     session_obj = get_session(url)
 
     assert type(session_obj) is CondaSession
@@ -400,7 +393,7 @@ def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
         return_value={request_header: request_value},
     )
 
-    url = "https://localhost/test"
+    url = "http://localhost/test"
     session_obj = get_session(url)
 
     override_header = "Override-Header"
@@ -411,6 +404,143 @@ def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
     assert prepared.headers[session_header] == session_value
     assert prepared.headers[request_header] == request_value
     assert prepared.headers[override_header] == override_value
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Accept-Charset",
+        "Accept-Encoding",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+        "Connection",
+        "Content-Length",
+        "Cookie",
+        "Date",
+        "DNT",
+        "Expect",
+        "Host",
+        "Keep-Alive",
+        "Origin",
+        "Referer",
+        "Set-Cookie",
+        "TE",
+        "Trailer",
+        "Transfer-Encoding",
+        "Upgrade",
+        "Via",
+    ],
+)
+def test_validate_plugin_headers_forbidden(header):
+    headers = {header: "test-value"}
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers(headers)
+
+    assert header in str(exc_info.value)
+    assert "forbidden" in str(exc_info.value).lower()
+
+
+@pytest.mark.parametrize(
+    "header, method, should_raise",
+    [
+        ("X-HTTP-Method", "TRACE", True),
+        ("X-HTTP-Method", "CONNECT", True),
+        ("X-HTTP-Method", "TRACK", True),
+        ("X-HTTP-Method-Override", "TRACE", True),
+        ("X-Method-Override", "CONNECT", True),
+        ("X-HTTP-Method", "POST", False),
+        ("X-HTTP-Method", "GET", False),
+        ("X-HTTP-Method-Override", "PUT", False),
+    ],
+)
+def test_validate_plugin_headers_method_override(header, method, should_raise):
+    headers = {header: method}
+
+    if should_raise:
+        with pytest.raises(PluginError) as exc_info:
+            _validate_plugin_headers(headers)
+        assert header in str(exc_info.value)
+        assert method in str(exc_info.value)
+    else:
+        # Should not raise - allowed method override
+        _validate_plugin_headers(headers)
+
+
+def test_prepare_request_rejects_forbidden_plugin_headers(mocker):
+    forbidden_header = "Host"
+    forbidden_value = "malicious.com"
+
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_session_headers",
+        return_value={forbidden_header: forbidden_value},
+    )
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_request_headers",
+        return_value={},
+    )
+
+    url = "http://localhost/test"
+    session_obj = get_session(url)
+
+    request = Request(method="GET", url=url)
+    with pytest.raises(PluginError) as exc_info:
+        session_obj.prepare_request(request)
+
+    assert forbidden_header in str(exc_info.value)
+
+
+def test_prepare_request_allows_valid_plugin_headers(mocker):
+    allowed_header = "X-Custom-Header"
+    allowed_value = "custom-value"
+
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_session_headers",
+        return_value={allowed_header: allowed_value},
+    )
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_request_headers",
+        return_value={},
+    )
+
+    url = "http://localhost/test"
+    session_obj = get_session(url)
+
+    request = Request(method="GET", url=url)
+    prepared = session_obj.prepare_request(request)
+
+    assert prepared.headers[allowed_header] == allowed_value
+
+
+def test_validate_plugin_headers_case_insensitive():
+    # Test uppercase variant
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers({"HOST": "malicious.com"})
+    assert "HOST" in str(exc_info.value)
+
+    # Test mixed case variant
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers({"CoOkIe": "session=123"})
+    assert "CoOkIe" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Proxy-Authorization",
+        "Proxy-Connection",
+        "Sec-Fetch-Dest",
+        "Sec-Fetch-Mode",
+        "Sec-Fetch-Site",
+        "sec-ch-ua",
+    ],
+)
+def test_validate_plugin_headers_forbidden_prefixes(header):
+    headers = {header: "test-value"}
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers(headers)
+
+    assert header in str(exc_info.value)
+    assert "Proxy-" in str(exc_info.value) or "Sec-" in str(exc_info.value)
 
 
 @pytest.mark.parametrize(
@@ -463,7 +593,7 @@ def test_accept_range_none(package_server, tmp_path):
     tmp_dir.mkdir()
     filename = "test-file"
 
-    partial_file = Path(tmp_dir / f"{filename}.partial")
+    partial_file = Path(tmp_dir / f"{filename}{PARTIAL_EXTENSION}")
     complete_file = Path(tmp_dir / filename)
 
     partial_file.write_text(test_content[:12])
@@ -483,3 +613,23 @@ def test_accept_range_none(package_server, tmp_path):
 
     assert complete_file.read_text() == test_content
     assert not partial_file.exists()
+
+
+@pytest.mark.parametrize("offline", [True, False])
+def test_offline(
+    offline: bool,
+    mocker: MockerFixture,
+    support_file_server: http.server.ThreadingHTTPServer,
+) -> None:
+    """Ensure offline mode raises OfflineError."""
+    host, port = support_file_server.socket.getsockname()[:2]
+    url_host = f"[{host}]" if ":" in host else host
+    url = f"http://{url_host}:{port}/"
+
+    mocker.patch(
+        "conda.base.context.Context.offline",
+        new_callable=mocker.PropertyMock,
+        return_value=offline,
+    )
+    with pytest.raises(OfflineError) if offline else nullcontext():
+        CondaSession().get(url)

@@ -62,11 +62,11 @@ Conda allows you to create separate environments, each containing their own file
 
 The most basic way to create a new environment is with the following command::
 
-   conda create -n <env-name>
+   conda create --name <env-name>
 
 To add packages while creating an environment, specify them after the environment name::
 
-   conda create -n myenvironment python numpy pandas
+   conda create --name myenvironment python numpy pandas
 
 For more information on working with environments, see :doc:`Managing environments <tasks/manage-environments>`.
 
@@ -87,12 +87,14 @@ A list of environments appears, similar to the following::
 .. tip::
    The active environment is the one with an asterisk (*).
 
-To change your current environment back to the default ``base``::
+To change your current environment back to the default one::
 
    conda activate
 
 .. tip::
-    When the environment is deactivated, its name is no longer shown in your prompt, and the asterisk (*) returns to ``base``. To verify, you can repeat the  ``conda info --envs`` command.
+    When the environment is deactivated, its name is no longer shown in your prompt,
+    and the asterisk (*) returns to the default env. To verify, you can repeat the
+    ``conda info --envs`` command.
 
 Installing packages
 ===================
@@ -141,7 +143,11 @@ No matter which environment you run this command in, conda displays its current 
    your terminal window and verify that you are logged
    into the same user account that you used to install conda.
 
-To update conda to the latest version::
+First, change your current environment back to the default one::
+
+   conda activate
+
+Then update conda to the latest version::
 
    conda update conda
 
@@ -156,4 +162,4 @@ More information
 
 * :doc:`Conda cheat sheet <cheatsheet>`
 * `Full documentation <https://conda.io/docs/>`_
-* `Free community support <https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_
+* `Free community support <https://docs.conda.io/en/latest/help-support.html>`_

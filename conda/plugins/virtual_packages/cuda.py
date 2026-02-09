@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Detect CUDA version."""
 
+from __future__ import annotations
+
 import ctypes
 import functools
 import itertools
@@ -9,8 +11,14 @@ import multiprocessing
 import os
 import platform
 from contextlib import suppress
+from typing import TYPE_CHECKING
 
-from .. import CondaVirtualPackage, hookimpl
+from ...auxlib import NULL
+from .. import hookimpl
+from ..types import CondaVirtualPackage
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def cuda_version():
@@ -26,8 +34,6 @@ def cuda_version():
 
     Returns: version string (e.g., '9.2') or None if CUDA is not found.
     """
-    if "CONDA_OVERRIDE_CUDA" in os.environ:
-        return os.environ["CONDA_OVERRIDE_CUDA"].strip() or None
 
     # Do not inherit file descriptors and handles from the parent process.
     # The `fork` start method should be considered unsafe as it can lead to
@@ -49,10 +55,10 @@ def cuda_version():
         detector.kill()  # requires Python 3.7+
 
     if queue.empty():
-        return None
+        return NULL
 
     result = queue.get()
-    return result
+    return result if result is not None else NULL
 
 
 @functools.cache
@@ -62,10 +68,15 @@ def cached_cuda_version():
 
 
 @hookimpl
-def conda_virtual_packages():
-    cuda_version = cached_cuda_version()
-    if cuda_version is not None:
-        yield CondaVirtualPackage("cuda", cuda_version, None)
+def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
+    # 1: __cuda==VERSION=0
+    yield CondaVirtualPackage(
+        name="cuda",
+        version=cached_cuda_version,
+        build=None,
+        override_entity="version",
+        # empty_override=NULL,  # falsy override → skip __cuda
+    )
 
 
 def _cuda_driver_version_detector_target(queue):

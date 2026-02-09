@@ -14,15 +14,15 @@ from conda.base.context import (
     context,
     reset_context,
 )
+from conda.common.compat import on_win
 from conda.common.configuration import YamlRawParameter
-from conda.common.io import env_unmodified, env_var, env_vars
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.io import env_unmodified
+from conda.common.serialize import yaml
 from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.logging import initialize_logging
-from conda.models.channel import Channel, prioritize_channels
-from conda.utils import on_win
+from conda.models.channel import Channel, MultiChannel, prioritize_channels
 
 initialize_logging()
 log = getLogger(__name__)
@@ -137,6 +137,40 @@ def test_url_channel_w_platform():
         ]
 
 
+def test_subdirs_kwarg_takes_precedence_over_platform():
+    """
+    Test that an explicitly passed subdirs parameter will override the channel's platform.
+    Regression test for https://github.com/conda/conda/issues/14258
+    """
+    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+        channel = Channel("conda-forge/linux-aarch64")
+
+        assert channel.urls() == [
+            "https://conda.anaconda.org/conda-forge/linux-aarch64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+
+        assert channel.urls(subdirs=("linux-64", "noarch")) == [
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+        assert channel.urls(subdirs=("osx-64", "noarch")) == [
+            "https://conda.anaconda.org/conda-forge/osx-64",
+            "https://conda.anaconda.org/conda-forge/noarch",
+        ]
+
+        assert channel.urls(subdirs=("win-64",)) == [
+            "https://conda.anaconda.org/conda-forge/win-64",
+        ]
+
+        # check that URL-based channels also work the same way
+        channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
+        assert channel.urls(subdirs=("linux-64", "noarch")) == [
+            "https://repo.anaconda.com/pkgs/main/linux-64",
+            "https://repo.anaconda.com/pkgs/main/noarch",
+        ]
+
+
 def test_bare_channel_http():
     url = "http://conda-01"
     channel = Channel(url)
@@ -169,6 +203,45 @@ def test_bare_channel_file():
         join_url(url, context.subdir),
         join_url(url, "noarch"),
     ]
+
+
+def test_channel_equality_respects_platform():
+    """
+    Test that Channel equality checks include platform attribute.
+    Channels with different platforms should not be considered equal.
+    This is a regression test for https://github.com/conda/conda/issues/14259
+    """
+    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
+        channel_no_platform = Channel("conda-forge")
+        channel_linux64 = Channel("conda-forge/linux-64")
+        channel_aarch64 = Channel("conda-forge/linux-aarch64")
+
+        assert channel_no_platform != channel_linux64
+        assert channel_linux64 != channel_aarch64
+        assert channel_no_platform != channel_aarch64
+
+        # test that channels with the same platform should be equal
+        channel_linux64_2 = Channel("conda-forge/linux-64")
+        assert channel_linux64 == channel_linux64_2
+
+        # test that hashes are distinguishable per platform
+        assert hash(channel_no_platform) != hash(channel_linux64)
+        assert hash(channel_linux64) != hash(channel_aarch64)
+        assert hash(channel_linux64) == hash(channel_linux64_2)
+
+        # test dedup
+        channels = [
+            Channel("conda-forge/noarch"),
+            Channel("conda-forge"),
+            Channel("conda-forge/linux-64"),
+        ]
+        deduped = list(dict.fromkeys(channels))
+        assert len(deduped) == 3
+
+        # test that urls are correct
+        deduped_urls = set(url for c in deduped for url in c.urls())
+        assert "https://conda.anaconda.org/conda-forge/noarch" in deduped_urls
+        assert "https://conda.anaconda.org/conda-forge/linux-64" in deduped_urls
 
 
 def test_channel_name_subdir_only():
@@ -350,7 +423,7 @@ def testdata() -> None:
         {
             "testdata": YamlRawParameter.make_raw_parameters(
                 "testdata",
-                yaml_round_trip_load(
+                yaml.loads(
                     dals(
                         """
                         custom_channels:
@@ -589,38 +662,36 @@ def test_migrated_custom_channels(testdata: None):
     ]
 
 
-def test_local_channel(testdata: None):
+def test_local_channel(testdata: None, monkeypatch: MonkeyPatch):
     conda_bld_path = join(gettempdir(), "conda-bld")
     mkdir_p(conda_bld_path)
     try:
-        with env_var(
-            "CONDA_CROOT",
-            conda_bld_path,
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            Channel._reset_state()
-            channel = Channel("local")
-            assert channel._channels[0].name.rsplit("/", 1)[-1] == "conda-bld"
-            assert channel.channel_name == "local"
-            assert channel.platform is None
-            assert channel.package_filename is None
-            assert channel.auth is None
-            assert channel.token is None
-            assert channel.scheme is None
-            assert channel.canonical_name == "local"
-            local_channel_first_subchannel = channel._channels[0].name
+        monkeypatch.setenv("CONDA_CROOT", conda_bld_path)
+        reset_context()
 
-            channel = Channel(local_channel_first_subchannel)
-            assert channel.channel_name == local_channel_first_subchannel
-            assert channel.platform is None
-            assert channel.package_filename is None
-            assert channel.auth is None
-            assert channel.token is None
-            assert channel.scheme == "file"
-            assert channel.canonical_name == "local"
+        Channel._reset_state()
+        channel = Channel("local")
+        assert channel._channels[0].name.rsplit("/", 1)[-1] == "conda-bld"
+        assert channel.channel_name == "local"
+        assert channel.platform is None
+        assert channel.package_filename is None
+        assert channel.auth is None
+        assert channel.token is None
+        assert channel.scheme is None
+        assert channel.canonical_name == "local"
+        local_channel_first_subchannel = channel._channels[0].name
 
-            assert channel.urls() == Channel(local_channel_first_subchannel).urls()
-            assert channel.urls()[0].startswith("file:///")
+        channel = Channel(local_channel_first_subchannel)
+        assert channel.channel_name == local_channel_first_subchannel
+        assert channel.platform is None
+        assert channel.package_filename is None
+        assert channel.auth is None
+        assert channel.token is None
+        assert channel.scheme == "file"
+        assert channel.canonical_name == "local"
+
+        assert channel.urls() == Channel(local_channel_first_subchannel).urls()
+        assert channel.urls()[0].startswith("file:///")
     finally:
         rm_rf(conda_bld_path)
 
@@ -707,7 +778,7 @@ def testdata2() -> None:
         {
             "testdata": YamlRawParameter.make_raw_parameters(
                 "testdata",
-                yaml_round_trip_load(
+                yaml.loads(
                     dals(
                         """
                         channels:
@@ -728,18 +799,18 @@ def testdata2() -> None:
     Channel._reset_state()
 
 
-def test_unexpanded_variables(testdata2: None):
-    with env_var("EXPANDED_PWD", "pass44"):
-        channel = Channel("unexpanded")
-        assert channel.auth == "user1:$UNEXPANDED_PWD"
+def test_unexpanded_variables(testdata2: None, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("EXPANDED_PWD", "pass44")
+    channel = Channel("unexpanded")
+    assert channel.auth == "user1:$UNEXPANDED_PWD"
 
 
-def test_expanded_variables(testdata2: None):
-    with env_var("EXPANDED_PWD", "pass44"):
-        channel = Channel("expanded")
-        assert channel.auth == "user33:pass44"
-        assert context.channels[0] == "http://user22:pass44@some.url:8080"
-        assert context.allowlist_channels[0] == "http://user22:pass44@some.url:8080"
+def test_expanded_variables(testdata2: None, monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("EXPANDED_PWD", "pass44")
+    channel = Channel("expanded")
+    assert channel.auth == "user33:pass44"
+    assert context.channels[0] == "http://user22:pass44@some.url:8080"
+    assert context.allowlist_channels[0] == "http://user22:pass44@some.url:8080"
 
 
 @pytest.fixture
@@ -749,7 +820,7 @@ def testdata3() -> None:
         {
             "testdata": YamlRawParameter.make_raw_parameters(
                 "testdata",
-                yaml_round_trip_load(
+                yaml.loads(
                     dals(
                         """
                         custom_channels:
@@ -1026,31 +1097,31 @@ def test_file_url_with_backslashes():
     ]
 
 
-def test_env_var_file_urls():
+def test_env_var_file_urls(monkeypatch: MonkeyPatch):
     channels = (
         "file://\\\\network_share\\shared_folder\\path\\conda",
         "https://some.url/ch_name",
         "file:///some/place/on/my/machine",
     )
-    with env_var("CONDA_CHANNELS", ",".join(channels)):
-        new_context = Context(())
-        assert new_context.channels == channels
+    monkeypatch.setenv("CONDA_CHANNELS", ",".join(channels))
+    new_context = Context(())
+    assert new_context.channels == channels
 
-        prioritized = prioritize_channels(new_context.channels)
-        network_share = "file://network_share/shared_folder/path/conda"
-        some_url = "https://some.url/ch_name"
-        local_path = "file:///some/place/on/my/machine"
-        assert prioritized == {
-            f"{network_share}/{context.subdir}": (network_share, 0),
-            f"{network_share}/noarch": (network_share, 0),
-            f"{some_url}/{context.subdir}": (some_url, 1),
-            f"{some_url}/noarch": (some_url, 1),
-            f"{local_path}/{context.subdir}": (local_path, 2),
-            f"{local_path}/noarch": (local_path, 2),
-        }
+    prioritized = prioritize_channels(new_context.channels)
+    network_share = "file://network_share/shared_folder/path/conda"
+    some_url = "https://some.url/ch_name"
+    local_path = "file:///some/place/on/my/machine"
+    assert prioritized == {
+        f"{network_share}/{context.subdir}": (network_share, 0),
+        f"{network_share}/noarch": (network_share, 0),
+        f"{some_url}/{context.subdir}": (some_url, 1),
+        f"{some_url}/noarch": (some_url, 1),
+        f"{local_path}/{context.subdir}": (local_path, 2),
+        f"{local_path}/noarch": (local_path, 2),
+    }
 
 
-def test_subdirs_env_var():
+def test_subdirs_env_var(monkeypatch: MonkeyPatch):
     subdirs = ("linux-highest", "linux-64", "noarch")
 
     def _channel_urls(channels=None):
@@ -1059,59 +1130,55 @@ def test_subdirs_env_var():
             for subdir in subdirs:
                 yield join_url(channel.base_url, subdir)
 
-    with env_vars(
-        {"CONDA_SUBDIRS": ",".join(subdirs)},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        c = Channel("defaults")
-        assert c.urls() == list(_channel_urls())
+    monkeypatch.setenv("CONDA_SUBDIRS", ",".join(subdirs))
+    reset_context()
 
-        c = Channel("conda-forge")
-        assert c.urls() == list(_channel_urls(("conda-forge",)))
+    c = Channel("defaults")
+    assert c.urls() == list(_channel_urls())
 
-        channels = ("bioconda", "conda-forge")
-        prioritized = prioritize_channels(channels)
-        assert prioritized == {
-            "https://conda.anaconda.org/bioconda/linux-highest": ("bioconda", 0),
-            "https://conda.anaconda.org/bioconda/linux-64": ("bioconda", 0),
-            "https://conda.anaconda.org/bioconda/noarch": ("bioconda", 0),
-            "https://conda.anaconda.org/conda-forge/linux-highest": (
-                "conda-forge",
-                1,
-            ),
-            "https://conda.anaconda.org/conda-forge/linux-64": ("conda-forge", 1),
-            "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 1),
-        }
+    c = Channel("conda-forge")
+    assert c.urls() == list(_channel_urls(("conda-forge",)))
 
-        prioritized = prioritize_channels(channels, subdirs=("linux-again", "noarch"))
-        assert prioritized == {
-            "https://conda.anaconda.org/bioconda/linux-again": ("bioconda", 0),
-            "https://conda.anaconda.org/bioconda/noarch": ("bioconda", 0),
-            "https://conda.anaconda.org/conda-forge/linux-again": (
-                "conda-forge",
-                1,
-            ),
-            "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 1),
-        }
+    channels = ("bioconda", "conda-forge")
+    prioritized = prioritize_channels(channels)
+    assert prioritized == {
+        "https://conda.anaconda.org/bioconda/linux-highest": ("bioconda", 0),
+        "https://conda.anaconda.org/bioconda/linux-64": ("bioconda", 0),
+        "https://conda.anaconda.org/bioconda/noarch": ("bioconda", 0),
+        "https://conda.anaconda.org/conda-forge/linux-highest": (
+            "conda-forge",
+            1,
+        ),
+        "https://conda.anaconda.org/conda-forge/linux-64": ("conda-forge", 1),
+        "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 1),
+    }
+
+    prioritized = prioritize_channels(channels, subdirs=("linux-again", "noarch"))
+    assert prioritized == {
+        "https://conda.anaconda.org/bioconda/linux-again": ("bioconda", 0),
+        "https://conda.anaconda.org/bioconda/noarch": ("bioconda", 0),
+        "https://conda.anaconda.org/conda-forge/linux-again": (
+            "conda-forge",
+            1,
+        ),
+        "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 1),
+    }
 
 
-def test_subdir_env_var():
-    with env_var(
-        "CONDA_SUBDIR",
-        "osx-1012-x84_64",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        channel = Channel(
-            "https://conda.anaconda.org/msarahan/osx-1012-x84_64/clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2"
-        )
-        assert channel.base_url == "https://conda.anaconda.org/msarahan"
-        assert (
-            channel.package_filename
-            == "clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2"
-        )
-        assert (
-            channel.platform == "osx-1012-x84_64"
-        )  # the platform attribute is misnamed here in conda 4.3; conda 4.4 code can correctly use the channel.subdir attribute
+def test_subdir_env_var(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-1012-x84_64")
+    reset_context()
+
+    channel = Channel(
+        "https://conda.anaconda.org/msarahan/osx-1012-x84_64/clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2"
+    )
+    assert channel.base_url == "https://conda.anaconda.org/msarahan"
+    assert (
+        channel.package_filename == "clangxx_osx-1012-x86_64-10.12-h0bb54af_0.tar.bz2"
+    )
+    assert (
+        channel.platform == "osx-1012-x84_64"
+    )  # the platform attribute is misnamed here in conda 4.3; conda 4.4 code can correctly use the channel.subdir attribute
 
 
 def test_regression_against_unknown_none():
@@ -1169,7 +1236,7 @@ def testdata4() -> None:
         {
             "testdata": YamlRawParameter.make_raw_parameters(
                 "testdata",
-                yaml_round_trip_load(
+                yaml.loads(
                     dals(
                         """
                         default_channels:
@@ -1326,3 +1393,48 @@ def test_channel_mangles_urls():
 
     for url, expected in cases:
         assert str(Channel(url)) == expected
+
+
+def test_basic_multichannel():
+    multichannel_name = "multichannel"
+    channel1_name = "channel1"
+    channel2_name = "channel2"
+
+    channel1 = Channel(channel1_name)
+    channel2 = Channel(channel2_name)
+    multichannel = MultiChannel(multichannel_name, (channel1, channel2))
+
+    assert multichannel.name == multichannel_name
+    assert multichannel._channels == (channel1, channel2)
+
+    assert multichannel.location is None
+    assert multichannel.scheme is None
+    assert multichannel.auth is None
+    assert multichannel.token is None
+    assert multichannel.platform is None
+    assert multichannel.package_filename is None
+
+    assert multichannel.channel_location is None
+    assert multichannel.canonical_name == multichannel_name
+
+    assert multichannel.base_url is None
+    assert multichannel.base_urls == (channel1.base_url, channel2.base_url)
+
+    assert multichannel.url() is None
+    assert multichannel.urls() == [*channel1.urls(), *channel2.urls()]
+
+
+def test_prioritize_channels():
+    channels = ("conda-canary", "defaults", "conda-forge")
+    urls = (
+        ("https://conda.anaconda.org/conda-canary", "conda-canary"),
+        ("https://repo.anaconda.com/pkgs/main", "defaults"),
+        ("https://repo.anaconda.com/pkgs/r", "defaults"),
+        *([("https://repo.anaconda.com/pkgs/msys2", "defaults")] if on_win else []),
+        ("https://conda.anaconda.org/conda-forge", "conda-forge"),
+    )
+    assert prioritize_channels(channels) == {
+        join_url(url, subdir): (channel, weight)
+        for weight, (url, channel) in enumerate(urls)
+        for subdir in context.subdirs
+    }
