@@ -27,6 +27,7 @@ from ..deprecations import deprecated
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
+from .url import is_url, urlparse
 
 log = getLogger(__name__)
 IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
@@ -39,8 +40,7 @@ def load_file(filename: str) -> str:
     from ..gateways.connection.download import download_text
     from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 
-    url_scheme = filename.split("://", 1)[0]
-    if url_scheme in CONDA_SESSION_SCHEMES:
+    if is_url(filename) and urlparse(filename).scheme in CONDA_SESSION_SCHEMES:
         file_contents = download_text(filename)
     elif not os.path.exists(filename):
         raise CondaFileIOError(
@@ -48,7 +48,11 @@ def load_file(filename: str) -> str:
             message="File does not exist on disk",
         )
     else:
-        file_contents = Path(filename).read_text()
+        file_path = Path(filename)
+        try:
+            file_contents = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            file_contents = file_path.read_text(encoding="utf-16")
     return file_contents
 
 
