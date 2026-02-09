@@ -177,6 +177,24 @@ def test_search_envs_json(conda_cli: CondaCLIFixture):
     assert all(entry["package_records"][0]["name"] == search_for for entry in parsed)
 
 
+def test_search_envs_nonexistent(conda_cli: CondaCLIFixture):
+    with pytest.raises(PackagesNotFoundError) as excinfo:
+        conda_cli("search", "--envs", "does-not-exist")
+    assert "PackagesNotFoundError" in repr(excinfo.value)
+
+
+def test_search_envs_nonexistent_json(conda_cli: CondaCLIFixture):
+    with pytest.raises(PackagesNotFoundError) as excinfo:
+        conda_cli("search", "--envs", "--json", "does-not-exist")
+    assert "PackagesNotFoundError" in repr(excinfo.value)
+
+
+def test_search_envs_nonexistent_info(conda_cli: CondaCLIFixture):
+    with pytest.raises(PackagesNotFoundError) as excinfo:
+        conda_cli("search", "--envs", "--info", "does-not-exist")
+    assert "PackagesNotFoundError" in repr(excinfo.value)
+
+
 @pytest.mark.flaky(reruns=5)
 def test_search_inflexible(conda_cli: CondaCLIFixture):
     # 'r-rcpparmadill' should not be found
