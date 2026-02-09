@@ -14,6 +14,7 @@ from logging import getLogger
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from ..deprecations import deprecated
     from .actions import NullCountAction
     from .helpers import add_parser_prefix, add_parser_verbose
 
@@ -46,7 +47,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     p.add_argument(
         "--dev",
-        action=NullCountAction,
+        action=deprecated.action(
+            "26.9",
+            "27.3",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help="Sets `CONDA_EXE` to `python -m conda`, assuming the current "
         "working directory contains the root of conda development sources. "
         "This is mainly for use during tests where we test new conda sources "
