@@ -30,12 +30,13 @@ class RequirementsSpec(EnvironmentSpecBase):
 
     @deprecated.argument("24.7", "26.3", "name")
     def __init__(
-        self, filename: str, data: str | None = None, name: str | None = None, **kwargs
+        self, filename: str, name: str | None = None, data: str | None = None, **kwargs
     ) -> None:
         """Initialize the requirements specification.
 
         :param filename: Path to the requirements file
         :param name: (Deprecated) Name of the environment
+        :param data: (Optional) The content of the requirements file as a string. If not provided, it will be read from the file.
         :param kwargs: Additional arguments
         """
         self._name = name
