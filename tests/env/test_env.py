@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
+from conda.common.io import load_file
 from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.env import env as env_module
@@ -20,7 +21,7 @@ from conda.env.env import (
     channels_validation,
     dependencies_validation,
     from_environment,
-    from_file,
+    from_yaml,
     name_validation,
     prefix_validation,
     variables_validation,
@@ -37,6 +38,12 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
+
+
+def from_file(filename: str) -> EnvironmentYaml:
+    """Load and return an ``EnvironmentYaml`` from a given file"""
+    yamlstr = load_file(filename)
+    return from_yaml(yamlstr, filename=filename)
 
 
 class FakeStream:
@@ -530,7 +537,7 @@ def test_prefix_validation(prefix, error_message):
 
 @pytest.mark.parametrize(
     "function,raises",
-    [("load_file", TypeError)],
+    [("load_file", TypeError), ("from_file", TypeError)],
 )
 def test_env_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()

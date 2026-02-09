@@ -9,6 +9,7 @@
 ### Deprecations
 
 * Mark `conda.env.env.load_file` as pending deprecation, to be removed in 27.3. (#15490)
+* Mark `conda.env.env.from_file` as pending deprecation, to be removed in 27.3. (#15490)
 
 ### Docs
 

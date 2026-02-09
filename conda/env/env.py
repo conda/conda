@@ -337,6 +337,11 @@ def load_file(filename):
     return yamlstr
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use conda.common.io.load_file() to load the file, and conda.env.env.from_yaml() to decode the yaml instead.",
+)
 def from_file(filename):
     """Load and return an ``EnvironmentYaml`` from a given file"""
     yamlstr = io.load_file(filename)
