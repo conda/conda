@@ -134,3 +134,22 @@ def test_remove_all_default_activation_env(
                 "--all",
                 f"--prefix={prefix}",
             )
+
+
+def test_remove_early_existence_check(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, mocker
+):
+    """Verify that the (classic) solver is not invoked when packages don't exist in prefix."""
+    with tmp_env("python") as prefix:
+        mock_solver_backend = mocker.patch(
+            "conda.base.context.context.plugin_manager.get_cached_solver_backend"
+        )
+
+        with pytest.raises(PackagesNotFoundError) as exc:
+            conda_cli("remove", f"--prefix={prefix}", "nonexistent-package", "--yes")
+
+        mock_solver_backend.assert_not_called()
+
+        exception_string = str(exc.value)
+        assert "nonexistent-package" in exception_string
+        assert "missing from the target environment" in exception_string
