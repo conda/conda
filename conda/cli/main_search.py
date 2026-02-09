@@ -198,15 +198,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 for prefix, prefix_recs in prefix_matches
             )
 
-        if not ordered_result:
-            from ..exceptions import PackagesNotFoundInPrefixError
-
-            # TODO: improve the prefix indication message? Currently just says "any of the searched environments"
-            # which is not very user friendly and not very informative of it.
-            raise PackagesNotFoundInPrefixError(
-                [spec], prefix="any of the searched environments"
-            )
-
         if context.json:
             stdout_json(ordered_result)
         elif args.info:

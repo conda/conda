@@ -11,7 +11,7 @@ import requests
 from conda.base.context import context, reset_context
 from conda.cli.main_search import _pretty_record_format, pretty_record
 from conda.common.serialize import json
-from conda.exceptions import PackagesNotFoundError, PackagesNotFoundInPrefixError
+from conda.exceptions import PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.models.records import PackageRecord
 
@@ -175,25 +175,6 @@ def test_search_envs_json(conda_cli: CondaCLIFixture):
     assert isinstance(parsed, list)  # can be [] if package not found
     assert len(parsed), "empty search result"
     assert all(entry["package_records"][0]["name"] == search_for for entry in parsed)
-
-
-def test_search_envs_not_found(conda_cli: CondaCLIFixture):
-    with pytest.raises(PackagesNotFoundInPrefixError) as excinfo:
-        conda_cli("search", "--envs", "package-that-does-not-exist-anywhere")
-    assert "package-that-does-not-exist-anywhere" in str(excinfo.value)
-    assert "any of the searched environments" in str(excinfo.value)
-
-
-def test_search_envs_not_found_json(conda_cli: CondaCLIFixture):
-    with pytest.raises(PackagesNotFoundInPrefixError) as excinfo:
-        conda_cli("search", "--envs", "--json", "package-that-does-not-exist-anywhere")
-    assert "package-that-does-not-exist-anywhere" in str(excinfo.value)
-
-
-def test_search_envs_not_found_info(conda_cli: CondaCLIFixture):
-    with pytest.raises(PackagesNotFoundInPrefixError) as excinfo:
-        conda_cli("search", "--envs", "--info", "package-that-does-not-exist-anywhere")
-    assert "package-that-does-not-exist-anywhere" in str(excinfo.value)
 
 
 @pytest.mark.flaky(reruns=5)
