@@ -572,15 +572,16 @@ class EnvironmentSpecBase(ABC):
     # autodetection is enabled.
     detection_supported: ClassVar[bool] = True
 
-    def __init__(self, filename: str, data: str | None = None):
+    def __init__(self, filename: str | None, data: str | None = None):
         """
         :param data: the contents of the environment spec file
         :param filename: the full path to the environment spec file
         """
         self.filename = filename
-        if data is None:
-            data = load_file(self.filename)
-        self.data = data
+        if data is None and self.filename:
+            self.data = load_file(self.filename)
+        else:
+            self.data = None
 
     @abstractmethod
     def can_handle(self) -> bool:

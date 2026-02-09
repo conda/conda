@@ -7,6 +7,11 @@ from conda.models.environment import Environment
 from .. import support_file
 
 
+def test_no_environment_file():
+    spec = ExplicitSpec(filename=None)
+    assert not spec.can_handle()
+
+
 def test_can_handle_explicit():
     spec = ExplicitSpec(filename=support_file("explicit.txt"))
     assert spec.can_handle()

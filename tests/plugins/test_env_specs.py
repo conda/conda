@@ -8,7 +8,6 @@ import pytest
 
 from conda import plugins
 from conda.exceptions import (
-    CondaFileIOError,
     CondaValueError,
     EnvironmentSpecPluginNotDetected,
     PluginError,
@@ -17,7 +16,7 @@ from conda.models.environment import Environment
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 if TYPE_CHECKING:
-    from pytest_mock import MockerFixture
+    from pytest import MonkeyPatch
 
 
 class EmptySpec(EnvironmentSpecBase):
@@ -132,21 +131,13 @@ def naughty_spec_plugin(plugin_manager):
 
 
 @pytest.fixture()
-def mock_empty_load_file(mocker: MockerFixture):
+def mock_empty_load_file(monkeypatch: MonkeyPatch):
     """
     Fixture to mock out loading an environment spec file in the plugin manager.
     This will return an empty string regardless of if the file passed into
     `conda.plugins.manager.load_file` exists or not. Helpful for testing.
     """
-    mocker.patch(
-        "conda.plugins.manager.load_file",
-        return_value="",
-    )
-
-
-def test_no_environment_file():
-    with pytest.raises(CondaFileIOError):
-        EmptySpec(filename="")
+    monkeypatch.setattr("conda.plugins.manager.load_file", lambda x: "")
 
 
 def test_dummy_random_spec_is_registered(
