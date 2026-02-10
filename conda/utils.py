@@ -269,7 +269,7 @@ def wrap_subprocess_call(
             # Ensure that nested `conda` commands will work
             # without the shell hook function.
             condabin_dir = join(root_prefix, "condabin")
-            fh.write(f'{silencer}SET "PATH={condabin_dir};%PATH%"\n')
+            fh.write(f'{silencer}SET "PATH=%PATH%;{condabin_dir}"\n')
 
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
@@ -346,7 +346,7 @@ def wrap_subprocess_call(
             # Ensure that nested `conda` commands will work
             # without the shell hook function.
             condabin_dir = join(root_prefix, "condabin")
-            fh.write(f'export PATH="{condabin_dir}:$PATH"\n')
+            fh.write(f'export PATH="$PATH:{condabin_dir}"\n')
 
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
