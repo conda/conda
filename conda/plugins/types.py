@@ -611,6 +611,27 @@ class CondaEnvironmentSpecifier(CondaPlugin):
 
 
 @dataclass
+class CondaEnvironmentSpecifierTwo(CondaPlugin):
+    """
+    **EXPERIMENTAL**
+
+    Return type to use when defining a conda environment exporter plugin hook supporting a single platform.
+
+    :param name: name of the plugin (e.g., ``environment-yaml``)
+    :param validate: callable that determines if the plugin can handle a given file based on its path and/or content
+    :param env: callable that parses the file and returns an Environment object
+    :param detection_supported: boolean that determines if the plugin should be included in the set of available plugins
+        checked during environment_spec plugin detection. If False, the only way to use the plugin will be through explicitly
+        requesting it as a cli argument or setting in .condarc. By default, autodetection is enabled.
+    """
+
+    name: str
+    validate: Callable[[PathType, str], bool]
+    env: Callable[[str], Environment]
+    detection_supported: bool
+
+
+@dataclass
 class CondaEnvironmentExporter(CondaPlugin):
     """
     **EXPERIMENTAL**
