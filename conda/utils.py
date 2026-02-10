@@ -266,6 +266,11 @@ def wrap_subprocess_call(
             for line in activate_script.splitlines():
                 fh.write(f"{silencer}{line}\n")
 
+            # Ensure that nested `conda` commands will work
+            # without the shell hook function.
+            condabin_dir = join(root_prefix, "condabin")
+            fh.write(f'{silencer}SET "PATH={condabin_dir};%PATH%"\n')
+
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
                 fh.write("echo *** environment after *** 1>&2\n")
@@ -337,6 +342,11 @@ def wrap_subprocess_call(
             activate_code = activator.activate()
 
             fh.write(activate_code)
+
+            # Ensure that nested `conda` commands will work
+            # without the shell hook function.
+            condabin_dir = join(root_prefix, "condabin")
+            fh.write(f'export PATH="{condabin_dir}:$PATH"\n')
 
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
