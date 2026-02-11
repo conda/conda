@@ -47,7 +47,9 @@ def validate(filename: PathType, data: str) -> bool:
 
     # Ensure this is not an explicit file. Requirements.txt and explicit files
     # may sometimes share file extension.
-    dependencies_list = [dep for dep in data.split("\n") if not dep.startswith("#")]
+    dependencies_list = [
+        dep for dep in data.split("\n") if (dep and not dep.startswith("#"))
+    ]
     if "@EXPLICIT" in dependencies_list:
         return False
     return True
@@ -55,7 +57,9 @@ def validate(filename: PathType, data: str) -> bool:
 
 def environment(data: str) -> Environment:
     # Convert generator to list since Dependencies needs to access it multiple times
-    dependencies_list = [dep for dep in data.split("\n") if not dep.startswith("#")]
+    dependencies_list = [
+        dep for dep in data.split("\n") if (dep and not dep.startswith("#"))
+    ]
     requested_packages = [MatchSpec(dep) for dep in dependencies_list]
 
     return Environment(
