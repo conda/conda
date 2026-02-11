@@ -592,26 +592,26 @@ class EnvironmentSpecBase(ABC):
         raise NotImplementedError()
 
 
+# @dataclass
+# class CondaEnvironmentSpecifier(CondaPlugin):
+#     """
+#     **EXPERIMENTAL**
+
+#     Return type to use when defining a conda env spec plugin hook.
+
+#     For details on how this is used, see
+#     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
+
+#     :param name: name of the spec (e.g., ``environment_yaml``)
+#     :param environment_spec: EnvironmentSpecBase subclass handler
+#     """
+
+#     name: str
+#     environment_spec: type[EnvironmentSpecBase]
+
+
 @dataclass
 class CondaEnvironmentSpecifier(CondaPlugin):
-    """
-    **EXPERIMENTAL**
-
-    Return type to use when defining a conda env spec plugin hook.
-
-    For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
-
-    :param name: name of the spec (e.g., ``environment_yaml``)
-    :param environment_spec: EnvironmentSpecBase subclass handler
-    """
-
-    name: str
-    environment_spec: type[EnvironmentSpecBase]
-
-
-@dataclass
-class CondaEnvironmentSpecifierTwo(CondaPlugin):
     """
     **EXPERIMENTAL**
 

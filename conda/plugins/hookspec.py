@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from .types import (
         CondaAuthHandler,
         CondaEnvironmentExporter,
-        CondaEnvironmentSpecifierTwo,
+        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPostCommand,
@@ -653,7 +653,7 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_environment_specifiers(self) -> Iterable[CondaEnvironmentSpecifierTwo]:
+    def conda_environment_specifiers(self) -> Iterable[CondaEnvironmentSpecifier]:
         """
         **EXPERIMENTAL**
         Register new conda env spec type

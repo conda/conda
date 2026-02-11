@@ -4,5 +4,6 @@
 
 from . import cep_24, environment_yml, explicit, requirements_txt
 
-plugins = [cep_24, requirements_txt, environment_yml, explicit]
+# plugins = [cep_24, requirements_txt, environment_yml, explicit]
+plugins = [requirements_txt]
 """The list of environment specifier plugins for easier registration with pluggy."""
