@@ -89,6 +89,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Show conda-managed disk usage for each environment (excludes untracked files created after installation).",
     )
     p.add_argument(
+        "--descriptions",
+        action="store_true",
+        help="Show environment descriptions from conda-meta/description.txt (if set) when listing environments.",
+    )
+    p.add_argument(
         "--root",
         action=deprecated.action(
             "25.9",
@@ -426,9 +431,15 @@ class InfoRenderer:
     Provides a ``render`` method for rendering ``InfoComponents``
     """
 
-    def __init__(self, context: Context, show_size: bool = False):
+    def __init__(
+        self,
+        context: Context,
+        show_size: bool = False,
+        show_descriptions: bool = False,
+    ):
         self._context = context
         self._show_size = show_size
+        self._show_descriptions = show_descriptions
         self._component_style_map = {
             "base": None,
             "channels": None,
@@ -474,6 +485,8 @@ class InfoRenderer:
                 "base": prefix_data.is_base(),
                 "frozen": prefix_data.is_frozen(),
                 "writable": prefix_data.is_writable,
+                "description": prefix_data.description,
+                "description_title": prefix_data.description_title,
             }
             if self._show_size:
                 result[prefix]["size"] = prefix_data.size()
@@ -497,8 +510,11 @@ class InfoRenderer:
 
             if data:
                 kwargs = {}
-                if component == "envs" and self._show_size:
-                    kwargs["show_size"] = True
+                if component == "envs":
+                    if self._show_size:
+                        kwargs["show_size"] = True
+                    if self._show_descriptions:
+                        kwargs["show_descriptions"] = True
                 render(data, style=style, **kwargs)
 
     def _base_component(self) -> str | dict:
@@ -618,10 +634,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     if args.size and not args.envs:
         raise ArgumentError("--size can only be used with --envs")
+    if getattr(args, "descriptions", False) and not args.envs:
+        raise ArgumentError("--descriptions can only be used with --envs")
 
     components = iter_info_components(args, context)
     show_size = getattr(args, "size", False)
-    renderer = InfoRenderer(context, show_size=show_size)
+    show_descriptions = getattr(args, "descriptions", False)
+    renderer = InfoRenderer(
+        context, show_size=show_size, show_descriptions=show_descriptions
+    )
     renderer.render(components)
 
     return 0
