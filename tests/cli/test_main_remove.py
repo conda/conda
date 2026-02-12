@@ -137,10 +137,10 @@ def test_remove_all_default_activation_env(
 
 
 def test_remove_early_existence_check(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, mocker
+    empty_env: TmpEnvFixture, conda_cli: CondaCLIFixture, mocker
 ):
     """Verify that the (classic) solver is not invoked when packages don't exist in prefix."""
-    with tmp_env("python") as prefix:
+    with empty_env as prefix:
         mock_solver_backend = mocker.patch(
             "conda.base.context.context.plugin_manager.get_cached_solver_backend"
         )
