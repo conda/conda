@@ -998,6 +998,30 @@ def test_parse_version_with_parens():
     }
 
 
+def test_parse_parens_metadata_backward_compat():
+    """Test that (target=..., optional) metadata parens are still stripped.
+
+    Old specs using this syntax must keep working (see PR #15662 review).
+    Only metadata-style parens are stripped; version parens like (>=3,(<4|<5))
+    are preserved.
+    """
+    # Metadata parens: stripped and parsed so MatchSpec does not error
+    parsed = _parse_spec_str("numpy (target=foo.conda, optional)")
+    assert parsed["name"] == "numpy"
+    assert parsed.get("target") == "foo.conda"
+    assert parsed.get("optional") is True
+
+    parsed2 = _parse_spec_str("blas (optional)")
+    assert parsed2["name"] == "blas"
+    assert parsed2.get("optional") is True
+
+    # MatchSpec accepts these without error
+    m = MatchSpec("blas (optional)")
+    assert m.optional is True
+    m2 = MatchSpec("numpy (target=bar, optional)")
+    assert m2.optional is True and m2.target == "bar"
+
+
 def test_parse_build_number_brackets():
     assert _parse_spec_str("python[build_number=3]") == {
         "_original_spec_str": "python[build_number=3]",
