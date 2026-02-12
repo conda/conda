@@ -48,4 +48,3 @@ class DirectDownloadAdapter(Protocol):
         :param progress_callback: Optional callback(fraction) where fraction is 0.0-1.0
         :param size: Content length (required for progress reporting)
         """
-        ...
