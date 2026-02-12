@@ -79,8 +79,7 @@ class S3Adapter(BaseAdapter):
         except ImportError:
             raise CondaError(
                 "boto3 is required for S3 channels. "
-                "Please install with `conda install boto3`\n"
-                "Make sure to run `conda deactivate` if you are in a conda environment."
+                "Please install with `conda install -n base boto3`"
             )
 
         from botocore.exceptions import BotoCoreError, ClientError
