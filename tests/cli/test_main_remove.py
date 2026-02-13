@@ -25,6 +25,8 @@ from conda.testing.integration import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
