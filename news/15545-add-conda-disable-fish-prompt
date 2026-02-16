@@ -1,6 +1,6 @@
 ### Enhancements
 
-* `conda run` now deactivates the environment on exiting the command. (#15427)
+* Add option to disable redefining Fish shell prompt functions in conda init. (#15545)
 
 ### Bug fixes
 

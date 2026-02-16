@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.cli.actions.NullCountAction._ensure_value` as pending deprecation, to be removed in 27.3. (#15512)
+* Mark `conda run --dev` as pending deprecation, to be removed in 27.3. Set `PYTHONPATH` to the conda source root instead. (#15641)
 
 ### Docs
 

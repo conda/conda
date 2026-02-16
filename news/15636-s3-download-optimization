@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Optimize S3 downloads to avoid an extra file copy through a temporary buffer. (#15636)
 
 ### Bug fixes
 
-* Decode SHA256 fields in Python's `RECORD` metadata files. (#15591)
+* <news item>
 
 ### Deprecations
 
