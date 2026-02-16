@@ -820,7 +820,6 @@ class PackageNotInstalledError(PackagesNotFoundError):
                   package name: %(package_name)s
                 """
             )
-            packages_formatted = ""
         else:
             package_name = tuple(package_name)
             message = dals(
@@ -830,7 +829,6 @@ class PackageNotInstalledError(PackagesNotFoundError):
                 %(packages_formatted)s
                 """
             )
-            packages_formatted = dashlist(package_name)
 
         # We call CondaError directly here because PackagesNotFoundError decides
         # the behaviour based on channel_urls, but this is a case of the package(s)
@@ -840,9 +838,9 @@ class PackageNotInstalledError(PackagesNotFoundError):
             message,
             prefix=prefix,
             package_name=package_name,
-            packages_formatted=packages_formatted,
-            channel_urls=[],
-            channels_formatted="",
+            packages_formatted=dashlist(package_name)
+            if not isinstance(package_name, str)
+            else "",
         )
 
 
