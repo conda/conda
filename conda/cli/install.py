@@ -381,22 +381,11 @@ def install(args, parser, command="install"):
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
         return install_explicit_packages(env.explicit_packages, env.prefix)
 
-    repodata_fns = list(args.repodata_fns or env.config.repodata_fns or ())
+    repodata_fns = args.repodata_fns
+    if not repodata_fns:
+        repodata_fns = list(env.config.repodata_fns)
     if REPODATA_FN not in repodata_fns:
         repodata_fns.append(REPODATA_FN)
-
-    # libmamba internally ignores current_repodata.json (see _maybe_ignore_current_repodata)
-    # unless explicitly set by the user. We optimise here to avoid the redundant iteration
-    # and solver setup that would occur if we passed both files.
-    # See https://github.com/conda/conda-libmamba-solver/blob/34aec802f890a3ece9c0f2f630de2ef136003624/conda_libmamba_solver/solver.py#L954-L967
-    _seen = set()
-    repodata_fns = [fn for fn in repodata_fns if not (fn in _seen or _seen.add(fn))]
-    if (
-        context.solver == "libmamba"
-        and not getattr(args, "repodata_fns", None)  # user did not explicitly set them
-        and len(repodata_fns) > 1
-    ):
-        repodata_fns = [REPODATA_FN]
 
     # This helps us differentiate between an update, the --freeze-installed option, and the retry
     # behavior in our initial fast frozen solve
