@@ -794,9 +794,51 @@ class PackagesNotFoundInChannelsError(PackagesNotFoundError):
         super().__init__(packages, channel_urls=channel_urls)
 
 
-class PackagesNotFoundInPrefixError(PackagesNotFoundError):
+class PackageNotInstalledError(PackagesNotFoundError):
     """
-    The requested packages are missing from the target environment/prefix.
+    The requested package(s) are missing from the target environment/prefix.
+    """
+
+    def __init__(self, prefix: PathType, package_name: str | Iterable[str]):
+        if isinstance(package_name, str):
+            message = dals(
+                """
+                Package is not installed in prefix.
+                  prefix: %(prefix)s
+                  package name: %(package_name)s
+                """
+            )
+            packages_formatted = ""
+        else:
+            package_name = tuple(package_name)
+            message = dals(
+                """
+                The following packages are missing from the target environment:
+                  prefix: %(prefix)s
+                %(packages_formatted)s
+                """
+            )
+            packages_formatted = dashlist(package_name)
+
+        # We call CondaError directly here because PackagesNotFoundError decides
+        # the behaviour based on channel_urls, but this is a case of the package(s)
+        # being specifically "missing from prefix" and not a more general "not found".
+        CondaError.__init__(
+            self,
+            message,
+            prefix=prefix,
+            package_name=package_name,
+            packages_formatted=packages_formatted,
+            channel_urls=[],
+            channels_formatted="",
+        )
+
+
+class PackagesNotFoundInPrefixError(PackageNotInstalledError):
+    """
+    The requested package(s) are missing from the target environment/prefix.
+
+    This is a backwards-compatible alias for :class:`PackageNotInstalledError`.
     """
 
     def __init__(
@@ -804,39 +846,7 @@ class PackagesNotFoundInPrefixError(PackagesNotFoundError):
         packages: Iterable[MatchSpec | PackageRecord | str],
         prefix: PathType,
     ):
-        message = dals(
-            """
-            The following packages are missing from the target environment:
-              prefix: %(prefix)s
-            %(packages_formatted)s
-            """
-        )
-        packages_formatted = dashlist(packages)
-
-        # We call CondaError directly here because PackagesNotFoundError decides
-        # the behaviour based on channel_urls, but is a case of the package(s) being
-        # specifically "missing from prefix" and not a more general "not found".
-        CondaError.__init__(
-            self,
-            message,
-            packages=packages,
-            packages_formatted=packages_formatted,
-            prefix=prefix,
-            channel_urls=[],
-            channels_formatted="",
-        )
-
-
-class PackageNotInstalledError(PackagesNotFoundInPrefixError):
-    def __init__(self, prefix: PathType, package_name: str):
-        message = dals(
-            """
-        Package is not installed in prefix.
-          prefix: %(prefix)s
-          package name: %(package_name)s
-        """
-        )
-        CondaError.__init__(self, message, prefix=prefix, package_name=package_name)
+        super().__init__(prefix=prefix, package_name=packages)
 
 
 class NoChannelsConfiguredError(CondaError):
