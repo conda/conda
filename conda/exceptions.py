@@ -799,7 +799,11 @@ class PackageNotInstalledError(PackagesNotFoundError):
     The requested package(s) are missing from the target environment/prefix.
     """
 
-    def __init__(self, prefix: PathType, package_name: str | Iterable[str]):
+    def __init__(
+        self,
+        prefix: PathType,
+        package_name: str | Iterable[MatchSpec | PackageRecord | str],
+    ):
         if isinstance(package_name, str):
             message = dals(
                 """
