@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove deprecated module `conda.trust`. (#15706)
+* Remove deprecated `signature-verification` post solve plugin. (#15706)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
