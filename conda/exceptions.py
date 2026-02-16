@@ -726,6 +726,14 @@ class AuthenticationError(CondaError):
 
 
 class PackagesNotFoundError(CondaError):
+    """Base error for missing packages.
+
+    Prefer raising one of the more specific subclasses:
+
+    - :class:`PackagesNotFoundInChannelsError` – packages unavailable in channels.
+    - :class:`PackageNotInstalledError` – packages missing from a target prefix.
+    """
+
     def __init__(
         self,
         packages: Iterable[MatchSpec | PackageRecord | str],
