@@ -1238,9 +1238,11 @@ class Context(Configuration):
         from ..common.io import dashlist
 
         grouped_packages = groupby_to_dict(
-            lambda x: "explicit"
-            if context.plugin_manager.has_package_extension(x)
-            else "spec",
+            lambda x: (
+                "explicit"
+                if context.plugin_manager.has_package_extension(x)
+                else "spec"
+            ),
             sequence=self._create_default_packages,
         )
 
