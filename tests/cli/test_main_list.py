@@ -17,6 +17,7 @@ from conda.exceptions import (
     EnvironmentLocationNotFound,
     PackageNotInstalledError,
 )
+from conda.models.records import PathsData
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -366,3 +367,42 @@ def test_list_size_json(
         assert "size" in item
         assert isinstance(item["size"], int)
         assert item["size"] >= 0
+
+
+def test_list_size_empty_paths_data(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+    test_recipes_channel: Path,
+) -> None:
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+        original_iter_records = prefix_data.iter_records
+
+        def mock_iter_records():
+            for record in original_iter_records():
+                # Mock one package to have empty paths_data
+                if record.name == "small-executable":
+                    record.paths_data = PathsData(paths_version=1, paths=[])
+                yield record
+
+        mocker.patch.object(PrefixData, "iter_records", side_effect=mock_iter_records)
+
+        # the package size has to be > 0 as manifest files are still
+        # counted if there are no installed files
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size", "--json")
+        parsed = json.loads(stdout)
+        pkg_item = next((i for i in parsed if i["name"] == "small-executable"), None)
+        assert pkg_item is not None
+        assert pkg_item["size"] > 0
+
+        # human-readable output
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size")
+        lines = stdout.splitlines()
+        pkg_line = next(
+            (line for line in lines if line.startswith("small-executable")), None
+        )
+        assert pkg_line is not None
+
+        assert "0 B" not in pkg_line
+        assert pkg_line.strip().endswith(("B", "KB", "MB", "GB"))
