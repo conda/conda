@@ -1,0 +1,215 @@
+{
+  "build": "h99b78c6_7",
+  "build_number": 7,
+  "channel": "https://conda.anaconda.org/conda-forge/osx-arm64",
+  "constrains": [],
+  "depends": [
+    "__osx >=11.0"
+  ],
+  "extracted_package_dir": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/bzip2-1.0.8-h99b78c6_7",
+  "features": "",
+  "files": [
+    "bin/bunzip2",
+    "bin/bzcat",
+    "bin/bzcmp",
+    "bin/bzdiff",
+    "bin/bzegrep",
+    "bin/bzfgrep",
+    "bin/bzgrep",
+    "bin/bzip2",
+    "bin/bzip2recover",
+    "bin/bzless",
+    "bin/bzmore",
+    "include/bzlib.h",
+    "lib/libbz2.1.0.8.dylib",
+    "lib/libbz2.a",
+    "lib/libbz2.dylib",
+    "man/man1/bzcmp.1",
+    "man/man1/bzdiff.1",
+    "man/man1/bzegrep.1",
+    "man/man1/bzfgrep.1",
+    "man/man1/bzgrep.1",
+    "man/man1/bzip2.1",
+    "man/man1/bzless.1",
+    "man/man1/bzmore.1"
+  ],
+  "fn": "bzip2-1.0.8-h99b78c6_7.conda",
+  "license": "bzip2-1.0.6",
+  "license_family": "BSD",
+  "link": {
+    "source": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/bzip2-1.0.8-h99b78c6_7",
+    "type": 1
+  },
+  "md5": "fc6948412dbbbe9a4c9ddbbcfe0a79ab",
+  "name": "bzip2",
+  "package_tarball_full_path": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/bzip2-1.0.8-h99b78c6_7.conda",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "bin/bunzip2",
+        "path_type": "hardlink",
+        "sha256": "31b2c6816786d9b878092e17180faa57e7606ab33a6501d8baccdab7f979e62c",
+        "sha256_in_prefix": "31b2c6816786d9b878092e17180faa57e7606ab33a6501d8baccdab7f979e62c",
+        "size_in_bytes": 146976
+      },
+      {
+        "_path": "bin/bzcat",
+        "path_type": "hardlink",
+        "sha256": "838793a414f2ec3671f3c12edfb197e2fa38c434916e86cb4b03e0eee0cc28e3",
+        "sha256_in_prefix": "838793a414f2ec3671f3c12edfb197e2fa38c434916e86cb4b03e0eee0cc28e3",
+        "size_in_bytes": 146976
+      },
+      {
+        "_path": "bin/bzcmp",
+        "path_type": "softlink",
+        "sha256": "1c1f96193cdf14b85ea65f140a7557a07ece8783a53ec5ba6b5c30644a9d3012",
+        "size_in_bytes": 2140
+      },
+      {
+        "_path": "bin/bzdiff",
+        "path_type": "hardlink",
+        "sha256": "1c1f96193cdf14b85ea65f140a7557a07ece8783a53ec5ba6b5c30644a9d3012",
+        "sha256_in_prefix": "1c1f96193cdf14b85ea65f140a7557a07ece8783a53ec5ba6b5c30644a9d3012",
+        "size_in_bytes": 2140
+      },
+      {
+        "_path": "bin/bzegrep",
+        "path_type": "softlink",
+        "sha256": "a8e368a31766c7862b8d0feeffe274c3bb43b969e3ccb4f9e77d13bfa447a5c9",
+        "size_in_bytes": 2054
+      },
+      {
+        "_path": "bin/bzfgrep",
+        "path_type": "softlink",
+        "sha256": "a8e368a31766c7862b8d0feeffe274c3bb43b969e3ccb4f9e77d13bfa447a5c9",
+        "size_in_bytes": 2054
+      },
+      {
+        "_path": "bin/bzgrep",
+        "path_type": "hardlink",
+        "sha256": "a8e368a31766c7862b8d0feeffe274c3bb43b969e3ccb4f9e77d13bfa447a5c9",
+        "sha256_in_prefix": "a8e368a31766c7862b8d0feeffe274c3bb43b969e3ccb4f9e77d13bfa447a5c9",
+        "size_in_bytes": 2054
+      },
+      {
+        "_path": "bin/bzip2",
+        "path_type": "hardlink",
+        "sha256": "d79315822365de1560e1d9ab7862a50d6875ccdfa377fa1635bc14665909dbe2",
+        "sha256_in_prefix": "d79315822365de1560e1d9ab7862a50d6875ccdfa377fa1635bc14665909dbe2",
+        "size_in_bytes": 146976
+      },
+      {
+        "_path": "bin/bzip2recover",
+        "path_type": "hardlink",
+        "sha256": "528960b78e1927d1584373420b08ae97acd2af94bb7638427e569c390943f2a7",
+        "sha256_in_prefix": "528960b78e1927d1584373420b08ae97acd2af94bb7638427e569c390943f2a7",
+        "size_in_bytes": 53152
+      },
+      {
+        "_path": "bin/bzless",
+        "path_type": "softlink",
+        "sha256": "836536d4c7469788c730355d59f8ae8d16ba07cb0754174878d99ed90f04448d",
+        "size_in_bytes": 1259
+      },
+      {
+        "_path": "bin/bzmore",
+        "path_type": "hardlink",
+        "sha256": "836536d4c7469788c730355d59f8ae8d16ba07cb0754174878d99ed90f04448d",
+        "sha256_in_prefix": "836536d4c7469788c730355d59f8ae8d16ba07cb0754174878d99ed90f04448d",
+        "size_in_bytes": 1259
+      },
+      {
+        "_path": "include/bzlib.h",
+        "path_type": "hardlink",
+        "sha256": "6ac62e811669598ee30c9e1c379b9e627f6ff17a5a3dc1e0b4fa8b8ea75e580d",
+        "sha256_in_prefix": "6ac62e811669598ee30c9e1c379b9e627f6ff17a5a3dc1e0b4fa8b8ea75e580d",
+        "size_in_bytes": 6240
+      },
+      {
+        "_path": "lib/libbz2.1.0.8.dylib",
+        "path_type": "hardlink",
+        "sha256": "7b9ed467b1c7a901fbbe66e27bca99f4aa8e9347ce829043aaafa9f7b9ce7b0f",
+        "sha256_in_prefix": "7b9ed467b1c7a901fbbe66e27bca99f4aa8e9347ce829043aaafa9f7b9ce7b0f",
+        "size_in_bytes": 108416
+      },
+      {
+        "_path": "lib/libbz2.a",
+        "path_type": "hardlink",
+        "sha256": "07531a9abc68a815e45372980f6cae3f9b946cca93a150870f28a2a58c289287",
+        "sha256_in_prefix": "07531a9abc68a815e45372980f6cae3f9b946cca93a150870f28a2a58c289287",
+        "size_in_bytes": 220568
+      },
+      {
+        "_path": "lib/libbz2.dylib",
+        "path_type": "softlink",
+        "sha256": "7b9ed467b1c7a901fbbe66e27bca99f4aa8e9347ce829043aaafa9f7b9ce7b0f",
+        "size_in_bytes": 108416
+      },
+      {
+        "_path": "man/man1/bzcmp.1",
+        "path_type": "hardlink",
+        "sha256": "172cde42c47a6d50c244e39d993097dcd3882427d57303078643849cf10a81c4",
+        "sha256_in_prefix": "172cde42c47a6d50c244e39d993097dcd3882427d57303078643849cf10a81c4",
+        "size_in_bytes": 18
+      },
+      {
+        "_path": "man/man1/bzdiff.1",
+        "path_type": "hardlink",
+        "sha256": "32d1a7cd115430398e58537532584ef2ab76343c9f094dcd1253d9c4c0f705bf",
+        "sha256_in_prefix": "32d1a7cd115430398e58537532584ef2ab76343c9f094dcd1253d9c4c0f705bf",
+        "size_in_bytes": 897
+      },
+      {
+        "_path": "man/man1/bzegrep.1",
+        "path_type": "hardlink",
+        "sha256": "cf1c98d3fa055506c8af2f8bba4da9c17d367c6409c6ad83a2bc67ccb6630182",
+        "sha256_in_prefix": "cf1c98d3fa055506c8af2f8bba4da9c17d367c6409c6ad83a2bc67ccb6630182",
+        "size_in_bytes": 18
+      },
+      {
+        "_path": "man/man1/bzfgrep.1",
+        "path_type": "hardlink",
+        "sha256": "cf1c98d3fa055506c8af2f8bba4da9c17d367c6409c6ad83a2bc67ccb6630182",
+        "sha256_in_prefix": "cf1c98d3fa055506c8af2f8bba4da9c17d367c6409c6ad83a2bc67ccb6630182",
+        "size_in_bytes": 18
+      },
+      {
+        "_path": "man/man1/bzgrep.1",
+        "path_type": "hardlink",
+        "sha256": "924aa4a7c7c1467400181e4c0ee1b527db142b6399a717171f2351b72b5899df",
+        "sha256_in_prefix": "924aa4a7c7c1467400181e4c0ee1b527db142b6399a717171f2351b72b5899df",
+        "size_in_bytes": 1297
+      },
+      {
+        "_path": "man/man1/bzip2.1",
+        "path_type": "hardlink",
+        "sha256": "27b984bb2e8bbee2651d11cda87449cfc4138d2e479b9eaa77b8f60fa5d0bf5d",
+        "sha256_in_prefix": "27b984bb2e8bbee2651d11cda87449cfc4138d2e479b9eaa77b8f60fa5d0bf5d",
+        "size_in_bytes": 16266
+      },
+      {
+        "_path": "man/man1/bzless.1",
+        "path_type": "hardlink",
+        "sha256": "216898f9b8acf61eeb471ecf23e47c1452dfd648f7f38d7d3bf48627072dc52c",
+        "sha256_in_prefix": "216898f9b8acf61eeb471ecf23e47c1452dfd648f7f38d7d3bf48627072dc52c",
+        "size_in_bytes": 18
+      },
+      {
+        "_path": "man/man1/bzmore.1",
+        "path_type": "hardlink",
+        "sha256": "ccfcf3f995e11adae3035e287252091bb72d165da21e0c385a4965d17c9051c7",
+        "sha256_in_prefix": "ccfcf3f995e11adae3035e287252091bb72d165da21e0c385a4965d17c9051c7",
+        "size_in_bytes": 4310
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "adfa71f158cbd872a36394c56c3568e6034aa55c623634b37a4836bd036e6b91",
+  "size": 122909,
+  "subdir": "osx-arm64",
+  "timestamp": 1720974522888,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/conda-forge/osx-arm64/bzip2-1.0.8-h99b78c6_7.conda",
+  "version": "1.0.8"
+}

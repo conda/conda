@@ -37,7 +37,6 @@ from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
     PREFIX_STATE_FILE,
-    RESERVED_ENV_NAMES,
     RESERVED_ENV_VARS,
 )
 from .base.context import context, locate_prefix_by_name
@@ -335,8 +334,6 @@ class _Activator(metaclass=abc.ABCMeta):
                 from .exceptions import EnvironmentLocationNotFound
 
                 raise EnvironmentLocationNotFound(prefix)
-        elif env_name_or_prefix in (RESERVED_ENV_NAMES):
-            prefix = context.root_prefix
         else:
             prefix = locate_prefix_by_name(env_name_or_prefix)
 
@@ -471,6 +468,13 @@ class _Activator(metaclass=abc.ABCMeta):
             if old_conda_shlvl <= 1:
                 raise ValueError("'old_conda_shlvl' must be 2 or larger")
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
+            if not new_prefix:
+                raise ValueError(
+                    "This should not happen! You may have non-consecutive `CONDA_PREFIX_<number> "
+                    "environment variables. Try restarting your shell and, if it persists, "
+                    "check your shell profile to see what may be adding a faulty "
+                    "CONDA_PREFIX_<number> environment variable."
+                )
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
             new_conda_environment_env_vars = self._get_environment_env_vars(new_prefix)
@@ -993,6 +997,20 @@ class CmdExeActivator(_Activator):
         pass
 
 
+class CmdExeRunActivator(CmdExeActivator):
+    # CmdExeActivator writes an .env file by default; let's force in-memory output here
+    # so that we can embed the activation output directly into our wrapper script.
+    tempfile_extension = None
+
+    unset_var_tmpl = 'SET "%s="'
+    export_var_tmpl = 'SET "%s=%s"'
+    path_var_tmpl = export_var_tmpl
+    set_var_tmpl = export_var_tmpl
+    # If any of these calls to the activation hook scripts fail, we want
+    # to exit the wrapper immediately and abort `conda run` right away.
+    run_script_tmpl = 'CALL "%s"\nIF %%ERRORLEVEL%% NEQ 0 EXIT /b %%ERRORLEVEL%%'
+
+
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
@@ -1112,6 +1130,7 @@ activator_map: dict[str, type[_Activator]] = {
     "tcsh": CshActivator,
     "xonsh": XonshActivator,
     "cmd.exe": CmdExeActivator,
+    "cmd.exe.run": CmdExeRunActivator,
     "fish": FishActivator,
     "powershell": PowerShellActivator,
 }

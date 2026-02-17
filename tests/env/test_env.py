@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
@@ -236,7 +236,7 @@ def test_to_yaml_returns_yaml_parseable_string():
         "dependencies": ["nodejs"],
     }
 
-    actual = yaml_round_trip_load(StringIO(e.to_yaml()))
+    actual = yaml.loads(StringIO(e.to_yaml()))
     assert expected == actual
 
 

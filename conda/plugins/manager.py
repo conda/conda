@@ -33,6 +33,7 @@ from ..exceptions import (
 from . import (
     environment_exporters,
     environment_specifiers,
+    package_extractors,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
 
     from requests.auth import AuthBase
 
+    from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
@@ -59,6 +61,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaPackageExtractor,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -262,6 +265,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_specifiers"]
     ) -> list[CondaEnvironmentSpecifier]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["package_extractors"]
+    ) -> list[CondaPackageExtractor]: ...
 
     @overload
     def get_hook_results(
@@ -819,6 +827,75 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
+    def get_package_extractors(self) -> dict[str, CondaPackageExtractor]:
+        """
+        Return a mapping from file extension to package extractor plugin.
+
+        Extensions are lowercased for case-insensitive matching.
+
+        :return: Dictionary mapping lowercased extensions (e.g., ``".conda"``) to their
+            :class:`~conda.plugins.types.CondaPackageExtractor` plugins.
+        """
+        return {
+            extension.lower(): hook
+            for hook in self.get_hook_results("package_extractors")
+            for extension in hook.extensions
+        }
+
+    def get_package_extractor(
+        self,
+        source_full_path: PathType,
+    ) -> CondaPackageExtractor:
+        """
+        Get the package extractor plugin for a given package path.
+
+        Searches through registered package extractor plugins to find one that
+        handles the file extension of the provided package path.
+
+        :param source_full_path: Full path to the package archive file.
+        :return: The matching :class:`~conda.plugins.types.CondaPackageExtractor` plugin.
+        :raises PluginError: If no registered extractor handles the file extension.
+        """
+        source_str = os.fspath(source_full_path).lower()
+        for extension, extractor in self.get_package_extractors().items():
+            if source_str.endswith(extension):
+                return extractor
+
+        raise PluginError(
+            f"No registered 'package_extractors' plugin found for package: {source_full_path}"
+        )
+
+    def extract_package(
+        self,
+        source_full_path: PathType,
+        destination_directory: PathType,
+    ) -> None:
+        """
+        Extract a package archive to a destination directory.
+
+        Finds the appropriate extractor plugin based on the file extension
+        and extracts the package.
+
+        :param source_full_path: Full path to the package archive file.
+        :param destination_directory: Directory to extract the package contents to.
+        :raises PluginError: If no registered extractor handles the file extension.
+        """
+        extractor = self.get_package_extractor(source_full_path)
+        extractor.extract(source_full_path, destination_directory)
+
+    def has_package_extension(self, path: PathType) -> str | None:
+        """
+        Check if a path has a supported package file extension.
+
+        :param path: Path to check.
+        :return: The matched extension (lowercased) if found, None otherwise.
+        """
+        path_str = os.fspath(path).lower()
+        for ext in self.get_package_extractors():
+            if path_str.endswith(ext):
+                return ext
+        return None
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -835,6 +912,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *health_checks.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *package_extractors.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,

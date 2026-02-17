@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add path customization parameters to `tmp_env` fixture (`name`, `path_prefix`, `path_infix`, `path_suffix`) that pass through to `path_factory`. Add "parts mode" to `path_factory` where specifying `prefix`, `infix`, or `suffix` triggers UUID defaults for unspecified parts, enabling easier special character path testing. (#15650)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

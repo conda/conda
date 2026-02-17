@@ -12,6 +12,7 @@ from signal import SIGINT
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+import pexpect
 from pexpect.popen_spawn import PopenSpawn
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
@@ -141,7 +142,12 @@ class InteractiveShellType(type):
         "pwsh-preview": {"base_shell": "powershell"},
         "xonsh": {
             "activator": "xonsh",
-            "args": ("--interactive",),
+            "args": (
+                "--interactive",
+                # Workaround for some issues with prompt_toolkit
+                # https://github.com/conda/conda/issues/15611
+                "--shell-type=readline",
+            ),
             "init_command": f'__xonsh__.execer.exec($("{EXE_UNIX}" -m conda shell.xonsh hook))',
             "print_env_var": "print($%s)",
         },
@@ -185,7 +191,12 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.env = env or {}
 
     def __enter__(self):
-        self.p = PopenSpawn(
+        # Fish shell needs a PTY to work properly with pexpect
+        # Use pexpect.spawn (PTY) for Fish instead of PopenSpawn (pipes)
+        use_pty = self.shell_name == "fish"
+        spawn_class = pexpect.spawn if use_pty else PopenSpawn
+
+        self.p = spawn_class(
             self.shell_exe,
             timeout=30,
             maxread=5000,

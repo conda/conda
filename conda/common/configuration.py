@@ -21,7 +21,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
-from functools import wraps
+from functools import cache, wraps
 from itertools import chain
 from logging import getLogger
 from os import environ
@@ -47,7 +47,7 @@ from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
-from .serialize import yaml_round_trip_load
+from .serialize import yaml
 
 if Enum not in _getFreezeConversionMap():
     # leave enums as is, deepfreeze will flatten it into a dict
@@ -391,10 +391,21 @@ class YamlRawParameter(RawParameter):
         return EMPTY_MAP
 
     @classmethod
+    @cache
     def make_raw_parameters_from_file(cls, filepath):
+        """
+        Read the provided file path and convert the contents into configuration parameters.
+
+        This function will cache the result for each filepath. In order to re-read the same
+        file path with updated content, be sure to clear this cache.
+
+        For example::
+
+            YamlRawParameter.cache_clear()
+        """
         with open(filepath) as fh:
             try:
-                yaml_obj = yaml_round_trip_load(fh)
+                yaml_obj = yaml.loads(fh)
             except ScannerError as err:
                 mark = err.problem_mark
                 raise ConfigurationLoadError(
@@ -410,6 +421,10 @@ class YamlRawParameter(RawParameter):
                     position=err.position,
                 )
             return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
+
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls.make_raw_parameters_from_file.cache_clear()
 
 
 class DefaultValueRawParameter(RawParameter):

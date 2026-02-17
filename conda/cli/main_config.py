@@ -270,7 +270,7 @@ def format_dict(d):
 
 
 def parameter_description_builder(name, context=None, plugins=False):
-    from ..common.serialize import json, yaml_round_trip_dump
+    from ..common.serialize import json, yaml
 
     # Keeping this for backward-compatibility, in case no context instance is provided
     if context is None:
@@ -314,11 +314,9 @@ def parameter_description_builder(name, context=None, plugins=False):
     # If we are dealing with a plugin parameter, we need to nest it
     # instead of having it at the top level (YAML-wise).
     if plugins:
-        yaml_content = yaml_round_trip_dump(
-            {"plugins": {name: json.loads(default_value_str)}}
-        )
+        yaml_content = yaml.dumps({"plugins": {name: json.loads(default_value_str)}})
     else:
-        yaml_content = yaml_round_trip_dump({name: json.loads(default_value_str)})
+        yaml_content = yaml.dumps({name: json.loads(default_value_str)})
 
     builder.extend(yaml_content.strip().split("\n"))
 
@@ -417,7 +415,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         user_rc_path,
     )
     from ..common.io import timeout
-    from ..common.serialize import json, yaml_round_trip_load
+    from ..common.serialize import json, yaml
     from ..core.prefix_data import PrefixData
 
     # Override context for --file operations with --show/--describe
@@ -635,9 +633,9 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     rc_config = ConfigurationFile(
         path=rc_path,
         context=context,
-        warning_handler=lambda msg: json_warnings.append(msg)
-        if context.json
-        else stderr_write(msg),
+        warning_handler=lambda msg: (
+            json_warnings.append(msg) if context.json else stderr_write(msg)
+        ),
     )
 
     # read existing condarc
@@ -661,7 +659,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             return
         try:
             # round trip load required because... we need to round trip
-            parsed = yaml_round_trip_load(content)
+            parsed = yaml.loads(content)
             rc_config.content.update(parsed)
         except Exception:  # pragma: no cover
             from ..exceptions import ParseError

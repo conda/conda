@@ -24,6 +24,7 @@ import pytest
 from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
+    PACKAGE_CACHE_MAGIC_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_PINNED_FILE,
     ChannelPriority,
@@ -40,7 +41,7 @@ from conda.common.path import (
     get_python_site_packages_short_path,
     pyc_path,
 )
-from conda.common.serialize import json, yaml_round_trip_load
+from conda.common.serialize import json, yaml
 from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
@@ -88,7 +89,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from typing import Literal
 
-    from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
+    from pytest import FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import (
@@ -1868,19 +1869,19 @@ def test_conda_pip_interop_pip_clobbers_conda(
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/DESCRIPTION.rst",
                         "path_type": "hardlink",
-                        "sha256": "QWBtSTT2zzabwJv1NQbTfClSX13m-Qc6tqU4TRL1RLs",
+                        "sha256": "41606d4934f6cf369bc09bf53506d37c29525f5de6f9073ab6a5384d12f544bb",
                         "size_in_bytes": 774,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/INSTALLER",
                         "path_type": "hardlink",
-                        "sha256": "zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg",
+                        "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
                         "size_in_bytes": 4,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/METADATA",
                         "path_type": "hardlink",
-                        "sha256": "5HceJsUnHof2IRamlCKO2MwNjve1eSP4rLzVQDfwpCQ",
+                        "sha256": "e4771e26c5271e87f62116a694228ed8cc0d8ef7b57923f8acbcd54037f0a424",
                         "size_in_bytes": 1283,
                     },
                     {
@@ -1892,25 +1893,25 @@ def test_conda_pip_interop_pip_clobbers_conda(
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/WHEEL",
                         "path_type": "hardlink",
-                        "sha256": "GrqQvamwgBV4nLoJe0vhYRSWzWsx7xjlt74FT0SWYfE",
+                        "sha256": "1aba90bda9b08015789cba097b4be1611496cd6b31ef18e5b7be054f449661f1",
                         "size_in_bytes": 110,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/metadata.json",
                         "path_type": "hardlink",
-                        "sha256": "jtOeeTBubYDChl_5Ql5ZPlKoHgg6rdqRIjOz1e5Ek2U",
+                        "sha256": "8ed39e79306e6d80c2865ff9425e593e52a81e083aadda912233b3d5ee449365",
                         "size_in_bytes": 658,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/top_level.txt",
                         "path_type": "hardlink",
-                        "sha256": "_iVH_iYEtEXnD8nYGQYpYFUvkUW9sEO1GYbkeKSAais",
+                        "sha256": "fe2547fe2604b445e70fc9d819062960552f9145bdb043b51986e478a4806a2b",
                         "size_in_bytes": 4,
                     },
                     {
                         "_path": sp_dir + "/six.py",
                         "path_type": "hardlink",
-                        "sha256": "A6hdJZVjI3t_geebZ9BzUvwRrIXo0lfwzQlM2LcKyas",
+                        "sha256": "03a85d259563237b7f81e79b67d07352fc11ac85e8d257f0cd094cd8b70ac9ab",
                         "size_in_bytes": 30098,
                     },
                 ],
@@ -2466,12 +2467,7 @@ def test_create_env_different_platform(
     with tmp_env(*args, shallow=False) as prefix:
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
-        assert (
-            yaml_round_trip_load((prefix / DEFAULT_CONDARC_FILENAME).read_text())[
-                "subdir"
-            ]
-            == platform
-        )
+        assert yaml.read(path=prefix / DEFAULT_CONDARC_FILENAME)["subdir"] == platform
 
         stdout, stderr, excinfo = conda_cli(
             "install",
@@ -2763,19 +2759,59 @@ def test_repodata_v2_base_url(
 
 
 def test_create_dry_run_without_prefix(
-    conda_cli: CondaCLIFixture, capsys: CaptureFixture
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel
 ):
-    with pytest.raises(DryRunExit):
-        conda_cli("create", "--dry-run", "--json", "ca-certificates")
-    out, _ = capsys.readouterr()
+    out, _, _ = conda_cli(
+        "create",
+        "--dry-run",
+        "--json",
+        "small-executable",
+        raises=DryRunExit,
+    )
     data = json.loads(out)
     assert any(
-        pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "ca-certificates"
+        pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "small-executable"
     )
 
 
-def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
-    conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
+def test_create_download_only_without_prefix(
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel
+    tmp_pkgs_dir: Path,  # mock package cache so it will be empty
+):
+    # empty cache, only has package cache magic file
+    assert tmp_pkgs_dir.exists()
+    assert set(tmp_pkgs_dir.iterdir()) == {tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE}
+
+    # download package to pkgs dir
+    _, _, _ = conda_cli(
+        "create",
+        "--download-only",
+        "--yes",
+        "small-executable",
+        raises=CondaExitZero,
+    )
+
+    # check that package was downloaded/extracted
+    assert tmp_pkgs_dir.exists()
+    assert set(tmp_pkgs_dir.iterdir()) == {
+        tmp_pkgs_dir / "cache",
+        tmp_pkgs_dir / "small-executable-1.0.0-0",
+        tmp_pkgs_dir / "small-executable-1.0.0-0.conda",
+        tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE,
+    }
+
+
+def test_create_without_prefix_raises_argument_error(
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel
+):
+    with pytest.raises(
+        ArgumentError,
+        match="one of the arguments -n/--name -p/--prefix is required",
+    ):
+        conda_cli("create", "small-executable")
 
 
 def test_create_with_clone_and_packages_raises_argument_error(
