@@ -13,14 +13,13 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from conda.common.io import dashlist
-
 from .. import CONDA_PACKAGE_ROOT, CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION, WINDOWS_LAUNCHER_STUB_PATH
 from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
+from ..common.io import dashlist
 from ..common.path import (
     BIN_DIRECTORY,
     get_leaf_directories,
