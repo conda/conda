@@ -298,11 +298,12 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
             "conda config --describe repodata_fns."
         ),
     )
+    # jlap and lock experimental features are deprecated but are left in so older scripts will still work.
     channel_customization_options.add_argument(
         "--experimental",
         action="append",
-        choices=["lock"],
-        help="lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+        choices=["jlap", "lock"],
+        help="jlap and lock no longer supported.  These options will have no effect.",
     )
     channel_customization_options.add_argument(
         "--no-lock",
