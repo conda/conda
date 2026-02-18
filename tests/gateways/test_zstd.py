@@ -30,10 +30,8 @@ from conda.gateways.repodata import (
     get_repo_interface,
 )
 from conda.gateways.repodata.zstd import (
-    HashWriter,
     ZstdRepoInterface,
-    download_and_hash,
-    hash,
+    download_repodata,
 )
 from conda.models.channel import Channel
 
@@ -44,7 +42,7 @@ def test_server_available(package_server: socket):
     assert response.status_code == 404
 
 
-def test_download_and_hash(
+def test_download_repodata(
     package_server: socket,
     tmp_path: Path,
     package_repository_base: Path,
@@ -58,7 +56,7 @@ def test_download_and_hash(
     destination = tmp_path / "download_not_found"
     # 404 is raised as an exception
     try:
-        download_and_hash(hash(), url, destination, session, state)
+        download_repodata(url, destination, session, state)
     except requests.HTTPError as e:
         assert e.response.status_code == 404
         assert not destination.exists()
@@ -67,9 +65,7 @@ def test_download_and_hash(
 
     destination = tmp_path / "repodata.json"
     url2 = base + "/osx-64/repodata.json"
-    hasher2 = hash()
-    response = download_and_hash(
-        hasher2,
+    response = download_repodata(
         url2,
         destination,
         session,
@@ -80,8 +76,7 @@ def test_download_and_hash(
     assert len(t)
 
     # assert we don't clobber if 304 not modified
-    response2 = download_and_hash(
-        hash(),
+    response2 = download_repodata(
         url2,
         destination,
         session,
@@ -89,7 +84,6 @@ def test_download_and_hash(
     )
     assert response2.status_code == 304
     assert destination.read_text() == t
-    # however the hash will not be recomputed
 
     (package_repository_base / "osx-64" / "repodata.json.zst").write_bytes(
         zstandard.ZstdCompressor().compress(
@@ -100,17 +94,11 @@ def test_download_and_hash(
     url3 = base + "/osx-64/repodata.json.zst"
     dest_zst = tmp_path / "repodata.json.from-zst"  # should be decompressed
     assert not dest_zst.exists()
-    hasher3 = hash()
-    response3 = download_and_hash(
-        hasher3, url3, dest_zst, session, RepodataState(), is_zst=True
-    )
+    response3 = download_repodata(url3, dest_zst, session, RepodataState(), is_zst=True)
     assert response3.status_code == 200
     assert int(response3.headers["content-length"]) < dest_zst.stat().st_size
 
     assert destination.read_text() == dest_zst.read_text()
-
-    # hashes the decompressed data
-    assert hasher2.digest() == hasher3.digest()
 
 
 def test_repodata_state(
@@ -237,7 +225,7 @@ def test_zstd_not_404(mocker, package_server, tmp_path):
 
         raise requests.HTTPError(response=Response())
 
-    mocker.patch("conda.gateways.repodata.zstd.download_and_hash", side_effect=error)
+    mocker.patch("conda.gateways.repodata.zstd.download_repodata", side_effect=error)
 
     with pytest.raises(CondaHTTPError, match="HTTP 405"):
         repo.repodata({})
@@ -275,18 +263,3 @@ def test_zstd_fallback_on_invalid_zstd(
     assert not cache.state.has_format("zst")[0]
 
     assert len(json.loads(cache.cache_path_json.read_text())["packages"])
-
-
-def test_hashwriter():
-    """Test that HashWriter closes its backing file in a context manager."""
-    closed = False
-
-    class backing:
-        def close(self):
-            nonlocal closed
-            closed = True
-
-    writer = HashWriter(backing(), None)
-    with writer:
-        pass
-    assert closed

@@ -4,13 +4,11 @@
 
 from __future__ import annotations
 
-import io
 import logging
 import os
 import re
 import time
 from contextlib import contextmanager
-from hashlib import blake2b
 from typing import TYPE_CHECKING
 
 import zstandard
@@ -39,15 +37,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-DIGEST_SIZE = 32
-NOMINAL_HASH = "blake2_256_nominal"
-ON_DISK_HASH = "blake2_256"
-
-
-def hash():
-    """Create a blake2b hasher."""
-    return blake2b(digest_size=DIGEST_SIZE)
-
 
 def withext(url, ext):
     """Change file extension in URL."""
@@ -73,23 +62,7 @@ def build_headers(json_path: pathlib.Path, state: RepodataState):
     return headers
 
 
-class HashWriter(io.RawIOBase):
-    """File writer that hashes data while writing."""
-
-    def __init__(self, backing, hasher):
-        self.backing = backing
-        self.hasher = hasher
-
-    def write(self, b: bytes):
-        self.hasher.update(b)
-        return self.backing.write(b)
-
-    def close(self):
-        self.backing.close()
-
-
-def download_and_hash(
-    hasher,
+def download_repodata(
     url,
     json_path: pathlib.Path,
     session: Session,
@@ -97,7 +70,7 @@ def download_and_hash(
     is_zst=False,
     dest_path: pathlib.Path | None = None,
 ):
-    """Download url, passing bytes through hasher.update().
+    """Download url to dest_path, optionally decompressing zstd.
 
     json_path: Path of old cached data (ignore etag if not exists).
     dest_path: Path to write new data.
@@ -115,11 +88,11 @@ def download_and_hash(
         if is_zst:
             decompressor = zstandard.ZstdDecompressor()
             writer = decompressor.stream_writer(
-                HashWriter(dest_path.open("wb"), hasher),  # type: ignore
+                dest_path.open("wb"),  # type: ignore
                 closefd=True,
             )
         else:
-            writer = HashWriter(dest_path.open("wb"), hasher)
+            writer = dest_path.open("wb")
         with writer as repodata:
             for block in response.iter_content(chunk_size=1 << 14):
                 repodata.write(block)
@@ -142,8 +115,6 @@ def _is_http_error_most_400_codes(e: HTTPError) -> bool:
 
 class ZstSkip(Exception):
     """Exception to skip zst format check."""
-
-    pass
 
 
 def request_url_zstd_state(
@@ -168,18 +139,16 @@ def request_url_zstd_state(
     """
     json_path = cache.cache_path_json
 
-    hasher = hash()
     is_fallback = False
     with timeme(f"Download complete {url} "):
         # Just try downloading .json.zst
         try:
-            response = download_and_hash(
-                hasher,
+            response = download_repodata(
                 withext(url, ".json.zst"),
                 json_path,  # makes conditional request if exists
-                dest_path=temp_path,  # writes to
                 session=session,
                 state=state,
+                dest_path=temp_path,
                 is_zst=True,
             )
         except (HTTPError, zstandard.ZstdError) as e:
@@ -195,13 +164,12 @@ def request_url_zstd_state(
             # zst format is not available, so fallback to .json
             state.set_has_format("zst", False)
             is_fallback = True
-            response = download_and_hash(
-                hasher,
+            response = download_repodata(
                 withext(url, ".json"),
                 json_path,
-                dest_path=temp_path,
                 session=session,
                 state=state,
+                dest_path=temp_path,
             )
 
     # Update state with response headers (common for both zstd and fallback)
@@ -215,8 +183,6 @@ def request_url_zstd_state(
 
     # If we downloaded new data (200)
     if response.status_code == 200:
-        state[NOMINAL_HASH] = state[ON_DISK_HASH] = hasher.hexdigest()
-
         # For fallback to .json, write to disk but don't parse (return None)
         # For successful zstd download, parse and return the JSON
         if is_fallback:
