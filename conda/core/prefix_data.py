@@ -431,7 +431,8 @@ class PrefixData(metaclass=PrefixDataType):
         Compute the total size of a conda environment prefix.
 
         This aggregates the installed size of all packages in the environment,
-        plus the size of files under conda-meta (history, manifests, markers).
+        plus the size of non-manifest files under conda-meta (history, markers,
+        etc.)
 
         :returns: Total size in bytes.
         """
@@ -441,11 +442,13 @@ class PrefixData(metaclass=PrefixDataType):
         for record in self.iter_records():
             total_size += record.package_size(self.prefix_path)
 
-        # 2. add up the size of files under conda-meta (history, manifests, markers)
+        # 2. add up the size of non-manifest files under conda-meta
         conda_meta_dir = self.prefix_path / "conda-meta"
         if self.exists():
             try:
                 for meta_file in conda_meta_dir.iterdir():
+                    if meta_file.suffix == ".json":
+                        continue
                     try:
                         total_size += meta_file.stat().st_size
                     except OSError:
@@ -464,9 +467,9 @@ class PrefixData(metaclass=PrefixDataType):
         _conda_meta_dir = self.prefix_path / "conda-meta"
         if lexists(_conda_meta_dir):
             conda_meta_json_paths = (
-                p
-                for p in (entry.path for entry in os.scandir(_conda_meta_dir))
-                if p[-5:] == ".json"
+                entry.path
+                for entry in os.scandir(_conda_meta_dir)
+                if entry.name.endswith(".json") and not entry.name.startswith("._")
             )
             for meta_file in conda_meta_json_paths:
                 self._load_single_record(meta_file)

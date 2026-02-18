@@ -788,8 +788,6 @@ jobs:
             subdir: linux-64
           - runs-on: ubuntu-24.04-arm
             subdir: linux-aarch64
-          - runs-on: macos-15-intel
-            subdir: osx-64
           - runs-on: macos-latest
             subdir: osx-arm64
           - runs-on: windows-latest
