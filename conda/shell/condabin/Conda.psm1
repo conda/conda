@@ -146,6 +146,24 @@ function Invoke-Conda() {
                 Exit-CondaEnvironment;
             }
 
+            "install" | "update" | "upgrade" | "remove" | "uninstall" {
+                # Run the command, then reactivate so activate.ps1 runs and env vars
+                # (e.g. from packages like proj, GDAL) are set in this session.
+                # Matches behavior of conda.sh and conda.bat (see issue #15643).
+                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
+                $succeeded = $?;
+                $exitCode = if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $LASTEXITCODE } else { if ($succeeded) { 0 } else { 1 } };
+                if ($succeeded) {
+                    $reactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell reactivate | Out-String);
+                    if ($reactivateCommand.Trim().Length -gt 0) {
+                        Invoke-Expression -Command $reactivateCommand;
+                    }
+                }
+                if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) {
+                    $global:LASTEXITCODE = $exitCode;
+                }
+            }
+
             default {
                 # There may be a command we don't know want to handle
                 # differently in the shell wrapper, pass it through
