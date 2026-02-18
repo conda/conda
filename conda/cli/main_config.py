@@ -633,9 +633,9 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     rc_config = ConfigurationFile(
         path=rc_path,
         context=context,
-        warning_handler=lambda msg: json_warnings.append(msg)
-        if context.json
-        else stderr_write(msg),
+        warning_handler=lambda msg: (
+            json_warnings.append(msg) if context.json else stderr_write(msg)
+        ),
     )
 
     # read existing condarc
