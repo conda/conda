@@ -2491,7 +2491,6 @@ def test_conda_downgrade(
     # plus defaults. This allows: python/conda from defaults, dependency/dependent
     # from test-recipes.
     # Note: subprocess calls to env's conda still need explicit --channel flag
-    local_channel = str(test_recipes_channel)
 
     with tmp_env("python=3.11", "conda") as prefix:  # rev 0
         conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
