@@ -2464,7 +2464,9 @@ def test_create_env_different_platform(
 @pytest.mark.parametrize("test_recipes_channel", ["defaults"], indirect=True)
 # Force both solvers to be tested regardless of CONDA_TEST_SOLVERS env var
 # This ensures we verify performance improvements for both classic and libmamba
-@pytest.mark.parametrize("parametrized_solver_fixture", ["libmamba", "classic"], indirect=True)
+@pytest.mark.parametrize(
+    "parametrized_solver_fixture", ["libmamba", "classic"], indirect=True
+)
 def test_conda_downgrade(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
