@@ -230,10 +230,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
         prefix_data = PrefixData(prefix)
         if unmatched_specs := [
-            spec for spec in specs if not tuple(prefix_data.query(spec))
+            str(spec) for spec in specs if not tuple(prefix_data.query(spec))
         ]:
             raise PackagesNotFoundError(
-                tuple(sorted(str(spec) for spec in unmatched_specs))
+                tuple(sorted(unmatched_specs))
             )
 
         solver_backend = context.plugin_manager.get_cached_solver_backend()

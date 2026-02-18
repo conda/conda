@@ -146,11 +146,10 @@ def test_remove_early_existence_check(
         "conda.base.context.context.plugin_manager.get_cached_solver_backend"
     )
 
-    with pytest.raises(PackagesNotFoundError) as exc:
+    with pytest.raises(
+        PackagesNotFoundError,
+        match=r"(?s)missing from the target environment:.+nonexistent-package",
+    ):
         conda_cli("remove", f"--prefix={empty_env}", "nonexistent-package", "--yes")
 
     mock_solver_backend.assert_not_called()
-
-    exception_string = str(exc.value)
-    assert "nonexistent-package" in exception_string
-    assert "missing from the target environment" in exception_string
