@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* `conda search --envs <package>` now raises an error when the package is not found in any environment. (#15698)
 
 ### Bug fixes
 
-* `conda search --envs <package>` now raises an error when the package is not found in any environment. (#15698)
+* <news item>
 
 ### Deprecations
 

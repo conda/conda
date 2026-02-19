@@ -178,22 +178,18 @@ def test_search_envs_json(conda_cli: CondaCLIFixture):
 
 
 def test_search_envs_nonexistent(conda_cli: CondaCLIFixture):
-    with pytest.raises(PackagesNotFoundError) as excinfo:
-        stdout, stderr, code = conda_cli("search", "--envs", "does-not-exist")
-        assert code == 1
-    assert "PackagesNotFoundError" in repr(excinfo.value)
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "--envs", "does-not-exist")
 
 
 def test_search_envs_nonexistent_json(conda_cli: CondaCLIFixture):
-    with pytest.raises(PackagesNotFoundError) as excinfo:
+    with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--envs", "--json", "does-not-exist")
-    assert "PackagesNotFoundError" in repr(excinfo.value)
 
 
 def test_search_envs_nonexistent_info(conda_cli: CondaCLIFixture):
-    with pytest.raises(PackagesNotFoundError) as excinfo:
+    with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--envs", "--info", "does-not-exist")
-    assert "PackagesNotFoundError" in repr(excinfo.value)
 
 
 @pytest.mark.flaky(reruns=5)
