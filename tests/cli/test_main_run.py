@@ -509,7 +509,7 @@ def test_run_wrapper_has_condabin_on_path(
     tmp_env: TmpEnvFixture,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    """Regression test to ensure condabin is on PATH in the wrapper script.
+    """Test to ensure condabin is on PATH in the wrapper script.
     See https://github.com/conda/conda/pull/15672 for context.
 
     Without the shell hook, the conda shell functions are not defined,
