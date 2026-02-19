@@ -51,6 +51,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda create -n env2 --clone path/to/file/env1
 
+        Create an environment with a description (shown in conda env list --descriptions)::
+
+            conda create -n myenv python=3.11 --description "My experimental env"
+
         """
     )
     p = sub_parsers.add_parser(
@@ -91,6 +95,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.constants import UNUSED_ENV_NAME
     from ..base.context import context
+    from ..common.constants import NULL
     from ..core.prefix_data import PrefixData
     from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
@@ -167,6 +172,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # Run appropriate install
     if args.clone:
         install_clone(args, parser)
+        if getattr(args, "description", NULL) is not NULL:
+            PrefixData(context.target_prefix).set_description(args.description)
     else:
         install(args, parser, "create")
     # Run post-install steps applicable to all new environments

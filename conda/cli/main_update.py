@@ -92,6 +92,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.constants import UpdateModifier
     from ..base.context import context
+    from ..common.constants import NULL
+    from ..core.prefix_data import PrefixData
     from ..exceptions import CondaValueError
     from .common import validate_environment_files_consistency
     from .install import install
@@ -105,6 +107,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             "\n",
             file=sys.stderr,
         )
+
+    # Allow setting only the environment description (no packages)
+    if (
+        not (
+            args.file
+            or args.packages
+            or context.update_modifier == UpdateModifier.UPDATE_ALL
+        )
+        and getattr(args, "description", NULL) is not NULL
+    ):
+        PrefixData(context.target_prefix).set_description(args.description)
+        return 0
 
     # Ensure provided combination of command line argments are valid
     # One of --file or packages or --update-all must be specified

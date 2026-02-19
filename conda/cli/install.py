@@ -443,6 +443,10 @@ def install(args, parser, command="install"):
 
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
+    # Set environment description if requested (create / install / update)
+    if getattr(args, "description", NULL) is not NULL:
+        PrefixData(prefix).set_description(args.description)
+
 
 def install_clone(args, parser):
     """Executes an install of a new conda environment by cloning."""
