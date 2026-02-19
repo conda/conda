@@ -534,6 +534,30 @@ def test_run_wrapper_has_condabin_on_path(
         assert condabin_dir in script_content
 
 
+def test_run_allows_nested_conda_cli_command(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Test to ensure that nested `conda` CLI commands work under `conda run` without
+    the shell hook. See https://github.com/conda/conda/pull/15672 for context.
+    """
+    monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
+
+    with tmp_env() as prefix:
+        stdout, stderr, rc = conda_cli(
+            "run",
+            "--prefix",
+            str(prefix),
+            "conda",
+            "--version",
+        )
+
+        assert rc == 0, (stdout, stderr)
+        assert stdout.strip().startswith("conda ")
+
+
 def test_run_with_empty_command_will_raise(
     conda_cli: CondaCLIFixture,
 ):
