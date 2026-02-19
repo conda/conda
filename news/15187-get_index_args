@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.cli.install.clone(index_args)` as pending deprecation to be removed in 26.9. Use `conda.base.context.context.channels` instead. (#15187)
+* Mark `conda.cli.install.get_index_args` as pending deprecation to be removed in 26.9. Use `conda.base.context.context.channels` instead. (#15187)
+* Mark `conda.cli.install.TryRepodata(index_args)` as pending deprecation to be removed in 26.9. Use `conda.base.context.context.channels` instead. (#15187)
+* Mark `conda.cli.install.Repodatas(index_args)` as pending deprecation to be removed in 26.9. Use `conda.base.context.context.channels` instead. (#15187)
+* Mark `conda.misc.clone_env(index_args)` as pending deprecation to be removed in 26.9. Use `conda.base.context.context.channels` instead. (#15187)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
