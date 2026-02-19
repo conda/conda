@@ -25,6 +25,8 @@ from conda.testing.integration import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -134,3 +136,20 @@ def test_remove_all_default_activation_env(
                 "--all",
                 f"--prefix={prefix}",
             )
+
+
+def test_remove_early_existence_check(
+    empty_env: Path, conda_cli: CondaCLIFixture, mocker
+):
+    """Verify that the (classic) solver is not invoked when packages don't exist in prefix."""
+    mock_solver_backend = mocker.patch(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend"
+    )
+
+    with pytest.raises(
+        PackagesNotFoundError,
+        match=r"(?s)missing from the target environment:.+nonexistent-package",
+    ):
+        conda_cli("remove", f"--prefix={empty_env}", "nonexistent-package", "--yes")
+
+    mock_solver_backend.assert_not_called()
