@@ -65,7 +65,7 @@ class FileMode(Enum):
         return f"{self.value}"
 
 
-class LinkType(Enum):
+class LinkEnum(Enum):
     # directory is not a link type, and copy is not a path type
     # LinkType is still probably the best name here
     hardlink = 1
@@ -81,6 +81,15 @@ class LinkType(Enum):
 
     def __json__(self):
         return self.name
+
+
+deprecated.constant(
+    deprecate_in="26.9",
+    remove_in="27.3",
+    constant="LinkType",
+    value=LinkEnum,
+    addendum="Use `conda.models.enums.LinkEnum` instead.",
+)
 
 
 class PathEnum(Enum):
