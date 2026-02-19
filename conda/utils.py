@@ -331,7 +331,7 @@ def wrap_subprocess_call(
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
 
-                fh.write(f"export PYTHONPATH={CONDA_SOURCE_ROOT}\n")
+                fh.write(f">&2 export PYTHONPATH={CONDA_SOURCE_ROOT}\n")
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment before ***'\n>&2 env\n")
 
