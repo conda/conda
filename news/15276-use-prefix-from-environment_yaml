@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* When running `conda env` commands, conda should use the `prefix` field in an `environment.yaml` file if provided. (#15205 via #15276)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
