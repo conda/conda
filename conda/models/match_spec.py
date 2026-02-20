@@ -769,21 +769,27 @@ def _parse_spec_str(spec_str):
                 value = _sanitize_version_str(value, match.groupdict().get("build"))
             brackets[key] = value
 
-    # Step 4. strip off parens portion
-    m4 = re.match(r".*(?:(\(.*\)))", spec_str)
+    # Step 4. strip off parens portion (metadata only: target=..., optional)
+    # Only strip when the parens content looks like metadata, not version expressions
+    # (e.g. do not strip "(<4|<5)" or "(>=3.8,<3.10)" which are version precedence).
     parens = {}
+    m4 = re.match(r".*(?:(\(.*\)))", spec_str)
     if m4:
         parens_str = m4.groups()[0]
-        spec_str = spec_str.replace(parens_str, "")
-        parens_str = parens_str[1:-1]
-        m4b = re.finditer(
-            r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', parens_str
-        )
-        for match in m4b:
-            key, _, value, _ = match.groups()
-            parens[key] = value
-        if "optional" in parens_str:
-            parens["optional"] = True
+        inner = parens_str[1:-1]
+        # Only treat as metadata when content has no version-expression character:
+        # no | (OR), and no version ops like <digit, >digit at start of token
+        if "|" not in inner and not re.search(r"(^|[, ])\s*[<>=~!]\s*\d", inner):
+            m4b = re.finditer(
+                r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', inner
+            )
+            for match in m4b:
+                key, _, value, _ = match.groups()
+                parens[key] = value
+            if "optional" in inner:
+                parens["optional"] = True
+            if parens:
+                spec_str = spec_str.replace(parens_str, "")
 
     # Step 5. strip off '::' channel and namespace
     m5 = spec_str.rsplit(":", 2)
@@ -866,6 +872,7 @@ def _parse_spec_str(spec_str):
         )
         warnings.warn(msg, UserWarning)
         del brackets["name"]
+    components.update(parens)
     components.update(brackets)
     components["_original_spec_str"] = original_spec_str
     _PARSE_CACHE[original_spec_str] = components
