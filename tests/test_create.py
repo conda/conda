@@ -2868,7 +2868,7 @@ def test_mix_explicit_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot mix explicit package urls with conda specs" in str(exc)
 
 
 @pytest.mark.parametrize("command", ["install", "create"])
@@ -2887,4 +2887,4 @@ def test_mix_explicit_file_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot mix explicit package urls with conda specs" in str(exc)
