@@ -247,12 +247,13 @@ def test_record_spec_strings_inheritance(record_class, extra_kwargs):
 
 
 @pytest.mark.integration
-def test_requested_spec(tmp_env):
-    specs = ("ca-certificates", "ca-certificates>=2025")
+def test_requested_spec(tmp_env, test_recipes_channel):
+    specs = ("small-executable", "small-executable>=1")
     with tmp_env(*specs) as prefix:
-        prefix_data = PrefixData(prefix)
-        record = prefix_data.get("ca-certificates")
+        record = PrefixData(prefix).get("small-executable")
         # conda classic and conda-libmamba-solver merge the incoming match-specs
         merged_spec = str(MatchSpec.merge(specs)[0])
         assert record.requested_spec == merged_spec
+        # TODO: Update this when CLS stops merging specs by default
+        # should be: record.requested_specs == specs
         assert record.requested_specs == (merged_spec,)
