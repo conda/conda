@@ -72,95 +72,89 @@ if TYPE_CHECKING:
     from typing import Any
 
 __all__ = [
-    "ACTIVE_SUBPROCESSES",
-    "ArgumentParser",
-    "Channel",
-    "CondaError",
-    "CondaFileNotFoundError",
-    "CondaHTTPError",
-    "CondaOSError",
-    "CondaSession",
-    "DEFAULT_CHANNELS",
-    "DEFAULT_CHANNELS_UNIX",
-    "DEFAULT_CHANNELS_WIN",
-    "Dist",
-    "FileMode",
-    "Index",
-    "LinkError",
-    "LockError",
-    "MatchSpec",
-    "NoPackagesFound",
-    "NoPackagesFoundError",
-    "PREFIX_PLACEHOLDER",
-    "PY3",
-    "PaddingError",
-    "PathEnum",
-    "PathNotFoundError",
-    "ProgressiveFetchExtract",
-    "Resolve",
-    "ResolvePackageNotFound",
-    "Solver",
-    "StringIO",
-    "TYPE_CHECKING",
-    "TemporaryDirectory",
-    "TmpDownload",
-    "Unsatisfiable",
-    "UnsatisfiableError",
-    "VersionOrder",
-    "_PREFIX_PLACEHOLDER",
-    "_download",
     "_toposort",
+    "ACTIVE_SUBPROCESSES",
     "add_parser_channels",
     "add_parser_prefix",
     "annotations",
     "arch_name",
+    "ArgumentParser",
     "binstar_upload",
     "bits",
     "cache_fn_url",
+    "Channel",
     "compat",
     "conda_build",
+    "CondaError",
+    "CondaHTTPError",
+    "CondaJSONEncoder",
+    "CondaOSError",
+    "CondaSession",
     "context",
+    "DEFAULT_CHANNELS_UNIX",
+    "DEFAULT_CHANNELS_WIN",
+    "DEFAULT_CHANNELS",
     "default_prefix",
     "default_python",
     "delete_prefix_from_linked_data",
     "delete_trash",
     "deprecated",
     "dist_str_in_index",
+    "Dist",
     "download",
     "envs_dirs",
+    "FileMode",
     "get_conda_build_local_url",
     "get_default_urls",
     "get_index",
     "get_local_urls",
     "get_rc_urls",
     "human_bytes",
+    "Index",
     "input",
     "is_linked",
     "lchmod",
-    "linked",
     "linked_data",
+    "linked",
+    "LinkError",
     "load_condarc",
+    "LockError",
+    "MatchSpec",
     "non_x86_linux_machines",
     "non_x86_machines",
+    "NoPackagesFound",
+    "NoPackagesFoundError",
     "normalized_version",
     "package_cache",
+    "PaddingError",
+    "PathEnum",
+    "PathNotFoundError",
     "pkgs_dirs",
     "platform",
-    "prefix_placeholder",
+    "PREFIX_PLACEHOLDER",
+    "ProgressiveFetchExtract",
     "reset_context",
+    "Resolve",
+    "ResolvePackageNotFound",
     "rm_rf",
     "root_dir",
     "root_writable",
+    "Solver",
     "spec_from_line",
     "specs_from_args",
     "specs_from_url",
-    "string_types",
+    "StringIO",
     "subdir",
     "subprocess_call",
     "sys_rc_path",
-    "text_type",
+    "TemporaryDirectory",
+    "TmpDownload",
+    "TYPE_CHECKING",
+    "Unsatisfiable",
+    "UnsatisfiableError",
     "untracked",
     "url_path",
+    "VersionOrder",
     "walk_prefix",
 ]
 
@@ -201,190 +195,6 @@ def __getattr__(name: str) -> Any:
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "EntityEncoder",
-    CondaJSONEncoder,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-)
-del CondaJSONEncoder
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "input",
-    input,
-    addendum="Use `builtins.input` instead.",
-)
-del input
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "StringIO",
-    StringIO,
-    addendum="Use `io.StringIO` instead.",
-)
-del StringIO
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "PY3",
-    True,
-    addendum="Python 2 is no longer supported.",
-)
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "string_types",
-    str,
-    addendum="Use `str` instead.",
-)
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "text_type",
-    str,
-    addendum="Use `str` instead.",
-)
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "DEFAULT_CHANNELS",
-    DEFAULT_CHANNELS,
-    addendum="Use `conda.base.constants.DEFAULT_CHANNELS` instead.",
-)
-del DEFAULT_CHANNELS
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "DEFAULT_CHANNELS_UNIX",
-    DEFAULT_CHANNELS_UNIX,
-    addendum="Use `conda.base.constants.DEFAULT_CHANNELS_UNIX` instead.",
-)
-del DEFAULT_CHANNELS_UNIX
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "DEFAULT_CHANNELS_WIN",
-    DEFAULT_CHANNELS_WIN,
-    addendum="Use `conda.base.constants.DEFAULT_CHANNELS_WIN` instead.",
-)
-del DEFAULT_CHANNELS_WIN
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "PREFIX_PLACEHOLDER",
-    PREFIX_PLACEHOLDER,
-    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
-)
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "_PREFIX_PLACEHOLDER",
-    PREFIX_PLACEHOLDER,
-    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
-)
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "prefix_placeholder",
-    PREFIX_PLACEHOLDER,
-    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
-)
-del PREFIX_PLACEHOLDER
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "CondaError",
-    CondaError,
-    addendum="Use `conda.CondaError` instead.",
-)
-del CondaError
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "CondaHTTPError",
-    CondaHTTPError,
-    addendum="Use `conda.exceptions.CondaHTTPError` instead.",
-)
-del CondaHTTPError
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "CondaOSError",
-    CondaOSError,
-    addendum="Use `conda.exceptions.CondaOSError` instead.",
-)
-del CondaOSError
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "LinkError",
-    LinkError,
-    addendum="Use `conda.exceptions.LinkError` instead.",
-)
-del LinkError
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "LockError",
-    LockError,
-    addendum="Use `conda.exceptions.LockError` instead.",
-)
-del LockError
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "PaddingError",
-    PaddingError,
-    addendum="Use `conda.exceptions.PaddingError` instead.",
-)
-del PaddingError
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "PathNotFoundError",
-    PathNotFoundError,
-    addendum="Use `conda.exceptions.PathNotFoundError` instead.",
-)
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "CondaFileNotFoundError",
-    PathNotFoundError,
-    addendum="Use `conda.exceptions.PathNotFoundError` instead.",
-)
-del PathNotFoundError
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "UnsatisfiableError",
-    UnsatisfiableError,
-    addendum="Use `conda.exceptions.UnsatisfiableError` instead.",
-)
-del UnsatisfiableError
-
-
 def get_default_urls():
     from .base.constants import DEFAULT_CHANNELS
 
@@ -407,6 +217,7 @@ def get_index(
     unknown=None,
     prefix=None,
 ):
+    # XXX this function is passing use_local in subdirs=' place; it makes no sense.
     index = Index(
         channel_urls, prepend, platform, use_local, use_cache, unknown, prefix
     )
