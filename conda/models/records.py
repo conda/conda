@@ -640,7 +640,33 @@ class SolvedRecord(PackageRecord):
     """
     The :class:`MatchSpec` objects that the user requested or ``()``
     if the package was installed as a dependency.
+    See also `.requested_specs` property.
     """
+
+    @property
+    def requested_specs(self) -> tuple[str, ...]:
+        """
+        This property will use 'requested_spec' as the source for
+        'requested_specs' for old `conda-meta/*.json` files that
+        did not define the plural version.
+        """
+        if specs := self.get("_requested_specs", None):
+            return tuple(specs)
+        if spec := self.get("requested_spec", None):
+            return (spec,)
+        return ()
+
+    def dump(self):
+        """
+        We need to expose _requested_specs as its public counterpart,
+        and also expose single specs as a plural list for backwards compatibility.
+        """
+        dumped = super().dump()
+        if dumped.get("_requested_specs"):
+            dumped["requested_specs"] = dumped.pop("_requested_specs")
+        elif spec := dumped.get("requested_spec"):
+            dumped["requested_specs"] = [spec]
+        return dumped
 
 
 class PrefixRecord(SolvedRecord):
