@@ -223,6 +223,12 @@ class _Activator(metaclass=abc.ABCMeta):
     def template_path_var(self, key: str, value: str) -> str:
         return self.path_var_tmpl % (key, value)
 
+    def template_set_var(self, key: str, value: str) -> str:
+        return self.set_var_tmpl % (key, value)
+
+    def template_run_script(self, script: str) -> str:
+        return self.run_script_tmpl % script
+
     def _hook_preamble(self) -> str | None:
         result = []
         for key, value in context.conda_exe_vars_dict.items():
@@ -303,22 +309,22 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _yield_commands(self, cmds_dict):
         for key, value in sorted(cmds_dict.get("export_path", {}).items()):
-            yield self.export_var_tmpl % (key, value)
+            yield self.template_export_var(key, value)
 
         for script in cmds_dict.get("deactivate_scripts", ()):
-            yield self.run_script_tmpl % script
+            yield self.template_run_script(script)
 
         for key in cmds_dict.get("unset_vars", ()):
-            yield self.unset_var_tmpl % key
+            yield self.template_unset_var(key)
 
         for key, value in cmds_dict.get("set_vars", {}).items():
-            yield self.set_var_tmpl % (key, value)
+            yield self.template_set_var(key, value)
 
         for key, value in cmds_dict.get("export_vars", {}).items():
-            yield self.export_var_tmpl % (key, value)
+            yield self.template_export_var(key, value)
 
         for script in cmds_dict.get("activate_scripts", ()):
-            yield self.run_script_tmpl % script
+            yield self.template_run_script(script)
 
     def build_activate(self, env_name_or_prefix):
         return self._build_activate_stack(env_name_or_prefix, False)
@@ -983,6 +989,34 @@ class CmdExeActivator(_Activator):
 
     hook_source_path = None
     inline_hook_source = None
+
+    @staticmethod
+    def _escape_cmd_special_chars(value: str | int) -> str:
+        """
+        Escape special characters for CMD.EXE batch processing.
+
+        When the batch script reads the INI file with FOR /F and uses SET,
+        the ^ character is interpreted as an escape character. We need to
+        double it (^^) to preserve literal ^ characters in paths.
+
+        See: https://github.com/conda/conda/issues/12558
+        """
+        # Convert to string first (e.g., CONDA_SHLVL is an int)
+        value_str = str(value)
+        # ^ must be doubled to be preserved through CMD.EXE SET processing
+        return value_str.replace("^", "^^")
+
+    def template_export_var(self, key: str, value: str) -> str:
+        return self.export_var_tmpl % (key, self._escape_cmd_special_chars(value))
+
+    def template_path_var(self, key: str, value: str) -> str:
+        return self.path_var_tmpl % (key, self._escape_cmd_special_chars(value))
+
+    def template_set_var(self, key: str, value: str) -> str:
+        return self.set_var_tmpl % (key, self._escape_cmd_special_chars(value))
+
+    def template_run_script(self, script: str) -> str:
+        return self.run_script_tmpl % self._escape_cmd_special_chars(script)
 
     def _update_prompt(self, set_vars, conda_prompt_modifier):
         prompt = os.getenv("PROMPT", "")
