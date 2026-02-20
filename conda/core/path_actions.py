@@ -1020,12 +1020,23 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             ),
         )
 
+        if self.requested_spec:
+            if isinstance(self.requested_spec, tuple | list):
+                requested_specs = [str(spec) for spec in self.requested_spec]
+                requested_spec_str = str(MatchSpec.merge(self.requested_spec)[0])
+            else:
+                requested_spec_str = str(self.requested_spec)
+                requested_specs = (requested_spec_str,)
+        else:
+            requested_spec_str = ""
+            requested_specs = ()
+
         self.prefix_record = PrefixRecord.from_objects(
             self.package_info.repodata_record,
             # self.package_info.index_json_record,
             self.package_info.package_metadata,
-            requested_spec=str(self.requested_spec),
-            requested_specs=(str(self.requested_spec),),
+            requested_spec=requested_spec_str,
+            requested_specs=requested_specs,
             paths_data=paths_data,
             files=files,
             link=link,
