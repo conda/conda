@@ -11,10 +11,11 @@ from concurrent.futures import Executor, Future, ThreadPoolExecutor, as_complete
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
-from functools import partial, wraps
+from functools import lru_cache, partial, wraps
 from io import BytesIO, StringIO
 from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
+from pathlib import Path
 from threading import Lock
 from time import time
 
@@ -26,9 +27,33 @@ from ..deprecations import deprecated
 from .compat import encode_environment, on_win
 from .constants import NULL
 from .path import expand
+from .url import is_url, urlparse
 
 log = getLogger(__name__)
 IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+
+
+@lru_cache(maxsize=128)
+def load_file(filename: str) -> str:
+    """Load and return a string from a given file"""
+    from ..exceptions import CondaFileIOError
+    from ..gateways.connection.download import download_text
+    from ..gateways.connection.session import CONDA_SESSION_SCHEMES
+
+    if is_url(filename) and urlparse(filename).scheme in CONDA_SESSION_SCHEMES:
+        file_contents = download_text(filename)
+    elif not os.path.exists(filename):
+        raise CondaFileIOError(
+            filepath=filename,
+            message="File does not exist on disk",
+        )
+    else:
+        file_path = Path(filename)
+        try:
+            file_contents = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            file_contents = file_path.read_text(encoding="utf-16")
+    return file_contents
 
 
 class DeltaSecondsFormatter(Formatter):

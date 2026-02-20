@@ -4,21 +4,24 @@ from __future__ import annotations
 
 import os
 import random
+from contextlib import nullcontext
 from io import StringIO
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
+from conda.common.io import load_file
 from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
+from conda.env import env as env_module
 from conda.env.env import (
     VALID_KEYS,
     EnvironmentYaml,
     channels_validation,
     dependencies_validation,
     from_environment,
-    from_file,
+    from_yaml,
     name_validation,
     prefix_validation,
     variables_validation,
@@ -35,6 +38,12 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
+
+
+def from_file(filename: str) -> EnvironmentYaml:
+    """Load and return an ``EnvironmentYaml`` from a given file"""
+    yamlstr = load_file(filename)
+    return from_yaml(yamlstr, filename=filename)
 
 
 class FakeStream:
@@ -524,3 +533,13 @@ def test_prefix_validation(prefix, error_message):
             prefix_validation(prefix)
     else:
         prefix_validation(prefix)
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [("load_file", TypeError), ("from_file", TypeError)],
+)
+def test_env_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(env_module, function)()
