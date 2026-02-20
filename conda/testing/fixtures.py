@@ -589,7 +589,16 @@ class TmpChannelFixture:
         noarch = channel / "noarch"
         noarch.mkdir(parents=True)
 
-        repodata = {"info": {}, "packages": {}}
+        repodata_noarch = {
+            "info": {"subdir": "noarch", "base_url": path_to_url(str(pkgs_dir))},
+            "packages": {},
+            "packages.conda": {},
+        }
+        repodata_subdir = {
+            "info": {"subdir": context.subdir, "base_url": path_to_url(str(pkgs_dir))},
+            "packages": {},
+            "packages.conda": {},
+        }
         iter_specs = list(specs)
         seen: dict[str, set[str]] = {}
         while iter_specs:
@@ -602,11 +611,17 @@ class TmpChannelFixture:
                     seen[fname].add(spec)
                 seen[fname] = {spec}
 
-                # copy package to channel
-                copyfile(pkgs_dir / fname, subdir / fname)
+                if package_record["subdir"] == "noarch":
+                    target_repodata = repodata_noarch
+                    target_directory = noarch
+                else:
+                    target_repodata = repodata_subdir
+                    target_directory = subdir
 
-                # add package to repodata
-                repodata["packages"][fname] = PackageRecord(
+                copyfile(pkgs_dir / fname, target_directory / fname)
+
+                key = "packages" if fname.endswith(".tar.bz2") else "packages.conda"
+                target_repodata[key][fname] = PackageRecord(
                     **{
                         field: value
                         for field, value in package_record.dump().items()
@@ -614,10 +629,8 @@ class TmpChannelFixture:
                     }
                 )
 
-                iter_specs.extend(package_record.depends)
-
-        (subdir / "repodata.json").write_text(json.dumps(repodata))
-        (noarch / "repodata.json").write_text(json.dumps({}))
+        (subdir / "repodata.json").write_text(json.dumps(repodata_subdir))
+        (noarch / "repodata.json").write_text(json.dumps(repodata_noarch))
 
         # ensure all packages were copied to the channel
         for spec in chain.from_iterable(seen.values()):
