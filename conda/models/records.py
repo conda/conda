@@ -636,7 +636,9 @@ class SolvedRecord(PackageRecord):
     The :class:`MatchSpec` that the user requested or ``None``
     if the package it was installed as a dependency.
     """
-    _requested_specs = ListField(str, required=False, nullable=True, aliases=("requested_specs",))
+    _requested_specs = ListField(
+        str, required=False, nullable=True, aliases=("requested_specs",)
+    )
     """
     The :class:`MatchSpec` objects that the user requested or ``()``
     if the package was installed as a dependency.
