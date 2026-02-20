@@ -13,12 +13,13 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from .. import CondaError
+from .. import CONDA_PACKAGE_ROOT, CondaError
 from ..auxlib.ish import dals
-from ..base.constants import CONDA_TEMP_EXTENSION
+from ..base.constants import CONDA_TEMP_EXTENSION, WINDOWS_LAUNCHER_STUB_PATH
 from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
+from ..common.io import dashlist
 from ..common.path import (
     BIN_DIRECTORY,
     get_leaf_directories,
@@ -370,8 +371,13 @@ class LinkPathAction(CreateInPrefixPathAction):
         requested_link_type,
         entry_point_def,
     ):
-        source_directory = context.conda_prefix
-        source_short_path = "Scripts/conda.exe"
+        if context.subdir not in WINDOWS_LAUNCHER_STUB_PATH:
+            raise NotImplementedError(
+                f"Windows entry point stub not available for subdir {context.subdir!r}. "
+                f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
+            )
+        source_directory = CONDA_PACKAGE_ROOT
+        source_short_path = WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = f"Scripts/{command}.exe"
         source_path_data = PathDataV1(
