@@ -43,6 +43,8 @@ from ..exceptions import (
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
+    PackagesNotFoundInPrefixError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -252,8 +254,8 @@ class TryRepodata:
         ):
             return True
         elif isinstance(exc_value, ResolvePackageNotFound):
-            # convert the ResolvePackageNotFound into PackagesNotFoundError
-            raise PackagesNotFoundError(
+            # convert the ResolvePackageNotFound into PackagesNotFoundInChannelsError
+            raise PackagesNotFoundInChannelsError(
                 exc_value._formatted_chains,
                 all_channel_urls(context.channels),
             )
@@ -434,6 +436,20 @@ def install(args, parser, command="install"):
                     )
                 else:
                     raise e
+            except PackagesNotFoundError as e:
+                if isinstance(
+                    e, (PackagesNotFoundInChannelsError, PackagesNotFoundInPrefixError)
+                ):
+                    raise
+
+                if e.channel_urls:
+                    raise PackagesNotFoundInChannelsError(
+                        e.packages, e.channel_urls
+                    ) from e
+                else:
+                    raise PackagesNotFoundInPrefixError(
+                        e.packages, prefix=prefix
+                    ) from e
             except SystemExit as e:
                 if not getattr(e, "allow_retry", True):
                     raise e
@@ -538,7 +554,10 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
             link_precs.add(precs[0])
 
     if not_found_in_index_specs:
-        raise PackagesNotFoundError(not_found_in_index_specs)
+        raise PackagesNotFoundInChannelsError(
+            not_found_in_index_specs,
+            all_channel_urls(context.channels, context.subdirs),
+        )
 
     final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
@@ -550,7 +569,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
-            raise PackagesNotFoundError(args.package_names)
+            raise PackagesNotFoundInPrefixError(args.package_names, prefix=prefix)
         elif not newenv:
             if context.json:
                 common.stdout_json_success(
