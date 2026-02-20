@@ -10,6 +10,7 @@ register all plugins during conda's startup process.
 
 from __future__ import annotations
 
+import fnmatch
 import functools
 import logging
 import os
@@ -566,18 +567,71 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
                 )
 
-    def detect_environment_specifier(self, source: str) -> CondaEnvironmentSpecifier:
-        """Detect the environment specifier plugin for a given spec source
-
-        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
-        Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+    def _detect_filename_env_spec(
+        self,
+        source: str,
+        basename: str,
+        hooks: dict[str, CondaEnvironmentSpecifier],
+    ) -> list[CondaEnvironmentSpecifier] | None:
+        """Phase 1: Detect environment specifier by filename pattern matching.
 
         :param source: full path to the environment spec file or source
-        :returns: an environment specifier plugin that can handle the provided file
+        :param basename: basename of the source file
+        :param hooks: mapping of environment specifier plugins
+        :returns: list of matching plugins, or None if no filename matches
         """
-        hooks = self.get_environment_specifiers()
+        candidates = [
+            hook
+            for hook_name, hook in hooks.items()
+            if hook.default_filenames
+            and any(
+                fnmatch.fnmatch(basename, pattern) for pattern in hook.default_filenames
+            )
+        ]
+
+        if not candidates:
+            return None
+
+        log.debug(
+            "EnvironmentSpec: filename '%s' matched %d plugin(s)",
+            basename,
+            len(candidates),
+        )
+
+        found = []
+        for hook in candidates:
+            if not hook.environment_spec.detection_supported:
+                continue
+            log.debug("EnvironmentSpec hook: checking %s", hook.name)
+            try:
+                if hook.environment_spec(source).can_handle():
+                    log.debug("EnvironmentSpec hook: %s can be %s", source, hook.name)
+                    found.append(hook)
+            except Exception as e:
+                log.error(
+                    "EnvironmentSpec hook: an error occurred when handling '%s' with plugin '%s'. %s",
+                    source,
+                    hook.name,
+                    e,
+                )
+                log.debug("%r", e, exc_info=e)
+
+        return found if found else None
+
+    def _detect_content_env_spec(
+        self,
+        source: str,
+        hooks: dict[str, CondaEnvironmentSpecifier],
+    ) -> tuple[list[CondaEnvironmentSpecifier], list[str]]:
+        """Phase 2: Detect environment specifier by content-based autodetection.
+
+        :param source: full path to the environment spec file or source
+        :param hooks: mapping of environment specifier plugins
+        :returns: tuple of (found plugins, autodetect disabled plugin names)
+        """
         found = []
         autodetect_disabled_plugins = []
+
         for hook_name, hook in hooks.items():
             if hook.environment_spec.detection_supported:
                 log.debug("EnvironmentSpec hook: checking %s", hook_name)
@@ -610,6 +664,47 @@ class CondaPluginManager(pluggy.PluginManager):
                     hook_name,
                 )
                 autodetect_disabled_plugins.append(hook_name)
+
+        return found, autodetect_disabled_plugins
+
+    def detect_environment_specifier(self, source: str) -> CondaEnvironmentSpecifier:
+        """Detect the environment specifier plugin for a given spec source
+
+        Uses two-phase detection:
+        1. Filename-based filtering using fnmatch patterns
+        2. Fallback to content-based autodetection (can_handle())
+
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+
+        :param source: full path to the environment spec file or source
+        :returns: an environment specifier plugin that can handle the provided file
+        """
+        hooks = self.get_environment_specifiers()
+        basename = os.path.basename(source)
+
+        # Phase 1: Filename-based filtering
+        found = self._detect_filename_env_spec(source, basename, hooks)
+        if found:
+            if len(found) == 1:
+                return found[0]
+            else:
+                raise PluginError(
+                    dals(
+                        f"""
+                        Too many plugins found that can handle the environment file '{source}':
+
+                        {", ".join([hook.name for hook in found])}
+
+                        Please make sure that you don't have any overlapping plugins installed.
+                    """
+                    )
+                )
+
+        # Phase 2: Fallback autodetection (try all plugins)
+        found, autodetect_disabled_plugins = self._detect_content_env_spec(
+            source, hooks
+        )
 
         if not found:
             # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
@@ -706,20 +801,27 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """
-        Detect an environment exporter based on exact filename matching against default_filenames.
+        Detect an environment exporter based on filename matching against default_filenames.
+
+        Uses fnmatch pattern matching for flexible filename patterns (e.g., *.conda-lock.yml).
 
         :param filename: Filename to find an exporter for (basename is used for detection)
         :return: CondaEnvironmentExporter that supports the filename
         :raises EnvironmentExporterNotDetected: If no exporter supports the filename
         :raises PluginError: If multiple exporters claim to support the same filename
         """
+        import fnmatch
+
         # Extract just the basename for matching
         basename = os.path.basename(filename)
 
         matches = []
         for exporter_config in self.get_environment_exporters():
-            # Check if basename exactly matches any of the default filenames
-            if basename in exporter_config.default_filenames:
+            # Check if basename matches any of the default filename patterns
+            if any(
+                fnmatch.fnmatch(basename, pattern)
+                for pattern in exporter_config.default_filenames
+            ):
                 matches.append(exporter_config)
 
         if not matches:
