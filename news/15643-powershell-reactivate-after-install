@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Run PowerShell reactivate after `conda install`, `update`, `upgrade`, `remove`, and `uninstall` so that `activate.ps1` runs and environment variables set by packages (e.g. proj, GDAL) are available in the same session without manually deactivating and reactivating. (#15643)
+* Run PowerShell reactivate after `conda install`, `update`, `upgrade`, `remove`, and `uninstall` so that `activate.ps1` runs and environment variables set by packages (e.g. proj, GDAL) are available in the same session without manually deactivating and reactivating. (#15643 via #15710)
 
 ### Deprecations
 
