@@ -810,8 +810,6 @@ class CondaPluginManager(pluggy.PluginManager):
         :raises EnvironmentExporterNotDetected: If no exporter supports the filename
         :raises PluginError: If multiple exporters claim to support the same filename
         """
-        import fnmatch
-
         # Extract just the basename for matching
         basename = os.path.basename(filename)
 
