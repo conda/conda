@@ -16,4 +16,5 @@ def conda_environment_specifiers():
     yield CondaEnvironmentSpecifier(
         name="requirements.txt",
         environment_spec=RequirementsSpec,
+        default_filenames=("requirements.txt", "spec.txt"),
     )

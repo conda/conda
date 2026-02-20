@@ -604,10 +604,12 @@ class CondaEnvironmentSpecifier(CondaPlugin):
 
     :param name: name of the spec (e.g., ``environment_yaml``)
     :param environment_spec: EnvironmentSpecBase subclass handler
+    :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
     """
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
+    default_filenames: tuple[str, ...] = ()
 
 
 @dataclass
