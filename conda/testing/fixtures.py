@@ -23,12 +23,11 @@ from conda.deprecations import deprecated
 
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.ish import dals
-from ..base.constants import PACKAGE_CACHE_MAGIC_FILE
-from ..base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
+from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
-from ..common.io import env_vars
-from ..common.serialize import json, yaml_round_trip_load
+from ..common.serialize import json, yaml
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
@@ -38,6 +37,7 @@ from ..models.records import PackageRecord
 from .integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
+    import http.server
     from collections.abc import Iterable, Iterator
 
     from _pytest.capture import MultiCapture
@@ -128,15 +128,14 @@ def reset_conda_context():
 
 
 @pytest.fixture()
-def temp_package_cache(tmp_path_factory):
+def temp_package_cache(tmp_path_factory, monkeypatch: MonkeyPatch) -> Iterator[Path]:
     """
     Used to isolate package or index cache from other tests.
     """
     pkgs_dir = tmp_path_factory.mktemp("pkgs")
-    with env_vars(
-        {"CONDA_PKGS_DIRS": str(pkgs_dir)}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        yield pkgs_dir
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(pkgs_dir))
+    reset_context()
+    yield pkgs_dir
 
 
 @pytest.fixture(
@@ -145,7 +144,6 @@ def temp_package_cache(tmp_path_factory):
 )
 def parametrized_solver_fixture(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["libmamba", "classic"]]:
     """
     A parameterized fixture that sets the solver backend to (1) libmamba
@@ -169,23 +167,21 @@ def parametrized_solver_fixture(
                 pytest.skip("...")
             ...
     """
-    yield from _solver_helper(request, monkeypatch, request.param)
+    yield from _solver_helper(request, request.param)
 
 
 @pytest.fixture
 def solver_classic(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["classic"]]:
-    yield from _solver_helper(request, monkeypatch, "classic")
+    yield from _solver_helper(request, "classic")
 
 
 @pytest.fixture
 def solver_libmamba(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
 ) -> Iterable[Literal["libmamba"]]:
-    yield from _solver_helper(request, monkeypatch, "libmamba")
+    yield from _solver_helper(request, "libmamba")
 
 
 Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
@@ -193,14 +189,15 @@ Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
 
 def _solver_helper(
     request: FixtureRequest,
-    monkeypatch: MonkeyPatch,
     solver: Solver,
 ) -> Iterable[Solver]:
     # clear cached solver backends before & after each test
     context.plugin_manager.get_cached_solver_backend.cache_clear()
     request.addfinalizer(context.plugin_manager.get_cached_solver_backend.cache_clear)
 
-    monkeypatch.setenv("CONDA_SOLVER", solver)
+    mp = request.getfixturevalue("monkeypatch")
+
+    mp.setenv("CONDA_SOLVER", solver)
     reset_context()
     assert context.solver == solver
 
@@ -268,26 +265,8 @@ class CondaCLIFixture:
 
     @staticmethod
     def _cast_args(argv: tuple[PathType, ...]) -> Iterable[str]:
-        """Cast args to string and inspect for `conda run`.
-
-        `conda run` is a unique case that requires `--dev` to use the src shell scripts
-        and not the shell scripts provided by the installer.
-        """
-        # TODO: Refactor this so we don't expose testing infrastructure to the user
-        # (i.e., deprecate `conda run --dev`).
-        argv = map(str, argv)
-        for arg in argv:
-            yield arg
-
-            # detect if arg is the command (the first positional)
-            if arg[0] != "-":
-                # this is the first positional, return remaining arguments
-
-                # if this happens to be the `conda run` command, add --dev
-                if arg == "run":
-                    yield "--dev"  # use src, not installer's shell scripts
-
-                yield from argv
+        """Cast args to string."""
+        return map(str, argv)
 
 
 @pytest.fixture
@@ -398,7 +377,9 @@ class PathFactoryFixture:
     def __call__(
         self,
         name: str | None = None,
+        *,
         prefix: str | None = None,
+        infix: str | None = None,
         suffix: str | None = None,
     ) -> Path:
         """Unique, non-existent path factory.
@@ -406,15 +387,36 @@ class PathFactoryFixture:
         Extends pytest's `tmp_path` fixture with a new unique, non-existent path for usage in cases
         where we need a temporary path that doesn't exist yet.
 
-        :param name: Path name to append to `tmp_path`
-        :param prefix: Prefix to prepend to unique name generated
-        :param suffix: Suffix to append to unique name generated
+        Default behavior (no arguments):
+           ``path_factory()`` → ``tmp_path/ab12cd34ef56`` (12-char UUID)
+
+        Two modes of operation (mutually exclusive):
+
+        1. Name mode: Pass a complete path name.
+           ``path_factory("myfile.txt")`` → ``tmp_path/myfile.txt``
+
+        2. Parts mode: Pass prefix/infix/suffix; unspecified parts get UUID defaults.
+           ``path_factory(infix="!")`` → ``tmp_path/ab12!ef56``
+           ``path_factory(suffix=".yml")`` → ``tmp_path/ab12cd34.yml``
+
+        :param name: Complete path name (mutually exclusive with prefix/infix/suffix)
+        :param prefix: Prefix for generated name (mutually exclusive with name param)
+        :param infix: Infix for generated name (mutually exclusive with name param)
+        :param suffix: Suffix for generated name (mutually exclusive with name param)
         :return: A new unique path
         """
-        prefix = prefix or ""
-        name = name or uuid.uuid4().hex[:8]
-        suffix = suffix or ""
-        return self.tmp_path / (prefix + name + suffix)
+        if name and (prefix or infix or suffix):
+            raise ValueError(
+                "name and (prefix or infix or suffix) are mutually exclusive"
+            )
+        elif name:
+            return self.tmp_path / name
+        else:
+            random = uuid.uuid4().hex
+            prefix = prefix or random[:4]
+            infix = infix or random[4:8]
+            suffix = suffix or random[8:12]
+            return self.tmp_path / (prefix + infix + suffix)
 
 
 @pytest.fixture
@@ -432,29 +434,95 @@ class TmpEnvFixture:
     path_factory: PathFactoryFixture | TempPathFactory
     conda_cli: CondaCLIFixture
 
-    def get_path(self) -> Path:
+    def get_path(
+        self,
+        name: str | None = None,
+        prefix: str | None = None,
+        infix: str | None = None,
+        suffix: str | None = None,
+    ) -> Path:
         if isinstance(self.path_factory, PathFactoryFixture):
             # scope=function
-            return self.path_factory()
+            return self.path_factory(
+                name=name,
+                prefix=prefix,
+                infix=infix,
+                suffix=suffix,
+            )
         else:
             # scope=session
-            return self.path_factory.mktemp("tmp_env-")
+            return self.path_factory.mktemp(
+                name or ((prefix or "tmp_env-") + (infix or "") + (suffix or ""))
+            )
 
     @contextmanager
     def __call__(
         self,
-        *packages: str,
+        *args: str,
         prefix: str | os.PathLike | None = None,
+        name: str | None = None,
+        path_prefix: str | None = None,
+        path_infix: str | None = None,
+        path_suffix: str | None = None,
+        shallow: bool | None = None,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
-        :param packages: The packages to install into environment
-        :param prefix: The prefix at which to install the conda environment
+        Path customization (mutually exclusive options):
+
+        1. Auto-generated path (default): Unique path in tmp_path.
+           ``tmp_env()`` → ``tmp_path/ab12cd34ef56`` (12-char UUID)
+
+        2. Custom prefix: Specify exact location.
+           ``tmp_env(prefix="/path/to/env")`` → ``/path/to/env``
+
+        3. Name mode: Specify env name directly.
+           ``tmp_env(name="my-test-env")`` → ``tmp_path/my-test-env``
+
+        4. Parts mode: Customize path name generation (useful for special char testing).
+           ``tmp_env(path_infix="!")`` → ``tmp_path/ab12!ef56``
+
+        :param args: Arguments to pass to conda create (e.g., packages, flags)
+        :param prefix: Exact prefix path (mutually exclusive with name/path_* params)
+        :param name: Env name (mutually exclusive with prefix/path_* params)
+        :param path_prefix: Prefix for path name (mutually exclusive with prefix/name params)
+        :param path_infix: Infix for path name (mutually exclusive with prefix/name params)
+        :param path_suffix: Suffix for path name (mutually exclusive with prefix/name params)
+        :param shallow: If True, create env on disk only without conda create
         :return: The conda environment's prefix
         """
-        prefix = Path(prefix or self.get_path())
+        if shallow and args:
+            raise ValueError("shallow=True cannot be used with any arguments")
 
-        self.conda_cli("create", "--prefix", prefix, *packages, "--yes", "--quiet")
+        if prefix and (name or path_prefix or path_infix or path_suffix):
+            raise ValueError(
+                "prefix and (name or path_prefix or path_infix or path_suffix) are mutually exclusive"
+            )
+
+        prefix = Path(
+            prefix
+            or self.get_path(
+                name,
+                path_prefix,
+                path_infix,
+                path_suffix,
+            )
+        )
+
+        if shallow or (shallow is None and not args):
+            # no arguments, just create an empty environment
+            path = prefix / PREFIX_MAGIC_FILE
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.touch()
+        else:
+            self.conda_cli(
+                "create",
+                f"--prefix={prefix}",
+                *args,
+                "--yes",
+                "--quiet",
+            )
+
         yield prefix
 
         # no need to remove prefix since it is in a temporary directory
@@ -470,6 +538,16 @@ def tmp_env(
     Use this when creating a conda environment that is local to the current test.
     """
     yield TmpEnvFixture(path_factory, conda_cli)
+
+
+@pytest.fixture
+def empty_env(tmp_env: TmpEnvFixture) -> Path:
+    """A function scoped fixture returning an empty environment.
+
+    Use this when creating a conda environment that is empty.
+    """
+    with tmp_env(shallow=True) as prefix:
+        return prefix
 
 
 @pytest.fixture(scope="session")
@@ -641,7 +719,105 @@ def context_testdata() -> None:
     context._set_raw_data(
         {
             "testdata": YamlRawParameter.make_raw_parameters(
-                "testdata", yaml_round_trip_load(TEST_CONDARC)
+                "testdata", yaml.loads(TEST_CONDARC)
             )
         }
     )
+
+
+# HTTP Test Server Fixtures
+
+
+@dataclass
+class HttpTestServerFixture:
+    """Fixture providing HTTP test server for serving local files."""
+
+    server: http.server.ThreadingHTTPServer
+    host: str
+    port: int
+    url: str
+    directory: Path
+
+    def __post_init__(self):
+        """Log server startup for debugging."""
+        log.debug(f"HTTP test server started: {self.url}")
+
+    def get_url(self, path: str = "") -> str:
+        """
+        Get full URL for a given path on the server.
+
+        :param path: Relative path on the server (e.g., "subdir/package.tar.bz2")
+        :return: Full URL
+        """
+        path = path.lstrip("/")
+        return f"{self.url}/{path}" if path else self.url
+
+
+@pytest.fixture
+def http_test_server(
+    request: FixtureRequest,
+    path_factory: PathFactoryFixture,
+) -> Iterator[HttpTestServerFixture]:
+    """
+    Function-scoped HTTP test server for serving local files.
+
+    This fixture starts an HTTP server on a random port and serves files
+    from a directory. The server supports both IPv4 and IPv6.
+
+    Usage without parametrize (dynamic content):
+        def test_dynamic(http_test_server):
+            # Server uses temporary directory automatically
+            (http_test_server.directory / "file.txt").write_text("content")
+            url = http_test_server.get_url("file.txt")
+            response = requests.get(url)
+            assert response.status_code == 200
+
+    Usage with parametrize (pre-existing directory):
+        @pytest.mark.parametrize("http_test_server", ["tests/data/mock-channel"], indirect=True)
+        def test_existing(http_test_server):
+            url = http_test_server.get_url("file.txt")
+            response = requests.get(url)
+            assert response.status_code == 200
+
+    Use ``None`` in parametrize to mix pre-existing directories with dynamic content:
+        @pytest.mark.parametrize("http_test_server", ["tests/data", None], indirect=True)
+
+    :param request: pytest fixture request object
+    :param path_factory: path_factory fixture for creating unique temp directories
+    :return: HttpTestServerFixture with server, host, port, url, and directory attributes
+    :raises ValueError: If parametrized directory is invalid
+    """
+    from . import http_test_server as http_server_module
+
+    if directory := getattr(request, "param", None):
+        # Parameter was provided via @pytest.mark.parametrize
+        # Validate the provided directory
+        directory_path = Path(directory)
+        if not directory_path.exists():
+            raise ValueError(f"Directory does not exist: {directory}")
+        if not directory_path.is_dir():
+            raise ValueError(f"Path is not a directory: {directory}")
+        directory = str(directory_path.resolve())
+    else:
+        # No parameter provided or explicit None - use path_factory for unique directory
+        server_dir = path_factory(name="http_test_server")
+        server_dir.mkdir()
+        directory = str(server_dir)
+
+    server = http_server_module.run_test_server(directory)
+    host, port = server.socket.getsockname()[:2]
+    url_host = f"[{host}]" if ":" in host else host
+    url = f"http://{url_host}:{port}"
+
+    fixture = HttpTestServerFixture(
+        server=server,
+        host=host,
+        port=port,
+        url=url,
+        directory=Path(directory),
+    )
+
+    yield fixture
+
+    # Cleanup: shutdown server
+    server.shutdown()

@@ -5,6 +5,8 @@ Authors are sorted alphabetically.
 * Aaron Meurer
 * Abheek Mathur
 * Adrian Freund
+* Agriya Khetarpal
+* Ahmet Deger
 * Alain Domissy
 * Alan Du
 * Albert DeFusco
@@ -52,6 +54,7 @@ Authors are sorted alphabetically.
 * Bernardo da Eira Duarte
 * Bernd Jünger
 * Berton Earnshaw
+* Bhanuja Karumuru
 * Bianca Henderson
 * Billy Keyes
 * Blake Nicholson
@@ -68,6 +71,7 @@ Authors are sorted alphabetically.
 * Brian W. Hart
 * Bruno Oliveira
 * Bryan Van de Ven
+* Carl Anderson
 * Carlos H Brandt
 * Casper da Costa-Luis
 * Chawye Hsu
@@ -98,6 +102,7 @@ Authors are sorted alphabetically.
 * Dan Dascalescu
 * Dan Lovell
 * Dan Meador
+* Dan Yeaw
 * Daniel Bast
 * Daniel Holth
 * Daniel Hook
@@ -124,6 +129,7 @@ Authors are sorted alphabetically.
 * Dzianis Shpektarau
 * Ed Reed
 * Eli Rykoff
+* Elsa Granger
 * Eric Dill
 * Eric Prestat
 * Erik Sundell
@@ -142,8 +148,10 @@ Authors are sorted alphabetically.
 * Frederic Bastien
 * Gabe Martin-Dempesy
 * Gabriel Reis
+* Gayan Silva
 * Geir Ove Myhr
 * George Hartzell
+* Giacomo Cirò
 * Gil Forsyth
 * Giles Cope
 * Gonzalo Peña-Castellanos
@@ -191,6 +199,7 @@ Authors are sorted alphabetically.
 * Jerimiah Willhite
 * Jesse Hamer
 * Jillian Rowe
+* Joao Azevedo
 * Joe D
 * Joe Jevnik
 * Joel Hull
@@ -261,6 +270,7 @@ Authors are sorted alphabetically.
 * Marland Sitt
 * Martin Dengler
 * Martin Kou
+* Martin Lang
 * Martin Prüsse
 * Martin Raden
 * Mary M
@@ -268,6 +278,7 @@ Authors are sorted alphabetically.
 * Matt Kramer
 * Matthew Anderson
 * Matthew Dillon
+* Matthew Feickert
 * Matthew Linebaugh
 * Matthew R. Becker
 * Matthew Rocklin
@@ -308,6 +319,7 @@ Authors are sorted alphabetically.
 * Nehal J Wani
 * Nelson Liu
 * Ni Huang
+* Nicholas Blair
 * Nicholas Pierotti
 * Nick Eubank
 * Nicky Sandhu
@@ -338,6 +350,7 @@ Authors are sorted alphabetically.
 * Philip Thomas
 * Philippe Mathieu
 * Philippe Ombredanne
+* Pirzada Ahmad Faraz
 * Pradipta Ghosh
 * Preston Moore
 * Rachel Rigdon
@@ -352,10 +365,11 @@ Authors are sorted alphabetically.
 * Rich Lewis
 * Richard Gowers
 * Robert Johansson
+* Robin
 * Roger Erens
 * Rollin Thomas
-* Ryan
 * Ryan Grout
+* Ryan Keith
 * Rüdiger Busche
 * Saad Parwaiz
 * Sachin G Biradar
@@ -383,6 +397,7 @@ Authors are sorted alphabetically.
 * Shaun Thompson
 * Shaun Walbridge
 * Sidhant Bansal
+* Simon Høxbro Hansen
 * Simon Li
 * Simon McLaren
 * Skipper Seabold
@@ -401,6 +416,7 @@ Authors are sorted alphabetically.
 * Steven Engler
 * Stijn Verstraeten
 * Stuart Berg
+* Sumanth
 * Sylvain Corlay
 * Tadeu Manoel
 * Tarcisio
@@ -435,6 +451,7 @@ Authors are sorted alphabetically.
 * Victor Ma
 * Vlad Frolov
 * Vlad Zagorodniy
+* Vladyslav Shevchenko
 * Wes Roach
 * Wes Turner
 * Will Warner

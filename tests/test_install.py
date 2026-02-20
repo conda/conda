@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 import random
 import subprocess
 import sys
@@ -17,7 +18,7 @@ from conda.base.context import context
 from conda.common.compat import on_win
 from conda.core.portability import _PaddingError, binary_replace, update_prefix
 from conda.gateways.connection.download import download
-from conda.gateways.disk.delete import move_path_to_trash
+from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.read import read_no_link, yield_lines
 from conda.models.enums import FileMode
 
@@ -205,14 +206,35 @@ def test_binary(path_factory: PathFactoryFixture, subdir: str):
     assert tmp.read_bytes() == b"\x7fELF.../usr/local/lib/libfoo.so\0\0\0\0\0\0\0\0"
 
 
-def test_trash_outside_prefix():
+def test_trash_outside_prefix(monkeypatch: MonkeyPatch):
+    # Ensure temp dir is on the same drive as conda prefix on Windows
+    # so that relpath() works (as we can't compute relative path across
+    # drives). This is needed on Windows because we set TEMP to the D:
+    # drive in CI tests to speed it up.
+    if on_win and os.getenv("CI"):
+        prefix_drive = Path(context.root_prefix).drive.upper()
+        current_temp_drive = Path(tempfile.gettempdir()).drive.upper()
+
+        # Only adjust the paths when we have a cross-drive situation, for
+        # example in the conda repo CI tests where root_prefix is on C:
+        # drive and TEMP is on D: drive, but may not be set on other repos.
+        if prefix_drive and current_temp_drive and current_temp_drive != prefix_drive:
+            temp_on_same_drive = Path(f"{prefix_drive}\\") / "Temp"
+            temp_on_same_drive.mkdir(parents=True, exist_ok=True)
+
+            monkeypatch.setenv("TEMP", str(temp_on_same_drive))
+            monkeypatch.setenv("TMP", str(temp_on_same_drive))
+            monkeypatch.delenv("TMPDIR", raising=False)
+
+            monkeypatch.setattr(tempfile, "tempdir", str(temp_on_same_drive))
+
     tmp_dir = tempfile.mkdtemp()
     rel = relpath(tmp_dir, context.root_prefix)
     assert rel.startswith("..")
-    move_path_to_trash(tmp_dir)
+    rm_rf(tmp_dir)
     assert not exists(tmp_dir)
     makedirs(tmp_dir)
-    move_path_to_trash(tmp_dir)
+    rm_rf(tmp_dir)
     assert not exists(tmp_dir)
 
 

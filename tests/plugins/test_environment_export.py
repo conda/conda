@@ -5,11 +5,13 @@
 from __future__ import annotations
 
 import json
+from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
 import yaml
 
+from conda.common.serialize import yaml as yaml_serializer
 from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
@@ -27,29 +29,17 @@ from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
 from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
 from conda.plugins.types import CondaEnvironmentExporter
 
-if TYPE_CHECKING:
-    from pathlib import Path
-    from typing import Any, Callable
+from ..conftest import Exporters
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+    from pathlib import Path
+    from typing import Any
+
+    from conda.tests.fixtures import CondaCliFixture, TmpEnvFixture
     from pytest import FixtureRequest
 
     from conda.plugins.manager import CondaPluginManager
-    from conda.tests.fixtures import CondaCliFixture, TmpEnvFixture
-
-
-@pytest.fixture
-def plugin_manager_with_exporters(
-    plugin_manager: CondaPluginManager,
-) -> CondaPluginManager:
-    """Get plugin manager with environment exporter plugins loaded."""
-    from conda.plugins.environment_exporters import (
-        environment_yml,
-        explicit,
-        requirements_txt,
-    )
-
-    plugin_manager.load_plugins(environment_yml, explicit, requirements_txt)
-    return plugin_manager
 
 
 @pytest.fixture
@@ -319,6 +309,8 @@ def test_get_environment_exporters(plugin_manager_with_exporters: CondaPluginMan
         ENVIRONMENT_JSON_FORMAT,
         EXPLICIT_FORMAT,
         REQUIREMENTS_FORMAT,
+        "test-single-platform",
+        "test-multi-platform",
     }
 
 
@@ -503,3 +495,84 @@ def test_compare_export_commands(
             f"--format={format}",
         )
         assert old_output == new_output
+
+
+def test_single_platform_export(
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_env: Environment,
+):
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        "test-single-platform"
+    )
+    assert exporter is not None
+    assert isinstance(exporter, CondaEnvironmentExporter)
+    assert exporter.export == Exporters.single_platform_export
+    result = exporter.export(test_env)
+    first, text = result.strip().split("\n", 1)
+    assert first == "# This is a single-platform export"
+    parsed = yaml_serializer.loads(text)
+    assert parsed["name"] == test_env.name
+    assert parsed["single-platform"] == test_env.platform
+    packages = iter(parsed["packages"])
+    for match_spec in test_env.requested_packages:
+        assert next(packages) == str(match_spec)
+    for record in test_env.explicit_packages:
+        assert next(packages) == str(record)
+    for pkg in test_env.external_packages.get("pip", []):
+        assert next(packages) == f"pip::{pkg}"
+
+
+def test_multi_platform_export(
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_env: Environment,
+):
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        "test-multi-platform"
+    )
+    assert exporter is not None
+    assert isinstance(exporter, CondaEnvironmentExporter)
+    assert exporter.multiplatform_export == Exporters.multi_platform_export
+    result = exporter.multiplatform_export([test_env, test_env])
+    first, text = result.strip().split("\n", 1)
+    assert first == "# This is a multi-platform export"
+    parsed = yaml_serializer.loads(text)
+    assert parsed["name"] == test_env.name
+    assert parsed["multi-platforms"] == [test_env.platform, test_env.platform]
+    packages = iter(parsed["packages"])
+    for _ in range(2):
+        for match_spec in test_env.requested_packages:
+            assert next(packages) == str(match_spec)
+        for record in test_env.explicit_packages:
+            assert next(packages) == str(record)
+        for pkg in test_env.external_packages.get("pip", []):
+            assert next(packages) == f"pip::{pkg}"
+
+
+@pytest.mark.parametrize(
+    "export, multiplatform_export, raises",
+    [
+        pytest.param(None, None, True, id="none"),
+        pytest.param(lambda env: "test", lambda env, envs: "test", True, id="both"),
+        pytest.param(lambda env: "test", None, False, id="export"),
+        pytest.param(None, lambda env, envs: "test", False, id="multiplatform_export"),
+    ],
+)
+def test_only_one_export(
+    export: Callable[[Environment], str] | None,
+    multiplatform_export: Callable[[Environment, Iterable[Environment]], str] | None,
+    raises: bool,
+):
+    with (
+        pytest.raises(
+            PluginError, match="Exactly one of export or multiplatform_export"
+        )
+        if raises
+        else nullcontext()
+    ):
+        CondaEnvironmentExporter(
+            name="test-exporter",
+            aliases=(),
+            default_filenames=(),
+            export=export,
+            multiplatform_export=multiplatform_export,
+        )

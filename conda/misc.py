@@ -57,17 +57,38 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
-url_pat = re.compile(
-    r"(?:(?P<url_p>.+)(?:[/\\]))?"
-    r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
-    r"(?:#("
-    r"(?P<md5>[0-9a-f]{32})"
-    r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
-    r"))?$"
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "url_pat",
+    re.compile(
+        r"(?:(?P<url_p>.+)(?:[/\\]))?"
+        r"(?P<fn>[^/\\#]+(?:\.conda|\.tar\.bz2))"
+        r"(?:#("
+        r"(?P<md5>[0-9a-f]{32})"
+        r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+        r"))?$"
+    ),
+    addendum="Use `conda.misc._get_url_pattern()` instead.",
 )
 
 
+def _get_url_pattern() -> re.Pattern:
+    """Build URL pattern dynamically based on registered package extensions."""
+    extensions = context.plugin_manager.get_package_extractors().keys()
+    ext_pattern = "|".join(map(re.escape, extensions))
+    return re.compile(
+        r"(?:(?P<url_p>.+)(?:[/\\]))?"
+        rf"(?P<fn>[^/\\#]+(?:{ext_pattern}))"
+        r"(?:#("
+        r"(?P<md5>[0-9a-f]{32})"
+        r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+        r"))?$"
+    )
+
+
 def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
+    url_pat = _get_url_pattern()
     for spec in specs:
         if spec == EXPLICIT_MARKER:
             continue
@@ -99,7 +120,6 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
         yield MatchSpec(url, **checksums)
 
 
-@deprecated.argument("25.3", "25.9", "index_args")
 def explicit(
     specs: Iterable[str],
     prefix: str,
@@ -200,14 +220,6 @@ def get_package_records_from_explicit(lines: list[str]) -> Iterable[PackageCache
 
     # Get the package records from the cache
     return _get_package_record_from_specs(fetch_specs)
-
-
-@deprecated("25.3", "25.9")
-def rel_path(prefix, path, windows_forward_slashes=True):
-    res = path[len(prefix) + 1 :]
-    if on_win and windows_forward_slashes:
-        res = res.replace("\\", "/")
-    return res
 
 
 def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):
@@ -368,7 +380,8 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
 
 
 def _get_best_prec_match(precs):
-    assert precs
+    if not precs:
+        raise ValueError("'precs' cannot be empty.")
     for channel in context.channels:
         channel_matcher = ChannelMatch(channel)
         prec_matches = tuple(

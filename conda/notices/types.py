@@ -14,8 +14,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-#: Value to use for message ID when it is not provided
 UNDEFINED_MESSAGE_ID = "undefined"
+"""Value to use for message ID when it is not provided."""
 
 
 class ChannelNotice(NamedTuple):
@@ -47,14 +47,14 @@ class ChannelNoticeResultSet(NamedTuple):
     metadata such as `viewed_channel_notices`.
     """
 
-    #: Channel notices that are included in this particular set
     channel_notices: Sequence[ChannelNotice]
+    """Channel notices that are included in this particular set."""
 
-    #: Total number of channel notices; not just the ones that will be displayed
     total_number_channel_notices: int
+    """Total number of channel notices; not just the ones that will be displayed."""
 
-    #: The number of channel notices that have already been viewed
     viewed_channel_notices: int
+    """The number of channel notices that have already been viewed."""
 
 
 class ChannelNoticeResponse(NamedTuple):

@@ -10,13 +10,11 @@ from functools import cache
 from logging import getLogger
 from os.path import (
     abspath,
-    basename,
     expanduser,
     expandvars,
     normcase,
     split,
 )
-from shutil import which
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
@@ -30,7 +28,6 @@ from .directories import (
     tokenized_startswith,
 )
 from .python import (
-    _VERSION_REGEX,
     get_major_minor_version,
     get_python_noarch_target_path,
     get_python_short_path,
@@ -49,9 +46,8 @@ from .windows import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Union
 
-    PathType = Union[str, os.PathLike[str]]
+    PathType = str | os.PathLike[str]
     PathsType = Iterable[PathType]
 
 __all__ = [
@@ -85,18 +81,20 @@ PATH_MATCH_REGEX = (
     r"|//"  # windows UNC path
 )
 
-# any other extension will be mangled by CondaSession.get() as it tries to find
-# channel names from URLs, through strip_pkg_extension()
-KNOWN_EXTENSIONS = (".conda", ".tar.bz2", ".json", ".jlap", ".json.zst")
+# Repodata file extensions (static, not plugin-dependent)
+KNOWN_REPODATA_EXTENSIONS = (
+    ".json",
+    ".jlap",
+    ".json.zst",
+)
 
 deprecated.constant(
-    "25.3",
-    "25.9",
-    "_VERSION_REGEX",
-    _VERSION_REGEX,
-    addendum="Use `conda.common.path.python._VERSION_REGEX` instead.",
+    "26.9",
+    "27.3",
+    "KNOWN_EXTENSIONS",
+    (".conda", ".tar.bz2", *KNOWN_REPODATA_EXTENSIONS),
+    addendum="Use `conda.common.path.strip_pkg_extension` instead.",
 )
-del _VERSION_REGEX
 
 
 def is_path(value):
@@ -153,11 +151,6 @@ def url_to_path(url):
 BIN_DIRECTORY = "Scripts" if on_win else "bin"
 
 
-@deprecated("25.3", "25.9", addendum="Use `conda.common.path.BIN_DIRECTORY` instead.")
-def get_bin_directory_short_path():
-    return BIN_DIRECTORY
-
-
 def ensure_pad(name, pad="_"):
     """
 
@@ -176,39 +169,6 @@ def ensure_pad(name, pad="_"):
         return f"{pad}{name}{pad}"
 
 
-@deprecated("25.3", "25.9")
-def is_private_env_name(env_name):
-    """
-
-    Examples:
-        >>> is_private_env_name("_conda")
-        False
-        >>> is_private_env_name("_conda_")
-        True
-
-    """
-    return env_name and env_name[0] == env_name[-1] == "_"
-
-
-@deprecated("25.3", "25.9")
-def is_private_env_path(env_path):
-    """
-
-    Examples:
-        >>> is_private_env_path('/some/path/to/envs/_conda_')
-        True
-        >>> is_private_env_path('/not/an/envs_dir/_conda_')
-        False
-
-    """
-    if env_path is not None:
-        envs_directory, env_name = split(env_path)
-        if basename(envs_directory) != "envs":
-            return False
-        return is_private_env_name(env_name)
-    return False
-
-
 def right_pad_os_sep(path):
     return path if path.endswith(os.sep) else path + os.sep
 
@@ -218,34 +178,43 @@ def split_filename(path_or_url):
     return (dn or None, fn) if "." in fn else (path_or_url, None)
 
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "which",
-    which,
-    addendum="Use builtin `shutil.which` instead.",
-)
-del which
-
-
-def strip_pkg_extension(path: str):
+def strip_pkg_extension(path: str) -> tuple[str, str | None]:
     """
+    Split path into (base, extension) for known extensions.
+
+    Package extensions are determined dynamically from registered plugins.
+    Repodata extensions (.json, .jlap, .json.zst) are also recognized.
+
+    :param path: Path to split.
+    :return: Tuple of (base_path, extension) where extension is None if not found.
+
     Examples:
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")
         ('/path/_license-1.1-py27_1', '.tar.bz2')
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.conda")
         ('/path/_license-1.1-py27_1', '.conda')
+        >>> strip_pkg_extension("/path/repodata.json")
+        ('/path/repodata', '.json')
         >>> strip_pkg_extension("/path/_license-1.1-py27_1")
         ('/path/_license-1.1-py27_1', None)
     """
-    # NOTE: not using CONDA_TARBALL_EXTENSION_V1 or CONDA_TARBALL_EXTENSION_V2 to comply with
-    #       import rules and to avoid a global lookup.
-    for extension in KNOWN_EXTENSIONS:
-        if path.endswith(extension):
-            return path[: -len(extension)], extension
+    from ...base.context import context
+
+    # Check package extensions first (dynamic from plugins)
+    if ext := context.plugin_manager.has_package_extension(path):
+        return path[: -len(ext)], ext
+    # Then additional extensions (static)
+    for ext in KNOWN_REPODATA_EXTENSIONS:
+        if path.endswith(ext):
+            return path[: -len(ext)], ext
     return path, None
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.base.context.context.plugin_manager.has_package_extension` instead.",
+)
 def is_package_file(path):
     """
     Examples:

@@ -1,20 +1,23 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+
+from __future__ import annotations
+
 import os
 from logging import getLogger
 from os.path import isdir, join
-from pathlib import Path
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PREFIX_MAGIC_FILE
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from conda.base.context import context, reset_context
 from conda.common.compat import on_win
-from conda.common.io import env_var
 from conda.common.path import expand, paths_equal
+from conda.core import envs_manager
 from conda.core.envs_manager import (
     _clean_environments_txt,
     get_user_environments_txt_file,
@@ -22,14 +25,18 @@ from conda.core.envs_manager import (
     register_env,
     unregister_env,
 )
-from conda.gateways.disk import mkdir_p
 from conda.gateways.disk.read import yield_lines
 from conda.gateways.disk.update import touch
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MockerFixture, MonkeyPatch
 
 log = getLogger(__name__)
 
 
-def test_register_unregister_location_env(tmp_path: Path):
+def test_register_unregister_location_env(monkeypatch: MonkeyPatch, tmp_path: Path):
     user_environments_txt_file = get_user_environments_txt_file()
     if (
         not os.path.exists(user_environments_txt_file)
@@ -44,12 +51,11 @@ def test_register_unregister_location_env(tmp_path: Path):
     assert gascon_location not in list_all_known_prefixes()
 
     touch(user_environments_txt_file, mkdir=True, sudo_safe=True)
-    with env_var(
-        "CONDA_REGISTER_ENVS",
-        "true",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        register_env(gascon_location)
+
+    monkeypatch.setenv("CONDA_REGISTER_ENVS", "true")
+    reset_context()
+
+    register_env(gascon_location)
     assert gascon_location in yield_lines(user_environments_txt_file)
     assert (
         len(
@@ -80,37 +86,38 @@ def test_register_unregister_location_env(tmp_path: Path):
     assert gascon_location not in list_all_known_prefixes()
 
 
-def test_prefix_cli_flag(tmp_path: Path):
+def test_prefix_cli_flag(monkeypatch: MonkeyPatch, tmp_path: Path):
     envs_dirs = (
         join(tmp_path, "first-envs-dir"),
         join(tmp_path, "seconds-envs-dir"),
     )
-    with env_var(
-        "CONDA_ENVS_DIRS",
-        os.pathsep.join(envs_dirs),
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        # even if prefix doesn't exist, it can be a target prefix
-        reset_context((), argparse_args=AttrDict(prefix="./blarg", func="create"))
-        target_prefix = join(os.getcwd(), "blarg")
-        assert context.target_prefix == target_prefix
-        assert not isdir(target_prefix)
+    monkeypatch.setenv("CONDA_ENVS_DIRS", os.pathsep.join(envs_dirs))
+    # even if prefix doesn't exist, it can be a target prefix
+    reset_context((), argparse_args=AttrDict(prefix="./blarg", func="create"))
+    target_prefix = join(os.getcwd(), "blarg")
+    assert context.target_prefix == target_prefix
+    assert not isdir(target_prefix)
 
 
-def test_rewrite_environments_txt_file(tmp_path: Path):
-    mkdir_p(join(tmp_path, "conda-meta"))
-    touch(join(tmp_path, "conda-meta", "history"))
-    doesnt_exist = join(tmp_path, "blarg")
-    environments_txt_path = join(tmp_path, "environments.txt")
-    with open(environments_txt_path, "w") as fh:
-        fh.write(f"{tmp_path}\n")
-        fh.write(f"{doesnt_exist}\n")
-    cleaned_1 = _clean_environments_txt(environments_txt_path)
-    assert cleaned_1 == (str(tmp_path),)
-    with patch("conda.core.envs_manager._rewrite_environments_txt") as _rewrite_patch:
-        cleaned_2 = _clean_environments_txt(environments_txt_path)
-        assert cleaned_2 == (str(tmp_path),)
-        assert _rewrite_patch.call_count == 0
+def test_rewrite_environments_txt_file(
+    tmp_path: Path,
+    empty_env: Path,
+    mocker: MockerFixture,
+):
+    (path := tmp_path / "environments.txt").write_text(
+        f"{tmp_path}\n"  # invalid conda env
+        f"{empty_env}\n"  # valid conda env
+    )
+
+    spy = mocker.spy(envs_manager, "_rewrite_environments_txt")
+
+    # first clean should rewrite the file
+    assert _clean_environments_txt(path) == (str(empty_env),)
+    assert spy.call_count == 1  # count increments
+
+    # subsequent cleans should not rewrite the file
+    assert _clean_environments_txt(path) == (str(empty_env),)
+    assert spy.call_count == 1  # count does not increment
 
 
 @patch("conda.core.envs_manager.context")

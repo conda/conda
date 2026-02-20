@@ -3,6 +3,7 @@
 from contextlib import nullcontext
 from errno import EPIPE
 from io import StringIO
+from pathlib import Path
 
 import pytest
 
@@ -45,13 +46,13 @@ def test_console_reporter_renderer_envs_list(mocker):
     """
     Test for the case where a ``context.envs_dirs`` directory equals the prefix
     """
-    mock_context = mocker.patch("conda.plugins.reporter_backends.console.context")
+    mock_context = mocker.patch("conda.core.prefix_data.context")
     mock_context.envs_dirs = ["/tmp"]
     console_reporter_renderer = ConsoleReporterRenderer()
 
     output = console_reporter_renderer.envs_list(["/tmp/envs"])
 
-    assert "envs                   /tmp/envs" in output
+    assert f"envs                     {Path('/tmp/envs')}" in output
 
 
 def test_console_reporter_renderer_envs_list_output_false():

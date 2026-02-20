@@ -12,7 +12,12 @@ import pytest
 from conda.base.constants import CONDA_LIST_FIELDS
 from conda.common.configuration import CustomValidationError
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError, EnvironmentLocationNotFound
+from conda.exceptions import (
+    CondaValueError,
+    EnvironmentLocationNotFound,
+    PackageNotInstalledError,
+)
+from conda.models.records import PathsData
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -291,6 +296,23 @@ def test_fields_invalid(conda_cli):
     assert "invalid-field" in str(exc)
 
 
+def test_list_full_name(conda_cli):
+    out, err, exc = conda_cli("list", f"--prefix={sys.prefix}", "--full-name", "python")
+    assert "python" in out
+    assert f"{sys.version_info.major}.{sys.version_info.minor}" in out
+
+
+def test_list_full_name_no_results(conda_cli):
+    out, err, exc = conda_cli(
+        "list",
+        f"--prefix={sys.prefix}",
+        "--full-name",
+        "does-not-exist",
+        "--json",
+        raises=PackageNotInstalledError,
+    )
+
+
 def test_exit_codes(conda_cli):
     # If the package is installed, with or without --check, the exit code must be 0
     out, err, rc = conda_cli("list", f"--prefix={sys.prefix}", "conda")
@@ -302,3 +324,85 @@ def test_exit_codes(conda_cli):
         "does-not-exist",
         raises=CondaValueError,
     )
+
+
+def test_list_size(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+) -> None:
+    pkg = "dependency"  # has no dependencies
+    with tmp_env(pkg) as prefix:
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size")
+        assert "# environment size:" in stdout
+
+        # Check for Size column in header
+        lines = stdout.splitlines()
+        header_line = next(line for line in lines if line.startswith("# Name"))
+        assert "Size" in header_line
+
+        # Check for size entries
+        package_lines = [line for line in lines if not line.startswith("#")]
+        assert len(package_lines) > 0
+        for line in package_lines:
+            # Size should be the last column
+            assert any(
+                line.strip().endswith(suffix) for suffix in ("B", "KB", "MB", "GB")
+            )
+
+
+def test_list_size_json(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+) -> None:
+    pkg = "dependency"
+    with tmp_env(pkg) as prefix:
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size", "--json")
+        parsed = json.loads(stdout)
+        assert isinstance(parsed, list)
+
+        item = next((i for i in parsed if i["name"] == pkg), None)
+        assert item is not None
+        assert "size" in item
+        assert isinstance(item["size"], int)
+        assert item["size"] >= 0
+
+
+def test_list_size_empty_paths_data(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+    test_recipes_channel: Path,
+) -> None:
+    with tmp_env("small-executable") as prefix:
+        prefix_data = PrefixData(prefix)
+        original_iter_records = prefix_data.iter_records
+
+        def mock_iter_records():
+            for record in original_iter_records():
+                # Mock one package to have empty paths_data
+                if record.name == "small-executable":
+                    record.paths_data = PathsData(paths_version=1, paths=[])
+                yield record
+
+        mocker.patch.object(PrefixData, "iter_records", side_effect=mock_iter_records)
+
+        # the package size has to be > 0 as manifest files are still
+        # counted if there are no installed files
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size", "--json")
+        parsed = json.loads(stdout)
+        pkg_item = next((i for i in parsed if i["name"] == "small-executable"), None)
+        assert pkg_item is not None
+        assert pkg_item["size"] > 0
+
+        # human-readable output
+        stdout, _, _ = conda_cli("list", "--prefix", prefix, "--size")
+        lines = stdout.splitlines()
+        pkg_line = next(
+            (line for line in lines if line.startswith("small-executable")), None
+        )
+        assert pkg_line is not None
+
+        assert "0 B" not in pkg_line
+        assert pkg_line.strip().endswith(("B", "KB", "MB", "GB"))

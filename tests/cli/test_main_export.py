@@ -2,33 +2,41 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Test conda export."""
 
+from __future__ import annotations
+
 import json
 import uuid
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.context import context
-from conda.common.serialize import yaml_safe_load
+from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
-from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from conda.plugins.manager import CondaPluginManager
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
 
 
 def test_export(conda_cli: CondaCLIFixture) -> None:
     """Test default export behavior - should export as YAML to stdout."""
     name = uuid.uuid4().hex
+    assert context.export_platforms == (context.subdir,)
     stdout, stderr, code = conda_cli("export", f"--name={name}")
     assert not stderr
     assert not code
     assert stdout
 
     # Verify the output is valid YAML
-    yaml_data = yaml_safe_load(stdout)
+    yaml_data = yaml.loads(stdout)
     assert yaml_data["name"] == name
 
 
@@ -37,17 +45,18 @@ def test_export_override_channels(conda_cli: CondaCLIFixture, tmp_path: Path) ->
     name = uuid.uuid4().hex
     path = tmp_path / "environment.yaml"  # Use exact default filename
 
-    # Using --override-channels without specifying channels should raise ArgumentError
-    with pytest.raises(
-        ArgumentError,
-        match="At least one -c / --channel flag must be supplied when using --override-channels",
-    ):
-        conda_cli(
-            "export",
-            f"--name={name}",
-            "--override-channels",
-            f"--file={path}",
-        )
+    # Using -O, --override-channels without specifying channels should raise ArgumentError
+    for flag in ("-O", "--override-channels"):
+        with pytest.raises(
+            ArgumentError,
+            match="At least one -c / --channel flag must be supplied when using --override-channels",
+        ):
+            conda_cli(
+                "export",
+                f"--name={name}",
+                flag,
+                f"--file={path}",
+            )
 
 
 def test_export_add_channels(conda_cli: CondaCLIFixture, tmp_path: Path) -> None:
@@ -64,7 +73,7 @@ def test_export_add_channels(conda_cli: CondaCLIFixture, tmp_path: Path) -> None
     )
     assert path.exists()
 
-    data = yaml_safe_load(path.read_text())
+    data = yaml.loads(path.read_text())
     assert data["name"] == name
 
     # Verify that the additional channel was added
@@ -80,16 +89,16 @@ def test_execute_export_no_file_specified(conda_cli: CondaCLIFixture) -> None:
     assert stdout
 
     # Should be YAML format
-    yaml_data = yaml_safe_load(stdout)
+    yaml_data = yaml.loads(stdout)
     assert yaml_data["name"] == name
 
 
 @pytest.mark.parametrize(
     "format_name,parser_func",
     [
-        ("environment-yaml", yaml_safe_load),
+        ("environment-yaml", yaml.loads),
         ("environment-json", json.loads),
-        ("yaml", yaml_safe_load),  # Test alias
+        ("yaml", yaml.loads),  # Test alias
         ("json", json.loads),  # Test alias
     ],
 )
@@ -111,8 +120,8 @@ def test_export_format_to_stdout(conda_cli: CondaCLIFixture, format_name, parser
 @pytest.mark.parametrize(
     "filename,parser_func",
     [
-        ("environment.yaml", yaml_safe_load),
-        ("environment.yml", yaml_safe_load),
+        ("environment.yaml", yaml.loads),
+        ("environment.yml", yaml.loads),
         ("environment.json", json.loads),
     ],
 )
@@ -355,7 +364,7 @@ def test_export_preserves_channels_from_installed_packages(
     assert stdout
 
     # Parse the YAML output
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
 
     # Should have channels section
     assert "channels" in env_data
@@ -387,7 +396,7 @@ def test_export_ignore_channels_flag(
     assert not code
     assert stdout
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
 
     if ignore_channels:
         # With --ignore-channels, should still have channels (from context.channels)
@@ -408,7 +417,7 @@ def test_export_package_alphabetical_ordering(conda_cli):
     stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
     assert code == 0
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     dependencies = env_data.get("dependencies", [])
 
     # Extract conda package names (skip pip dependencies which are dicts)
@@ -431,7 +440,7 @@ def test_export_no_builds_format(conda_cli):
     )
     assert code == 0
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     dependencies = env_data.get("dependencies", [])
 
     # Extract conda package specs (skip pip dependencies which are dicts)
@@ -463,7 +472,7 @@ def test_export_from_history_format(conda_cli):
         # Some environments might not have history, skip gracefully
         pytest.skip("Environment has no history to export")
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     dependencies = env_data.get("dependencies", [])
 
     # Extract conda package specs (skip pip dependencies which are dicts)
@@ -497,7 +506,7 @@ def test_export_override_channels_behavior(conda_cli):
     )
     assert code == 0
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     channels = env_data.get("channels", [])
 
     # Should only have the specified channel
@@ -520,7 +529,7 @@ def test_export_override_channels_behavior(conda_cli):
     )
     assert code2 == 0
 
-    env_data2 = yaml_safe_load(stdout2)
+    env_data2 = yaml.loads(stdout2)
     channels2 = env_data2.get("channels", [])
 
     # Should include both specified channels
@@ -533,7 +542,7 @@ def test_export_regular_format_consistency(conda_cli):
     stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
     assert code == 0
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     dependencies = env_data.get("dependencies", [])
 
     # Extract conda package specs (skip pip dependencies which are dicts)
@@ -568,8 +577,8 @@ def test_export_format_comparison_no_builds_vs_regular(conda_cli):
     )
     assert code_no_builds == 0
 
-    env_regular = yaml_safe_load(stdout_regular)
-    env_no_builds = yaml_safe_load(stdout_no_builds)
+    env_regular = yaml.loads(stdout_regular)
+    env_no_builds = yaml.loads(stdout_no_builds)
 
     deps_regular = [
         dep for dep in env_regular.get("dependencies", []) if isinstance(dep, str)
@@ -606,7 +615,7 @@ def test_export_format_comparison_no_builds_vs_regular(conda_cli):
 @pytest.mark.parametrize(
     "format_name,parser_func",
     [
-        ("environment-yaml", yaml_safe_load),
+        ("environment-yaml", yaml.loads),
         ("environment-json", json.loads),
     ],
 )
@@ -646,7 +655,7 @@ def test_export_pip_dependencies_handling(conda_cli, format_name, parser_func):
 @pytest.mark.parametrize(
     "format_name,format_flag,parser_func",
     [
-        ("YAML", "", yaml_safe_load),
+        ("YAML", "", yaml.loads),
         ("JSON", "--format=json", json.loads),
     ],
 )
@@ -720,7 +729,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
     # Test 1: Default behavior (neither flag)
     stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
     assert code == 0
-    assert yaml_safe_load(stdout) != {}, "Should have some packages"
+    assert yaml.loads(stdout) != {}, "Should have some packages"
 
     # Test 2: Only --override-channels (should still extract package channels)
     stdout, stderr, code = conda_cli(
@@ -731,7 +740,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
         "--format=environment-yaml",
     )
     assert code == 0
-    override_only_data = yaml_safe_load(stdout)
+    override_only_data = yaml.loads(stdout)
     override_only_channels = override_only_data.get("channels", [])
 
     # Test 3: Only --ignore-channels (should still include defaults)
@@ -739,7 +748,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
         "export", "--ignore-channels", "--format=environment-yaml"
     )
     assert code == 0
-    ignore_only_data = yaml_safe_load(stdout)
+    ignore_only_data = yaml.loads(stdout)
     ignore_only_channels = ignore_only_data.get("channels", [])
 
     # Test 4: Both flags together
@@ -752,7 +761,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
         "--format=environment-yaml",
     )
     assert code == 0
-    both_flags_data = yaml_safe_load(stdout)
+    both_flags_data = yaml.loads(stdout)
     both_flags_channels = both_flags_data.get("channels", [])
 
     # Validation: --override-channels only
@@ -790,7 +799,10 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
 
 
 def test_export_explicit_format_validation_errors(
-    tmp_env, conda_cli, pip_cli: PipCLIFixture, wheelhouse: Path
+    tmp_env,
+    conda_cli,
+    pip_cli: PipCLIFixture,
+    wheelhouse: Path,
 ):
     """Test that explicit format properly errors on invalid environments."""
     # Create an environment with conda packages and pip dependencies
@@ -811,3 +823,128 @@ def test_export_explicit_format_validation_errors(
         error_msg = str(exc_info.value)
         assert "Cannot export explicit format" in error_msg
         assert "external packages" in error_msg
+
+
+def test_export_platform_argument(
+    conda_cli: CondaCLIFixture,
+    plugin_manager_with_exporters: CondaPluginManager,
+    tmp_path: Path,
+) -> None:
+    """Test export with platform argument."""
+    name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
+    stdout, stderr, code = conda_cli(
+        "export",
+        f"--name={name}",
+        "--format=test-single-platform",
+        f"--file={output}",
+    )
+    assert not stdout
+    assert not stderr
+    assert not code
+
+    # Verify the output is valid YAML
+    yaml_data = yaml.loads(output.read_text())
+    assert yaml_data["name"] == name
+
+
+def test_export_multiple_platforms(
+    conda_cli: CondaCLIFixture,
+    plugin_manager_with_exporters: CondaPluginManager,
+    tmp_path: Path,
+) -> None:
+    """Test export with multiple platform arguments."""
+    name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
+    platforms = ["linux-64", "osx-64"]
+    stdout, stderr, code = conda_cli(
+        "export",
+        f"--name={name}",
+        *(f"--platform={platform}" for platform in platforms),
+        "--format=test-multi-platform",
+        f"--file={output}",
+    )
+    assert "Collecting package metadata" in stdout
+    assert not stderr
+    assert not code
+
+    # Verify the output is valid YAML
+    yaml_data = yaml.loads(output.read_text())
+    assert yaml_data["name"] == name
+    assert yaml_data["multi-platforms"] == platforms
+
+
+def test_export_single_platform_different_platform(
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    # pick a platform that is not the current platform
+    platform = ({"linux-64", "osx-arm64"} - {context.subdir}).pop()
+    assert platform != context.subdir
+
+    # export for a different platform
+    name = uuid.uuid4().hex
+    output = tmp_path / "test.yaml"
+    stdout, stderr, code = conda_cli(
+        "export",
+        f"--name={name}",
+        "--override-platforms",
+        f"--platform={platform}",
+        "--format=test-single-platform",
+        f"--file={output}",
+    )
+    assert "Collecting package metadata" in stdout
+    assert not stderr
+    assert not code
+
+    # verify the output is valid YAML
+    yaml_data = yaml.loads(output.read_text())
+    from pprint import pprint
+
+    pprint(yaml_data)
+    assert yaml_data["name"] == name
+    assert yaml_data["single-platform"] == platform
+
+
+def test_export_invalid_platform_fails_fast(conda_cli):
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): idontexist"
+    ):
+        conda_cli(
+            "export",
+            "--override-platforms",
+            "--platform",
+            "idontexist",
+        )
+
+
+def test_export_invalid_subdir_fails_fast(conda_cli):
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): idontexist"
+    ):
+        conda_cli(
+            "export",
+            "--override-platforms",
+            "--subdir",
+            "idontexist",
+        )
+
+
+def test_export_invalid_platform_from_condarc_fails_fast(
+    conda_cli, tmp_path, monkeypatch
+):
+    condarc = tmp_path / ".condarc"
+    condarc.write_text("export_platforms:\n  - doesnotexist\n")
+
+    monkeypatch.setenv("CONDARC", str(condarc))
+
+    # Import lazily to avoid collection-time failures
+    from conda.base.context import reset_context
+
+    reset_context()
+
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): doesnotexist"
+    ):
+        conda_cli("export")

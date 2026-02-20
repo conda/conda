@@ -6,26 +6,34 @@ from __future__ import annotations
 
 import os
 import re
+import warnings
+from collections import UserDict
+from datetime import datetime, timezone
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
+from stat import S_ISDIR
 from typing import TYPE_CHECKING
+
+from frozendict import frozendict
 
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
-    CONDA_PACKAGE_EXTENSIONS,
+    PREFIX_CREATION_TIMESTAMP_FILE,
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
+    RESERVED_ENV_NAMES,
+    RESERVED_ENV_VARS,
     ROOT_ENV_NAME,
 )
 from ..base.context import context, locate_prefix_by_name
-from ..common.compat import on_win
+from ..common.compat import on_mac, on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
-from ..common.path import expand, paths_equal
+from ..common.path import expand, paths_equal, strip_pkg_extension
 from ..common.serialize import json
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
@@ -53,7 +61,7 @@ from ..models.records import PackageRecord, PrefixRecord
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-    from typing import Any, TypeVar
+    from typing import Any, Self, TypeVar
 
     from ..auxlib import _Null
     from ..common.path import PathType
@@ -71,7 +79,7 @@ class PrefixDataType(type):
     )
     def __call__(
         cls,
-        prefix_path: str | os.PathLike | Path,
+        prefix_path: PathType,
         interoperability: bool | None = None,
     ) -> PrefixData:
         if isinstance(prefix_path, PrefixData):
@@ -89,6 +97,16 @@ class PrefixDataType(type):
             prefix_data_instance = super().__call__(prefix_path, interoperability)
             PrefixData._cache_[cache_key] = prefix_data_instance
             return prefix_data_instance
+
+
+class PrefixRecordDict(UserDict):
+    """Lazily convert dict entries to PrefixRecord."""
+
+    def __getitem__(self, package_name: str) -> PrefixRecord:
+        record = self.data[package_name]
+        if not isinstance(record, PrefixRecord):
+            self.data[package_name] = record = PrefixRecord(**record)
+        return record
 
 
 class PrefixData(metaclass=PrefixDataType):
@@ -148,7 +166,7 @@ class PrefixData(metaclass=PrefixDataType):
             return cls(Path(first_writable_envs_dir(), name), **kwargs)
 
     @classmethod
-    def from_context(cls, validate: bool = False) -> PrefixData:
+    def from_context(cls, validate: bool = False, **kwargs) -> PrefixData:
         """
         Creates a PrefixData instance from the path specified by `context.target_prefix`.
 
@@ -157,8 +175,9 @@ class PrefixData(metaclass=PrefixDataType):
 
         :param validate: Whether the path and name should be validated. Useful for environments
             about to be created.
+        :param kwargs: Additional keyword arguments to pass to the constructor.
         """
-        inst = cls(context.target_prefix)
+        inst = cls(context.target_prefix, **kwargs)
         if validate:
             inst.validate_path()
             inst.validate_name()
@@ -206,7 +225,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def is_environment(self) -> bool:
         """
-        Check whether the PrefixData path is a valida conda environment.
+        Check whether the PrefixData path is a valid conda environment.
 
         This is assessed by checking if `conda-meta/history` marker file exists.
         """
@@ -338,7 +357,7 @@ class PrefixData(metaclass=PrefixDataType):
         :raises CondaValueError: If the name is protected, or if it contains disallowed characters
             (`/`, ` `, `:`, `#`).
         """
-        if not allow_base and self.name in (ROOT_ENV_NAME, "root"):
+        if not allow_base and self.name in RESERVED_ENV_NAMES:
             raise CondaValueError(f"'{self.name}' is a reserved environment name")
 
         if PREFIX_NAME_DISALLOWED_CHARS.intersection(self.prefix_path.name):
@@ -348,17 +367,109 @@ class PrefixData(metaclass=PrefixDataType):
             )
 
     # endregion
+    # region Metadata
+
+    @property
+    def created(self) -> datetime | None:
+        """
+        Returns the time when the environment was created, as evidenced by the `conda-meta`
+        directory creation time (if available). Falls back to `conda-meta/created_at`.
+
+        This may return None in the following cases:
+
+        - If the environment doesn't exist.
+        - If the creation time cannot be determined. This can happen for existing environments
+          created with conda versions before 25.11 in Linux systems, where the 'birthtime' metadata
+          is only available in kernels 4.11+, and not implemented in Python as of Python 3.14.
+        """
+        try:
+            stat = (self.prefix_path / "conda-meta").stat()
+            if not S_ISDIR(stat.st_mode):
+                # check if path is a dir without running stat() again
+                return None
+        except FileNotFoundError:
+            return None
+        else:
+            # On Windows, ctime represents creation time. On other platforms, ctime gives
+            # last metadata change; creation time comes from birthtime.
+            # Birthtime was introduced for Windows in Py312, hence the fallback below.
+            # See https://docs.python.org/3/library/os.html#os.stat_result.st_ctime
+            # On Linux, birthtime is only available in kernel 4.11+ via statx and won't be
+            # available in Python until 3.15. The fallback to ctime would be wrong
+            # because in this platform ctime is last metadata change (not creation time!).
+            # See https://discuss.python.org/t/st-birthtime-not-available/104350/2
+            if on_mac or on_win:
+                creation_time = getattr(stat, "st_birthtime", stat.st_ctime)
+            else:
+                try:
+                    creation_time = stat.st_birthtime
+                except AttributeError:
+                    # Fallback to magic file conda-meta/.creation-timestamp
+                    try:
+                        magicfile = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
+                        creation_time = float(magicfile.read_text().strip())
+                    except (OSError, ValueError, TypeError):
+                        return None
+            return datetime.fromtimestamp(creation_time, tz=timezone.utc)
+
+    @property
+    def last_modified(self) -> datetime | None:
+        """
+        Returns the time when the environment was last modified, as evidenced by the
+        `conda-meta/history` file modification time. If the environment does not exist, returns
+        None.
+        """
+        try:
+            stat = self._magic_file.stat()
+        except FileNotFoundError:
+            return None
+        else:
+            return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+
+    def size(self) -> int:
+        """
+        Compute the total size of a conda environment prefix.
+
+        This aggregates the installed size of all packages in the environment,
+        plus the size of non-manifest files under conda-meta (history, markers,
+        etc.)
+
+        :returns: Total size in bytes.
+        """
+        total_size = 0
+
+        # 1. sum up the installed size of each package
+        for record in self.iter_records():
+            total_size += record.package_size(self.prefix_path)
+
+        # 2. add up the size of non-manifest files under conda-meta
+        conda_meta_dir = self.prefix_path / "conda-meta"
+        if self.exists():
+            try:
+                for meta_file in conda_meta_dir.iterdir():
+                    if meta_file.suffix == ".json":
+                        continue
+                    try:
+                        total_size += meta_file.stat().st_size
+                    except OSError:
+                        pass
+            except OSError:
+                pass
+
+        return total_size
+
+    # endregion
     # region Records
 
     @time_recorder(module_name=__name__)
     def load(self) -> None:
-        self.__prefix_records = {}
+        self.__prefix_records = PrefixRecordDict()
         _conda_meta_dir = self.prefix_path / "conda-meta"
         if lexists(_conda_meta_dir):
             conda_meta_json_paths = (
-                p
-                for p in (entry.path for entry in os.scandir(_conda_meta_dir))
-                if p[-5:] == ".json"
+                entry.path
+                for entry in os.scandir(_conda_meta_dir)
+                if entry.name.endswith(".json") and not entry.name.startswith("._")
             )
             for meta_file in conda_meta_json_paths:
                 self._load_single_record(meta_file)
@@ -366,7 +477,7 @@ class PrefixData(metaclass=PrefixDataType):
             for loader in context.plugin_manager.get_prefix_data_loaders():
                 loader(self.prefix_path, self.__prefix_records)
 
-    def reload(self) -> PrefixData:
+    def reload(self) -> Self:
         self.load()
         return self
 
@@ -377,17 +488,15 @@ class PrefixData(metaclass=PrefixDataType):
 
     def _get_json_fn(self, prefix_record: PrefixRecord) -> str:
         fn = prefix_record.fn
-        known_ext = False
-        # .dist-info is for things installed by pip
-        for ext in CONDA_PACKAGE_EXTENSIONS + (".dist-info",):
-            if fn.endswith(ext):
-                fn = fn[: -len(ext)]
-                known_ext = True
-        if not known_ext:
+        # Check package extensions (dynamic) or .dist-info (pip-installed)
+        stripped, ext = strip_pkg_extension(fn)
+        if not ext and fn.endswith(".dist-info"):
+            stripped = fn[: -len(".dist-info")]
+        elif not ext:
             raise ValueError(
                 f"Attempted to make prefix record for unknown package type: {fn}"
             )
-        return fn + ".json"
+        return stripped + ".json"
 
     def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
         if prefix_record.name in self._prefix_records:
@@ -421,9 +530,9 @@ class PrefixData(metaclass=PrefixDataType):
         self._prefix_records[prefix_record.name] = prefix_record
 
     def remove(self, package_name: str) -> None:
-        assert package_name in self._prefix_records
-
-        prefix_record = self._prefix_records[package_name]
+        prefix_record = self._prefix_records.get(package_name)
+        if not prefix_record:
+            raise ValueError(f"Package {package_name} is not in prefix.")
 
         prefix_record_json_path = (
             self.prefix_path / "conda-meta" / self._get_json_fn(prefix_record)
@@ -449,6 +558,14 @@ class PrefixData(metaclass=PrefixDataType):
         prefix_graph = PrefixGraph(self.iter_records())
         return iter(prefix_graph.graph)
 
+    def map_records(self) -> frozendict[str, PrefixRecord]:
+        """
+        Map the records to a frozendict of name -> record.
+
+        :return: A mapping of name -> record.
+        """
+        return frozendict(self._prefix_records)
+
     def all_subdir_urls(self) -> set[str]:
         subdir_urls = set()
         for prefix_record in self.iter_records():
@@ -466,16 +583,24 @@ class PrefixData(metaclass=PrefixDataType):
         if isinstance(param, str):
             param = MatchSpec(param)
         if isinstance(param, MatchSpec):
+            if (
+                param.name
+                and param.name != "*"
+                and (record := self.get(param.name, None))
+            ):
+                if param.match(record):
+                    # Yes, we do want to return the same
+                    # type for all queries
+                    return (r for r in (record,))
+                return (_ for _ in ())  # empty generator
             return (
                 prefix_rec
                 for prefix_rec in self.iter_records()
                 if param.match(prefix_rec)
             )
-        else:
-            assert isinstance(param, PackageRecord)
-            return (
-                prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param
-            )
+        elif not isinstance(param, PackageRecord):
+            raise TypeError("`package_ref_or_match_spec` is not a valid record.")
+        return (prefix_rec for prefix_rec in self.iter_records() if prefix_rec == param)
 
     def get_conda_packages(self) -> list[PrefixRecord]:
         """Get conda packages sorted alphabetically by name.
@@ -512,10 +637,9 @@ class PrefixData(metaclass=PrefixDataType):
         return self.__prefix_records or self.load() or self.__prefix_records
 
     def _load_single_record(self, prefix_record_json_path: PathType) -> None:
-        log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
-                json_data = json.load(fh)
+                data = json.load(fh)
             except (UnicodeDecodeError, json.JSONDecodeError):
                 # UnicodeDecodeError: catch horribly corrupt files
                 # json.JSONDecodeError: catch bad json format files
@@ -523,28 +647,18 @@ class PrefixData(metaclass=PrefixDataType):
                     self.prefix_path, prefix_record_json_path
                 )
 
-            # TODO: consider, at least in memory, storing prefix_record_json_path as part
-            #       of PrefixRecord
-            prefix_record = PrefixRecord(**json_data)
-
             # check that prefix record json filename conforms to name-version-build
             # apparently implemented as part of #2638 to resolve #2599
-            try:
-                n, v, b = basename(prefix_record_json_path)[:-5].rsplit("-", 2)
-                if (n, v, b) != (
-                    prefix_record.name,
-                    prefix_record.version,
-                    prefix_record.build,
-                ):
-                    raise ValueError()
-            except ValueError:
+            name, version, build = basename(prefix_record_json_path)[:-5].rsplit("-", 2)
+            if (name, version, build) != (data["name"], data["version"], data["build"]):
                 log.warning(
                     "Ignoring malformed prefix record at: %s", prefix_record_json_path
                 )
                 # TODO: consider just deleting here this record file in the future
                 return
-
-            self.__prefix_records[prefix_record.name] = prefix_record
+            # TODO: consider, at least in memory, storing prefix_record_json_path as part
+            #       of PrefixRecord
+            self.__prefix_records[name] = data
 
     # endregion
     # region Python records
@@ -588,6 +702,22 @@ class PrefixData(metaclass=PrefixDataType):
         env_vars_file = self.prefix_path / PREFIX_STATE_FILE
         env_vars_file.write_text(json.dumps(state, ensure_ascii=False))
 
+    def _ensure_no_reserved_env_vars(self, env_vars_names: Iterable[str]) -> None:
+        """
+        Ensure that the set of env_var_names does not contain any reserved env vars.
+        Will raise an OperationNotAllowed if a reserved env var is found.
+        """
+        invalid_vars = [var for var in RESERVED_ENV_VARS if var in env_vars_names]
+        if invalid_vars:
+            print_reserved_vars = ", ".join(invalid_vars)
+            warnings.warn(
+                f"WARNING: the given environment variable(s) are reserved and "
+                f"will be ignored: {print_reserved_vars}. "
+                "Setting these environment variables may produce unexpected results.\n\n"
+                f"Remove the invalid configuration with `conda env config vars unset "
+                f"-p {self.prefix_path} {' '.join(invalid_vars)}`.",
+            )
+
     def get_environment_env_vars(self) -> dict[str, str] | dict[bytes, bytes]:
         prefix_state = self._get_environment_state_file()
         env_vars_all = dict(prefix_state.get("env_vars", {}))
@@ -599,6 +729,7 @@ class PrefixData(metaclass=PrefixDataType):
     def set_environment_env_vars(
         self, env_vars: dict[str, str]
     ) -> dict[str, str] | None:
+        self._ensure_no_reserved_env_vars(env_vars.keys())
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
@@ -608,17 +739,30 @@ class PrefixData(metaclass=PrefixDataType):
         self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
 
-    def unset_environment_env_vars(
-        self, env_vars: dict[str, str]
-    ) -> dict[str, str] | None:
+    def unset_environment_env_vars(self, env_vars: list[str]) -> dict[str, str] | None:
         env_state_file = self._get_environment_state_file()
         current_env_vars = env_state_file.get("env_vars")
         if current_env_vars:
             for env_var in env_vars:
                 if env_var in current_env_vars.keys():
-                    current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
+                    if env_var in RESERVED_ENV_VARS:
+                        current_env_vars.pop(env_var)
+                    else:
+                        current_env_vars[env_var] = CONDA_ENV_VARS_UNSET_VAR
             self._write_environment_state_file(env_state_file)
         return env_state_file.get("env_vars")
+
+    def set_creation_time(self) -> None:
+        """
+        Writes a .creation-time file in conda-meta with the current timestamp, meant
+        to be used by .created property as a fallback.
+        """
+        timestamp = (
+            self.created or self.last_modified or datetime.now(timezone.utc).timestamp()
+        )
+        timestamp_file = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
+        timestamp_file.parent.mkdir(parents=True, exist_ok=True)
+        timestamp_file.write_text(str(timestamp))
 
     def set_nonadmin(self) -> None:
         """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
@@ -658,8 +802,19 @@ def get_conda_anchor_files_and_records(
         )
     ).match
 
+    # We could fix this earlier in the PrefixRecord instantiation, but then
+    # we would pay for this conversion every time we load any record.
+    # However we only need this fix for conda list, which is the only one
+    # that uses PrefixData with pip_interop_enabled=True. This function is
+    # only called in that code path.
+    # See https://github.com/conda/conda/pull/14523 for more context.
     for prefix_record in python_records:
-        anchor_paths = tuple(fpath for fpath in prefix_record.files if matcher(fpath))
+        anchor_paths = []
+        for fpath in prefix_record.files:
+            if on_win:
+                fpath = fpath.replace("\\", "/")
+            if matcher(fpath):
+                anchor_paths.append(fpath)
         if len(anchor_paths) > 1:
             anchor_path = sorted(anchor_paths, key=len)[0]
             log.info(

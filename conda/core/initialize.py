@@ -118,8 +118,10 @@ ContentTypeOptions = Literal["initialize", "add_condabin_to_path"]
 def install(conda_prefix):
     plan = make_install_plan(conda_prefix)
     run_plan(plan)
-    if not context.dry_run:
-        assert not any(step["result"] == Result.NEEDS_SUDO for step in plan)
+    if not context.dry_run and any(
+        step["result"] == Result.NEEDS_SUDO for step in plan
+    ):
+        raise CondaError("Some steps require elevated permissions.")
     print_plan_results(plan)
     return 0
 
@@ -781,7 +783,8 @@ def make_initialize_plan(
             )
             if on_win:
                 desktop_dir, exception = get_folder_path(FOLDERID.Desktop)
-                assert not exception
+                if exception:
+                    raise RuntimeError(f"Could not get Desktop folder: {exception}")
             else:
                 desktop_dir = join(expanduser("~"), "Desktop")
             plan.append(
@@ -1116,12 +1119,21 @@ def print_plan_results(plan, stream=None):
 
     changed = any(step.get("result") == Result.MODIFIED for step in plan)
     if changed:
-        print(
-            "\n==> For changes to take effect, close and re-open your current shell. <==\n",
-            file=stream,
-        )
+        if context.dry_run:
+            print(
+                "\n==> DRY RUN: The above changes would have been made. NO ACTUAL CHANGES WERE MADE. <==\n",
+                file=stream,
+            )
+        else:
+            print(
+                "\n==> For changes to take effect, close and re-open your current shell. <==\n",
+                file=stream,
+            )
     else:
-        print("No action taken.", file=stream)
+        if context.dry_run:
+            print("DRY RUN: No action would have been taken.", file=stream)
+        else:
+            print("No action taken.", file=stream)
 
 
 # #####################################################

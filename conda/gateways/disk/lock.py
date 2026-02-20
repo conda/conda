@@ -88,3 +88,8 @@ def lock(fd, *, lock_attempts=LOCK_ATTEMPTS):
         # locking required for jlap, now default for all
         return _lock_impl(fd, lock_attempts)
     return _lock_noop(fd, lock_attempts)
+
+
+def locking_supported():
+    "Return a bool to report whether file locking is supported or not"
+    return _lock_impl is not _lock_noop

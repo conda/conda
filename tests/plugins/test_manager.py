@@ -16,10 +16,7 @@ from packaging.version import Version
 from conda import plugins
 from conda.common.url import urlparse
 from conda.core import solve
-from conda.exceptions import (
-    CondaValueError,
-    PluginError,
-)
+from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
 from conda.plugins.types import CondaPlugin
 
@@ -45,7 +42,7 @@ class VerboseSolver(solve.Solver):
         return super().solve_final_state(*args, **kwargs)
 
 
-VerboseCondaSolver = plugins.CondaSolver(
+VerboseCondaSolver = plugins.types.CondaSolver(
     name="verbose-classic",
     backend=VerboseSolver,
 )
@@ -57,12 +54,12 @@ class VerboseSolverPlugin:
         yield VerboseCondaSolver
 
 
-DummyVirtualPackage = plugins.CondaVirtualPackage("dummy", "version", "build")
+DummyVirtualPackage = plugins.types.CondaVirtualPackage("dummy", "version", "build")
 
 
 class DummyVirtualPackagePlugin:
     @plugins.hookimpl
-    def conda_virtual_packages(*args) -> Iterator[plugins.CondaVirtualPackage]:
+    def conda_virtual_packages(*args) -> Iterator[plugins.types.CondaVirtualPackage]:
         yield DummyVirtualPackage
 
 
@@ -101,7 +98,7 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     class SecondArchspec:
         @plugins.hookimpl
         def conda_virtual_packages():
-            yield plugins.CondaVirtualPackage("archspec", "", None)
+            yield plugins.types.CondaVirtualPackage("archspec", "", None)
 
     plugin_manager.register(SecondArchspec)
     with pytest.raises(
@@ -251,12 +248,14 @@ def test_custom_plugin_name_validation(plugin_manager: CondaPluginManager) -> No
         PluginError,
         match=r"(?s)Invalid plugin names found.+NoNameCondaPlugin.+NoNamePlugin",
     ):
-        plugin_manager.get_virtual_packages()
+        plugin_manager.get_virtual_package_records()
 
 
-def test_get_virtual_packages(plugin_manager: CondaPluginManager):
+def test_get_virtual_package_records(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_plugins(DummyVirtualPackagePlugin) == 1
-    assert plugin_manager.get_virtual_packages() == (DummyVirtualPackage,)
+    assert plugin_manager.get_virtual_package_records() == (
+        DummyVirtualPackage.to_virtual_package(),
+    )
 
 
 def test_get_solvers(plugin_manager: CondaPluginManager):

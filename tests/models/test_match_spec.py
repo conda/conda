@@ -242,6 +242,26 @@ def test_canonical_string_forms():
     # assert m("*/win-32::numpy-1.10-py38_0[channel=defaults]") == "defaults/win-32::numpy==1.10=py38_0"
 
 
+def test_version_wildcard_serialization():
+    """
+    Regression test for https://github.com/conda/conda/issues/14357
+    """
+    assert m("name[version=*,build=*py27*]") == "name[build=*py27*]"
+
+    spec = MatchSpec(name="name", version="*", build="*py27*")
+
+    assert str(spec) == "name[build=*py27*]"
+
+    assert m("name[version=*]") == "name"
+
+    assert m("conda-forge::name[version=*]") == "conda-forge::name"
+
+    assert m("name[version=1.2.*,build=*py27*]") == "name=1.2[build=*py27*]"
+    assert m("name[version=1.*]") == "name=1"
+
+    assert m("name[version=*,build_number=3]") == "name[build_number=3]"
+
+
 @pytest.mark.skip(reason="key-value features interface has been disabled in conda 4.4")
 def test_key_value_features_canonical_string_forms():
     assert (
@@ -1505,3 +1525,11 @@ def test_conda_env_form_comprehensive():
         assert result == expected, (
             f"Expected {expected!r}, got {result!r} for spec {spec}"
         )
+
+
+def test_no_triple_equals_roundtrip():
+    """Regression test for https://github.com/conda/conda/issues/15123"""
+    ms = MatchSpec('numpy[version="=2"]')
+    assert "===" not in str(ms)
+    assert str(ms) == "numpy=2"
+    assert MatchSpec("numpy=2").version == ms.version

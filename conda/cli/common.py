@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import re
-import sys
 from logging import getLogger
 from os.path import (
     dirname,
@@ -26,17 +25,16 @@ from ..base.constants import (
     PREFIX_MAGIC_FILE,
 )
 from ..base.context import context, env_name
-from ..common.constants import NULL
 from ..common.io import swallow_broken_pipe
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
-    CondaError,
     DirectoryNotACondaEnvironmentError,
     EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
     EnvironmentLocationNotFound,
     EnvironmentNotWritableError,
+    InvalidSpec,
     OperationNotAllowed,
 )
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
@@ -48,70 +46,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 log = getLogger(__name__)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.confirm_yn` instead.",
-)
-def confirm(message="Proceed", choices=("yes", "no"), default="yes", dry_run=NULL):
-    assert default in choices, default
-    if (dry_run is NULL and context.dry_run) or dry_run:
-        from ..exceptions import DryRunExit
-
-        raise DryRunExit()
-
-    options = []
-    for option in choices:
-        if option == default:
-            options.append(f"[{option[0]}]")
-        else:
-            options.append(option[0])
-    message = "{} ({})? ".format(message, "/".join(options))
-    choices = {alt: choice for choice in choices for alt in [choice, choice[0]]}
-    choices[""] = default
-    while True:
-        # raw_input has a bug and prints to stderr, not desirable
-        sys.stdout.write(message)
-        sys.stdout.flush()
-        try:
-            user_choice = sys.stdin.readline().strip().lower()
-        except OSError as e:
-            raise CondaError(f"cannot read from stdin: {e}")
-        if user_choice not in choices:
-            print(f"Invalid choice: {user_choice}")
-        else:
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-            return choices[user_choice]
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.confirm_yn` instead.",
-)
-def confirm_yn(message="Proceed", default="yes", dry_run=NULL):
-    if (dry_run is NULL and context.dry_run) or dry_run:
-        from ..exceptions import DryRunExit
-
-        raise DryRunExit()
-    if context.always_yes:
-        return True
-    try:
-        choice = confirm(
-            message=message, choices=("yes", "no"), default=default, dry_run=dry_run
-        )
-    except KeyboardInterrupt:  # pragma: no cover
-        from ..exceptions import CondaSystemExit
-
-        raise CondaSystemExit("\nOperation aborted.  Exiting.")
-    if choice == "no":
-        from ..exceptions import CondaSystemExit
-
-        raise CondaSystemExit("Exiting.")
-    return True
 
 
 def is_active_prefix(prefix: str) -> bool:
@@ -187,10 +121,12 @@ def spec_from_line(line: str) -> str:
         return name + cc.replace("=", " ")
     elif pc:
         if pc.startswith("~= "):
-            assert pc.count("~=") == 1, (
-                f"Overly complex 'Compatible release' spec not handled {line}"
-            )
-            assert pc.count("."), f"No '.' in 'Compatible release' version {line}"
+            if pc.count("~=") > 1:
+                raise InvalidSpec(
+                    f"Overly complex 'Compatible release' spec not handled {line}."
+                )
+            if not pc.count("."):
+                raise InvalidSpec(f"No '.' in 'Compatible release' version {line}")
             ver = pc.replace("~= ", "")
             ver2 = ".".join(ver.split(".")[:-1]) + ".*"
             return name + " >=" + ver + ",==" + ver2
@@ -257,15 +193,6 @@ def stdout_json_success(success=True, **kwargs):
         result["actions"] = actions
     result.update(kwargs)
     stdout_json(result)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.reporters.render(style='env_list')` instead.",
-)
-def print_envs_list(known_conda_prefixes, output=True):
-    render(known_conda_prefixes, style="envs_list", output=output)
 
 
 def check_non_admin():
@@ -363,7 +290,7 @@ def validate_subdir_config():
                 raise OperationNotAllowed(msg)
 
 
-def print_activate(env_name_or_prefix):  # pragma: no cover
+def print_activate(env_name_or_prefix):
     if not context.quiet and not context.json:
         if " " in env_name_or_prefix:
             env_name_or_prefix = f'"{env_name_or_prefix}"'

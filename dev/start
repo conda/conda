@@ -9,18 +9,24 @@ fi
 cleanup() {
     unset _ARCH
     unset _BASEEXE
+    unset _CHANNEL_NAME
     unset _CMD
     unset _DEFAULT_ARCH
     unset _DEFAULT_DEVENV
     unset _DEFAULT_DRYRUN
+    unset _DEFAULT_INSTALLER
     unset _DEFAULT_MACH
     unset _DEFAULT_PYTHON
     unset _DEFAULT_UPDATE
     unset _DEVENV
+    unset _DOWNLOAD_URL
     unset _DRYRUN
     unset _ENV
     unset _ENVEXE
     unset _INSTALLER
+    unset _INSTALLER_FILE
+    unset _INSTALLER_INITIAL
+    unset _INSTALLER_TYPE
     unset _MACH
     unset _NAME
     unset _PYTHON
@@ -44,6 +50,7 @@ _SRC="$(cd "$(dirname "$(dirname "${BASH_SOURCE:-$0}")")" 2>&1 > /dev/null; pwd 
 
 # define default values
 _DEFAULT_PYTHON="3.10"
+_DEFAULT_INSTALLER="miniconda"
 # $ uname -sm
 # Linux x86_64
 # Linux aarch64
@@ -85,6 +92,15 @@ while [ $# -gt 0 ]; do
             _ARCH="${1#*=}"
             shift
             ;;
+        -i|--installer)
+            _INSTALLER_TYPE="$2"
+            shift
+            shift
+            ;;
+        --installer=*)
+            _INSTALLER_TYPE="${1#*=}"
+            shift
+            ;;
         -u|--update)
             _UPDATE="true"
             shift
@@ -107,14 +123,15 @@ while [ $# -gt 0 ]; do
             echo "Usage: source ${BASH_SOURCE:-$0} [options]"
             echo ""
             echo "Options:"
-            echo "  -p, --python  VERSION  Python version for the env to activate. (default: ${_DEFAULT_PYTHON})"
-            echo "  -m, --mach    MACHINE  Python version for the env to activate. (default: ${_DEFAULT_MACH})"
-            echo "  -a, --arch    ARCH     Python version for the env to activate. (default: ${_DEFAULT_ARCH})"
-            echo "  -u, --update           Force update packages. (default: ${_DEFAULT_UPDATE}, update every 24 hours)"
-            echo "  -d, --devenv  PATH     Path to base env install, can also be defined in ~/.condarc."
-            echo "                         Path is appended with machine hardware name, see --mach. (default: ${_DEFAULT_DEVENV})"
-            echo "  -n, --dry-run          Display env to activate. (default: ${_DEFAULT_DRYRUN})"
-            echo "  -h, --help             Display this."
+            echo "  -p, --python    VERSION    Python version for the env to activate. (default: ${_DEFAULT_PYTHON})"
+            echo "  -i, --installer INSTALLER  Installer to use: miniconda or miniforge, can also be defined in ~/.condarc. (default: ${_DEFAULT_INSTALLER})"
+            echo "  -m, --mach      MACHINE    Machine type for the env to activate. (default: ${_DEFAULT_MACH})"
+            echo "  -a, --arch      ARCH       Architecture for the env to activate. (default: ${_DEFAULT_ARCH})"
+            echo "  -u, --update               Force update packages. (default: ${_DEFAULT_UPDATE}, update every 24 hours)"
+            echo "  -d, --devenv    PATH       Path to base env install, can also be defined in ~/.condarc."
+            echo "                             Path is appended with machine hardware name, see --mach. (default: ${_DEFAULT_DEVENV})"
+            echo "  -n, --dry-run              Display env to activate. (default: ${_DEFAULT_DRYRUN})"
+            echo "  -h, --help                 Display this."
             return 0
             ;;
         *)
@@ -124,8 +141,36 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# fallback to default values
+# read values key from ~/.condarc if not set
+if [ -f ~/.condarc ]; then
+    _INSTALLER_TYPE="${_INSTALLER_TYPE:-$(grep "^installer_type:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
+    _DEVENV="${_DEVENV:-$(grep "^devenv:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
+fi
+
+# prompt for installer type if not set
+if [ -z "${_INSTALLER_TYPE}" ]; then
+    echo "Choose conda installer:"
+    echo "  1) miniconda (default - Anaconda defaults channel)"
+    echo "  2) miniforge (conda-forge channel)"
+    echo ""
+    echo "Note: This choice can be overridden by setting the 'installer_type' key in ~/.condarc."
+    echo ""
+    printf "Enter choice [1]: "
+    read -r _INSTALLER_TYPE
+    # normalize user input
+    case "${_INSTALLER_TYPE}" in
+        1|"") _INSTALLER_TYPE="miniconda" ;;
+        2) _INSTALLER_TYPE="miniforge" ;;
+        *)
+            echo "Error: invalid choice '${_INSTALLER_TYPE}'. Please run again and choose 1 or 2." >&2
+            return 1
+    esac
+fi
+
+# fallback to default values if not set
 _PYTHON="${_PYTHON:-3.10}"
+_INSTALLER_TYPE="${_INSTALLER_TYPE:-${_DEFAULT_INSTALLER}}"
+_DEVENV="${_DEVENV:-${_DEFAULT_DEVENV}}"
 # $ uname -sm
 # Linux x86_64
 # Linux aarch64
@@ -136,26 +181,26 @@ _ARCH="${_ARCH:-${_DEFAULT_ARCH}}"
 _UPDATE="${_UPDATE:-${_DEFAULT_UPDATE}}"
 _DRYRUN="${_DRYRUN:-${_DEFAULT_DRYRUN}}"
 
-# read devenv key from ~/.condarc
-if [ -f ~/.condarc ]; then
-    _DEVENV="${_DEVENV:-$(grep "^devenv:" ~/.condarc | tail -n 1 | sed -e "s/^.*:[[:space:]]*//" -e "s/[[:space:]]*$//")}"
-fi
-# fallback to devenv in source default
-_DEVENV="${_DEVENV:-${_DEFAULT_DEVENV}}"
-# tilde expansion
+# validate installer type
+case "${_INSTALLER_TYPE}" in
+    miniconda|miniforge) ;;
+    *)
+        echo "Error: invalid installer type '${_INSTALLER_TYPE}'. Must be 'miniconda' or 'miniforge'." >&2
+        return 1
+        ;;
+esac
+
+# devenv tilde expansion
 _DEVENV="${_DEVENV/#\~/${HOME}}"
-# include OS
+
+# installer location is root devenv directory
+_INSTALLER="${_DEVENV}/installers/${_MACH}/${_ARCH}"
+
+# devenv include OS
 _DEVENV="${_DEVENV}/${_MACH}/${_ARCH}"
-# ensure exists and absolute path
-if [ ${_DRYRUN} = "false" ]; then
-    mkdir -p "${_DEVENV}"
-    _DEVENV="$(cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
-fi
-# installer location
-_INSTALLER="$(dirname "$(dirname "${_DEVENV}")")"
 
 # other environment values
-_NAME="devenv-${_PYTHON}-c"
+_NAME="devenv-${_PYTHON}-${_INSTALLER_TYPE}"
 _ENV="${_DEVENV}/envs/${_NAME}"
 _UPDATED="${_ENV}/.devenv-updated"
 case "${_MACH}" in
@@ -163,13 +208,38 @@ case "${_MACH}" in
                *) _BASEEXE="${_DEVENV}/Scripts/conda.exe" ; _ENVEXE="${_ENV}/Scripts/conda.exe" ; _PYTHONEXE="${_ENV}/Scripts/python.exe" ;;
 esac
 
+# set installer-specific values
+case "${_INSTALLER_TYPE}" in
+    miniconda)
+        _INSTALLER_FILE="${_INSTALLER}/miniconda"
+        case "${_MACH}" in
+            Darwin) _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${_ARCH}.sh" ;;
+            Linux)  _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${_ARCH}.sh" ;;
+            *)      _DOWNLOAD_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe" ;;
+        esac
+        ;;
+    miniforge)
+        _INSTALLER_FILE="${_INSTALLER}/miniforge"
+        case "${_MACH}" in
+            Darwin) _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-${_ARCH}.sh" ;;
+            Linux)  _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-${_ARCH}.sh" ;;
+            *)      _DOWNLOAD_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe" ;;
+        esac
+        ;;
+esac
+case "${_MACH}" in
+    Darwin|Linux) _INSTALLER_FILE="${_INSTALLER_FILE}.sh" ;;
+    *)            _INSTALLER_FILE="${_INSTALLER_FILE}.exe" ;;
+esac
+
 # dryrun printout
 if [ ${_DRYRUN} = "true" ]; then
     echo "Python: ${_PYTHON}"
     echo "Machine: ${_MACH}"
     echo "Architecture: ${_ARCH}"
-    echo "Updating: $(updating && echo "[yes]" || echo "[no]")"
+    echo "Installer [${_INSTALLER_TYPE}]: ${_INSTALLER_FILE} $([ -f "${_INSTALLER_FILE}" ] && echo "[exists]" || echo "[pending]")"
     echo "Devenv: ${_DEVENV} $([ -e "${_DEVENV}" ] && echo "[exists]" || echo "[pending]")"
+    echo "Updating: $(updating && echo "[yes]" || echo "[no]")"
     echo ""
     echo "Name: ${_NAME}"
     echo "Path: ${_ENV} $([ -e "${_ENV}" ] && echo "[exists]" || echo "[pending]")"
@@ -177,6 +247,12 @@ if [ ${_DRYRUN} = "true" ]; then
     echo "Source: ${_SRC}"
     return 0
 fi
+
+# ensure installer and devenv directories exist
+mkdir -p "${_INSTALLER}"
+mkdir -p "${_DEVENV}"
+_INSTALLER="$(cd "${_INSTALLER}" 2>&1 > /dev/null ; pwd -P)"
+_DEVENV="$(cd "${_DEVENV}" 2>&1 > /dev/null ; pwd -P)"
 
 # deactivate any prior envs
 if ! [ ${CONDA_SHLVL:-0} = 0 ]; then
@@ -189,33 +265,36 @@ if ! [ ${CONDA_SHLVL:-0} = 0 ]; then
     done
 fi
 
-# does miniconda install exist?
+# does conda install exist?
 if ! [ -f "${_DEVENV}/conda-meta/history" ]; then
-    # downloading miniconda
-    if [ "${_MACH}" = "Darwin" ]; then
-        [ -f "${_INSTALLER}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${_ARCH}.sh" -o "${_INSTALLER}/miniconda.sh"'
-    elif [ "${_MACH}" = "Linux" ]; then
-        [ -f "${_INSTALLER}/miniconda.sh" ] || _CMD='curl -s "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${_ARCH}.sh" -o "${_INSTALLER}/miniconda.sh"'
-    else
-        [ -f "${_INSTALLER}/miniconda.exe" ] || _CMD='powershell.exe -Command "Invoke-WebRequest -Uri 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe' -OutFile '${_INSTALLER}/miniconda.exe' | Out-Null"'
+    # Remove zero-byte installer files before download
+    if [ -f "${_INSTALLER_FILE}" ] && [ ! -s "${_INSTALLER_FILE}" ]; then
+        echo "Warning: removing empty installer file ${_INSTALLER_FILE}"
+        rm -f "${_INSTALLER_FILE}"
     fi
-    if ! [ ${_CMD:-0} = 0 ]; then
-        echo "Downloading miniconda..."
-        eval ${_CMD}
-        if ! [ $? = 0 ]; then
-            echo "Error: failed to download miniconda" 1>&2
+
+    # downloading installer
+    if ! [ -f "${_INSTALLER_FILE}" ]; then
+        echo "Downloading ${_INSTALLER_TYPE}..."
+        if [ "${_MACH}" = "Darwin" ] || [ "${_MACH}" = "Linux" ]; then
+            curl -L --fail --silent --show-error "${_DOWNLOAD_URL}" -o "${_INSTALLER_FILE}"
+        else
+            powershell.exe -NoProfile -Command "Invoke-WebRequest -Uri '${_DOWNLOAD_URL}' -OutFile '${_INSTALLER_FILE}' | Out-Null"
+        fi
+        if ! [ $? = 0 ] || [ ! -s "${_INSTALLER_FILE}" ]; then
+            echo "Error: failed to download ${_INSTALLER_TYPE} (file missing or empty)" 1>&2
             return 1
         fi
     fi
 
-    # installing miniconda
-    echo "Installing development environment..."
+    # installing conda
+    echo "Installing ${_INSTALLER_TYPE}..."
     case "${_MACH}" in
-        Darwin|Linux) bash "${_INSTALLER}/miniconda.sh" -bfp "${_DEVENV}" > /dev/null ;;
-                   *) cmd.exe /c "start /wait \"\" \"${_INSTALLER}\miniconda.exe\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
+        Darwin|Linux) bash "${_INSTALLER_FILE}" -bfp "${_DEVENV}" > /dev/null ;;
+                   *) cmd.exe /c "start /wait \"\" \"${_INSTALLER_FILE}\" /InstallationType=JustMe /RegisterPython=0 /AddToPath=0 /S /D=${_DEVENV} > NUL" ;;
     esac
     if ! [ $? = 0 ]; then
-        echo "Error: failed to install development environment" 1>&2
+        echo "Error: failed to install ${_INSTALLER_TYPE}" 1>&2
         return 1
     fi
 fi
@@ -231,19 +310,27 @@ fi
 
 # check if explicitly updating or if 24 hrs since last update
 if updating; then
-    echo "Updating ${_NAME}..."
+    echo "Updating ${_INSTALLER_TYPE}..."
 
-    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all > /dev/null; then
-        echo "Error: failed to update development environment" 1>&2
+    if ! PYTHONPATH="" "${_BASEEXE}" update --yes --quiet --all "--prefix=${_ENV}" > /dev/null; then
+        echo "Error: failed to update ${_INSTALLER_TYPE}" 1>&2
         return 1
     fi
+
+    echo "Updating ${_NAME}..."
+
+    # set channels based on installer type
+    case "${_INSTALLER_TYPE}" in
+        miniconda) _CHANNEL_NAME="defaults" ;;
+        miniforge) _CHANNEL_NAME="conda-forge" ;;
+    esac
 
     if ! PYTHONPATH="" "${_BASEEXE}" install \
         --yes \
         --quiet \
         "--prefix=${_ENV}" \
         --override-channels \
-        --channel=defaults \
+        "--channel=${_CHANNEL_NAME}" \
         "--file=${_SRC}/tests/requirements.txt" \
         "--file=${_SRC}/tests/requirements-ci.txt" \
         "$([ "${_MACH}" = "Linux" ] && echo "--file=${_SRC}/tests/requirements-Linux.txt")" \
@@ -265,7 +352,7 @@ else
 fi
 
 # copy latest shell scripts
-echo "Update shell scripts..."
+echo "Updating shell scripts..."
 if ! "${_ENVEXE}" init --install > /dev/null; then
     echo "Error: failed to update shell scripts" 1>&2
     return 1

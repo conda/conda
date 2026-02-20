@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context, locate_prefix_by_name
+from conda.base.context import (
+    context,
+    locate_prefix_by_name,
+    reset_context,
+)
 from conda.common.compat import on_win
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
@@ -328,3 +332,26 @@ def test_separator_chars_on_win(conda_cli: CondaCLIFixture, env_one: str):
             f"--name={bad_env_name}",
             env_two,
         )
+
+
+def test_rename_default_activation_env(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+):
+    """Check that renaming the default_activation_env raises an exception."""
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", prefix)
+        reset_context()
+
+        assert prefix == context.default_activation_prefix
+        with pytest.raises(
+            CondaEnvException,
+            match="Cannot rename an environment if it is configured as `default_activation_env`.",
+        ):
+            conda_cli(
+                "rename",
+                f"--prefix={prefix}",
+                tmp_path,
+            )

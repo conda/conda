@@ -26,7 +26,7 @@ be created with the following command::
 
     mkdir my-project
 
-In this directory, we will now create a new ``environment.yaml`` file, which will hold the
+In this directory, we will now create a new ``environment.yml`` file, which will hold the
 dependencies for our Python project. In your text editor (e.g. VSCode, PyCharm, vim, etc.),
 create this file and add the following:
 

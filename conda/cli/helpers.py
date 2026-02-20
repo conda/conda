@@ -239,9 +239,12 @@ def add_output_and_prompt_options(p: ArgumentParser) -> _ArgumentGroup:
 
 
 def add_parser_frozen_env(p: ArgumentParser):
+    from ..common.constants import NULL
+
     p.add_argument(
         "--override-frozen",
         action="store_false",
+        default=NULL,
         help="DANGEROUS. Use at your own risk. Ignore protections if the environment is frozen.",
         dest="protect_frozen_envs",
     )
@@ -275,6 +278,7 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         help="Use locally built packages. Identical to '-c local'.",
     )
     channel_customization_options.add_argument(
+        "-O",
         "--override-channels",
         action="store_true",
         help="""Do not search default or .condarc channels.  Requires --channel.""",

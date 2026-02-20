@@ -9,21 +9,28 @@ Each type corresponds to the plugin hook for which it is used.
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from requests.auth import AuthBase
 
+from ..auxlib import NULL
+from ..auxlib.type_coercion import maybecall
+from ..base.constants import APP_NAME
 from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
+    from collections.abc import Callable, Iterable
     from contextlib import AbstractContextManager
-    from typing import Any, Callable, ClassVar, TypeAlias
+    from typing import Any, ClassVar, Literal, TypeAlias
 
+    from ..auxlib import _Null
     from ..common.configuration import Parameter
     from ..common.path import PathType
     from ..core.path_actions import Action
@@ -37,6 +44,18 @@ if TYPE_CHECKING:
         dict[str, PrefixRecord],
     ]
 
+    PackageExtract: TypeAlias = Callable[
+        [PathType, PathType],  # (source_path, destination_directory)
+        None,
+    ]
+
+    SinglePlatformEnvironmentExport = Callable[[Environment], str]
+    MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
+
+    # Callback type for health check fixer confirmation prompts.
+    # Raises CondaSystemExit if user declines, or DryRunExit in dry-run mode.
+    ConfirmCallback: TypeAlias = Callable[[str], None]
+
 
 @dataclass
 class CondaPlugin:
@@ -44,8 +63,8 @@ class CondaPlugin:
     Base class for all conda plugins.
     """
 
-    #: User-facing name of the plugin used for selecting & filtering plugins and error messages.
     name: str
+    """User-facing name of the plugin used for selecting & filtering plugins and error messages."""
 
     def __post_init__(self):
         try:
@@ -86,17 +105,67 @@ class CondaVirtualPackage(CondaPlugin):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_virtual_packages`.
 
+    .. note::
+       The ``version`` and ``build`` parameters can be provided in two ways:
+
+       1. Direct values: a string or ``None`` (where ``None`` translates to ``0``)
+       2. Deferred callables: functions that return either a string, ``None`` (translates to ``0``),
+          or ``NULL`` (indicates the virtual package should not be exported)
+
     :param name: Virtual package name (e.g., ``my_custom_os``).
     :param version: Virtual package version (e.g., ``1.2.3``).
     :param build: Virtual package build string (e.g., ``x86_64``).
+    :param override_entity: Can be set to either to "version" or "build", the corresponding
+                            value will be overridden if the environment variable
+                            ``CONDA_OVERRIDE_<name>`` is set.
+    :param empty_override: Value to use for version or build if the override
+                           environment variable is set to an empty string. By default,
+                           this is ``NULL``.
+    :param version_validation: Optional version validation function to ensure that the override version follows a certain pattern.
     """
 
     name: str
-    version: str | None
-    build: str | None
+    version: str | None | Callable[[], str | None | _Null]
+    build: str | None | Callable[[], str | None | _Null]
+    override_entity: Literal["version", "build"] | None = None
+    empty_override: None | _Null = NULL
+    version_validation: Callable[[str], str | None] | None = None
 
-    def to_virtual_package(self) -> PackageRecord:
-        return PackageRecord.virtual_package(f"__{self.name}", self.version, self.build)
+    def to_virtual_package(self) -> PackageRecord | _Null:
+        # Take the raw version and build as they are.
+        # At this point, they may be callables (evaluated later) or direct values.
+        from conda.base.context import context
+
+        version = self.version
+        build = self.build
+
+        # Check for environment overrides.
+        # Overrides always yield a concrete value (string, NULL, or None),
+        # so after this step, version/build will no longer be callables if they were overridden.
+        if self.override_entity:
+            # environment variable has highest precedence
+            override_value = os.getenv(f"{APP_NAME}_OVERRIDE_{self.name}".upper())
+            # fallback to context
+            if override_value is None and context.override_virtual_packages:
+                override_value = context.override_virtual_packages.get(f"{self.name}")
+            if override_value is not None:
+                override_value = override_value.strip() or self.empty_override
+                if self.override_entity == "version":
+                    version = override_value
+                elif self.override_entity == "build":
+                    build = override_value
+
+        # If version/build were not overridden and are callables, evaluate them now.
+        version = maybecall(version)
+        build = maybecall(build)
+
+        if version is NULL or build is NULL:
+            return NULL
+
+        if self.version_validation and version is not None:
+            version = self.version_validation(version)
+
+        return PackageRecord.virtual_package(f"__{self.name}", version, build)
 
 
 @dataclass
@@ -193,10 +262,55 @@ class CondaAuthHandler(CondaPlugin):
 class CondaHealthCheck(CondaPlugin):
     """
     Return type to use when defining conda health checks plugin hook.
+
+    Health checks are diagnostic actions that report on the state of a conda
+    environment. They are invoked via ``conda doctor``.
+
+    Health checks can optionally provide a fix capability, which is invoked
+    via ``conda doctor --fix`` or ``conda doctor --fix <name>``.
+
+    **Fixer guidelines:**
+
+    Fixers receive a ``confirm`` function that handles user confirmation and
+    dry-run mode automatically. Simply call it with your message:
+
+    - In normal mode: Prompts the user for confirmation (default: no).
+    - In dry-run mode: Raises ``DryRunExit`` (handled by the framework).
+    - If user declines: Raises ``CondaSystemExit`` (handled by the framework).
+
+    Example::
+
+        from conda.plugins.types import ConfirmCallback
+
+        def my_fixer(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
+            issues = find_issues(prefix)
+            if not issues:
+                print("No issues found.")
+                return 0
+
+            print(f"Found {len(issues)} issues")
+            confirm("Fix these issues?")
+            # ... perform fix ...
+            return 0
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_checks`.
+
+    :param name: Health check identifier (e.g., ``missing-files``).
+    :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
+    :param fixer: Optional callable that fixes issues:
+                  ``fixer(prefix, args, confirm) -> int``.
+                  The ``confirm`` parameter is a function to call for user confirmation.
+                  It raises an exception if the user declines or in dry-run mode.
+    :param summary: Short description of what the check detects (shown in ``--list``).
+    :param fix: Short description of what the fix does (shown in ``--list``).
     """
 
     name: str
     action: Callable[[str, bool], None]
+    fixer: Callable[[str, Namespace, ConfirmCallback], int] | None = None
+    summary: str | None = None
+    fix: str | None = None
 
 
 @dataclass
@@ -304,7 +418,9 @@ class ReporterRendererBase(ABC):
         """
 
     @abstractmethod
-    def envs_list(self, data, **kwargs) -> str:
+    def envs_list(
+        self, data: Iterable[str] | dict[str, dict[str, str | bool | None]], **kwargs
+    ) -> str:
         """
         Render a list of environments
         """
@@ -499,7 +615,7 @@ class CondaEnvironmentExporter(CondaPlugin):
     """
     **EXPERIMENTAL**
 
-    Return type to use when defining a conda environment exporter plugin hook.
+    Return type to use when defining a conda environment exporter plugin hook supporting a single platform.
 
     :param name: name of the exporter (e.g., ``environment-yaml``)
     :param aliases: user-friendly format aliases (e.g., ("yaml",))
@@ -510,7 +626,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     name: str
     aliases: tuple[str, ...]
     default_filenames: tuple[str, ...]
-    export: Callable[[Environment], str]
+    export: SinglePlatformEnvironmentExport | None = None
+    multiplatform_export: MultiPlatformEnvironmentExport | None = None
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -522,3 +639,33 @@ class CondaEnvironmentExporter(CondaPlugin):
         except AttributeError:
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+        if bool(self.export) == bool(self.multiplatform_export):
+            raise PluginError(
+                f"Exactly one of export or multiplatform_export must be set for {self!r}"
+            )
+
+
+@dataclass
+class CondaPackageExtractor(CondaPlugin):
+    """
+    Return type to use when defining a conda package extractor plugin hook.
+
+    Package extractors handle the extraction of different package archive formats.
+    Each extractor specifies which file extensions it supports and provides an
+    extraction function to unpack the archive.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_package_extractors`.
+
+    :param name: Extractor name (e.g., ``conda-package``, ``wheel-package``).
+    :param extensions: List of file extensions this extractor handles
+                       (e.g., ``[".conda", ".tar.bz2"]`` or ``[".whl"]``).
+    :param extract: Callable that extracts the package archive. Takes the source
+                    archive path and the destination directory where the package
+                    contents should be extracted.
+    """
+
+    name: str
+    extensions: list[str]
+    extract: PackageExtract

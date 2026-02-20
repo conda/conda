@@ -17,7 +17,6 @@ from ..base.context import context
 # is updated to use the environment spec plugins to read environment files.
 from ..cli.common import specs_from_url
 from ..common.iterators import groupby_to_dict as groupby
-from ..common.path import is_package_file
 from ..core.prefix_data import PrefixData
 from ..exceptions import CondaError, CondaValueError
 from ..history import History
@@ -27,7 +26,7 @@ from .match_spec import MatchSpec
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable
-    from typing import TypeVar
+    from typing import Final, TypeVar
 
     from ..base.constants import (
         ChannelPriority,
@@ -35,11 +34,15 @@ if TYPE_CHECKING:
         SatSolverChoice,
         UpdateModifier,
     )
+    from ..common.path import PathType
     from .records import PackageRecord
 
     T = TypeVar("T")
 
 log = getLogger(__name__)
+
+
+EXTERNAL_PACKAGES_PYPI_KEY: Final = "pip"
 
 
 @dataclass
@@ -207,7 +210,7 @@ class EnvironmentConfig:
         )
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Environment:
     """
     **Experimental** While experimental, expect both major and minor changes across minor releases.
@@ -215,42 +218,42 @@ class Environment:
     Data model for a conda environment.
     """
 
-    #: Prefix the environment is installed into (required).
-    prefix: str
-
-    #: The platform this environment may be installed on (required)
     platform: str
+    """The platform this environment may be installed on (required)."""
 
-    #: Environment level configuration, eg. channels, solver options, etc.
-    #: TODO: may need to think more about the type of this field and how
-    #:       conda should be merging configs between environments
     config: EnvironmentConfig = field(default_factory=EnvironmentConfig)
+    """Environment level configuration, eg. channels, solver options, etc.
 
-    #: Map of other package types that conda can install. For example pypi packages.
+    TODO: may need to think more about the type of this field and how
+    conda should be merging configs between environments.
+    """
+
     external_packages: dict[str, list[str]] = field(default_factory=dict)
+    """Map of other package types that conda can install. For example pypi packages."""
 
-    #: The complete list of specs for the environment.
-    #: eg. after a solve, or from an explicit environment spec
     explicit_packages: list[PackageRecord] = field(default_factory=list)
+    """The complete list of specs for the environment.
 
-    #: Environment name
+    E.g. after a solve, or from an explicit environment spec.
+    """
+
     name: str | None = None
+    """Environment name."""
 
-    #: User requested specs for this environment.
+    prefix: str | None = None
+    """Prefix the environment is installed into."""
+
     requested_packages: list[MatchSpec] = field(default_factory=list)
+    """User requested specs for this environment."""
 
-    #: Environment variables to be applied to the environment.
     variables: dict[str, str] = field(default_factory=dict)
+    """Environment variables to be applied to the environment."""
 
     # Virtual packages for the environment. Either the default ones provided by
     # the virtual_packages plugins or the overrides captured by CONDA_OVERRIDE_*.
     virtual_packages: list[PackageRecord] = field(default_factory=list)
 
     def __post_init__(self):
-        # an environment must have a name of prefix
-        if not self.prefix:
-            raise CondaValueError("'Environment' needs a 'prefix'.")
-
         # an environment must have a platform
         if not self.platform:
             raise CondaValueError("'Environment' needs a 'platform'.")
@@ -401,17 +404,15 @@ class Environment:
         requested_packages = []
         external_packages = {}
 
+        python_precs = prefix_data.get_python_packages()
+
         # Handle --from-history case
         if from_history:
-            history = History(prefix)
-            spec_map = history.get_requested_specs_map()
-            # Get MatchSpec objects from history; they'll be serialized to bracket format later
-            requested_packages = list(spec_map.values())
+            requested_packages = cls.from_history(prefix)
             conda_precs = []  # No conda packages to process for channel extraction
         else:
             # Use PrefixData's package extraction methods
             conda_precs = prefix_data.get_conda_packages()
-            python_precs = prefix_data.get_python_packages()
 
             # Create MatchSpecs for conda packages
             for conda_prec in conda_precs:
@@ -433,13 +434,19 @@ class Environment:
                     f"{python_prec.name}=={python_prec.version}"
                     for python_prec in python_precs
                 ]
-                external_packages["pip"] = python_deps
+                external_packages[EXTERNAL_PACKAGES_PYPI_KEY] = python_deps
 
-        # Always populate explicit_packages from prefix data (for explicit export format)
-        explicit_packages = list(prefix_data.iter_records())
+        # Always populate explicit_packages from prefix data (for explicit export format).
+        # But don't include packages installed by pip (or other external package formats).
+        python_precs_names = [pkg.name for pkg in python_precs]
+        explicit_packages = list(
+            pkg
+            for pkg in prefix_data.iter_records()
+            if pkg.name not in python_precs_names
+        )
 
-        # Build channels list
-        environment_channels = list(channels or [])
+        # Build channels tuple
+        environment_channels = tuple(channels or ())
 
         # Inject channels from installed conda packages (unless ignoring channels)
         # This applies regardless of override_channels setting
@@ -455,14 +462,14 @@ class Environment:
                 *environment_channels,
             )
 
-        # Channel list is a unique ordered list
-        environment_channels = list(dict.fromkeys(environment_channels))
+        # Channels tuple is a unique ordered sequence
+        environment_channels = tuple(dict.fromkeys(environment_channels))
 
         # Create environment config with comprehensive context settings
         config = EnvironmentConfig.from_context()
 
         # Override/set channels with those extracted from installed packages if any were found
-        config = replace(config, channels=tuple(environment_channels))
+        config = replace(config, channels=environment_channels)
 
         return cls(
             prefix=prefix,
@@ -521,10 +528,10 @@ class Environment:
                     specs.append(default_package)
 
         for spec in specs:
-            if is_package_file(spec):
+            if (match_spec := MatchSpec(spec)).get("url"):
                 fetch_explicit_packages.append(spec)
             else:
-                requested_packages.append(MatchSpec(spec))
+                requested_packages.append(match_spec)
 
         # transform explicit packages into package records
         explicit_packages = []
@@ -545,4 +552,44 @@ class Environment:
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
             config=EnvironmentConfig.from_context(),
+        )
+
+    @staticmethod
+    def from_history(prefix: PathType) -> list[MatchSpec]:
+        history = History(prefix)
+        spec_map = history.get_requested_specs_map()
+        # Get MatchSpec objects from history; they'll be serialized to bracket format later
+        return list(spec_map.values())
+
+    def extrapolate(self, platform: str) -> Environment:
+        """
+        Given the current environment, extrapolate the environment for the given platform.
+        """
+        if platform == self.platform:
+            return self
+
+        from ..cli.install import Repodatas
+
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        requested_packages = self.from_history(self.prefix)
+
+        for repodata_manager in Repodatas(self.config.repodata_fns, {}):
+            with repodata_manager as repodata_fn:
+                solver = solver_backend(
+                    prefix="/env/does/not/exist",
+                    channels=context.channels,
+                    subdirs=(platform, "noarch"),
+                    specs_to_add=requested_packages,
+                    repodata_fn=repodata_fn,
+                    command="create",
+                )
+                explicit_packages = solver.solve_final_state()
+        return Environment(
+            prefix=self.prefix,
+            name=self.name,
+            platform=platform,
+            config=EnvironmentConfig.from_context(),
+            requested_packages=requested_packages,
+            explicit_packages=explicit_packages,
+            external_packages=self.external_packages,
         )

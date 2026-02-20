@@ -13,12 +13,14 @@ import os
 import platform
 import struct
 import sys
+import warnings
 from contextlib import contextmanager, suppress
 from errno import ENOENT
 from functools import cache, cached_property
 from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from frozendict import frozendict
@@ -31,6 +33,7 @@ from ..common._os.linux import linux_get_libc_version
 from ..common._os.osx import mac_ver
 from ..common.compat import NoneType, on_win
 from ..common.configuration import (
+    DEFAULT_CONDARC_FILENAME,
     Configuration,
     ConfigurationLoadError,
     MapParameter,
@@ -38,9 +41,10 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    YamlRawParameter,
 )
 from ..common.constants import TRACE
-from ..common.iterators import unique
+from ..common.iterators import groupby_to_dict, unique
 from ..common.path import BIN_DIRECTORY, expand, paths_equal
 from ..common.url import has_scheme, path_to_url, split_scheme_auth_token
 from ..deprecations import deprecated
@@ -60,14 +64,15 @@ from .constants import (
     DEFAULT_SOLVER,
     DEFAULTS_CHANNEL_NAME,
     ENV_VARS_SOURCE,
-    ERROR_UPLOAD_URL,
     KNOWN_SUBDIRS,
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     REPODATA_FN,
+    RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
     SEARCH_PATH,
+    UNKNOWN_CHANNEL,
     ChannelPriority,
     DepsModifier,
     PathConflict,
@@ -79,7 +84,6 @@ from .constants import (
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable, Iterator
-    from pathlib import Path
     from typing import Any, Literal
 
     from ..common.configuration import Parameter, RawParameter
@@ -124,8 +128,8 @@ _arch_names = {
     64: "x86_64",
 }
 
-user_rc_path: PathType = abspath(expanduser("~/.condarc"))
-sys_rc_path: PathType = join(sys.prefix, ".condarc")
+user_rc_path: PathType = abspath(expanduser(f"~/{DEFAULT_CONDARC_FILENAME}"))
+sys_rc_path: PathType = join(sys.prefix, DEFAULT_CONDARC_FILENAME)
 
 
 def user_data_dir(  # noqa: F811
@@ -209,24 +213,6 @@ def ssl_verify_validation(value: str) -> str | Literal[True]:
     return True
 
 
-def _warn_defaults_deprecation() -> None:
-    deprecated.topic(
-        "24.9",
-        "25.9",
-        topic=f"Adding '{DEFAULTS_CHANNEL_NAME}' to channel list implicitly",
-        addendum=(
-            "\n\n"
-            "To remove this warning, please choose a default channel explicitly "
-            "with conda's regular configuration system, e.g. "
-            f"by adding '{DEFAULTS_CHANNEL_NAME}' to the list of channels:\n\n"
-            f"  conda config --add channels {DEFAULTS_CHANNEL_NAME}"
-            "\n\n"
-            "For more information see https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/use-condarc.html\n"
-        ),
-        deprecation_type=FutureWarning,
-    )
-
-
 class Context(Configuration):
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
@@ -253,8 +239,9 @@ class Context(Configuration):
         PrimitiveParameter(None, element_type=(str, NoneType)), aliases=("env_spec",)
     )
 
-    create_default_packages = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str))
+    _create_default_packages = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str)),
+        aliases=("create_default_packages",),
     )
     register_envs = ParameterLoader(PrimitiveParameter(True))
     protect_frozen_envs = ParameterLoader(PrimitiveParameter(True))
@@ -270,7 +257,7 @@ class Context(Configuration):
     force_32bit = ParameterLoader(PrimitiveParameter(False))
     non_admin_enabled = ParameterLoader(PrimitiveParameter(True))
     prefix_data_interoperability = ParameterLoader(
-        PrimitiveParameter(False), aliases="pip_interop_enabled"
+        PrimitiveParameter(False), aliases=("pip_interop_enabled",)
     )
 
     @property
@@ -350,6 +337,10 @@ class Context(Configuration):
     _subdir = ParameterLoader(PrimitiveParameter(""), aliases=("subdir",))
     _subdirs = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", str)), aliases=("subdirs",)
+    )
+    _export_platforms = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", str)),
+        aliases=("export_platforms", "extra_platforms"),
     )
 
     local_repodata_ttl = ParameterLoader(
@@ -446,10 +437,6 @@ class Context(Configuration):
         SequenceParameter(PrimitiveParameter("", element_type=str)),
         expandvars=True,
     )
-    _restore_free_channel = ParameterLoader(
-        PrimitiveParameter(False),
-        aliases=("restore_free_channel",),
-    )
     repodata_fns = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str),
@@ -470,7 +457,10 @@ class Context(Configuration):
     _trace = ParameterLoader(PrimitiveParameter(False), aliases=["trace"])
     dev = ParameterLoader(PrimitiveParameter(False))
     dry_run = ParameterLoader(PrimitiveParameter(False))
-    error_upload_url = ParameterLoader(PrimitiveParameter(ERROR_UPLOAD_URL))
+    _error_upload_url = ParameterLoader(
+        PrimitiveParameter("https://conda.io/conda-post/unexpected-error"),
+        aliases=("error_upload_url",),
+    )
     force = ParameterLoader(PrimitiveParameter(False))
     json = ParameterLoader(PrimitiveParameter(False))
     _console = ParameterLoader(
@@ -487,8 +477,9 @@ class Context(Configuration):
     offline = ParameterLoader(PrimitiveParameter(False))
     quiet = ParameterLoader(PrimitiveParameter(False))
     ignore_pinned = ParameterLoader(PrimitiveParameter(False))
-    report_errors = ParameterLoader(
-        PrimitiveParameter(None, element_type=(bool, NoneType))
+    _report_errors = ParameterLoader(
+        PrimitiveParameter(None, element_type=(bool, NoneType)),
+        aliases=("report_errors",),
     )
     shortcuts = ParameterLoader(PrimitiveParameter(True))
     number_channel_notices = ParameterLoader(PrimitiveParameter(5, element_type=int))
@@ -544,6 +535,11 @@ class Context(Configuration):
     _conda_build = ParameterLoader(
         MapParameter(PrimitiveParameter("", element_type=str)),
         aliases=("conda-build", "conda_build"),
+    )
+
+    _override_virtual_packages = ParameterLoader(
+        MapParameter(PrimitiveParameter(None, element_type=(str, NoneType))),
+        aliases=("virtual_packages", "override_virtual_packages"),
     )
 
     ####################################################
@@ -608,6 +604,22 @@ class Context(Configuration):
         return self.plugin_manager.get_config(self.raw_data)
 
     @property
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
+    def error_upload_url(self) -> str:
+        return self._error_upload_url
+
+    @property
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
+    def report_errors(self) -> str:
+        return self._report_errors
+
+    @property
     def conda_build_local_paths(self) -> tuple[PathType, ...]:
         # does file system reads to make sure paths actually exist
         return tuple(
@@ -661,7 +673,7 @@ class Context(Configuration):
 
     @property
     def arch_name(self) -> str:
-        m = platform.machine()
+        m = platform.machine().lower()
         if m in non_x86_machines:
             return m
         else:
@@ -716,7 +728,7 @@ class Context(Configuration):
 
     @cache
     def _native_subdir(self) -> str:
-        m = platform.machine()
+        m = platform.machine().lower()
         if m in non_x86_machines:
             return f"{self.platform}-{m}"
         elif self.platform == "zos":
@@ -729,8 +741,20 @@ class Context(Configuration):
         return self._subdirs or (self.subdir, "noarch")
 
     @memoizedproperty
-    def known_subdirs(self) -> set[str]:
+    def known_subdirs(self) -> frozenset[str]:
         return frozenset((*KNOWN_SUBDIRS, *self.subdirs))
+
+    @property
+    def export_platforms(self) -> tuple[str, ...]:
+        # detect if platforms are overridden by the user
+        argparse_args = dict(getattr(self, "_argparse_args", {}) or {})
+        if argparse_args.get("override_platforms"):
+            platforms = argparse_args.get("export_platforms") or ()
+        else:
+            platforms = self._export_platforms
+
+        # default to the current platform if no platforms are provided
+        return tuple(unique(platforms)) or (self.subdir,)
 
     @property
     def bits(self) -> int:
@@ -794,7 +818,7 @@ class Context(Configuration):
         if self.active_prefix:
             return self.active_prefix
         _default_env = os.getenv("CONDA_DEFAULT_ENV")
-        if _default_env in (None, ROOT_ENV_NAME, "root"):
+        if _default_env in (None, *RESERVED_ENV_NAMES):
             return self.root_prefix
         elif os.sep in _default_env:
             return abspath(_default_env)
@@ -928,17 +952,6 @@ class Context(Configuration):
         #   - are meant to be prepended with channel_alias
         return self.custom_multichannels[DEFAULTS_CHANNEL_NAME]
 
-    @property
-    @deprecated(
-        "24.9",
-        "25.9",
-        addendum="See "
-        "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
-        "for more details.",
-    )
-    def restore_free_channel(self) -> bool:
-        return self._restore_free_channel
-
     @memoizedproperty
     def custom_multichannels(self) -> dict[str, tuple[Channel, ...]]:
         from ..models.channel import Channel
@@ -952,40 +965,16 @@ class Context(Configuration):
         else:
             default_channels = list(self._default_channels)
 
-        if self._restore_free_channel:
-            deprecated.topic(
-                "24.9",
-                "25.9",
-                topic="Adding the 'free' channel using `restore_free_channel` config",
-                addendum="See "
-                "https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/free-channel.html "
-                "for more details.",
-                deprecation_type=FutureWarning,
-            )
-            default_channels.insert(1, "https://repo.anaconda.com/pkgs/free")
-
-        reserved_multichannel_urls = {
-            DEFAULTS_CHANNEL_NAME: default_channels,
-            "local": self.conda_build_local_urls,
-        }
-        reserved_multichannels = {
-            name: tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls
-            )
-            for name, urls in reserved_multichannel_urls.items()
-        }
-        custom_multichannels = {
-            name: tuple(
-                Channel.make_simple_channel(self.channel_alias, url) for url in urls
-            )
-            for name, urls in self._custom_multichannels.items()
-        }
         return {
-            name: channels
-            for name, channels in (
-                *custom_multichannels.items(),
-                *reserved_multichannels.items(),  # order maters, reserved overrides custom
+            name: tuple(
+                Channel.make_simple_channel(self.channel_alias, url) for url in urls
             )
+            for name, urls in {
+                # order matters
+                DEFAULTS_CHANNEL_NAME: default_channels,  # default_channels is a legacy keyword
+                **self._custom_multichannels,  # custom_multichannels.defaults overrides default_channels
+                "local": self.conda_build_local_urls,  # always last, local is a reserved name and cannot be overridden
+            }.items()
         }
 
     @memoizedproperty
@@ -1028,28 +1017,7 @@ class Context(Configuration):
                     "--override-channels."
                 )
 
-        # add 'defaults' channel when necessary if --channel is given via the command line
-        if cli_channels:
-            # Add condition to make sure that we add the 'defaults'
-            # channel only when no channels are defined in condarc
-            # We need to get the config_files and then check that they
-            # don't define channels
-            channel_in_config_files = any(
-                "channels" in context.raw_data[rc_file] for rc_file in self.config_files
-            )
-            if cli_channels and not channel_in_config_files:
-                _warn_defaults_deprecation()
-                return validate_channels(
-                    (*local_channels, *cli_channels, DEFAULTS_CHANNEL_NAME)
-                )
-
-        if self._channels:
-            channels = self._channels
-        else:
-            _warn_defaults_deprecation()
-            channels = [DEFAULTS_CHANNEL_NAME]
-
-        return validate_channels((*local_channels, *channels))
+        return validate_channels((*local_channels, *self._channels))
 
     @property
     def config_files(self) -> tuple[PathType, ...]:
@@ -1130,6 +1098,14 @@ class Context(Configuration):
             return logging.INFO  # 20
         else:
             return logging.WARNING  # 30
+
+    @property
+    def override_virtual_packages(self) -> dict[str, str | None]:
+        """Remove any dunders in the virtual_package name keys"""
+        return {
+            name.removeprefix("__"): value
+            for name, value in self._override_virtual_packages.items()
+        }
 
     def solver_user_agent(self) -> str:
         user_agent = f"solver/{self.solver}"
@@ -1257,6 +1233,46 @@ class Context(Configuration):
         return self._default_activation_env or ROOT_ENV_NAME
 
     @property
+    def create_default_packages(self) -> tuple[str, ...]:
+        """Returns a list of `create_default_packages`, removing any explicit packages."""
+        from ..common.io import dashlist
+
+        grouped_packages = groupby_to_dict(
+            lambda x: (
+                "explicit"
+                if context.plugin_manager.has_package_extension(x)
+                else "spec"
+            ),
+            sequence=self._create_default_packages,
+        )
+
+        if grouped_packages.get("explicit", None):
+            warnings.warn(
+                f"Ignoring invalid packages in `create_default_packages`: {dashlist(grouped_packages.get('explicit'))}\n"
+                f"\n"
+                f"Explicit package are not allowed, use package names like 'numpy' or specs like 'numpy>=1.20' instead.\n"
+                f"Try using the command `conda config --show-sources` to verify your conda configuration.\n",
+                UserWarning,
+            )
+        return tuple(grouped_packages.get("spec", []))
+
+    @property
+    def default_activation_prefix(self) -> Path:
+        """Return the prefix of the default_activation_env.
+
+        If the default_activation_env is an environment name, get the corresponding
+        prefix; otherwise it is already a prefix, so just return it.
+
+        :return: Prefix of the default_activation_env
+        """
+        from ..exceptions import EnvironmentNameNotFound
+
+        try:
+            return Path(locate_prefix_by_name(self.default_activation_env))
+        except EnvironmentNameNotFound:
+            return Path(self.default_activation_env)
+
+    @property
     def environment_context_keys(self) -> list[str]:
         return [
             "aggressive_update_packages",
@@ -1298,7 +1314,6 @@ class Context(Configuration):
                 "migrated_custom_channels",
                 "add_anaconda_token",
                 "allow_non_channel_urls",
-                "restore_free_channel",
                 "repodata_fns",
                 "use_only_tar_bz2",
                 "repodata_threads",
@@ -1377,6 +1392,8 @@ class Context(Configuration):
                 "unsatisfiable_hints_check_depth",
                 "number_channel_notices",
                 "envvars_force_uppercase",
+                "export_platforms",
+                "override_virtual_packages",
             ),
             "CLI-only": (
                 "deps_modifier",
@@ -1399,7 +1416,7 @@ class Context(Configuration):
                 "dev",
                 "default_python",
                 "enable_private_envs",
-                "error_upload_url",  # should remain undocumented
+                "error_upload_url",  # TODO: Remove after deprecation ended
                 "force_32bit",
                 "root_prefix",
                 "sat_solver",
@@ -1601,13 +1618,15 @@ class Context(Configuration):
             ),
             custom_multichannels=dals(
                 """
-                A multichannel is a metachannel composed of multiple channels. The two reserved
-                multichannels are 'defaults' and 'local'. The 'defaults' multichannel is
-                customized using the 'default_channels' parameter. The 'local'
-                multichannel is a list of file:// channel locations where conda-build stashes
-                successfully-built packages.  Other multichannels can be defined with
+                A multichannel is a metachannel composed of multiple channels. The only reserved
+                multichannel is 'local', which is a list of file:// channel locations where
+                conda-build stashes successfully-built packages and cannot be overridden.
+                Other multichannels, including 'defaults', can be defined or customized with
                 custom_multichannels, where the key is the multichannel name and the value is
-                a list of channel names and/or channel urls.
+                a list of channel names and/or channel urls. The 'defaults' multichannel can
+                also be customized using the 'default_channels' parameter (a historical setting
+                from when 'defaults' was reserved). If both are defined,
+                'custom_multichannels.defaults' takes precedence.
                 """
             ),
             default_activation_env=dals(
@@ -1620,6 +1639,7 @@ class Context(Configuration):
             default_channels=dals(
                 """
                 The list of channel names and/or urls used for the 'defaults' multichannel.
+                Can be overridden by 'custom_multichannels.defaults'.
                 """
             ),
             # default_python=dals(
@@ -1683,6 +1703,12 @@ class Context(Configuration):
                 Threads to use when performing the unlink/link transaction.  When not set,
                 defaults to 1.  This step is pretty strongly I/O limited, and you may not
                 see much benefit here.
+                """
+            ),
+            export_platforms=dals(
+                """
+                Additional platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64), current
+                platform is always included.
                 """
             ),
             fetch_threads=dals(
@@ -1849,12 +1875,6 @@ class Context(Configuration):
                 Opt in, or opt out, of automatic error reporting to core maintainers. Error
                 reports are anonymous, with only the error stack trace and information given
                 by `conda info` being sent.
-                """
-            ),
-            restore_free_channel=dals(
-                """"
-                Add the "free" channel back into defaults, behind "main" in priority. The "free"
-                channel was removed from the collection of default channels in conda 4.7.0.
                 """
             ),
             rollback_enabled=dals(
@@ -2029,6 +2049,11 @@ class Context(Configuration):
                 Defaults to "{DEFAULT_CONSOLE_REPORTER_BACKEND}".
                 """
             ),
+            override_virtual_packages=dals(
+                """
+                Set override values for virtual packages.
+                """
+            ),
         )
 
 
@@ -2043,6 +2068,7 @@ def reset_context(
 
     PluginConfig.remove_all_plugin_settings()
 
+    YamlRawParameter.cache_clear()
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)
     from ..models.channel import Channel
@@ -2200,11 +2226,12 @@ def env_name(prefix: PathType) -> PathType | str | None:
 
 
 def locate_prefix_by_name(name: str, envs_dirs: PathsType | None = None) -> PathType:
-    """Find the location of a prefix given a conda env name.  If the location does not exist, an
-    error is raised.
+    """Find the location of a prefix given a conda env name. If the location does not exist, an
+    error is raised. If the prefix is the base or root env, the root prefix is returned.
     """
-    assert name
-    if name in (ROOT_ENV_NAME, "root"):
+    if not name:
+        raise ValueError("'name' cannot be empty.")
+    if name in RESERVED_ENV_NAMES:
         return context.root_prefix
     if envs_dirs is None:
         envs_dirs = context.envs_dirs
@@ -2250,7 +2277,11 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
                 if allowlist and url not in allowlist:
                     raise ChannelNotAllowed(channel)
 
-    return tuple(dict.fromkeys(channels))
+    return tuple(
+        channel
+        for channel in dict.fromkeys(channels)
+        if Channel(channel).canonical_name != UNKNOWN_CHANNEL
+    )
 
 
 @deprecated(
@@ -2274,7 +2305,7 @@ def validate_prefix_name(
             )
         )
 
-    if prefix_name in (ROOT_ENV_NAME, "root"):
+    if prefix_name in RESERVED_ENV_NAMES:
         if allow_base:
             return ctx.root_prefix
         else:

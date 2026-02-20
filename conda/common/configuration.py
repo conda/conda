@@ -21,7 +21,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
-from functools import wraps
+from functools import cache, wraps
 from itertools import chain
 from logging import getLogger
 from os import environ
@@ -47,7 +47,7 @@ from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
-from .serialize import yaml_round_trip_load
+from .serialize import yaml
 
 if Enum not in _getFreezeConversionMap():
     # leave enums as is, deepfreeze will flatten it into a dict
@@ -60,7 +60,7 @@ del _register
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Sequence
     from re import Match
-    from typing import Any
+    from typing import Any, Final
 
     from ..common.path import PathsType
 
@@ -224,7 +224,8 @@ class EnvRawParameter(RawParameter):
         # note: this assumes that EnvRawParameters will only have flat configuration of either
         # primitive or sequential type
         if hasattr(parameter_obj, "string_delimiter"):
-            assert isinstance(self._raw_value, str)
+            if not isinstance(self._raw_value, str):
+                raise TypeError("Value is not a string.")
             string_delimiter = getattr(parameter_obj, "string_delimiter")
             # TODO: add stripping of !important, !top, and !bottom
             return tuple(
@@ -390,10 +391,21 @@ class YamlRawParameter(RawParameter):
         return EMPTY_MAP
 
     @classmethod
+    @cache
     def make_raw_parameters_from_file(cls, filepath):
+        """
+        Read the provided file path and convert the contents into configuration parameters.
+
+        This function will cache the result for each filepath. In order to re-read the same
+        file path with updated content, be sure to clear this cache.
+
+        For example::
+
+            YamlRawParameter.cache_clear()
+        """
         with open(filepath) as fh:
             try:
-                yaml_obj = yaml_round_trip_load(fh)
+                yaml_obj = yaml.loads(fh)
             except ScannerError as err:
                 mark = err.problem_mark
                 raise ConfigurationLoadError(
@@ -409,6 +421,10 @@ class YamlRawParameter(RawParameter):
                     position=err.position,
                 )
             return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
+
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls.make_raw_parameters_from_file.cache_clear()
 
 
 class DefaultValueRawParameter(RawParameter):
@@ -1333,7 +1349,9 @@ class ConfigurationType(type):
         return self
 
 
-CONDARC_FILENAMES = (".condarc", "condarc")
+DEFAULT_CONDARC_FILENAME: Final = ".condarc"
+ALTERNATIVE_CONDARC_FILENAME: Final = "condarc"
+CONDARC_FILENAMES = (DEFAULT_CONDARC_FILENAME, ALTERNATIVE_CONDARC_FILENAME)
 YAML_EXTENSIONS = (".yml", ".yaml")
 _RE_CUSTOM_EXPANDVARS = compile(
     rf"""
@@ -1659,7 +1677,10 @@ class Configuration(metaclass=ConfigurationType):
             raise KeyError(parameter_name)
 
         parameter = parameter_loader.type
-        assert isinstance(parameter, Parameter)
+        if not isinstance(parameter, Parameter):
+            raise TypeError(
+                f"Name '{parameter_name}' did not return a Parameter object."
+            )
 
         # dedupe leading underscore from name
         name = parameter_loader.name.lstrip("_")
@@ -1714,7 +1735,10 @@ class Configuration(metaclass=ConfigurationType):
             raise KeyError(parameter_name)
 
         parameter = parameter_loader.type
-        assert isinstance(parameter, Parameter)
+        if not isinstance(parameter, Parameter):
+            raise TypeError(
+                f"Name '{parameter_name}' did not return a Parameter object."
+            )
 
         return parameter.typify(parameter_name, source, value)
 

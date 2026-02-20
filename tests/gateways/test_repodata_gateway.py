@@ -17,8 +17,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.constants import REPODATA_FN
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import env_vars
+from conda.base.context import context, reset_context
 from conda.exceptions import (
     CondaDependencyError,
     CondaHTTPError,
@@ -47,6 +46,8 @@ from conda.models.channel import Channel
 
 if TYPE_CHECKING:
     from socket import socket
+
+    from pytest import MonkeyPatch
 
 
 def test_save(tmp_path):
@@ -201,7 +202,7 @@ def test_repodata_state_has_format():
     assert "has_zst" in state
 
 
-def test_coverage_conda_http_errors():
+def test_coverage_conda_http_errors(monkeypatch: MonkeyPatch):
     class Response:
         def __init__(self, status_code):
             self.status_code = status_code
@@ -237,15 +238,43 @@ def test_coverage_conda_http_errors():
     ):
         raise HTTPError(response=Response(404))
 
+    monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "1")
+    reset_context()
     with (
         pytest.raises(RepodataIsEmpty),
-        env_vars(
-            {"CONDA_ALLOW_NON_CHANNEL_URLS": "1"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
         conda_http_errors("https://conda.anaconda.org/noarch", "repodata.json"),
     ):
         raise HTTPError(response=Response(404))
+
+    # 403 should have context-aware error messages (unlike 404)
+    # Test 403 on anaconda.org channel
+    with (
+        pytest.raises(CondaHTTPError, match="do not have permission"),
+        conda_http_errors("https://conda.anaconda.org/noarch", "repodata.json"),
+    ):
+        raise HTTPError(response=Response(403))
+
+    # Test 403 with a token - should trigger a different message
+    with (
+        pytest.raises(CondaHTTPError, match="insufficient permissions"),
+        conda_http_errors(
+            "/t/dh-73683400-b3ee-4f87-ade8-37de6d395bdb/conda-forge/noarch",
+            "repodata.json",
+        ),
+    ):
+        raise HTTPError(response=Response(403))
+
+    # Test 403 on non-anaconda URL
+    monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "1")
+    reset_context()
+    with (
+        pytest.raises(CondaHTTPError, match="do not have permission"),
+        conda_http_errors("https://example.org/main/linux-64", "repodata.json"),
+    ):
+        context.channel_alias.location = "xyzzy"
+        raise HTTPError(response=Response(403))
+
+    reset_context()
 
     # A variety of helpful error messages should follow
     with (
@@ -264,17 +293,17 @@ def test_coverage_conda_http_errors():
     ):
         raise HTTPError(response=Response(401))
 
-    # env_vars plus a harmless option to reset context on exit
+    # monkeypatch plus reset context to restore state
+    monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "1")
+    reset_context()
     with (
         pytest.raises(CondaHTTPError, match="The credentials"),
-        env_vars(
-            {"CONDA_ALLOW_NON_CHANNEL_URLS": "1"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
         conda_http_errors("https://conda.anaconda.org/noarch", "repodata.json"),
     ):
         context.channel_alias.location = "xyzzy"
         raise HTTPError(response=Response(401))
+
+    reset_context()
 
     # was the context reset properly?
     assert context.channel_alias.location != "xyzzy"
@@ -366,7 +395,11 @@ def test_repodata_fetch_formats(
 @pytest.mark.parametrize("use_network", [False, True])
 @pytest.mark.parametrize("use_index", ["false", "true"])
 def test_repodata_fetch_cached(
-    use_index: str, use_network: bool, package_server, tmp_path
+    use_index: str,
+    use_network: bool,
+    package_server,
+    tmp_path,
+    monkeypatch: MonkeyPatch,
 ):
     """
     An empty cache should return an empty result instead of an error, when
@@ -380,26 +413,27 @@ def test_repodata_fetch_cached(
     else:
         channel_url = "file:///path/does/not/exist"
 
-    with env_vars({"CONDA_USE_INDEX": use_index}):
-        # we always check for *and create* a writable cache dir before fetch
-        cache_path_base = tmp_path / "fetch_cached"
-        cache_path_base.parent.mkdir(exist_ok=True)
+    monkeypatch.setenv("CONDA_USE_INDEX", use_index)
 
-        # due to the way we handle file:/// urls, this test will pass whether or
-        # not use_index is true or false. Will it exercise different code paths?
-        channel = Channel(channel_url)
+    # we always check for *and create* a writable cache dir before fetch
+    cache_path_base = tmp_path / "fetch_cached"
+    cache_path_base.parent.mkdir(exist_ok=True)
 
-        fetch = RepodataFetch(
-            cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
-        )
+    # due to the way we handle file:/// urls, this test will pass whether or
+    # not use_index is true or false. Will it exercise different code paths?
+    channel = Channel(channel_url)
 
-        # strangely never throws unavailable exception?
-        repodata, state = fetch.fetch_latest_parsed()
+    fetch = RepodataFetch(
+        cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
+    )
 
-        assert repodata == {}
-        for key in "mtime_ns", "size", "refresh_ns":
-            state.pop(key)
-        assert state == {}
+    # strangely never throws unavailable exception?
+    repodata, state = fetch.fetch_latest_parsed()
+
+    assert repodata == {}
+    for key in "mtime_ns", "size", "refresh_ns":
+        state.pop(key)
+    assert state == {}
 
 
 def test_repodata_fetch_jsondecodeerror(tmp_path):

@@ -9,7 +9,6 @@ from typing import NamedTuple
 from .. import CondaError
 from ..auxlib.entity import Entity, EntityType, IntegerField, StringField
 from ..base.constants import (
-    CONDA_PACKAGE_EXTENSIONS,
     DEFAULTS_CHANNEL_NAME,
     UNKNOWN_CHANNEL,
 )
@@ -62,16 +61,18 @@ class DistType(EntityType):
             return super().__call__(*args, **kwargs)
 
 
-def strip_extension(original_dist):
-    for ext in CONDA_PACKAGE_EXTENSIONS:
-        if original_dist.endswith(ext):
-            original_dist = original_dist[: -len(ext)]
+# TODO: Consider deprecating in favor of conda.common.path.strip_pkg_extension
+def strip_extension(original_dist: str) -> str:
+    if ext := context.plugin_manager.has_package_extension(original_dist):
+        return original_dist[: -len(ext)]
     return original_dist
 
 
-def split_extension(original_dist):
-    stripped = strip_extension(original_dist)
-    return stripped, original_dist[len(stripped) :]
+# TODO: Consider deprecating in favor of conda.common.path.strip_pkg_extension
+def split_extension(original_dist: str) -> tuple[str, str]:
+    if ext := context.plugin_manager.has_package_extension(original_dist):
+        return original_dist[: -len(ext)], ext
+    return original_dist, ""
 
 
 class Dist(Entity, metaclass=DistType):
@@ -252,11 +253,9 @@ class Dist(Entity, metaclass=DistType):
 
     @classmethod
     def from_url(cls, url):
-        assert is_url(url), url
-        if (
-            not any(url.endswith(ext) for ext in CONDA_PACKAGE_EXTENSIONS)
-            and "::" not in url
-        ):
+        if not is_url(url):
+            raise ValueError("'{url}' does not seem to be a valid URL")
+        if not context.plugin_manager.has_package_extension(url) and "::" not in url:
             raise CondaError(f"url '{url}' is not a conda package")
 
         dist_details = cls.parse_dist_name(url)
@@ -297,19 +296,35 @@ class Dist(Entity, metaclass=DistType):
         return self.channel, self.dist_name
 
     def __lt__(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "Can only compare with objects of the same type. "
+                f"Left side is {type(self)}, and right side is {type(other)}"
+            )
         return self.__key__() < other.__key__()
 
     def __gt__(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "Can only compare with objects of the same type. "
+                f"Left side is {type(self)}, and right side is {type(other)}"
+            )
         return self.__key__() > other.__key__()
 
     def __le__(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "Can only compare with objects of the same type. "
+                f"Left side is {type(self)}, and right side is {type(other)}"
+            )
         return self.__key__() <= other.__key__()
 
     def __ge__(self, other):
-        assert isinstance(other, self.__class__)
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                "Can only compare with objects of the same type. "
+                f"Left side is {type(self)}, and right side is {type(other)}"
+            )
         return self.__key__() >= other.__key__()
 
     def __hash__(self):
@@ -326,12 +341,15 @@ class Dist(Entity, metaclass=DistType):
     # ############ conda-build compatibility ################
 
     def split(self, sep=None, maxsplit=-1):
-        assert sep == "::"
+        if sep != "::":
+            raise ValueError("'sep' can only be '::'")
         return [self.channel, self.dist_name] if self.channel else [self.dist_name]
 
     def rsplit(self, sep=None, maxsplit=-1):
-        assert sep == "-"
-        assert maxsplit == 2
+        if sep != "-":
+            raise ValueError("'sep' can only be '-'")
+        if maxsplit != 2:
+            raise ValueError("'maxsplit' can only be 2")
         name = f"{self.channel}::{self.quad[0]}" if self.channel else self.quad[0]
         return name, self.quad[1], self.quad[2]
 

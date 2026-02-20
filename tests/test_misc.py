@@ -2,16 +2,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import codecs
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
 
+from conda import misc
 from conda.common.compat import on_mac, on_win
 from conda.core.subdir_data import cache_fn_url
 from conda.exceptions import CondaExitZero, ParseError, SpecNotFoundInPackageCache
-from conda.misc import _match_specs_from_explicit, explicit, url_pat, walk_prefix
+from conda.misc import (
+    _get_url_pattern,
+    _match_specs_from_explicit,
+    explicit,
+    walk_prefix,
+)
 from conda.utils import Utf8NamedTemporaryFile
 
 if TYPE_CHECKING:
@@ -32,7 +37,7 @@ def test_Utf8NamedTemporaryFile():
                 else test_string
             )
             fname = tf.name
-        with codecs.open(fname, mode="rb", encoding="utf-8") as fh:
+        with open(fname, encoding="utf-8") as fh:
             value = fh.read()
         assert value == test_string
     except Exception as exc:
@@ -56,6 +61,7 @@ def test_cache_fn_url():
 
 
 def test_url_pat_1():
+    url_pat = _get_url_pattern()
     match = url_pat.match(
         "http://test/pkgs/linux-64/foo.tar.bz2#d6918b03927360aa1e57c0188dcb781b"
     )
@@ -65,6 +71,7 @@ def test_url_pat_1():
 
 
 def test_url_pat_2():
+    url_pat = _get_url_pattern()
     match = url_pat.match("http://test/pkgs/linux-64/foo.tar.bz2")
     assert match.group("url_p") == "http://test/pkgs/linux-64"
     assert match.group("fn") == "foo.tar.bz2"
@@ -72,6 +79,7 @@ def test_url_pat_2():
 
 
 def test_url_pat_3():
+    url_pat = _get_url_pattern()
     match = url_pat.match("http://test/pkgs/linux-64/foo.tar.bz2#1234")
     assert match is None
 
@@ -125,7 +133,7 @@ def test_explicit_missing_cache_entries(
         explicit(
             [
                 f"{schema}{(noarch / 'missing-1.0.0-0.tar.bz2').as_posix()}",
-                f"{schema}{(noarch / 'small-executable-1.0.0-0.tar.bz2').as_posix()}",
+                f"{schema}{(noarch / 'small-executable-1.0.0-0.conda').as_posix()}",
             ],
             None,  # the assertion is raised before the prefix matters
         )
@@ -223,3 +231,15 @@ def test_explicit_parser(url: str, checksum: str, raises: Exception | None):
         spec = specs[0]
         assert spec.get("url").split("/")[-1] == url.split("/")[-1]
         assert checksum.rsplit(":", 1)[-1] in (spec.get("md5"), spec.get("sha256"))
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("url_pat", TypeError),
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(misc, function)()

@@ -8,6 +8,7 @@ import platform
 import re
 import sys
 import warnings
+from base64 import urlsafe_b64decode
 from collections import namedtuple
 from configparser import ConfigParser
 from csv import reader as csv_reader
@@ -34,8 +35,8 @@ from ....common.path import (
     win_path_ok,
 )
 from ....models.channel import Channel
-from ....models.enums import PackageType, PathType
-from ....models.records import PathData, PathDataV1, PathsData, PrefixRecord
+from ....models.enums import PackageType, PathEnum
+from ....models.records import PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
 
@@ -134,11 +135,11 @@ class PythonDistribution:
     def _check_path_data(self, path, checksum, size):
         """Normalizes record data content and format."""
         if checksum:
-            assert checksum.startswith("sha256="), (
-                self._metadata_dir_full_path,
-                path,
-                checksum,
-            )
+            if not checksum.startswith("sha256="):
+                raise ValueError(
+                    f"Invalid checksum {checksum} at {path}. "
+                    f"Check {self._metadata_dir_full_path}."
+                )
             checksum = checksum[7:]
         else:
             checksum = None
@@ -263,12 +264,16 @@ class PythonDistribution:
                     if len(row) == 3:
                         checksum, size = row[1:]
                         if checksum:
-                            assert checksum.startswith("sha256="), (
-                                self._metadata_dir_full_path,
-                                cleaned_path,
-                                checksum,
-                            )
-                            checksum = checksum[7:]
+                            if not checksum.startswith("sha256="):
+                                raise ValueError(
+                                    f"Invalid checksum {checksum} at {cleaned_path}. "
+                                    f"Check {self._metadata_dir_full_path}."
+                                )
+                            checksum = checksum[7:]  # remove the 'sha256=' prefix
+                            # Checksum is base64 encoded, but may not be padded;
+                            # fix before decoding!
+                            pad = "=" * (4 - (len(checksum) & 3))
+                            checksum = urlsafe_b64decode(checksum + pad).hex()
                         else:
                             checksum = None
                         size = int(size) if size else None
@@ -549,7 +554,8 @@ class PythonDistributionMetadata:
                 filenames = [".egg-info"]
                 if metadata_filenames:
                     filenames.extend(metadata_filenames)
-                assert any(path.endswith(filename) for filename in filenames)
+                if not any(path.endswith(filename) for filename in filenames):
+                    raise RuntimeError("Mismatched paths in dist-info folder")
                 metadata_path = path
             else:
                 # `path` does not exist
@@ -1126,7 +1132,8 @@ class Evaluator:
                     raise SyntaxError(f"unknown variable: {expr}")
                 result = context[expr]
         else:
-            assert isinstance(expr, dict)
+            if not isinstance(expr, dict):
+                raise TypeError("'expr' must be a dict.")
             op = expr["op"]
             if op not in self.operations:
                 raise NotImplementedError(f"op not implemented: {op}")
@@ -1243,7 +1250,7 @@ def read_python_record(prefix_path, anchor_file, python_version):
             paths=(
                 PathDataV1(
                     _path=path,
-                    path_type=PathType.hardlink,
+                    path_type=PathEnum.hardlink,
                     sha256=checksum,
                     size_in_bytes=size,
                 )
@@ -1270,7 +1277,8 @@ def read_python_record(prefix_path, anchor_file, python_version):
             paths_data = PathsData(
                 paths_version=1,
                 paths=(
-                    PathData(_path=path, path_type=PathType.hardlink) for path in files
+                    PathDataV1(_path=path, path_type=PathEnum.hardlink)
+                    for path in files
                 ),
             )
         else:

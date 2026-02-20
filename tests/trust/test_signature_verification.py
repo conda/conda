@@ -15,11 +15,16 @@ from conda.base.context import context, reset_context
 from conda.gateways.connection import HTTPError
 from conda.models.channel import Channel
 from conda.models.records import PackageRecord
-from conda.trust.constants import KEY_MGR_FILE
-from conda.trust.signature_verification import SignatureError, _SignatureVerification
+
+with pytest.deprecated_call():
+    from conda.trust.constants import KEY_MGR_FILE
+    from conda.trust.signature_verification import (
+        SignatureError,
+        _SignatureVerification,
+    )
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from collections.abc import Callable
 
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
@@ -348,7 +353,7 @@ def test_signature_verification(
 
     # enable signature verification
     monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
-    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "http://example.com")
     reset_context()
     assert context.extra_safety_checks
     assert context.signing_metadata_url_base == url

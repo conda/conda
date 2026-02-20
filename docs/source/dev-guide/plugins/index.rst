@@ -13,7 +13,7 @@ This is an example of a minimal working conda plugin that defines a new subcomma
 .. code-block:: python
    :caption: example_plugin.py
 
-   import conda.plugins
+   import conda.plugins.types
    from conda.base.context import context
 
 
@@ -23,7 +23,7 @@ This is an example of a minimal working conda plugin that defines a new subcomma
 
    @conda.plugins.hookimpl
    def conda_subcommands():
-       yield conda.plugins.CondaSubcommand(
+       yield conda.plugins.types.CondaSubcommand(
            name="example",
            action=command,
            summary="Example of a conda subcommand",
@@ -36,7 +36,7 @@ Let's break down what's going on here step-by-step:
    arguments which equal to ``sys.argv[2:]``.
 2. Next, we register this subcommand by using the ``conda_subcommands`` plugin hook. We do this by creating a function
    called ``conda_subcommands`` and then decorating it with ``conda.plugins.hookimpl``.
-3. The object we return from this function is ``conda.plugins.CondaSubcommand``, which does several things:
+3. The object we return from this function is ``conda.plugins.types.CondaSubcommand``, which does several things:
 
    1. **name** is what we use to call this subcommand via the command line (i.e. "conda example")
    2. **action** is the function that will be called when we invoke "conda example"
@@ -57,7 +57,7 @@ by either using a ``pyproject.toml`` file (preferred) or a ``setup.py`` (legacy)
    name = "conda-example-plugin"
    version = "1.0.0"
    description = "Example conda plugin"
-   requires-python = ">=3.9"
+   requires-python = ">=3.10"
    dependencies = ["conda"]
 
    [project.entry-points."conda"]
@@ -101,6 +101,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    environment_exporters
    environment_specifiers
    health_checks
+   package_extractors
    post_commands
    pre_commands
    pre_transaction_actions

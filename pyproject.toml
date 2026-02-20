@@ -14,10 +14,11 @@ classifiers = [
   "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -26,7 +27,7 @@ dependencies = [
   "boltons >=23.0.0",
   "charset-normalizer",
   # Disabled due to conda-libmamba-solver not being available on PyPI
-  # "conda-libmamba-solver >=24.11.0",
+  # "conda-libmamba-solver >=25.4.0",
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
   "frozendict >=2.4.2",
@@ -48,7 +49,7 @@ dynamic = ["version"]
 license = {file = "LICENSE"}
 name = "conda"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.scripts]
 conda = "conda.cli.main_pip:main"
@@ -128,7 +129,7 @@ ignore_missing_imports = true
 implicit_reexport = false
 no_implicit_optional = true
 pretty = true
-python_version = "3.9"
+python_version = "3.10"
 show_column_numbers = true
 show_error_code_links = true
 show_error_codes = true
@@ -163,13 +164,25 @@ doctest_optionflags = [
   "ALLOW_UNICODE",
   "ELLIPSIS",
 ]
+filterwarnings = [
+  # elevate all deprecation warnings to errors
+  "error::PendingDeprecationWarning",
+  "error::DeprecationWarning",
+  "error::FutureWarning",
+  # ##### external library deprecations that we cannot fix in the conda source code
+  # - conda_content_trust.plugin uses old CondaSubcommand import path; remove when conda-content-trust plugin is updated
+  "ignore:conda.plugins.CondaSubcommand:PendingDeprecationWarning:conda_content_trust.plugin",
+  # ##### internal conda deprecations that need some special handling right now
+  # - ignore this until 26.3 due to a circular deprecation warning
+  "ignore:conda.core.link.PrefixActions:DeprecationWarning:conda.core.link",
+]
 markers = [
   "integration: integration tests that usually require an internet connect",
   "slow: slow running tests",
   "benchmark: benchmark tests",
   "memray: memory use tests",
 ]
-minversion = 3.0
+minversion = "3.0"
 norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
@@ -189,10 +202,9 @@ exclude = [
   "tests/data/conda_format_repo",
   "tests/data/env_metadata",
 ]
-target-version = "py39"
+show-fixes = true
 
 [tool.ruff.lint]
-extend-per-file-ignores = {"docs/*" = ["D1"], "tests/*" = ["D1", "TID251"]}
 flake8-type-checking = {exempt-modules = [], strict = true}
 ignore = [
   "D101",  # Missing docstring in public class
@@ -210,6 +222,7 @@ ignore = [
 pydocstyle = {convention = "pep257"}
 # see https://docs.astral.sh/ruff/rules/
 select = [
+  "B012",  # bugbear
   "D1",  # pydocstyle
   "E",  # pycodestyle errors
   "F",  # pyflakes
@@ -217,11 +230,25 @@ select = [
   "I",  # isort
   "ISC",  # flake8-implicit-str-concat
   "RUF100",  # Unused noqa directive
+  "S101",  # forbid assert
   "T10",  # flake8-debugger
-  "TCH",  # flake8-type-checking
+  "TC",  # flake8-type-checking
   "TID251",  # flake8-tidy-imports
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
+]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"conda/testing/*" = [
+  "S101",  # forbid assert
+]
+"docs/*" = [
+  "D1",  # pydocstyle
+]
+"tests/*" = [
+  "D1",  # pydocstyle
+  "S101",  # forbid assert
+  "TID251",  # flake8-tidy-imports
 ]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]

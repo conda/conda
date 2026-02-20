@@ -2,18 +2,28 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Environment object describing the conda environment.yaml file."""
 
+from __future__ import annotations
+
 import os
 import re
 from itertools import chain
+from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..cli import common
+from ..common.io import dashlist
 from ..common.iterators import unique
 from ..common.path import expand
-from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
+from ..common.serialize import json, yaml
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
-from ..exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
+from ..exceptions import (
+    CondaMultiError,
+    EnvironmentFileEmpty,
+    EnvironmentFileInvalid,
+    EnvironmentFileNotFound,
+    InvalidMatchSpec,
+)
 from ..gateways.connection.download import download_text
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..history import History
@@ -21,7 +31,142 @@ from ..models.environment import Environment as EnvironmentModel
 from ..models.environment import EnvironmentConfig
 from ..models.match_spec import MatchSpec
 
-VALID_KEYS = ("name", "dependencies", "prefix", "channels", "variables")
+if TYPE_CHECKING:
+    from typing import Any
+
+REQUIRED_KEYS = frozenset(("dependencies",))
+OPTIONAL_KEYS = frozenset(
+    (
+        "name",
+        "prefix",
+        "channels",
+        "variables",
+    )
+)
+VALID_KEYS = frozenset((*REQUIRED_KEYS, *OPTIONAL_KEYS))
+
+
+def field_type_validation(field_name: str, value: Any, value_type: Any) -> None:
+    """Validates the type of a value"""
+    if not isinstance(value, value_type):
+        raise EnvironmentFileInvalid(
+            f"Invalid type for '{field_name}', expected a {value_type.__name__}"
+        )
+
+
+def prefix_validation(prefix: str):
+    """Validate the contents of the prefix field.
+
+    Will ensure:
+      * prefix is a string
+    """
+    field_type_validation("prefix", prefix, str)
+
+
+def name_validation(name: str):
+    """Validate the contents of the name field.
+
+    Will ensure:
+      * name is a string
+    """
+    field_type_validation("name", name, str)
+
+
+def dependencies_validation(dependencies: list):
+    """Validate the contents of the dependencies field.
+
+    Will ensure:
+      * dependencies are a list
+      * all string dependencies are MatchSpec compatible
+      * the only other type allowed is a dict
+    """
+    field_type_validation("dependencies", dependencies, list)
+
+    errors = []
+    for dependency in dependencies:
+        if isinstance(dependency, str):
+            # If the dependency is a string type, it must be
+            # MatchSpec compatible.
+            try:
+                MatchSpec(dependency)
+            except InvalidMatchSpec as err:
+                errors.append(EnvironmentFileInvalid(str(err)))
+        elif isinstance(dependency, dict):
+            # dict types are also allowed. There are no requirements
+            # for the form of this entry
+            pass
+        else:
+            # All other types are invalid
+            errors.append(
+                EnvironmentFileInvalid(
+                    f"'{dependency}' is an invalid type for a 'dependency'"
+                )
+            )
+
+    if errors:
+        raise CondaMultiError(errors)
+
+
+def channels_validation(channels: list):
+    """Validate the contents of the channels field.
+
+    Will ensure:
+      * channels is a list
+      * all entries are strings
+    """
+    field_type_validation("channels", channels, list)
+
+    for channel in channels:
+        if not isinstance(channel, str):
+            raise EnvironmentFileInvalid(
+                "`channels` key must only contain strings. Found '{channel}'"
+            )
+
+
+def variables_validation(variables: dict[str, str]):
+    """Validate the contents of the variables field.
+
+    Will ensure:
+      * variables is a dict
+      * all entries are strings
+    """
+    field_type_validation("variables", variables, dict)
+
+
+SCHEMA_VALIDATORS = {
+    "name": name_validation,
+    "prefix": prefix_validation,
+    "dependencies": dependencies_validation,
+    "channels": channels_validation,
+    "variables": variables_validation,
+}
+
+
+def get_schema_errors(data: dict) -> list[EnvironmentFileInvalid]:
+    """Parses environment.yaml data to build a list of schema errors
+
+    Will produce errors to ensure:
+      * all required fields are present
+      * all fields contain valid data
+
+    :param dict data: The contents of the environment.yaml
+    :returns errors: A list of EnvironmentFileInvalid exceptions that occurred during validation
+    """
+    errors = []
+    # Ensure all required keys are present
+    for field in REQUIRED_KEYS.difference(data):
+        errors.append(EnvironmentFileInvalid(f"Missing required field '{field}'"))
+
+    # Run validations on all the relevant fields, extra keys are ignored
+    for key, validator in SCHEMA_VALIDATORS.items():
+        try:
+            validator(data[key])
+        except KeyError:
+            pass
+        except EnvironmentFileInvalid as err:
+            errors.append(err)
+
+    return errors
 
 
 def validate_keys(data, kwargs):
@@ -45,7 +190,7 @@ def validate_keys(data, kwargs):
             print(f" - {key}")
         print()
 
-    deps = data.get("dependencies", [])
+    deps = data.get("dependencies") or []
     depsplit = re.compile(r"[<>~\s=]")
     is_pip = lambda dep: "pip" in depsplit.split(dep)[0].split("::")
     lists_pip = any(is_pip(dep) for dep in deps if not isinstance(dep, dict))
@@ -124,12 +269,35 @@ def from_environment(
     )
 
 
-def from_yaml(yamlstr, **kwargs):
-    """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string"""
-    data = yaml_safe_load(yamlstr)
+def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
+    """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string
+
+    :param yamlstr: The contents of the environment.yaml
+    :param raise_validation_errors: Indicates if an error should be raised if the yamlstr
+        is found to be invalid
+    :returns EnvironmentYaml: A representation of the environment file
+    """
+    data = yaml.loads(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
+
+    # Perform schema validation. This will output a warning for any invalid schema.
+    errors = get_schema_errors(data)
+    if errors:
+        # Warn for all the schema errors in the environment
+        deprecated.topic(
+            "26.3",
+            "26.9",
+            topic="The environment file is not fully CEP 24 compliant",
+            addendum=(
+                "In the future, this configuration will be rejected. Please fix the following "
+                "errors in order to make the configuration valid: "
+                f"{dashlist(errors)}"
+            ),
+            deprecation_type=FutureWarning,
+        )
+
     data = validate_keys(data, kwargs)
 
     if kwargs is not None:
@@ -146,8 +314,8 @@ def _expand_channels(data):
     ]
 
 
-def from_file(filename):
-    """Load and return an ``EnvironmentYaml`` from a given file"""
+def load_file(filename):
+    """Load and return an yaml string from a given file"""
     url_scheme = filename.split("://", 1)[0]
     if url_scheme in CONDA_SESSION_SCHEMES:
         yamlstr = download_text(filename)
@@ -160,6 +328,12 @@ def from_file(filename):
                 yamlstr = yamlb.decode("utf-8")
             except UnicodeDecodeError:
                 yamlstr = yamlb.decode("utf-16")
+    return yamlstr
+
+
+def from_file(filename):
+    """Load and return an ``EnvironmentYaml`` from a given file"""
+    yamlstr = load_file(filename)
     return from_yaml(yamlstr, filename=filename)
 
 
@@ -245,9 +419,7 @@ class EnvironmentYaml:
     def to_yaml(self, stream=None):
         """Convert information related to the ``EnvironmentYaml`` into a ``yaml`` string"""
         d = self.to_dict()
-        out = yaml_safe_dump(d, stream)
-        if stream is None:
-            return out
+        return yaml.write(d, fp=stream)
 
     def save(self):
         """Save the ``EnvironmentYaml`` data to a ``yaml`` file"""

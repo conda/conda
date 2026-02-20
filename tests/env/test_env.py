@@ -10,16 +10,20 @@ from unittest.mock import patch
 
 import pytest
 
-from conda.common.serialize import yaml_round_trip_load
+from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
-    Environment,
     EnvironmentYaml,
+    channels_validation,
+    dependencies_validation,
     from_environment,
     from_file,
+    name_validation,
+    prefix_validation,
+    variables_validation,
 )
-from conda.exceptions import CondaHTTPError
+from conda.exceptions import CondaHTTPError, CondaMultiError, EnvironmentFileInvalid
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -232,7 +236,7 @@ def test_to_yaml_returns_yaml_parseable_string():
         "dependencies": ["nodejs"],
     }
 
-    actual = yaml_round_trip_load(StringIO(e.to_yaml()))
+    actual = yaml.loads(StringIO(e.to_yaml()))
     assert expected == actual
 
 
@@ -305,10 +309,26 @@ def test_valid_keys():
 
 
 def test_invalid_keys():
-    e = get_invalid_keys_environment()
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="The environment file is not fully CEP 24 compliant",
+    ):
+        e = get_invalid_keys_environment()
+        e_dict = e.to_dict()
+        assert "name" in e_dict
+        assert len(e_dict) == 1
+
+
+def test_empty_deps():
+    with pytest.warns(
+        PendingDeprecationWarning,
+        match="The environment file is not fully CEP 24 compliant",
+    ):
+        e = get_environment("empty_deps.yml")
     e_dict = e.to_dict()
     assert "name" in e_dict
-    assert len(e_dict) == 1
+    assert "channels" in e_dict
+    assert len(e_dict) == 2
 
 
 def test_creates_file_on_save(tmp_path: Path):
@@ -347,6 +367,37 @@ def test_env_advanced_pip(
     assert package_is_installed(prefix, "argh==0.26.2")
 
 
+@pytest.mark.integration
+def test_create_and_update_env_with_just_vars(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    support_file_isolated,
+):
+    """
+    Ensures that files with empty dependency sections work.
+
+    Regression fix for: https://github.com/conda/conda/issues/15569
+    """
+    prefix = path_factory()
+    assert not prefix.exists()
+
+    env_file = support_file_isolated("just_vars.yml")
+
+    conda_cli(
+        *("env", "create"),
+        *("--prefix", prefix),
+        *("--file", str(env_file)),
+    )
+    assert prefix.exists()
+
+    conda_cli(
+        *("env", "update"),
+        *("--prefix", prefix),
+        *("--file", str(env_file)),
+    )
+    assert prefix.exists()
+
+
 def test_from_history():
     # We're not testing that get_requested_specs_map() actually works
     # assume it gives us back a dict of MatchSpecs
@@ -366,5 +417,110 @@ def test_from_history():
 
 
 def test_environment_deprecated() -> None:
-    with pytest.deprecated_call():
-        Environment(filename="idontexist", name="simple")
+    EnvironmentYaml(filename="idontexist", name="simple")
+
+
+@pytest.mark.parametrize(
+    "dependencies",
+    (
+        ["python"],
+        [],
+        ["python", "numpy"],
+        ["python", "pip", {"pip": ["scipy"]}],
+        [{"something-unknown": "idontknow"}],
+    ),
+)
+def test_dependency_validation(dependencies):
+    dependencies_validation(dependencies)
+
+
+@pytest.mark.parametrize(
+    "dependencies,error_type,error_message",
+    (
+        (
+            None,
+            EnvironmentFileInvalid,
+            "Invalid type for 'dependencies', expected a list",
+        ),
+        (
+            ["nota~matchspec", "also!!not"],
+            CondaMultiError,
+            "Invalid spec 'nota~matchspec'",
+        ),
+        (["nota~matchspec", "also!!not"], CondaMultiError, "Invalid spec 'also!!not'"),
+        (
+            ["python", ["this-should", "not-be-a", "list"]],
+            CondaMultiError,
+            "is an invalid type",
+        ),
+        ({"wrong": "type"}, EnvironmentFileInvalid, "Invalid type for 'dependencies'"),
+    ),
+)
+def test_dependency_validation_errors(dependencies, error_type, error_message):
+    with pytest.raises(error_type, match=error_message):
+        dependencies_validation(dependencies)
+
+
+@pytest.mark.parametrize(
+    "channels,error_message",
+    (
+        ({"wrong": "type"}, "Invalid type for 'channels'"),
+        ([{"wrong": "type"}], "`channels` key must only contain strings."),
+        ([1], "`channels` key must only contain strings."),
+        (["one", "two"], None),
+    ),
+)
+def test_channels_validation(channels, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            channels_validation(channels)
+    else:
+        channels_validation(channels)
+
+
+@pytest.mark.parametrize(
+    "variables,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'variables'"),
+        ({"name": "a"}, None),
+        ({"name": 1, "word": True, "list": ["1", "2"]}, None),
+    ),
+)
+def test_variables_validation(variables, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            variables_validation(variables)
+    else:
+        variables_validation(variables)
+
+
+@pytest.mark.parametrize(
+    "name,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'name'"),
+        (1, "Invalid type for 'name'"),
+        ("name", None),
+    ),
+)
+def test_name_validation(name, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            name_validation(name)
+    else:
+        name_validation(name)
+
+
+@pytest.mark.parametrize(
+    "prefix,error_message",
+    (
+        (["wrong", "type"], "Invalid type for 'prefix'"),
+        (1, "Invalid type for 'prefix'"),
+        ("path/to/prefix", None),
+    ),
+)
+def test_prefix_validation(prefix, error_message):
+    if error_message:
+        with pytest.raises(EnvironmentFileInvalid, match=error_message):
+            prefix_validation(prefix)
+    else:
+        prefix_validation(prefix)

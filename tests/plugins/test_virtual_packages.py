@@ -2,17 +2,19 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 import platform
 from typing import TYPE_CHECKING
 
 import pytest
+from pytest import MonkeyPatch
 
 import conda.core.index
 from conda import __version__, plugins
+from conda.auxlib import NULL
 from conda.base.context import context, reset_context
 from conda.common._os.osx import mac_ver
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.common.io import env_var
 from conda.exceptions import PluginError
 from conda.plugins.types import CondaVirtualPackage
 from conda.plugins.virtual_packages import cuda
@@ -22,6 +24,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.models.records import PackageRecord
 
@@ -33,16 +36,19 @@ class VirtualPackagesPlugin:
             name="abc",
             version="123",
             build=None,
+            override_entity=None,
         )
         yield CondaVirtualPackage(
             name="def",
             version="456",
             build=None,
+            override_entity=None,
         )
         yield CondaVirtualPackage(
             name="ghi",
             version="789",
             build="xyz",
+            override_entity=None,
         )
 
 
@@ -89,35 +95,57 @@ def test_duplicated(plugin_manager):
 def test_cuda_detection(clear_cuda_version):
     # confirm that CUDA detection doesn't raise exception
     version = cuda.cuda_version()
-    assert version is None or isinstance(version, str)
+    assert version is NULL or isinstance(version, str)
 
 
-def test_cuda_override(clear_cuda_version):
-    with env_var("CONDA_OVERRIDE_CUDA", "4.5"):
-        version = cuda.cached_cuda_version()
-        assert version == "4.5"
+@pytest.mark.parametrize(
+    "override_value,expected, expect_pkg",
+    [
+        pytest.param("4.5", "4.5", True, id="override-set"),
+        pytest.param("", None, False, id="override-empty"),
+    ],
+)
+def test_cuda_override(
+    clear_cuda_version,
+    override_value: str,
+    expected: str | None,
+    expect_pkg: bool,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", override_value)
+    reset_context()
+
+    virtual_package = CondaVirtualPackage("cuda", "4.1", None, "version")
+    pkg_record = virtual_package.to_virtual_package()
+
+    if expect_pkg:
+        assert pkg_record
+        assert pkg_record.version == expected
+    else:
+        assert pkg_record is NULL
 
 
-def test_cuda_override_none(clear_cuda_version):
-    with env_var("CONDA_OVERRIDE_CUDA", ""):
-        version = cuda.cuda_version()
-        assert version is None
+def test_no_gpu_cuda():
+    """
+    __cuda should not be exposed when there's no GPU detected
+    """
+    if cuda.cuda_version() or os.environ.get("CONDA_OVERRIDE_CUDA"):
+        pytest.skip()
+    pkg = next(cuda.conda_virtual_packages())
+    assert pkg.to_virtual_package() is NULL
+
+
+def test_no_gpu_cuda_patched(monkeypatch):
+    """
+    __cuda should not be exposed when there's no GPU detected
+    """
+    monkeypatch.setattr(cuda, "cuda_version", lambda: NULL)
+    pkg = next(cuda.conda_virtual_packages())
+    assert pkg.to_virtual_package() is NULL
 
 
 def get_virtual_precs() -> Iterable[PackageRecord]:
-    index = conda.core.index.ReducedIndex(
-        prefix=context.default_prefix,
-        channels=context.default_channels,
-        subdirs=context.subdirs,
-        specs=(),
-        repodata_fn=context.repodata_fns[0],
-    )
-
-    yield from (
-        prec
-        for prec in index
-        if prec.channel.name == "@" and prec.name.startswith("__")
-    )
+    yield from conda.core.index.Index().system_packages.values()
 
 
 @pytest.mark.parametrize(
@@ -278,3 +306,214 @@ def test_conda_virtual_package():
         prec.name == "__conda" and prec.version == __version__
         for prec in get_virtual_precs()
     )
+
+
+@pytest.fixture
+def virtual_package_plugin(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    request,
+) -> CondaVirtualPackage:
+    (
+        version,
+        build,
+        override_entity,
+        override_value,
+        empty_override,
+        version_validation,
+    ) = request.param
+    if override_value is not None:
+        monkeypatch.setenv("CONDA_OVERRIDE_FOO", override_value)
+
+    deferred_version = mocker.MagicMock(return_value=version)
+    deferred_build = mocker.MagicMock(return_value=build)
+
+    plugin = CondaVirtualPackage(
+        name="foo",
+        version=deferred_version,
+        build=deferred_build,
+        override_entity=override_entity,
+        empty_override=empty_override,
+        version_validation=version_validation,
+    )
+
+    return plugin
+
+
+@pytest.mark.parametrize(
+    "virtual_package_plugin, expected_null",
+    [
+        pytest.param(
+            (NULL, "1-abc-2", None, None, None, None),
+            True,
+            id="`version=NULL` returns NULL package ",
+        ),
+        pytest.param(
+            ("1.2", NULL, None, None, None, None),
+            True,
+            id="`build=NULL` returns NULL package",
+        ),
+        pytest.param(
+            ("1.2", None, "build", "", NULL, None),
+            True,
+            id="`empty_override=NULL` returns NULL package",
+        ),
+        pytest.param(
+            ("1.2", None, "version", "", None, None),
+            False,
+            id="`empty_override=None` returns valid package",
+        ),
+    ],
+    indirect=["virtual_package_plugin"],
+)
+def test_package_is_NULL(
+    virtual_package_plugin: CondaVirtualPackage,
+    expected_null: bool,
+):
+    package = virtual_package_plugin.to_virtual_package()
+    if expected_null:
+        assert package is NULL
+    else:
+        assert package is not NULL
+
+
+@pytest.mark.parametrize(
+    "virtual_package_plugin, expected_version, expected_build",
+    [
+        pytest.param(
+            ("1.2", "1-abc-2", None, None, None, None),
+            "1.2",
+            "1-abc-2",
+            id="no override",
+        ),  # no override
+        pytest.param(
+            ("1.2", "1-abc-2", "version", "override", None, None),
+            "override",
+            "1-abc-2",
+            id="version override",
+        ),
+        pytest.param(
+            ("1.2", "1-abc-2", "build", "override", None, None),
+            "1.2",
+            "override",
+            id="build override",
+        ),
+        pytest.param(
+            ("1.2", None, "version", "", None, None),
+            "0",
+            "0",
+            id="version override with `empty_override=None`",
+        ),
+        pytest.param(
+            (None, "1-abc-2", "build", "", None, None),
+            "0",
+            "0",
+            id="build override with `empty_override=None`",
+        ),
+    ],
+    indirect=["virtual_package_plugin"],
+)
+def test_override_package_values(
+    virtual_package_plugin: CondaVirtualPackage,
+    expected_version: str,
+    expected_build: str,
+):
+    package = virtual_package_plugin.to_virtual_package()
+    assert package.name == "__foo"
+    assert package.version == expected_version
+    assert package.build == expected_build
+
+
+@pytest.mark.parametrize(
+    "virtual_package_plugin, expect_version_called, expect_build_called",
+    [
+        pytest.param(
+            ("1.2", "1-abc-2", "version", "override", None, None),
+            False,
+            True,
+            id="version overriden",
+        ),
+        pytest.param(
+            ("1.2", "1-abc-2", "build", "override", None, None),
+            True,
+            False,
+            id="build overriden",
+        ),
+        pytest.param(
+            ("1.2", "1-abc-2", None, None, None, None),
+            True,
+            True,
+            id="base case, no override",
+        ),
+    ],
+    indirect=["virtual_package_plugin"],
+)
+def test_override_mock_calls(
+    virtual_package_plugin: CondaVirtualPackage,
+    expect_version_called: bool,
+    expect_build_called: bool,
+):
+    virtual_package_plugin.to_virtual_package()
+    assert virtual_package_plugin.version.call_count == expect_version_called
+    assert virtual_package_plugin.build.call_count == expect_build_called
+
+
+@pytest.mark.parametrize(
+    "virtual_package_plugin",
+    [
+        pytest.param(
+            ("1.2", "0", None, "", None, None),
+            id="no version validation, no override",
+        ),
+        pytest.param(
+            ("1.2", "0", None, "", None, lambda version: "valid"),
+            id="version validation, no override",
+        ),
+        pytest.param(
+            ("1.2", "0", "version", "override", None, lambda version: "valid"),
+            id="version validation, override",
+        ),
+    ],
+    indirect=["virtual_package_plugin"],
+)
+def test_version_validation(virtual_package_plugin: CondaVirtualPackage):
+    package = virtual_package_plugin.to_virtual_package()
+    version = virtual_package_plugin.version.return_value
+    version_validation = virtual_package_plugin.version_validation
+
+    assert package.name == "__foo"
+    if version_validation:
+        assert package.version == "valid"
+    else:
+        assert package.version == (version or "0")
+
+
+@pytest.mark.parametrize(
+    "virtual_package_plugin, expected_version",
+    [
+        pytest.param(
+            ("1.2", "0", "version", None, None, None),
+            "overriden",
+            id="`CONDA_OVERRIDE_FOO` not set, but `context.override_virtual_packages` is set",
+        ),
+        pytest.param(
+            ("1.2", "0", "version", "priority_override", None, None),
+            "priority_override",
+            id="Both `CONDA_OVERRIDE_FOO` gets precedence and `context.override_virtual_packages` are set",
+        ),
+    ],
+    indirect=["virtual_package_plugin"],
+)
+def test_context_override(
+    virtual_package_plugin: CondaVirtualPackage,
+    expected_version: str,
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "conda.base.context.Context.override_virtual_packages",
+        new_callable=mocker.PropertyMock,
+        return_value=({"foo": "overriden"}),
+    )
+    package = virtual_package_plugin.to_virtual_package()
+    assert package.name == "__foo"
+    assert package.version == expected_version

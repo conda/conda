@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-# if repodata.json.zst or repodata.jlap were unavailable, check again later.
+# if repodata_shards.msgpack.zst, repodata.json.zst or repodata.jlap were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 # repodata.info/state.json keys to keep up with the CEP
@@ -87,8 +87,6 @@ class RepodataOnDisk(Exception):
 
 
 class RepoInterface(abc.ABC):
-    # TODO: Support async operations
-    # TODO: Support progress bars
     def repodata(self, state: dict) -> str:
         """
         Given a mutable state dictionary with information about the cache,
@@ -128,11 +126,11 @@ def get_repo_interface() -> type[RepoInterface]:
 class CondaRepoInterface(RepoInterface):
     """Provides an interface for retrieving repodata data from channels."""
 
-    #: Channel URL
     _url: str
+    """Channel URL."""
 
-    #: Filename of the repodata file; defaults to value of conda.base.constants.REPODATA_FN
     _repodata_fn: str
+    """Filename of the repodata file; defaults to value of conda.base.constants.REPODATA_FN."""
 
     def __init__(self, url: str, repodata_fn: str | None, **kwargs) -> None:
         log.debug("Using CondaRepoInterface")
@@ -240,7 +238,7 @@ Exception: {e}
 
     except (ConnectionError, HTTPError, ChunkedEncodingError) as e:
         status_code = getattr(e.response, "status_code", None)
-        if status_code in (403, 404):
+        if status_code == 404:
             if not url.endswith("/noarch"):
                 log.info(
                     "Unable to retrieve repodata (response: %d) for %s",
@@ -271,36 +269,64 @@ Exception: {e}
                         response=e.response,
                     )
 
+        elif status_code == 403:
+            channel = Channel(url)
+            if channel.token:
+                help_message = """\
+The token given for the URL has insufficient permissions to access this resource.
+
+You may not have the required permissions to access this channel or package.
+Consider requesting access from the channel owner.
+
+Use `conda config --show` to view your configuration's current state.
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
+            elif context.channel_alias.location in url:
+                help_message = """\
+The remote server has indicated you do not have permission to access this resource.
+
+This may mean:
+  (a) You are not authenticated. Check if authentication is required for this channel
+      and verify your credentials are correctly configured.
+  (b) You do not have access to this private channel or package. Contact the
+      channel owner to request access.
+
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
+            else:
+                help_message = """\
+You do not have permission to access this resource.
+
+This may indicate:
+  - The channel requires authentication. Check your credentials.
+  - You do not have access to this private channel or package.
+
+You will need to modify your conda configuration to proceed.
+Use `conda config --show` to view your configuration's current state.
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
         elif status_code == 401:
             channel = Channel(url)
             if channel.token:
                 help_message = """\
-The token '{}' given for the URL is invalid.
+The token given for the URL is invalid.
 
-If this token was pulled from anaconda-client, you will need to use
-anaconda-client to reauthenticate.
-
-If you supplied this token to conda directly, you will need to adjust your
-conda configuration to proceed.
+You will need to adjust your conda configuration to proceed.
 
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <{}>.
-""".format(
-                    channel.token,
-                    join_url(CONDA_HOMEPAGE_URL, "docs/config.html"),
-                )
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
             elif context.channel_alias.location in url:
-                # Note, this will not trigger if the binstar configured url does
-                # not match the conda configured one.
                 help_message = """\
 The remote server has indicated you are using invalid credentials for this channel.
 
-If the remote site is anaconda.org or follows the Anaconda Server API, you
-will need to
-    (a) remove the invalid token from your system with `anaconda logout`, optionally
-        followed by collecting a new token with `anaconda login`, or
-    (b) provide conda with a valid token directly.
+You may need to:
+  (a) Remove or update the invalid token from your configuration, or
+  (b) Provide conda with a valid token directly.
 
 Further configuration help can be found at <{}>.
 """.format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
@@ -493,6 +519,8 @@ class RepodataCache:
     (<hex-string>*.json inside `dir`)
 
     Avoid race conditions while loading, saving repodata.json and cache state.
+
+    Also support bytes as in repodata_shards.msgpack.zst
     """
 
     def __init__(self, base, repodata_fn):
@@ -517,11 +545,18 @@ class RepodataCache:
         )
 
     @property
+    def cache_path_shards(self):
+        return pathlib.Path(
+            self.cache_dir,
+            self.name + ("1" if context.use_only_tar_bz2 else "") + ".msgpack.zst",
+        )
+
+    @property
     def cache_path_state(self):
         """Out-of-band etag and other state needed by the RepoInterface."""
         return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
-    def load(self, *, state_only=False) -> str:
+    def load(self, *, state_only=False, binary=False) -> str | bytes:
         # read state and repodata.json with locking
 
         # lock {CACHE_STATE_SUFFIX} file
@@ -534,14 +569,19 @@ class RepodataCache:
             # it will release the lock early
             state = json.loads(state_file.read())
 
+            cache_path = self.cache_path_shards if binary else self.cache_path_json
+
             # json and state files should match. must read json before checking
             # stat (if json_data is to be trusted)
             if state_only:
-                json_data = ""
+                json_data = b"" if binary else ""
             else:
-                json_data = self.cache_path_json.read_text()
+                if binary:
+                    json_data = cache_path.read_bytes()
+                else:
+                    json_data = cache_path.read_text()
 
-            json_stat = self.cache_path_json.stat()
+            json_stat = cache_path.stat()
             if not (
                 state.get("mtime_ns") == json_stat.st_mtime_ns
                 and state.get("size") == json_stat.st_size
@@ -555,49 +595,41 @@ class RepodataCache:
                         "size": 0,
                     }
                 )
+            # Replace data in special self.state dict subclass with key aliases
             self.state.clear()
-            self.state.update(
-                state
-            )  # will aliased _mod, _etag (not cleared above) pass through as mod, etag?
+            self.state.update(state)
 
         return json_data
 
-        # check repodata.json stat(); mtime_ns must equal value in
-        # {CACHE_STATE_SUFFIX} file, or it is stale.
-        # read repodata.json
-        # check repodata.json stat() again: st_size, st_mtime_ns must be equal
-
-        # repodata.json is okay - use it somewhere
-
-        # repodata.json is not okay - maybe use it, but don't allow cache updates
-
-        # unlock {CACHE_STATE_SUFFIX} file
-
-        # also, add refresh_ns instead of touching repodata.json file
-
-    def load_state(self):
+    def load_state(self, binary=False):
         """
-        Update self.state without reading repodata.json.
+        Update self.state without reading repodata.
 
         Return self.state.
         """
         try:
-            self.load(state_only=True)
+            self.load(state_only=True, binary=binary)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, json.JSONDecodeError):
                 log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
             self.state.clear()
         return self.state
 
-    def save(self, data: str):
-        """Write data to <repodata>.json cache path, synchronize state."""
+    def save(self, data: str | bytes):
+        """Write data to <repodata> cache path, by calling self.replace()."""
         temp_path = self.cache_dir / f"{self.name}.{os.urandom(2).hex()}.tmp"
+        if isinstance(data, bytes):
+            mode = "bx"
+            target = self.cache_path_shards
+        else:
+            mode = "x"
+            target = self.cache_path_json
 
         try:
-            with temp_path.open("x") as temp:  # exclusive mode, error if exists
+            with temp_path.open(mode) as temp:  # exclusive mode, error if exists
                 temp.write(data)
 
-            return self.replace(temp_path)
+            return self.replace(temp_path, target)
 
         finally:
             try:
@@ -605,28 +637,30 @@ class RepodataCache:
             except OSError:
                 pass
 
-    def replace(self, temp_path: Path):
+    def replace(self, temp_path: Path, target=None):
         """
-        Rename path onto <repodata>.json path, synchronize state.
+        Rename path onto <repodata> path, synchronize state.
 
         Relies on path's mtime not changing on move. `temp_path` should be
         adjacent to `self.cache_path_json` to be on the same filesystem.
         """
+        if target is None:
+            target = self.cache_path_json
         with self.lock() as state_file:
             # "a+" creates the file if necessary, does not trunctate file.
             state_file.seek(0)
             state_file.truncate()
             stat = temp_path.stat()
-            # XXX make sure self.state has the correct etag, etc. for temp_path.
             # UserDict has inscrutable typing, which we ignore
             self.state["mtime_ns"] = stat.st_mtime_ns  # type: ignore
             self.state["size"] = stat.st_size  # type: ignore
             self.state["refresh_ns"] = time.time_ns()  # type: ignore
             try:
-                temp_path.rename(self.cache_path_json)
+                temp_path.rename(target)
             except FileExistsError:  # Windows
-                self.cache_path_json.unlink()
-                temp_path.rename(self.cache_path_json)
+                target.unlink()
+                temp_path.rename(target)
+
             state_file.write(json.dumps(dict(self.state), indent=2))
 
     def refresh(self, refresh_ns=0):
@@ -890,8 +924,7 @@ class RepodataFetch:
                         raw_repodata = "{}"
                     cache.save(raw_repodata)
                 else:  # pragma: no cover
-                    # it can be a dict?
-                    assert False, f"Unreachable {raw_repodata}"
+                    raise RuntimeError(f"Unreachable {raw_repodata}")
             except OSError as e:
                 if e.errno in (errno.EACCES, errno.EPERM, errno.EROFS):
                     raise NotWritableError(self.cache_path_json, e.errno, caused_by=e)

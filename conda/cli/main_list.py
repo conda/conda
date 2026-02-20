@@ -53,6 +53,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
             conda list ^py
 
+        List name and version only::
+
+            conda list --fields name,version
+
         Save packages for future use::
 
             conda list --export > package-list.txt
@@ -79,7 +83,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         type=comma_separated_stripped,
         dest="list_fields",
         help="Comma-separated list of fields to print. "
-        f"Valid values: {sorted(CONDA_LIST_FIELDS)}.",
+        f"Valid values: {','.join(sorted(CONDA_LIST_FIELDS))}.",
     )
     p.add_argument(
         "--reverse",
@@ -131,6 +135,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="List the revision history.",
     )
     p.add_argument(
+        "--size",
+        action="store_true",
+        help="Show package and environment sizes.",
+    )
+    p.add_argument(
         "--no-pip",
         action="store_false",
         default=True,
@@ -179,6 +188,8 @@ def list_packages(
     show_channel_urls=None,
     reload_records=True,
     fields=None,
+    regex_is_full_name=False,
+    show_size=False,
 ) -> tuple[int, list[str] | list[dict[str, Any]]]:
     from ..base.constants import (
         CONDA_LIST_FIELDS,
@@ -187,7 +198,8 @@ def list_packages(
     )
     from ..base.context import context
     from ..core.prefix_data import PrefixData
-    from ..exceptions import CondaValueError
+    from ..exceptions import CondaValueError, PackageNotInstalledError
+    from ..utils import human_bytes
     from .common import disp_features
 
     exitcode = 0
@@ -195,9 +207,22 @@ def list_packages(
     prefix_data = PrefixData(prefix, interoperability=True)
     if reload_records:
         prefix_data.load()
-    installed = sorted(prefix_data.iter_records(), key=lambda x: x.name)
+    if regex:
+        if regex_is_full_name:
+            record = prefix_data.get(regex, None)
+            prefix_records = (record,) if record else ()
+        else:
+            prefix_records = sorted(
+                get_packages(prefix_data.iter_records(), regex),
+                key=lambda x: x.name,
+            )
+    else:
+        prefix_records = sorted(prefix_data.iter_records(), key=lambda x: x.name)
     show_channel_urls = show_channel_urls or context.show_channel_urls
-    fields = fields or context.list_fields
+    fields = list(fields or context.list_fields)
+    if show_size and "size" not in fields:
+        fields.append("size")
+
     if invalid_fields := set(fields).difference(CONDA_LIST_FIELDS):
         raise CondaValueError(
             f"Invalid fields passed: {sorted(invalid_fields)}. "
@@ -205,15 +230,19 @@ def list_packages(
         )
     packages = []
     titles = [CONDA_LIST_FIELDS[field] for field in fields]
-    if fields == DEFAULT_CONDA_LIST_FIELDS and len(fields) == 4:
-        widths = [23, 15, 15, 1]
+    if tuple(fields[:4]) == DEFAULT_CONDA_LIST_FIELDS:
+        widths = [23, 15, 15, 1] + [len(title) for title in titles[4:]]
     else:
         widths = [len(title) for title in titles]
-    for prec in get_packages(installed, regex) if regex else installed:
+    for prec in prefix_records:
         if format == "canonical":
-            packages.append(
-                prec.dist_fields_dump() if context.json else prec.dist_str()
-            )
+            if context.json:
+                package = prec.dist_fields_dump()
+                if show_size:
+                    package["size"] = prec.package_size(prefix_data.prefix_path)
+                packages.append(package)
+            else:
+                packages.append(prec.dist_str())
             continue
         if format == "export":
             packages.append(prec.spec)
@@ -235,6 +264,10 @@ def list_packages(
                     value = str(channel_name)
                 else:
                     value = ""
+            elif field == "dist_str":
+                value = prec.dist_str()
+            elif field == "size":
+                value = human_bytes(prec.package_size(prefix_data.prefix_path))
             else:
                 value = str(prec.get(field, None) or "").strip()
                 if value == "None":
@@ -246,6 +279,8 @@ def list_packages(
         packages.append(row)
 
     if regex and not packages:
+        if regex_is_full_name:
+            raise PackageNotInstalledError(prefix, regex)
         raise CondaValueError(f"No packages match '{regex}'.")
 
     if reverse:
@@ -255,9 +290,16 @@ def list_packages(
         template_line = "  ".join([f"%-{width}s" for width in widths])
         result = [
             f"# packages in environment at {prefix}:",
-            "#",
-            f"# {template_line}" % tuple(titles),
         ]
+        if show_size:
+            env_size = human_bytes(prefix_data.size())
+            result.append(f"# environment size: {env_size}")
+        result.extend(
+            [
+                "#",
+                f"# {template_line}" % tuple(titles),
+            ]
+        )
         widths[0] += 2  # account for the '# ' prefix in the header line
         template_line = "  ".join([f"%-{width}s" for width in widths])
         result.extend([template_line % tuple(package) for package in packages])
@@ -275,6 +317,8 @@ def print_packages(
     json=False,
     show_channel_urls=None,
     fields=None,
+    regex_is_full_name=False,
+    show_size=False,
 ) -> int:
     from ..base.context import context
     from .common import stdout_json
@@ -295,6 +339,8 @@ def print_packages(
         reverse=reverse,
         show_channel_urls=show_channel_urls,
         fields=fields,
+        regex_is_full_name=regex_is_full_name,
+        show_size=show_size,
     )
     if context.json:
         stdout_json(output)
@@ -352,8 +398,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     regex = args.regex
-    if regex and args.full_name:
-        regex = rf"^{regex}$"
 
     if args.revisions:
         h = History(prefix)
@@ -390,4 +434,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         piplist=args.pip,
         json=context.json,
         show_channel_urls=context.show_channel_urls,
+        regex_is_full_name=args.full_name,
+        show_size=args.size,
     )

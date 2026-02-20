@@ -9,7 +9,7 @@ import sys
 from abc import ABCMeta, abstractmethod, abstractproperty
 from itertools import chain
 from logging import getLogger
-from os.path import basename, dirname, getsize, isdir, join
+from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -46,7 +46,6 @@ from ..gateways.disk.create import (
     create_hard_link_or_copy,
     create_link,
     create_python_entry_point,
-    extract_tarball,
     make_menu,
     mkdir_p,
     write_as_json_to_file,
@@ -57,7 +56,7 @@ from ..gateways.disk.read import compute_sum, islink, lexists, read_index_json
 from ..gateways.disk.update import backoff_rename, touch
 from ..history import History
 from ..models.channel import Channel
-from ..models.enums import LinkType, NoarchType, PathType
+from ..models.enums import LinkType, NoarchType, PathEnum
 from ..models.match_spec import MatchSpec
 from ..models.records import (
     Link,
@@ -259,7 +258,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         cls, transaction_context, package_info, target_prefix, requested_link_type
     ):
         def get_prefix_replace(source_path_data):
-            if source_path_data.path_type == PathType.softlink:
+            if source_path_data.path_type == PathEnum.softlink:
                 link_type = LinkType.copy
                 prefix_placehoder, file_mode = "", None
             elif source_path_data.prefix_placeholder:
@@ -377,7 +376,7 @@ class LinkPathAction(CreateInPrefixPathAction):
         target_short_path = f"Scripts/{command}.exe"
         source_path_data = PathDataV1(
             _path=target_short_path,
-            path_type=PathType.windows_python_entry_point_exe,
+            path_type=PathEnum.windows_python_entry_point_exe,
         )
         return cls(
             transaction_context,
@@ -433,7 +432,7 @@ class LinkPathAction(CreateInPrefixPathAction):
             source_path_type = source_path_data.path_type
         except AttributeError:
             source_path_type = None
-        if source_path_type in PathType.basic_types:
+        if source_path_type in PathEnum.basic_types:
             # this let's us keep the non-generic path types like windows_python_entry_point_exe
             source_path_type = None
 
@@ -442,18 +441,18 @@ class LinkPathAction(CreateInPrefixPathAction):
         elif self.link_type == LinkType.softlink:
             self.prefix_path_data = PathDataV1.from_objects(
                 self.source_path_data,
-                path_type=source_path_type or PathType.softlink,
+                path_type=source_path_type or PathEnum.softlink,
             )
         elif (
             self.link_type == LinkType.copy
-            and source_path_data.path_type == PathType.softlink
+            and source_path_data.path_type == PathEnum.softlink
         ):
             self.prefix_path_data = PathDataV1.from_objects(
                 self.source_path_data,
-                path_type=source_path_type or PathType.softlink,
+                path_type=source_path_type or PathEnum.softlink,
             )
 
-        elif source_path_data.path_type == PathType.hardlink:
+        elif source_path_data.path_type == PathEnum.hardlink:
             try:
                 reported_size_in_bytes = source_path_data.size_in_bytes
             except AttributeError:
@@ -502,9 +501,9 @@ class LinkPathAction(CreateInPrefixPathAction):
                 source_path_data,
                 sha256=reported_sha256,
                 sha256_in_prefix=reported_sha256,
-                path_type=source_path_type or PathType.hardlink,
+                path_type=source_path_type or PathEnum.hardlink,
             )
-        elif source_path_data.path_type == PathType.windows_python_entry_point_exe:
+        elif source_path_data.path_type == PathEnum.windows_python_entry_point_exe:
             self.prefix_path_data = source_path_data
         else:
             raise NotImplementedError()
@@ -570,7 +569,9 @@ class PrefixReplaceLinkAction(LinkPathAction):
                 self.source_full_path,
             )
             # return
-            assert False, "I don't think this is the right place to ignore this"
+            raise RuntimeError(
+                f"Ignoring prefix update for symlink with source path {self.source_full_path}"
+            )
 
         mkdir_p(self.transaction_context["temp_dir"])
         self.intermediate_path = join(
@@ -604,7 +605,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
         self.prefix_path_data = PathDataV1.from_objects(
             self.prefix_path_data,
             file_mode=self.file_mode,
-            path_type=PathType.hardlink,
+            path_type=PathEnum.hardlink,
             prefix_placeholder=self.prefix_placeholder,
             sha256_in_prefix=sha256_in_prefix,
         )
@@ -712,7 +713,7 @@ class CompileMultiPycAction(MultiPathAction):
         self.prefix_paths_data = [
             PathDataV1(
                 _path=p,
-                path_type=PathType.pyc_file,
+                path_type=PathEnum.pyc_file,
             )
             for p in self.target_short_paths
         ]
@@ -763,6 +764,17 @@ class CompileMultiPycAction(MultiPathAction):
         )
         self._execute_successful = True
 
+        # Update prefix_paths_data with the file sizes now that the .pyc files exist.
+        # Note: when used via AggregateCompileMultiPycAction, this updates the
+        # aggregate's prefix_paths_data. The aggregate's execute() will separately
+        # update each individual action's data.
+        for path_data in self.prefix_paths_data:
+            pyc_full_path = join(self.target_prefix, win_path_ok(path_data._path))
+            try:
+                path_data.size_in_bytes = getsize(pyc_full_path)
+            except OSError:
+                log.log(TRACE, "could not get size for %s", pyc_full_path)
+
     def reverse(self):
         # this removes all pyc files even if they were not created
         if self._execute_successful:
@@ -780,6 +792,7 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
     """
 
     def __init__(self, *individuals, **kw):
+        self._individuals = individuals
         transaction_context = individuals[0].transaction_context
         # not used; doesn't matter
         package_info = individuals[0].package_info
@@ -796,6 +809,18 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
             source_short_paths,
             target_short_paths,
         )
+
+    def execute(self):
+        super().execute()
+        # Update each individual action's prefix_paths_data with file sizes.
+        # The manifest is written using individual actions' data, not the aggregate's.
+        for individual in self._individuals:
+            for path_data in individual.prefix_paths_data:
+                pyc_full_path = join(self.target_prefix, win_path_ok(path_data._path))
+                try:
+                    path_data.size_in_bytes = getsize(pyc_full_path)
+                except OSError:
+                    log.log(TRACE, "could not get size for %s", pyc_full_path)
 
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
@@ -860,9 +885,9 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         self.func = func
 
         if on_win:
-            path_type = PathType.windows_python_entry_point_script
+            path_type = PathEnum.windows_python_entry_point_script
         else:
-            path_type = PathType.unix_python_entry_point
+            path_type = PathEnum.unix_python_entry_point
         self.prefix_path_data = PathDataV1(
             _path=self.target_short_path,
             path_type=path_type,
@@ -885,6 +910,10 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         create_python_entry_point(
             self.target_full_path, python_full_path, self.module, self.func
         )
+        try:
+            self.prefix_path_data.size_in_bytes = getsize(self.target_full_path)
+        except OSError:
+            log.log(TRACE, "could not get size for %s", self.target_full_path)
         self._execute_successful = True
 
     def reverse(self):
@@ -1066,6 +1095,8 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
             copy(self.target_full_path, self.hold_path)
 
         h = History(self.target_prefix)
+        if not isfile(h.path):
+            PrefixData(self.target_prefix).set_creation_time()
         h.update()
         h.write_specs(self.remove_specs, self.update_specs, self.neutered_specs)
 
@@ -1073,6 +1104,8 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
+        if isfile(hpath := History(self.target_prefix).path):
+            rm_rf(hpath)
 
     def cleanup(self):
         rm_rf(self.hold_path)
@@ -1269,7 +1302,8 @@ class CacheUrlAction(PathAction):
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
 
     def verify(self):
-        assert "::" not in self.url
+        if "::" in self.url:
+            raise ValueError("URL cannot contain '::'")
         self._verified = True
 
     def execute(self, progress_update_callback=None):
@@ -1424,10 +1458,10 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        extract_tarball(
+        # extract the package using the appropriate plugin
+        context.plugin_manager.extract_package(
             self.source_full_path,
             self.target_full_path,
-            progress_update_callback=progress_update_callback,
         )
 
         try:
@@ -1444,7 +1478,8 @@ class ExtractPackageAction(PathAction):
 
         if isinstance(self.record_or_spec, MatchSpec):
             url = self.record_or_spec.get_raw_value("url")
-            assert url
+            if not url:
+                raise ValueError("URL cannot be empty.")
             channel = (
                 Channel(url)
                 if has_platform(url, context.known_subdirs)
@@ -1453,8 +1488,10 @@ class ExtractPackageAction(PathAction):
             fn = basename(url)
             sha256 = self.sha256 or compute_sum(self.source_full_path, "sha256")
             size = getsize(self.source_full_path)
-            if self.size is not None:
-                assert size == self.size, (size, self.size)
+            if self.size is not None and size != self.size:
+                raise RuntimeError(
+                    f"Computed size ({size}) does not match expected value {self.size}"
+                )
             md5 = self.md5 or compute_sum(self.source_full_path, "md5")
             repodata_record = PackageRecord.from_objects(
                 raw_index_json,

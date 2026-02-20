@@ -6,23 +6,35 @@ import functools
 from io import StringIO
 from logging import getLogger
 
-import ruamel.yaml as yaml
-
 from ...deprecations import deprecated
 from .json import CondaJSONEncoder, loads
 
 log = getLogger(__name__)
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.common.serialize.yaml._yaml()` instead.",
+)
 @functools.cache
 def _yaml_round_trip():
+    import ruamel.yaml as yaml
+
     parser = yaml.YAML(typ="rt")
     parser.indent(mapping=2, offset=2, sequence=4)
     return parser
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.common.serialize.yaml._yaml()` instead.",
+)
 @functools.cache
 def _yaml_safe():
+    import ruamel.yaml as yaml
+
     parser = yaml.YAML(typ="safe", pure=True)
     parser.indent(mapping=2, offset=2, sequence=4)
     parser.default_flow_style = False
@@ -30,10 +42,20 @@ def _yaml_safe():
     return parser
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.common.serialize.yaml.load()` instead.",
+)
 def yaml_round_trip_load(string):
     return _yaml_round_trip().load(string)
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.common.serialize.yaml.load()` instead.",
+)
 def yaml_safe_load(string):
     """
     Examples:
@@ -44,6 +66,11 @@ def yaml_safe_load(string):
     return _yaml_safe().load(string)
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.common.serialize.yaml.dump()` instead.",
+)
 def yaml_round_trip_dump(object, stream=None):
     """Dump object to string or stream."""
     ostream = stream or StringIO()
@@ -52,6 +79,11 @@ def yaml_round_trip_dump(object, stream=None):
         return ostream.getvalue()
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.common.serialize.yaml.dump()` instead.",
+)
 def yaml_safe_dump(object, stream=None):
     """Dump object to string or stream."""
     ostream = stream or StringIO()

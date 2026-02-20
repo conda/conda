@@ -4,50 +4,47 @@ import os
 from pathlib import Path
 
 import pytest
-from pytest import raises
+from pytest import MonkeyPatch, raises
 from pytest_mock import MockerFixture
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import context, reset_context
 from conda.cli.common import (
     check_non_admin,
     is_active_prefix,
-    print_envs_list,
+    print_activate,
     validate_file_exists,
     validate_subdir_config,
 )
 from conda.common.compat import on_win
-from conda.common.io import env_vars
 from conda.exceptions import EnvironmentFileNotFound, OperationNotAllowed
 
 
-def test_check_non_admin_enabled_false():
-    with env_vars(
-        {"CONDA_NON_ADMIN_ENABLED": "false"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        if on_win:
-            from conda.common._os.windows import is_admin_on_windows
+def test_check_non_admin_enabled_false(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_NON_ADMIN_ENABLED", "false")
+    reset_context()
 
-            if is_admin_on_windows():
-                check_non_admin()
-            else:
-                with raises(OperationNotAllowed):
-                    check_non_admin()
+    if on_win:
+        from conda.common._os.windows import is_admin_on_windows
+
+        if is_admin_on_windows():
+            check_non_admin()
         else:
-            if os.geteuid() == 0 or os.getegid() == 0:
+            with raises(OperationNotAllowed):
                 check_non_admin()
-            else:
-                with raises(OperationNotAllowed):
-                    check_non_admin()
+    else:
+        if os.geteuid() == 0 or os.getegid() == 0:
+            check_non_admin()
+        else:
+            with raises(OperationNotAllowed):
+                check_non_admin()
 
 
-def test_check_non_admin_enabled_true():
-    with env_vars(
-        {"CONDA_NON_ADMIN_ENABLED": "true"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        check_non_admin()
-        assert True
+def test_check_non_admin_enabled_true(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_NON_ADMIN_ENABLED", "true")
+    reset_context()
+
+    check_non_admin()
+    assert True
 
 
 @pytest.mark.parametrize("prefix,active", [("", False), ("active_prefix", True)])
@@ -55,35 +52,6 @@ def test_is_active_prefix(prefix, active):
     if prefix == "active_prefix":
         prefix = context.active_prefix
     assert is_active_prefix(prefix) is active
-
-
-def test_print_envs_list(capsys):
-    """
-    Test the case for print_envs_list when output=True
-
-    TODO: this function is deprecated and this test should be remove when this function is removed
-    """
-    with pytest.deprecated_call():
-        print_envs_list(["test"])
-
-    capture = capsys.readouterr()
-
-    assert "test" in capture.out
-
-
-def test_print_envs_list_output_false(capsys):
-    """
-    Test the case for print_envs_list when output=False
-
-    TODO: this function is deprecated and this test should be remove when this function is removed
-    """
-
-    with pytest.deprecated_call():
-        print_envs_list(["test"], output=False)
-
-    capture = capsys.readouterr()
-
-    assert capture.out == ""
 
 
 @pytest.mark.parametrize(
@@ -161,3 +129,23 @@ def test_validate_subdir_config_invalid_subdir(
 
     with pytest.raises(OperationNotAllowed):
         validate_subdir_config()
+
+
+def test_print_activate(capsys):
+    print_activate("test_env")
+
+    captured = capsys.readouterr()
+
+    assert "To activate this environment" in captured.out
+    assert "To deactivate an active environment" in captured.out
+
+
+@pytest.mark.parametrize("env_var", ["CONDA_QUIET", "CONDA_JSON"])
+def test_print_activate_no_output(capsys, monkeypatch, env_var):
+    monkeypatch.setenv(env_var, "true")
+    reset_context()
+
+    print_activate("test_env")
+
+    captured = capsys.readouterr()
+    assert captured.out == ""

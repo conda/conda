@@ -143,7 +143,6 @@ class RequirementsSpec(EnvironmentSpecBase):
         requested_packages = [MatchSpec(dep) for dep in dependencies_list]
 
         return Environment(
-            prefix=context.target_prefix,
             platform=context.subdir,
             requested_packages=requested_packages,
         )

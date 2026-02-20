@@ -9,18 +9,15 @@ import os
 from argparse import (
     ArgumentParser,
     Namespace,
-    _StoreAction,
     _SubParsersAction,
 )
 
 from .. import CondaError
-from ..deprecations import deprecated
 from ..notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..common.constants import NULL
     from .helpers import (
         add_parser_environment_specifier,
         add_parser_frozen_env,
@@ -70,18 +67,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=False,
         help="remove installed packages not defined in environment.yml",
     )
-    p.add_argument(
-        "remote_definition",
-        help="remote environment definition / IPython notebook",
-        action=deprecated.action(
-            "24.7",
-            "25.9",
-            _StoreAction,
-            addendum="Use `conda env update --file=URL` instead.",
-        ),
-        default=NULL,
-        nargs="?",
-    )
+
     add_parser_json(p)
     add_parser_solver(p)
     p.set_defaults(func="conda.cli.main_env_update.execute")
@@ -154,9 +140,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # e.g. due to conda_env being upgraded or Python version switched.
     installers = {}
 
-    if env.requested_packages:
-        installers["conda"] = get_installer("conda")
-
+    # Ensure we have all the right external package installers before starting
+    # to install anything.
     for installer_type in env.external_packages:
         try:
             installers[installer_type] = get_installer(installer_type)
@@ -174,15 +159,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 )
             )
 
-            return -1
-
     result = {"conda": None, "pip": None}
     # install conda packages
-    installer_type = "conda"
-    installer = installers[installer_type]
-    result[installer_type] = installer.install(
-        prefix, env.requested_packages, args, env
-    )
+    if env.requested_packages:
+        installer_type = "conda"
+        installer = get_installer(installer_type)
+        result[installer_type] = installer.install(
+            prefix, env.requested_packages, args, env
+        )
     # install all other external packages
     for installer_type, specs in env.external_packages.items():
         installer = installers[installer_type]

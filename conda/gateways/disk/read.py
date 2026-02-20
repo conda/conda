@@ -25,9 +25,9 @@ from ...common.serialize import json
 from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
-from ...models.enums import FileMode, PathType
+from ...models.enums import FileMode, PathEnum
 from ...models.package_info import PackageInfo, PackageMetadata
-from ...models.records import PathData, PathDataV1, PathsData
+from ...models.records import PathDataV1, PathsData
 from .create import TemporaryDirectory
 from .link import islink, lexists  # noqa
 
@@ -193,10 +193,10 @@ def read_paths_json(extracted_package_directory):
                 if f in no_link:
                     path_info["no_link"] = True
                 if islink(join(extracted_package_directory, f)):
-                    path_info["path_type"] = PathType.softlink
+                    path_info["path_type"] = PathEnum.softlink
                 else:
-                    path_info["path_type"] = PathType.hardlink
-                yield PathData(**path_info)
+                    path_info["path_type"] = PathEnum.hardlink
+                yield PathDataV1(**path_info)
 
         paths = tuple(read_files_file())
         paths_data = PathsData(

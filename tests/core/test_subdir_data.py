@@ -6,12 +6,12 @@ from logging import getLogger
 from os.path import join
 from pathlib import Path
 from time import sleep
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda import CondaError
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import env_var, env_vars
+from conda.base.context import context, reset_context
 from conda.core.index import Index
 from conda.core.subdir_data import SubdirData, cache_fn_url
 from conda.exceptions import CondaUpgradeError
@@ -25,6 +25,9 @@ from conda.models.channel import Channel
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR_V1, CHANNEL_DIR_V2
 from conda.utils import url_path
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
 
 log = getLogger(__name__)
 
@@ -45,20 +48,26 @@ def platform_in_record(platform, record):
 
 
 @pytest.mark.integration
-def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
-    with env_vars(
-        {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": platform},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
+def test_get_index_no_platform_with_offline_cache(
+    monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
+):
+    monkeypatch.setenv("CONDA_REPODATA_TIMEOUT_SECS", "0")
+    monkeypatch.setenv("CONDA_PLATFORM", platform)
+    reset_context()
 
-        this_platform = context.subdir
-        index = Index(channels=channel_urls, prepend=False)
-        for dist, record in index.items():
-            assert platform_in_record(this_platform, record), (
-                this_platform,
-                record.url,
-            )
+    channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
+
+    this_platform = context.subdir
+    index = Index(channels=channel_urls, prepend=False)
+    for dist, record in index.items():
+        assert platform_in_record(this_platform, record), (
+            this_platform,
+            record.url,
+        )
+
+    monkeypatch.delenv("CONDA_REPODATA_TIMEOUT_SECS")
+    monkeypatch.delenv("CONDA_PLATFORM")
+    reset_context()
 
     # When use_cache=True (which is implicitly engaged when context.offline is
     # True), there may be additional items in the cache that are included in
@@ -68,42 +77,50 @@ def test_get_index_no_platform_with_offline_cache(platform=OVERRIDE_PLATFORM):
     # supplement_index_from_cache on CI?
 
     for use_cache in (None, False, True):
-        with env_var(
-            "CONDA_OFFLINE", "yes", stack_callback=conda_tests_ctxt_mgmt_def_pol
-        ):
-            index2 = Index(channels=channel_urls, prepend=False, use_cache=use_cache)
-            assert all(index2.get(k) == rec for k, rec in index.items())
-            assert use_cache is not False or len(index) == len(index2)
+        monkeypatch.setenv("CONDA_OFFLINE", "yes")
+        reset_context()
+
+        index2 = Index(channels=channel_urls, prepend=False, use_cache=use_cache)
+        assert all(index2.get(k) == rec for k, rec in index.items())
+        assert use_cache is not False or len(index) == len(index2)
 
     for use_cache in (False, True):
-        with env_vars(
-            {"CONDA_REPODATA_TIMEOUT_SECS": "0", "CONDA_PLATFORM": "linux-64"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            index3 = Index(channels=channel_urls, prepend=False, use_cache=use_cache)
-            assert all(index3.get(k) == rec for k, rec in index.items())
-            assert use_cache or len(index) == len(index3)
+        monkeypatch.setenv("CONDA_REPODATA_TIMEOUT_SECS", "0")
+        monkeypatch.setenv("CONDA_PLATFORM", "linux-64")
+        reset_context()
+
+        index3 = Index(channels=channel_urls, prepend=False, use_cache=use_cache)
+        assert all(index3.get(k) == rec for k, rec in index.items())
+        assert use_cache or len(index) == len(index3)
 
     # only works if CONDA_PLATFORM exists in tests/data/conda_format_repo
     # (test will not pass on newer platforms with default CONDA_PLATFORM =
     # 'osx-arm64' etc.)
-    with env_vars(
-        {"CONDA_OFFLINE": "yes", "CONDA_PLATFORM": platform},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        local_channel = Channel(join(CHANNEL_DIR_V1, platform))
-        sd = SubdirData(channel=local_channel)
-        assert len(sd.query_all("zlib", channels=[local_channel])) > 0
-        assert len(sd.query_all("zlib", channels=context.channels or ["defaults"])) == 0
-    assert len(sd.query_all("zlib", channels=context.channels or ["defaults"])) > 1
+    monkeypatch.setenv("CONDA_OFFLINE", "yes")
+    monkeypatch.setenv("CONDA_PLATFORM", platform)
+    reset_context()
+    SubdirData._cache_.clear()
+
+    local_channel = Channel(join(CHANNEL_DIR_V1, platform))
+    offline_channels = [local_channel]
+    online_channels = context.channels or ["defaults"]
+    assert len(SubdirData.query_all("zlib", channels=offline_channels)) > 0
+    assert len(SubdirData.query_all("zlib", channels=online_channels)) == 0
+
+    monkeypatch.delenv("CONDA_PLATFORM")
+    monkeypatch.delenv("CONDA_OFFLINE")
+    reset_context()
+    SubdirData._cache_.clear()
+
+    assert len(SubdirData.query_all("zlib", channels=online_channels)) > 1
 
     # test load from cache
-    with env_vars(
-        {"CONDA_USE_INDEX_CACHE": "true"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        sd.clear_cached_local_channel_data()
-        sd._load()
+    monkeypatch.setenv("CONDA_USE_INDEX_CACHE", "true")
+    reset_context()
+    SubdirData._cache_.clear()
+
+    sd = SubdirData(channel=local_channel)
+    sd._load()
 
 
 def test_cache_fn_url_repo_continuum_io():
@@ -138,62 +155,57 @@ def test_cache_fn_url_repo_anaconda_com():
     assert hash4 != hash6
 
 
-def test_subdir_data_prefers_conda_to_tar_bz2(platform=OVERRIDE_PLATFORM):
-    # force this to False, because otherwise tests fail when run with old conda-build
-    with env_vars(
-        {"CONDA_USE_ONLY_TAR_BZ2": False, "CONDA_PLATFORM": platform},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        channel = Channel(join(CHANNEL_DIR_V1, platform))
-        sd = SubdirData(channel)
-        precs = tuple(sd.query("zlib"))
-        assert precs[0].fn.endswith(".conda")
+def test_subdir_data_prefers_conda_to_tar_bz2(
+    monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
+):
+    # force these to False, because otherwise tests fail when run with old conda-build
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    monkeypatch.setenv("CONDA_PLATFORM", platform)
+    reset_context()
+
+    channel = Channel(join(CHANNEL_DIR_V1, platform))
+    sd = SubdirData(channel)
+    precs = tuple(sd.query("zlib"))
+    assert precs[0].fn.endswith(".conda")
 
 
-def test_use_only_tar_bz2(platform=OVERRIDE_PLATFORM):
+def test_use_only_tar_bz2(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
     channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
-    with env_var(
-        "CONDA_USE_ONLY_TAR_BZ2", True, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        sd = SubdirData(channel)
-        precs = tuple(sd.query("zlib"))
-        assert precs[0].fn.endswith(".tar.bz2")
+
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "true")
+    reset_context()
+
+    sd = SubdirData(channel)
+    precs = tuple(sd.query("zlib"))
+    assert precs[0].fn.endswith(".tar.bz2")
     SubdirData.clear_cached_local_channel_data()
-    with env_var(
-        "CONDA_USE_ONLY_TAR_BZ2", False, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        sd = SubdirData(channel)
-        precs = tuple(sd.query("zlib"))
-        assert precs[0].fn.endswith(".conda")
+
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+
+    sd = SubdirData(channel)
+    precs = tuple(sd.query("zlib"))
+    assert precs[0].fn.endswith(".conda")
 
 
-def test_subdir_data_coverage(platform=OVERRIDE_PLATFORM):
-    class ChannelCacheClear:
-        def __enter__(self):
-            return
-
-        def __exit__(self, *exc):
-            Channel._cache_.clear()
-
+def test_subdir_data_coverage(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
     # disable SSL_VERIFY to cover 'turn off warnings' line
-    with (
-        ChannelCacheClear(),
-        env_vars(
-            {"CONDA_PLATFORM": platform, "CONDA_SSL_VERIFY": "false"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-    ):
-        channel = Channel(url_path(join(CHANNEL_DIR_V1, platform)))
+    monkeypatch.setattr("conda.models.channel.Channel._cache_", {})
+    monkeypatch.setenv("CONDA_PLATFORM", platform)
+    monkeypatch.setenv("CONDA_SSL_VERIFY", "false")
+    reset_context()
 
-        sd = SubdirData(channel)
-        sd.load()
-        assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
+    channel = Channel(url_path(join(CHANNEL_DIR_V1, platform)))
 
-        assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+    sd = SubdirData(channel)
+    sd.load()
+    assert all(isinstance(p, PackageRecord) for p in sd._package_records[1:])
 
-        sd.reload()
-        assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+    assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
+
+    sd.reload()
+    assert all(r.name == "zlib" for r in sd._iter_records_by_name("zlib"))  # type: ignore
 
 
 def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
@@ -221,7 +233,7 @@ def test_repodata_version_error(platform=OVERRIDE_PLATFORM):
     ),
 )
 def test_repodata_version_2_base_url(
-    monkeypatch: pytest.MonkeyPatch, creds: dict[str, str], platform=OVERRIDE_PLATFORM
+    monkeypatch: MonkeyPatch, creds: dict[str, str], platform=OVERRIDE_PLATFORM
 ):
     channel = Channel(url_path(join(CHANNEL_DIR_V2, platform)))
     channel_parts = channel.dump()
@@ -263,7 +275,9 @@ def test_repodata_version_2_base_url(
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
-def test_metadata_cache_works(mocker, platform=OVERRIDE_PLATFORM):
+def test_metadata_cache_works(
+    mocker, monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
+):
     channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
 
@@ -275,54 +289,52 @@ def test_metadata_cache_works(mocker, platform=OVERRIDE_PLATFORM):
 
     RepoInterface = get_repo_interface()
 
-    with env_vars(
-        {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
-        if hasattr(RepoInterface, "repodata_parsed"):
-            fetcher = mocker.patch.object(
-                RepoInterface, "repodata_parsed", return_value={}
-            )
+    monkeypatch.setenv("CONDA_PLATFORM", platform)
+    reset_context()
 
-        SubdirData(channel).cache_path_json.touch()
+    fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
+    if hasattr(RepoInterface, "repodata_parsed"):
+        fetcher = mocker.patch.object(RepoInterface, "repodata_parsed", return_value={})
 
-        sd_a = SubdirData(channel)
-        tuple(sd_a.query("zlib"))
-        assert fetcher.call_count == 1
+    SubdirData(channel).cache_path_json.touch()
 
-        sd_b = SubdirData(channel)
-        assert sd_b is sd_a
-        tuple(sd_b.query("zlib"))
-        assert fetcher.call_count == 1
+    sd_a = SubdirData(channel)
+    tuple(sd_a.query("zlib"))
+    assert fetcher.call_count == 1
+
+    sd_b = SubdirData(channel)
+    assert sd_b is sd_a
+    tuple(sd_b.query("zlib"))
+    assert fetcher.call_count == 1
 
 
-def test_metadata_cache_clearing(mocker, platform=OVERRIDE_PLATFORM):
+def test_metadata_cache_clearing(
+    mocker, monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
+):
     channel = Channel(join(CHANNEL_DIR_V1, platform))
     SubdirData.clear_cached_local_channel_data()
 
     RepoInterface = get_repo_interface()
 
-    with env_vars(
-        {"CONDA_PLATFORM": platform}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
-        if hasattr(RepoInterface, "repodata_parsed"):
-            fetcher = mocker.patch.object(
-                RepoInterface, "repodata_parsed", return_value={}
-            )
-        SubdirData(channel).cache_path_json.touch()
+    monkeypatch.setenv("CONDA_PLATFORM", platform)
+    reset_context()
 
-        sd_a = SubdirData(channel)
-        precs_a = tuple(sd_a.query("zlib"))
-        assert fetcher.call_count == 1
+    fetcher = mocker.patch.object(RepoInterface, "repodata", return_value="{}")
+    if hasattr(RepoInterface, "repodata_parsed"):
+        fetcher = mocker.patch.object(RepoInterface, "repodata_parsed", return_value={})
+    SubdirData(channel).cache_path_json.touch()
 
-        SubdirData.clear_cached_local_channel_data()
+    sd_a = SubdirData(channel)
+    precs_a = tuple(sd_a.query("zlib"))
+    assert fetcher.call_count == 1
 
-        sd_b = SubdirData(channel)
-        assert sd_b is not sd_a
-        precs_b = tuple(sd_b.query("zlib"))
-        assert fetcher.call_count == 2
-        assert precs_b == precs_a
+    SubdirData.clear_cached_local_channel_data()
+
+    sd_b = SubdirData(channel)
+    assert sd_b is not sd_a
+    precs_b = tuple(sd_b.query("zlib"))
+    assert fetcher.call_count == 2
+    assert precs_b == precs_a
 
 
 def test_search_by_packagerecord(platform=OVERRIDE_PLATFORM):

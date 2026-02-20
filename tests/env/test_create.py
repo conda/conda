@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import warnings
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -11,6 +12,7 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
+from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import CondaValueError
 from conda.testing.integration import package_is_installed
@@ -132,7 +134,7 @@ def test_create_advanced_pip(
     environment_yml = advanced_pip_dir / "environment.yml"
 
     # Create environment.yml from template in the isolated location
-    env_content = template_content.replace("ARGH_PATH_PLACEHOLDER", str(argh_dir))
+    env_content = template_content.replace("{ARGH_PATH_PLACEHOLDER}", argh_dir.as_uri())
     environment_yml.write_text(env_content)
 
     stdout, stderr, _ = conda_cli(
@@ -160,11 +162,20 @@ def test_create_empty_env(
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    conda_cli(
-        *("env", "create"),
-        *("--name", env_name),
-        *("--file", support_file("empty_env.yml")),
-    )
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always", PendingDeprecationWarning)
+        conda_cli(
+            *("env", "create"),
+            *("--name", env_name),
+            *("--file", support_file("empty_env.yml")),
+        )
+
+    cep24_warnings = [
+        w
+        for w in warning_list
+        if "The environment file is not fully CEP 24 compliant" in str(w.message)
+    ]
+    assert len(cep24_warnings) > 0
     assert prefix.exists()
 
 
@@ -394,7 +405,40 @@ def test_create_env_custom_platform(
         assert prefix_data.exists()
         assert prefix_data.is_environment()
 
-        config = prefix / ".condarc"
+        config = prefix / DEFAULT_CONDARC_FILENAME
 
         assert config.is_file()
         assert f"subdir: {platform}" in config.read_text()
+
+
+@pytest.mark.integration
+def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
+
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always", PendingDeprecationWarning)
+        prefix = path_factory()
+        stdout, stderr, err = conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            support_file("invalid_keys.yml"),
+        )
+
+    cep24_warnings = [
+        w
+        for w in warning_list
+        if "Provided environment.yaml is invalid: Missing required field 'dependencies'"
+        in str(w.message)
+    ]
+    assert len(cep24_warnings) > 0
+
+    # When splitting the output on "EnvironmentSectionNotValid", we should
+    # get an array of length 2 if the string only appears once. If it appears
+    # multiple times, the array will have more elements.
+    assert len(stdout.split("EnvironmentSectionNotValid")) == 2

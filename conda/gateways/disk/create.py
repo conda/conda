@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for creating new files or directories."""
 
-import codecs
 import os
 import sys
 import tempfile
@@ -14,9 +13,9 @@ from shutil import copyfileobj, copystat
 
 from ... import CondaError
 from ...auxlib.ish import dals
-from ...base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE
+from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
-from ...common.compat import on_linux, on_win
+from ...common.compat import on_win
 from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.serialize import json
@@ -29,7 +28,7 @@ from ...exceptions import (
 )
 from ...models.enums import LinkType
 from . import mkdir_p
-from .delete import path_is_clean, rm_rf
+from .delete import rm_rf
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
@@ -118,7 +117,7 @@ if __name__ == '__main__':
 
 def write_as_json_to_file(file_path, obj):
     log.log(TRACE, "writing json to file %s", file_path)
-    with codecs.open(file_path, mode="wb", encoding="utf-8") as fo:
+    with open(file_path, mode="w", encoding="utf-8") as fo:
         json.dump(obj, fo)
 
 
@@ -146,7 +145,7 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
     else:
         shebang = None
 
-    with codecs.open(target_full_path, mode="wb", encoding="utf-8") as fo:
+    with open(target_full_path, mode="w", encoding="utf-8") as fo:
         if shebang is not None:
             fo.write(shebang)
         fo.write(pyscript)
@@ -216,43 +215,17 @@ class ProgressFileWrapper:
         self.progress_update_callback(rel_pos)
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.base.context.context.plugin_manager.extract_package` instead.",
+)
 def extract_tarball(
     tarball_full_path, destination_directory=None, progress_update_callback=None
 ):
-    import conda_package_handling.api
+    from ...plugins.package_extractors.conda import extract_conda_or_tarball
 
-    if destination_directory is None:
-        if tarball_full_path[-8:] == CONDA_PACKAGE_EXTENSION_V1:
-            destination_directory = tarball_full_path[:-8]
-        else:
-            destination_directory = tarball_full_path.splitext()[0]
-    log.debug("extracting %s\n  to %s", tarball_full_path, destination_directory)
-
-    # the most common reason this happens is due to hard-links, windows thinks
-    #    files in the package cache are in-use. rm_rf should have moved them to
-    #    have a .conda_trash extension though, so it's ok to just write into
-    #    the same existing folder.
-    if not path_is_clean(destination_directory):
-        log.debug(
-            "package folder %s was not empty, but we're writing there.",
-            destination_directory,
-        )
-
-    conda_package_handling.api.extract(
-        tarball_full_path, dest_dir=destination_directory
-    )
-
-    if hasattr(conda_package_handling.api, "THREADSAFE_EXTRACT"):
-        return  # indicates conda-package-handling 2.x, which implements --no-same-owner
-
-    if on_linux and os.getuid() == 0:  # pragma: no cover
-        # When extracting as root, tarfile will by restore ownership
-        # of extracted files.  However, we want root to be the owner
-        # (our implementation of --no-same-owner).
-        for root, dirs, files in os.walk(destination_directory):
-            for fn in files:
-                p = join(root, fn)
-                os.lchown(p, 0, 0)
+    return extract_conda_or_tarball(tarball_full_path, destination_directory)
 
 
 def make_menu(prefix, file_path, remove=False):
@@ -315,7 +288,8 @@ def _do_softlink(src, dst):
 
 @deprecated("26.3", "26.9")
 def create_fake_executable_softlink(src, dst):
-    assert on_win
+    if not on_win:
+        raise RuntimeError("Only runs on Windows.")
     src_root, _ = splitext(src)
     # TODO: this open will clobber, consider raising
     with open(dst, "w") as f:
