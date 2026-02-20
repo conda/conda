@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `win-arm64` subdir detection on native Windows ARM64. `platform.machine()` returns uppercase `ARM64` on Windows, which did not match the lowercase entries in `non_x86_machines`, causing the platform to incorrectly resolve to `win-64`.
+* Fix `win-arm64` subdir detection on native Windows ARM64. `platform.machine()` returns uppercase `ARM64` on Windows, which did not match the lowercase entries in `non_x86_machines`, causing the platform to incorrectly resolve to `win-64`. (#15716)
 
 ### Deprecations
 
