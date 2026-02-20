@@ -100,8 +100,8 @@ class Solver:
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
-        self.unmerged_specs_to_add = frozenset(s for s in specs_to_add)
-        self.unmerged_specs_to_remove = frozenset(s for s in specs_to_remove)
+        self.unmerged_specs_to_add = frozenset(MatchSpec(s) for s in specs_to_add)
+        self.unmerged_specs_to_remove = frozenset(MatchSpec(s) for s in specs_to_remove)
         self.neutered_specs = ()
         self._command = command
 
