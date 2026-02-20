@@ -43,7 +43,6 @@ def test_scrapy_py36_osx_whl():
         "fn": "Scrapy-1.5.1.dist-info",
         "name": "scrapy",
         "package_type": "virtual_python_wheel",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "1.5.1",
     }
@@ -102,7 +101,6 @@ def test_twilio_py36_osx_whl():
         "fn": "twilio-6.16.1.dist-info",
         "name": "twilio",
         "package_type": "virtual_python_wheel",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "6.16.1",
     }
@@ -145,7 +143,6 @@ def test_pyjwt_py36_osx_whl():
         "fn": "PyJWT-1.6.4.dist-info",
         "name": "pyjwt",
         "package_type": "virtual_python_wheel",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "1.6.4",
     }
@@ -188,7 +185,6 @@ def test_cherrypy_py36_osx_whl():
         "fn": "CherryPy-17.2.0.dist-info",
         "name": "cherrypy",
         "package_type": "virtual_python_wheel",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "17.2.0",
     }
@@ -250,7 +246,6 @@ def test_scrapy_py27_osx_no_binary():
         "fn": "Scrapy-1.5.1-py2.7.egg-info",
         "name": "scrapy",
         "package_type": "virtual_python_egg_manageable",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "1.5.1",
     }
@@ -297,7 +292,6 @@ def test_twilio_py27_osx_no_binary():
         "fn": "twilio-6.16.1-py2.7.egg-info",
         "name": "twilio",
         "package_type": "virtual_python_egg_manageable",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "6.16.1",
     }
@@ -330,7 +324,6 @@ def test_pyjwt_py27_osx_no_binary():
         "fn": "PyJWT-1.6.4-py2.7.egg-info",
         "name": "pyjwt",
         "package_type": "virtual_python_egg_manageable",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "1.6.4",
     }
@@ -363,7 +356,6 @@ def test_cherrypy_py27_osx_no_binary():
         "fn": "CherryPy-17.2.0-py2.7.egg-info",
         "name": "cherrypy",
         "package_type": "virtual_python_egg_manageable",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "17.2.0",
     }
@@ -411,7 +403,6 @@ def test_six_py27_osx_no_binary_unmanageable():
         "fn": "six-1.11.0-py2.7.egg-info",
         "name": "six",
         "package_type": "virtual_python_egg_unmanageable",
-        "requested_specs": [],
         "subdir": "pypi",
         "version": "1.11.0",
     }

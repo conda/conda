@@ -1888,7 +1888,6 @@ def test_conda_pip_interop_pip_clobbers_conda(
                 ],
                 "paths_version": 1,
             },
-            "requested_specs": [],
             "subdir": "pypi",
             "version": "1.10.0",
         }
@@ -1998,7 +1997,6 @@ def test_conda_pip_interop_conda_editable_package(
             "fn": "urllib3-1.19.1-dev_0",
             "name": "urllib3",
             "package_type": "virtual_python_egg_link",
-            "requested_specs": [],
             "subdir": "pypi",
             "version": "1.19.1",
         }
@@ -2043,7 +2041,6 @@ def test_conda_pip_interop_conda_editable_package(
             "fn": "urllib3-1.20.dist-info",
             "name": "urllib3",
             "package_type": "virtual_python_wheel",
-            "requested_specs": [],
             "subdir": "pypi",
             "version": "1.20",
         }

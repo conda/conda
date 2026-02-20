@@ -50,7 +50,6 @@ def test_prefix_record_no_channel():
             subdir="win-32",
             fn="austin-1.2.3-py34_2.tar.bz2",
             constrains=(),
-            requested_specs=(),
             depends=(),
         )
 
