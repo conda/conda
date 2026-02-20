@@ -147,7 +147,7 @@ def test_remove_early_existence_check(
     )
 
     with pytest.raises(
-        PackagesNotFoundError,
+        PackagesNotFoundInPrefixError,
         match=r"(?s)missing from the target environment:.+nonexistent-package",
     ):
         conda_cli("remove", f"--prefix={empty_env}", "nonexistent-package", "--yes")
