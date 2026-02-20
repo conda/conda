@@ -934,7 +934,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         package_info,
         target_prefix,
         requested_link_type,
-        requested_spec: list[MatchSpec],
+        requested_spec: MatchSpec | list[MatchSpec],
         all_link_path_actions,
     ):
         extracted_package_dir = package_info.extracted_package_dir
@@ -958,7 +958,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         target_prefix,
         target_short_path,
         requested_link_type,
-        requested_spec: list[MatchSpec],
+        requested_spec: MatchSpec | list[MatchSpec],
         all_link_path_actions,
     ):
         super().__init__(
