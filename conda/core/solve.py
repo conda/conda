@@ -157,8 +157,8 @@ class Solver:
 
         # run pre-solve processes here before solving for a solution
         context.plugin_manager.invoke_pre_solves(
-            self.specs_to_add,
-            self.specs_to_remove,
+            self.unmerged_specs_to_add,
+            self.unmerged_specs_to_remove,
         )
 
         unlink_precs, link_precs = self.solve_for_diff(
