@@ -16,6 +16,7 @@ from os.path import join
 from typing import TYPE_CHECKING
 
 from ..common.compat import on_win
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from typing import Final
@@ -73,7 +74,14 @@ SEARCH_PATH += (
 
 DEFAULT_CHANNEL_ALIAS: Final = "https://conda.anaconda.org"
 CONDA_HOMEPAGE_URL: Final = "https://conda.io"
-ERROR_UPLOAD_URL: Final = "https://conda.io/conda-post/unexpected-error"
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "ERROR_UPLOAD_URL",
+    "https://conda.io/conda-post/unexpected-error",
+)
+
 DEFAULTS_CHANNEL_NAME: Final = "defaults"
 
 PLATFORMS: Final = (
@@ -98,6 +106,15 @@ PLATFORMS: Final = (
 )
 KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
+
+# Windows subdir -> path under CONDA_PACKAGE_ROOT to the entry point stub exe.
+# Future source of truth: https://github.com/conda/conda-launchers
+WINDOWS_LAUNCHER_STUB_PATH: Final = {
+    "win-32": "shell/cli-32.exe",
+    "win-64": "shell/cli-64.exe",
+    "win-arm64": "shell/cli-64.exe",  # rely on arm64 emulation for now
+    # "win-arm64": "shell/cli-arm64.exe",  # add native arm64 support when available
+}
 
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
 
@@ -169,14 +186,32 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
-CONDA_PACKAGE_EXTENSIONS: Final = (
-    CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSION_V1,
+
+PARTIAL_EXTENSION: Final = ".partial"
+"""Suffix appended to package filenames during incomplete downloads."""
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CONDA_PACKAGE_EXTENSIONS",
+    (CONDA_PACKAGE_EXTENSION_V2, CONDA_PACKAGE_EXTENSION_V1),
+    addendum="Use `conda.base.context.context.plugin_manager.get_package_extractors()` instead.",
 )
-CONDA_PACKAGE_PARTS: Final = tuple(f"{ext}.part" for ext in CONDA_PACKAGE_EXTENSIONS)
-CONDA_TARBALL_EXTENSION: Final = (
-    CONDA_PACKAGE_EXTENSION_V1  # legacy support for conda-build
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CONDA_PACKAGE_PARTS",
+    (f"{CONDA_PACKAGE_EXTENSION_V2}.part", f"{CONDA_PACKAGE_EXTENSION_V1}.part"),
+    addendum=(
+        "The `.part` suffix has not been used since 2014; use "
+        "`conda.base.constants.PARTIAL_EXTENSION` (`.partial`) with "
+        "`str.removesuffix()` instead."
+    ),
 )
+
+# legacy support for conda-build
+CONDA_TARBALL_EXTENSION: Final = CONDA_PACKAGE_EXTENSION_V1
 CONDA_TEMP_EXTENSION: Final = ".c~"
 CONDA_TEMP_EXTENSIONS: Final = (CONDA_TEMP_EXTENSION, ".trash")
 CONDA_LOGS_DIR: Final = ".logs"
@@ -393,6 +428,10 @@ NO_PLUGINS: Final = False
 # When this string is present in an environment file, it indicates that the file
 # describes an explicit environment spec.
 EXPLICIT_MARKER: Final = "@EXPLICIT"
+
+# Status marks for health check output
+OK_MARK: Final = "✅"
+X_MARK: Final = "❌"
 
 # These variables describe the various sources for config that are supported by conda.
 # In addition to these sources, conda also supports configuration from condarc config

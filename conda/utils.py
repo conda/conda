@@ -12,12 +12,17 @@ from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
+from typing import TYPE_CHECKING
 
 from . import CondaError
+from .activate import _build_activator_cls
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
 from .deprecations import deprecated
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 log = logging.getLogger(__name__)
 
@@ -57,6 +62,8 @@ del unix_path_to_win
 def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
+
+    Note: Uses SI prefixes (KB, MB, GB) instead of binary prefixes (KiB, MiB, GiB).
 
     Examples:
         >>> human_bytes(42)
@@ -158,6 +165,7 @@ else:
 # Ensures arguments are a tuple or a list. Strings are converted
 # by shlex_split_unicode() which is bad; we warn about it or else
 # we assert (and fix the code).
+@deprecated("26.9", "27.3")
 def massage_arguments(arguments, errors="assert"):
     # For reference and in-case anything breaks ..
     # .. one of the places (run_command in conda_env/utils.py) this
@@ -201,23 +209,20 @@ def wrap_subprocess_call(
     prefix,
     dev_mode,
     debug_wrapper_scripts,
-    arguments,
+    arguments: Sequence[str],
 ):
-    arguments = massage_arguments(arguments)
+    # Ensure arguments is a tuple of strings
+    if not isiterable(arguments):
+        raise TypeError("`arguments` must be iterable")
+    arguments = tuple(map(str, arguments))
+
     script_caller = None
     multiline = False
     if len(arguments) == 1 and "\n" in arguments[0]:
         multiline = True
     if on_win:
         comspec = get_comspec()  # fail early with KeyError if undefined
-        if dev_mode:
-            from . import CONDA_PACKAGE_ROOT
 
-            conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
-        else:
-            conda_bat = environ.get(
-                "CONDA_BAT", abspath(join(root_prefix, "condabin", "conda.bat"))
-            )
         with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as fh:
             silencer = "" if debug_wrapper_scripts else "@"
             fh.write(f"{silencer}ECHO OFF\n")
@@ -245,7 +250,22 @@ def wrap_subprocess_call(
             # after all!
             # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
             # fh.write('@chcp 65001>NUL\n')
-            fh.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"\n')
+
+            # We pursue activation inline here, which allows us to avoid
+            # spawning a `conda activate` process at wrapper runtime.
+            activator_cls = _build_activator_cls("cmd.exe.run")
+            activator_args = ["activate"]
+            if dev_mode:
+                activator_args.append("--dev")
+            activator_args.append(prefix)
+
+            activator = activator_cls(activator_args)
+            activator._parse_and_set_args()
+            activate_script = activator.activate()
+
+            for line in activate_script.splitlines():
+                fh.write(f"{silencer}{line}\n")
+
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
                 fh.write("echo *** environment after *** 1>&2\n")
@@ -305,6 +325,9 @@ def wrap_subprocess_call(
             dev_arg = ""
             dev_args = []
         with Utf8NamedTemporaryFile(mode="w", delete=False) as fh:
+            # If any of these calls to the activation hook scripts fail, we want
+            # to exit the wrapper immediately and abort `conda run` right away.
+            fh.write("set -e\n")
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
 
@@ -314,9 +337,25 @@ def wrap_subprocess_call(
                 fh.write(">&2 echo '*** environment before ***'\n>&2 env\n")
                 fh.write(f'>&2 echo "$({hook_quoted})"\n')
             fh.write(f'eval "$({hook_quoted})"\n')
-            fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
+
+            # We pursue activation inline here, which allows us to avoid
+            # spawning a `conda activate` process at wrapper runtime.
+            activator_cls = _build_activator_cls("posix")
+            activator_args = ["activate"]
+            if dev_mode:
+                activator_args.append("--dev")
+            activator_args.append(prefix)
+
+            activator = activator_cls(activator_args)
+            activator._parse_and_set_args()
+            activate_code = activator.activate()
+
+            fh.write(activate_code)
+
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
+            # Disable exit-on-error for the user's command so we can capture its exit code.
+            fh.write("set +e\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.

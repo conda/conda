@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.common.io import stderr_log_level
 from conda.exceptions import (
     CondaEnvException,
@@ -26,6 +26,8 @@ from conda.testing.integration import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
@@ -114,16 +116,13 @@ def test_remove_nonexistent_env(conda_cli: CondaCLIFixture):
 def test_remove_all_default_activation_env(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
-    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
 ):
     """Check that removing the default_activation_env raises an exception."""
     with tmp_env() as prefix:
-        conda_cli(
-            "config",
-            "--set",
-            "default_activation_env",
-            prefix,
-        )
+        monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", prefix)
+        reset_context()
+
         assert prefix == context.default_activation_prefix
         with pytest.raises(
             CondaEnvException,
@@ -137,3 +136,20 @@ def test_remove_all_default_activation_env(
                 "--all",
                 f"--prefix={prefix}",
             )
+
+
+def test_remove_early_existence_check(
+    empty_env: Path, conda_cli: CondaCLIFixture, mocker
+):
+    """Verify that the (classic) solver is not invoked when packages don't exist in prefix."""
+    mock_solver_backend = mocker.patch(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend"
+    )
+
+    with pytest.raises(
+        PackagesNotFoundError,
+        match=r"(?s)missing from the target environment:.+nonexistent-package",
+    ):
+        conda_cli("remove", f"--prefix={empty_env}", "nonexistent-package", "--yes")
+
+    mock_solver_backend.assert_not_called()

@@ -8,6 +8,7 @@ import platform
 import re
 import sys
 import warnings
+from base64 import urlsafe_b64decode
 from collections import namedtuple
 from configparser import ConfigParser
 from csv import reader as csv_reader
@@ -35,7 +36,7 @@ from ....common.path import (
 )
 from ....models.channel import Channel
 from ....models.enums import PackageType, PathEnum
-from ....models.records import PathData, PathDataV1, PathsData, PrefixRecord
+from ....models.records import PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
 
@@ -268,7 +269,11 @@ class PythonDistribution:
                                     f"Invalid checksum {checksum} at {cleaned_path}. "
                                     f"Check {self._metadata_dir_full_path}."
                                 )
-                            checksum = checksum[7:]
+                            checksum = checksum[7:]  # remove the 'sha256=' prefix
+                            # Checksum is base64 encoded, but may not be padded;
+                            # fix before decoding!
+                            pad = "=" * (4 - (len(checksum) & 3))
+                            checksum = urlsafe_b64decode(checksum + pad).hex()
                         else:
                             checksum = None
                         size = int(size) if size else None
@@ -1272,7 +1277,8 @@ def read_python_record(prefix_path, anchor_file, python_version):
             paths_data = PathsData(
                 paths_version=1,
                 paths=(
-                    PathData(_path=path, path_type=PathEnum.hardlink) for path in files
+                    PathDataV1(_path=path, path_type=PathEnum.hardlink)
+                    for path in files
                 ),
             )
         else:

@@ -169,8 +169,6 @@ reset_context()  # initialize context when conda.exports is imported
 
 NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
 non_x86_linux_machines = non_x86_machines
-get_default_urls = lambda: DEFAULT_CHANNELS
-_PREFIX_PLACEHOLDER = prefix_placeholder = PREFIX_PLACEHOLDER
 arch_name = context.arch_name
 binstar_upload = context.anaconda_upload
 bits = context.bits
@@ -189,12 +187,7 @@ load_condarc = lambda fn: reset_context([fn])
 PaddingError = PaddingError
 LinkError = LinkError
 CondaOSError = CondaOSError
-# PathNotFoundError is the conda 4.4.x name for it - let's plan ahead.
-CondaFileNotFoundError = PathNotFoundError
 # Replacements for six exports for compatibility
-PY3 = True
-string_types = str
-text_type = str
 
 
 # FUTURE: conda 26.3+ remove this
@@ -216,6 +209,186 @@ deprecated.constant(
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
 )
 del CondaJSONEncoder
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "input",
+    input,
+    addendum="Use `builtins.input` instead.",
+)
+del input
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "StringIO",
+    StringIO,
+    addendum="Use `io.StringIO` instead.",
+)
+del StringIO
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "PY3",
+    True,
+    addendum="Python 2 is no longer supported.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "string_types",
+    str,
+    addendum="Use `str` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "text_type",
+    str,
+    addendum="Use `str` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "DEFAULT_CHANNELS",
+    DEFAULT_CHANNELS,
+    addendum="Use `conda.base.constants.DEFAULT_CHANNELS` instead.",
+)
+del DEFAULT_CHANNELS
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "DEFAULT_CHANNELS_UNIX",
+    DEFAULT_CHANNELS_UNIX,
+    addendum="Use `conda.base.constants.DEFAULT_CHANNELS_UNIX` instead.",
+)
+del DEFAULT_CHANNELS_UNIX
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "DEFAULT_CHANNELS_WIN",
+    DEFAULT_CHANNELS_WIN,
+    addendum="Use `conda.base.constants.DEFAULT_CHANNELS_WIN` instead.",
+)
+del DEFAULT_CHANNELS_WIN
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "PREFIX_PLACEHOLDER",
+    PREFIX_PLACEHOLDER,
+    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "_PREFIX_PLACEHOLDER",
+    PREFIX_PLACEHOLDER,
+    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "prefix_placeholder",
+    PREFIX_PLACEHOLDER,
+    addendum="Use `conda.base.constants.PREFIX_PLACEHOLDER` instead.",
+)
+del PREFIX_PLACEHOLDER
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaError",
+    CondaError,
+    addendum="Use `conda.CondaError` instead.",
+)
+del CondaError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaHTTPError",
+    CondaHTTPError,
+    addendum="Use `conda.exceptions.CondaHTTPError` instead.",
+)
+del CondaHTTPError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaOSError",
+    CondaOSError,
+    addendum="Use `conda.exceptions.CondaOSError` instead.",
+)
+del CondaOSError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "LinkError",
+    LinkError,
+    addendum="Use `conda.exceptions.LinkError` instead.",
+)
+del LinkError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "LockError",
+    LockError,
+    addendum="Use `conda.exceptions.LockError` instead.",
+)
+del LockError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "PaddingError",
+    PaddingError,
+    addendum="Use `conda.exceptions.PaddingError` instead.",
+)
+del PaddingError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "PathNotFoundError",
+    PathNotFoundError,
+    addendum="Use `conda.exceptions.PathNotFoundError` instead.",
+)
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaFileNotFoundError",
+    PathNotFoundError,
+    addendum="Use `conda.exceptions.PathNotFoundError` instead.",
+)
+del PathNotFoundError
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "UnsatisfiableError",
+    UnsatisfiableError,
+    addendum="Use `conda.exceptions.UnsatisfiableError` instead.",
+)
+del UnsatisfiableError
+
+
+def get_default_urls():
+    from .base.constants import DEFAULT_CHANNELS
+
+    return DEFAULT_CHANNELS
 
 
 def rm_rf(path, max_retries=5, trash=True):

@@ -969,8 +969,9 @@ class UnlinkLinkTransaction:
                     # parallel block 2:
                     composite_ag = []
                     if install_side:
-                        composite_ag.extend(record_actions)
                         # consolidate compile actions into one big'un for better efficiency
+                        # note: compile must run before record so that we capture pyc_file
+                        # sizes in the manifest.
                         individual_actions = [
                             axn for ag in compile_actions for axn in ag.actions
                         ]
@@ -986,6 +987,7 @@ class UnlinkLinkTransaction:
                                     composite.target_prefix,
                                 )
                             )
+                        composite_ag.extend(record_actions)
                     # functions return None unless there was an exception
                     for exc in self.execute_executor.map(
                         UnlinkLinkTransaction._execute_actions, composite_ag

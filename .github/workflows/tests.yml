@@ -36,6 +36,8 @@ env:
 jobs:
   # detect whether any code changes are included in this PR
   changes:
+    if: github.event_name != 'schedule'
+
     runs-on: ubuntu-latest
     permissions:
       # necessary to detect changes
@@ -45,7 +47,7 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         # dorny/paths-filter needs git clone for non-PR events
         # https://github.com/dorny/paths-filter#supported-workflows
         if: github.event_name != 'pull_request'
@@ -67,14 +69,16 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        python-version: ['3.10', '3.13']
+        python-version: ['3.10', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -91,16 +95,22 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+
+      - name: Set TEMP to D:/Temp
+        run: |
+          mkdir "D:\\Temp"
+          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
+          echo "TMP=D:\\Temp"  >> $env:GITHUB_ENV
 
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           # Use faster GNU tar for all runners
           enableCrossOsArchive: true
@@ -108,7 +118,7 @@ jobs:
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -123,7 +133,6 @@ jobs:
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
-          --file tests\requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -187,7 +196,9 @@ jobs:
   linux:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -201,7 +212,7 @@ jobs:
         runs-on:
           - ubuntu-latest  # linux-64
           - ubuntu-24.04-arm  # linux-aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -223,11 +234,11 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.13' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.14' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -235,13 +246,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -256,7 +267,6 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -272,7 +282,11 @@ jobs:
       - name: Setup Shells
         # for tests/shell, so only necessary for integration tests
         if: matrix.test-type == 'integration'
-        run: sudo apt update && sudo apt install ash csh fish tcsh xonsh zsh
+        run: |
+          sudo apt update && sudo apt install ash csh fish tcsh zsh
+          # xonsh is installed with conda in step above
+          # Initialize all shells
+          python -m conda init --all
 
       - name: Run Tests
         run: >
@@ -315,11 +329,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -327,13 +341,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmark-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
@@ -347,7 +361,6 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           --file tests/requirements-benchmarks.txt
-          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -361,7 +374,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@346a2d8a8d9d38909abd0bc3d23f773110f076ad # v4.4.1
+        uses: CodSpeedHQ/action@208425962c215de49ed713e18c4b9bde9bda5c52 # v4.10.2
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/python -m pytest --codspeed
@@ -381,11 +394,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -393,13 +406,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmark-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
@@ -413,7 +426,6 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           --file tests/requirements-typing.txt
-          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -458,7 +470,9 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -473,14 +487,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
         image:
           - condaforge/miniforge3:latest
         platform: [ppc64le]
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -527,11 +541,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.13']
+        python-version: ['3.14']
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -539,13 +553,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-memray-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
@@ -558,7 +572,6 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
           conda-forge::pytest-memray
 
@@ -579,7 +592,9 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: github.event_name == 'schedule' || needs.changes.outputs.code == 'true'
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -593,13 +608,13 @@ jobs:
         runs-on:
           - macos-15-intel  # osx-64
           - macos-latest  # osx-arm64
-        python-version: ['3.10', '3.13']
+        python-version: ['3.10', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - runs-on: macos-15-intel
-            python-version: '3.13'
+            python-version: '3.14'
           - runs-on: macos-15-intel
             default-channel: defaults
           - runs-on: macos-15-intel
@@ -619,7 +634,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -627,13 +642,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -647,7 +662,6 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          --file tests/requirements-truststore.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -699,7 +713,7 @@ jobs:
     if: >-
       !cancelled()
       && (
-        github.event_name == 'schedule'
+        (!github.event.repository.fork && github.event_name == 'schedule')
         || needs.changes.outputs.code == 'true'
       )
 
@@ -739,7 +753,7 @@ jobs:
 
       - name: Checkout our source
         if: always() && github.event_name == 'schedule' && steps.alls-green.outputs.result == 'failure'
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Report failures
         if: always() && github.event_name == 'schedule' && steps.alls-green.outputs.result == 'failure'
@@ -774,8 +788,6 @@ jobs:
             subdir: linux-64
           - runs-on: ubuntu-24.04-arm
             subdir: linux-aarch64
-          - runs-on: macos-15-intel
-            subdir: osx-64
           - runs-on: macos-latest
             subdir: osx-arm64
           - runs-on: windows-latest
@@ -785,7 +797,7 @@ jobs:
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
       - name: Checkout Source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.ref }}
           clean: true
@@ -793,7 +805,7 @@ jobs:
 
       # Explicitly use Python 3.11 since each of the OSes has a different default Python
       - name: Setup Python
-        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.11'
 
@@ -832,7 +844,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@f05161c6e6e37a49b17c8e0b436197b53830318a # v25.9.2
+        uses: conda/actions/canary-release@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
         env:
           # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
@@ -858,19 +870,19 @@ jobs:
       fail-fast: false
       matrix:
         # check missing imports in one representative environment
-        python-version: ['3.13']
+        python-version: ['3.14']
         default-channel: [defaults]
 
     steps:
       - name: Checkout conda/conda
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           repository: conda/conda
           path: conda
 
       - name: Checkout conda/conda-build
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           repository: conda/conda-build
@@ -880,13 +892,13 @@ jobs:
         run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ github.job }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@835234971496cad1653abb28a638a281cf32541f # v3.2.0
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: conda/.github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup

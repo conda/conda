@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,6 +28,8 @@ if TYPE_CHECKING:
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
+CORRUPT_DATA_DIR = Path(__file__).parent.parent / "data" / "corrupt"
+DOT_UNDERSCORE_DIR = CORRUPT_DATA_DIR / "dot_underscore"
 
 
 @pytest.mark.parametrize(
@@ -255,6 +258,14 @@ ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
             id=PATH_TEST_ENV_2.name,
             marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
+        pytest.param(
+            PATH_TEST_ENV_3 := ENV_METADATA_DIR / "envpy313tosx_whl",
+            {
+                "imagesize",
+            },
+            id=PATH_TEST_ENV_3.name,
+            marks=pytest.mark.skipif(on_win, reason="Unix only"),
+        ),
     ],
 )
 def test_pip_interop(
@@ -319,6 +330,16 @@ def test_corrupt_json_conda_meta_json():
     """Test for graceful failure if a JSON corrupt file exists in conda-meta."""
     with pytest.raises(CorruptedEnvironmentError):
         PrefixData("tests/data/corrupt/json").load()
+
+
+def test_dot_underscore_conda_meta_json_ignored(tmp_path: Path):
+    target_prefix = tmp_path / "dot_underscore"
+    shutil.copytree(DOT_UNDERSCORE_DIR, target_prefix)
+
+    prefix_data = PrefixData(target_prefix)
+    prefix_data.load()
+
+    assert prefix_data.get("valid") is not None
 
 
 @pytest.fixture

@@ -57,17 +57,38 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
-url_pat = re.compile(
-    r"(?:(?P<url_p>.+)(?:[/\\]))?"
-    r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
-    r"(?:#("
-    r"(?P<md5>[0-9a-f]{32})"
-    r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
-    r"))?$"
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "url_pat",
+    re.compile(
+        r"(?:(?P<url_p>.+)(?:[/\\]))?"
+        r"(?P<fn>[^/\\#]+(?:\.conda|\.tar\.bz2))"
+        r"(?:#("
+        r"(?P<md5>[0-9a-f]{32})"
+        r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+        r"))?$"
+    ),
+    addendum="Use `conda.misc._get_url_pattern()` instead.",
 )
 
 
+def _get_url_pattern() -> re.Pattern:
+    """Build URL pattern dynamically based on registered package extensions."""
+    extensions = context.plugin_manager.get_package_extractors().keys()
+    ext_pattern = "|".join(map(re.escape, extensions))
+    return re.compile(
+        r"(?:(?P<url_p>.+)(?:[/\\]))?"
+        rf"(?P<fn>[^/\\#]+(?:{ext_pattern}))"
+        r"(?:#("
+        r"(?P<md5>[0-9a-f]{32})"
+        r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+        r"))?$"
+    )
+
+
 def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
+    url_pat = _get_url_pattern()
     for spec in specs:
         if spec == EXPLICIT_MARKER:
             continue

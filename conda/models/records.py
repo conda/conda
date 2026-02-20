@@ -16,6 +16,7 @@ Object inheritance:
 from __future__ import annotations
 
 from os.path import basename, join
+from pathlib import Path
 
 from boltons.timeutils import dt_to_timestamp, isoparse
 
@@ -242,7 +243,7 @@ class PathDataV1(PathData):
 class PathsData(Entity):
     # from info/paths.json
     paths_version = IntegerField()
-    paths = ListField(PathData)
+    paths = ListField(PathDataV1)
 
 
 class PackageRecord(DictSafeMixin, Entity):
@@ -671,6 +672,41 @@ class PrefixRecord(SolvedRecord):
     # information with the package.  Open to rethinking that though.
     auth = StringField(required=False, nullable=True)
     """Authentication information."""
+
+    def package_size(self, prefix_path: Path) -> int:
+        """
+        Compute the installed size of this package within a prefix.
+
+        This sums up the size_in_bytes of all non-softlink paths in paths_data,
+        and stats the files on disk if size_in_bytes is missing and for the
+        package's conda-meta JSON manifest.
+
+        :returns: Total size in bytes of all files installed by this package.
+        """
+        total_size = 0
+
+        meta_file = (
+            prefix_path / "conda-meta" / f"{self.name}-{self.version}-{self.build}.json"
+        )
+        try:
+            total_size += meta_file.stat().st_size
+        except OSError:
+            pass
+
+        for path_data in self.paths_data.paths:
+            if path_data.path_type in (PathEnum.softlink, PathEnum.directory):
+                continue
+            if getattr(path_data, "size_in_bytes", None) is not None:
+                total_size += path_data.size_in_bytes
+                continue
+
+            file_path = Path(prefix_path) / path_data._path
+            try:
+                total_size += file_path.stat().st_size
+            except OSError:
+                pass
+
+        return total_size
 
     # @classmethod
     # def load(cls, conda_meta_json_path):

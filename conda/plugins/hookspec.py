@@ -25,6 +25,7 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaPackageExtractor,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -243,7 +244,10 @@ class CondaSpecs:
         that you can write to diagnose problems in your conda environment.
         Check out the health checks already shipped with conda for inspiration.
 
-        **Example:**
+        Health checks can optionally provide a ``fixer`` callable that is invoked
+        via ``conda doctor --fix`` or ``conda doctor --fix <check-name>``.
+
+        **Example (check only):**
 
         .. code-block:: python
 
@@ -260,6 +264,36 @@ class CondaSpecs:
                     name="example-health-check",
                     action=example_health_check,
                 )
+
+        **Example (check with fix):**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def my_health_check(prefix: str, verbose: bool):
+                # Check and report issues
+                print("Checking for issues...")
+
+
+            def my_health_fix(prefix: str, args) -> int:
+                # Fix the issues
+                print("Fixing issues...")
+                return 0  # exit code
+
+
+            @plugins.hookimpl
+            def conda_health_checks():
+                yield plugins.CondaHealthCheck(
+                    name="my-check",
+                    action=my_health_check,
+                    fixer=my_health_fix,
+                    summary="Check for common issues",
+                    fix="Repair detected issues",
+                )
+
+        :return: An iterable of health check entries.
         """
         yield from ()
 
@@ -734,5 +768,40 @@ class CondaSpecs:
                     default_filenames=("environment.toml",),
                     export=export_toml,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_package_extractors(self) -> Iterable[CondaPackageExtractor]:
+        """
+        Register package extractors for different archive formats.
+
+        Package extractors handle the unpacking of package archives. Each extractor
+        specifies which file extensions it supports (e.g., ``.conda``, ``.tar.bz2``)
+        and provides an extraction function that takes the source archive path and
+        destination directory.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.common.path import PathType
+
+
+            def extract_custom(source_path: PathType, destination_directory: PathType) -> None:
+                # Custom extraction logic for a hypothetical package format
+                ...
+
+
+            @plugins.hookimpl
+            def conda_package_extractors():
+                yield plugins.types.CondaPackageExtractor(
+                    name="custom-package",
+                    extensions=[".custom"],
+                    extract=extract_custom,
+                )
+
+        :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
         """
         yield from ()
