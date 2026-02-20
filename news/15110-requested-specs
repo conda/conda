@@ -1,6 +1,7 @@
 ### Enhancements
 
-* Add support for `PackageRecord.requested_specs`. (#15110)
+* Add support for `PackageRecord.requested_specs`. (#15111 via #15110)
+* Two new attributes in `conda.core.solve.Solver`, `unmerged_specs_to_add` and `unmerged_specs_to_remove`, store the list of input specs as received, instead of always attempting to merge them. (#15110)
 
 ### Bug fixes
 
