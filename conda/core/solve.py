@@ -186,8 +186,8 @@ class Solver:
                 self.prefix,
                 unlink_precs,
                 link_precs,
-                self.specs_to_remove,
-                self.specs_to_add,
+                self.unmerged_specs_to_remove,
+                self.unmerged_specs_to_add,
                 self.neutered_specs,
             )
         )

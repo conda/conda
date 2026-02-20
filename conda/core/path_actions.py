@@ -934,7 +934,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         package_info,
         target_prefix,
         requested_link_type,
-        requested_spec,
+        requested_spec: list[MatchSpec],
         all_link_path_actions,
     ):
         extracted_package_dir = package_info.extracted_package_dir
@@ -958,7 +958,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         target_prefix,
         target_short_path,
         requested_link_type,
-        requested_spec,
+        requested_spec: list[MatchSpec],
         all_link_path_actions,
     ):
         super().__init__(
@@ -1028,7 +1028,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
                 requested_spec_str = str(self.requested_spec)
                 requested_specs = (requested_spec_str,)
         else:
-            requested_spec_str = ""
+            requested_spec_str = None
             requested_specs = ()
 
         self.prefix_record = PrefixRecord.from_objects(
