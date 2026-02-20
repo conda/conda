@@ -93,14 +93,12 @@ def test_powershell_basic_integration(
         sh.sendline("$LASTEXITCODE")
         sh.expect("0")
 
-        # TODO: reactivate does not set envvars?
-        sh.sendline(f'conda activate -stack "{venusaur}"')
-
-        # see tests/test-recipes/small-executable
+        # After install, wrapper runs reactivate so activate.ps1 runs (issue #15643).
+        # SMALL_EXE is set by small-executable's activate.d script.
         log.debug("## [PowerShell integration] Checking installed version.")
+        sh.assert_env_var("SMALL_EXE", "small-var-pwsh")
         sh.sendline("small")
         sh.expect_exact("Hello!")
-        sh.assert_env_var("SMALL_EXE", "small-var-pwsh")
 
         # see tests/test-recipes/small-executable
         log.debug("## [PowerShell integration] Checking conda run.")
