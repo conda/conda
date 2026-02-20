@@ -197,6 +197,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 }
                 for prefix, prefix_recs in prefix_matches
             )
+
+            if not ordered_result:
+                from ..exceptions import PackagesNotFoundError
+
+                raise PackagesNotFoundError([spec])
+
         if context.json:
             stdout_json(ordered_result)
         elif args.info:
