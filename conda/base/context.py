@@ -673,7 +673,7 @@ class Context(Configuration):
 
     @property
     def arch_name(self) -> str:
-        m = platform.machine()
+        m = platform.machine().lower()
         if m in non_x86_machines:
             return m
         else:
@@ -728,7 +728,7 @@ class Context(Configuration):
 
     @cache
     def _native_subdir(self) -> str:
-        m = platform.machine()
+        m = platform.machine().lower()
         if m in non_x86_machines:
             return f"{self.platform}-{m}"
         elif self.platform == "zos":
