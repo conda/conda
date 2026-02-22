@@ -40,7 +40,6 @@ class YamlFileSpec(EnvironmentSpecBase):
         Validates loader can process environment definition.
         This can handle if:
             * the provided file exists
-            * the provided file ends in the supported file extensions (.yaml or .yml)
             * the yaml file can be loaded and is not empty
 
         :return: True or False

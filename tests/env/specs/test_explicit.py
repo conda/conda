@@ -31,6 +31,7 @@ def test_environment():
 
 def test_environment_on_random_file():
     spec = ExplicitSpec(filename=support_file("explicit.random"))
+    assert spec.can_handle()
     assert isinstance(spec.env, Environment)
     assert len(spec.env.explicit_packages) > 0
     assert "ca-certificates" in [pkg.name for pkg in spec.env.explicit_packages]

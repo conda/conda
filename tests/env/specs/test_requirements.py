@@ -36,5 +36,6 @@ def test_environment():
 
 def test_environment_on_random_file():
     spec = RequirementsSpec(filename=support_file("requirements.random"))
+    assert spec.can_handle()
     assert isinstance(spec.env, Environment)
     assert spec.env.requested_packages[0].name == "conda-package-handling"

@@ -40,5 +40,6 @@ def test_filename_on_random_file():
     filename = support_file("yaml_file.random")
     with mock.patch.object(env, "from_file") as from_file:
         spec = YamlFileSpec(filename=filename)
+        assert spec.can_handle()
         spec.env
     from_file.assert_called_with(filename)

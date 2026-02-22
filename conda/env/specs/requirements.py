@@ -81,7 +81,6 @@ class RequirementsSpec(EnvironmentSpecBase):
         Validates that this spec can process the environment definition.
         This checks if:
             * a filename was provided
-            * the file has a supported extension
             * the file exists
             * the file content is valid for this specifier type
 

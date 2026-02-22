@@ -31,7 +31,6 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
         Validates loader can process environment definition.
         This can handle if:
             * the provided file exists
-            * the provided file ends in the supported file extensions (.yaml or .yml)
             * the provided file is compliant with the CEP-0024
 
         :return: True or False
