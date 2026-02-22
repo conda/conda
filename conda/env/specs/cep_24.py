@@ -40,13 +40,6 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
         if not self.filename:
             return False
 
-        # Extract the file extension (e.g., '.txt' or '' if no extension)
-        _, file_ext = os.path.splitext(self.filename)
-
-        # Check if the file has a supported extension and exists
-        if file_ext.lower() not in self.extensions:
-            return False
-
         try:
             yamlstr = env.load_file(self.filename)
             data = yaml.loads(yamlstr)
