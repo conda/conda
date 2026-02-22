@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -47,13 +46,6 @@ class YamlFileSpec(EnvironmentSpecBase):
         :return: True or False
         """
         if not self.filename:
-            return False
-
-        # Extract the file extension (e.g., '.txt' or '' if no extension)
-        _, file_ext = os.path.splitext(self.filename)
-
-        # Check if the file has a supported extension and exists
-        if not any(spec_ext == file_ext for spec_ext in YamlFileSpec.extensions):
             return False
 
         try:

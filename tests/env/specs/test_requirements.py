@@ -32,3 +32,9 @@ def test_environment():
     spec = RequirementsSpec(filename=support_file("requirements.txt"))
     assert isinstance(spec.env, Environment)
     assert spec.env.requested_packages[0].name == "conda-package-handling"
+
+
+def test_environment_on_random_file():
+    spec = RequirementsSpec(filename=support_file("requirements.random"))
+    assert isinstance(spec.env, Environment)
+    assert spec.env.requested_packages[0].name == "conda-package-handling"

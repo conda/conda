@@ -91,14 +91,6 @@ class RequirementsSpec(EnvironmentSpecBase):
         if self.filename is None:
             return False
 
-        # Extract the file extension (e.g., '.txt' or '' if no extension)
-        _, file_ext = os.path.splitext(self.filename)
-
-        # Check if the file has a supported extension
-        if not any(spec_ext == file_ext for spec_ext in self.extensions):
-            self.msg = f"File {self.filename} does not have a supported extension: {', '.join(self.extensions)}"
-            return False
-
         # Ensure this is not an explicit file. Requirements.txt and explicit files
         # may sometimes share file extension.
         dependencies_list = list(yield_lines(self.filename))
