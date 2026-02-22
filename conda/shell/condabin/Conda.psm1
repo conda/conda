@@ -152,46 +152,18 @@ function Invoke-Conda() {
         } else {
             $OtherArgs = @();
         }
-        switch ($Command) {
-            "activate" {
+        switch -Regex ($Command) {
+            "^activate$" {
                 Enter-CondaEnvironment @OtherArgs;
             }
-            "deactivate" {
+            "^deactivate$" {
                 Exit-CondaEnvironment;
             }
 
             # Run the command, then reactivate so activate.ps1 runs and env vars
             # (e.g. from packages like proj, GDAL) are set in this session.
             # Matches behavior of conda.sh and conda.bat (see issue #15643).
-            "install" {
-                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
-                $succeeded = $?;
-                $exitCode = if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $LASTEXITCODE } else { if ($succeeded) { 0 } else { 1 } };
-                if ($succeeded) { Invoke-CondaReactivate }
-                if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $global:LASTEXITCODE = $exitCode; }
-            }
-            "update" {
-                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
-                $succeeded = $?;
-                $exitCode = if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $LASTEXITCODE } else { if ($succeeded) { 0 } else { 1 } };
-                if ($succeeded) { Invoke-CondaReactivate }
-                if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $global:LASTEXITCODE = $exitCode; }
-            }
-            "upgrade" {
-                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
-                $succeeded = $?;
-                $exitCode = if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $LASTEXITCODE } else { if ($succeeded) { 0 } else { 1 } };
-                if ($succeeded) { Invoke-CondaReactivate }
-                if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $global:LASTEXITCODE = $exitCode; }
-            }
-            "remove" {
-                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
-                $succeeded = $?;
-                $exitCode = if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $LASTEXITCODE } else { if ($succeeded) { 0 } else { 1 } };
-                if ($succeeded) { Invoke-CondaReactivate }
-                if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $global:LASTEXITCODE = $exitCode; }
-            }
-            "uninstall" {
+            "^(install|update|upgrade|remove|uninstall)$" {
                 & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
                 $succeeded = $?;
                 $exitCode = if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $LASTEXITCODE } else { if ($succeeded) { 0 } else { 1 } };
