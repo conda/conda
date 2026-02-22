@@ -28,6 +28,7 @@ def test_environment():
     assert len(spec.env.explicit_packages) > 0
     assert "ca-certificates" in [pkg.name for pkg in spec.env.explicit_packages]
 
+
 def test_environment_on_random_file():
     spec = ExplicitSpec(filename=support_file("explicit.random"))
     assert isinstance(spec.env, Environment)
