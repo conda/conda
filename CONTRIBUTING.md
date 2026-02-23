@@ -43,6 +43,12 @@ You're welcome to use generative AI tools when contributing to conda. However, p
 
 PRs consisting of unchecked AI-generated content may be closed. Maintainer time is limited and contributions should be high quality, regardless of the tools used to create them.
 
+## Paid Contribution Schemes
+
+While we support open source contributors receiving financial compensation, we do not accept contributions motivated by crypto payments, bounties, or similar gamification schemes. These systems incentivize low-quality, high-volume contributions that waste limited maintainer time.
+
+If you would like to add conda to such a system, or believe your situation warrants an exception, please reach out ahead of time on [Zulip](https://conda.zulipchat.com).
+
 ## Ways to contribute
 
 Below are all the ways you can get involved in with conda.
