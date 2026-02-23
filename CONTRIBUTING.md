@@ -31,6 +31,18 @@ both use similar agreements.
 
 A record of prior signatories is kept in a [separate repo in conda's GitHub][clabot] organization.
 
+## Generative AI
+
+You're welcome to use generative AI tools when contributing to conda. However, please keep the following in mind:
+
+- You are responsible for all code you submit. Review and understand any AI-generated content before including it in a PR.
+- Be prepared to engage during code review. Reviewers expect to discuss the changes with you directly—do not copy and paste AI responses.
+- Make minimal, focused changes. AI tools sometimes rewrite more than necessary, making reviews harder. Prefer small, targeted edits that match the existing code style and patterns.
+- Don't bypass tests. Ensure AI-assisted changes actually fix the underlying problem rather than altering tests to make them pass.
+- Do not use AI agents to submit PRs autonomously.
+
+PRs consisting of unchecked AI-generated content may be closed. Maintainer time is limited and contributions should be high quality, regardless of the tools used to create them.
+
 ## Ways to contribute
 
 Below are all the ways you can get involved in with conda.
