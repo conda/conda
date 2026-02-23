@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add support for `PackageRecord.requested_specs`. This will store all the MatchSpec objects that were involved in requesting a package (instead of a single, pre-merged object). To that end, two new attributes in `conda.core.solve.Solver`, `unmerged_specs_to_add` and `unmerged_specs_to_remove`, store the list of input specs as received, instead of always attempting to merge them. (#15111 via #15110)
+* Pass unmerged MatchSpec objects to `pre-solve` plugins (instead of pre-merged). (#15110)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

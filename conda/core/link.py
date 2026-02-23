@@ -150,8 +150,11 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
     )
 
 
-def match_specs_to_dists(packages_info_to_link, specs):
-    matched_specs = [None for _ in range(len(packages_info_to_link))]
+def match_specs_to_dists(packages_info_to_link, specs) -> tuple[list[MatchSpec], ...]:
+    """
+    Find which specs belong to each package to link
+    """
+    matched_specs = [[] for _ in range(len(packages_info_to_link))]
     for spec in specs or ():
         spec = MatchSpec(spec)
         idx = next(
@@ -163,7 +166,7 @@ def match_specs_to_dists(packages_info_to_link, specs):
             None,
         )
         if idx is not None:
-            matched_specs[idx] = spec
+            matched_specs[idx].append(spec)
     return tuple(matched_specs)
 
 
@@ -505,14 +508,14 @@ class UnlinkLinkTransaction:
         compile_action_groups = []
         make_menu_action_groups = []
         record_axns = []
-        for pkg_info, lt, spec in zip(
+        for pkg_info, lt, specs in zip(
             packages_info_to_link, link_types, matchspecs_for_link_dists
         ):
             link_ag = ActionGroup(
                 "link",
                 pkg_info,
                 cls._make_link_actions(
-                    transaction_context, pkg_info, target_prefix, lt, spec
+                    transaction_context, pkg_info, target_prefix, lt, specs
                 ),
                 target_prefix,
             )
@@ -526,7 +529,7 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -541,7 +544,7 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -570,7 +573,7 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
                     all_link_path_actions,
                 )
             )
