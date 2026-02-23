@@ -1,0 +1,19 @@
+### Enhancements
+
+* Speed up `conda run` by dropping the shell hook subprocess and relying on inline activators (#14993 via #15672)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
