@@ -235,20 +235,19 @@ def test_channel_equality_respects_platform():
 
 
 def test_channel_name_subdir_only():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        channel = Channel("pkgs/main/win-64")
-        assert channel.scheme == "https"
-        assert channel.location == "repo.anaconda.com"
-        assert channel.platform == "win-64" == channel.subdir
-        assert channel.name == "pkgs/main"
+    channel = Channel("pkgs/main/win-64")
+    assert channel.scheme == "https"
+    assert channel.location == "repo.anaconda.com"
+    assert channel.platform == "win-64" == channel.subdir
+    assert channel.name == "pkgs/main"
 
-        assert channel.base_url == "https://repo.anaconda.com/pkgs/main"
-        assert channel.canonical_name == "defaults"
-        assert channel.url() == "https://repo.anaconda.com/pkgs/main/win-64"
-        assert channel.urls() == [
-            "https://repo.anaconda.com/pkgs/main/win-64",
-            "https://repo.anaconda.com/pkgs/main/noarch",
-        ]
+    assert channel.base_url == "https://repo.anaconda.com/pkgs/main"
+    assert channel.canonical_name == "defaults"
+    assert channel.url() == "https://repo.anaconda.com/pkgs/main/win-64"
+    assert channel.urls() == [
+        "https://repo.anaconda.com/pkgs/main/win-64",
+        "https://repo.anaconda.com/pkgs/main/noarch",
+    ]
 
 
 def test_channel_alias_w_conda_path(monkeypatch: MonkeyPatch):
