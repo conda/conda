@@ -90,33 +90,23 @@ def test_channel_cache():
     assert ccc1 is ccc
 
 
-def test_default_channel():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        dc = Channel("defaults")
-        assert dc.canonical_name == "defaults"
-        assert dc.urls() == [
-            f"https://repo.anaconda.com/pkgs/main/{context.subdir}",
-            "https://repo.anaconda.com/pkgs/main/noarch",
-            f"https://repo.anaconda.com/pkgs/r/{context.subdir}",
-            "https://repo.anaconda.com/pkgs/r/noarch",
-            *(
-                [
-                    f"https://repo.anaconda.com/pkgs/msys2/{context.subdir}",
-                    "https://repo.anaconda.com/pkgs/msys2/noarch",
-                ]
-                if on_win
-                else []
-            ),
-        ]
-        assert dc.subdir is None
-        assert str(dc) == "defaults"
-
-        dc = Channel("defaults/win-32")
-        assert dc.canonical_name == "defaults"
-        assert dc.subdir == "win-32"
-        assert dc.urls()[0] == "https://repo.anaconda.com/pkgs/main/win-32"
-        assert dc.urls()[1] == "https://repo.anaconda.com/pkgs/main/noarch"
-        assert dc.urls()[2].endswith("/win-32")
+@pytest.mark.parametrize("subdir", [None, "win-32"])
+def test_default_channel(subdir: str | None):
+    name = "defaults" if subdir is None else f"defaults/{subdir}"
+    channel = Channel(name)
+    assert channel.canonical_name == "defaults"
+    assert channel.platform == channel.subdir == subdir
+    subdir = subdir or context.subdir
+    main_subdir, main_noarch, r_subdir, r_noarch, *msys2 = channel.urls()
+    assert main_subdir == f"https://repo.anaconda.com/pkgs/main/{subdir}"
+    assert main_noarch == "https://repo.anaconda.com/pkgs/main/noarch"
+    assert r_subdir == f"https://repo.anaconda.com/pkgs/r/{subdir}"
+    assert r_noarch == "https://repo.anaconda.com/pkgs/r/noarch"
+    if on_win:
+        msys2_subdir, msys2_noarch = msys2
+        assert msys2_subdir == f"https://repo.anaconda.com/pkgs/msys2/{subdir}"
+        assert msys2_noarch == "https://repo.anaconda.com/pkgs/msys2/noarch"
+    assert str(channel) == name
 
 
 def test_url_channel_w_platform():
