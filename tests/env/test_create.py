@@ -442,3 +442,51 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     # get an array of length 2 if the string only appears once. If it appears
     # multiple times, the array will have more elements.
     assert len(stdout.split("EnvironmentSectionNotValid")) == 2
+
+
+@pytest.mark.integration
+def test_export_and_recreate_environment(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
+):
+    """
+    Test that a user can recreate an environment with the same
+    plugin name they used to export the environment.
+    Ref: https://github.com/conda-incubator/conda-lockfiles/issues/79
+    """
+    # Setup a simple environment
+    with tmp_env("python") as prefix:
+        # tuple of target format name and the file name to use
+        target_formats = [
+            ("yml", "env.yaml"),
+            ("yml", "env.yaml"),
+            ("txt", "env.txt"),
+            ("reqs", "env.txt"),
+        ]
+
+        for formats in target_formats:
+            target_format = formats[0]
+            file_name = formats[1]
+
+            # export the environment to yml format
+            env_file_path = path_factory(file_name)
+            stdout, stderr, rc = conda_cli(
+                "export",
+                f"--prefix={prefix}",
+                f"--format={target_format}",
+                f"--file={env_file_path}",
+            )
+            assert rc == 0, "Unable to export env to format {target_format}"
+
+            # recreate the environment
+            recreate_prefix = path_factory()
+            stdout, stderr, rc = conda_cli(
+                "env",
+                "create",
+                f"--prefix={recreate_prefix}",
+                f"--env-spec={target_format}",
+                f"--file={env_file_path}",
+                "--dry-run",
+            )
+            assert rc == 0, "Unable to recreate env from format {target_format}"
