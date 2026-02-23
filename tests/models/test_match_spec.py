@@ -3,10 +3,9 @@
 import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import context
 from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
-from conda.common.io import env_unmodified
 from conda.exceptions import InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
@@ -411,94 +410,93 @@ def test_matchspec_errors():
 
 
 def test_dist():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        dst = Dist("defaults::foo-1.2.3-4.tar.bz2")
-        a = MatchSpec(dst)
-        b = MatchSpec(a)
-        c = MatchSpec(dst, optional=True, target="burg")
-        d = MatchSpec(a, build="5")
+    dst = Dist("defaults::foo-1.2.3-4.tar.bz2")
+    a = MatchSpec(dst)
+    b = MatchSpec(a)
+    c = MatchSpec(dst, optional=True, target="burg")
+    d = MatchSpec(a, build="5")
 
-        assert a == b
-        assert hash(a) == hash(b)
-        assert a is b
+    assert a == b
+    assert hash(a) == hash(b)
+    assert a is b
 
-        assert a != c
-        assert hash(a) != hash(c)
+    assert a != c
+    assert hash(a) != hash(c)
 
-        assert a != d
-        assert hash(a) != hash(d)
+    assert a != d
+    assert hash(a) != hash(d)
 
-        p = MatchSpec(channel="defaults", name="python", version=VersionSpec("3.5*"))
-        assert p.match(
-            Dist(
-                channel="defaults",
-                dist_name="python-3.5.3-1",
-                name="python",
-                version="3.5.3",
-                build_string="1",
-                build_number=1,
-                base_url=None,
-                platform=None,
-            )
+    p = MatchSpec(channel="defaults", name="python", version=VersionSpec("3.5*"))
+    assert p.match(
+        Dist(
+            channel="defaults",
+            dist_name="python-3.5.3-1",
+            name="python",
+            version="3.5.3",
+            build_string="1",
+            build_number=1,
+            base_url=None,
+            platform=None,
         )
+    )
 
-        assert not p.match(
-            Dist(
-                channel="defaults",
-                dist_name="python-3.6.0-0",
-                name="python",
-                version="3.6.0",
-                build_string="0",
-                build_number=0,
-                base_url=None,
-                platform=None,
-            )
+    assert not p.match(
+        Dist(
+            channel="defaults",
+            dist_name="python-3.6.0-0",
+            name="python",
+            version="3.6.0",
+            build_string="0",
+            build_number=0,
+            base_url=None,
+            platform=None,
         )
+    )
 
-        assert p.match(
-            Dist(
-                channel="defaults",
-                dist_name="python-3.5.1-0",
-                name="python",
-                version="3.5.1",
-                build_string="0",
-                build_number=0,
-                base_url=None,
-                platform=None,
-            )
+    assert p.match(
+        Dist(
+            channel="defaults",
+            dist_name="python-3.5.1-0",
+            name="python",
+            version="3.5.1",
+            build_string="0",
+            build_number=0,
+            base_url=None,
+            platform=None,
         )
-        assert p.match(
-            PackageRecord(
-                name="python",
-                version="3.5.1",
-                build="0",
-                build_number=0,
-                depends=(
-                    "openssl 1.0.2*",
-                    "readline 6.2*",
-                    "sqlite",
-                    "tk 8.5*",
-                    "xz 5.0.5",
-                    "zlib 1.2*",
-                    "pip",
-                ),
-                channel=Channel(
-                    scheme="https",
-                    auth=None,
-                    location="repo.anaconda.com",
-                    token=None,
-                    name="pkgs/main",
-                    platform="osx-64",
-                    package_filename=None,
-                ),
-                subdir="osx-64",
-                fn="python-3.5.1-0.tar.bz2",
-                md5="a813bc0a32691ab3331ac9f37125164c",
-                size=14678857,
-                priority=0,
-                url="https://repo.anaconda.com/pkgs/main/osx-64/python-3.5.1-0.tar.bz2",
-            )
+    )
+    assert p.match(
+        PackageRecord(
+            name="python",
+            version="3.5.1",
+            build="0",
+            build_number=0,
+            depends=(
+                "openssl 1.0.2*",
+                "readline 6.2*",
+                "sqlite",
+                "tk 8.5*",
+                "xz 5.0.5",
+                "zlib 1.2*",
+                "pip",
+            ),
+            channel=Channel(
+                scheme="https",
+                auth=None,
+                location="repo.anaconda.com",
+                token=None,
+                name="pkgs/main",
+                platform="osx-64",
+                package_filename=None,
+            ),
+            subdir="osx-64",
+            fn="python-3.5.1-0.tar.bz2",
+            md5="a813bc0a32691ab3331ac9f37125164c",
+            size=14678857,
+            priority=0,
+            url="https://repo.anaconda.com/pkgs/main/osx-64/python-3.5.1-0.tar.bz2",
         )
+    )
 
 
 def test_index_record():
@@ -690,39 +688,38 @@ def test_pip_style2():
 
 
 def test_parse_spec_str_tarball_url():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        url = "https://repo.anaconda.com/pkgs/main/linux-64/_license-1.1-py27_1.tar.bz2"
-        assert _parse_spec_str(url) == {
-            "channel": "defaults",
-            "subdir": "linux-64",
-            "name": "_license",
-            "version": "1.1",
-            "build": "py27_1",
-            "fn": "_license-1.1-py27_1.tar.bz2",
-            "url": url,
-        }
+    url = "https://repo.anaconda.com/pkgs/main/linux-64/_license-1.1-py27_1.tar.bz2"
+    assert _parse_spec_str(url) == {
+        "channel": "defaults",
+        "subdir": "linux-64",
+        "name": "_license",
+        "version": "1.1",
+        "build": "py27_1",
+        "fn": "_license-1.1-py27_1.tar.bz2",
+        "url": url,
+    }
 
-        url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-        assert _parse_spec_str(url) == {
-            "channel": "conda-canary",
-            "subdir": "linux-64",
-            "name": "conda",
-            "version": "4.3.21.post699+1dab973",
-            "build": "py36h4a561cd_0",
-            "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
-            "url": url,
-        }
+    url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+    assert _parse_spec_str(url) == {
+        "channel": "conda-canary",
+        "subdir": "linux-64",
+        "name": "conda",
+        "version": "4.3.21.post699+1dab973",
+        "build": "py36h4a561cd_0",
+        "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
+        "url": url,
+    }
 
-        url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda"
-        assert _parse_spec_str(url) == {
-            "channel": "conda-canary",
-            "subdir": "linux-64",
-            "name": "conda",
-            "version": "4.3.21.post699+1dab973",
-            "build": "py36h4a561cd_0",
-            "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda",
-            "url": url,
-        }
+    url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda"
+    assert _parse_spec_str(url) == {
+        "channel": "conda-canary",
+        "subdir": "linux-64",
+        "name": "conda",
+        "version": "4.3.21.post699+1dab973",
+        "build": "py36h4a561cd_0",
+        "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda",
+        "url": url,
+    }
 
 
 def test_parse_spec_str_no_brackets():
