@@ -10,11 +10,14 @@ from argparse import (
     SUPPRESS,
     Action,
     BooleanOptionalAction,
+    _AppendAction,
     _HelpAction,
     _StoreAction,
     _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
+
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
@@ -303,9 +306,9 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         "--experimental",
         action=deprecated.action(
             "26.3",
-            "26.3",
+            "26.5",
             _AppendAction,
-            addendum="Use `--force` instead.",
+            addendum="Deprecated: jlap and lock no longer supported.",
         ),
         choices=["jlap", "lock"],
         help="Deprecated: jlap and lock no longer supported.  These options will have no effect.",
