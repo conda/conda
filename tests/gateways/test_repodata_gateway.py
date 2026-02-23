@@ -359,8 +359,6 @@ def test_repodata_fetch_formats(
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
 
-    repo_cls = CondaRepoInterface
-
     # we always check for *and create* a writable cache dir before fetch
     cache_path_base = tmp_path / "fetch_formats" / "xyzzy"
     cache_path_base.parent.mkdir(exist_ok=True)
@@ -368,7 +366,7 @@ def test_repodata_fetch_formats(
     channel = Channel(channel_url)
 
     fetch = RepodataFetch(
-        cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls
+        cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
     )
 
     assert isinstance(fetch.cache_path_state, Path)  # coverage
