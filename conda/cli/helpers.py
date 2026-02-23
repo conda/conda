@@ -301,9 +301,14 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     # jlap and lock experimental features are deprecated but are left in so older scripts will still work.
     channel_customization_options.add_argument(
         "--experimental",
-        action="append",
+        action=deprecated.action(
+            "26.3",
+            "26.3",
+            _AppendAction,
+            addendum="Use `--force` instead.",
+        ),
         choices=["jlap", "lock"],
-        help="jlap and lock no longer supported.  These options will have no effect.",
+        help="Deprecated: jlap and lock no longer supported.  These options will have no effect.",
     )
     channel_customization_options.add_argument(
         "--no-lock",
