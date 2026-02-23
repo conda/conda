@@ -167,21 +167,17 @@ def test_install_revision_revert(
         assert not package_is_installed(prefix, "dependent")
 
         conda_cli("install", f"--prefix={prefix}", "dependency=2.0", "--yes")  # rev 1
-        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "dependency=2.0")
         assert not package_is_installed(prefix, "dependent")
 
         conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")  # rev 2
-        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "dependency=2.0")
         assert package_is_installed(prefix, "dependent=2.0")
 
         conda_cli("install", f"--prefix={prefix}", "--rev=1", "--yes")
-        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "dependency=2.0")
         assert not package_is_installed(prefix, "dependent")
 
         conda_cli("install", f"--prefix={prefix}", "--rev=0", "--yes")
-        PrefixData._cache_.clear()
         assert package_is_installed(prefix, "dependency=1.0")
         assert not package_is_installed(prefix, "dependent")
