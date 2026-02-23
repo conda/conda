@@ -11,7 +11,6 @@ from unittest.mock import patch
 import pytest
 
 from conda.common.serialize import yaml
-from conda.core.prefix_data import PrefixData
 from conda.env.env import (
     VALID_KEYS,
     EnvironmentYaml,
@@ -363,7 +362,6 @@ def test_env_advanced_pip(
         *("--file", str(pip_argh)),
     )
     assert prefix.exists()
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "argh==0.26.2")
 
 
