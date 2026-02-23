@@ -377,35 +377,19 @@ def test_exact_values():
 
 
 def test_channel_matching():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        assert ChannelMatch("pkgs/main").match("defaults") is False
-        assert ChannelMatch("defaults").match("pkgs/main") is True
+    assert not ChannelMatch("pkgs/main").match("defaults")
+    assert ChannelMatch("defaults").match("pkgs/main")
 
-        assert (
-            ChannelMatch("https://repo.anaconda.com/pkgs/main").match("defaults")
-            is False
-        )
-        assert (
-            ChannelMatch("defaults").match("https://repo.anaconda.com/pkgs/main")
-            is True
-        )
+    assert not ChannelMatch("https://repo.anaconda.com/pkgs/main").match("defaults")
+    assert ChannelMatch("defaults").match("https://repo.anaconda.com/pkgs/main")
 
-        assert (
-            ChannelMatch("https://conda.anaconda.org/conda-forge").match("conda-forge")
-            is True
-        )
-        assert (
-            ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge")
-            is True
-        )
+    assert ChannelMatch("https://conda.anaconda.org/conda-forge").match("conda-forge")
+    assert ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge")
 
-        assert (
-            ChannelMatch("https://repo.anaconda.com/pkgs/main").match("conda-forge")
-            is False
-        )
+    assert not ChannelMatch("https://repo.anaconda.com/pkgs/main").match("conda-forge")
 
-        assert str(MatchSpec("pkgs/main::*")) == "pkgs/main::*"
-        assert str(MatchSpec("defaults::*")) == "defaults::*"
+    assert str(MatchSpec("pkgs/main::*")) == "pkgs/main::*"
+    assert str(MatchSpec("defaults::*")) == "defaults::*"
 
 
 def test_matchspec_errors():
