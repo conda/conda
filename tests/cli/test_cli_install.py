@@ -52,8 +52,8 @@ def test_find_conflicts_called_once(
     path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,
 ):
-    if context.solver == "libmamba":
-        pytest.skip("conda-libmamba-solver handles conflicts differently")
+    if context.solver in ("libmamba", "rattler"):
+        pytest.skip(f"conda-{context.solver}-solver handle conflicts differently")
 
     bad_deps = {
         "python": {
