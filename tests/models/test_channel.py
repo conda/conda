@@ -110,21 +110,23 @@ def test_default_channel(subdir: str | None):
 
 
 def test_url_channel_w_platform():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
-
-        assert channel.scheme == "https"
-        assert channel.location == "repo.anaconda.com"
-        assert channel.platform == "osx-64" == channel.subdir
-        assert channel.name == "pkgs/main"
-
-        assert channel.base_url == "https://repo.anaconda.com/pkgs/main"
-        assert channel.canonical_name == "defaults"
-        assert channel.url() == "https://repo.anaconda.com/pkgs/main/osx-64"
-        assert channel.urls() == [
-            "https://repo.anaconda.com/pkgs/main/osx-64",
-            "https://repo.anaconda.com/pkgs/main/noarch",
-        ]
+    scheme = "https"
+    location = "repo.anaconda.com"
+    subdir = "osx-64"
+    name = "pkgs/main"
+    base_url = f"{scheme}://{location}/{name}"
+    url = f"{base_url}/{subdir}"
+    channel = Channel(url)
+    assert channel.scheme == scheme
+    assert channel.location == location
+    assert channel.platform == channel.subdir == subdir
+    assert channel.name == name
+    assert channel.base_url == base_url
+    assert channel.canonical_name == "defaults"
+    assert channel.url() == url
+    main_subdir, main_noarch = channel.urls()
+    assert main_subdir == url
+    assert main_noarch == f"{base_url}/noarch"
 
 
 def test_subdirs_kwarg_takes_precedence_over_platform():
