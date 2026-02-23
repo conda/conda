@@ -118,6 +118,7 @@ class CaptureTarget(Enum):
 
 
 @contextmanager
+@deprecated("26.9", "27.3")
 def env_vars(var_map=None, callback=None, stack_callback=None):
     if var_map is None:
         var_map = {}
@@ -146,6 +147,7 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
 
 
 @contextmanager
+@deprecated("26.9", "27.3")
 def env_var(name, value, callback=None, stack_callback=None):
     d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
@@ -153,6 +155,7 @@ def env_var(name, value, callback=None, stack_callback=None):
 
 
 @contextmanager
+@deprecated("26.9", "27.3")
 def env_unmodified(callback=None):
     with env_vars(callback=callback) as es:
         yield es
