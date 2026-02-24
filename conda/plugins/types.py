@@ -21,6 +21,7 @@ from requests.auth import AuthBase
 from ..auxlib import NULL
 from ..auxlib.type_coercion import maybecall
 from ..base.constants import APP_NAME
+from ..common.io import load_file
 from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
@@ -570,6 +571,17 @@ class EnvironmentSpecBase(ABC):
     # requesting it as a cli argument or setting in .condarc. By default,
     # autodetection is enabled.
     detection_supported: ClassVar[bool] = True
+
+    def __init__(self, filename: str | None, data: str | None = None):
+        """
+        :param data: the contents of the environment spec file
+        :param filename: the full path to the environment spec file
+        """
+        self.filename = filename
+        if data is None and self.filename:
+            self.data = load_file(self.filename)
+        else:
+            self.data = None
 
     @abstractmethod
     def can_handle(self) -> bool:

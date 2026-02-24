@@ -663,6 +663,12 @@ class CondaSpecs:
         whatever is in the input environment file and produce an environment with a
         random name and with random packages.
 
+        The EnvironmentSpecBase class provides an `__init__` function that sets the
+        instance variables `filename` and `data`. `filename` is the name of the file
+        provided. `data` is the string representation of the file contents. If not
+        provided, the `data` variable will automatically be populated from the
+        contents of the file specified by `filename`
+
         **Example:**
 
         .. code-block:: python
@@ -680,9 +686,6 @@ class CondaSpecs:
 
             class RandomSpec(EnvironmentSpecBase):
                 extensions = {".random"}
-
-                def __init__(self, filename: str):
-                    self.filename = filename
 
                 def can_handle(self):
                     # Return early if no filename was provided

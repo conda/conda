@@ -8,7 +8,7 @@ from .. import support_file
 
 
 def test_no_environment_file():
-    spec = ExplicitSpec()
+    spec = ExplicitSpec(filename=None)
     assert not spec.can_handle()
 
 

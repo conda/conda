@@ -122,7 +122,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         source=filename,
         name=context.environment_specifier,
     )
-    spec = spec_hook.environment_spec(filename)
+    spec = spec_hook.environment_spec(filename=filename)
     env = spec.env
 
     active_pkgs = prefix_data.map_records()

@@ -23,7 +23,7 @@ from ..auxlib import NULL
 from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
-from ..common.io import dashlist
+from ..common.io import dashlist, load_file
 from ..exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
@@ -548,7 +548,7 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             # Try to load the plugin and check if it can handle the environment spec
             try:
-                if plugin.environment_spec(source).can_handle():
+                if plugin.environment_spec(filename=source).can_handle():
                     return plugin
             except Exception as e:
                 raise PluginError(
@@ -578,11 +578,12 @@ class CondaPluginManager(pluggy.PluginManager):
         hooks = self.get_environment_specifiers()
         found = []
         autodetect_disabled_plugins = []
+        data = load_file(source)
         for hook_name, hook in hooks.items():
             if hook.environment_spec.detection_supported:
                 log.debug("EnvironmentSpec hook: checking %s", hook_name)
                 try:
-                    if hook.environment_spec(source).can_handle():
+                    if hook.environment_spec(filename=source, data=data).can_handle():
                         log.debug(
                             "EnvironmentSpec hook: %s can be %s",
                             source,

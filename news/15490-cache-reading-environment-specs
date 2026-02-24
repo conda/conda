@@ -1,0 +1,20 @@
+### Enhancements
+
+* Read and cache environment specifier file contents in core conda. (#15490)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.env.env.load_file` as pending deprecation, to be removed in 27.3. (#15490)
+* Mark `conda.env.env.from_file` as pending deprecation, to be removed in 27.3. (#15490)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Update `EnvironmentSpecBase` api to accept `filename` and `data` during initialization. These will populate instance variables of the same name. If not provided, the `data` variable will automatically be populated from the contents of the file specified by `filename`. (#15490)
