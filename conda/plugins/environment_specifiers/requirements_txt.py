@@ -10,12 +10,11 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from .. import hookimpl
-from ..types import CondaEnvironmentSpecifier
-from ...models.match_spec import MatchSpec
 from ...base.context import context
 from ...models.environment import Environment
-
+from ...models.match_spec import MatchSpec
+from .. import hookimpl
+from ..types import CondaEnvironmentSpecifier
 
 if TYPE_CHECKING:
     from ...common.path import PathType

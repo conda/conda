@@ -8,20 +8,19 @@ Register the conda env spec for environment.yml files.
 from __future__ import annotations
 
 import os
+from functools import partial
 from logging import getLogger
 from typing import TYPE_CHECKING
-from functools import partial
 
+from ...common.serialize import yaml
+from ...env import env
+from ...exceptions import CondaError
 from .. import hookimpl
 from ..types import CondaEnvironmentSpecifier
-from ...exceptions import CondaError
-from ...common.serialize import yaml
-from ...models.environment import Environment
-from ...env import env
-
 
 if TYPE_CHECKING:
     from ...common.path import PathType
+    from ...models.environment import Environment
 
 
 log = getLogger(__name__)

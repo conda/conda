@@ -9,13 +9,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ...base.constants import EXPLICIT_MARKER
+from ...base.context import context
+from ...misc import get_package_records_from_explicit
+from ...models.environment import Environment
 from .. import hookimpl
 from ..types import CondaEnvironmentSpecifier
-from ...base.constants import EXPLICIT_MARKER
-from ...misc import get_package_records_from_explicit
-from ...base.context import context
-from ...models.environment import Environment
-
 
 if TYPE_CHECKING:
     from ...common.path import PathType

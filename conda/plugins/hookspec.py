@@ -676,6 +676,7 @@ class CondaSpecs:
 
             packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
 
+
             def can_handle(filename: Pathtype, data: str):
                 # Return early if no filename was provided
                 if filename is None:
@@ -689,6 +690,7 @@ class CondaSpecs:
                     spec_ext == file_ext and os.path.exists(filename)
                     for spec_ext in RandomSpec.extensions
                 )
+
 
             def env(data):
                 return Environment(

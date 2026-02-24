@@ -61,7 +61,6 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
-        CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPostCommand,
