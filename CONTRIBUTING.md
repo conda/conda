@@ -31,6 +31,27 @@ both use similar agreements.
 
 A record of prior signatories is kept in a [separate repo in conda's GitHub][clabot] organization.
 
+## Generative AI
+
+You're welcome to use generative AI tools when contributing to conda. However, please keep the following in mind:
+
+- You are responsible for all of your contributions. Review and understand any AI-generated content before including it in a Pull Request.
+- You have read and understood the [conda license](https://github.com/conda/conda/blob/main/LICENSE) and [conda contributor license agreement](https://docs.conda.io/en/latest/contributing.html#conda-contributor-license-agreement), especially in terms of submitting your contribution as an original work of authorship.
+- Be prepared to engage during contribution review. Reviewers expect to discuss the changes with you directly. Do not copy and paste AI responses.
+- Make minimal, focused changes. AI tools sometimes rewrite more than necessary, making reviews harder. Prefer small, targeted edits that match the existing style and patterns.
+- Don't bypass tests. Ensure AI-assisted changes actually fix the underlying problem rather than altering tests to make them pass.
+- Do not use AI agents or similar automated systems to submit your contributions or review Pull Requests autonomously.
+
+Pull Requests consisting of unchecked AI-generated content may be closed. Maintainer time is limited and contributions should be high quality, regardless of the tools used to create them.
+
+The [Conda Code of Conduct](https://github.com/conda/conda/blob/main/CODE_OF_CONDUCT.md) applies.
+
+## Paid Contribution Schemes
+
+While we support open source contributors receiving financial compensation, we do not accept contributions motivated by cryptocurrency payments, bounties, or similar gamification schemes. These systems incentivize low-quality, high-volume contributions that waste limited maintainer time.
+
+If you would like to add conda to such a system, or believe your situation warrants an exception, please reach out ahead of time on [Zulip](https://conda.zulipchat.com).
+
 ## Ways to contribute
 
 Below are all the ways you can get involved in with conda.
