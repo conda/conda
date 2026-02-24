@@ -38,7 +38,7 @@ You're welcome to use generative AI tools when contributing to conda. However, p
 - You are responsible for all of your contributions. Review and understand any AI-generated content before including it in a Pull Request.
 - You have read and understood the [conda license](https://github.com/conda/conda/blob/main/LICENSE) and [conda contributor license agreement](https://docs.conda.io/en/latest/contributing.html#conda-contributor-license-agreement), especially in terms of submitting your contribution as an original work of authorship.
 - Be prepared to engage during contribution review. Reviewers expect to discuss the changes with you directly. Do not copy and paste AI responses.
-- Make minimal, focused changes. AI tools sometimes rewrite more than necessary, making reviews harder. Prefer small, targeted edits that match the existing code style and patterns.
+- Make minimal, focused changes. AI tools sometimes rewrite more than necessary, making reviews harder. Prefer small, targeted edits that match the existing style and patterns.
 - Don't bypass tests. Ensure AI-assisted changes actually fix the underlying problem rather than altering tests to make them pass.
 - Do not use AI agents to submit or review Pull Requests autonomously.
 
