@@ -40,7 +40,7 @@ You're welcome to use generative AI tools when contributing to conda. However, p
 - Be prepared to engage during contribution review. Reviewers expect to discuss the changes with you directly. Do not copy and paste AI responses.
 - Make minimal, focused changes. AI tools sometimes rewrite more than necessary, making reviews harder. Prefer small, targeted edits that match the existing style and patterns.
 - Don't bypass tests. Ensure AI-assisted changes actually fix the underlying problem rather than altering tests to make them pass.
-- Do not use AI agents to submit or review Pull Requests autonomously.
+- Do not use AI agents or similar automated systems to submit your contributions or review Pull Requests autonomously.
 
 Pull Requests consisting of unchecked AI-generated content may be closed. Maintainer time is limited and contributions should be high quality, regardless of the tools used to create them.
 
