@@ -239,6 +239,9 @@ select = [
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
+"conda/_vendor/*" = [
+  "S101",  # forbid assert
+]
 "conda/testing/*" = [
   "S101",  # forbid assert
 ]

@@ -14,7 +14,7 @@ import sys
 from collections import defaultdict
 from logging import getLogger
 
-from boltons.setutils import IndexedSet
+from _vendor.setutils import IndexedSet
 
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
