@@ -48,7 +48,7 @@ The [Conda Code of Conduct](https://github.com/conda/conda/blob/main/CODE_OF_CON
 
 ## Paid Contribution Schemes
 
-While we support open source contributors receiving financial compensation, we do not accept contributions motivated by crypto payments, bounties, or similar gamification schemes. These systems incentivize low-quality, high-volume contributions that waste limited maintainer time.
+While we support open source contributors receiving financial compensation, we do not accept contributions motivated by cryptocurrency payments, bounties, or similar gamification schemes. These systems incentivize low-quality, high-volume contributions that waste limited maintainer time.
 
 If you would like to add conda to such a system, or believe your situation warrants an exception, please reach out ahead of time on [Zulip](https://conda.zulipchat.com).
 
