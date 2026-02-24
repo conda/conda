@@ -57,6 +57,8 @@ def validate(filename: PathType, data: str, schema_errors: bool) -> bool:
     try:
         yaml_data = yaml.loads(data)
         if schema_errors:
+            if yaml_data is None:
+                return False
             errors = env.get_schema_errors(yaml_data)
             if errors:
                 return False

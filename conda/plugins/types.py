@@ -628,7 +628,7 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     name: str
     validate: Callable[[PathType, str], bool]
     env: Callable[[str], Environment]
-    detection_supported: bool
+    detection_supported: bool = True
 
 
 @dataclass

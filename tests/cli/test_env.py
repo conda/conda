@@ -18,6 +18,7 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     CondaEnvException,
     DryRunExit,
+    EnvironmentFileEmpty,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
     PackagesNotFoundError,
@@ -274,7 +275,7 @@ def test_conda_env_create_empty_file(
     tmp_file = path_factory(suffix=".yml")
     tmp_file.touch()
 
-    with pytest.raises(SpecNotFound):
+    with pytest.raises(EnvironmentFileEmpty):
         conda_cli("env", "create", f"--file={tmp_file}")
 
 
