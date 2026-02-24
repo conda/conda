@@ -980,7 +980,9 @@ def test_conda_package_recognized_windows(empty_env, change_case):
     On Windows, case sensitivity would mess with package discovery. See
     https://github.com/conda/conda/pull/15725
     """
-    requests_text = next(Path(sys.prefix, "conda-meta").glob("requests-*-*.json")).read_text()
+    requests_text = next(
+        Path(sys.prefix, "conda-meta").glob("requests-*-*.json")
+    ).read_text()
     if change_case:
         requests_text = requests_text.replace("lib/site-packages", "LiB/siTe-PacKageS")
     record = PrefixRecord.from_json(requests_text)
