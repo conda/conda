@@ -1052,7 +1052,6 @@ def test_update_with_pinned_packages(
 
         conda_cli("update", f"--prefix={prefix}", "dependency", "--yes")
 
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "dependent=1.0")
         assert not package_is_installed(prefix, "dependency=1.0")
         assert package_is_installed(prefix, "dependent=2.0")
@@ -1125,7 +1124,6 @@ def test_channel_usage_replacing_python(
             "decorator",
             "--yes",
         )
-        PrefixData._cache_.clear()
         assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
         assert package_is_installed(prefix, "main::decorator")
 
@@ -1399,7 +1397,6 @@ def test_update_all_updates_pip_pkg(
         assert err == 0, f"pip install failed: {stderr}"
 
         # ensure installed version of itsdangerous is from PyPI
-        PrefixData._cache_.clear()
         assert (prec := package_is_installed(prefix, "itsdangerous"))
         assert prec.dist_fields_dump() == {
             "base_url": "https://conda.anaconda.org/pypi",
