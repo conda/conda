@@ -44,6 +44,8 @@ You're welcome to use generative AI tools when contributing to conda. However, p
 
 Pull Requests consisting of unchecked AI-generated content may be closed. Maintainer time is limited and contributions should be high quality, regardless of the tools used to create them.
 
+The [Conda Code of Conduct](https://github.com/conda/conda/blob/main/CODE_OF_CONDUCT.md) applies.
+
 ## Paid Contribution Schemes
 
 While we support open source contributors receiving financial compensation, we do not accept contributions motivated by crypto payments, bounties, or similar gamification schemes. These systems incentivize low-quality, high-volume contributions that waste limited maintainer time.
