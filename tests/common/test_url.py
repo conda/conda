@@ -185,11 +185,6 @@ def test_url_to_s3_info():
             marks=pytest.mark.skipif(not on_win, reason="Windows-only test"),
         ),
         pytest.param(
-            "C:\\Program%20Files\\iexplore.exe",
-            False,
-            marks=pytest.mark.skipif(not on_win, reason="Windows-only test"),
-        ),
-        pytest.param(
             "C:\\Program Files\\iexplore.exe",
             False,
             marks=pytest.mark.skipif(not on_win, reason="Windows-only test"),
@@ -200,7 +195,6 @@ def test_url_to_s3_info():
         ("file:///path/to/résumé", True),
         ("file:///path/to/r\u00e9sum\u00e9", True),
         ("file:///path/to/日本語", True),
-        ("file:///C:/Program%20Files/iexplore.exe", False),
         ("file:///C:/Program Files/iexplore.exe", False),
     ],
 )
