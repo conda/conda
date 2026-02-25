@@ -5,13 +5,14 @@
 from __future__ import annotations
 
 import codecs
+import os
 import re
 import socket
 import struct
 from collections import namedtuple
 from functools import cache
 from getpass import getpass
-from os.path import abspath, expanduser
+from os.path import expanduser, realpath
 from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import (  # noqa: F401
     quote,
@@ -31,6 +32,8 @@ if TYPE_CHECKING:
     from re import Pattern
     from typing import Any, Self
     from urllib.parse import ParseResult
+
+    from .path import PathType
 
 
 @deprecated("25.9", "26.3", addendum="Use int(..., 16) instead.")
@@ -97,18 +100,18 @@ def url_to_path(url):
 
 
 @cache
-def path_to_url(path: str) -> str:
-    if not path:
+def path_to_url(path: PathType) -> str:
+    if not path or not isinstance(path, (str, os.PathLike)):
+        # not a PathType or falsy
         raise ValueError(f"Not allowed: {path!r}")
+    path = os.fspath(path)
     if path.startswith(file_scheme):
-        try:
-            path.decode("ascii")
-        except UnicodeDecodeError:
+        if not path.isascii():
             raise ValueError(
                 f"Non-ascii not allowed for things claiming to be URLs: {path!r}"
             )
         return path
-    path = abspath(expanduser(path)).replace("\\", "/")
+    path = realpath(expanduser(path)).replace("\\", "/")
     # We do not use urljoin here because we want to take our own
     # *very* explicit control of how paths get encoded into URLs.
     #   We should not follow any RFCs on how to encode and decode
@@ -122,21 +125,16 @@ def path_to_url(path: str) -> str:
     # To avoid risking breaking the internet, this code only runs
     # for `file://` URLs.
     #
-    percent_encode_chars = "!'()*-._/\\:"
     percent_encode = lambda s: "".join(
-        [f"%{ord(c):02X}", c][c < "{" and c.isalnum() or c in percent_encode_chars]
-        for c in s
+        c if c.isascii() and c not in " " else f"%{ord(c):02X}" for c in s
     )
-    if any(ord(char) >= 128 for char in path):
-        path = percent_encode(
-            path.decode("unicode-escape")
-            if hasattr(path, "decode")
-            else bytes(path, "utf-8").decode("unicode-escape")
-        )
+    path = percent_encode(path.encode("utf-8").decode("unicode-escape"))
 
     # https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
-    if len(path) > 1 and path[1] == ":":
+    if path and path[1] == ":":
         path = file_scheme + "/" + path
+    elif path and path.startswith("//"):
+        path = file_scheme + path[2:]
     else:
         path = file_scheme + path
     return path
