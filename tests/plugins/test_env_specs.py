@@ -79,6 +79,16 @@ class RandomSpecPluginNoAutodetect:
         )
 
 
+class RandomSpecAliasesPlugin:
+    @plugins.hookimpl
+    def conda_environment_specifiers(self):
+        yield CondaEnvironmentSpecifier(
+            name="random",
+            aliases=("rand-spec", "rnd"),
+            environment_spec=RandomSpec,
+        )
+
+
 @pytest.fixture()
 def dummy_random_spec_plugin(plugin_manager):
     random_spec_plugin = RandomSpecPlugin()
@@ -107,6 +117,14 @@ def dummy_random_spec_plugin_no_autodetect(plugin_manager):
 def naughty_spec_plugin(plugin_manager):
     plg = NaughtySpecPlugin()
     plugin_manager.register(plg)
+
+    return plugin_manager
+
+
+@pytest.fixture()
+def dummy_random_spec_plugin_aliases(plugin_manager):
+    random_spec_plugin = RandomSpecAliasesPlugin()
+    plugin_manager.register(random_spec_plugin)
 
     return plugin_manager
 
@@ -230,3 +248,76 @@ def test_naught_plugin_does_not_cause_unhandled_errors_during_detection(
     env_spec_backend = plugin_manager.detect_environment_specifier(filename)
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).env is not None
+
+
+def test_get_spec_by_aliases(plugin_manager, dummy_random_spec_plugin_aliases):
+    """
+    Ensures that our dummy random spec has been registered and can be recognized by its aliases
+    """
+    filename = "test.random"
+    env_spec_backend = plugin_manager.get_environment_specifier_by_name(
+        filename, "rand-spec"
+    )
+    assert env_spec_backend.name == "random"
+    assert env_spec_backend.environment_spec(filename).env is not None
+
+    env_spec_backend = plugin_manager.get_environment_specifier_by_name(filename, "rnd")
+    assert env_spec_backend.name == "random"
+    assert env_spec_backend.environment_spec(filename).env is not None
+
+    # Ensure an error is raised for an alias that doesn't exist
+    with pytest.raises(CondaValueError):
+        env_spec_backend = plugin_manager.get_environment_specifier_by_name(
+            filename, "notalias"
+        )
+
+
+def test_detect_spec_with_aliases(plugin_manager, dummy_random_spec_plugin_aliases):
+    """
+    Ensures that our dummy random spec can detect valid inputs
+    """
+    filename = "test.random"
+    env_spec_backend = plugin_manager.detect_environment_specifier("test.random")
+    assert env_spec_backend.name == "random"
+    assert env_spec_backend.environment_spec(filename).env is not None
+
+
+def test_alias_normalization():
+    """Test that aliases are normalized."""
+    # Test alias normalization (mixed case, whitespace, and duplicates)
+    exporter = CondaEnvironmentSpecifier(
+        name="random",
+        aliases=("rnd", "RND", "   range"),
+        environment_spec=RandomSpec,
+    )
+
+    # Aliases should be normalized to lowercase and stripped
+    assert exporter.aliases == (
+        "rnd",
+        "range",
+    )
+
+    # Test invalid alias type raises error
+    with pytest.raises(PluginError, match="Invalid plugin aliases"):
+        CondaEnvironmentSpecifier(
+            name="bad-aliases-type",
+            aliases=(123, "valid"),  # Non-string alias
+            environment_spec=RandomSpec,
+        )
+
+
+def test_alias_and_name_collision_detect(
+    plugin_manager, dummy_random_spec_plugin_aliases, dummy_random_spec_plugin
+):
+    """
+    Test that name/alias collision detection works for all the different ways
+    environment spec plugins can be requested from the plugin manager.
+    """
+    with pytest.raises(PluginError):
+        plugin_manager.get_environment_specifiers()
+
+    with pytest.raises(PluginError):
+        plugin_manager.get_environment_specifier_by_name("something.random", "random")
+
+    with pytest.raises(PluginError):
+        plugin_manager.detect_environment_specifier("something.random")

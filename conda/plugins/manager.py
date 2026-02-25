@@ -62,6 +62,7 @@ if TYPE_CHECKING:
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPackageExtractor,
+        CondaPlugin,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -514,13 +515,55 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         return PluginConfig(data)
 
+    def _get_name_and_alias_mapping(
+        self, plugins: Iterable[CondaPlugin]
+    ) -> dict[str, object]:
+        """
+        Get a mapping from plugin names (including aliases) to plugin.
+
+        :param plugins: List of plugins that have a name and aliases attribute.
+        :return: Dict mapping format name to CondaEnvironmentExporter
+        :raises PluginError: If multiple exporters use the same format name or alias
+        """
+        mapping = {}
+        conflicts = {}  # format_name -> set of plugin names
+
+        for plugin in plugins:
+            for format_name in (plugin.name, *plugin.aliases):
+                if format_name in mapping:
+                    if format_name not in conflicts:
+                        conflicts[format_name] = {mapping[format_name].name}
+                    conflicts[format_name].add(plugin.name)
+                else:
+                    mapping[format_name] = plugin
+
+        if conflicts:
+            conflict_details = []
+            for format_name, plugin_names in sorted(conflicts.items()):
+                plugins_str = ", ".join(sorted(plugin_names))
+                conflict_details.append(
+                    f"'{format_name}' name or alias used by plugins: {plugins_str}"
+                )
+
+            raise PluginError(
+                f"Multiple plugins cannot use the same name or alias:"
+                f"{dashlist(conflict_details)}\n"
+            )
+
+        return mapping
+
     def get_environment_specifiers(self) -> dict[str, CondaEnvironmentSpecifier]:
         """
         Returns a mapping from environment specifier name to environment specifier.
         """
-        return {
-            hook.name: hook for hook in self.get_hook_results("environment_specifiers")
-        }
+        try:
+            return self._get_name_and_alias_mapping(
+                self.get_hook_results("environment_specifiers")
+            )
+        except PluginError as err:
+            raise PluginError(
+                f"Plugin name conflicts detected in environment specifiers.\n{err}"
+            )
 
     def get_environment_specifier_by_name(
         self,
@@ -575,10 +618,11 @@ class CondaPluginManager(pluggy.PluginManager):
         :param source: full path to the environment spec file or source
         :returns: an environment specifier plugin that can handle the provided file
         """
-        hooks = self.get_environment_specifiers()
+        hooks = self.get_hook_results("environment_specifiers")
         found = []
         autodetect_disabled_plugins = []
-        for hook_name, hook in hooks.items():
+        for hook in hooks:
+            hook_name = hook.name
             if hook.environment_spec.detection_supported:
                 log.debug("EnvironmentSpec hook: checking %s", hook_name)
                 try:
@@ -675,33 +719,12 @@ class CondaPluginManager(pluggy.PluginManager):
         :return: Dict mapping format name to CondaEnvironmentExporter
         :raises PluginError: If multiple exporters use the same format name or alias
         """
-        mapping = {}
-        conflicts = {}  # format_name -> set of plugin names
-
-        for plugin in self.get_environment_exporters():
-            for format_name in (plugin.name, *plugin.aliases):
-                if format_name in mapping:
-                    if format_name not in conflicts:
-                        conflicts[format_name] = {mapping[format_name].name}
-                    conflicts[format_name].add(plugin.name)
-                else:
-                    mapping[format_name] = plugin
-
-        if conflicts:
-            conflict_details = []
-            for format_name, plugin_names in sorted(conflicts.items()):
-                plugins_str = ", ".join(sorted(plugin_names))
-                conflict_details.append(
-                    f"'{format_name}' used by plugins: {plugins_str}"
-                )
-
+        try:
+            return self._get_name_and_alias_mapping(self.get_environment_exporters())
+        except PluginError as err:
             raise PluginError(
-                f"Format name conflicts detected in environment exporters:"
-                f"{dashlist(conflict_details)}\n"
-                f"Multiple plugins cannot use the same format name or alias."
+                f"Format name conflicts detected in environment exporters.\n{err}"
             )
-
-        return mapping
 
     def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """

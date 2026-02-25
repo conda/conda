@@ -55,6 +55,8 @@ manager. Define a function with the ``plugins.hookimpl`` decorator to register
 our plugin which returns our class wrapped in a
 :class:`~conda.plugins.types.CondaEnvironmentSpecifier` object. Note, that by default
 autodetection is enabled.
+Plugin authors can additionally define aliases for their plugin. This will allow users
+to select the plugin using the aliased names in addition to the provided name.
 
 .. code-block:: python
 
@@ -63,6 +65,7 @@ autodetection is enabled.
        yield plugins.CondaEnvSpec(
            name="random",
            environment_spec=RandomSpec,
+           aliases=("rand", "rnd"),
        )
 
 Using the Plugin
@@ -109,7 +112,7 @@ by configuring conda to use a particular installed plugin. This can be done by e
 
 Another example plugin
 -----------------------
-In this example, we want to build a more realistic environemnt spec plugin. This
+In this example, we want to build a more realistic environment spec plugin. This
 plugin has a scheme which expresses what it expects a valid environment file to
 contain. In this example, a valid environment file is a ``.json`` file that defines:
 
