@@ -242,7 +242,7 @@ from functools import reduce
 from logging import getLogger
 from pathlib import Path
 
-from boltons.timeutils import isoparse
+from .._vendor.timeutils import isoparse
 from frozendict import deepfreeze, frozendict
 from frozendict import getFreezeConversionMap as _getFreezeConversionMap
 from frozendict import register as _register
