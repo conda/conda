@@ -89,12 +89,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_file_exists(args.file)
 
     # detect the file format and get the env representation
-    spec_hook = context.plugin_manager.get_environment_specifier(
+    env = context.plugin_manager.get_environment(
         source=args.file,
         name=context.environment_specifier,
     )
-    spec = spec_hook.environment_spec(args.file)
-    env = spec.env
 
     if not (args.name or args.prefix):
         if not env.name:

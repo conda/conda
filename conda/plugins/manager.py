@@ -23,7 +23,7 @@ from ..auxlib import NULL
 from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
-from ..common.io import dashlist
+from ..common.io import dashlist, load_file
 from ..exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
+    from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from .types import (
@@ -546,9 +547,10 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"{dashlist(plugins)}"
             )
         else:
+            data = load_file(source)
             # Try to load the plugin and check if it can handle the environment spec
             try:
-                if plugin.environment_spec(source).can_handle():
+                if plugin.validate(source, data):
                     return plugin
             except Exception as e:
                 raise PluginError(
@@ -578,11 +580,12 @@ class CondaPluginManager(pluggy.PluginManager):
         hooks = self.get_environment_specifiers()
         found = []
         autodetect_disabled_plugins = []
+        data = load_file(source)
         for hook_name, hook in hooks.items():
-            if hook.environment_spec.detection_supported:
+            if hook.detection_supported:
                 log.debug("EnvironmentSpec hook: checking %s", hook_name)
                 try:
-                    if hook.environment_spec(source).can_handle():
+                    if hook.validate(source, data):
                         log.debug(
                             "EnvironmentSpec hook: %s can be %s",
                             source,
@@ -662,6 +665,15 @@ class CondaPluginManager(pluggy.PluginManager):
             return self.detect_environment_specifier(source)
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
+
+    def get_environment(
+        self,
+        source: str,
+        name: str | None = None,
+    ) -> Environment:
+        plugin = self.get_environment_specifier(source, name)
+        data = load_file(source)
+        return plugin.env(data)
 
     def get_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
         """

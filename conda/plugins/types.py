@@ -592,22 +592,43 @@ class EnvironmentSpecBase(ABC):
         raise NotImplementedError()
 
 
+# @dataclass
+# class CondaEnvironmentSpecifier(CondaPlugin):
+#     """
+#     **EXPERIMENTAL**
+
+#     Return type to use when defining a conda env spec plugin hook.
+
+#     For details on how this is used, see
+#     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
+
+#     :param name: name of the spec (e.g., ``environment_yaml``)
+#     :param environment_spec: EnvironmentSpecBase subclass handler
+#     """
+
+#     name: str
+#     environment_spec: type[EnvironmentSpecBase]
+
+
 @dataclass
 class CondaEnvironmentSpecifier(CondaPlugin):
     """
     **EXPERIMENTAL**
 
-    Return type to use when defining a conda env spec plugin hook.
+    Return type to use when defining a conda environment exporter plugin hook supporting a single platform.
 
-    For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
-
-    :param name: name of the spec (e.g., ``environment_yaml``)
-    :param environment_spec: EnvironmentSpecBase subclass handler
+    :param name: name of the plugin (e.g., ``environment-yaml``)
+    :param validate: callable that determines if the plugin can handle a given file based on its path and/or content
+    :param env: callable that parses the file and returns an Environment object
+    :param detection_supported: boolean that determines if the plugin should be included in the set of available plugins
+        checked during environment_spec plugin detection. If False, the only way to use the plugin will be through explicitly
+        requesting it as a cli argument or setting in .condarc. By default, autodetection is enabled.
     """
 
     name: str
-    environment_spec: type[EnvironmentSpecBase]
+    validate: Callable[[PathType, str], bool]
+    env: Callable[[str], Environment]
+    detection_supported: bool = True
 
 
 @dataclass
