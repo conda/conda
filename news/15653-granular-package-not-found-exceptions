@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `PackagesNotFoundInChannelsError` and `PackagesNotFoundInPrefixError` as specialised cases of `PackagesNotFoundError`, to distinguish between packages missing from configured channels versus packages missing from a specific environment prefix. (#12197 via #15653)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

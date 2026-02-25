@@ -2495,7 +2495,7 @@ def test_remove_spellcheck(
 
     with pytest.raises(
         PackagesNotFoundError,
-        match=r"The following packages are missing from the target environment:\s+- dependint",
+        match=r"(?s)The following packages are missing from the target environment:.*- dependint",
     ):
         conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
 
