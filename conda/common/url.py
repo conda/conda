@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import codecs
+import os
 import re
 import socket
 import struct
@@ -31,6 +32,8 @@ if TYPE_CHECKING:
     from re import Pattern
     from typing import Any, Self
     from urllib.parse import ParseResult
+
+    from .path import PathType
 
 
 @deprecated("25.9", "26.3", addendum="Use int(..., 16) instead.")
@@ -97,13 +100,15 @@ def url_to_path(url):
 
 
 @cache
-def path_to_url(path: str) -> str:
-    if not path:
+def path_to_url(path: PathType) -> str:
+    if not path or not isinstance(path, (str, os.PathLike)):
+        # not a PathType or falsy
         raise ValueError(f"Not allowed: {path!r}")
+    path = os.fspath(path)
     if path.startswith(file_scheme):
         try:
-            path.decode("ascii")
-        except UnicodeDecodeError:
+            path.encode("ascii")
+        except UnicodeEncodeError:
             raise ValueError(
                 f"Non-ascii not allowed for things claiming to be URLs: {path!r}"
             )
