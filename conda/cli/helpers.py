@@ -10,11 +10,14 @@ from argparse import (
     SUPPRESS,
     Action,
     BooleanOptionalAction,
+    _AppendAction,
     _HelpAction,
     _StoreAction,
     _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
+
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
@@ -298,12 +301,17 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
             "conda config --describe repodata_fns."
         ),
     )
+    # jlap and lock experimental features are deprecated but are left in so older scripts will still work.
     channel_customization_options.add_argument(
         "--experimental",
-        action="append",
+        action=deprecated.action(
+            "26.3",
+            "26.5",
+            _AppendAction,
+            addendum="Deprecated: jlap and lock no longer supported.",
+        ),
         choices=["jlap", "lock"],
-        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+        help="Deprecated: jlap and lock no longer supported.  These options will have no effect.",
     )
     channel_customization_options.add_argument(
         "--no-lock",
