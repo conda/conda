@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from contextlib import nullcontext
 from logging import getLogger
+from pathlib import Path
 from typing import NamedTuple
 
 import pytest
 
+from conda.common.compat import on_win
 from conda.common.url import (
     Url,
     add_username_and_password,
@@ -14,6 +17,7 @@ from conda.common.url import (
     is_ipv6_address,
     is_url,
     maybe_add_auth,
+    path_to_url,
     split_scheme_auth_token,
     url_to_s3_info,
     urlparse,
@@ -161,3 +165,51 @@ def test_split_scheme_auth_token():
 def test_url_to_s3_info():
     answer = url_to_s3_info("s3://bucket-name.bucket/here/is/the/key")
     assert answer == ("bucket-name.bucket", "/here/is/the/key")
+
+
+@pytest.mark.parametrize(
+    "path,raises",
+    [
+        # Invalid inputs
+        ("", True),
+        # Filesystem path
+        ("/path/to/resource", False),
+        (".", False),
+        ("relative/path", False),
+        ("/path/to/résumé", False),
+        ("/path/to/r\u00e9sum\u00e9", False),
+        ("/path/to/日本語", False),
+        pytest.param(
+            "C:\\path\\to\\resource",
+            False,
+            marks=pytest.mark.skipif(not on_win, reason="Windows-only test"),
+        ),
+        pytest.param(
+            "C:\\Program%20Files\\iexplore.exe",
+            False,
+            marks=pytest.mark.skipif(not on_win, reason="Windows-only test"),
+        ),
+        pytest.param(
+            "C:\\Program Files\\iexplore.exe",
+            False,
+            marks=pytest.mark.skipif(not on_win, reason="Windows-only test"),
+        ),
+        # file:// URL
+        ("file:///path/to/resource", False),
+        ("file:///C:/path/to/resource", False),
+        ("file:///path/to/résumé", True),
+        ("file:///path/to/r\u00e9sum\u00e9", True),
+        ("file:///path/to/日本語", True),
+        ("file:///C:/Program%20Files/iexplore.exe", False),
+        ("file:///C:/Program Files/iexplore.exe", False),
+    ],
+)
+def test_path_to_url(path: str, raises: bool):
+    """path_to_url returns file URI; file:// inputs (ASCII) pass through unchanged."""
+    if isinstance(path, str) and path.startswith("file://"):
+        expected = path
+    else:
+        expected = Path(path).expanduser().resolve().as_uri()
+
+    with pytest.raises(ValueError) if raises else nullcontext():
+        assert path_to_url(path) == expected
