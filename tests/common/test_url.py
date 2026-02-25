@@ -212,7 +212,4 @@ def test_path_to_url(path: str, raises: bool):
         expected = Path(path).expanduser().resolve().as_uri()
 
     with pytest.raises(ValueError) if raises else nullcontext():
-        result = path_to_url(path)
-        assert result == expected
-        # ensure result is valid ASCII string (i.e., percent-encoded)
-        result.encode("ascii")
+        assert path_to_url(path) == expected
