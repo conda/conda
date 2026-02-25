@@ -12,7 +12,7 @@ import struct
 from collections import namedtuple
 from functools import cache
 from getpass import getpass
-from os.path import abspath, expanduser
+from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import (  # noqa: F401
     quote,
@@ -30,7 +30,7 @@ from .path import split_filename, strip_pkg_extension
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from re import Pattern
-    from typing import Any, Self
+    from typing import Any, Final, Self
     from urllib.parse import ParseResult
 
     from .path import PathType
@@ -85,27 +85,15 @@ def percent_decode(path: str) -> str:
     return codecs.utf_8_decode(result)[0]
 
 
-file_scheme = "file://"
-
-# Keeping this around for now, need to combine with the same function in conda/common/path.py
-"""
-def url_to_path(url):
-    assert url.startswith(file_scheme), "{} is not a file-scheme URL".format(url)
-    decoded = percent_decode(url[len(file_scheme):])
-    if decoded.startswith('/') and decoded[2] == ':':
-        # A Windows path.
-        decoded.replace('/', '\\')
-    return decoded
-"""
+file_scheme: Final = "file://"
 
 
 @cache
 def path_to_url(path: PathType) -> str:
     if not path or not isinstance(path, (str, os.PathLike)):
-        # not a PathType or falsy
+        # falsy or not a PathType
         raise ValueError(f"Not allowed: {path!r}")
-    path = os.fspath(path)
-    if path.startswith(file_scheme):
+    if isinstance(path, str) and path.startswith(file_scheme):
         try:
             path.encode("ascii")
         except UnicodeEncodeError:
@@ -113,38 +101,7 @@ def path_to_url(path: PathType) -> str:
                 f"Non-ascii not allowed for things claiming to be URLs: {path!r}"
             )
         return path
-    path = abspath(expanduser(path)).replace("\\", "/")
-    # We do not use urljoin here because we want to take our own
-    # *very* explicit control of how paths get encoded into URLs.
-    #   We should not follow any RFCs on how to encode and decode
-    # them, we just need to make sure we can represent them in a
-    # way that will not cause problems for whatever amount of
-    # urllib processing we *do* need to do on them (which should
-    # be none anyway, but I doubt that is the case). I have gone
-    # for ASCII and % encoding of everything not alphanumeric or
-    # not in `!'()*-._/:`. This should be pretty save.
-    #
-    # To avoid risking breaking the internet, this code only runs
-    # for `file://` URLs.
-    #
-    percent_encode_chars = "!'()*-._/\\:"
-    percent_encode = lambda s: "".join(
-        [f"%{ord(c):02X}", c][c < "{" and c.isalnum() or c in percent_encode_chars]
-        for c in s
-    )
-    if any(ord(char) >= 128 for char in path):
-        path = percent_encode(
-            path.decode("unicode-escape")
-            if hasattr(path, "decode")
-            else bytes(path, "utf-8").decode("unicode-escape")
-        )
-
-    # https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/
-    if len(path) > 1 and path[1] == ":":
-        path = file_scheme + "/" + path
-    else:
-        path = file_scheme + path
-    return path
+    return Path(path).expanduser().resolve().as_uri()
 
 
 url_attrs = (
