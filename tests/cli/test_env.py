@@ -294,6 +294,12 @@ def test_conda_env_create_http(
     url = http_test_server.get_url("small-executable.yml")
     conda_cli("env", "create", f"--prefix={tmp_path}", f"--file={url}")
     assert (tmp_path / PREFIX_MAGIC_FILE).is_file()
+    stdout, stderr, code = conda_cli("list", f"--prefix={tmp_path}", "--json")
+    parsed = json.loads(stdout)
+    # We should have the `small-executable` package installed
+    assert len(parsed) == 1
+    assert parsed[0].get("name") == "small-executable"
+
 
 
 @pytest.mark.integration
