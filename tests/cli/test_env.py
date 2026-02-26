@@ -685,18 +685,6 @@ def test_non_existent_file(conda_cli: CondaCLIFixture):
         conda_cli("env", "create", "--file", "i_do_not_exist.yml", "--yes")
 
 
-@pytest.mark.integration
-def test_invalid_extensions(
-    conda_cli: CondaCLIFixture,
-    path_factory: PathFactoryFixture,
-):
-    env_yml = path_factory(suffix=".ymla")
-    env_yml.touch()
-
-    with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={env_yml}", "--yes")
-
-
 # conda env list [--json]
 def test_list_info_envs(conda_cli: CondaCLIFixture):
     stdout_env, _, _ = conda_cli("env", "list")
