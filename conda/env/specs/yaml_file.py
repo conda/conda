@@ -50,6 +50,8 @@ class YamlFileSpec(EnvironmentSpecBase):
             data = yaml.loads(yamlstr)
             if data is None:
                 return False
+            if not env.from_yaml(yamlstr, filename=self.filename):
+                return False
         except Exception:
             log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
             return False
