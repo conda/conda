@@ -246,7 +246,7 @@ class Dist(Entity, metaclass=DistType):
                 name, version, build_string, build_number, dist_name, fmt
             )
 
-        except:
+        except Exception:
             raise CondaError(
                 f"dist_name is not a valid conda package: {original_string}"
             )

@@ -320,7 +320,7 @@ def replace_long_shebang(mode: FileMode, data: bytes) -> bytes:
         if not isinstance(data, bytes):
             try:
                 data = bytes(data, encoding="utf-8")
-            except:
+            except Exception:
                 data = data.encode("utf-8")
 
         shebang_match = re.match(SHEBANG_REGEX, data, re.MULTILINE)

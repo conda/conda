@@ -51,7 +51,7 @@ def register_env(location: str) -> None:
     folder = dirname(location)
     try:
         os.makedirs(folder)
-    except:
+    except Exception:
         pass
 
     if (

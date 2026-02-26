@@ -28,7 +28,7 @@ class ExceptionHandler:
     def __call__(self, func: Callable[..., T], *args, **kwargs) -> T | int:
         try:
             return func(*args, **kwargs)
-        except:
+        except Exception:
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
 

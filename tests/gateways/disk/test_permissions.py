@@ -68,7 +68,7 @@ def _can_write_file(test, content):
 def _try_open(path):
     try:
         f = open(path, "a+")
-    except:
+    except Exception:
         raise
     else:
         f.close()

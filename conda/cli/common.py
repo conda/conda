@@ -71,7 +71,7 @@ def is_active_prefix(prefix: str) -> bool:
 def arg2spec(arg: str, update: bool = False) -> str:
     try:
         spec = MatchSpec(arg)
-    except:
+    except Exception:
         from ..exceptions import CondaValueError
 
         raise CondaValueError(f"invalid package specification: {arg}")
