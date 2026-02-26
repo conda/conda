@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 
 from ...base.context import context
+from ...common.url import is_url
 from ...deprecations import deprecated
 from ...exceptions import CondaValueError, InvalidMatchSpec
 from ...gateways.disk.read import yield_lines
@@ -83,6 +84,12 @@ class RequirementsSpec(EnvironmentSpecBase):
         """
         # Return early if no filename was provided
         if self.filename is None:
+            return False
+
+        if is_url(self.filename):
+            return False
+
+        if not os.path.exists(self.filename):
             return False
 
         # Ensure this is not an explicit file. Requirements.txt and explicit files

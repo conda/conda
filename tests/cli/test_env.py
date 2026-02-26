@@ -301,7 +301,6 @@ def test_conda_env_create_http(
     assert parsed[0].get("name") == "small-executable"
 
 
-
 @pytest.mark.integration
 def test_update(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
     prefix = path_factory()
