@@ -14,8 +14,6 @@ import sys
 from collections import defaultdict
 from logging import getLogger
 
-from boltons.setutils import IndexedSet
-
 from .base.constants import DEFAULTS_CHANNEL_NAME, UNKNOWN_CHANNEL
 from .base.context import context, reset_context
 from .common.constants import TRACE
@@ -52,14 +50,6 @@ deprecated.constant(
     addendum="Use builtin `collections.defaultdict` instead.",
 )
 del defaultdict
-deprecated.constant(
-    "25.9",
-    "26.3",
-    "IndexedSet",
-    IndexedSet,
-    addendum="Use `boltons.setutils.IndexedSet` instead.",
-)
-del IndexedSet
 deprecated.constant(
     "25.9",
     "26.3",
