@@ -112,6 +112,15 @@ def add_parser_create_install_update(p, prefix_required=False):
         "specifications can be passed (e.g. --file=file1 --file=file2).",
     )
     p.add_argument(
+        "--description",
+        action="store",
+        default=NULL,
+        metavar="TEXT",
+        help="Set the environment description (conda-meta/description.txt). "
+        "First line is used as the title in conda env list --descriptions; "
+        "full text is shown in the conda list header.",
+    )
+    p.add_argument(
         "packages",
         metavar="package_spec",
         action=_ValidatePackages,

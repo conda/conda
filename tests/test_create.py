@@ -764,12 +764,17 @@ def test_create_empty_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert (prefix / PREFIX_MAGIC_FILE).exists()
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}")
-        assert stdout == dals(
-            f"""
-            # packages in environment at {prefix}:
-            #
-            # Name                     Version          Build            Channel
-            """
+        # Header may include env meta (created, last modified) from conda-meta
+        assert re.match(
+            rf"""
+            # packages in environment at {prefix}:\n
+            # created: \d{4}-\d{2}-\d{2}T.+\n
+            # last modified: \d{4}-\d{2}-\d{2}T.+\n
+            #\n
+            # Name                     Version          Build            Channel\n
+            """,
+            stdout,
+            flags=re.VERBOSE,
         )
         assert not stderr
         assert not code

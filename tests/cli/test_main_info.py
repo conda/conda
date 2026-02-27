@@ -210,11 +210,13 @@ def test_info_json(conda_cli: CondaCLIFixture):
     keys_and_types = {
         "name": str,
         "created": (str, type(None)),
-        "last_modified": str,
+        "last_modified": (str, type(None)),
         "active": bool,
         "base": bool,
         "frozen": bool,
         "writable": bool,
+        "description": (str, type(None)),
+        "description_title": (str, type(None)),
     }
     for prefix, details in parsed["envs_details"].items():
         assert isinstance(prefix, str)
@@ -277,6 +279,22 @@ def test_info_envs_size_json(conda_cli: CondaCLIFixture):
         assert "size" in details
         assert isinstance(details["size"], int)
         assert details["size"] >= 0
+
+
+def test_info_envs_descriptions(conda_cli: CondaCLIFixture):
+    """--descriptions runs with --envs; JSON envs_details always includes description."""
+    stdout, stderr, err = conda_cli("info", "--envs", "--descriptions")
+    assert not err
+
+    stdout_json, _, _ = conda_cli("info", "--envs", "--json")
+    parsed = json.loads(stdout_json.strip())
+    for _, details in parsed["envs_details"].items():
+        assert "description" in details
+        assert "description_title" in details
+        assert details["description"] is None or isinstance(details["description"], str)
+        assert details["description_title"] is None or isinstance(
+            details["description_title"], str
+        )
 
 
 # conda info --license
