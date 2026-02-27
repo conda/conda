@@ -555,6 +555,37 @@ def test_channel_settings(context_testdata: None):
     )
 
 
+@pytest.mark.parametrize(
+    "sys_platform, machine, expected_subdir",
+    [
+        ("linux", "x86_64", "linux-64"),
+        ("linux", "aarch64", "linux-aarch64"),
+        ("linux", "ppc64le", "linux-ppc64le"),
+        ("linux", "s390x", "linux-s390x"),
+        ("linux", "riscv64", "linux-riscv64"),
+        ("darwin", "x86_64", "osx-64"),
+        ("darwin", "arm64", "osx-arm64"),
+        ("win32", "AMD64", "win-64"),
+        ("win32", "ARM64", "win-arm64"),
+    ],
+)
+def test_native_subdir(
+    monkeypatch: MonkeyPatch,
+    sys_platform: str,
+    machine: str,
+    expected_subdir: str,
+) -> None:
+    """platform.machine() returns uppercase on Windows (e.g. ARM64, AMD64);
+    ensure _native_subdir normalizes to the correct subdir string."""
+    monkeypatch.setattr("conda.base.context.platform.machine", lambda: machine)
+    monkeypatch.setattr("conda.base.context.sys.platform", sys_platform)
+    context._native_subdir.cache_clear()
+    try:
+        assert context._native_subdir() == expected_subdir
+    finally:
+        context._native_subdir.cache_clear()
+
+
 def test_subdirs(monkeypatch: MonkeyPatch) -> None:
     assert context.subdirs == (context.subdir, "noarch")
 

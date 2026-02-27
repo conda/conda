@@ -504,6 +504,60 @@ def test_run_preserves_exit_code_despite_deactivation_failure(
         assert deactivation_marker_file.exists()
 
 
+def test_run_wrapper_has_condabin_on_path(
+    request: pytest.FixtureRequest,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Test to ensure condabin is on PATH in the wrapper script.
+    See https://github.com/conda/conda/pull/15672 for context.
+
+    Without the shell hook, the conda shell functions are not defined,
+    so nested conda commands rely on the conda executable in ``condabin``
+    being discoverable via PATH.
+    """
+    monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
+
+    with tmp_env() as prefix:
+        script_path, _ = wrap_subprocess_call(
+            root_prefix=context.root_prefix,
+            prefix=str(prefix),
+            dev_mode=False,
+            debug_wrapper_scripts=False,
+            arguments=["echo", "test"],
+        )
+
+        request.addfinalizer(lambda: Path(script_path).unlink(missing_ok=True))
+
+        script_content = Path(script_path).read_text()
+        condabin_dir = os.path.join(context.root_prefix, "condabin")
+        assert condabin_dir in script_content
+
+
+def test_run_allows_nested_conda_cli_command(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Test to ensure that nested `conda` CLI commands work under `conda run` without
+    the shell hook. See https://github.com/conda/conda/pull/15672 for context.
+    """
+    monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
+
+    with tmp_env() as prefix:
+        stdout, stderr, rc = conda_cli(
+            "run",
+            "--prefix",
+            str(prefix),
+            "conda",
+            "--version",
+        )
+
+        assert rc == 0, (stdout, stderr)
+        assert stdout.strip().startswith("conda ")
+
+
 def test_run_with_empty_command_will_raise(
     conda_cli: CondaCLIFixture,
 ):

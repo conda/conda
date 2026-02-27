@@ -150,3 +150,34 @@ def test_too_many_arguments(
             "--yes",
         )
     assert "too many arguments" in excinfo.value.message
+
+
+def test_install_revision_revert(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    """
+    Test ``conda install --revision=N`` reverts the environment to revision N.
+    Uses only test-recipes packages (dependency, dependent) to avoid network.
+    Regression: https://github.com/conda/conda/issues/6718
+    """
+    with tmp_env("dependency=1.0") as prefix:
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert not package_is_installed(prefix, "dependent")
+
+        conda_cli("install", f"--prefix={prefix}", "dependency=2.0", "--yes")  # rev 1
+        assert package_is_installed(prefix, "dependency=2.0")
+        assert not package_is_installed(prefix, "dependent")
+
+        conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")  # rev 2
+        assert package_is_installed(prefix, "dependency=2.0")
+        assert package_is_installed(prefix, "dependent=2.0")
+
+        conda_cli("install", f"--prefix={prefix}", "--rev=1", "--yes")
+        assert package_is_installed(prefix, "dependency=2.0")
+        assert not package_is_installed(prefix, "dependent")
+
+        conda_cli("install", f"--prefix={prefix}", "--rev=0", "--yes")
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert not package_is_installed(prefix, "dependent")

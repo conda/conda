@@ -353,7 +353,7 @@ def test_signature_verification(
 
     # enable signature verification
     monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
-    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "https://example.com")
+    monkeypatch.setenv("CONDA_SIGNING_METADATA_URL_BASE", url := "http://example.com")
     reset_context()
     assert context.extra_safety_checks
     assert context.signing_metadata_url_base == url

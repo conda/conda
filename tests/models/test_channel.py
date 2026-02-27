@@ -8,15 +8,9 @@ from pytest import MonkeyPatch
 
 from conda.auxlib.ish import dals
 from conda.base.constants import DEFAULT_CHANNELS
-from conda.base.context import (
-    Context,
-    conda_tests_ctxt_mgmt_def_pol,
-    context,
-    reset_context,
-)
+from conda.base.context import Context, context, reset_context
 from conda.common.compat import on_win
 from conda.common.configuration import YamlRawParameter
-from conda.common.io import env_unmodified
 from conda.common.serialize import yaml
 from conda.common.url import join, join_url
 from conda.gateways.disk.create import mkdir_p
@@ -90,51 +84,43 @@ def test_channel_cache():
     assert ccc1 is ccc
 
 
-def test_default_channel():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        dc = Channel("defaults")
-        assert dc.canonical_name == "defaults"
-        assert dc.urls() == [
-            f"https://repo.anaconda.com/pkgs/main/{context.subdir}",
-            "https://repo.anaconda.com/pkgs/main/noarch",
-            f"https://repo.anaconda.com/pkgs/r/{context.subdir}",
-            "https://repo.anaconda.com/pkgs/r/noarch",
-            *(
-                [
-                    f"https://repo.anaconda.com/pkgs/msys2/{context.subdir}",
-                    "https://repo.anaconda.com/pkgs/msys2/noarch",
-                ]
-                if on_win
-                else []
-            ),
-        ]
-        assert dc.subdir is None
-        assert str(dc) == "defaults"
-
-        dc = Channel("defaults/win-32")
-        assert dc.canonical_name == "defaults"
-        assert dc.subdir == "win-32"
-        assert dc.urls()[0] == "https://repo.anaconda.com/pkgs/main/win-32"
-        assert dc.urls()[1] == "https://repo.anaconda.com/pkgs/main/noarch"
-        assert dc.urls()[2].endswith("/win-32")
+@pytest.mark.parametrize("subdir", [None, "win-32"])
+def test_default_channel(subdir: str | None):
+    name = "defaults" if subdir is None else f"defaults/{subdir}"
+    channel = Channel(name)
+    assert channel.canonical_name == "defaults"
+    assert channel.platform == channel.subdir == subdir
+    subdir = subdir or context.subdir
+    main_subdir, main_noarch, r_subdir, r_noarch, *msys2 = channel.urls()
+    assert main_subdir == f"https://repo.anaconda.com/pkgs/main/{subdir}"
+    assert main_noarch == "https://repo.anaconda.com/pkgs/main/noarch"
+    assert r_subdir == f"https://repo.anaconda.com/pkgs/r/{subdir}"
+    assert r_noarch == "https://repo.anaconda.com/pkgs/r/noarch"
+    if on_win:
+        msys2_subdir, msys2_noarch = msys2
+        assert msys2_subdir == f"https://repo.anaconda.com/pkgs/msys2/{subdir}"
+        assert msys2_noarch == "https://repo.anaconda.com/pkgs/msys2/noarch"
+    assert str(channel) == name
 
 
 def test_url_channel_w_platform():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
-
-        assert channel.scheme == "https"
-        assert channel.location == "repo.anaconda.com"
-        assert channel.platform == "osx-64" == channel.subdir
-        assert channel.name == "pkgs/main"
-
-        assert channel.base_url == "https://repo.anaconda.com/pkgs/main"
-        assert channel.canonical_name == "defaults"
-        assert channel.url() == "https://repo.anaconda.com/pkgs/main/osx-64"
-        assert channel.urls() == [
-            "https://repo.anaconda.com/pkgs/main/osx-64",
-            "https://repo.anaconda.com/pkgs/main/noarch",
-        ]
+    scheme = "https"
+    location = "repo.anaconda.com"
+    subdir = "osx-64"
+    name = "pkgs/main"
+    base_url = f"{scheme}://{location}/{name}"
+    url = f"{base_url}/{subdir}"
+    channel = Channel(url)
+    assert channel.scheme == scheme
+    assert channel.location == location
+    assert channel.platform == channel.subdir == subdir
+    assert channel.name == name
+    assert channel.base_url == base_url
+    assert channel.canonical_name == "defaults"
+    assert channel.url() == url
+    main_subdir, main_noarch = channel.urls()
+    assert main_subdir == url
+    assert main_noarch == f"{base_url}/noarch"
 
 
 def test_subdirs_kwarg_takes_precedence_over_platform():
@@ -142,33 +128,32 @@ def test_subdirs_kwarg_takes_precedence_over_platform():
     Test that an explicitly passed subdirs parameter will override the channel's platform.
     Regression test for https://github.com/conda/conda/issues/14258
     """
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        channel = Channel("conda-forge/linux-aarch64")
+    channel = Channel("conda-forge/linux-aarch64")
 
-        assert channel.urls() == [
-            "https://conda.anaconda.org/conda-forge/linux-aarch64",
-            "https://conda.anaconda.org/conda-forge/noarch",
-        ]
+    assert channel.urls() == [
+        "https://conda.anaconda.org/conda-forge/linux-aarch64",
+        "https://conda.anaconda.org/conda-forge/noarch",
+    ]
 
-        assert channel.urls(subdirs=("linux-64", "noarch")) == [
-            "https://conda.anaconda.org/conda-forge/linux-64",
-            "https://conda.anaconda.org/conda-forge/noarch",
-        ]
-        assert channel.urls(subdirs=("osx-64", "noarch")) == [
-            "https://conda.anaconda.org/conda-forge/osx-64",
-            "https://conda.anaconda.org/conda-forge/noarch",
-        ]
+    assert channel.urls(subdirs=("linux-64", "noarch")) == [
+        "https://conda.anaconda.org/conda-forge/linux-64",
+        "https://conda.anaconda.org/conda-forge/noarch",
+    ]
+    assert channel.urls(subdirs=("osx-64", "noarch")) == [
+        "https://conda.anaconda.org/conda-forge/osx-64",
+        "https://conda.anaconda.org/conda-forge/noarch",
+    ]
 
-        assert channel.urls(subdirs=("win-64",)) == [
-            "https://conda.anaconda.org/conda-forge/win-64",
-        ]
+    assert channel.urls(subdirs=("win-64",)) == [
+        "https://conda.anaconda.org/conda-forge/win-64",
+    ]
 
-        # check that URL-based channels also work the same way
-        channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
-        assert channel.urls(subdirs=("linux-64", "noarch")) == [
-            "https://repo.anaconda.com/pkgs/main/linux-64",
-            "https://repo.anaconda.com/pkgs/main/noarch",
-        ]
+    # check that URL-based channels also work the same way
+    channel = Channel("https://repo.anaconda.com/pkgs/main/osx-64")
+    assert channel.urls(subdirs=("linux-64", "noarch")) == [
+        "https://repo.anaconda.com/pkgs/main/linux-64",
+        "https://repo.anaconda.com/pkgs/main/noarch",
+    ]
 
 
 def test_bare_channel_http():
@@ -211,54 +196,52 @@ def test_channel_equality_respects_platform():
     Channels with different platforms should not be considered equal.
     This is a regression test for https://github.com/conda/conda/issues/14259
     """
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        channel_no_platform = Channel("conda-forge")
-        channel_linux64 = Channel("conda-forge/linux-64")
-        channel_aarch64 = Channel("conda-forge/linux-aarch64")
+    channel_no_platform = Channel("conda-forge")
+    channel_linux64 = Channel("conda-forge/linux-64")
+    channel_aarch64 = Channel("conda-forge/linux-aarch64")
 
-        assert channel_no_platform != channel_linux64
-        assert channel_linux64 != channel_aarch64
-        assert channel_no_platform != channel_aarch64
+    assert channel_no_platform != channel_linux64
+    assert channel_linux64 != channel_aarch64
+    assert channel_no_platform != channel_aarch64
 
-        # test that channels with the same platform should be equal
-        channel_linux64_2 = Channel("conda-forge/linux-64")
-        assert channel_linux64 == channel_linux64_2
+    # test that channels with the same platform should be equal
+    channel_linux64_2 = Channel("conda-forge/linux-64")
+    assert channel_linux64 == channel_linux64_2
 
-        # test that hashes are distinguishable per platform
-        assert hash(channel_no_platform) != hash(channel_linux64)
-        assert hash(channel_linux64) != hash(channel_aarch64)
-        assert hash(channel_linux64) == hash(channel_linux64_2)
+    # test that hashes are distinguishable per platform
+    assert hash(channel_no_platform) != hash(channel_linux64)
+    assert hash(channel_linux64) != hash(channel_aarch64)
+    assert hash(channel_linux64) == hash(channel_linux64_2)
 
-        # test dedup
-        channels = [
-            Channel("conda-forge/noarch"),
-            Channel("conda-forge"),
-            Channel("conda-forge/linux-64"),
-        ]
-        deduped = list(dict.fromkeys(channels))
-        assert len(deduped) == 3
+    # test dedup
+    channels = [
+        Channel("conda-forge/noarch"),
+        Channel("conda-forge"),
+        Channel("conda-forge/linux-64"),
+    ]
+    deduped = list(dict.fromkeys(channels))
+    assert len(deduped) == 3
 
-        # test that urls are correct
-        deduped_urls = set(url for c in deduped for url in c.urls())
-        assert "https://conda.anaconda.org/conda-forge/noarch" in deduped_urls
-        assert "https://conda.anaconda.org/conda-forge/linux-64" in deduped_urls
+    # test that urls are correct
+    deduped_urls = set(url for c in deduped for url in c.urls())
+    assert "https://conda.anaconda.org/conda-forge/noarch" in deduped_urls
+    assert "https://conda.anaconda.org/conda-forge/linux-64" in deduped_urls
 
 
 def test_channel_name_subdir_only():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        channel = Channel("pkgs/main/win-64")
-        assert channel.scheme == "https"
-        assert channel.location == "repo.anaconda.com"
-        assert channel.platform == "win-64" == channel.subdir
-        assert channel.name == "pkgs/main"
+    channel = Channel("pkgs/main/win-64")
+    assert channel.scheme == "https"
+    assert channel.location == "repo.anaconda.com"
+    assert channel.platform == "win-64" == channel.subdir
+    assert channel.name == "pkgs/main"
 
-        assert channel.base_url == "https://repo.anaconda.com/pkgs/main"
-        assert channel.canonical_name == "defaults"
-        assert channel.url() == "https://repo.anaconda.com/pkgs/main/win-64"
-        assert channel.urls() == [
-            "https://repo.anaconda.com/pkgs/main/win-64",
-            "https://repo.anaconda.com/pkgs/main/noarch",
-        ]
+    assert channel.base_url == "https://repo.anaconda.com/pkgs/main"
+    assert channel.canonical_name == "defaults"
+    assert channel.url() == "https://repo.anaconda.com/pkgs/main/win-64"
+    assert channel.urls() == [
+        "https://repo.anaconda.com/pkgs/main/win-64",
+        "https://repo.anaconda.com/pkgs/main/noarch",
+    ]
 
 
 def test_channel_alias_w_conda_path(monkeypatch: MonkeyPatch):
@@ -1268,72 +1251,39 @@ def test_channels_with_dashes(testdata4: None):
 
 
 def test_multichannel_priority():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        channels = ["conda-test", "defaults", "conda-forge"]
-        subdirs = ["new-optimized-subdir", "linux-32", "noarch"]
-        channel_priority_map = prioritize_channels(
-            channels, with_credentials=True, subdirs=subdirs
-        )
-        if on_win:
-            assert channel_priority_map == {
-                "https://conda.anaconda.org/conda-test/new-optimized-subdir": (
-                    "conda-test",
-                    0,
-                ),
-                "https://conda.anaconda.org/conda-test/linux-32": ("conda-test", 0),
-                "https://conda.anaconda.org/conda-test/noarch": ("conda-test", 0),
-                "https://repo.anaconda.com/pkgs/main/new-optimized-subdir": (
-                    "defaults",
-                    1,
-                ),
-                "https://repo.anaconda.com/pkgs/main/linux-32": ("defaults", 1),
-                "https://repo.anaconda.com/pkgs/main/noarch": ("defaults", 1),
-                "https://repo.anaconda.com/pkgs/r/new-optimized-subdir": (
-                    "defaults",
-                    2,
-                ),
-                "https://repo.anaconda.com/pkgs/r/linux-32": ("defaults", 2),
-                "https://repo.anaconda.com/pkgs/r/noarch": ("defaults", 2),
-                "https://repo.anaconda.com/pkgs/msys2/new-optimized-subdir": (
-                    "defaults",
-                    3,
-                ),
-                "https://repo.anaconda.com/pkgs/msys2/linux-32": ("defaults", 3),
-                "https://repo.anaconda.com/pkgs/msys2/noarch": ("defaults", 3),
-                "https://conda.anaconda.org/conda-forge/new-optimized-subdir": (
-                    "conda-forge",
-                    4,
-                ),
-                "https://conda.anaconda.org/conda-forge/linux-32": ("conda-forge", 4),
-                "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 4),
+    channel_priority_map = prioritize_channels(
+        ["conda-test", "defaults", "conda-forge"],
+        with_credentials=True,
+        subdirs=["new-subdir", "linux-32", "noarch"],
+    )
+    conda_test = "https://conda.anaconda.org/conda-test"
+    main = "https://repo.anaconda.com/pkgs/main"
+    r = "https://repo.anaconda.com/pkgs/r"
+    msys2 = "https://repo.anaconda.com/pkgs/msys2"
+    conda_forge = "https://conda.anaconda.org/conda-forge"
+    assert channel_priority_map == {
+        f"{conda_test}/new-subdir": ("conda-test", 0),
+        f"{conda_test}/linux-32": ("conda-test", 0),
+        f"{conda_test}/noarch": ("conda-test", 0),
+        f"{main}/new-subdir": ("defaults", 1),
+        f"{main}/linux-32": ("defaults", 1),
+        f"{main}/noarch": ("defaults", 1),
+        f"{r}/new-subdir": ("defaults", 2),
+        f"{r}/linux-32": ("defaults", 2),
+        f"{r}/noarch": ("defaults", 2),
+        **(
+            {
+                f"{msys2}/new-subdir": ("defaults", 3),
+                f"{msys2}/linux-32": ("defaults", 3),
+                f"{msys2}/noarch": ("defaults", 3),
             }
-        else:
-            assert channel_priority_map == {
-                "https://conda.anaconda.org/conda-test/new-optimized-subdir": (
-                    "conda-test",
-                    0,
-                ),
-                "https://conda.anaconda.org/conda-test/linux-32": ("conda-test", 0),
-                "https://conda.anaconda.org/conda-test/noarch": ("conda-test", 0),
-                "https://repo.anaconda.com/pkgs/main/new-optimized-subdir": (
-                    "defaults",
-                    1,
-                ),
-                "https://repo.anaconda.com/pkgs/main/linux-32": ("defaults", 1),
-                "https://repo.anaconda.com/pkgs/main/noarch": ("defaults", 1),
-                "https://repo.anaconda.com/pkgs/r/new-optimized-subdir": (
-                    "defaults",
-                    2,
-                ),
-                "https://repo.anaconda.com/pkgs/r/linux-32": ("defaults", 2),
-                "https://repo.anaconda.com/pkgs/r/noarch": ("defaults", 2),
-                "https://conda.anaconda.org/conda-forge/new-optimized-subdir": (
-                    "conda-forge",
-                    3,
-                ),
-                "https://conda.anaconda.org/conda-forge/linux-32": ("conda-forge", 3),
-                "https://conda.anaconda.org/conda-forge/noarch": ("conda-forge", 3),
-            }
+            if on_win
+            else {}
+        ),
+        f"{conda_forge}/new-subdir": ("conda-forge", 3 + on_win),
+        f"{conda_forge}/linux-32": ("conda-forge", 3 + on_win),
+        f"{conda_forge}/noarch": ("conda-forge", 3 + on_win),
+    }
 
 
 def test_ppc64le_vs_ppc64():

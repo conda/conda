@@ -1,3 +1,4 @@
+conda  # for Windows shell activation tests
 coverage
 flask >=2.2  # jlap pytest fixture
 git

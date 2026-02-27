@@ -65,10 +65,7 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.subprocess import (
-    Response,
-    subprocess_call_with_clean_env,
-)
+from conda.gateways.subprocess import Response
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
@@ -1055,7 +1052,6 @@ def test_update_with_pinned_packages(
 
         conda_cli("update", f"--prefix={prefix}", "dependency", "--yes")
 
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "dependent=1.0")
         assert not package_is_installed(prefix, "dependency=1.0")
         assert package_is_installed(prefix, "dependent=2.0")
@@ -1128,7 +1124,6 @@ def test_channel_usage_replacing_python(
             "decorator",
             "--yes",
         )
-        PrefixData._cache_.clear()
         assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
         assert package_is_installed(prefix, "main::decorator")
 
@@ -1402,7 +1397,6 @@ def test_update_all_updates_pip_pkg(
         assert err == 0, f"pip install failed: {stderr}"
 
         # ensure installed version of itsdangerous is from PyPI
-        PrefixData._cache_.clear()
         assert (prec := package_is_installed(prefix, "itsdangerous"))
         assert prec.dist_fields_dump() == {
             "base_url": "https://conda.anaconda.org/pypi",
@@ -2459,72 +2453,6 @@ def test_create_env_different_platform(
             pkg["name"] == "arch-package" and pkg["platform"] == platform
             for pkg in result["actions"]["LINK"]
         )
-
-
-def test_conda_downgrade(
-    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
-):
-    # Create an environment with the current conda under test, but include an earlier
-    # version of conda and other packages in that environment.
-    # Make sure we can flip back and forth.
-
-    monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "false")
-    monkeypatch.setenv("CONDA_ALLOW_CONDA_DOWNGRADES", "true")
-    monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "1")
-
-    # elevate verbosity so we can inspect subprocess' stdout/stderr
-    monkeypatch.setenv("CONDA_VERBOSE", "2")
-
-    with tmp_env("python=3.11", "conda") as prefix:  # rev 0
-        conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
-        assert (py_prec := package_is_installed(prefix, "python"))
-        assert (conda_prec := package_is_installed(prefix, "conda"))
-
-        # runs our current version of conda to install into the foreign env
-        conda_cli("install", f"--prefix={prefix}", "filelock", "--yes")  # rev 1
-        assert package_is_installed(prefix, "filelock")
-
-        # runs the conda in the env to install something new into the env
-        PrefixData._cache_.clear()
-        subprocess_call_with_clean_env(
-            [conda_exe, "install", f"--prefix={prefix}", "itsdangerous", "--yes"],
-            path=prefix,
-        )  # rev 2
-        assert package_is_installed(prefix, "itsdangerous")
-
-        # downgrade the version of conda in the env (using our current outer conda version)
-        PrefixData._cache_.clear()
-        conda_cli(
-            "install",
-            f"--prefix={prefix}",
-            f"conda<{conda_prec.version}",
-            "--yes",
-        )  # rev 3
-        assert package_is_installed(prefix, f"conda<{conda_prec.version}")
-
-        # undo the conda downgrade in the env (using our current outer conda version)
-        conda_cli("install", f"--prefix={prefix}", "--rev=2", "--yes")
-        assert package_is_installed(prefix, f"python={py_prec.version}")
-        assert package_is_installed(prefix, f"conda={conda_prec.version}")
-        assert package_is_installed(prefix, "filelock")
-        assert package_is_installed(prefix, "itsdangerous")
-
-        # use the conda in the env to revert to a previous state
-        PrefixData._cache_.clear()
-        subprocess_call_with_clean_env(
-            [conda_exe, "install", f"--prefix={prefix}", "--rev=1", "--yes"],
-            path=prefix,
-        )
-        assert package_is_installed(prefix, f"python={py_prec.version}")
-        assert package_is_installed(prefix, f"conda={conda_prec.version}")
-        assert package_is_installed(prefix, "filelock")
-        assert not package_is_installed(prefix, "itsdangerous")
-
-        result = subprocess_call_with_clean_env(
-            [conda_exe, "info", "--json"],
-            path=prefix,
-        )
-        assert json.loads(result.stdout)["conda_version"] == conda_prec.version
 
 
 @pytest.mark.skipif(

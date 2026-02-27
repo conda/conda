@@ -227,6 +227,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             specs = specs_from_args(args.package_names)
         channel_urls = ()
         subdirs = ()
+
+        prefix_data = PrefixData(prefix)
+        if unmatched_specs := [
+            str(spec) for spec in specs if not tuple(prefix_data.query(spec))
+        ]:
+            raise PackagesNotFoundError(tuple(sorted(unmatched_specs)))
+
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         solver = solver_backend(prefix, channel_urls, subdirs, specs_to_remove=specs)
         txn = solver.solve_for_transaction()
