@@ -9,6 +9,7 @@ from conda.exceptions import (
     PluginError,
 )
 from conda.models.environment import Environment
+from conda.plugins import environment_specifiers
 from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 
@@ -108,6 +109,13 @@ def naughty_spec_plugin(plugin_manager):
     plg = NaughtySpecPlugin()
     plugin_manager.register(plg)
 
+    return plugin_manager
+
+
+@pytest.fixture()
+def plugin_manager_with_specifiers(plugin_manager):
+    """Plugin manager with built-in environment specifier plugins loaded."""
+    plugin_manager.load_plugins(*environment_specifiers.plugins)
     return plugin_manager
 
 
@@ -212,7 +220,7 @@ def test_naught_plugin_does_not_cause_unhandled_errors(
     filename = "test.random"
     with pytest.raises(
         PluginError,
-        match=rf"An error occured when handling '{filename}' with plugin 'naughty'.",
+        match=rf"An error occurred when handling '{filename}' with plugin 'naughty'.",
     ):
         plugin_manager.get_environment_specifier_by_name(filename, "naughty")
 
@@ -230,3 +238,112 @@ def test_naught_plugin_does_not_cause_unhandled_errors_during_detection(
     env_spec_backend = plugin_manager.detect_environment_specifier(filename)
     assert env_spec_backend.name == "rand-spec"
     assert env_spec_backend.environment_spec(filename).env is not None
+
+
+@pytest.mark.parametrize(
+    "filename,expected_plugin",
+    [
+        ("requirements.txt", "requirements.txt"),
+        ("spec.txt", "requirements.txt"),
+        ("environment.yml", "cep-24"),  # cep-24 is registered with tryfirst=True
+        ("environment.yaml", "cep-24"),
+        ("explicit.txt", "explicit"),
+    ],
+)
+def test_detect_environment_specifier_by_filename(
+    plugin_manager_with_specifiers,
+    tmp_path,
+    filename,
+    expected_plugin,
+):
+    """Test filename-based filtering in two-phase detection."""
+    # Create a test file with appropriate content
+    test_file = tmp_path / filename
+    if "requirements" in filename or "spec" in filename:
+        test_file.write_text("numpy==1.20.0\npandas>=1.0")
+    elif "environment" in filename:
+        test_file.write_text("name: test\ndependencies:\n  - python=3.8")
+    elif "explicit" in filename:
+        test_file.write_text(
+            "@EXPLICIT\nhttps://repo.anaconda.com/pkgs/main/linux-64/python-3.8.0-0.tar.bz2"
+        )
+
+    specifier = plugin_manager_with_specifiers.detect_environment_specifier(
+        str(test_file)
+    )
+    assert specifier.name == expected_plugin
+
+
+def test_detect_environment_specifier_phase2_fallback(
+    plugin_manager_with_specifiers,
+    tmp_path,
+):
+    """Test that Phase 2 fallback works when filename doesn't match."""
+    # Create a file with non-standard name but valid requirements.txt content
+    test_file = tmp_path / "my-custom-deps.txt"
+    test_file.write_text("numpy==1.20.0\npandas>=1.0")
+
+    # Should fall back to content-based detection
+    specifier = plugin_manager_with_specifiers.detect_environment_specifier(
+        str(test_file)
+    )
+    assert specifier.name == "requirements.txt"  # Detected by content
+
+
+def test_detect_environment_specifier_pattern_matching_with_wildcard(
+    plugin_manager,
+    tmp_path,
+):
+    """Test that fnmatch patterns work for plugins with wildcards."""
+
+    # Create a plugin with wildcard pattern support
+    class WildcardSpec(EnvironmentSpecBase):
+        def __init__(self, source: str):
+            self.source = source
+
+        def can_handle(self):
+            # Simple check - just verify file exists
+            from pathlib import Path
+
+            return Path(self.source).exists()
+
+        def env(self):
+            return Environment(prefix="/somewhere", platform=["linux-64"])
+
+    class WildcardSpecPlugin:
+        @plugins.hookimpl
+        def conda_environment_specifiers(self):
+            yield CondaEnvironmentSpecifier(
+                name="wildcard-spec",
+                environment_spec=WildcardSpec,
+                default_filenames=("*.lock.yml",),  # Pattern with wildcard
+            )
+
+    # Register the plugin
+    wildcard_plugin = WildcardSpecPlugin()
+    plugin_manager.register(wildcard_plugin)
+
+    # Create a file matching the pattern
+    test_file = tmp_path / "my-project.lock.yml"
+    test_file.write_text("name: test\ndependencies:\n  - python=3.8")
+
+    # Should match the wildcard pattern
+    specifier = plugin_manager.detect_environment_specifier(str(test_file))
+    assert specifier.name == "wildcard-spec"
+
+    # Unregister the plugin to avoid affecting other tests
+    plugin_manager.unregister(wildcard_plugin)
+
+
+def test_detect_environment_specifier_no_match_raises_error(
+    plugin_manager_with_specifiers,
+    tmp_path,
+):
+    """Test that unrecognized files raise appropriate error."""
+    # Create a file that doesn't match any plugin
+    test_file = tmp_path / "unknown.xyz"
+    test_file.write_text("some random content")
+
+    # Should raise error when no plugin can handle it
+    with pytest.raises(EnvironmentSpecPluginNotDetected):
+        plugin_manager_with_specifiers.detect_environment_specifier(str(test_file))

@@ -16,4 +16,5 @@ def conda_environment_specifiers():
     yield CondaEnvironmentSpecifier(
         name="explicit",
         environment_spec=ExplicitSpec,
+        default_filenames=("explicit.txt",),
     )
