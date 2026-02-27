@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,10 +14,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
+from conda.base.constants import (
+    PREFIX_PINNED_FILE,
+    PREFIX_STATE_FILE,
+)
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import CondaError, CorruptedEnvironmentError
+from conda.exceptions import CondaError, CondaValueError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PrefixRecord
@@ -990,3 +994,77 @@ def test_conda_package_recognized_windows(empty_env, change_case):
     prefix_data.insert(record)
     prefix_data.load()
     assert prefix_data.get("requests").channel_name != "pypi"
+
+
+@pytest.mark.parametrize(
+    "char,should_raise",
+    [
+        # Valid chars
+        ("a", False),
+        ("A", False),
+        ("-", False),
+        ("_", False),
+        (".", False),
+        ("0", False),
+        # Problematic chars, see WINDOWS_PROBLEMATIC_CHARS
+        ("!", False),
+        ("^", False),
+        ("%", False),
+        ("=", False),
+        ("(", False),
+        (")", False),
+        # Invalid chars, see PREFIX_NAME_DISALLOWED_CHARS
+        # ("/", True),
+        (" ", True),
+        # (":", True),
+        ("#", True),
+    ],
+)
+def test_prefix_data_validate_name(
+    tmp_env: TmpEnvFixture,
+    char: str,
+    should_raise: bool,
+):
+    """
+    Test PrefixData.validate_name() for various environment names.
+
+    This test documents current behavior. When implementing #12558, update
+    the expected behavior for Windows-problematic characters.
+
+    See: https://github.com/conda/conda/issues/12558
+    """
+    with tmp_env(path_infix=char) as env_path:
+        pd = PrefixData(env_path)
+        with pytest.raises(CondaValueError) if should_raise else nullcontext():
+            pd.validate_name()
+
+
+@pytest.mark.parametrize(
+    "allow_base,raises",
+    [
+        (False, True),
+        (True, False),
+    ],
+)
+def test_prefix_data_validate_name_base(
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    allow_base: bool,
+    raises: bool,
+):
+    """Test that 'base' is rejected when allow_base=False."""
+    # Path envs/base so PrefixData.name resolves to "base" when envs_dir is mocked
+    with tmp_env(name="envs/base") as base_path:
+        mocker.patch(
+            "conda.base.context.Context.envs_dirs",
+            new_callable=mocker.PropertyMock,
+            return_value=(str(base_path.parent),),
+        )
+
+        pd = PrefixData(base_path)
+        with (
+            pytest.raises(CondaValueError, match="reserved environment name")
+            if raises
+            else nullcontext()
+        ):
+            pd.validate_name(allow_base=allow_base)
