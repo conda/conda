@@ -220,7 +220,7 @@ def test_naught_plugin_does_not_cause_unhandled_errors(
     filename = "test.random"
     with pytest.raises(
         PluginError,
-        match=rf"An error occured when handling '{filename}' with plugin 'naughty'.",
+        match=rf"An error occurred when handling '{filename}' with plugin 'naughty'.",
     ):
         plugin_manager.get_environment_specifier_by_name(filename, "naughty")
 

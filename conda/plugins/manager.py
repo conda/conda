@@ -555,7 +555,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 raise PluginError(
                     dals(
                         f"""
-                        An error occured when handling '{source}' with plugin '{name}'.
+                        An error occurred when handling '{source}' with plugin '{name}'.
 
                         {type(e).__name__}: {e}
                         """
@@ -592,29 +592,17 @@ class CondaPluginManager(pluggy.PluginManager):
         if not candidates:
             return None
 
-        log.debug(
-            "EnvironmentSpec: filename '%s' matched %d plugin(s)",
-            basename,
-            len(candidates),
-        )
-
         found = []
         for hook in candidates:
             if not hook.environment_spec.detection_supported:
                 continue
-            log.debug("EnvironmentSpec hook: checking %s", hook.name)
             try:
                 if hook.environment_spec(source).can_handle():
-                    log.debug("EnvironmentSpec hook: %s can be %s", source, hook.name)
                     found.append(hook)
             except Exception as e:
-                log.error(
-                    "EnvironmentSpec hook: an error occurred when handling '%s' with plugin '%s'. %s",
-                    source,
-                    hook.name,
-                    e,
+                logging.debug(
+                    f"EnvironmentSpec hook: an error occurred when handling {source} with plugin {hook.name}. {e}",
                 )
-                log.debug("%r", e, exc_info=e)
 
         return found if found else None
 
@@ -634,34 +622,14 @@ class CondaPluginManager(pluggy.PluginManager):
 
         for hook_name, hook in hooks.items():
             if hook.environment_spec.detection_supported:
-                log.debug("EnvironmentSpec hook: checking %s", hook_name)
                 try:
                     if hook.environment_spec(source).can_handle():
-                        log.debug(
-                            "EnvironmentSpec hook: %s can be %s",
-                            source,
-                            hook_name,
-                        )
                         found.append(hook)
-                    else:
-                        log.debug(
-                            "EnvironmentSpec hook: %s can NOT be handled by %s",
-                            source,
-                            hook_name,
-                        )
                 except Exception as e:
-                    log.error(
-                        "EnvironmentSpec hook: an error occurred when handling '%s' with plugin '%s'. %s",
-                        source,
-                        hook_name,
-                        e,
+                    logging.debug(
+                        f"EnvironmentSpec hook: an error occurred when handling {source} with plugin {hook.name}. {e}"
                     )
-                    log.debug("%r", e, exc_info=e)
             else:
-                log.debug(
-                    "EnvironmentSpec hook: %s does not support autodetection, skipping",
-                    hook_name,
-                )
                 autodetect_disabled_plugins.append(hook_name)
 
         return found, autodetect_disabled_plugins
