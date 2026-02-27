@@ -8,9 +8,8 @@ from collections import UserDict
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
-
 from ..base.context import context, validate_channels
+from ..common.iterators import unique
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaKeyError,
@@ -128,7 +127,7 @@ class Index(UserDict):
             channels = ["local", *channels]
         if prepend:
             channels += context.channels
-        self._channels = IndexedSet(channels)
+        self._channels = tuple(unique(channels))
         if subdirs:
             if platform:
                 log.warning("subdirs is %s, ignoring platform %s", subdirs, platform)
@@ -136,16 +135,17 @@ class Index(UserDict):
             subdirs = (platform, "noarch") if platform is not None else context.subdirs
         self._subdirs = subdirs
         self._repodata_fn = repodata_fn
-        self.channels = {}
-        self.expanded_channels = IndexedSet()
+        self.channels: dict[str | Channel, list[SubdirData]] = {}
+        expanded_channels = {}
         for channel in self._channels:
-            urls = Channel(channel).urls(True, subdirs)
-            expanded_channels = [Channel(url) for url in urls]
-            self.channels[channel] = [
-                SubdirData(expanded_channel, repodata_fn=repodata_fn)
-                for expanded_channel in expanded_channels
-            ]
-            self.expanded_channels.update(expanded_channels)
+            self.channels[channel] = []
+            for url in Channel(channel).urls(True, subdirs):
+                url_as_channel = Channel(url)
+                self.channels[channel].append(
+                    SubdirData(url_as_channel, repodata_fn=repodata_fn)
+                )
+                expanded_channels.setdefault(url_as_channel, None)
+        self.expanded_channels: tuple[Channel, ...] = tuple(expanded_channels)
         # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
         LAST_CHANNEL_URLS.clear()
         LAST_CHANNEL_URLS.extend(self.expanded_channels)
@@ -505,7 +505,7 @@ class ReducedIndex(Index):
         return f"<{self.__class__.__name__}(spec={self.specs}, channels=[{channels}])>"
 
     def _derive_reduced_index(self) -> None:
-        records = IndexedSet()
+        records = {}
         collected_names = set()
         collected_track_features = set()
         pending_names = set()
@@ -564,7 +564,7 @@ class ReducedIndex(Index):
                 # new_records = SubdirData.query_all(
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
-                new_records = self._retrieve_all_from_channels(spec)
+                new_records = dict.fromkeys(self._retrieve_all_from_channels(spec))
                 push_records(*new_records)
                 records.update(new_records)
 
@@ -575,7 +575,7 @@ class ReducedIndex(Index):
                 # new_records = SubdirData.query_all(
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
-                new_records = self._retrieve_all_from_channels(spec)
+                new_records = dict.fromkeys(self._retrieve_all_from_channels(spec))
                 push_records(*new_records)
                 records.update(new_records)
 

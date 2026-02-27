@@ -2792,7 +2792,7 @@ def test_channel_priority_churn_minimized(tmpdir):
         prefix_records=final_state,
         history_specs=specs,
     ) as solver:
-        solver.channels.reverse()
+        solver.channels = tuple(reversed(solver.channels))
         unlink_dists, link_dists = solver.solve_for_diff(
             update_modifier=UpdateModifier.FREEZE_INSTALLED,
             **solver_kwargs,
