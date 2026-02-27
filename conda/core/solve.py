@@ -47,7 +47,7 @@ except ImportError:
     from ..auxlib.collection import frozendict
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from ..models.records import PackageRecord
 
@@ -1412,24 +1412,22 @@ def get_pinned_specs(prefix: str) -> tuple[MatchSpec]:
 
 def diff_for_unlink_link_precs(
     prefix,
-    final_precs,
-    specs_to_add=(),
+    final_precs: Sequence[PackageRecord],
+    specs_to_add: Iterable[MatchSpec] = (),
     force_reinstall=NULL,
 ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
-    # Ensure final_precs supports the IndexedSet interface
-    if not isinstance(final_precs, IndexedSet):
-        if not hasattr(final_precs, "__getitem__"):
-            raise TypeError("final_precs must support list indexing")
-        if not hasattr(final_precs, "__sub__"):
-            raise TypeError("final_precs must support set difference")
-
-    previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    final_precs_set = set(final_precs)
+    # This one is toposorted:
+    previous_records = tuple(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    previous_records_set = set(previous_records)
     force_reinstall = (
         context.force_reinstall if force_reinstall is NULL else force_reinstall
     )
 
-    unlink_precs = previous_records - final_precs
-    link_precs = final_precs - previous_records
+    # These "lose" order here, but it's ok, we'll sort them later using their
+    # position in the original sorted collections defined above
+    unlink_precs: set[PackageRecord] = previous_records_set - final_precs_set
+    link_precs: set[PackageRecord] = final_precs_set - previous_records_set
 
     def _add_to_unlink_and_link(rec):
         link_precs.add(rec)
@@ -1461,8 +1459,8 @@ def diff_for_unlink_link_precs(
         for prec in noarch_python_precs:
             _add_to_unlink_and_link(prec)
 
-    unlink_precs = IndexedSet(
+    unlink_precs = tuple(
         reversed(sorted(unlink_precs, key=lambda x: previous_records.index(x)))
     )
-    link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
-    return tuple(unlink_precs), tuple(link_precs)
+    link_precs = tuple(sorted(link_precs, key=lambda x: final_precs.index(x)))
+    return unlink_precs, link_precs
