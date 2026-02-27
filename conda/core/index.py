@@ -141,7 +141,9 @@ class Index(UserDict):
             urls = Channel(channel).urls(True, subdirs)
             for url in urls:
                 url_as_channel = Channel(url)
-                self.channels.setdefault(channel, []).append(SubdirData(url_as_channel, repodata_fn=repodata_fn))
+                self.channels.setdefault(channel, []).append(
+                    SubdirData(url_as_channel, repodata_fn=repodata_fn)
+                )
                 expanded_channels.setdefault(url_as_channel, None)
         self.expanded_channels = tuple(expanded_channels)
         # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
