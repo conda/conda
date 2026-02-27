@@ -27,10 +27,13 @@ class ExceptionHandler:
     # FUTURE: Python 3.10+, use typing.ParamSpec
     def __call__(self, func: Callable[..., T], *args, **kwargs) -> T | int:
         try:
-            return func(*args, **kwargs)
+            result = func(*args, **kwargs)
         except:
             _, exc_val, exc_tb = sys.exc_info()
             return self.handle_exception(exc_val, exc_tb)
+        else:
+            deprecated.print_summary()
+            return result
 
     def write_out(self, *content: str) -> None:
         from logging import getLogger
