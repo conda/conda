@@ -1294,14 +1294,14 @@ class Solver:
             #  is given by PrefixData(self.prefix).all_subdir_urls().  However that causes
             #  usability problems with bad / expired tokens.
 
-            additional_channels = set()
+            additional_channels = {}
             for spec in self.specs_to_add:
                 # TODO: correct handling for subdir isn't yet done
                 channel = spec.get_exact_value("channel")
-                if channel:
-                    additional_channels.add(Channel(channel))
+                if channel and channel not in self.channels:
+                    additional_channels.setdefault(Channel(channel))
 
-            self.channels.update(additional_channels)
+            self.channels = (*self.channels, *additional_channels)
 
             self._prepared_specs = prepared_specs
             self._index = reduced_index = ReducedIndex(
