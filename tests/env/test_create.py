@@ -439,3 +439,50 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     # get an array of length 2 if the string only appears once. If it appears
     # multiple times, the array will have more elements.
     assert len(stdout.split("EnvironmentSectionNotValid")) == 2
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "format,file,env_spec",
+    [
+        ("environment-yaml", "environment.yml", "environment.yml"),
+        ("requirements", "requirements.txt", "requirements.txt"),
+    ],
+)
+def test_export_and_recreate_environment(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
+    test_recipes_channel: Path,
+    format: str,
+    file: str,
+    env_spec: str,
+):
+    """
+    Test that a user can recreate an environment with the same
+    plugin name they used to export the environment.
+    Ref: https://github.com/conda-incubator/conda-lockfiles/issues/79
+    """
+    # Setup a simple environment
+    with tmp_env("small-executable") as prefix:
+        # export the environment to yml format
+        env_file_path = path_factory(file)
+        _, _, rc = conda_cli(
+            "export",
+            f"--prefix={prefix}",
+            f"--format={format}",
+            f"--file={env_file_path}",
+        )
+        assert rc == 0, f"Unable to export env to format {format}"
+
+        # recreate the environment
+        recreate_prefix = path_factory()
+        _, _, rc = conda_cli(
+            "env",
+            "create",
+            f"--prefix={recreate_prefix}",
+            f"--env-spec={env_spec}",
+            f"--file={env_file_path}",
+            "--dry-run",
+        )
+        assert rc == 0, f"Unable to recreate env from format {env_spec}"

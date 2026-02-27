@@ -21,6 +21,7 @@ from ..core.prefix_data import PrefixData
 from ..exceptions import CondaError, CondaValueError
 from ..history import History
 from ..misc import get_package_records_from_explicit
+from .channel import Channel
 from .match_spec import MatchSpec
 
 if TYPE_CHECKING:
@@ -421,9 +422,9 @@ class Environment:
                 if (
                     not ignore_channels
                     and conda_prec.channel
-                    and conda_prec.channel.name
+                    and conda_prec.channel.canonical_name
                 ):
-                    spec_str = f"{conda_prec.channel.name}::{spec_str}"
+                    spec_str = f"{conda_prec.channel.canonical_name}::{spec_str}"
 
                 requested_packages.append(MatchSpec(spec_str))
 
@@ -446,7 +447,9 @@ class Environment:
         )
 
         # Build channels tuple
-        environment_channels = tuple(channels or ())
+        environment_channels = tuple(
+            Channel(channel).canonical_name for channel in channels or ()
+        )
 
         # Inject channels from installed conda packages (unless ignoring channels)
         # This applies regardless of override_channels setting
