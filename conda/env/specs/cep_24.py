@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -22,7 +21,6 @@ log = getLogger(__name__)
 
 class Cep24YamlFileSpec(EnvironmentSpecBase):
     _environment = None
-    extensions = {".yaml", ".yml"}
 
     def __init__(self, filename: str | None = None, **kwargs):
         self.filename = filename
@@ -32,19 +30,11 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
         Validates loader can process environment definition.
         This can handle if:
             * the provided file exists
-            * the provided file ends in the supported file extensions (.yaml or .yml)
             * the provided file is compliant with the CEP-0024
 
         :return: True or False
         """
         if not self.filename:
-            return False
-
-        # Extract the file extension (e.g., '.txt' or '' if no extension)
-        _, file_ext = os.path.splitext(self.filename)
-
-        # Check if the file has a supported extension and exists
-        if file_ext.lower() not in self.extensions:
             return False
 
         try:

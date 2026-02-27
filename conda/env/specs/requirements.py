@@ -5,14 +5,11 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import ClassVar
 
 from ...base.context import context
+from ...common.url import is_url
 from ...deprecations import deprecated
-from ...exceptions import CondaValueError
+from ...exceptions import CondaValueError, InvalidMatchSpec
 from ...gateways.disk.read import yield_lines
 from ...models.environment import Environment
 from ...models.match_spec import MatchSpec
@@ -27,7 +24,6 @@ class RequirementsSpec(EnvironmentSpecBase):
     """
 
     msg: str | None = None
-    extensions: ClassVar[set[str]] = {".txt"}
 
     @deprecated.argument("24.7", "26.3", "name")
     def __init__(
@@ -81,7 +77,6 @@ class RequirementsSpec(EnvironmentSpecBase):
         Validates that this spec can process the environment definition.
         This checks if:
             * a filename was provided
-            * the file has a supported extension
             * the file exists
             * the file content is valid for this specifier type
 
@@ -91,19 +86,25 @@ class RequirementsSpec(EnvironmentSpecBase):
         if self.filename is None:
             return False
 
-        # Extract the file extension (e.g., '.txt' or '' if no extension)
-        _, file_ext = os.path.splitext(self.filename)
+        if is_url(self.filename):
+            return False
 
-        # Check if the file has a supported extension
-        if not any(spec_ext == file_ext for spec_ext in self.extensions):
-            self.msg = f"File {self.filename} does not have a supported extension: {', '.join(self.extensions)}"
+        if not os.path.exists(self.filename):
             return False
 
         # Ensure this is not an explicit file. Requirements.txt and explicit files
         # may sometimes share file extension.
         dependencies_list = list(yield_lines(self.filename))
-        if "@EXPLICIT" in dependencies_list:
-            return False
+        for dep in dependencies_list:
+            # Ensure the file is not an explicit file
+            if dep == "@EXPLICIT":
+                return False
+            # Ensure that every item is a valid matchspec
+            try:
+                MatchSpec(dep)
+            except InvalidMatchSpec:
+                return False
+
         return True
 
     @property
