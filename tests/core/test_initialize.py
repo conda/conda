@@ -6,6 +6,7 @@ import ntpath
 import os
 import sys
 from collections import namedtuple
+from contextlib import nullcontext
 from os.path import abspath, dirname, isfile, join, realpath, samefile
 from sysconfig import get_path
 from typing import TYPE_CHECKING
@@ -52,6 +53,8 @@ from conda.models.enums import LinkType
 from conda.testing.helpers import tempdir
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture
@@ -420,17 +423,20 @@ def test_make_entry_point(verbose):
         assert result == Result.NO_CHANGE
 
 
-def test_make_entry_point_exe(verbose):
-    with tempdir() as conda_temp_prefix:
-        conda_prefix = abspath(sys.prefix)
-        target_path = join(conda_temp_prefix, "Scripts", "conda-env.exe")
-        result = make_entry_point_exe(target_path, conda_prefix)
-        assert result == Result.MODIFIED
+def test_make_entry_point_exe(verbose, tmp_path: Path):
+    target_path = tmp_path / "Scripts" / "conda-env.exe"
 
-        assert isfile(target_path)
+    with (
+        nullcontext()
+        if on_win
+        else pytest.raises(
+            NotImplementedError, match="Windows entry point stub not available"
+        )
+    ):
+        assert make_entry_point_exe(target_path, CONDA_PACKAGE_ROOT) == Result.MODIFIED
+        assert target_path.is_file()
 
-        result = make_entry_point_exe(target_path, conda_prefix)
-        assert result == Result.NO_CHANGE
+        assert make_entry_point_exe(target_path, CONDA_PACKAGE_ROOT) == Result.NO_CHANGE
 
 
 def test_install_conda_sh(verbose):

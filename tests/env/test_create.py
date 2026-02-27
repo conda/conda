@@ -68,7 +68,6 @@ def test_create_update(
         *("--name", env_name),
         *("--file", support_file("example/environment_pinned_updated.yml")),
     )
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "flask=2.0.3")
     assert not package_is_installed(prefix, "flask=2.0.2")
 
@@ -144,7 +143,6 @@ def test_create_advanced_pip(
         "--verbose",
     )
 
-    PrefixData._cache_.clear()
     assert prefix.exists()
     assert package_is_installed(prefix, "python")
     assert package_is_installed(prefix, "argh")
@@ -274,7 +272,6 @@ def test_create_update_remote_env_file(
             ),
         ),
     )
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "flask=2.0.3")
     assert not package_is_installed(prefix, "flask=2.0.2")
 

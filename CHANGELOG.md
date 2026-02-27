@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 26.1.1 (2026-02-17)
+
+### Bug fixes
+
+* Fix `conda doctor --fix` failing with `install() missing 1 required positional argument: 'parser'` when attempting to fix packages with missing files. (#15669)
+
+### Contributors
+
+* @jezdez
+
+
+
 ## 26.1.0 (2026-01-29)
 
 ### Enhancements

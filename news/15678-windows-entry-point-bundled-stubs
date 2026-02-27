@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Use bundled Windows stub executables (`conda/shell/cli-32.exe`, `conda/shell/cli-64.exe`) for creating entry points instead of relying on `Scripts/conda.exe` so that entry point creation works when conda is not installed as a conda package (e.g. tests via `python -m pytest`). Select the correct exe for the target env via a platform-to-stub mapping; for win-arm64 use `cli-64.exe` (relying on Windows x64-on-ARM64 emulation). Use target platform for `conda init` as well, fixing cross-architecture installs (e.g. win-32 host creating a win-64 env). (#15678)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

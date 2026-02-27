@@ -799,7 +799,8 @@ def get_conda_anchor_files_and_records(
         r"^{}/[^/]+(?:{})$".format(
             re.escape(site_packages_short_path),
             r"|".join(re.escape(fn) for fn in anchor_file_endings),
-        )
+        ),
+        flags=re.IGNORECASE if on_win else 0,
     ).match
 
     # We could fix this earlier in the PrefixRecord instantiation, but then
@@ -816,7 +817,7 @@ def get_conda_anchor_files_and_records(
             if matcher(fpath):
                 anchor_paths.append(fpath)
         if len(anchor_paths) > 1:
-            anchor_path = sorted(anchor_paths, key=len)[0]
+            anchor_path = max(anchor_paths, key=len)
             log.info(
                 "Package %s has multiple python anchor files.\n  Using %s",
                 prefix_record.record_id(),

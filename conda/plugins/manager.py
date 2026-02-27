@@ -659,8 +659,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     log.debug("%r", e, exc_info=e)
             else:
                 log.debug(
-                    "EnvironmentSpec hook: %s can NOT be handled by %s",
-                    source,
+                    "EnvironmentSpec hook: %s does not support autodetection, skipping",
                     hook_name,
                 )
                 autodetect_disabled_plugins.append(hook_name)

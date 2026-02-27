@@ -644,7 +644,6 @@ def test_export_multi_channel(
     """Test conda env export."""
     from conda.core.prefix_data import PrefixData
 
-    PrefixData._cache_.clear()
     with tmp_env() as prefix:
         conda_cli("create", f"--prefix={prefix}", "python", "--yes")
         assert PrefixData(prefix).is_environment()

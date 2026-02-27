@@ -13,12 +13,13 @@ from os.path import basename, dirname, getsize, isdir, isfile, join
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from .. import CondaError
+from .. import CONDA_PACKAGE_ROOT, CondaError
 from ..auxlib.ish import dals
-from ..base.constants import CONDA_TEMP_EXTENSION
+from ..base.constants import CONDA_TEMP_EXTENSION, WINDOWS_LAUNCHER_STUB_PATH
 from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
+from ..common.io import dashlist
 from ..common.path import (
     BIN_DIRECTORY,
     get_leaf_directories,
@@ -370,8 +371,13 @@ class LinkPathAction(CreateInPrefixPathAction):
         requested_link_type,
         entry_point_def,
     ):
-        source_directory = context.conda_prefix
-        source_short_path = "Scripts/conda.exe"
+        if context.subdir not in WINDOWS_LAUNCHER_STUB_PATH:
+            raise NotImplementedError(
+                f"Windows entry point stub not available for subdir {context.subdir!r}. "
+                f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
+            )
+        source_directory = CONDA_PACKAGE_ROOT
+        source_short_path = WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = f"Scripts/{command}.exe"
         source_path_data = PathDataV1(
@@ -934,7 +940,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         package_info,
         target_prefix,
         requested_link_type,
-        requested_spec,
+        requested_spec: MatchSpec | list[MatchSpec],
         all_link_path_actions,
     ):
         extracted_package_dir = package_info.extracted_package_dir
@@ -958,7 +964,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         target_prefix,
         target_short_path,
         requested_link_type,
-        requested_spec,
+        requested_spec: MatchSpec | list[MatchSpec],
         all_link_path_actions,
     ):
         super().__init__(
@@ -1020,11 +1026,23 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             ),
         )
 
+        if self.requested_spec:
+            if isinstance(self.requested_spec, tuple | list):
+                requested_specs = [str(spec) for spec in self.requested_spec]
+                requested_spec_str = str(MatchSpec.merge(self.requested_spec)[0])
+            else:
+                requested_spec_str = str(self.requested_spec)
+                requested_specs = (requested_spec_str,)
+        else:
+            requested_spec_str = None
+            requested_specs = ()
+
         self.prefix_record = PrefixRecord.from_objects(
             self.package_info.repodata_record,
             # self.package_info.index_json_record,
             self.package_info.package_metadata,
-            requested_spec=str(self.requested_spec),
+            requested_spec=requested_spec_str,
+            requested_specs=requested_specs,
             paths_data=paths_data,
             files=files,
             link=link,
