@@ -121,7 +121,7 @@ class Solver:
         force_remove=NULL,
         force_reinstall=NULL,
         should_retry_solve=False,
-    ):
+    ) -> UnlinkLinkTransaction:
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
