@@ -17,6 +17,7 @@ from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
+from typing import TYPE_CHECKING
 
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
@@ -35,6 +36,13 @@ try:
 except ImportError:
     from ..auxlib.collection import frozendict
 
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from .records import PackageRecord
+
+RE_CONDITIONAL = re.compile(r"(.*?)\s*;\s*if\s+(.*)\s*")
 log = getLogger(__name__)
 
 
@@ -181,6 +189,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "license",
         "license_family",
         "fn",
+        "condition",
     )
     FIELD_NAMES_SET = frozenset(FIELD_NAMES)
     _MATCHER_CACHE = {}
@@ -256,7 +265,7 @@ class MatchSpec(metaclass=MatchSpecType):
     def original_spec_str(self):
         return self._original_spec_str
 
-    def match(self, rec):
+    def match(self, rec: PackageRecord | dict[str, Any]) -> bool:
         """
         Accepts a `PackageRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
@@ -267,6 +276,10 @@ class MatchSpec(metaclass=MatchSpecType):
 
             rec = PackageRecord.from_objects(rec)
         for field_name, v in self._match_components.items():
+            if field_name == "condition":
+                # Conditions do not apply to check whether a record
+                # matches a given match spec.
+                continue
             if not self._match_individual(rec, field_name, v):
                 return False
         return True
@@ -366,7 +379,7 @@ class MatchSpec(metaclass=MatchSpecType):
             else:
                 brackets.append(f"build={build}")
 
-        _skip = {"channel", "subdir", "name", "version", "build"}
+        _skip = {"channel", "subdir", "name", "version", "build", "condition"}
         if "url" in self._match_components and "fn" in self._match_components:
             _skip.add("fn")
         for key in self.FIELD_NAMES:
@@ -382,6 +395,9 @@ class MatchSpec(metaclass=MatchSpecType):
 
         if brackets:
             builder.append("[{}]".format(",".join(brackets)))
+
+        if condition := self._match_components.get("condition"):
+            builder.append(f"; if {condition}")
 
         return "".join(builder)
 
@@ -710,11 +726,13 @@ def _parse_spec_str(spec_str):
         spec_str, _ = spec_str[:ndx], spec_str[ndx:]
         spec_str.strip()
 
-    # Step 1.b strip ' if ' anticipating future compatibility issues
-    spec_split = spec_str.split(" if ", 1)
-    if len(spec_split) > 1:
-        log.debug("Ignoring conditional in spec %s", spec_str)
-    spec_str = spec_split[0]
+    # Step 1.b save '; if ...' conditions
+    # NOTE: Conditional specs are experimental and subject to changes in syntax
+    if condition := RE_CONDITIONAL.match(spec_str):
+        spec_str = condition.group(1)
+        condition = condition.group(2)
+    else:
+        condition = None
 
     # Step 2. done if spec_str is a tarball
     if context.plugin_manager.has_package_extension(spec_str):
@@ -851,6 +869,8 @@ def _parse_spec_str(spec_str):
         components["version"] = version
     if build is not None:
         components["build"] = build
+    if condition is not None:
+        components["condition"] = condition
 
     # anything in brackets will now strictly override key as set in other area of spec str
     # EXCEPT FOR: name
