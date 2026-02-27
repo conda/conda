@@ -538,28 +538,43 @@ def test_conda_update_package_is_not_name_only_spec(
             conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 
 
+@pytest.mark.parametrize("subdir", ["linux-64", "osx-64", "win-64"])
 def test_noarch_python_package_with_entry_points(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, subdir: str
 ):
     """
     Makes sure that entry point file is installed.
 
     This test uses "pygments" as a Python package because it has no other dependencies and has an
     entry point script, "pygmentize".
+
+    Note: win-arm64 is not tested because conda/shell/cli-arm64.exe does not exist yet
     """
-    with tmp_env("pygments") as prefix:
+    extra = []
+    if subdir.startswith("linux-") and not context.subdir.startswith("linux-"):
+        # ncurses package on defaults require a case sensitive file system
+        extra.extend(["-c", "conda-forge"])
+    elif subdir == "win-arm64":
+        # win-arm64 not on defaults yet
+        extra.extend(["-c", "conda-forge"])
+
+    with tmp_env("pygments", "--subdir", subdir, *extra) as prefix:
         py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = get_python_site_packages_short_path(py_ver, subdir)
         py_file = sp_dir + "/pygments/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
-        assert (prefix / pyc_file).is_file()
-        exe_path = (
-            prefix / BIN_DIRECTORY / ("pygmentize.exe" if on_win else "pygmentize")
-        )
+
+        if subdir.startswith("win-"):
+            exe_path = prefix / "Scripts" / "pygmentize.exe"
+        else:
+            exe_path = prefix / "bin" / "pygmentize"
         assert exe_path.is_file()
-        output = check_output([exe_path, "--help"], text=True)
-        assert "usage: pygmentize" in output
+
+        if subdir == context.subdir:
+            assert (prefix / pyc_file).is_file()
+            output = check_output([exe_path, "--help"], text=True)
+            assert "usage: pygmentize" in output
 
         conda_cli("remove", f"--prefix={prefix}", "pygments", "--yes")
 
