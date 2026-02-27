@@ -8,11 +8,10 @@ import tempfile
 from os.path import basename
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
-
 from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
+from ...common.iterators import unique
 from ...env.env import EnvironmentYaml
 from ...exceptions import CondaValueError, UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
@@ -43,8 +42,8 @@ def _solve(
         channel_urls.extend(context.channels)
     _channel_priority_map = prioritize_channels(channel_urls)
 
-    channels = IndexedSet(Channel(url) for url in _channel_priority_map)
-    subdirs = IndexedSet(basename(url) for url in _channel_priority_map)
+    channels = tuple(unique(Channel(url) for url in _channel_priority_map))
+    subdirs = tuple(unique(basename(url) for url in _channel_priority_map))
 
     solver_backend = context.plugin_manager.get_cached_solver_backend()
     if solver_backend is None:

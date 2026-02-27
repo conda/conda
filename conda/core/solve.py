@@ -11,8 +11,6 @@ from logging import DEBUG, getLogger
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
-
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
@@ -22,6 +20,7 @@ from ..base.context import context
 from ..common.constants import NULL, TRACE
 from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
+from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
     NoChannelsConfiguredError,
@@ -95,8 +94,8 @@ class Solver:
         """
         self.prefix = prefix
         self._channels = channels or context.channels
-        self.channels = IndexedSet(Channel(c) for c in self._channels)
-        self.subdirs = tuple(s for s in subdirs or context.subdirs)
+        self.channels = tuple(unique(Channel(c) for c in self._channels))
+        self.subdirs = tuple(subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
@@ -261,7 +260,7 @@ class Solver:
         ignore_pinned=NULL,
         force_remove=NULL,
         should_retry_solve=False,
-    ):
+    ) -> tuple[PackageRecord, ...]:
         """Gives the final, solved state of the environment.
 
         Args:
@@ -293,7 +292,7 @@ class Solver:
                 whether to call find_conflicts (slow) in ssc.r.solve
 
         Returns:
-            tuple[PackageRef]:
+            tuple[PackageRecord, ...]:
                 In sorted dependency order from roots to leaves, the package references for
                 the solved state of the environment.
 
@@ -355,7 +354,7 @@ class Solver:
                 for prec in ssc.solution_precs
                 if not any(spec.match(prec) for spec in self.specs_to_remove)
             )
-            return IndexedSet(PrefixGraph(solution).graph)
+            return tuple(PrefixGraph(solution).graph)
 
         # Check if specs are satisfied by current environment. If they are, exit early.
         if (
@@ -369,7 +368,7 @@ class Solver:
             else:
                 # All specs match a package in the current environment.
                 # Return early, with a solution that should just be PrefixData().iter_records()
-                return IndexedSet(PrefixGraph(ssc.solution_precs).graph)
+                return tuple(PrefixGraph(ssc.solution_precs).graph)
 
         if not ssc.r:
             with get_spinner(f"Collecting package metadata ({self._repodata_fn})"):
@@ -432,7 +431,7 @@ class Solver:
 
         time_recorder.log_totals()
 
-        ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
+        ssc.solution_precs = tuple(PrefixGraph(ssc.solution_precs).graph)
         log.debug(
             "solved prefix %s\n  solved_linked_dists:\n    %s\n",
             self.prefix,
@@ -975,11 +974,13 @@ class Solver:
 
     @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
-        final_environment_specs = IndexedSet(
-            (
-                *ssc.specs_map.values(),
-                *ssc.track_features_specs,
-                # pinned specs removed here - added to specs_map in _add_specs instead
+        final_environment_specs = tuple(
+            unique(
+                (
+                    *ssc.specs_map.values(),
+                    *ssc.track_features_specs,
+                    # pinned specs removed here - added to specs_map in _add_specs instead
+                )
             )
         )
 
@@ -1000,9 +1001,7 @@ class Solver:
         # several times, each time making modifications to loosen constraints.
 
         conflicting_specs = set(
-            ssc.r.get_conflicting_specs(
-                tuple(final_environment_specs), self.specs_to_add
-            )
+            ssc.r.get_conflicting_specs(final_environment_specs, self.specs_to_add)
             or []
         )
         while conflicting_specs:
@@ -1113,11 +1112,12 @@ class Solver:
             #
             # Help information notes that use of NO_DEPS is expected to lead to broken
             # environments.
-            _no_deps_solution = IndexedSet(ssc.prefix_data.iter_records())
+            starting_records = tuple(ssc.prefix_data.iter_records())
+            _no_deps_solution = set(starting_records)
             only_remove_these = {
                 prec
                 for spec in self.specs_to_remove
-                for prec in _no_deps_solution
+                for prec in starting_records
                 if spec.match(prec)
             }
             _no_deps_solution -= only_remove_these
@@ -1129,13 +1129,13 @@ class Solver:
                 if spec.match(prec)
             }
             remove_before_adding_back = {prec.name for prec in only_add_these}
-            _no_deps_solution = IndexedSet(
+            _no_deps_solution = set(
                 prec
                 for prec in _no_deps_solution
                 if prec.name not in remove_before_adding_back
             )
             _no_deps_solution |= only_add_these
-            ssc.solution_precs = _no_deps_solution
+            ssc.solution_precs = tuple(PrefixGraph(_no_deps_solution).graph)
 
             # TODO: check if solution is satisfiable, and emit warning if it's not
 
