@@ -974,13 +974,11 @@ class Solver:
 
     @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
-        final_environment_specs = tuple(
-            unique(
-                (
-                    *ssc.specs_map.values(),
-                    *ssc.track_features_specs,
-                    # pinned specs removed here - added to specs_map in _add_specs instead
-                )
+        final_environment_specs = dict.fromkeys(
+            (
+                *ssc.specs_map.values(),
+                *ssc.track_features_specs,
+                # pinned specs removed here - added to specs_map in _add_specs instead
             )
         )
 
@@ -989,7 +987,7 @@ class Solver:
             raise PackagesNotFoundError(absent_specs)
 
         # We've previously checked `solution` for consistency (which at that point was the
-        # pre-solve state of the environment). Now we check our compiled set of
+        # pre-solve state of the environment). Now we check our compiled list of
         # `final_environment_specs` for the possibility of a solution.  If there are conflicts,
         # we can often avoid them by neutering specs that have a target (e.g. removing version
         # constraint) and also making them optional. The result here will be less cases of
@@ -1001,7 +999,9 @@ class Solver:
         # several times, each time making modifications to loosen constraints.
 
         conflicting_specs = set(
-            ssc.r.get_conflicting_specs(final_environment_specs, self.specs_to_add)
+            ssc.r.get_conflicting_specs(
+                tuple(final_environment_specs), self.specs_to_add
+            )
             or []
         )
         while conflicting_specs:
@@ -1040,12 +1040,12 @@ class Solver:
             for spec in conflicting_specs:
                 if spec.target and not spec.optional:
                     specs_modified = True
-                    final_environment_specs.remove(spec)
+                    final_environment_specs.pop(spec, None)
                     if spec.get("version"):
                         neutered_spec = MatchSpec(spec.name, version=spec.version)
                     else:
                         neutered_spec = MatchSpec(spec.name)
-                    final_environment_specs.add(neutered_spec)
+                    final_environment_specs.setdefault(neutered_spec)
                     ssc.specs_map[spec.name] = neutered_spec
             if specs_modified:
                 conflicting_specs = set(
@@ -1097,9 +1097,9 @@ class Solver:
                         _ for _ in ssc.solution_precs if _.name != name
                     ]
                     ssc.solution_precs.append(prec)
-                    final_environment_specs.add(spec)
+                    final_environment_specs.setdefault(spec)
 
-        ssc.final_environment_specs = final_environment_specs
+        ssc.final_environment_specs = tuple(final_environment_specs)
         return ssc
 
     def _post_sat_handling(self, ssc):
