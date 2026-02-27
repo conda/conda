@@ -135,17 +135,17 @@ class Index(UserDict):
             subdirs = (platform, "noarch") if platform is not None else context.subdirs
         self._subdirs = subdirs
         self._repodata_fn = repodata_fn
-        self.channels = {}
+        self.channels: dict[str | Channel, list[SubdirData]] = {}
         expanded_channels = {}
         for channel in self._channels:
-            urls = Channel(channel).urls(True, subdirs)
-            for url in urls:
+            self.channels[channel] = []
+            for url in Channel(channel).urls(True, subdirs):
                 url_as_channel = Channel(url)
-                self.channels.setdefault(channel, []).append(
+                self.channels[channel].append(
                     SubdirData(url_as_channel, repodata_fn=repodata_fn)
                 )
                 expanded_channels.setdefault(url_as_channel, None)
-        self.expanded_channels = tuple(expanded_channels)
+        self.expanded_channels: tuple[Channel, ...] = tuple(expanded_channels)
         # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
         LAST_CHANNEL_URLS.clear()
         LAST_CHANNEL_URLS.extend(self.expanded_channels)
