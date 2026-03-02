@@ -456,9 +456,8 @@ def test_export_and_recreate_environment(
     with tmp_env("python") as prefix:
         # tuple of target format name and the file name to use
         target_formats = [
-            ("yml", "env.yaml"),
-            ("yml", "env.yaml"),
-            ("txt", "env.txt"),
+            ("environment-yaml", "env.yaml"),
+            ("requirements", "env.txt"),
             ("reqs", "env.txt"),
         ]
 
