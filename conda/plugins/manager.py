@@ -634,11 +634,6 @@ class CondaPluginManager(pluggy.PluginManager):
         :returns: an environment specifier plugin that can handle the provided file
         """
         hooks = self.get_environment_specifiers(supports_detection=True)
-
-        if not hooks:
-            raise PluginError(
-                "No environment specifier plugins were found to be able to handle the provided file."
-            )
         basename = os.path.basename(source)
 
         # Filename detection
