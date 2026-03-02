@@ -453,10 +453,11 @@ def test_export_and_recreate_environment(
     Ref: https://github.com/conda-incubator/conda-lockfiles/issues/79
     """
     # Setup a simple environment
-    with tmp_env("python") as prefix:
+    with tmp_env("ca-certificates") as prefix:
         # tuple of target format name and the file name to use
         target_formats = [
             ("environment-yaml", "env.yaml"),
+            ("env.yml", "env.yaml"),
             ("requirements", "env.txt"),
             ("reqs", "env.txt"),
         ]

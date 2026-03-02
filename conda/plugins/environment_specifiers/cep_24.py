@@ -15,6 +15,6 @@ def conda_environment_specifiers():
 
     yield CondaEnvironmentSpecifier(
         name="cep-24",
-        aliases=("environment-yaml",),
+        aliases=("environment-yaml", "env.yml"),
         environment_spec=Cep24YamlFileSpec,
     )
