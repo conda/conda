@@ -578,8 +578,9 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
                 )
 
-    @staticmethod
     def _detect_filename_env_spec(
+        self,
+        source: str,
         basename: str,
         hooks: dict[str, CondaEnvironmentSpecifier],
     ) -> list[CondaEnvironmentSpecifier]:
@@ -589,7 +590,7 @@ class CondaPluginManager(pluggy.PluginManager):
         :param hooks: mapping of environment specifier plugins
         :returns: list of matching plugins, or None if no filename matches
         """
-        return [
+        found = [
             hook
             for hook_name, hook in hooks.items()
             if hook.default_filenames
@@ -597,6 +598,26 @@ class CondaPluginManager(pluggy.PluginManager):
                 fnmatch.fnmatch(basename, pattern) for pattern in hook.default_filenames
             )
         ]
+
+        if len(found) > 1:
+            raise PluginError(
+                f"Too many plugins found that can handle the environment file '{source}'.\n\n"
+                "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
+                "parser you want to use.\n\n"
+                "Available env specs:\n"
+                f"{dashlist(self.get_environment_specifiers())}"
+            )
+
+        if len(found) == 1:
+            try:
+                if found[0].environment_spec(source).can_handle():
+                    return found
+            except Exception as e:
+                raise PluginError(
+                    f"Failed to parse environment specification from file: {e}"
+                ) from e
+
+        return found
 
     @staticmethod
     def _detect_content_env_spec(
@@ -637,29 +658,23 @@ class CondaPluginManager(pluggy.PluginManager):
         basename = os.path.basename(source)
 
         # Filename detection
-        found = self._detect_filename_env_spec(basename, hooks)
+        found = self._detect_filename_env_spec(source, basename, hooks)
 
         if len(found) == 0:
             # Filename matching didn't find anything; try content based detection
             found = self._detect_content_env_spec(source, hooks)
 
-        if len(found) > 1:
-            raise PluginError(
-                f"Too many plugins found that can handle the environment file '{source}'.\n\n"
-                "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
-                "parser you want to use.\n\n"
-                "Available env specs:\n"
-                f"{dashlist(hooks)}"
-            )
+            if len(found) > 1:
+                raise PluginError(
+                    f"Too many plugins found that can handle the environment file '{source}'.\n\n"
+                    "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
+                    "parser you want to use.\n\n"
+                    "Available env specs:\n"
+                    f"{dashlist(self.get_environment_specifiers())}"
+                )
 
         if len(found) == 1:
-            try:
-                if found[0].environment_spec(source).can_handle():
-                    return found[0]
-            except Exception as e:
-                raise PluginError(
-                    f"Failed to parse environment specification from file: {e}"
-                ) from e
+            return found[0]
 
         # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
         # FUTURE: Remove this final try at using the environment.yml to read the environment
