@@ -627,7 +627,7 @@ def _parse_channel(channel_val):
     if not channel_val:
         return None, None
     chn = Channel(channel_val)
-    channel_name = chn.name or chn.base_url
+    channel_name = chn.canonical_name or chn.base_url
     return channel_name, chn.subdir
 
 
@@ -1175,7 +1175,7 @@ class ChannelMatch(GlobStrMatch):
 
     def __str__(self):
         try:
-            return f"{self._raw_value.name}"
+            return f"{self._raw_value.canonical_name}"
         except AttributeError:
             return f"{self._raw_value}"
 
