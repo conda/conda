@@ -48,7 +48,7 @@ class YamlFileSpec(EnvironmentSpecBase):
         try:
             yamlstr = env.load_file(self.filename)
             data = yaml.loads(yamlstr)
-            if data is None:
+            if data is None or not isinstance(data, dict):
                 return False
             if not env.from_yaml(yamlstr, filename=self.filename):
                 return False
