@@ -48,9 +48,9 @@ class YamlFileSpec(EnvironmentSpecBase):
         try:
             yamlstr = env.load_file(self.filename)
             data = yaml.loads(yamlstr)
+            # We check for dict in order to avoid loading flat files as YAML.
+            # The standard really wants a nested dict structure.
             if data is None or not isinstance(data, dict):
-                return False
-            if not env.from_yaml(yamlstr, filename=self.filename):
                 return False
         except Exception:
             log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
