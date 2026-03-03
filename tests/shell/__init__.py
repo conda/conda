@@ -22,7 +22,7 @@ from conda.common.path import unix_path_to_win, win_path_to_unix
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Iterator
 
 
 # Here, by removing --dev you can try weird situations that you may want to test, upgrade paths
@@ -57,7 +57,7 @@ class Shell:
             )
 
     @classmethod
-    def resolve(cls, value: str | tuple[str, ...] | Shell) -> Shell | None:
+    def resolve(cls, value: str | tuple[str, ...] | Shell) -> Shell:
         shell = value if isinstance(value, Shell) else cls(value)
 
         # if shell.exe is already set, use it
@@ -72,9 +72,9 @@ class Shell:
         raise FileNotFoundError(f"{shell} not found")
 
     @contextmanager
-    def interactive(self, *args, **kwargs) -> InteractiveShell:
-        with InteractiveShell(self, *args, **kwargs) as interactive:
-            yield interactive
+    def interactive(self, *args, **kwargs) -> Iterator[InteractiveShell]:
+        with InteractiveShell(self, *args, **kwargs) as sh:
+            yield sh
 
 
 class InteractiveShellType(type):
@@ -114,7 +114,9 @@ class InteractiveShellType(type):
                 '&& @SET "_CE_M=-m" '
                 '&& @SET "_CE_CONDA=conda"'
             ),
-            "print_env_var": "@ECHO %%%s%%",
+            "print_env_var": '@ECHO "%%%s%%"',
+            "assert_env_var": r'"%s"\r?\n',
+            "get_env_var": r'@ECHO "%%%s%%"\r?\n"([^\r\n]*)"\r?\n',
         },
         "csh": {
             "activator": "csh",
@@ -136,6 +138,7 @@ class InteractiveShellType(type):
             "args": ("-NoProfile", "-NoLogo"),
             "init_command": f"{EXE_WIN} -m conda shell.powershell hook --dev | Out-String | Invoke-Expression",
             "print_env_var": "$Env:%s",
+            "get_env_var": r"\$Env:%s\r?\n([^\r\n]*)\r?\n",
             "exit_cmd": "exit",
         },
         "pwsh": {"base_shell": "powershell"},
@@ -174,6 +177,8 @@ class InteractiveShell(metaclass=InteractiveShellType):
         args: Iterable[str] = (),
         init_command: str,
         print_env_var: str,
+        assert_env_var: str | None = None,
+        get_env_var: str | None = None,
         exit_cmd: str | None = None,
         base_shell: str | None = None,  # ignored
         env: dict[str, str] | None = None,
@@ -187,6 +192,8 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.args = args
         self.init_command = init_command
         self.print_env_var = print_env_var
+        self._assert_env_var = assert_env_var
+        self._get_env_var = get_env_var
         self.exit_cmd = exit_cmd
         self.env = env or {}
 
@@ -269,21 +276,21 @@ class InteractiveShell(metaclass=InteractiveShellType):
             print(f"{self.p.after=}", file=sys.stderr)
             raise
 
-    def assert_env_var(self, env_var, value, use_exact=False):
+    def assert_env_var(self, env_var: str, value: str, use_exact: bool = False) -> None:
         # value is actually a regex
         self.sendline(self.print_env_var % env_var)
         if use_exact:
             self.expect_exact(value)
             self.clear()
+        elif self._assert_env_var:
+            self.expect(self._assert_env_var % value)
         else:
             self.expect(rf"{value}\r?\n")
 
     def get_env_var(self, env_var, default=None):
         self.sendline(self.print_env_var % env_var)
-        if self.shell_name == "cmd.exe":
-            self.expect(rf"@ECHO %{env_var}%\r?\n([^\r\n]*)\r?\n")
-        elif self.shell_name in ("powershell", "pwsh"):
-            self.expect(rf"\$Env:{env_var}\r?\n([^\r\n]*)\r?\n")
+        if self._get_env_var:
+            self.expect(self._get_env_var % env_var)
         else:
             marker = f"get_env_var-{uuid4().hex}"
             self.sendline(f"echo {marker}")

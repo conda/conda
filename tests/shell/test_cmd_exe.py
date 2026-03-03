@@ -69,7 +69,7 @@ def test_cmd_exe_basic_integration(
 
         sh.sendline("chcp")
         sh.clear()
-        sh.assert_env_var("PROMPT", "(charizard).*")
+        sh.assert_env_var("PROMPT", r"\(charizard\).*")
         sh.assert_env_var("CONDA_SHLVL", "1")
 
         PATH1 = sh.get_env_var("PATH", "").split(os.pathsep)
@@ -93,7 +93,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_EXE", escape(sys.executable))
         sh.assert_env_var("CONDA_SHLVL", "2")
         sh.assert_env_var("CONDA_PREFIX", prefix, True)
-        sh.assert_env_var("PROMPT", f"({os.path.basename(prefix)}).*")
+        sh.assert_env_var("PROMPT", rf"\({escape(prefix)}\).*")
 
         # install local tests/test-recipes/small-executable
         sh.sendline(
@@ -182,13 +182,12 @@ def test_legacy_activate_deactivate_cmd_exe(
     shell_wrapper_integration: tuple[str, str, str],
     shell: Shell,
 ) -> None:
-    prefix, prefix2, prefix3 = shell_wrapper_integration
+    _, prefix2, prefix3 = shell_wrapper_integration
 
     with shell.interactive() as sh:
         sh.sendline("echo off")
 
-        conda__ce_conda = sh.get_env_var("_CE_CONDA")
-        assert conda__ce_conda == "conda"
+        sh.assert_env_var("_CE_CONDA", "conda")
 
         PATH = f"{CONDA_PACKAGE_ROOT}\\shell\\Scripts;%PATH%"
 
@@ -197,14 +196,12 @@ def test_legacy_activate_deactivate_cmd_exe(
         sh.sendline(f'activate --dev "{prefix2}"')
         sh.clear()
 
-        conda_shlvl = sh.get_env_var("CONDA_SHLVL")
-        assert conda_shlvl == "1", conda_shlvl
+        sh.assert_env_var("CONDA_SHLVL", "1")
 
         PATH = sh.get_env_var("PATH")
         assert "charizard" in PATH
 
-        conda__ce_conda = sh.get_env_var("_CE_CONDA")
-        assert conda__ce_conda == "conda"
+        sh.assert_env_var("_CE_CONDA", "conda")
 
         sh.sendline("conda --version")
         sh.expect_exact(f"conda {CONDA_VERSION}")
@@ -218,8 +215,7 @@ def test_legacy_activate_deactivate_cmd_exe(
         assert "charizard" in PATH
 
         sh.sendline("deactivate --dev")
-        conda_shlvl = sh.get_env_var("CONDA_SHLVL")
-        assert conda_shlvl == "0", conda_shlvl
+        sh.assert_env_var("CONDA_SHLVL", "0")
 
 
 @PARAMETRIZE_CMD_EXE
@@ -240,28 +236,16 @@ def test_cmd_exe_special_char_env_activate_by_path(
     These tests characterize current behavior. Some may fail, indicating
     which characters are truly problematic vs which work correctly.
     """
-    with tmp_env(path_infix=char) as env_path, shell.interactive() as sh:
+    with tmp_env(path_infix=char) as prefix, shell.interactive() as sh:
         # Try to activate by path (should work even if name validation fails)
-        sh.sendline(f'conda {activate} "{env_path}"')
+        sh.sendline(f'conda {activate} "{prefix}"')
         sh.clear()
 
         # Check if activation succeeded by checking CONDA_PREFIX
-        prefix = sh.get_env_var("CONDA_PREFIX", "")
-
-        # Normalize paths for comparison
-        expected_path = str(env_path).lower().replace("/", "\\")
-        actual_path = prefix.lower().replace("/", "\\") if prefix else ""
-
-        # Log the result for debugging
-        log.info(
-            f"Special char '{char}': expected={expected_path}, actual={actual_path}"
-        )
+        conda_prefix = sh.get_env_var("CONDA_PREFIX", "")
 
         # Assert activation worked
-        assert actual_path == expected_path, (
-            f"Activation failed for env with '{char}' in name. "
-            f"Expected CONDA_PREFIX='{expected_path}', got '{actual_path}'"
-        )
+        assert prefix.samefile(conda_prefix)
 
         # Deactivate
         sh.sendline(f"conda {deactivate}")
@@ -284,112 +268,72 @@ def test_cmd_exe_special_char_prompt_display(
 
     See: https://github.com/conda/conda/issues/12558
     """
-    # Set env_prompt via environment variable and reload context
-    # (this is the standard pattern used in test_activate.py)
-    monkeypatch.setenv("CONDA_ENV_PROMPT", "({default_env}) ")
+    # NOTE: leading/trailing space doesn't work when setting CONDA_ENV_PROMPT since the
+    # EnvRawParameter strips spaces
+    modifier = "(<conda>{default_env})"
+    monkeypatch.setenv("CONDA_ENV_PROMPT", modifier)
     reset_context()
+    assert context.env_prompt == modifier
 
-    with tmp_env(path_infix=char) as env_path, shell.interactive() as sh:
+    prompt = "[prompt> "
+    with (
+        tmp_env(path_infix=char) as prefix,
+        shell.interactive(env={"PROMPT": prompt}) as sh,
+    ):
+        sh.assert_env_var("PROMPT", escape(prompt))
+
         # Activate the environment
-        sh.sendline(f'conda {activate} "{env_path}"')
+        sh.sendline(f'conda {activate} "{prefix}"')
         sh.clear()
 
         # Get the prompt - it should contain the env name in parentheses
-        prompt = sh.get_env_var("PROMPT", "")
+        expected = f"{modifier}{prompt}".format(default_env=prefix)
+        sh.assert_env_var("PROMPT", escape(expected))
 
-        # Log for debugging
-        log.info(f"Prompt with '{char}': {prompt!r}")
-
-        # The prompt should start with the env name in parentheses
-        # and should NOT have the corruption pattern
-        expected_prefix = f"({env_path.name})"
-
-        # Check for corruption patterns (e.g., repeated fragments)
-        # The = sign was known to cause: (python=3.12) 3.12) ==3.12)
-        corruption_indicators = [
-            f"{char}{char}",  # doubled special char
-            f") {env_path.name.split(char)[-1]})",  # partial name repeated
-        ]
-
-        has_corruption = any(
-            indicator in prompt for indicator in corruption_indicators if indicator
-        )
-
-        # Log corruption detection
-        if has_corruption:
-            log.warning(f"Prompt corruption detected for '{char}': {prompt!r}")
-
-        # Assert no corruption (this test documents current behavior)
-        assert expected_prefix in prompt or not has_corruption, (
-            f"Prompt corruption with '{char}' in env name. Prompt: {prompt!r}"
-        )
-
+        # Deactivate
         sh.sendline(f"conda {deactivate}")
+        sh.assert_env_var("CONDA_SHLVL", "0")
 
 
 @PARAMETRIZE_CMD_EXE
-def test_cmd_exe_exclamation_mark_not_stripped(
+@pytest.mark.parametrize(
+    "env_name",
+    [
+        # Verify that '!' is not stripped from environment paths.
+        # When EnableDelayedExpansion is enabled in batch scripts, the '!' character is
+        # consumed, causing activation to fail because the path would be mangled.
+        # See: https://github.com/conda/conda/issues/12558 (! issue)
+        # See: https://github.com/conda/conda/pull/14607 (removed EnableDelayedExpansion)
+        "test!important!env",
+        # Existing environments with '=' must remain usable.
+        # While we may disallow creating new environments with '=', existing ones
+        # must continue to work when accessed by path.
+        # See: https://github.com/conda/conda/issues/13975 (existing envs with '=' issue)
+        "python=3.12",
+    ],
+)
+def test_cmd_exe_existing_env_with_special_chars(
     shell: Shell,
     tmp_env: TmpEnvFixture,
+    env_name: str,
 ) -> None:
     """
-    Regression test: Verify that '!' is not stripped from environment paths.
-
-    The original issue (#12558) was that EnableDelayedExpansion in batch
-    scripts would consume the '!' character, causing activation to fail
-    because the path would be mangled.
-
-    PR #14607 rewrote the scripts to avoid this issue.
+    Regression tests for special characters in environment names.
     """
-    env_name = "test!important!env"
-    with tmp_env(name=env_name) as env_path, shell.interactive() as sh:
-        # The key test: does the ! survive through activation?
-        sh.sendline(f'conda {activate} "{env_path}"')
-        sh.clear()
-
-        # Get CONDA_PREFIX and verify ! is present
-        prefix = sh.get_env_var("CONDA_PREFIX", "")
-
-        assert Path(prefix).name == env_name, (
-            f"Environment name mangled. Expected 'test!important!env' in path, "
-            f"got: {prefix!r}"
-        )
-
-
-@PARAMETRIZE_CMD_EXE
-def test_cmd_exe_existing_env_with_equals_remains_usable(
-    shell: Shell,
-    tmp_env,
-) -> None:
-    """
-    Regression test: Existing environments with '=' must remain usable.
-
-    This was a key concern when PR #13975 was reverted - users had existing
-    environments with names like 'python=3.12' that would become unusable.
-
-    Even if we disallow creating NEW environments with '=', existing ones
-    must continue to work when accessed by path.
-    """
-    # Simulate an existing environment named "python=3.12"
-    env_name = "python=3.12"
+    # Simulate an existing environment
     with tmp_env(name=env_name) as env_path, shell.interactive() as sh:
         # Activate by path (this should always work)
         sh.sendline(f'conda {activate} "{env_path}"')
         sh.clear()
 
         # Verify we're in the environment
-        shlvl = sh.get_env_var("CONDA_SHLVL", "0")
-
-        # Should be at shell level 1 if activation succeeded
-        assert shlvl == "1", (
-            "Failed to activate existing env with '=' in name. "
-            f"CONDA_SHLVL={shlvl}, expected 1"
-        )
+        sh.assert_env_var("CONDA_SHLVL", "1")
 
         # Verify CONDA_PREFIX points to our env
         prefix = sh.get_env_var("CONDA_PREFIX", "")
-        assert Path(prefix).name == env_name, (
-            f"CONDA_PREFIX doesn't contain env name. Got: {prefix!r}"
-        )
 
+        assert Path(prefix).name == env_name
+
+        # Deactivate
         sh.sendline(f"conda {deactivate}")
+        sh.assert_env_var("CONDA_SHLVL", "0")
