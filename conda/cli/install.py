@@ -89,7 +89,7 @@ def reinstall_packages(args, specs: list[str], **kwargs) -> int:
     args.freeze_installed = kwargs.get("freeze_installed", False)
     args.solver_retries = kwargs.get("solver_retries", 0)
 
-    return install(args)
+    return install(args, None)
 
 
 @deprecated("25.9", "26.3", addendum="Use PrefixData.exists()")

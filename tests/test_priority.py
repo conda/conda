@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.core.prefix_data import PrefixData
+from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
@@ -44,9 +44,8 @@ def test_reorder_channel_priority(
         "--override-channels", "--channel=defaults", package1, package2
     ) as prefix:
         # check both packages are installed from defaults
-        PrefixData._cache_.clear()
-        assert PrefixData(prefix).get(package1).channel.name == "pkgs/main"
-        assert PrefixData(prefix).get(package2).channel.name == "pkgs/main"
+        assert package_is_installed(prefix, package1).channel.name == "pkgs/main"
+        assert package_is_installed(prefix, package2).channel.name == "pkgs/main"
 
         # update --all
         conda_cli(
@@ -58,10 +57,9 @@ def test_reorder_channel_priority(
             "--yes",
         )
         # check pinned package is unchanged but unpinned packages are updated from conda-forge
-        PrefixData._cache_.clear()
         expected_channel = "pkgs/main" if pinned_package else "conda-forge"
-        assert PrefixData(prefix).get(package1).channel.name == expected_channel
-        assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
+        assert package_is_installed(prefix, package1).channel.name == expected_channel
+        assert package_is_installed(prefix, package2).channel.name == "conda-forge"
 
         # Check that oher transient deps do change
-        assert PrefixData(prefix).get("libzlib").channel.name == "conda-forge"
+        assert package_is_installed(prefix, "libzlib").channel.name == "conda-forge"

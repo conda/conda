@@ -627,12 +627,48 @@ class SolvedRecord(PackageRecord):
     """Representation of a package that has been returned as part of a solver solution.
 
     This sits between :class:`PackageRecord` and :class:`PrefixRecord`, simply adding
-    ``requested_spec`` so it can be used in lockfiles without requiring the artifact on
-    disk.
+    ``requested_spec`` (and ``requested_specs``) so they can be used in lockfiles without
+    requiring the artifact on disk.
     """
 
     requested_spec = StringField(required=False)
-    """The :class:`MatchSpec` that the user requested or ``None`` if the package it was installed as a dependency."""
+    """
+    The :class:`MatchSpec` that the user requested or ``None``
+    if the package it was installed as a dependency.
+    """
+    _requested_specs = ListField(
+        str, required=False, nullable=True, aliases=("requested_specs",)
+    )
+    """
+    The :class:`MatchSpec` objects that the user requested or ``()``
+    if the package was installed as a dependency.
+    See also `.requested_specs` property.
+    """
+
+    @property
+    def requested_specs(self) -> tuple[str, ...]:
+        """
+        This property will use 'requested_spec' as the source for
+        'requested_specs' for old `conda-meta/*.json` files that
+        did not define the plural version.
+        """
+        if specs := self.get("_requested_specs", None):
+            return tuple(specs)
+        if spec := self.get("requested_spec", None):
+            return (spec,)
+        return ()
+
+    def dump(self):
+        """
+        We need to expose _requested_specs as its public counterpart,
+        and also expose single specs as a plural list for backwards compatibility.
+        """
+        dumped = super().dump()
+        if dumped.get("_requested_specs"):
+            dumped["requested_specs"] = dumped.pop("_requested_specs")
+        elif spec := dumped.get("requested_spec"):
+            dumped["requested_specs"] = [spec]
+        return dumped
 
 
 class PrefixRecord(SolvedRecord):
@@ -678,15 +714,20 @@ class PrefixRecord(SolvedRecord):
         Compute the installed size of this package within a prefix.
 
         This sums up the size_in_bytes of all non-softlink paths in paths_data,
-        and stats the files on disk if size_in_bytes is missing.
+        and stats the files on disk if size_in_bytes is missing and for the
+        package's conda-meta JSON manifest.
 
-        :returns: Total size in bytes of all files installed by this package, or
-        0 if paths_data is missing or empty.
+        :returns: Total size in bytes of all files installed by this package.
         """
         total_size = 0
 
-        if not self.paths_data.paths:
-            return total_size
+        meta_file = (
+            prefix_path / "conda-meta" / f"{self.name}-{self.version}-{self.build}.json"
+        )
+        try:
+            total_size += meta_file.stat().st_size
+        except OSError:
+            pass
 
         for path_data in self.paths_data.paths:
             if path_data.path_type in (PathEnum.softlink, PathEnum.directory):

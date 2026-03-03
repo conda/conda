@@ -14,6 +14,9 @@ from ....common.url import url_to_s3_info
 from .. import BaseAdapter, CaseInsensitiveDict, Response
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import IO
+
     from .. import PreparedRequest
 
 log = getLogger(__name__)
@@ -48,6 +51,66 @@ class S3Adapter(BaseAdapter):
 
     def close(self):
         pass
+
+    def direct_download(
+        self,
+        url: str,
+        fileobj: IO[bytes],
+        progress_callback: Callable[[float], None] | None = None,
+        size: int | None = None,
+    ) -> None:
+        """
+        Download S3 object directly to file object using boto3's optimized
+        download_fileobj, which handles multipart downloads and retries.
+
+        This avoids the extra copy that occurs when using send() which buffers
+        to a SpooledTemporaryFile first.
+
+        :param url: S3 URL (s3://bucket/key)
+        :param fileobj: File object to write to (must be opened in binary write mode)
+        :param progress_callback: Optional callback(fraction) where fraction is 0.0-1.0
+        :param size: Optional content length (required for progress reporting)
+        :raises CondaError: On S3 errors or if boto3 is not installed
+        """
+        from ....exceptions import CondaError
+
+        try:
+            from boto3.session import Session
+        except ImportError:
+            raise CondaError(
+                "boto3 is required for S3 channels. "
+                "Please install with `conda install -n base boto3`"
+            )
+
+        from botocore.exceptions import BotoCoreError, ClientError
+
+        bucket_name, key_string = url_to_s3_info(url)
+        # Create separate boto3 session for thread safety
+        # https://github.com/conda/conda/issues/8993
+        session = Session()
+        s3 = session.resource("s3")
+        key = s3.Object(bucket_name, key_string[1:])
+
+        boto_callback = None
+        if progress_callback and size:
+            downloaded = [0]
+
+            def boto_callback(bytes_transferred):
+                downloaded[0] += bytes_transferred
+                progress_callback(downloaded[0] / size)
+        elif progress_callback:
+            log.debug(
+                "Progress callback provided but size unknown; progress will not be reported"
+            )
+
+        try:
+            key.download_fileobj(fileobj, Callback=boto_callback)
+        except (BotoCoreError, ClientError) as e:
+            raise CondaError(
+                "Error downloading file from S3: %(url)s\n%(exception)s",
+                url=url,
+                exception=repr(e),
+            ) from e
 
     def _send_boto3(self, resp: Response, request: PreparedRequest) -> Response:
         from boto3.session import Session

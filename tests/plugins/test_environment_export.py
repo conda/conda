@@ -21,6 +21,7 @@ from conda.models.channel import Channel
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.plugins import hookimpl
 from conda.plugins.environment_exporters.environment_yml import (
     ENVIRONMENT_JSON_FORMAT,
     ENVIRONMENT_YAML_FORMAT,
@@ -332,7 +333,7 @@ def test_detect_environment_exporter(
     filename: str,
     expected_format: str | None,
 ):
-    """Test detecting exporter by exact filename matching."""
+    """Test detecting exporter by filename matching (exact filenames work via fnmatch)."""
     if expected_format is None:
         # Should raise exception for unrecognized filenames
         with pytest.raises(EnvironmentExporterNotDetected):
@@ -341,6 +342,63 @@ def test_detect_environment_exporter(
         exporter = plugin_manager_with_exporters.detect_environment_exporter(filename)
         assert exporter is not None
         assert exporter.name == expected_format
+
+
+def test_exporter_pattern_backward_compatibility(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """Test that exact filename matching still works (backward compatibility)."""
+    # All existing exact filenames should still work
+    for filename in [
+        "environment.yaml",
+        "environment.yml",
+        "requirements.txt",
+        "spec.txt",
+        "explicit.txt",
+        "environment.json",
+    ]:
+        # Should not raise
+        exporter = plugin_manager_with_exporters.detect_environment_exporter(filename)
+        assert exporter is not None
+
+
+def test_detect_environment_exporter_with_fnmatch_pattern(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """Test exporter detection with fnmatch pattern support."""
+
+    # Create a plugin with wildcard pattern
+    class PatternExporterPlugin:
+        @hookimpl
+        def conda_environment_exporters(self):
+            yield CondaEnvironmentExporter(
+                name="pattern-exporter",
+                aliases=(),
+                default_filenames=("*.lock.yml", "*.lock.yaml"),
+                export=lambda env: f"# Locked environment: {env.name}",
+            )
+
+    # Register the plugin
+    pattern_plugin = PatternExporterPlugin()
+    plugin_manager_with_exporters.register(pattern_plugin)
+
+    # Test that wildcard patterns work
+    exporter = plugin_manager_with_exporters.detect_environment_exporter(
+        "my-project.lock.yml"
+    )
+    assert exporter.name == "pattern-exporter"
+
+    exporter = plugin_manager_with_exporters.detect_environment_exporter(
+        "another.lock.yaml"
+    )
+    assert exporter.name == "pattern-exporter"
+
+    # Test that non-matching files still raise error
+    with pytest.raises(EnvironmentExporterNotDetected):
+        plugin_manager_with_exporters.detect_environment_exporter("something.lock.txt")
+
+    # Unregister the plugin to avoid affecting other tests
+    plugin_manager_with_exporters.unregister(pattern_plugin)
 
 
 @pytest.mark.parametrize(

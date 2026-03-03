@@ -305,8 +305,9 @@ class PackageCacheData(metaclass=PackageCacheType):
         tarball_basename = basename(tarball_full_path)
         pc_entry = first(
             (pc_entry for pc_entry in self.values()),
-            key=lambda pce: pce.tarball_basename == tarball_basename
-            and pce.md5 == md5sum,
+            key=lambda pce: (
+                pce.tarball_basename == tarball_basename and pce.md5 == md5sum
+            ),
         )
         return pc_entry
 

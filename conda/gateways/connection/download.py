@@ -35,6 +35,7 @@ from ..disk.delete import rm_rf
 from ..disk.lock import lock
 from . import (
     ConnectionError,
+    DirectDownloadAdapter,
     HTTPError,
     InsecureRequestWarning,
     InvalidSchema,
@@ -101,6 +102,13 @@ def download_inner(url, target_full_path, md5, sha256, size, progress_update_cal
         stat_result = os.fstat(target.fileno())
         if size is not None and stat_result.st_size >= size:
             return  # moves partial onto target_path, checksum will be checked
+
+        # Check if adapter supports optimized direct-to-file downloads
+        # (e.g., S3Adapter uses boto3's multipart download, avoiding intermediate buffering)
+        adapter = session.get_adapter(url)
+        if isinstance(adapter, DirectDownloadAdapter):
+            adapter.direct_download(url, target, progress_update_callback, size)
+            return  # checksum verified on context manager exit
 
         headers = {}
         if partial and stat_result.st_size > 0:
