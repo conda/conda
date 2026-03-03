@@ -633,8 +633,14 @@ class CondaPluginManager(pluggy.PluginManager):
         found = []
 
         for hook_name, hook in hooks.items():
+            log.debug("EnvironmentSpec hook: checking %s", hook_name)
             try:
                 if hook.environment_spec(source).can_handle():
+                    log.debug(
+                        "EnvironmentSpec hook: %s can be %s",
+                        source,
+                        hook_name,
+                    )
                     found.append(hook)
             except Exception:
                 pass
