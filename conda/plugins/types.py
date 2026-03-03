@@ -605,10 +605,12 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     :param name: name of the spec (e.g., ``environment_yaml``)
     :param aliases: user-friendly format aliases (e.g., ("yaml",)). Defaults to an empty list.
     :param environment_spec: EnvironmentSpecBase subclass handler
+    :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
     """
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
+    default_filenames: tuple[str, ...] = field(default_factory=tuple)
     aliases: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
