@@ -99,7 +99,7 @@ def conda_environment_exporters():
     """Register the built-in YAML and JSON environment exporters."""
     yield CondaEnvironmentExporter(
         name=ENVIRONMENT_YAML_FORMAT,
-        aliases=("yaml", "yml"),
+        aliases=("yaml", "yml", "env.yml"),
         default_filenames=("environment.yaml", "environment.yml"),
         export=export_yaml,
     )
