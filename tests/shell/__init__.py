@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from os.path import dirname
 from shutil import which
 from signal import SIGINT
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 from uuid import uuid4
 
 import pexpect
@@ -22,7 +22,12 @@ from conda.common.path import unix_path_to_win, win_path_to_unix
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
+    import re
     from collections.abc import Iterable, Iterator
+    from typing import Annotated, Any, Literal, Self, TypeVar
+
+    Regex = Annotated[str, lambda x: re.compile(x)]
+    T = TypeVar("T")
 
 
 # Here, by removing --dev you can try weird situations that you may want to test, upgrade paths
@@ -197,7 +202,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.exit_cmd = exit_cmd
         self.env = env or {}
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         # Fish shell needs a PTY to work properly with pexpect
         # Use pexpect.spawn (PTY) for Fish instead of PopenSpawn (pipes)
         use_pty = self.shell_name == "fish"
@@ -257,10 +262,10 @@ class InteractiveShell(metaclass=InteractiveShellType):
 
             self.p.kill(SIGINT)
 
-    def sendline(self, *args, **kwargs):
+    def sendline(self, *args, **kwargs) -> int:
         return self.p.sendline(*args, **kwargs)
 
-    def expect(self, *args, **kwargs):
+    def expect(self, *args, **kwargs) -> int:
         try:
             return self.p.expect(*args, **kwargs)
         except Exception:
@@ -268,13 +273,23 @@ class InteractiveShell(metaclass=InteractiveShellType):
             print(f"{self.p.after=}", file=sys.stderr)
             raise
 
-    def expect_exact(self, *args, **kwargs):
+    def expect_exact(self, *args, **kwargs) -> int:
         try:
             return self.p.expect_exact(*args, **kwargs)
         except Exception:
             print(f"{self.p.before=}", file=sys.stderr)
             print(f"{self.p.after=}", file=sys.stderr)
             raise
+
+    @overload
+    def assert_env_var(
+        self, env_var: str, value: Regex, use_exact: Literal[False] = False
+    ) -> None: ...
+
+    @overload
+    def assert_env_var(
+        self, env_var: str, value: str, use_exact: Literal[True]
+    ) -> None: ...
 
     def assert_env_var(self, env_var: str, value: str, use_exact: bool = False) -> None:
         # value is actually a regex
@@ -286,6 +301,12 @@ class InteractiveShell(metaclass=InteractiveShellType):
             self.expect(self._assert_env_var % value)
         else:
             self.expect(rf"{value}\r?\n")
+
+    @overload
+    def get_env_var(self, env_var: str, default: None = None) -> Any | None: ...
+
+    @overload
+    def get_env_var(self, env_var: str, default: T) -> Any | T: ...
 
     def get_env_var(self, env_var, default=None):
         self.sendline(self.print_env_var % env_var)
@@ -304,5 +325,5 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.sendline(f"echo {marker}")
         self.expect(rf"{marker}\r?\n")
 
-    def path_conversion(self, *args, **kwargs):
+    def path_conversion(self, *args, **kwargs) -> str | tuple[str, ...] | None:
         return self.activator.path_conversion(*args, **kwargs)
