@@ -501,7 +501,7 @@ def test_detect_environment_specifier_no_match_raises_error(
     """Test that unrecognized files raise appropriate error."""
     # Create a file that doesn't match any plugin
     test_file = tmp_path / "unknown.xyz"
-    test_file.write_text("some random content")
+    test_file.write_text("some!!!@#()random!@#!)@#!@#)@!#cont@#!#!@#!@ent")
 
     # Should raise error when no plugin can handle it
     with pytest.raises(EnvironmentSpecPluginNotDetected):
