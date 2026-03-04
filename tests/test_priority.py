@@ -33,7 +33,7 @@ def test_reorder_channel_priority(
 ):
     # use "cheap" packages with no dependencies
     package2 = "zlib"
-    package1 = "xz"
+    package1 = "ncurses"
 
     # set pinned package
     if pinned_package:
