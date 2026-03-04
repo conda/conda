@@ -687,6 +687,43 @@ class CondaEnvironmentSpecifier(CondaPlugin):
 
 
 @dataclass
+class CondaEnvironmentSpecifier2(CondaPlugin):
+    """
+    Return type to use when defining a conda env spec plugin hook (v2).
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers2`.
+
+    :param name: name of the spec (e.g., ``environment_yaml``)
+    :param aliases: user-friendly format aliases (e.g., ("yaml",)). Defaults to an empty list.
+    :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
+    :param detection_supported: boolean that determines if the plugin should be included in the set of available plugins
+        checked during environment_spec plugin detection. If False, the only way to use the plugin will be through explicitly
+        requesting it as a cli argument or setting in .condarc. By default, autodetection is enabled.
+    :param env: callable that parses the file and returns an Environment object
+    :param validate: callable that determines if the plugin can handle a given file based on the file content
+    """
+
+    name: str
+    env: Callable[[str], Environment]
+    validate: Callable[[str], bool]
+    aliases: tuple[str, ...] = field(default_factory=tuple)
+    default_filenames: tuple[str, ...] = field(default_factory=tuple)
+    detection_supported: bool = True
+
+    def __post_init__(self):
+        super().__post_init__()  # Handle name normalization
+        # Normalize aliases using same pattern as name normalization
+        try:
+            self.aliases = tuple(
+                dict.fromkeys(alias.lower().strip() for alias in self.aliases)
+            )
+        except AttributeError:
+            # AttributeError: alias is not a string
+            raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+
+@dataclass
 class CondaEnvironmentExporter(CondaPlugin):
     """
     **EXPERIMENTAL**
