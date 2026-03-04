@@ -45,7 +45,6 @@ def to_dict(env: Environment) -> dict[str, Any]:
     # Convert requested_packages to dependencies list
     dependencies = []
     if env.requested_packages:
-        dependencies = []
         for item in env.requested_packages:
             if isinstance(item, dict):
                 # Handle pip dependencies (dict format: {"pip": [...]})
