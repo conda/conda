@@ -524,16 +524,24 @@ def test_from_cli_mix_explicit_and_specs():
                 file=[],
             ),
         )
-    assert "Cannot mix specifications with conda package filenames" in str(exc_info)
+    assert "Cannot combine package names with explicit package lists" in str(exc_info)
 
 
 def test_from_cli_with_files(mocker: MockerFixture):
-    # Mock out extracting specs from a file by providing a list of specs.
-    # This is similar output to extracting specs from a requirements.txt file.
-    fake_specs_from_url = ["numpy", "python >=3.9"]
+    fake_specs = ["numpy", "python >=3.9"]
+    fake_env = Environment(
+        prefix="/path",
+        platform=context.subdir,
+        requested_packages=[MatchSpec(s) for s in fake_specs],
+        explicit_packages=[],
+        config=EnvironmentConfig.from_context(),
+    )
+    mock_spec = SimpleNamespace(
+        environment_spec=lambda fpath: SimpleNamespace(env=fake_env)
+    )
     mocker.patch(
-        "conda.models.environment.specs_from_url",
-        return_value=fake_specs_from_url,
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=mock_spec,
     )
 
     env = Environment.from_cli(
@@ -616,11 +624,16 @@ def test_from_cli_environment_inject_default_packages_override_file(
     monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,numpy==2.0.0")
     reset_context()
 
-    # Mock the contents of a requirements.txt file that contains the spec numpy==2.3.1
-    fake_specs_from_url = ["numpy==2.3.1"]
+    # Mock env spec plugin returning env with numpy==2.3.1
+    fake_env = Environment(
+        platform=context.subdir,
+        requested_packages=[MatchSpec("numpy==2.3.1")],
+    )
+    mock_spec = type("Spec", (), {"env": fake_env})()
+    mock_hook = type("Hook", (), {"environment_spec": lambda self, path: mock_spec})()
     mocker.patch(
-        "conda.models.environment.specs_from_url",
-        return_value=fake_specs_from_url,
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=mock_hook,
     )
 
     env = Environment.from_cli(

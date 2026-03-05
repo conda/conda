@@ -529,17 +529,27 @@ class Environment:
             else:
                 requested_packages.append(match_spec)
 
+        # Don't allow mixing of explicit packages (url or path) with regular specs.
+        has_explicit = any(env.explicit_packages for env in envs_from_file) or bool(
+            fetch_explicit_packages
+        )
+        has_specs = any(env.requested_packages for env in envs_from_file) or bool(
+            requested_packages
+        )
+        if has_explicit and has_specs:
+            raise CondaValueError(
+                "Cannot combine package names with explicit package lists. "
+                "Package names (python, numpy) are resolved by the solver; "
+                "explicit files and URLs are installed directly. "
+                "Use only package names, or only explicit files/URLs."
+            )
+
         # transform explicit packages into package records
         explicit_packages = []
         if fetch_explicit_packages:
-            if len(fetch_explicit_packages) == len(specs):
-                explicit_packages = get_package_records_from_explicit(
-                    fetch_explicit_packages
-                )
-            else:
-                raise CondaValueError(
-                    "Cannot mix explicit package urls with conda specs"
-                )
+            explicit_packages = get_package_records_from_explicit(
+                fetch_explicit_packages
+            )
 
         cli_env = Environment(
             name=args.name,
