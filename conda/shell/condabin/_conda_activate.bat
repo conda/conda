@@ -46,10 +46,11 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
     ) ELSE ENDLOCAL & (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
             :: A, B = "key", "value"
+            IF "%CONDA_DEBUG%" == "1" ECHO DEBUG: "%%A=%%B">&2
             IF "%%A"=="_CONDA_SCRIPT" (
                 :: Script execution, fast exit if activation scripts fail
                 CALL "%%B" || (
-                    ECHO ERROR: Activation script '%%B' failed with code %ERRORLEVEL%.>&2
+                    ECHO ERROR: Activation script "%%B" failed with code %ERRORLEVEL%.>&2
                     CALL :DELETE "%%T"
                     CALL :DELETE "%__conda_tmp%"
                     EXIT /B 4
