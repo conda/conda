@@ -32,7 +32,7 @@ IF NOT EXIST "%__conda_tmp%" (
     ENDLOCAL & EXIT /B 1
 ) ELSE IF %ERRORLEVEL% NEQ 0 (
     ECHO ERROR: 'conda %*' exited with code %ERRORLEVEL%.>&2
-    DEL /F /Q "%__conda_tmp%" 2>NUL
+    CALL :DELETE "%__conda_tmp%"
     ENDLOCAL & EXIT /B 2
 )
 
@@ -41,7 +41,7 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
     :: T = "%TEMP%\<uuid>.env"
     IF NOT EXIST "%%T" (
         ECHO ERROR: Activation file missing for 'conda %*'.>&2
-        DEL /F /Q "%__conda_tmp%" 2>NUL
+        CALL :DELETE "%__conda_tmp%"
         ENDLOCAL & EXIT /B 3
     ) ELSE ENDLOCAL & (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
@@ -50,8 +50,8 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
                 :: Script execution, fast exit if activation scripts fail
                 CALL "%%B" || (
                     ECHO ERROR: Activation script '%%B' failed with code %ERRORLEVEL%.>&2
-                    DEL /F /Q "%%T" 2>NUL
-                    DEL /F /Q "%__conda_tmp%" 2>NUL
+                    CALL :DELETE "%%T"
+                    CALL :DELETE "%__conda_tmp%"
                     EXIT /B 4
                 )
             ) ELSE IF "%%B"=="" (
@@ -63,13 +63,23 @@ FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
             )
         )
         :: Clean up
-        DEL /F /Q "%%T" 2>NUL
-        DEL /F /Q "%__conda_tmp%" 2>NUL
+        CALL :DELETE "%%T"
+        CALL :DELETE "%__conda_tmp%"
         EXIT /B 0
     )
 )
 
 :: If we get here, the FOR loop never ran which means no output
 ECHO ERROR: No output from 'conda %*'.>&2
-IF EXIST "%__conda_tmp%" DEL /F /Q "%__conda_tmp%" 2>NUL
+CALL :DELETE "%__conda_tmp%"
 ENDLOCAL & EXIT /B 5
+
+:: Routine to delete a temp file if CONDA_DEBUG is not set
+:: usage: call :DELETE "path/to/file"
+:DELETE
+IF "%CONDA_DEBUG%" == "1" (
+    ECHO DEBUG: Retaining temporary file "%~1".>&2
+) ELSE IF EXIST "%~1" (
+    DEL /F /Q "%~1" 2>NUL
+)
+GOTO :EOF
