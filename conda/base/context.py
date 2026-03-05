@@ -298,6 +298,12 @@ class Context(Configuration):
             PrimitiveParameter("", element_type=str), string_delimiter="&"
         )
     )  # TODO: consider a different string delimiter
+    cooldown = ParameterLoader(PrimitiveParameter(0, element_type=int))
+    cooldown_exclude = ParameterLoader(
+        SequenceParameter(
+            PrimitiveParameter("", element_type=str), string_delimiter="&"
+        ),
+    )
     disallowed_packages = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
@@ -1335,6 +1341,8 @@ class Context(Configuration):
             "aggressive_update_packages",
             "auto_update_conda",
             "channel_priority",
+            "cooldown",
+            "cooldown_exclude",
             "create_default_packages",
             "disallowed_packages",
             "force_reinstall",
