@@ -500,6 +500,18 @@ class SubdirData(metaclass=SubdirDataType):
             REPODATA_PICKLE_VERSION,
         )
         yield "fn", pickled_state.get("fn"), self.repodata_fn
+        from ..plugins.manager import get_plugin_manager
+
+        current_filters_key = tuple(
+            (record_filter.name, record_filter.cache_key())
+            for record_filter in get_plugin_manager().get_repodata_filters()
+            if record_filter.cache_key
+        )
+        yield (
+            "_repodata_filters_key",
+            pickled_state.get("_repodata_filters_key"),
+            current_filters_key,
+        )
 
     def _read_pickled(self, state: RepodataState) -> dict[str, Any] | None:
         """
@@ -651,6 +663,15 @@ class SubdirData(metaclass=SubdirDataType):
             "subdir": subdir,
         }
 
+        from ..plugins.manager import get_plugin_manager
+
+        repodata_filters = get_plugin_manager().get_repodata_filters()
+        _internal_state["_repodata_filters_key"] = tuple(
+            (record_filter.name, record_filter.cache_key())
+            for record_filter in repodata_filters
+            if record_filter.cache_key
+        )
+
         legacy_packages = repodata.get("packages", {})
         conda_packages = (
             {} if context.use_only_tar_bz2 else repodata.get("packages.conda", {})
@@ -686,6 +707,12 @@ class SubdirData(metaclass=SubdirDataType):
                         info["record_version"],
                         info["url"],
                     )
+                    continue
+
+                if any(
+                    not record_filter.filter(fn, info)
+                    for record_filter in repodata_filters
+                ):
                     continue
 
                 # lazy
