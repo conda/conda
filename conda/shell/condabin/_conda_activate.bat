@@ -38,12 +38,14 @@ IF NOT EXIST "%__conda_tmp%" (
 
 :: Check if conda produced output
 FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
+    :: T = "%TEMP%\<uuid>.env"
     IF NOT EXIST "%%T" (
         ECHO ERROR: Activation file missing for 'conda %*'.>&2
         DEL /F /Q "%__conda_tmp%" 2>NUL
         ENDLOCAL & EXIT /B 3
     ) ELSE ENDLOCAL & (
         FOR /F "tokens=1,* delims==" %%A IN (%%T) DO (
+            :: A, B = "key", "value"
             IF "%%A"=="_CONDA_SCRIPT" (
                 :: Script execution, fast exit if activation scripts fail
                 CALL "%%B" || (
