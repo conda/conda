@@ -10,15 +10,11 @@ from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ..base.constants import EXPLICIT_MARKER, PLATFORMS, UNKNOWN_CHANNEL
+from ..base.constants import PLATFORMS, UNKNOWN_CHANNEL
 from ..base.context import context
-
-# TODO: this cli import will be removed once the Environment.from_cli method
-# is updated to use the environment spec plugins to read environment files.
-from ..cli.common import specs_from_url
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
-from ..exceptions import CondaError, CondaValueError
+from ..exceptions import CondaValueError
 from ..history import History
 from ..misc import get_package_records_from_explicit
 from .match_spec import MatchSpec
@@ -341,13 +337,15 @@ class Environment:
             )
         )
 
-        variables = {k: v for env in environments for (k, v) in env.variables.items()}
+        variables = {
+            k: v for env in environments for (k, v) in (env.variables or {}).items()
+        }
 
         external_packages = {}
         for env in environments:
             # External packages map values are always lists of strings. So,
             # we'll want to concatenate each list.
-            for k, v in env.external_packages.items():
+            for k, v in (env.external_packages or {}).items():
                 if k in external_packages:
                     for val in v:
                         if val not in external_packages[k]:
@@ -502,27 +500,25 @@ class Environment:
         requested_packages = []
         fetch_explicit_packages = []
 
-        # extract specs from files
-        # TODO: This should be replaced with reading files using the
-        # environment spec plugin. The core conda cli commands are not
-        # ready for that yet. So, use this old way of reading specs from
-        # files.
+        envs_from_file = []
         for fpath in args.file:
-            try:
-                specs.extend(
-                    [spec for spec in specs_from_url(fpath) if spec != EXPLICIT_MARKER]
-                )
-            except UnicodeError:
-                raise CondaError(
-                    "Error reading file, file should be a text file containing packages\n"
-                    "See `conda create --help` for details."
-                )
+            spec_hook = context.plugin_manager.get_environment_specifier(
+                source=fpath,
+                name=context.environment_specifier,
+            )
+            spec = spec_hook.environment_spec(fpath)
+            envs_from_file.append(spec.env)
 
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any
         # version constraint from the default package).
         if add_default_packages:
             names = {MatchSpec(spec).name for spec in specs}
+            names |= {
+                pkg.name
+                for env in envs_from_file
+                for pkg in (*env.explicit_packages, *env.requested_packages)
+            }
             for default_package in context.create_default_packages:
                 if MatchSpec(default_package).name not in names:
                     specs.append(default_package)
@@ -542,10 +538,10 @@ class Environment:
                 )
             else:
                 raise CondaValueError(
-                    "Cannot mix specifications with conda package filenames"
+                    "Cannot mix explicit package urls with conda specs"
                 )
 
-        return Environment(
+        cli_env = Environment(
             name=args.name,
             prefix=context.target_prefix,
             platform=context.subdir,
@@ -553,6 +549,11 @@ class Environment:
             explicit_packages=explicit_packages,
             config=EnvironmentConfig.from_context(),
         )
+
+        if envs_from_file:
+            file_env = cls.merge(*envs_from_file)
+            return cls.merge(cli_env, file_env)
+        return cli_env
 
     @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:
