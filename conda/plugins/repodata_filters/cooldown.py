@@ -51,6 +51,7 @@ def _cooldown_filter(filename: str, info: dict[str, Any]) -> bool:
 
 
 def _cache_key():
+    """Invalidate the cached repodata when the cooldown setting changes."""
     from ...base.context import context
 
     return context.cooldown
