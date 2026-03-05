@@ -577,7 +577,7 @@ class Environment:
             with repodata_manager as repodata_fn:
                 solver = solver_backend(
                     prefix="/env/does/not/exist",
-                    channels=context.channels,
+                    channels=self.config.channels,
                     subdirs=(platform, "noarch"),
                     specs_to_add=requested_packages,
                     repodata_fn=repodata_fn,
@@ -588,7 +588,7 @@ class Environment:
             prefix=self.prefix,
             name=self.name,
             platform=platform,
-            config=EnvironmentConfig.from_context(),
+            config=self.config,
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
             external_packages=self.external_packages,
