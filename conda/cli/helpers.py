@@ -114,6 +114,7 @@ def add_parser_create_install_update(p, prefix_required=False):
         help="Read package versions from the given file. Repeated file "
         "specifications can be passed (e.g. --file=file1 --file=file2).",
     )
+    add_parser_environment_specifier(p)
     p.add_argument(
         "packages",
         metavar="package_spec",

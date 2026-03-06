@@ -348,11 +348,10 @@ class Environment:
                 if not isinstance(v, list):
                     continue
                 if k in external_packages:
-                    for val in v:
-                        if val not in external_packages[k]:
-                            external_packages[k].append(val)
+                    new_pkgs = [pkg for pkg in v if pkg not in external_packages[k]]
+                    external_packages[k].extend(new_pkgs)
                 else:
-                    external_packages[k] = list(v)
+                    external_packages[k] = v
 
         config = EnvironmentConfig.merge(
             *[env.config for env in environments if env.config is not None]
