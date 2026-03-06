@@ -1,10 +1,10 @@
 ### Enhancements
 
-* <news item>
+* Improve Windows CMD.EXE activation failure for environment paths containing `^` (caret) character. (#12558 via #15628)
 
 ### Bug fixes
 
-* Improve Windows CMD.EXE activation failure for environment paths containing `^` (caret) character. (#12558 via #15628)
+* <news item>
 
 ### Deprecations
 
