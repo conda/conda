@@ -237,8 +237,16 @@ def test_cmd_exe_special_char_env_activate_by_path(
     which characters are truly problematic vs which work correctly.
     """
     with tmp_env(path_infix=char) as prefix, shell.interactive() as sh:
-        # Try to activate by path (should work even if name validation fails)
+        # Activation by path should work for most special chars.
+        # Caret is explicitly unsupported in cmd.exe activation.
         sh.sendline(f'conda {activate} "{prefix}"')
+        if char == "^":
+            sh.expect(
+                r"Cannot activate environments with '^' in their path from cmd.exe"
+            )
+            sh.assert_env_var("errorlevel", "2")
+            return
+
         sh.clear()
 
         # Check if activation succeeded by checking CONDA_PREFIX
@@ -284,6 +292,13 @@ def test_cmd_exe_special_char_prompt_display(
 
         # Activate the environment
         sh.sendline(f'conda {activate} "{prefix}"')
+        if char == "^":
+            sh.expect(
+                r"Cannot activate environments with '^' in their path from cmd.exe"
+            )
+            sh.assert_env_var("errorlevel", "2")
+            return
+
         sh.clear()
 
         # Get the prompt - it should contain the env name in parentheses
