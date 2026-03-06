@@ -281,9 +281,12 @@ class Environment:
         **Experimental** While experimental, expect both major and minor changes across minor releases.
 
         Merges multiple environments into a single environment following the rules:
-        * Keeps first name and/or prefix.
-        * Concatenates and deduplicates requirements.
-        * Reduces configuration and variables (last key wins).
+        * name, prefix: last wins (later env overrides earlier).
+        * platform: must match across all envs.
+        * requested_packages, explicit_packages, virtual_packages: union, deduplicated.
+        * variables: merged dict, last value wins per key.
+        * external_packages: concatenation per key (union of lists, deduplicated).
+        * config: EnvironmentConfig.merge (last wins for primitives, append for lists).
         """
         name = None
         prefix = None
@@ -292,26 +295,24 @@ class Environment:
         prefixes = [env.prefix for env in environments if env.prefix]
 
         if names:
-            name = names[0]
+            name = names[-1]
             if len(names) > 1:
-                log.debug("Several names passed %s. Picking first one %s", names, name)
+                log.debug("Several names passed %s. Picking last one %s", names, name)
 
         if prefixes:
-            prefix = prefixes[0]
+            prefix = prefixes[-1]
             if len(prefixes) > 1:
                 log.debug(
-                    "Several prefixes passed %s. Picking first one %s", prefixes, prefix
+                    "Several prefixes passed %s. Picking last one %s", prefixes, prefix
                 )
 
         platforms = [env.platform for env in environments if env.platform]
-        # Ensure that all environments have the same platform
-        if len(set(platforms)) == 1:
-            platform = platforms[0]
-        else:
+        if len(set(platforms)) != 1:
             raise CondaValueError(
                 "Conda can not merge environments of different platforms. "
                 f"Received environments with platforms: {platforms}"
             )
+        platform = platforms[0]
 
         requested_packages = list(
             dict.fromkeys(
@@ -343,15 +344,15 @@ class Environment:
 
         external_packages = {}
         for env in environments:
-            # External packages map values are always lists of strings. So,
-            # we'll want to concatenate each list.
             for k, v in (env.external_packages or {}).items():
+                if not isinstance(v, list):
+                    continue
                 if k in external_packages:
                     for val in v:
                         if val not in external_packages[k]:
                             external_packages[k].append(val)
-                elif isinstance(v, list):
-                    external_packages[k] = v
+                else:
+                    external_packages[k] = list(v)
 
         config = EnvironmentConfig.merge(
             *[env.config for env in environments if env.config is not None]
@@ -562,7 +563,7 @@ class Environment:
 
         if envs_from_file:
             file_env = cls.merge(*envs_from_file)
-            return cls.merge(cli_env, file_env)
+            return cls.merge(file_env, cli_env)
         return cli_env
 
     @staticmethod

@@ -208,7 +208,7 @@ def test_environments_merge_colliding_name():
     merged = Environment.merge(env1, env2)
     assert merged.prefix == "/path/to/env1"
     assert merged.platform == "linux-64"
-    assert merged.name == "one"
+    assert merged.name == "two"
 
 
 def test_environments_merge_colliding_prefix():
@@ -221,7 +221,7 @@ def test_environments_merge_colliding_prefix():
         platform="linux-64",
     )
     merged = Environment.merge(env1, env2)
-    assert merged.prefix == "/path/to/env1"
+    assert merged.prefix == "/path/to/env2"
     assert merged.platform == "linux-64"
 
 
@@ -555,9 +555,9 @@ def test_from_cli_with_files(mocker: MockerFixture):
     assert env.config == EnvironmentConfig.from_context()
     assert env.name == "testenv"
     assert env.requested_packages == [
-        MatchSpec("scipy"),
         MatchSpec("numpy"),
         MatchSpec("python >=3.9"),
+        MatchSpec("scipy"),
     ]
     assert env.explicit_packages == []
 

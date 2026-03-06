@@ -96,41 +96,56 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.delete import rm_rf
     from ..reporters import confirm_yn
     from .common import (
+        get_name_prefix_from_env_files,
         print_activate,
         validate_environment_files_consistency,
+        validate_file_exists,
         validate_subdir_config,
     )
     from .install import install, install_clone
 
-    # Ensure provided combination of command line argments are valid
-    # At least one of the arguments -n/--name -p/--prefix is required
+    if args.clone and args.file:
+        raise TooManyArgumentsError(
+            0,
+            len(args.file),
+            list(args.file),
+            "`--file` and `--clone` arguments are mutually exclusive.",
+        )
+
+    for fpath in args.file:
+        validate_file_exists(fpath)
+    validate_environment_files_consistency(args.file)
+
+    if not args.name and not args.prefix and args.file:
+        name, prefix = get_name_prefix_from_env_files(args.file)
+        if name is not None:
+            args.name = name
+        if prefix is not None and args.name is None:
+            args.prefix = prefix
+        if args.name is not None or args.prefix is not None:
+            context.__init__(argparse_args=args)
+
     if not args.name and not args.prefix:
         if context.dry_run or context.download_only:
             args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
             context.__init__(argparse_args=args)
+        elif args.file:
+            raise ArgumentError(
+                "The environment file(s) do not specify a name or prefix. "
+                "Please provide one via -n/--name or -p/--prefix."
+            )
         else:
             raise ArgumentError(
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
-    # If the --clone argument is provided, users must not provide any other
-    # package specification. That includes providing the --file argument or
-    # a list of packages
-    if args.clone:
-        if args.packages:
-            raise TooManyArgumentsError(
-                0,
-                len(args.packages),
-                list(args.packages),
-                "Did not expect any new packages or arguments for `--clone`.",
-            )
-        elif args.file:
-            raise TooManyArgumentsError(
-                0,
-                len(args.file),
-                list(args.file),
-                "`--file` and `--clone` arguments are mutually exclusive.",
-            )
+    if args.clone and args.packages:
+        raise TooManyArgumentsError(
+            0,
+            len(args.packages),
+            list(args.packages),
+            "Did not expect any new packages or arguments for `--clone`.",
+        )
     prefix_data = PrefixData.from_context(validate=True)
 
     if prefix_data.is_environment():
@@ -160,9 +175,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Ensure the subdir config is valid
     validate_subdir_config()
-
-    # Validate that input files are of the same format type
-    validate_environment_files_consistency(args.file)
 
     # Run appropriate install
     if args.clone:
