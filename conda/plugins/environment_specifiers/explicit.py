@@ -17,4 +17,6 @@ def conda_environment_specifiers():
         name="explicit",
         environment_spec=ExplicitSpec,
         default_filenames=("explicit.txt",),
+        description="Explicit package URLs for fully reproducible environments",
+        is_lockfile=True,
     )

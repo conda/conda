@@ -606,12 +606,16 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     :param aliases: user-friendly format aliases (e.g., ("yaml",)). Defaults to an empty list.
     :param environment_spec: EnvironmentSpecBase subclass handler
     :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param is_lockfile: whether this format represents a lockfile (fully reproducible). Defaults to False, or True if "lock" appears in the name.
     """
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
     default_filenames: tuple[str, ...] = field(default_factory=tuple)
     aliases: tuple[str, ...] = field(default_factory=tuple)
+    description: str | None = field(default=None)
+    is_lockfile: bool = field(default=False)
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -623,6 +627,17 @@ class CondaEnvironmentSpecifier(CondaPlugin):
         except AttributeError:
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+        # Set default description to name if not provided
+        if self.description is None:
+            self.description = self.name
+
+        # Infer is_lockfile from name if not explicitly set to True
+        # Note: If user explicitly sets is_lockfile=False but name contains "lock",
+        # the inference will override it. This is acceptable as lockfiles should
+        # have "lock" in their name by convention.
+        if not self.is_lockfile and "lock" in self.name.lower():
+            self.is_lockfile = True
 
 
 @dataclass
@@ -636,6 +651,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     :param aliases: user-friendly format aliases (e.g., ("yaml",))
     :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
     :param export: callable that exports an Environment to string format
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param is_lockfile: whether this format represents a lockfile (fully reproducible). Defaults to False, or True if "lock" appears in the name.
     """
 
     name: str
@@ -643,6 +660,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     default_filenames: tuple[str, ...]
     export: SinglePlatformEnvironmentExport | None = None
     multiplatform_export: MultiPlatformEnvironmentExport | None = None
+    description: str | None = field(default=None)
+    is_lockfile: bool = field(default=False)
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -659,6 +678,17 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+        # Set default description to name if not provided
+        if self.description is None:
+            self.description = self.name
+
+        # Infer is_lockfile from name if not explicitly set to True
+        # Note: If user explicitly sets is_lockfile=False but name contains "lock",
+        # the inference will override it. This is acceptable as lockfiles should
+        # have "lock" in their name by convention.
+        if not self.is_lockfile and "lock" in self.name.lower():
+            self.is_lockfile = True
 
 
 @dataclass

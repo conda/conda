@@ -91,4 +91,6 @@ def conda_environment_exporters():
         aliases=(),
         export=export_explicit,
         default_filenames=("explicit.txt",),
+        description="Explicit URLs for exact package reproduction (lockfile)",
+        is_lockfile=True,
     )
