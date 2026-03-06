@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix Windows CMD.EXE activation failing for environment paths containing `^` (caret) character. The caret was previously consumed as an escape character during batch script processing. (#12558 via #15628)
+* Improve Windows CMD.EXE activation failure for environment paths containing `^` (caret) character. (#12558 via #15628)
 
 ### Deprecations
 
