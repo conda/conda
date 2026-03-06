@@ -342,7 +342,9 @@ class _Activator(metaclass=abc.ABCMeta):
         return self._build_activate_stack(env_name_or_prefix, True)
 
     def _build_activate_stack(
-        self, env_name_or_prefix: str, stack: bool
+        self,
+        env_name_or_prefix: str,
+        stack: bool,
     ) -> dict[str, Any]:
         prefix = self._resolve_prefix(env_name_or_prefix)
 
