@@ -40,6 +40,7 @@ from ..exceptions import (
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DryRunExit,
+    InvalidInstaller,
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -442,6 +443,35 @@ def install(args, parser, command="install"):
                 raise e
 
     handle_txn(unlink_link_transaction, prefix, args, newenv)
+
+    if (
+        newenv
+        and env.external_packages
+        and not context.dry_run
+        and not context.download_only
+    ):
+        from .. import CondaError
+        from ..env.installers.base import get_installer
+        from ..env.pip_util import get_pip_workdir
+
+        for installer_type, pkg_specs in env.external_packages.items():
+            try:
+                installer = get_installer(installer_type)
+                if installer_type == "pip":
+                    workdir = get_pip_workdir(getattr(args, "file", None))
+                    installer.install(
+                        prefix, list(pkg_specs), args, env, workdir=workdir
+                    )
+                else:
+                    installer.install(prefix, list(pkg_specs), args, env)
+            except InvalidInstaller:
+                raise CondaError(
+                    f"Unable to install package for {installer_type}. "
+                    "Please ensure your dependencies file has the correct spelling."
+                )
+
+        if env.variables:
+            PrefixData(prefix).set_environment_env_vars(env.variables)
 
 
 def install_clone(args, parser):

@@ -8,13 +8,14 @@ from logging import getLogger
 
 from ...auxlib.compat import Utf8NamedTemporaryFile
 from ...env.pip_util import get_pip_installed_packages, pip_subprocess
-from ...gateways.connection.session import CONDA_SESSION_SCHEMES
 from ...reporters import get_spinner
 
 log = getLogger(__name__)
 
 
-def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
+# NOTE: *_ absorbs (args, env) from callers. Required for interface consistency with
+# other installers—do not remove; callers use the same pattern for all types.
+def _pip_install_via_requirements(prefix, specs, *_, workdir=None, **kwargs):
     """
     Installs the pip dependencies in specs using a temporary pip requirements file.
 
@@ -27,17 +28,12 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
       Each element should be a valid pip dependency.
       See: https://pip.pypa.io/en/stable/user_guide/#requirements-files
            https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+
+    workdir: str | None, optional
+      Working directory for resolving relative paths in specs (e.g. -e ./local_pkg).
+      Caller should derive from the environment file path. None for URLs or when
+      no file path is available.
     """
-    url_scheme = args.file.split("://", 1)[0]
-    if url_scheme in CONDA_SESSION_SCHEMES:
-        pip_workdir = None
-    else:
-        try:
-            pip_workdir = op.dirname(op.abspath(args.file))
-            if not os.access(pip_workdir, os.W_OK):
-                pip_workdir = None
-        except AttributeError:
-            pip_workdir = None
     requirements = None
     try:
         # Generate the temporary requirements file
@@ -45,7 +41,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
             mode="w",
             prefix="condaenv.",
             suffix=".requirements.txt",
-            dir=pip_workdir,
+            dir=workdir,
             delete=False,
         )
         requirements.write("\n".join(specs))
@@ -53,7 +49,7 @@ def _pip_install_via_requirements(prefix, specs, args, *_, **kwargs):
         # pip command line...
         # see https://pip.pypa.io/en/stable/cli/pip/#exists-action-option
         pip_cmd = ["install", "-U", "-r", requirements.name, "--exists-action=b"]
-        stdout, stderr = pip_subprocess(pip_cmd, prefix, cwd=pip_workdir)
+        stdout, stderr = pip_subprocess(pip_cmd, prefix, cwd=workdir)
     finally:
         # Win/Appveyor does not like it if we use context manager + delete=True.
         # So we delete the temporary file in a finally block.
