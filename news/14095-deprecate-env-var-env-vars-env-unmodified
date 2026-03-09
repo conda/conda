@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.common.io.env_var`, `conda.common.io.env_vars`, and `conda.common.io.env_unmodified` as pending deprecation to be removed in 27.3. In tests, prefer `monkeypatch.setenv` / `monkeypatch.delenv` instead. (#14095 via #15728)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
