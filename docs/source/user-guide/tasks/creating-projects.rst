@@ -63,6 +63,7 @@ Now that we have written a basic ``environment.yml`` file, we can create and act
 from it. To do so, run the following commands::
 
     conda env create --file environment.yml
+    # or: conda create --file environment.yml
     conda activate my-project
 
 

@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Update documentation for ``conda create --file`` env specifier support in several places.
 
 ### Other
 
