@@ -55,6 +55,17 @@ def test_env() -> Environment:
 
 
 @pytest.fixture
+def test_empty_env() -> Environment:
+    """Create a empty test environment for exporter testing."""
+    return Environment(
+        name="test-env",
+        prefix="/tmp/test-env",
+        platform="linux-64",
+        requested_packages=[],
+    )
+
+
+@pytest.fixture
 def test_env_with_explicit_packages():
     """Create a test environment with explicit packages (URLs) for explicit exporter testing."""
     # Create mock PackageRecord objects with proper URLs
@@ -164,6 +175,24 @@ def test_yaml_exporter_explicit_packages_format(
         assert "==" not in dep, (
             f"Dependency '{dep}' should not contain '==' (should be single = throughout)"
         )
+
+
+def test_yaml_exporter_with_empty_env(
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_empty_env: Environment,
+):
+    """Test that YAML exporter produces cep-24 compliant output - always include dependencies"""
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        ENVIRONMENT_YAML_FORMAT
+    )
+
+    # Export the environment
+    result = exporter.export(test_empty_env)
+    parsed = yaml.safe_load(result)
+
+    # Verify dependencies key included
+    dependencies = parsed["dependencies"]
+    assert len(dependencies) == 0
 
 
 def test_explicit_exporter_cep23_compliance_error(
