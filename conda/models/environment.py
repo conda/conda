@@ -351,7 +351,7 @@ class Environment:
                     new_pkgs = [pkg for pkg in v if pkg not in external_packages[k]]
                     external_packages[k].extend(new_pkgs)
                 else:
-                    external_packages[k] = v
+                    external_packages[k] = list(v)
 
         config = EnvironmentConfig.merge(
             *[env.config for env in environments if env.config is not None]
