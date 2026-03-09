@@ -361,6 +361,45 @@
       "subdir": "noarch",
       "timestamp": 1765401586628,
       "version": "1.0.0"
+    },
+    "versioned-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "0c13023ad81e019fe5e4d13561ecdf0d",
+      "name": "versioned",
+      "noarch": "generic",
+      "sha256": "812ac0539783ea3d4a21ba8393aa040edccbc96894c8c3d299843adae40965cb",
+      "size": 3667,
+      "subdir": "noarch",
+      "timestamp": 1773096845104,
+      "version": "1.0"
+    },
+    "versioned-2.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "bdd2e8d9245d1a5a0e9feb6b7cb13e66",
+      "name": "versioned",
+      "noarch": "generic",
+      "sha256": "5e1047b1e7d4534ea41ea12e6faed6406f16a1dd352a1db7d3033836111538c4",
+      "size": 3694,
+      "subdir": "noarch",
+      "timestamp": 1773096845642,
+      "version": "2.0"
+    },
+    "versioned2-2.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "56c56e0a7739866e7a7564346aa1bf26",
+      "name": "versioned2",
+      "noarch": "generic",
+      "sha256": "2a163f15028f2a6444d35f5f2b8a704914702a32daa06dc6ffefe993aff48d6d",
+      "size": 3714,
+      "subdir": "noarch",
+      "timestamp": 1773096792580,
+      "version": "2.0"
     }
   },
   "removed": [],
