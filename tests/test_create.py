@@ -2717,6 +2717,25 @@ def test_create_with_clone_and_file_raises_argument_error(
     )
 
 
+def test_create_dry_run_with_yaml_file(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+):
+    """Test conda create --file with YAML env spec (env specifier plugin support)."""
+    prefix = path_factory()
+    stdout, stderr, _ = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("simple.yml"),
+        "--dry-run",
+        "--yes",
+        raises=DryRunExit,
+    )
+    assert "nltk" in stdout
+    assert not stderr
+
+
 def test_nonadmin_file_untouched(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
