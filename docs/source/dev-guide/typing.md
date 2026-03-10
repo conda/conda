@@ -22,3 +22,15 @@ If the type hints are getting too complex (too many unions, many different retur
 
 - `conda.common.path.PathType`: Use it for values that represent file paths.
 - `conda.common.path.PathTypes`: Use it for an iterable of `PathType` values.
+
+## Local development
+
+### Linters
+
+We use `ruff` to lint and format our codebase. We have selected a few type hinting related rules, but we have not added [`ANN`](https://docs.astral.sh/ruff/rules/#flake8-annotations-ann) yet. That said, you can enable it temporarily in your `pyproject.toml` while developing locally.
+
+### Type hinting coverage
+
+The `linux-typing` job in `tests.yml` runs MyPy and uploads the [reports to codecov under the label `MyPy`](https://app.codecov.io/github/conda/conda?flags%5B0%5D=MyPy). Its only purpose is to track type hinting coverage, not to report type hinting errors (yet).
+
+In this [codecov.io webapp report](https://app.codecov.io/github/conda/conda/tree/main/conda?flags%5B0%5D=MyPy) you can find the coverage for every Python file in the codebase.
