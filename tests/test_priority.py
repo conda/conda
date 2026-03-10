@@ -54,13 +54,10 @@ def test_reorder_channel_priority(
         # create environment with package1 and package2
         with tmp_env(package1, package2) as prefix:
             # check both packages are installed from old_recipes_channel
-            rec1 = package_is_installed(prefix, f"{package1}=1")
-            rec2 = package_is_installed(prefix, f"{package2}=1")
-            rec3 = package_is_installed(prefix, f"{package3}=1")
             assert (
-                rec1.channel.name
-                == rec2.channel.name
-                == rec3.channel.name
+                package_is_installed(prefix, f"{package1}=1").channel.name
+                == package_is_installed(prefix, f"{package2}=1").channel.name
+                == package_is_installed(prefix, f"{package3}=1").channel.name
                 == old_recipes_path.name
             )
 
