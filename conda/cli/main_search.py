@@ -68,7 +68,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         Search for a package on a specific channel::
 
             conda search conda-forge::numpy
+
+        Search for a package on a specific channel and platform::
+
             conda search 'numpy[channel=conda-forge, subdir=osx-64]'
+
+        Search for a package with a specific software version and python version::
+
+            conda search 'numpy-base[version="==2.4.2",build=py313*]'
+
         """
     )
 
