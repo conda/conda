@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Expands `conda search` documentation to include more search examples.
+* Expands `conda search` documentation to include more search examples. (#15774)
 
 ### Other
 
