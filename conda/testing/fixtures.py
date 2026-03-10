@@ -27,6 +27,7 @@ from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
 from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
+from ..common.path import url_to_path
 from ..common.serialize import json, yaml
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
@@ -600,10 +601,15 @@ class TmpChannelFixture:
                 fname = package_record["fn"]
                 if fname in seen:
                     seen[fname].add(spec)
-                seen[fname] = {spec}
+                else:
+                    seen[fname] = {spec}
 
                 # copy package to channel
-                copyfile(pkgs_dir / fname, subdir / fname)
+                if package_record.url.startswith("file://"):
+                    source = url_to_path(package_record.url)
+                else:
+                    source = pkgs_dir / fname
+                copyfile(source, subdir / fname)
 
                 # add package to repodata
                 repodata["packages"][fname] = PackageRecord(
