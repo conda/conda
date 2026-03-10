@@ -115,7 +115,7 @@ jobs:
           # Use faster GNU tar for all runners
           enableCrossOsArchive: true
           path: D:\conda_pkgs_dir
-          key: cache-${{ env.HASH }}-clean
+          key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -249,7 +249,7 @@ jobs:
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
-          key: cache-${{ env.HASH }}-clean
+          key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -344,7 +344,7 @@ jobs:
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
-          key: cache-${{ env.HASH }}-clean
+          key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -645,7 +645,7 @@ jobs:
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/conda_pkgs_dir
-          key: cache-${{ env.HASH }}-clean
+          key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
