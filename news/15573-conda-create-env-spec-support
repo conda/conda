@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add environment specifier plugin support to `conda create --file`. Environment files (YAML, requirements.txt, explicit, etc.) are now parsed via the plugin system, matching `conda env create` behavior. Name and prefix can be read from files when `-n`/`-p` are omitted. (#15573)
+* conda create --file <filename> now supports environment.yaml files as well as requirements.txt and explicit environment exports and also supports automatically detecting name and prefix when --name/--prefix are omitted (#15573)
 
 ### Bug fixes
 
