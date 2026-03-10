@@ -27,7 +27,6 @@ from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
 from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
-from ..common.path import url_to_path
 from ..common.serialize import json, yaml
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
@@ -606,8 +605,9 @@ class TmpChannelFixture:
                     seen[fname] = {spec}
 
                 # copy package to channel
-                if package_record.url.startswith("file://"):
-                    source = url_to_path(package_record.url)
+                tarball = package_record.package_tarball_full_path
+                if Path(tarball).is_file():
+                    source = tarball
                 else:
                     source = pkgs_dir / fname
                 if package_record.subdir == "noarch":
@@ -617,7 +617,8 @@ class TmpChannelFixture:
                     target = subdir
                     packages = subdir_packages
                 if not Path(source).exists():
-                    getLogger("testing").error(f"missing: {source}")
+                    getLogger("testing").error(f"{source=}")
+                    getLogger("testing").error(f"{tarball=}")
                     getLogger("testing").error(f"{pkgs_dir=}")
                     getLogger("testing").error(f"{fname=}")
                 copyfile(source, target / fname)
