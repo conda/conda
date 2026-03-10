@@ -67,9 +67,10 @@ def test_reorder_channel_priority(
 
             # check pinned package is unchanged but unpinned packages are updated from test_recipes_channel
             version = "1" if pinned_package else "2"
-            rec1 = package_is_installed(prefix, f"{package1}={version}")
             channel = old_recipes_path if pinned_package else test_recipes_channel
-            assert rec1.channel.name == channel.name
-            rec2 = package_is_installed(prefix, f"{package2}=2")
-            rec3 = package_is_installed(prefix, f"{package3}=2")
-            assert rec2.channel.name == rec3.channel.name == test_recipes_channel.name
+            assert package_is_installed(prefix, f"{package1}={version}").channel.name == channel.name
+            assert (
+                package_is_installed(prefix, f"{package2}=2").channel.name
+                == package_is_installed(prefix, f"{package3}=2").channel.name
+                == test_recipes_channel.name
+            )
