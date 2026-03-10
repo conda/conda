@@ -11,7 +11,7 @@ This reads rendered recipe metadata from package artifacts in
 
 from __future__ import annotations
 
-import io
+import sys
 import tarfile
 import zipfile
 from dataclasses import dataclass
@@ -22,17 +22,15 @@ from typing import TYPE_CHECKING
 try:
     import yaml  # type: ignore[import-not-found]
 except ModuleNotFoundError:
-    raise RuntimeError(
+    raise ImportError(
         "PyYAML is required to parse recipe metadata. "
         "Run via pre-commit or install pyyaml."
     )
 
-try:
-    import zstandard  # type: ignore[import-not-found]
-except ModuleNotFoundError:
-    raise RuntimeError(
-        "zstandard is required to parse .conda package metadata. "
-        "Run via pre-commit or install zstandard."
+if sys.version_info < (3, 14):
+    raise ImportError(
+        "Python 3.14+ is required to parse .conda package metadata. "
+        "Run via pre-commit or install Python 3.14+."
     )
 
 if TYPE_CHECKING:
@@ -60,36 +58,32 @@ def _normalize(value: object) -> str | None:
 
 
 def _extract_meta(tf: tarfile.TarFile) -> str | None:
-    try:
-        member = tf.getmember("info/recipe/meta.yaml")
-    except KeyError:
-        return None
-    stream = tf.extractfile(member)
-    if stream is None:
-        return None
-    return stream.read().decode("utf-8")
+    for member in tf:
+        if member.name == "info/recipe/meta.yaml":
+            stream = tf.extractfile(member)
+            return stream.read().decode("utf-8") if stream else None
+    return None
 
 
 def _read_meta_from_tar_bz2(artifact: Path) -> str | None:
-    with tarfile.open(artifact, mode="r:bz2") as tf:
+    # .tar.bz2 is a tarfile of files
+    with tarfile.open(artifact, mode="r|bz2") as tf:
         return _extract_meta(tf)
 
 
 def _read_meta_from_conda(artifact: Path) -> str | None:
+    # .conda is a zipfile of tar.zst files
     with zipfile.ZipFile(artifact) as zf:
-        info_members = [
-            name
-            for name in zf.namelist()
-            if name.startswith("info-") and name.endswith(".tar.zst")
-        ]
-        if not info_members:
+        try:
+            name = next(
+                name
+                for name in zf.namelist()
+                if name.startswith("info-") and name.endswith(".tar.zst")
+            )
+        except StopIteration:
             return None
-        info_member = info_members[0]
-        payload = zf.read(info_member)
-
-    tar_bytes = zstandard.ZstdDecompressor().decompress(payload)
-    with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r:") as tf:
-        return _extract_meta(tf)
+        with zf.open(name) as stream, tarfile.open(fileobj=stream, mode="r|zst") as tf:
+            return _extract_meta(tf)
 
 
 def _read_rendered_meta(artifact: Path) -> str | None:

@@ -80,7 +80,8 @@ repos:
         name: Generate test recipes README
         entry: python tests/data/recipes/generate_recipes_readme.py
         language: python
-        additional_dependencies: [pyyaml, zstandard]
+        language_version: python3.14
+        additional_dependencies: [pyyaml]
         pass_filenames: false
         files: |
           (?x)^(
