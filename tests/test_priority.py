@@ -69,13 +69,10 @@ def test_reorder_channel_priority(
             conda_cli("update", f"--prefix={prefix}", "--all", "--yes")
 
             # check pinned package is unchanged but unpinned packages are updated from test_recipes_channel
-            rec1 = package_is_installed(
-                prefix, f"{package1}={'1' if pinned_package else '2'}"
-            )
-            assert (
-                rec1.channel.name
-                == (old_recipes_path if pinned_package else test_recipes_channel).name
-            )
+            version = "1" if pinned_package else "2"
+            rec1 = package_is_installed(prefix, f"{package1}={version}")
+            channel = old_recipes_path if pinned_package else test_recipes_channel
+            assert rec1.channel.name == channel.name
             rec2 = package_is_installed(prefix, f"{package2}=2")
             rec3 = package_is_installed(prefix, f"{package3}=2")
             assert rec2.channel.name == rec3.channel.name == test_recipes_channel.name
