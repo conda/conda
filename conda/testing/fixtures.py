@@ -616,6 +616,10 @@ class TmpChannelFixture:
                 else:
                     target = subdir
                     packages = subdir_packages
+                if not Path(source).exists():
+                    getLogger("testing").error(f"missing: {source}")
+                    getLogger("testing").error(f"{pkgs_dir=}")
+                    getLogger("testing").error(f"{fname=}")
                 copyfile(source, target / fname)
 
                 # add package to repodata
