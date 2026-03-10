@@ -387,19 +387,6 @@
       "subdir": "noarch",
       "timestamp": 1773096845642,
       "version": "2.0"
-    },
-    "versioned2-2.0-0.conda": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "56c56e0a7739866e7a7564346aa1bf26",
-      "name": "versioned2",
-      "noarch": "generic",
-      "sha256": "2a163f15028f2a6444d35f5f2b8a704914702a32daa06dc6ffefe993aff48d6d",
-      "size": 3714,
-      "subdir": "noarch",
-      "timestamp": 1773096792580,
-      "version": "2.0"
     }
   },
   "removed": [],
