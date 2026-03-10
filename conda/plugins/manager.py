@@ -1000,8 +1000,8 @@ class CondaPluginManager(pluggy.PluginManager):
         source: str,
         name: str | None = None,
     ) -> Environment:
-        plugin = self.get_environment_specifier2(source, name)
         data = load_file(source)
+        plugin = self.get_environment_specifier2(source, name)
         return plugin.env(data)
 
     def get_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
