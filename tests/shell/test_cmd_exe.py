@@ -242,7 +242,7 @@ def test_cmd_exe_special_char_env_activate_by_path(
         sh.sendline(f'conda {activate} "{prefix}"')
         if char == "^":
             sh.expect(
-                r"Cannot activate environments with '^' in their path from cmd.exe"
+                r"Cannot activate environments with '\^' in their path from cmd\.exe\."
             )
             sh.assert_env_var("errorlevel", "2")
             return
@@ -294,7 +294,7 @@ def test_cmd_exe_special_char_prompt_display(
         sh.sendline(f'conda {activate} "{prefix}"')
         if char == "^":
             sh.expect(
-                r"Cannot activate environments with '^' in their path from cmd.exe"
+                r"Cannot activate environments with '\^' in their path from cmd\.exe\."
             )
             sh.assert_env_var("errorlevel", "2")
             return
