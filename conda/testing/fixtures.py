@@ -589,13 +589,13 @@ class TmpChannelFixture:
         noarch = channel / "noarch"
         noarch.mkdir(parents=True)
 
-        repodata_noarch = {
-            "info": {"subdir": "noarch", "base_url": path_to_url(str(pkgs_dir))},
+        noarch_packages: dict[str, dict[str, object]] = {
+            "info": {"subdir": noarch},
             "packages": {},
             "packages.conda": {},
         }
-        repodata_subdir = {
-            "info": {"subdir": context.subdir, "base_url": path_to_url(str(pkgs_dir))},
+        subdir_packages: dict[str, dict[str, object]] = {
+            "info": {"subdir": subdir.name},
             "packages": {},
             "packages.conda": {},
         }
@@ -612,17 +612,23 @@ class TmpChannelFixture:
                 else:
                     seen[fname] = {spec}
 
-                if package_record["subdir"] == "noarch":
-                    target_repodata = repodata_noarch
-                    target_directory = noarch
+                # copy package to channel
+                tarball = package_record.package_tarball_full_path
+                if Path(tarball).is_file():
+                    source = tarball
                 else:
-                    target_repodata = repodata_subdir
-                    target_directory = subdir
+                    source = pkgs_dir / fname
+                if package_record.subdir == "noarch":
+                    target = noarch
+                    packages = noarch_packages
+                else:
+                    target = subdir
+                    packages = subdir_packages
+                copyfile(source, target / fname)
 
-                copyfile(pkgs_dir / fname, target_directory / fname)
-
+                # add package to repodata
                 key = "packages" if fname.endswith(".tar.bz2") else "packages.conda"
-                target_repodata[key][fname] = PackageRecord(
+                packages[key][fname] = PackageRecord(
                     **{
                         field: value
                         for field, value in package_record.dump().items()
@@ -630,8 +636,10 @@ class TmpChannelFixture:
                     }
                 )
 
-        (subdir / "repodata.json").write_text(json.dumps(repodata_subdir))
-        (noarch / "repodata.json").write_text(json.dumps(repodata_noarch))
+                iter_specs.extend(package_record.depends)
+
+        (subdir / "repodata.json").write_text(json.dumps(subdir_packages))
+        (noarch / "repodata.json").write_text(json.dumps(noarch_packages))
 
         # ensure all packages were copied to the channel
         for spec in chain.from_iterable(seen.values()):
