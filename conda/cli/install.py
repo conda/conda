@@ -444,12 +444,7 @@ def install(args, parser, command="install"):
 
     handle_txn(unlink_link_transaction, prefix, args, newenv)
 
-    if (
-        newenv
-        and env.external_packages
-        and not context.dry_run
-        and not context.download_only
-    ):
+    if env.external_packages and not context.dry_run and not context.download_only:
         from .. import CondaError
         from ..env.installers.base import get_installer
         from ..env.pip_util import get_pip_workdir

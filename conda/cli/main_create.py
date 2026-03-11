@@ -116,17 +116,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         validate_file_exists(fpath)
     validate_environment_files_consistency(args.file)
 
-    if not args.name and not args.prefix and args.file:
-        name, prefix = get_name_prefix_from_env_files(args.file)
-        if name is not None:
-            args.name = name
-        if prefix is not None and args.name is None:
-            args.prefix = prefix
+    if not args.name and not args.prefix:
+        if args.file:
+            name, prefix = get_name_prefix_from_env_files(args.file)
+            if name is not None:
+                args.name = name
+            if prefix is not None and args.name is None:
+                args.prefix = prefix
+
         if args.name is not None or args.prefix is not None:
             context.__init__(argparse_args=args)
-
-    if not args.name and not args.prefix:
-        if context.dry_run or context.download_only:
+        elif context.dry_run or context.download_only:
             args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
             context.__init__(argparse_args=args)
         elif args.file:
