@@ -44,7 +44,7 @@ pytest_plugins = (
     "conda.testing.gateways.fixtures",
     "conda.testing.notices.fixtures",
     "conda.testing.fixtures",
-    "tests.fixtures_jlap",
+    "tests.fixtures_package_server",
 )
 
 
@@ -65,15 +65,21 @@ def tmp_env_python_spec() -> str:
 
 
 @pytest.fixture
-def test_recipes_channel(mocker: MockerFixture) -> Path:
+def mock_channels(mocker: MockerFixture) -> list[str]:
+    channels: list[str] = []
     mocker.patch(
         "conda.base.context.Context.channels",
         new_callable=mocker.PropertyMock,
-        return_value=(channel_str := str(TEST_RECIPES_CHANNEL),),
+        return_value=channels,
     )
     reset_context()
-    assert context.channels == (channel_str,)
+    assert context.channels is channels
+    return channels
 
+
+@pytest.fixture
+def test_recipes_channel(mock_channels: list[str]) -> Path:
+    mock_channels.append(str(TEST_RECIPES_CHANNEL))
     return TEST_RECIPES_CHANNEL
 
 

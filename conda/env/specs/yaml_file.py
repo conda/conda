@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -30,8 +29,6 @@ class YamlFileSpec(EnvironmentSpecBase):
 
     _environment = None
 
-    extensions = {".yaml", ".yml"}
-
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
         self.msg = None
@@ -41,7 +38,6 @@ class YamlFileSpec(EnvironmentSpecBase):
         Validates loader can process environment definition.
         This can handle if:
             * the provided file exists
-            * the provided file ends in the supported file extensions (.yaml or .yml)
             * the yaml file can be loaded and is not empty
 
         :return: True or False
@@ -49,17 +45,12 @@ class YamlFileSpec(EnvironmentSpecBase):
         if not self.filename:
             return False
 
-        # Extract the file extension (e.g., '.txt' or '' if no extension)
-        _, file_ext = os.path.splitext(self.filename)
-
-        # Check if the file has a supported extension and exists
-        if not any(spec_ext == file_ext for spec_ext in YamlFileSpec.extensions):
-            return False
-
         try:
             yamlstr = env.load_file(self.filename)
             data = yaml.loads(yamlstr)
-            if data is None:
+            # We check for dict in order to avoid loading flat files as YAML.
+            # The standard really wants a nested dict structure.
+            if data is None or not isinstance(data, dict):
                 return False
         except Exception:
             log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
