@@ -590,7 +590,7 @@ class TmpChannelFixture:
         noarch.mkdir(parents=True)
 
         noarch_packages: dict[str, dict[str, object]] = {
-            "info": {"subdir": noarch},
+            "info": {"subdir": "noarch"},
             "packages": {},
             "packages.conda": {},
         }
