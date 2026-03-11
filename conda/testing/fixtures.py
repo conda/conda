@@ -589,7 +589,8 @@ class TmpChannelFixture:
         noarch = channel / "noarch"
         noarch.mkdir(parents=True)
 
-        repodata = {"info": {}, "packages": {}}
+        noarch_packages: dict[str, PackageRecord] = {}
+        subdir_packages: dict[str, PackageRecord] = {}
         iter_specs = list(specs)
         seen: dict[str, set[str]] = {}
         while iter_specs:
@@ -600,13 +601,25 @@ class TmpChannelFixture:
                 fname = package_record["fn"]
                 if fname in seen:
                     seen[fname].add(spec)
-                seen[fname] = {spec}
+                else:
+                    seen[fname] = {spec}
 
                 # copy package to channel
-                copyfile(pkgs_dir / fname, subdir / fname)
+                tarball = package_record.package_tarball_full_path
+                if Path(tarball).is_file():
+                    source = tarball
+                else:
+                    source = pkgs_dir / fname
+                if package_record.subdir == "noarch":
+                    target = noarch
+                    packages = noarch_packages
+                else:
+                    target = subdir
+                    packages = subdir_packages
+                copyfile(source, target / fname)
 
                 # add package to repodata
-                repodata["packages"][fname] = PackageRecord(
+                packages[fname] = PackageRecord(
                     **{
                         field: value
                         for field, value in package_record.dump().items()
@@ -616,8 +629,12 @@ class TmpChannelFixture:
 
                 iter_specs.extend(package_record.depends)
 
-        (subdir / "repodata.json").write_text(json.dumps(repodata))
-        (noarch / "repodata.json").write_text(json.dumps({}))
+        (subdir / "repodata.json").write_text(
+            json.dumps({"info": {}, "packages": subdir_packages})
+        )
+        (noarch / "repodata.json").write_text(
+            json.dumps({"info": {}, "packages": noarch_packages})
+        )
 
         # ensure all packages were copied to the channel
         for spec in chain.from_iterable(seen.values()):
