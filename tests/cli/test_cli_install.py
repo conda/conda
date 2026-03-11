@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from argparse import Namespace
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.context import context, reset_context
+from conda.cli.install import reinstall_packages
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import DryRunExit, EnvironmentIsFrozenError, UnsatisfiableError
 from conda.models.match_spec import MatchSpec
@@ -234,3 +236,32 @@ def test_frozen_env_cep22(tmp_env, conda_cli, monkeypatch):
         )
         out, err, rc = conda_cli("update", "-p", prefix, "ca-certificates", "--dry-run")
         assert rc == 0
+
+
+def test_reinstall_packages_calls_install(tmp_path: Path, mocker: MockerFixture):
+    """Test that reinstall_packages correctly calls install() with parser argument.
+
+    This is a regression test for #15669 where reinstall_packages() was calling
+    install(args) without the required parser argument, causing conda doctor --fix
+    to fail with: "install() missing 1 required positional argument: 'parser'"
+    """
+    # Mock install to verify it's called with correct arguments
+    mock_install = mocker.patch("conda.cli.install.install", return_value=0)
+
+    # Create minimal args namespace with required attributes
+    args = Namespace(
+        prefix=str(tmp_path),
+        name=None,
+    )
+
+    # This would fail without the fix:
+    # TypeError: install() missing 1 required positional argument: 'parser'
+    result = reinstall_packages(args, ["some-package"], force_reinstall=True)
+
+    assert result == 0
+    mock_install.assert_called_once()
+
+    # Verify install was called with at least 2 positional arguments (args, parser)
+    call_args = mock_install.call_args
+    assert call_args[0][0] is args  # First positional arg is args
+    assert len(call_args[0]) >= 2  # Must have at least 2 positional args

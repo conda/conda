@@ -609,7 +609,8 @@ class TmpChannelFixture:
                 fname = package_record["fn"]
                 if fname in seen:
                     seen[fname].add(spec)
-                seen[fname] = {spec}
+                else:
+                    seen[fname] = {spec}
 
                 if package_record["subdir"] == "noarch":
                     target_repodata = repodata_noarch
