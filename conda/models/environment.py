@@ -485,7 +485,7 @@ class Environment:
         cls,
         args: Namespace,
         add_default_packages: bool = False,
-    ) -> Environment:
+    ) -> tuple[Environment, dict[str, Environment]]:
         """
         Create an Environment model from command-line arguments.
 
@@ -501,6 +501,7 @@ class Environment:
         fetch_explicit_packages = []
 
         envs_from_file = []
+        fpath_envs_map = {}
         for fpath in args.file:
             spec_hook = context.plugin_manager.get_environment_specifier(
                 source=fpath,
@@ -508,6 +509,8 @@ class Environment:
             )
             spec = spec_hook.environment_spec(fpath)
             envs_from_file.append(spec.env)
+            fpath_envs_map[fpath] = spec.env
+
 
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any
@@ -562,8 +565,15 @@ class Environment:
 
         if envs_from_file:
             file_env = cls.merge(*envs_from_file)
-            return cls.merge(file_env, cli_env)
-        return cli_env
+            merged = cls.merge(file_env, cli_env)
+            # Respect override_channels flag and only use channels from the CLI
+            if getattr(args, "override_channels", False):
+                merged = replace(
+                    merged,
+                    config=replace(merged.config, channels=cli_env.config.channels),
+                )
+            return merged, fpath_envs_map
+        return cli_env, {}
 
     @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:

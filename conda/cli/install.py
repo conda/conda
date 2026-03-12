@@ -361,7 +361,7 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    env = Environment.from_cli(
+    env, fpath_envs_map = Environment.from_cli(
         args=args,
         add_default_packages=command == "create" and not args.no_default_packages,
     )
@@ -449,21 +449,21 @@ def install(args, parser, command="install"):
         from ..env.installers.base import get_installer
         from ..env.pip_util import get_pip_workdir
 
-        for installer_type, pkg_specs in env.external_packages.items():
-            try:
-                installer = get_installer(installer_type)
-                if installer_type == "pip":
-                    workdir = get_pip_workdir(getattr(args, "file", None))
-                    installer.install(
-                        prefix, list(pkg_specs), args, env, workdir=workdir
+        external_envs = [(fpath, file_env) for fpath, file_env in fpath_envs_map.items() if file_env.external_packages]
+        for fpath, file_env in external_envs:
+            for installer_type, pkg_specs in file_env.external_packages.items():
+                try:
+                    installer = get_installer(installer_type)
+                    if installer_type == "pip":
+                        workdir = get_pip_workdir(fpath)
+                        installer.install(prefix, list(pkg_specs), args, file_env, workdir=workdir)
+                    else:
+                        installer.install(prefix, list(pkg_specs), args, file_env)
+                except InvalidInstaller:
+                    raise CondaError(
+                        f"Unable to install package for {installer_type} from environment file {fpath}. "
+                        "Please ensure your dependencies file has the correct spelling."
                     )
-                else:
-                    installer.install(prefix, list(pkg_specs), args, env)
-            except InvalidInstaller:
-                raise CondaError(
-                    f"Unable to install package for {installer_type}. "
-                    "Please ensure your dependencies file has the correct spelling."
-                )
 
         if env.variables:
             PrefixData(prefix).set_environment_env_vars(env.variables)
