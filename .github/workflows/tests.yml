@@ -118,7 +118,7 @@ env:
       ]
     }
   # TIP: hardcode selectors for focused CI debugging, but remember to revert before merging to main
-  # PYTEST_SUBSET:
+  PYTEST_SUBSET: tests/core/test_solve.py::test_strict_custom_multichannel_allows_fallback_to_later_subchannel
 
 jobs:
   # detect whether any code changes are included in this PR
