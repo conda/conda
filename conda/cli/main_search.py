@@ -75,12 +75,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         Search for a package with a specific software version and python version::
 
-            conda search 'numpy-base==2.4.2=py313*'
+            conda search 'numpy-base=2.4.2=py313*'
             conda search 'numpy-base[version="2.4.2",build=py313*]'
 
         Search for a package with a specific software version and build string::
 
-            conda search 'r-shiny==1.12.0=r45*'
+            conda search 'r-shiny=1.12.0=r45*'
             conda search 'r-shiny[version="1.12.0",build=r45*]'
 
         """
