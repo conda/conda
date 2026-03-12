@@ -7,15 +7,15 @@ import os.path as op
 from logging import getLogger
 
 from ...auxlib.compat import Utf8NamedTemporaryFile
-from ...env.pip_util import get_pip_installed_packages, pip_subprocess
+from ...env.pip_util import get_pip_installed_packages, get_pip_workdir, pip_subprocess
 from ...reporters import get_spinner
 
 log = getLogger(__name__)
 
 
-# NOTE: *_ absorbs (args, env) from callers. Required for interface consistency with
+# NOTE: *_ absorbs env from callers. Required for interface consistency with
 # other installers—do not remove; callers use the same pattern for all types.
-def _pip_install_via_requirements(prefix, specs, *_, workdir=None, **kwargs):
+def _pip_install_via_requirements(prefix, specs, args, *_, workdir=None, **kwargs):
     """
     Installs the pip dependencies in specs using a temporary pip requirements file.
 
@@ -34,6 +34,16 @@ def _pip_install_via_requirements(prefix, specs, *_, workdir=None, **kwargs):
       Caller should derive from the environment file path. None for URLs or when
       no file path is available.
     """
+
+    if workdir is None:
+        workdir = get_pip_workdir(args.file)
+        files = getattr(args, "file", None)
+        if isinstance(files, list) and len(files) > 1:
+            log.warning(
+                "Multiple environment files with pip dependencies: using workdir from "
+                "first file. Relative paths in other files may fail."
+            )
+
     requirements = None
     try:
         # Generate the temporary requirements file
