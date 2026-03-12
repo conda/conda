@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Common I/O utilities."""
 
+from __future__ import annotations
+
 import logging
 import os
 import signal
@@ -17,8 +19,13 @@ from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Lock
 from time import time
+from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Iterator
 
 from ..auxlib.decorators import memoizemethod
+
+if TYPE_CHECKING:
+    from logging import LogRecord
+
 from ..auxlib.logz import NullHandler
 from ..auxlib.type_coercion import boolify
 from ..common.serialize import json
@@ -43,11 +50,20 @@ class DeltaSecondsFormatter(Formatter):
         `logging` module but conveniently scaled to seconds as a `float` value.
     """
 
-    def __init__(self, fmt=None, datefmt=None):
+    def __init__(
+        self,
+        fmt: str | None = None,
+        datefmt: str | None = None,
+    ) -> None:
+        """Initialize the formatter with optional format strings.
+
+        :param fmt: Log message format string.
+        :param datefmt: Date format string.
+        """
         self.prev_time = time()
         super().__init__(fmt=fmt, datefmt=datefmt)
 
-    def format(self, record):
+    def format(self, record: LogRecord) -> str:
         now = time()
         prev_time = self.prev_time
         self.prev_time = max(self.prev_time, now)
@@ -67,7 +83,13 @@ else:
     )
 
 
-def dashlist(iterable, indent=2):
+def dashlist(iterable: Iterable[Any], indent: int = 2) -> str:
+    """Format an iterable as a dashed list with optional indentation.
+
+    :param iterable: Items to format.
+    :param indent: Number of spaces for indentation.
+    :returns: Formatted string with each item on a new line prefixed by ``- ``.
+    """
     return "".join("\n" + " " * indent + "- " + str(x) for x in iterable)
 
 
@@ -78,7 +100,7 @@ class ContextDecorator:
 
     # TODO: figure out how to improve this pattern so e.g. swallow_broken_pipe doesn't have to be instantiated
 
-    def __call__(self, f):
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def decorated(*args, **kwds):
             with self:
@@ -88,13 +110,17 @@ class ContextDecorator:
 
 
 class SwallowBrokenPipe(ContextDecorator):
-    # Ignore BrokenPipeError and errors related to stdout or stderr being
-    # closed by a downstream program.
+    """Ignore BrokenPipeError and errors related to stdout or stderr being closed by a downstream program."""
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         pass
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> bool | None:
         if (
             exc_val
             and isinstance(exc_val, EnvironmentError)
@@ -119,7 +145,17 @@ class CaptureTarget(Enum):
 
 @contextmanager
 @deprecated("26.9", "27.3")
-def env_vars(var_map=None, callback=None, stack_callback=None):
+def env_vars(
+    var_map: dict[str, str] | None = None,
+    callback: Callable[[], None] | None = None,
+    stack_callback: Callable[[bool], None] | None = None,
+) -> Generator[None, None, None]:
+    """Temporarily set environment variables.
+
+    :param var_map: Dictionary of environment variable names to values.
+    :param callback: Optional callback invoked when entering and exiting the context.
+    :param stack_callback: Optional callback invoked with True when entering, False when exiting.
+    """
     if var_map is None:
         var_map = {}
 
@@ -148,7 +184,19 @@ def env_vars(var_map=None, callback=None, stack_callback=None):
 
 @contextmanager
 @deprecated("26.9", "27.3")
-def env_var(name, value, callback=None, stack_callback=None):
+def env_var(
+    name: str,
+    value: str,
+    callback: Callable[[], None] | None = None,
+    stack_callback: Callable[[bool], None] | None = None,
+) -> Generator[None, None, None]:
+    """Temporarily set a single environment variable.
+
+    :param name: Environment variable name.
+    :param value: Environment variable value.
+    :param callback: Optional callback invoked when entering and exiting the context.
+    :param stack_callback: Optional callback invoked with True when entering, False when exiting.
+    """
     d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
         yield es
@@ -156,13 +204,22 @@ def env_var(name, value, callback=None, stack_callback=None):
 
 @contextmanager
 @deprecated("26.9", "27.3")
-def env_unmodified(callback=None):
+def env_unmodified(
+    callback: Callable[[], None] | None = None,
+) -> Generator[None, None, None]:
+    """Context manager that ensures environment variables are not modified.
+
+    :param callback: Optional callback invoked when entering and exiting the context.
+    """
     with env_vars(callback=callback) as es:
         yield es
 
 
 @contextmanager
-def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
+def captured(
+    stdout: CaptureTarget | None | Any = CaptureTarget.STRING,
+    stderr: CaptureTarget | None | Any = CaptureTarget.STRING,
+) -> Generator[Any, None, None]:
     r"""Capture outputs of sys.stdout and sys.stderr.
 
     If stdout is STRING, capture sys.stdout as a string,
@@ -257,7 +314,11 @@ def captured(stdout=CaptureTarget.STRING, stderr=CaptureTarget.STRING):
 
 
 @contextmanager
-def argv(args_list):
+def argv(args_list: list[str]) -> Generator[None, None, None]:
+    """Temporarily replace sys.argv with the given list.
+
+    :param args_list: List of arguments to use as sys.argv.
+    """
     saved_args = sys.argv
     sys.argv = args_list
     try:
@@ -268,7 +329,8 @@ def argv(args_list):
 
 @deprecated("25.9", "26.3", addendum="Use `logging._lock` instead.")
 @contextmanager
-def _logger_lock():
+def _logger_lock() -> Generator[None, None, None]:
+    """Context manager that acquires the logging module lock."""
     logging._acquireLock()
     try:
         yield
@@ -277,7 +339,11 @@ def _logger_lock():
 
 
 @contextmanager
-def disable_logger(logger_name):
+def disable_logger(logger_name: str) -> Generator[None, None, None]:
+    """Temporarily disable a logger by setting its level above CRITICAL.
+
+    :param logger_name: Name of the logger to disable.
+    """
     logr = getLogger(logger_name)
     _lvl, _dsbld, _prpgt = logr.level, logr.disabled, logr.propagate
     null_handler = NullHandler()
@@ -295,7 +361,15 @@ def disable_logger(logger_name):
 
 
 @contextmanager
-def stderr_log_level(level, logger_name=None):
+def stderr_log_level(
+    level: int,
+    logger_name: str | None = None,
+) -> Generator[None, None, None]:
+    """Temporarily set a logger to output to stderr at the given level.
+
+    :param level: Logging level (e.g., :const:`logging.INFO`).
+    :param logger_name: Name of the logger; if None, uses the root logger.
+    """
     logr = getLogger(logger_name)
     _hndlrs, _lvl, _dsbld, _prpgt = (
         logr.handlers,
@@ -321,12 +395,12 @@ def stderr_log_level(level, logger_name=None):
 
 
 def attach_stderr_handler(
-    level=WARN,
-    logger_name=None,
-    propagate=False,
-    formatter=None,
-    filters=None,
-):
+    level: int = WARN,
+    logger_name: str | None = None,
+    propagate: bool = False,
+    formatter: Formatter | None = None,
+    filters: Iterable[Any] | None = None,
+) -> None:
     """Attach a new `stderr` handler to the given logger and configure both.
 
     This function creates a new StreamHandler that writes to `stderr` and attaches it
@@ -365,9 +439,23 @@ def attach_stderr_handler(
         logr.propagate = propagate
 
 
-def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
+def timeout(
+    timeout_secs: int | float,
+    func: Callable[..., Any],
+    *args: Any,
+    default_return: Any = None,
+    **kwargs: Any,
+) -> Any:
     """Enforce a maximum time for a callable to complete.
+
     Not yet implemented on Windows.
+
+    :param timeout_secs: Maximum seconds to allow the callable to run.
+    :param func: Callable to execute.
+    :param args: Positional arguments to pass to the callable.
+    :param default_return: Value to return if timeout or KeyboardInterrupt occurs.
+    :param kwargs: Keyword arguments to pass to the callable.
+    :returns: Return value of the callable, or ``default_return`` on timeout/interrupt.
     """
     if on_win:
         # Why does Windows have to be so difficult all the time? Kind of gets old.
@@ -397,11 +485,13 @@ def timeout(timeout_secs, func, *args, default_return=None, **kwargs):
 
 # use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
 class DummyExecutor(Executor):
-    def __init__(self):
+    """Synchronous executor for debugging; executes tasks in the current thread."""
+
+    def __init__(self) -> None:
         self._shutdown = False
         self._shutdownLock = Lock()
 
-    def submit(self, fn, *args, **kwargs):
+    def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Future[Any]:
         with self._shutdownLock:
             if self._shutdown:
                 raise RuntimeError("cannot schedule new futures after shutdown")
@@ -416,21 +506,28 @@ class DummyExecutor(Executor):
 
             return f
 
-    def map(self, func, *iterables):
+    def map(
+        self,
+        func: Callable[..., Any],
+        *iterables: Iterable[Any],
+    ) -> Iterator[Any]:
+        """Map function over iterables, yielding results one at a time."""
         for iterable in iterables:
             for thing in iterable:
                 yield func(thing)
 
-    def shutdown(self, wait=True):
+    def shutdown(self, wait: bool = True) -> None:
         with self._shutdownLock:
             self._shutdown = True
 
 
 class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
-    def __init__(self, max_workers=10):
+    """Thread pool executor that gracefully handles thread creation limits."""
+
+    def __init__(self, max_workers: int = 10) -> None:
         super().__init__(max_workers)
 
-    def _adjust_thread_count(self):
+    def _adjust_thread_count(self) -> None:
         try:
             return super()._adjust_thread_count()
         except RuntimeError:
@@ -447,7 +544,11 @@ class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
 as_completed = as_completed
 
 
-def get_instrumentation_record_file():
+def get_instrumentation_record_file() -> str:
+    """Return the path to the instrumentation record file.
+
+    :returns: Expanded path from ``CONDA_INSTRUMENTATION_RECORD_FILE`` or default location.
+    """
     default_record_file = join("~", ".conda", "instrumentation-record.csv")
     return expand(
         os.environ.get("CONDA_INSTRUMENTATION_RECORD_FILE", default_record_file)
@@ -455,16 +556,22 @@ def get_instrumentation_record_file():
 
 
 class time_recorder(ContextDecorator):  # pragma: no cover
-    record_file = get_instrumentation_record_file()
-    start_time = None
-    total_call_num = defaultdict(int)
-    total_run_time = defaultdict(float)
+    """Context decorator for recording execution times to a CSV file."""
 
-    def __init__(self, entry_name=None, module_name=None):
+    record_file = get_instrumentation_record_file()
+    start_time: float | None = None
+    total_call_num: dict[str, int] = defaultdict(int)
+    total_run_time: dict[str, float] = defaultdict(float)
+
+    def __init__(
+        self,
+        entry_name: str | None = None,
+        module_name: str | None = None,
+    ) -> None:
         self.entry_name = entry_name
         self.module_name = module_name
 
-    def _set_entry_name(self, f):
+    def _set_entry_name(self, f: Callable[..., Any]) -> None:
         if self.entry_name is None:
             if hasattr(f, "__qualname__"):
                 entry_name = f.__qualname__
@@ -474,17 +581,22 @@ class time_recorder(ContextDecorator):  # pragma: no cover
                 entry_name = ".".join((self.module_name, entry_name))
             self.entry_name = entry_name
 
-    def __call__(self, f):
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         self._set_entry_name(f)
         return super().__call__(f)
 
-    def __enter__(self):
+    def __enter__(self) -> time_recorder:
         enabled = os.environ.get("CONDA_INSTRUMENTATION_ENABLED")
         if enabled and boolify(enabled):
             self.start_time = time()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
         if self.start_time:
             entry_name = self.entry_name
             end_time = time()
@@ -499,7 +611,7 @@ class time_recorder(ContextDecorator):  # pragma: no cover
             # log.debug('%s %9.3f %9.3f %d', entry_name, run_time, total_run_time, total_call_num)
 
     @classmethod
-    def log_totals(cls):
+    def log_totals(cls) -> None:
         enabled = os.environ.get("CONDA_INSTRUMENTATION_ENABLED")
         if not (enabled and boolify(enabled)):
             return
@@ -513,12 +625,13 @@ class time_recorder(ContextDecorator):  # pragma: no cover
             )
 
     @memoizemethod
-    def _ensure_dir(self):
+    def _ensure_dir(self) -> None:
         if not isdir(dirname(self.record_file)):
             os.makedirs(dirname(self.record_file))
 
 
-def print_instrumentation_data():  # pragma: no cover
+def print_instrumentation_data() -> None:  # pragma: no cover
+    """Print aggregated instrumentation data from the record file as JSON."""
     record_file = get_instrumentation_record_file()
 
     grouped_data = defaultdict(list)
