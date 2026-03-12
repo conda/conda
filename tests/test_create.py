@@ -2717,6 +2717,24 @@ def test_create_with_clone_and_file_raises_argument_error(
     )
 
 
+def test_create_multiple_files_requires_name_or_prefix(
+    conda_cli: CondaCLIFixture,
+):
+    """Multiple --file arguments require explicit -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="Please provide -n/--name or -p/--prefix when using multiple",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("simple.yml"),
+            "--file",
+            support_file("empty_deps.yml"),
+            "--yes",
+        )
+
+
 def test_create_dry_run_with_yaml_file(
     path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,

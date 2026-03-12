@@ -117,6 +117,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_environment_files_consistency(args.file)
 
     if not args.name and not args.prefix:
+        if args.file and len(args.file) > 1:
+            raise ArgumentError(
+                "Multiple environment files were specified but no name or prefix was provided. "
+                "Please provide -n/--name or -p/--prefix when using multiple --file arguments."
+            )
         if args.file:
             name, prefix = get_name_prefix_from_env_files(args.file)
             if name is not None:
@@ -126,14 +131,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
         if args.name is not None or args.prefix is not None:
             context.__init__(argparse_args=args)
-        elif context.dry_run or context.download_only:
-            args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
-            context.__init__(argparse_args=args)
         elif args.file:
             raise ArgumentError(
                 "The environment file(s) do not specify a name or prefix. "
                 "Please provide one via -n/--name or -p/--prefix."
             )
+        elif context.dry_run or context.download_only:
+            args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
+            context.__init__(argparse_args=args)
         else:
             raise ArgumentError(
                 "one of the arguments -n/--name -p/--prefix is required"
