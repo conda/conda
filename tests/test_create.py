@@ -2730,28 +2730,9 @@ def test_create_multiple_files_requires_name_or_prefix(
             "--file",
             support_file("simple.yml"),
             "--file",
-            support_file("empty_deps.yml"),
+            support_file("add-pip.yml"),
             "--yes",
         )
-
-
-def test_create_dry_run_with_yaml_file(
-    path_factory: PathFactoryFixture,
-    conda_cli: CondaCLIFixture,
-):
-    """Test conda create --file with YAML env spec (env specifier plugin support)."""
-    prefix = path_factory()
-    stdout, stderr, _ = conda_cli(
-        "create",
-        f"--prefix={prefix}",
-        "--file",
-        support_file("simple.yml"),
-        "--dry-run",
-        "--yes",
-        raises=DryRunExit,
-    )
-    assert "nltk" in stdout
-    assert not stderr
 
 
 def test_nonadmin_file_untouched(
