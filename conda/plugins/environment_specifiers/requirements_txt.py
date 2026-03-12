@@ -18,4 +18,6 @@ def conda_environment_specifiers():
         aliases=("requirements", "reqs"),
         environment_spec=RequirementsSpec,
         default_filenames=("requirements.txt", "spec.txt"),
+        description="Simple text file with package specifications",
+        is_lockfile=False,
     )

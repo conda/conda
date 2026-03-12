@@ -214,12 +214,16 @@ class Exporters:
             aliases=(),
             default_filenames=(),
             export=self.single_platform_export,
+            description="Test single-platform exporter",
+            is_lockfile=False,
         )
         yield CondaEnvironmentExporter(
             name="test-multi-platform",
             aliases=(),
             default_filenames=(),
             multiplatform_export=self.multi_platform_export,
+            description="Test multi-platform exporter",
+            is_lockfile=False,
         )
 
 

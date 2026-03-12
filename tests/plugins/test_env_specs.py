@@ -579,3 +579,54 @@ def test_alias_and_name_collision_detect(
 
     with pytest.raises(PluginError):
         plugin_manager.detect_environment_specifier("something.random")
+
+
+@pytest.mark.parametrize(
+    "spec_name,expected_description,expected_is_lockfile",
+    [
+        (
+            "environment.yml",
+            "Standard YAML environment specification with dependencies",
+            False,
+        ),
+        (
+            "explicit",
+            "Explicit package URLs for fully reproducible environments",
+            True,
+        ),
+        (
+            "requirements.txt",
+            "Simple text file with package specifications",
+            False,
+        ),
+        (
+            "cep-24",
+            "CEP-24 compliant YAML environment specification",
+            False,
+        ),
+    ],
+)
+def test_builtin_specifiers_have_metadata(
+    plugin_manager_with_specifiers,
+    spec_name: str,
+    expected_description: str,
+    expected_is_lockfile: bool,
+):
+    """Test that all built-in specifiers have meaningful descriptions and correct lockfile classification."""
+    # Get all environment specifiers (returns a dict)
+    specifiers = plugin_manager_with_specifiers.get_environment_specifiers()
+
+    # Get the specifier by name (it's the key in the dict)
+    specifier = specifiers.get(spec_name)
+
+    assert specifier is not None, f"Specifier {spec_name} not found"
+
+    # Verify description is meaningful (not just the name)
+    assert specifier.description is not None
+    assert specifier.description == expected_description
+    assert (
+        specifier.description != spec_name
+    )  # Should be more descriptive than just the name
+
+    # Verify lockfile classification
+    assert specifier.is_lockfile == expected_is_lockfile
