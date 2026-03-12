@@ -127,6 +127,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
+    from ..common.constants import NULL
+    from ..core.prefix_data import PrefixData
     from ..exceptions import CondaValueError
     from .common import validate_environment_files_consistency
     from .install import get_revision, install, install_revision
@@ -150,6 +152,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         raise CondaValueError(
             "too many arguments, must supply one of command line packages, --file or --revision"
         )
+
+    # Allow setting only the environment description (no packages)
+    if (
+        not (args.file or args.packages or args.revision)
+        and getattr(args, "description", NULL) is not NULL
+    ):
+        PrefixData(context.target_prefix).set_description(args.description)
+        return 0
 
     # Ensure provided combination of command line arguments are valid
     if args.revision:

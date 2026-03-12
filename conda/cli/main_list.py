@@ -291,6 +291,16 @@ def list_packages(
         result = [
             f"# packages in environment at {prefix}:",
         ]
+        # Env meta: description, created, last_modified (from conda-meta)
+        if prefix_data.description:
+            indent = "# description: "
+            for line in prefix_data.description.splitlines():
+                result.append(f"{indent}{line}")
+                indent = "#              "
+        if prefix_data.created:
+            result.append(f"# created: {prefix_data.created.isoformat()}")
+        if prefix_data.last_modified:
+            result.append(f"# last modified: {prefix_data.last_modified.isoformat()}")
         if show_size:
             env_size = human_bytes(prefix_data.size())
             result.append(f"# environment size: {env_size}")

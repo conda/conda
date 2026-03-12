@@ -21,6 +21,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
             conda env list
             conda env list --json
             conda env list --size
+            conda env list --descriptions
 
         """
     )
@@ -39,6 +40,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Show conda-managed disk usage for each environment (excludes untracked files created after installation).",
     )
+    p.add_argument(
+        "--descriptions",
+        action="store_true",
+        help="Show environment descriptions from conda-meta/description.txt (if set).",
+    )
 
     p.set_defaults(
         func="conda.cli.main_info.execute",
@@ -48,6 +54,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         unsafe_channels=False,
         system=False,
         all=False,
+        descriptions=False,
     )
 
     return p
