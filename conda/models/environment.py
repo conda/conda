@@ -511,7 +511,6 @@ class Environment:
             envs_from_file.append(spec.env)
             fpath_envs_map[fpath] = spec.env
 
-
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any
         # version constraint from the default package).
@@ -573,7 +572,8 @@ class Environment:
                     config=replace(merged.config, channels=cli_env.config.channels),
                 )
             return merged, fpath_envs_map
-        return cli_env, {}
+        return cli_env, fpath_envs_map
+
 
     @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:

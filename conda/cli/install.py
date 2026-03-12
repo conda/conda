@@ -449,14 +449,20 @@ def install(args, parser, command="install"):
         from ..env.installers.base import get_installer
         from ..env.pip_util import get_pip_workdir
 
-        external_envs = [(fpath, file_env) for fpath, file_env in fpath_envs_map.items() if file_env.external_packages]
+        external_envs = [
+            (fpath, file_env)
+            for fpath, file_env in fpath_envs_map.items()
+            if file_env.external_packages
+        ]
         for fpath, file_env in external_envs:
             for installer_type, pkg_specs in file_env.external_packages.items():
                 try:
                     installer = get_installer(installer_type)
                     if installer_type == "pip":
                         workdir = get_pip_workdir(fpath)
-                        installer.install(prefix, list(pkg_specs), args, file_env, workdir=workdir)
+                        installer.install(
+                            prefix, list(pkg_specs), args, file_env, workdir=workdir
+                        )
                     else:
                         installer.install(prefix, list(pkg_specs), args, file_env)
                 except InvalidInstaller:
