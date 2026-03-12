@@ -20,17 +20,13 @@ from ..gateways.subprocess import any_subprocess
 log = getLogger(__name__)
 
 
-def get_pip_workdir(file_path: str | list | None) -> str | None:
+def get_pip_workdir(file_path: str | None) -> str | None:
     """
     Derive the working directory for pip install when resolving relative paths
     in requirements (e.g. -e ./local_pkg).
 
     Returns None for URLs or when no usable path is provided.
     """
-    if file_path is None:
-        return None
-    if isinstance(file_path, list):
-        file_path = file_path[0] if file_path else None
     if not file_path:
         return None
     url_scheme = file_path.split("://", 1)[0]
