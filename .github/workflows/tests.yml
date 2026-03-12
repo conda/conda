@@ -114,7 +114,9 @@ jobs:
         with:
           # Use faster GNU tar for all runners
           enableCrossOsArchive: true
-          path: D:\conda_pkgs_dir
+          path: |
+            D:\conda_pkgs_dir\*.tar.bz2
+            D:\conda_pkgs_dir\*.conda
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
@@ -248,7 +250,9 @@ jobs:
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: ~/conda_pkgs_dir
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
@@ -343,7 +347,9 @@ jobs:
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: ~/conda_pkgs_dir
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
@@ -408,7 +414,9 @@ jobs:
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: ~/conda_pkgs_dir
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
@@ -555,7 +563,9 @@ jobs:
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: ~/conda_pkgs_dir
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
@@ -644,7 +654,9 @@ jobs:
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: ~/conda_pkgs_dir
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
@@ -894,7 +906,9 @@ jobs:
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: ~/conda_pkgs_dir
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
           key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
