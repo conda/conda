@@ -15,8 +15,6 @@ from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
 
-from boltons.setutils import IndexedSet
-
 from ..base.constants import (
     REPODATA_FN,
     RESERVED_ENV_NAMES,
@@ -540,7 +538,7 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
     if not_found_in_index_specs:
         raise PackagesNotFoundError(not_found_in_index_specs)
 
-    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
+    final_precs = tuple(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
     setup = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
     return UnlinkLinkTransaction(setup)

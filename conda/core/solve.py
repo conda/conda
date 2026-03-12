@@ -11,8 +11,6 @@ from logging import DEBUG, getLogger
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
-
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
@@ -22,6 +20,7 @@ from ..base.context import context
 from ..common.constants import NULL, TRACE
 from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
+from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
     NoChannelsConfiguredError,
@@ -48,7 +47,7 @@ except ImportError:
     from ..auxlib.collection import frozendict
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from ..models.records import PackageRecord
 
@@ -95,8 +94,8 @@ class Solver:
         """
         self.prefix = prefix
         self._channels = channels or context.channels
-        self.channels = IndexedSet(Channel(c) for c in self._channels)
-        self.subdirs = tuple(s for s in subdirs or context.subdirs)
+        self.channels = tuple(unique(Channel(c) for c in self._channels))
+        self.subdirs = tuple(subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
@@ -122,7 +121,7 @@ class Solver:
         force_remove=NULL,
         force_reinstall=NULL,
         should_retry_solve=False,
-    ):
+    ) -> UnlinkLinkTransaction:
         """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
@@ -261,7 +260,7 @@ class Solver:
         ignore_pinned=NULL,
         force_remove=NULL,
         should_retry_solve=False,
-    ):
+    ) -> tuple[PackageRecord, ...]:
         """Gives the final, solved state of the environment.
 
         Args:
@@ -293,7 +292,7 @@ class Solver:
                 whether to call find_conflicts (slow) in ssc.r.solve
 
         Returns:
-            tuple[PackageRef]:
+            tuple[PackageRecord, ...]:
                 In sorted dependency order from roots to leaves, the package references for
                 the solved state of the environment.
 
@@ -355,7 +354,7 @@ class Solver:
                 for prec in ssc.solution_precs
                 if not any(spec.match(prec) for spec in self.specs_to_remove)
             )
-            return IndexedSet(PrefixGraph(solution).graph)
+            return tuple(PrefixGraph(solution).graph)
 
         # Check if specs are satisfied by current environment. If they are, exit early.
         if (
@@ -369,7 +368,7 @@ class Solver:
             else:
                 # All specs match a package in the current environment.
                 # Return early, with a solution that should just be PrefixData().iter_records()
-                return IndexedSet(PrefixGraph(ssc.solution_precs).graph)
+                return tuple(PrefixGraph(ssc.solution_precs).graph)
 
         if not ssc.r:
             with get_spinner(f"Collecting package metadata ({self._repodata_fn})"):
@@ -432,7 +431,7 @@ class Solver:
 
         time_recorder.log_totals()
 
-        ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
+        ssc.solution_precs = tuple(PrefixGraph(ssc.solution_precs).graph)
         log.debug(
             "solved prefix %s\n  solved_linked_dists:\n    %s\n",
             self.prefix,
@@ -975,7 +974,7 @@ class Solver:
 
     @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
-        final_environment_specs = IndexedSet(
+        final_environment_specs = dict.fromkeys(
             (
                 *ssc.specs_map.values(),
                 *ssc.track_features_specs,
@@ -988,7 +987,7 @@ class Solver:
             raise PackagesNotFoundError(absent_specs)
 
         # We've previously checked `solution` for consistency (which at that point was the
-        # pre-solve state of the environment). Now we check our compiled set of
+        # pre-solve state of the environment). Now we check our compiled list of
         # `final_environment_specs` for the possibility of a solution.  If there are conflicts,
         # we can often avoid them by neutering specs that have a target (e.g. removing version
         # constraint) and also making them optional. The result here will be less cases of
@@ -1041,12 +1040,12 @@ class Solver:
             for spec in conflicting_specs:
                 if spec.target and not spec.optional:
                     specs_modified = True
-                    final_environment_specs.remove(spec)
+                    final_environment_specs.pop(spec, None)
                     if spec.get("version"):
                         neutered_spec = MatchSpec(spec.name, version=spec.version)
                     else:
                         neutered_spec = MatchSpec(spec.name)
-                    final_environment_specs.add(neutered_spec)
+                    final_environment_specs.setdefault(neutered_spec)
                     ssc.specs_map[spec.name] = neutered_spec
             if specs_modified:
                 conflicting_specs = set(
@@ -1098,9 +1097,9 @@ class Solver:
                         _ for _ in ssc.solution_precs if _.name != name
                     ]
                     ssc.solution_precs.append(prec)
-                    final_environment_specs.add(spec)
+                    final_environment_specs.setdefault(spec)
 
-        ssc.final_environment_specs = final_environment_specs
+        ssc.final_environment_specs = tuple(final_environment_specs)
         return ssc
 
     def _post_sat_handling(self, ssc):
@@ -1113,11 +1112,12 @@ class Solver:
             #
             # Help information notes that use of NO_DEPS is expected to lead to broken
             # environments.
-            _no_deps_solution = IndexedSet(ssc.prefix_data.iter_records())
+            starting_records = tuple(ssc.prefix_data.iter_records())
+            _no_deps_solution = set(starting_records)
             only_remove_these = {
                 prec
                 for spec in self.specs_to_remove
-                for prec in _no_deps_solution
+                for prec in starting_records
                 if spec.match(prec)
             }
             _no_deps_solution -= only_remove_these
@@ -1129,13 +1129,13 @@ class Solver:
                 if spec.match(prec)
             }
             remove_before_adding_back = {prec.name for prec in only_add_these}
-            _no_deps_solution = IndexedSet(
+            _no_deps_solution = set(
                 prec
                 for prec in _no_deps_solution
                 if prec.name not in remove_before_adding_back
             )
             _no_deps_solution |= only_add_these
-            ssc.solution_precs = _no_deps_solution
+            ssc.solution_precs = tuple(PrefixGraph(_no_deps_solution).graph)
 
             # TODO: check if solution is satisfiable, and emit warning if it's not
 
@@ -1294,14 +1294,14 @@ class Solver:
             #  is given by PrefixData(self.prefix).all_subdir_urls().  However that causes
             #  usability problems with bad / expired tokens.
 
-            additional_channels = set()
+            additional_channels = {}
             for spec in self.specs_to_add:
                 # TODO: correct handling for subdir isn't yet done
                 channel = spec.get_exact_value("channel")
-                if channel:
-                    additional_channels.add(Channel(channel))
+                if channel and channel not in self.channels:
+                    additional_channels.setdefault(Channel(channel))
 
-            self.channels.update(additional_channels)
+            self.channels = (*self.channels, *additional_channels)
 
             self._prepared_specs = prepared_specs
             self._index = reduced_index = ReducedIndex(
@@ -1412,24 +1412,22 @@ def get_pinned_specs(prefix: str) -> tuple[MatchSpec]:
 
 def diff_for_unlink_link_precs(
     prefix,
-    final_precs,
-    specs_to_add=(),
+    final_precs: Sequence[PackageRecord],
+    specs_to_add: Iterable[MatchSpec] = (),
     force_reinstall=NULL,
 ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
-    # Ensure final_precs supports the IndexedSet interface
-    if not isinstance(final_precs, IndexedSet):
-        if not hasattr(final_precs, "__getitem__"):
-            raise TypeError("final_precs must support list indexing")
-        if not hasattr(final_precs, "__sub__"):
-            raise TypeError("final_precs must support set difference")
-
-    previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    final_precs_set = set(final_precs)
+    # This one is toposorted:
+    previous_records = tuple(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    previous_records_set = set(previous_records)
     force_reinstall = (
         context.force_reinstall if force_reinstall is NULL else force_reinstall
     )
 
-    unlink_precs = previous_records - final_precs
-    link_precs = final_precs - previous_records
+    # These "lose" order here, but it's ok, we'll sort them later using their
+    # position in the original sorted collections defined above
+    unlink_precs: set[PackageRecord] = previous_records_set - final_precs_set
+    link_precs: set[PackageRecord] = final_precs_set - previous_records_set
 
     def _add_to_unlink_and_link(rec):
         link_precs.add(rec)
@@ -1461,8 +1459,8 @@ def diff_for_unlink_link_precs(
         for prec in noarch_python_precs:
             _add_to_unlink_and_link(prec)
 
-    unlink_precs = IndexedSet(
+    unlink_precs = tuple(
         reversed(sorted(unlink_precs, key=lambda x: previous_records.index(x)))
     )
-    link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
-    return tuple(unlink_precs), tuple(link_precs)
+    link_precs = tuple(sorted(link_precs, key=lambda x: final_precs.index(x)))
+    return unlink_precs, link_precs
