@@ -368,7 +368,10 @@ Use the terminal for the following steps:
      conda install --name myenv --file spec-file.txt
 
    The ``--file`` option also supports YAML and other
-   formats via environment specifier plugins.
+   formats via environment specifier plugins. For ``conda install``
+   (and ``conda update``), only the package list is used; any name
+   or prefix in the file is ignored. Packages are installed into
+   the target environment (-n/-p or the current environment).
 
    Conda does not check architecture or dependencies when installing
    from a spec file. To ensure that the packages work correctly,

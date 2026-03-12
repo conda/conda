@@ -53,6 +53,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         (e.g. ./lxml-3.2.0-py27_0.tar.bz2). Using conda in this mode implies the
         --no-deps option, and should likewise be used with great caution. Explicit
         filenames and package specifications cannot be mixed in a single command.
+
+        When using --file, only the package list from the file is used. Any name
+        or prefix in the file (e.g. in environment.yml) is ignored; packages are
+        installed into the target environment (-n/-p or the current environment).
         """
     )
     epilog = dals(
