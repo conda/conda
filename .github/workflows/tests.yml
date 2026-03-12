@@ -32,6 +32,93 @@ concurrency:
 env:
   # https://conda.github.io/conda-libmamba-solver/user-guide/configuration/#advanced-options
   CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
+  # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
+  WINDOWS_MATRIX_FULL: |-
+    {
+      "runs-on": ["windows-latest"],
+      "python-version": ["3.10", "3.14"],
+      "default-channel": ["defaults", "conda-forge"],
+      "test-type": ["unit", "integration"],
+      "test-group": [1, 2, 3],
+      "exclude": [
+        {"default-channel": "conda-forge", "python-version": "3.10"},
+        {"test-type": "unit", "test-group": 3}
+      ]
+    }
+  WINDOWS_MATRIX_SUBSET: |-
+    {
+      "include": [
+        {
+          "runs-on": "windows-latest",
+          "python-version": "3.14",
+          "default-channel": "defaults",
+          "test-type": "integration",
+          "test-group": 1
+        }
+      ]
+    }
+  # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
+  LINUX_MATRIX_FULL: |-
+    {
+      "runs-on": ["ubuntu-latest", "ubuntu-24.04-arm"],
+      "python-version": ["3.10", "3.11", "3.12", "3.13", "3.14"],
+      "default-channel": ["defaults", "conda-forge"],
+      "test-type": ["unit", "integration"],
+      "test-group": [1, 2, 3],
+      "exclude": [
+        {"python-version": "3.10", "default-channel": "conda-forge"},
+        {"python-version": "3.11", "default-channel": "conda-forge"},
+        {"python-version": "3.12", "default-channel": "conda-forge"},
+        {"test-type": "unit", "test-group": 3},
+        {"runs-on": "ubuntu-24.04-arm", "python-version": "3.10"},
+        {"runs-on": "ubuntu-24.04-arm", "python-version": "3.11"},
+        {"runs-on": "ubuntu-24.04-arm", "python-version": "3.12"}
+      ]
+    }
+  LINUX_MATRIX_SUBSET: |-
+    {
+      "include": [
+        {
+          "runs-on": "ubuntu-latest",
+          "python-version": "3.14",
+          "default-channel": "defaults",
+          "test-type": "integration",
+          "test-group": 1
+        }
+      ]
+    }
+  # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & defaults & integration tests)
+  MACOS_MATRIX_FULL: |-
+    {
+      "runs-on": ["macos-15-intel", "macos-latest"],
+      "python-version": ["3.10", "3.14"],
+      "default-channel": ["defaults", "conda-forge"],
+      "test-type": ["unit", "integration"],
+      "test-group": [1, 2, 3],
+      "exclude": [
+        {"runs-on": "macos-15-intel", "python-version": "3.14"},
+        {"runs-on": "macos-15-intel", "default-channel": "defaults"},
+        {"runs-on": "macos-15-intel", "test-type": "integration"},
+        {"runs-on": "macos-latest", "python-version": "3.10"},
+        {"runs-on": "macos-latest", "default-channel": "conda-forge"},
+        {"runs-on": "macos-latest", "test-type": "unit"},
+        {"test-type": "unit", "test-group": 3}
+      ]
+    }
+  MACOS_MATRIX_SUBSET: |-
+    {
+      "include": [
+        {
+          "runs-on": "macos-latest",
+          "python-version": "3.14",
+          "default-channel": "defaults",
+          "test-type": "integration",
+          "test-group": 1
+        }
+      ]
+    }
+  # TIP: hardcode selectors for focused CI debugging, but remember to revert before merging to main
+  # PYTEST_SUBSET:
 
 jobs:
   # detect whether any code changes are included in this PR
@@ -45,6 +132,10 @@ jobs:
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      pytest_subset: ${{ steps.subset.outputs.selectors }}
+      windows_matrix: ${{ steps.matrices.outputs.windows_matrix }}
+      linux_matrix: ${{ steps.matrices.outputs.linux_matrix }}
+      macos_matrix: ${{ steps.matrices.outputs.macos_matrix }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -65,6 +156,41 @@ jobs:
               - 'recipe/**'
               - '.github/workflows/tests.yml'
 
+      - name: Capture Pytest Subset
+        id: subset
+        shell: bash
+        run: |
+          {
+            echo "selectors<<EOF"
+            echo "${PYTEST_SUBSET}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Select Test Matrices
+        id: matrices
+        shell: bash
+        run: |
+          if [[ -n "${PYTEST_SUBSET}" ]]; then
+            windows_matrix="${WINDOWS_MATRIX_SUBSET}"
+            linux_matrix="${LINUX_MATRIX_SUBSET}"
+            macos_matrix="${MACOS_MATRIX_SUBSET}"
+          else
+            windows_matrix="${WINDOWS_MATRIX_FULL}"
+            linux_matrix="${LINUX_MATRIX_FULL}"
+            macos_matrix="${MACOS_MATRIX_FULL}"
+          fi
+          {
+            echo "windows_matrix<<EOF"
+            echo "${windows_matrix}"
+            echo "EOF"
+            echo "linux_matrix<<EOF"
+            echo "${linux_matrix}"
+            echo "EOF"
+            echo "macos_matrix<<EOF"
+            echo "${macos_matrix}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
   # windows test suite
   windows:
     # only run test suite if there are code changes
@@ -76,17 +202,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       fail-fast: false
-      matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        python-version: ['3.10', '3.14']
-        default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
-        test-group: [1, 2, 3]
-        exclude:
-          - default-channel: conda-forge
-            python-version: '3.10'
-          - test-type: unit
-            test-group: 3
+      matrix: ${{ fromJSON(needs.changes.outputs.windows_matrix) }}
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
@@ -164,7 +280,18 @@ jobs:
           Get-Command -All powershell
           "$env:PWSHPATH" -split ";" | ForEach-Object { Get-Command -All "$_\pwsh" }
 
-      - name: Run Tests
+      - name: Run Tests (Subset)
+        if: needs.changes.outputs.pytest_subset != ''
+        # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
+        # keep the test directories shorter
+        run: >
+          python -m pytest
+          --cov=conda
+          --basetemp=${{ runner.temp }}
+          @("${{ needs.changes.outputs.pytest_subset }}" -split '\s+' | Where-Object { $_ })
+
+      - name: Run Tests (Full Suite)
+        if: needs.changes.outputs.pytest_subset == ''
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
         run: >
@@ -209,30 +336,7 @@ jobs:
         shell: bash -el {0}  # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
-      matrix:
-        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
-        runs-on:
-          - ubuntu-latest  # linux-64
-          - ubuntu-24.04-arm  # linux-aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
-        default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
-        test-group: [1, 2, 3]
-        exclude:
-          - python-version: '3.10'
-            default-channel: conda-forge
-          - python-version: '3.11'
-            default-channel: conda-forge
-          - python-version: '3.12'
-            default-channel: conda-forge
-          - test-type: unit
-            test-group: 3
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.10'
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.11'
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.12'
+      matrix: ${{ fromJSON(needs.changes.outputs.linux_matrix) }}
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -292,7 +396,15 @@ jobs:
           # Initialize all shells
           python -m conda init --all
 
-      - name: Run Tests
+      - name: Run Tests (Subset)
+        if: needs.changes.outputs.pytest_subset != ''
+        run: >
+          python -m pytest
+          --cov=conda
+          ${{ needs.changes.outputs.pytest_subset }}
+
+      - name: Run Tests (Full Suite)
+        if: needs.changes.outputs.pytest_subset == ''
         run: >
           python -m pytest
           --cov=conda
@@ -323,7 +435,7 @@ jobs:
   linux-benchmarks:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.pytest_subset == ''
 
     runs-on: ubuntu-22.04
     defaults:
@@ -390,7 +502,7 @@ jobs:
   linux-typing:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.pytest_subset == ''
 
     runs-on: ubuntu-22.04
     defaults:
@@ -479,8 +591,10 @@ jobs:
     # only run test suite if there are code changes
     needs: changes
     if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+      (
+        (!github.event.repository.fork && github.event_name == 'schedule')
+        || (needs.changes.outputs.code == 'true' && needs.changes.outputs.pytest_subset == '')
+      )
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -539,7 +653,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.pytest_subset == ''
 
     runs-on: ubuntu-latest
     defaults:
@@ -613,30 +727,7 @@ jobs:
         shell: bash -el {0}  # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
-      matrix:
-        # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & defaults & integration tests)
-        runs-on:
-          - macos-15-intel  # osx-64
-          - macos-latest  # osx-arm64
-        python-version: ['3.10', '3.14']
-        default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
-        test-group: [1, 2, 3]
-        exclude:
-          - runs-on: macos-15-intel
-            python-version: '3.14'
-          - runs-on: macos-15-intel
-            default-channel: defaults
-          - runs-on: macos-15-intel
-            test-type: integration
-          - runs-on: macos-latest
-            python-version: '3.10'
-          - runs-on: macos-latest
-            default-channel: conda-forge
-          - runs-on: macos-latest
-            test-type: unit
-          - test-type: unit
-            test-group: 3
+      matrix: ${{ fromJSON(needs.changes.outputs.macos_matrix) }}
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -691,7 +782,15 @@ jobs:
         if: matrix.test-type == 'integration'
         run: brew update && brew install fish xonsh
 
-      - name: Run Tests
+      - name: Run Tests (Subset)
+        if: needs.changes.outputs.pytest_subset != ''
+        run: >
+          python -m pytest
+          --cov=conda
+          ${{ needs.changes.outputs.pytest_subset }}
+
+      - name: Run Tests (Full Suite)
+        if: needs.changes.outputs.pytest_subset == ''
         run: >
           python -m pytest
           --cov=conda
@@ -726,7 +825,7 @@ jobs:
       !cancelled()
       && (
         (!github.event.repository.fork && github.event_name == 'schedule')
-        || needs.changes.outputs.code == 'true'
+        || (needs.changes.outputs.code == 'true' && needs.changes.outputs.pytest_subset == '')
       )
 
     runs-on: ubuntu-latest
@@ -871,7 +970,7 @@ jobs:
   downstream:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.pytest_subset == ''
 
     runs-on: ubuntu-latest
     defaults:
