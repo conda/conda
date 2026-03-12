@@ -129,8 +129,8 @@ def test_environments_merge():
             "two",
         ),
         channels=(
-            "defaults",
             "conda-forge",
+            "defaults",
         ),
         channel_settings=(
             {"channel": "one", "a": 1},
@@ -261,6 +261,52 @@ def test_merge_configs_primitive_none_values_order():
     assert result.use_only_tar_bz2 is True
 
 
+def test_merge_configs_channel_order_last_wins():
+    """Later config's channels take precedence (e.g. conda create -f env.yaml -c conda-forge)."""
+    file_config = EnvironmentConfig(channels=("defaults",))
+    cli_config = EnvironmentConfig(channels=("conda-forge", "defaults"))
+    result = EnvironmentConfig.merge(file_config, cli_config)
+    assert result.channels == ("conda-forge", "defaults")
+
+
+def test_from_cli_override_channels_excludes_file_channels(mocker: MockerFixture):
+    """conda create -f env.yaml -c conda-forge --override-channels uses only -c channels.
+
+    File channels are excluded when override_channels is set.
+    """
+    file_env = Environment(
+        prefix="/path",
+        platform=context.subdir,
+        requested_packages=[MatchSpec("numpy")],
+        explicit_packages=[],
+        config=EnvironmentConfig(channels=("defaults", "my-channel")),
+    )
+    mock_spec = SimpleNamespace(
+        environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+    )
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=mock_spec,
+    )
+
+    cli_config = EnvironmentConfig(channels=("conda-forge",))
+    mocker.patch(
+        "conda.models.environment.EnvironmentConfig.from_context",
+        return_value=cli_config,
+    )
+
+    env, _ = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=[],
+            file=["/some/env.yaml"],
+            override_channels=True,
+        ),
+        add_default_packages=False,
+    )
+    assert env.config.channels == ("conda-forge",)
+
+
 def test_merge_configs_deduplicate_values():
     config1 = EnvironmentConfig(
         channels=(
@@ -291,10 +337,10 @@ def test_merge_configs_deduplicate_values():
 
     result = EnvironmentConfig.merge(config1, config2, config3)
     assert result.channels == (
-        "defaults",
         "conda-forge",
-        "my-channel",
         "b-channel",
+        "defaults",
+        "my-channel",
     )
     assert result.disallowed_packages == ("a",)
     assert result.pinned_packages == ("b",)

@@ -108,6 +108,7 @@ class EnvironmentConfig:
         * Dicts get updated
         * Special cases:
           * channel settings is a list of dicts, it merges inner dicts, keyed on "channel"
+          * channels: last wins for priority (prepended so later config's channels take precedence)
         """
         # Return early if there is nothing to merge
         if other is None:
@@ -126,7 +127,7 @@ class EnvironmentConfig:
         if other.channel_priority is not None:
             self.channel_priority = other.channel_priority
 
-        self.channels = self._append_without_duplicates(self.channels, other.channels)
+        self.channels = self._append_without_duplicates(other.channels, self.channels)
 
         self.channel_settings = self._merge_channel_settings(
             self.channel_settings, other.channel_settings
@@ -573,7 +574,6 @@ class Environment:
                 )
             return merged, fpath_envs_map
         return cli_env, fpath_envs_map
-
 
     @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:
