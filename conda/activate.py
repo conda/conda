@@ -45,10 +45,19 @@ from .common.path import path_identity as _path_identity
 from .common.path import paths_equal, unix_path_to_win, win_path_to_unix
 from .common.serialize import json
 from .deprecations import deprecated
-from .exceptions import ActivateHelp, ArgumentError, DeactivateHelp, GenericHelp
+from .exceptions import (
+    ActivateHelp,
+    ArgumentError,
+    CondaValueError,
+    DeactivateHelp,
+    EnvironmentLocationNotFound,
+    GenericHelp,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
+    from typing import Any
+
 
 log = getLogger(__name__)
 
@@ -107,8 +116,8 @@ class _Activator(metaclass=abc.ABCMeta):
 
     needs_line_ending_fix: bool
 
-    def __init__(self, arguments=None):
-        self._raw_arguments = arguments
+    def __init__(self, arguments: Iterable[str] | None = None):
+        self._raw_arguments = None if arguments is None else tuple(arguments)
 
     def get_export_unset_vars(self, export_metavars=True, **kwargs):
         """
@@ -223,6 +232,12 @@ class _Activator(metaclass=abc.ABCMeta):
     def template_path_var(self, key: str, value: str) -> str:
         return self.path_var_tmpl % (key, value)
 
+    def template_set_var(self, key: str, value: str) -> str:
+        return self.set_var_tmpl % (key, value)
+
+    def template_run_script(self, script: str) -> str:
+        return self.run_script_tmpl % script
+
     def _hook_preamble(self) -> str | None:
         result = []
         for key, value in context.conda_exe_vars_dict.items():
@@ -303,39 +318,35 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _yield_commands(self, cmds_dict):
         for key, value in sorted(cmds_dict.get("export_path", {}).items()):
-            yield self.export_var_tmpl % (key, value)
+            yield self.template_export_var(key, value)
 
         for script in cmds_dict.get("deactivate_scripts", ()):
-            yield self.run_script_tmpl % script
+            yield self.template_run_script(script)
 
         for key in cmds_dict.get("unset_vars", ()):
-            yield self.unset_var_tmpl % key
+            yield self.template_unset_var(key)
 
         for key, value in cmds_dict.get("set_vars", {}).items():
-            yield self.set_var_tmpl % (key, value)
+            yield self.template_set_var(key, value)
 
         for key, value in cmds_dict.get("export_vars", {}).items():
-            yield self.export_var_tmpl % (key, value)
+            yield self.template_export_var(key, value)
 
         for script in cmds_dict.get("activate_scripts", ()):
-            yield self.run_script_tmpl % script
+            yield self.template_run_script(script)
 
-    def build_activate(self, env_name_or_prefix):
+    def build_activate(self, env_name_or_prefix: str) -> dict[str, Any]:
         return self._build_activate_stack(env_name_or_prefix, False)
 
-    def build_stack(self, env_name_or_prefix):
+    def build_stack(self, env_name_or_prefix: str) -> dict[str, Any]:
         return self._build_activate_stack(env_name_or_prefix, True)
 
-    def _build_activate_stack(self, env_name_or_prefix, stack):
-        # get environment prefix
-        if re.search(r"\\|/", env_name_or_prefix):
-            prefix = expand(env_name_or_prefix)
-            if not isdir(join(prefix, "conda-meta")):
-                from .exceptions import EnvironmentLocationNotFound
-
-                raise EnvironmentLocationNotFound(prefix)
-        else:
-            prefix = locate_prefix_by_name(env_name_or_prefix)
+    def _build_activate_stack(
+        self,
+        env_name_or_prefix: str,
+        stack: bool,
+    ) -> dict[str, Any]:
+        prefix = self._resolve_prefix(env_name_or_prefix)
 
         # get prior shlvl and prefix
         old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
@@ -834,8 +845,19 @@ class _Activator(metaclass=abc.ABCMeta):
             )
         return env_vars
 
+    def _resolve_prefix(self, env_name_or_prefix: str) -> str:
+        """Hook for shell-specific activation path validation."""
+        # get environment prefix
+        if re.search(r"\\|/", env_name_or_prefix):
+            prefix = expand(env_name_or_prefix)
+            if not isdir(join(prefix, "conda-meta")):
+                raise EnvironmentLocationNotFound(prefix)
+        else:
+            prefix = str(locate_prefix_by_name(env_name_or_prefix))
+        return prefix
 
-def expand(path):
+
+def expand(path: str) -> str:
     return abspath(expanduser(expandvars(path)))
 
 
@@ -995,6 +1017,15 @@ class CmdExeActivator(_Activator):
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
         #       Like, for cmd.exe only, put a special directory containing only conda.bat on PATH?
         pass
+
+    def _resolve_prefix(self, env_name_or_prefix: str) -> str:
+        prefix = super()._resolve_prefix(env_name_or_prefix)
+        if "^" in str(prefix):
+            raise CondaValueError(
+                "Cannot activate environments with '^' in their path from cmd.exe.\n"
+                "Use PowerShell or a caret-free environment path."
+            )
+        return prefix
 
 
 class CmdExeRunActivator(CmdExeActivator):
