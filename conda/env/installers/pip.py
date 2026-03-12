@@ -37,12 +37,6 @@ def _pip_install_via_requirements(prefix, specs, args, *_, workdir=None, **kwarg
 
     if workdir is None:
         workdir = get_pip_workdir(args.file)
-        files = getattr(args, "file", None)
-        if isinstance(files, list) and len(files) > 1:
-            log.warning(
-                "Multiple environment files with pip dependencies: using workdir from "
-                "first file. Relative paths in other files may fail."
-            )
 
     requirements = None
     try:
