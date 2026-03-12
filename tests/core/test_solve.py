@@ -43,6 +43,7 @@ from conda.testing.helpers import (
     get_solver_cuda,
     get_solver_must_unfreeze,
 )
+from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
@@ -2838,6 +2839,39 @@ def test_channel_priority_churn_minimized(tmpdir):
         pprint(convert_to_dist_str(link_dists))
         assert len(unlink_dists) == 1
         assert len(link_dists) == 1
+
+
+def test_strict_custom_multichannel_allows_fallback_to_later_subchannel(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    """
+    Regression test for #15750.
+
+    Under strict priority, a custom multichannel should still be able to pick a
+    satisfiable version from a later subchannel when an earlier subchannel has
+    the same package name but no compatible version.
+    """
+
+    if context.solver == "classic":
+        pytest.skip(
+            "classic solver does not support flexible priority within custom_multichannels"
+        )
+
+    multichannel = ("marekw", "https://repo.anaconda.com/pkgs/main")
+    with context._override("_custom_multichannels", {"custom": multichannel}):
+        reset_context()
+        assert context.custom_multichannels["custom"] == multichannel
+
+        with tmp_env(
+            "--override-channels",
+            "--channel=custom",
+            "--strict-channel-priority",
+            "holidays",
+        ) as prefix:
+            assert package_is_installed(prefix, "pkgs/main::holidays=0.83")
 
 
 def test_remove_with_constrained_dependencies(tmpdir):
