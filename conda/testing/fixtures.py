@@ -589,8 +589,16 @@ class TmpChannelFixture:
         noarch = channel / "noarch"
         noarch.mkdir(parents=True)
 
-        noarch_packages: dict[str, PackageRecord] = {}
-        subdir_packages: dict[str, PackageRecord] = {}
+        noarch_packages: dict[str, dict[str, object]] = {
+            "info": {"subdir": "noarch"},
+            "packages": {},
+            "packages.conda": {},
+        }
+        subdir_packages: dict[str, dict[str, object]] = {
+            "info": {"subdir": subdir.name},
+            "packages": {},
+            "packages.conda": {},
+        }
         iter_specs = list(specs)
         seen: dict[str, set[str]] = {}
         while iter_specs:
@@ -619,7 +627,8 @@ class TmpChannelFixture:
                 copyfile(source, target / fname)
 
                 # add package to repodata
-                packages[fname] = PackageRecord(
+                key = "packages" if fname.endswith(".tar.bz2") else "packages.conda"
+                packages[key][fname] = PackageRecord(
                     **{
                         field: value
                         for field, value in package_record.dump().items()
@@ -629,12 +638,8 @@ class TmpChannelFixture:
 
                 iter_specs.extend(package_record.depends)
 
-        (subdir / "repodata.json").write_text(
-            json.dumps({"info": {}, "packages": subdir_packages})
-        )
-        (noarch / "repodata.json").write_text(
-            json.dumps({"info": {}, "packages": noarch_packages})
-        )
+        (subdir / "repodata.json").write_text(json.dumps(subdir_packages))
+        (noarch / "repodata.json").write_text(json.dumps(noarch_packages))
 
         # ensure all packages were copied to the channel
         for spec in chain.from_iterable(seen.values()):
