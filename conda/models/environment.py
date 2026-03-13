@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from ..base.constants import PLATFORMS, UNKNOWN_CHANNEL
 from ..base.context import context
+from ..common.constants import NULL
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
 from ..exceptions import CondaValueError
@@ -181,6 +182,25 @@ class EnvironmentConfig:
             if key in field_names
         }
         return cls(**environment_settings)
+
+    @classmethod
+    def from_cli_channels(cls, args: Namespace) -> EnvironmentConfig:
+        """
+        Build a sparse EnvironmentConfig from CLI args for channels only.
+
+        Used to override channels from the CLI when files are provided.
+        """
+        # NOTE: In the future, we may want to add other relevant CLI
+        # options to the EnvironmentConfig.
+        channel = getattr(args, "channel", None)
+        # NULL is the default value for use_local. bool(NULL) is False.
+        use_local = getattr(args, "use_local", NULL)
+        if not channel and not use_local:
+            return cls()
+
+        local = ("local",) if use_local else ()
+        arg_channels = tuple(channel) if channel else ()
+        return cls(channels=local + arg_channels)
 
     @classmethod
     def merge(cls, *configs: EnvironmentConfig) -> EnvironmentConfig:
@@ -554,26 +574,32 @@ class Environment:
                 fetch_explicit_packages
             )
 
+        base_env = Environment(
+            platform=context.subdir, config=EnvironmentConfig.from_context()
+        )
+
         cli_env = Environment(
             name=args.name,
             prefix=context.target_prefix,
             platform=context.subdir,
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
-            config=EnvironmentConfig.from_context(),
+            config=EnvironmentConfig.from_cli_channels(args),
         )
 
         if envs_from_file:
             file_env = cls.merge(*envs_from_file)
-            merged = cls.merge(file_env, cli_env)
-            # Respect override_channels flag and only use channels from the CLI
-            if getattr(args, "override_channels", False):
-                merged = replace(
-                    merged,
-                    config=replace(merged.config, channels=cli_env.config.channels),
-                )
-            return merged, fpath_envs_map
-        return cli_env, fpath_envs_map
+            merged = cls.merge(base_env, file_env, cli_env)
+
+        else:
+            merged = cls.merge(base_env, cli_env)
+
+        # Respect override_channels flag and only use channels from the CLI
+        if getattr(args, "override_channels", False):
+            merged = replace(
+                merged, config=replace(merged.config, channels=cli_env.config.channels)
+            )
+        return merged, fpath_envs_map
 
     @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:
