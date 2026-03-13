@@ -108,8 +108,9 @@ jobs:
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: |
-          echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-          echo "CACHE_KEY=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+          CACHE_KEY="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${CACHE_KEY}" >> $GITHUB_ENV
+          echo "HASH=${CACHE_KEY}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
