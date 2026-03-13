@@ -965,6 +965,13 @@ class Context(Configuration):
         else:
             default_channels = list(self._default_channels)
 
+        # Ensure that when "defaults" is present in custom multichannels, it overrides
+        # normal defaults.
+        if self._custom_multichannels.get(DEFAULTS_CHANNEL_NAME) is not None:
+            default_channel_dict = {}
+        else:
+            default_channel_dict = {DEFAULTS_CHANNEL_NAME: default_channels}
+
         return {
             name: tuple(
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls
@@ -972,7 +979,7 @@ class Context(Configuration):
             for name, urls in {
                 # order matters
                 **self._custom_multichannels,  # custom_multichannels.defaults overrides default_channels
-                DEFAULTS_CHANNEL_NAME: default_channels,  # default_channels is a legacy keyword
+                **default_channel_dict,  # default_channels is a legacy keyword
                 "local": self.conda_build_local_urls,  # always last, local is a reserved name and cannot be overridden
             }.items()
         }
