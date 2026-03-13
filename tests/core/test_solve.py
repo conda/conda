@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpChannelFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -2842,10 +2842,10 @@ def test_channel_priority_churn_minimized(tmpdir):
 
 
 def test_strict_custom_multichannel_allows_fallback_to_later_subchannel(
-    mocker: MockerFixture,
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    tmp_channel: TmpChannelFixture,
 ):
     """
     Regression test for #15750.
@@ -2853,25 +2853,28 @@ def test_strict_custom_multichannel_allows_fallback_to_later_subchannel(
     Under strict priority, a custom multichannel should still be able to pick a
     satisfiable version from a later subchannel when an earlier subchannel has
     the same package name but no compatible version.
-    """
 
+    In this test, the package "holidays" is not available in our local test channel.
+    It is available at pkgs/main though. We verify that this package can still be
+    found in the latter channel in the custom multi-channel.
+    """
     if context.solver == "classic":
         pytest.skip(
             "classic solver does not support flexible priority within custom_multichannels"
         )
+    with tmp_channel() as (channel_path, channel_path_str):
+        multichannel = (channel_path_str, "https://repo.anaconda.com/pkgs/main")
+        with context._override("_custom_multichannels", {"custom": multichannel}):
+            reset_context()
+            assert context.custom_multichannels["custom"] == multichannel
 
-    multichannel = ("marekw", "https://repo.anaconda.com/pkgs/main")
-    with context._override("_custom_multichannels", {"custom": multichannel}):
-        reset_context()
-        assert context.custom_multichannels["custom"] == multichannel
-
-        with tmp_env(
-            "--override-channels",
-            "--channel=custom",
-            "--strict-channel-priority",
-            "holidays",
-        ) as prefix:
-            assert package_is_installed(prefix, "pkgs/main::holidays=0.83")
+            with tmp_env(
+                "--override-channels",
+                "--channel=custom",
+                "--strict-channel-priority",
+                "holidays",
+            ) as prefix:
+                assert package_is_installed(prefix, "pkgs/main::holidays=0.83")
 
 
 def test_remove_with_constrained_dependencies(tmpdir):
