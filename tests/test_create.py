@@ -2751,6 +2751,24 @@ def test_create_with_clone_and_file_raises_argument_error(
     )
 
 
+def test_create_multiple_files_requires_name_or_prefix(
+    conda_cli: CondaCLIFixture,
+):
+    """Multiple --file arguments require explicit -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="Please provide -n/--name or -p/--prefix when using multiple",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("simple.yml"),
+            "--file",
+            support_file("add-pip.yml"),
+            "--yes",
+        )
+
+
 def test_nonadmin_file_untouched(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -2830,7 +2848,7 @@ def test_mix_explicit_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot combine package names with explicit package lists" in str(exc)
 
 
 @pytest.mark.parametrize("command", ["install", "create"])
@@ -2849,4 +2867,4 @@ def test_mix_explicit_file_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot combine package names with explicit package lists" in str(exc)

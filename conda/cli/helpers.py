@@ -111,9 +111,12 @@ def add_parser_create_install_update(p, prefix_required=False):
         "--file",
         default=[],
         action="append",
-        help="Read package versions from the given file. Repeated file "
-        "specifications can be passed (e.g. --file=file1 --file=file2).",
+        help="Read environment or package specs from the given file. Supports "
+        "YAML, requirements.txt, explicit, and other formats via env specifier "
+        "plugins. Repeated file specs of some type can be passed "
+        "(e.g. --file=file1 --file=file2).",
     )
+    add_parser_environment_specifier(p)
     p.add_argument(
         "packages",
         metavar="package_spec",
