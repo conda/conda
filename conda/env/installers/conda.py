@@ -64,6 +64,10 @@ def dry_run(
     :return: Solved environment object
     :rtype: EnvironmentYaml
     """
+    if env.explicit_packages:
+        return EnvironmentYaml(
+            name=env.name, dependencies=[str(p) for p in env.explicit_packages], channels=env.config.channels
+        )
     solver = _solve(tempfile.mkdtemp(), specs, args, env, *_, **kwargs)
     pkgs = solver.solve_final_state()
     return EnvironmentYaml(
