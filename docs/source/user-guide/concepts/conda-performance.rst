@@ -49,7 +49,7 @@ This section goes over some of the best practices we recommend for addressing pe
    To check which solver you have, run the following command:
 
    .. code-block:: shell
-      
+
       conda config --show solver
 
    If you don't have the ``conda-libmamba-solver`` in your base environment, install it:
@@ -57,7 +57,7 @@ This section goes over some of the best practices we recommend for addressing pe
    .. code-block:: shell
 
       conda install --name base conda-libmamba-solver
-   
+
    Set libmamba as your default solver:
 
    .. code-block:: shell
@@ -94,13 +94,13 @@ This section goes over some of the best practices we recommend for addressing pe
       This option is currently available for conda-forge and prefix.dev for all channels as of March 2026.
 
    If you are using Pixi, sharded repodata with conda-forge is already available by default.
-   
+
    If you are using conda, follow these steps to opt-in to sharded repodata:
 
    1. Update conda-libmamba-solver, if needed:
 
       .. code-blocK:: shell
-      
+
          conda install --name base "conda-libmamba-solver>=25.11.0"
 
    2. Set the ``use_sharded_repodata`` plugin to ``true``:
