@@ -11,7 +11,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.constants import PLATFORMS, UNKNOWN_CHANNEL
-from ..base.context import context
+from ..base.context import context, validate_channels
 from ..common.constants import NULL
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
@@ -200,7 +200,8 @@ class EnvironmentConfig:
 
         local = ("local",) if use_local else ()
         arg_channels = tuple(channel) if channel else ()
-        return cls(channels=local + arg_channels)
+        channels = validate_channels(local + arg_channels) if arg_channels else local
+        return cls(channels=channels)
 
     @classmethod
     def merge(cls, *configs: EnvironmentConfig) -> EnvironmentConfig:

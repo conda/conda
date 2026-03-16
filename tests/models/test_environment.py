@@ -303,18 +303,12 @@ def test_from_cli_override_channels_excludes_file_channels(mocker: MockerFixture
         explicit_packages=[],
         config=EnvironmentConfig(channels=("defaults", "my-channel")),
     )
-    mock_spec = SimpleNamespace(
-        environment_spec=lambda fpath: SimpleNamespace(env=file_env)
-    )
+
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
-        return_value=mock_spec,
-    )
-
-    cli_config = EnvironmentConfig(channels=("conda-forge",))
-    mocker.patch(
-        "conda.models.environment.EnvironmentConfig.from_context",
-        return_value=cli_config,
+        return_value=SimpleNamespace(
+            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+        ),
     )
 
     env, _ = Environment.from_cli(
@@ -322,9 +316,9 @@ def test_from_cli_override_channels_excludes_file_channels(mocker: MockerFixture
             name="testenv",
             packages=[],
             file=["/some/env.yaml"],
+            channel=["conda-forge"],
             override_channels=True,
-        ),
-        add_default_packages=False,
+        )
     )
     assert env.config.channels == ("conda-forge",)
 
