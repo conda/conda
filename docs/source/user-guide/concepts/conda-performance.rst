@@ -40,13 +40,25 @@ Improving conda performance
 
 This section goes over some of the best practices we recommend for addressing performance challenges.
 
-1. Make sure you have libmamba set as your solver. To check which solver you have, run the following command:
+1. Make your package specifications more narrow.
+
+   For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
+
+1. Make sure you have libmamba set as your dependency solver. The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
+
+   To check which solver you have, run the following command:
 
    .. code-block:: shell
       
       conda config --show solver
+
+   If you don't have the ``conda-libmamba-solver`` in your base environment, install it:
+
+   .. code-block:: shell
+
+      conda install --name base conda-libmamba-solver
    
-   To set libmamba as your default server:
+   Set libmamba as your default solver:
 
    .. code-block:: shell
 
@@ -60,9 +72,11 @@ This section goes over some of the best practices we recommend for addressing pe
 
 .. _concepts-performance-channel-priority:
 
-2. Use strict channel priority. This will improve performance by eliminating possible mixed repository solutions.
+2. Use strict channel priority. This makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained pacakges.
 
-   Setting strict channel priority makes it so that if a package exists on a channel, conda will ignore all packages with the same name on lower priority channels. This can dramatically reduce package search space and reduces the use of improperly constrained packages. However, setting strict channel priority may make environments unsatisfiable. Learn more about :ref:`strict`.
+   .. warning::
+
+      Setting strict channel priority might make environments unsatisfiable. Learn more about :ref:`strict`.
 
    .. figure:: ../../img/strict-disabled.png
     :width: 50%
@@ -73,21 +87,24 @@ This section goes over some of the best practices we recommend for addressing pe
 
       conda config --set channel_priority strict
 
-3. Enable sharded repodata.
+3. Enable sharded repodata. This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
 
    .. note::
 
-      This option is available for conda-forge and prefix.dev for all channels.
+      This option is currently available for conda-forge and prefix.dev for all channels as of March 2026.
 
+   If you are using Pixi, sharded repodata with conda-forge is already available by default.
    
+   If you are using conda, follow these steps to opt-in to sharded repodata:
 
+   1. Update conda-libmamba-solver, if needed:
 
+      .. code-blocK:: shell
+      
+         conda install --name base "conda-libmamba-solver>=25.11.0"
 
-    * Specifying very broad package specs?
-        * Be more specific. Letting conda filter more candidates makes it faster.
-          For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
-        * If you are using R, instead of specifying only ``r-essentials``, specify ``r-base=3.5 r-essentials``.
-    * Observing that an Anaconda or Miniconda installation is getting slower over time?
-        * Create a fresh environment. As environments grow, they become harder
-          and harder to solve. Working with small, dedicated environments can
-          be much faster.
+   2. Set the ``use_sharded_repodata`` plugin to ``true``:
+
+      .. code-block:: shell
+
+         conda config --set plugins.use_sharded_repodata true
