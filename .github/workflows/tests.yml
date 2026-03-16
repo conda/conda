@@ -657,7 +657,7 @@ jobs:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
             ~/conda_pkgs_dir/*.conda
-          key: cache-${{ env.HASH }}-clear
+          key: cache-${{ env.HASH }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
