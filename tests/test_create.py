@@ -2769,6 +2769,37 @@ def test_create_multiple_files_requires_name_or_prefix(
         )
 
 
+def test_create_with_env_variables_are_set_correctly(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    env_yml = path_factory(suffix=".yml")
+    env_yml.write_text(
+        f"""
+name: test_vars
+channels:
+  - {str(test_recipes_channel)}
+dependencies:
+  - small-executable
+variables:
+  VAR_A: a_var
+  VAR_B: b_var
+"""
+    )
+    prefix = path_factory()
+    conda_cli(
+        "create",
+        "--file",
+        str(env_yml),
+        "--yes",
+    )
+    assert PrefixData(prefix).is_environment()
+    env_vars = PrefixData(prefix).get_environment_env_vars()
+    assert env_vars["VAR_A"] == "a_var"
+    assert env_vars["VAR_B"] == "b_var"
+
+
 def test_nonadmin_file_untouched(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,

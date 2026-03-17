@@ -471,8 +471,8 @@ def install(args, parser, command="install"):
                         "Please ensure your dependencies file has the correct spelling."
                     )
 
-        if env.variables:
-            PrefixData(prefix).set_environment_env_vars(env.variables)
+    if env.variables:
+        PrefixData(prefix).set_environment_env_vars(env.variables)
 
 
 def install_clone(args, parser):
