@@ -48,29 +48,29 @@ This section goes over some of the best practices we recommend for addressing pe
 
    To check which solver you have, run the following command:
 
-    .. code-block:: shell
+   .. code-block:: shell
 
-       conda config --show solver
+      conda config --show solver
 
    If libmamba is set as your solver, you will see the following:
 
-    .. code-block:: shell
+   .. code-block:: shell
 
-       solver: libmamba
+      solver: libmamba
 
    If you don't have libmamba set as your solver, follow these steps to enable it:
 
-    #. Make sure ``conda-libmamba-solver`` is installed in your base environment:
+   #. Make sure ``conda-libmamba-solver`` is installed in your base environment:
 
-       .. code-block:: shell
+      .. code-block:: shell
 
-          conda install --name base conda-libmamba-solver
+         conda install --name base conda-libmamba-solver
 
-    #. Set libmamba as your default solver:
+   #. Set libmamba as your default solver:
 
-       .. code-block:: shell
+      .. code-block:: shell
 
-          conda config --set solver libmamba
+         conda config --set solver libmamba
 
    .. tip::
 
