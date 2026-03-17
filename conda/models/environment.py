@@ -596,6 +596,8 @@ class Environment:
             merged = cls.merge(base_env, cli_env)
 
         # Respect override_channels flag and only use channels from the CLI
+        # TODO: This is a way to override the channels from the CLI.
+        # We should probably add a way to handle this in a central place.
         if getattr(args, "override_channels", False):
             merged = replace(
                 merged, config=replace(merged.config, channels=cli_env.config.channels)

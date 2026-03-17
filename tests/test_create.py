@@ -2769,6 +2769,83 @@ def test_create_multiple_files_requires_name_or_prefix(
         )
 
 
+def test_create_multiple_files_with_cli_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """conda create -p /path --file f1 --file f2 uses the provided prefix."""
+    prefix = path_factory()
+    conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("small-executable.yml"),
+        "--file",
+        support_file("dependent.yml"),
+        "--yes",
+    )
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependent")
+
+
+def test_install_multiple_files_with_cli_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """conda install -p /path --file f1 --file f2 installs into the provided prefix."""
+    prefix = path_factory()
+    conda_cli("create", f"--prefix={prefix}", "--yes")
+    conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("small-executable.yml"),
+        "--file",
+        support_file("dependent.yml"),
+        "--yes",
+    )
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependent")
+
+
+def test_create_name_overrides_file(
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir: Path,
+    test_recipes_channel: Path,
+):
+    """--name takes precedence over name in environment file."""
+    env_name = "a_super_unique_name"
+    prefix = tmp_envs_dir / env_name
+    conda_cli(
+        "create",
+        "--name",
+        env_name,
+        "--file",
+        support_file("small-executable.yml"),
+        "--yes",
+    )
+    assert prefix.exists()
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "small-executable")
+
+
+def test_create_files_without_name_or_prefix_raises(conda_cli: CondaCLIFixture):
+    """Files without name/prefix require -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="do not specify a name or prefix",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("requirements.txt"),
+            "--yes",
+        )
+
+
 def test_create_with_env_variables_are_set_correctly(
     path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,
