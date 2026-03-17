@@ -507,7 +507,7 @@ class Environment:
         cls,
         args: Namespace,
         add_default_packages: bool = False,
-    ) -> tuple[Environment, dict[str, Environment]]:
+    ) -> Environment:
         """
         Create an Environment model from command-line arguments.
 
@@ -517,6 +517,22 @@ class Environment:
 
         :param args: argparse Namespace containing command-line arguments
         :return: An Environment object representing the cli
+        """
+        env, _ = cls.from_cli_with_file_envs(args, add_default_packages)
+        return env
+
+    @classmethod
+    def from_cli_with_file_envs(
+        cls,
+        args: Namespace,
+        add_default_packages: bool = False,
+    ) -> tuple[Environment, dict[str, Environment]]:
+        """
+        Create an Environment model from command-line arguments, with a map
+        of file path to Environment for each environment file specified.
+
+        :param args: argparse Namespace containing command-line arguments
+        :return: Tuple of (merged Environment, dict mapping file path to Environment)
         """
         specs = [package.strip("\"'") for package in args.packages]
         requested_packages = []

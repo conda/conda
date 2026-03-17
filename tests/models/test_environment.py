@@ -311,7 +311,7 @@ def test_from_cli_override_channels_excludes_file_channels(mocker: MockerFixture
         ),
     )
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=[],
@@ -345,7 +345,7 @@ def test_from_cli_channel_order_base_file_cli(mocker: MockerFixture):
         return_value=context_config,
     )
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=[],
@@ -554,7 +554,7 @@ def test_environment_config_channels_basic():
 
 
 def test_from_cli_empty():
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(name=None, packages=[], file=[]),
     )
     assert env.config == EnvironmentConfig.from_context()
@@ -567,7 +567,7 @@ def test_from_cli_empty_with_default_packages(
     monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "python==3.13")
     reset_context()
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(name=None, packages=[], file=[]),
         add_default_packages=True,
     )
@@ -576,7 +576,7 @@ def test_from_cli_empty_with_default_packages(
 
 
 def test_from_cli_with_specs():
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=["numpy", "scipy=1.*"],
@@ -598,7 +598,7 @@ def test_from_cli_with_explicit_specs(mocker: MockerFixture):
         return_value=fake_explicit_records,
     )
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=["/path/to/package/numpy.conda"],
@@ -642,7 +642,7 @@ def test_from_cli_with_files(mocker: MockerFixture):
         return_value=mock_spec,
     )
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=["scipy"],
@@ -667,7 +667,7 @@ def test_from_cli_inject_default_packages_override(
     monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,scipy=1.16.0")
     reset_context()
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=["numpy"],
@@ -684,7 +684,7 @@ def test_from_cli_inject_default_packages_override(
     ]
     assert env.explicit_packages == []
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=["numpy", "scipy=1.*"],
@@ -697,7 +697,7 @@ def test_from_cli_inject_default_packages_override(
     assert env.requested_packages == [MatchSpec("numpy"), MatchSpec("scipy=1.*")]
     assert env.explicit_packages == []
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=["numpy", "scipy=1.*"],
@@ -734,7 +734,7 @@ def test_from_cli_environment_inject_default_packages_override_file(
         return_value=mock_hook,
     )
 
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         SimpleNamespace(
             name="testenv",
             packages=[],
@@ -797,7 +797,7 @@ def test_explicit_packages(tmp_path: Path):
         "@EXPLICIT\n"
         "http://repo.anaconda.com/pkgs/main/noarch/pip-25.2-pyhc872135_0.conda#b829d36091ab08d18cafe8994ac6e02b"
     )
-    env, _ = Environment.from_cli(
+    env = Environment.from_cli(
         args=SimpleNamespace(name="test", packages=[], file=[str(explicit)]),
     )
     assert len(env.explicit_packages) == 1

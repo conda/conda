@@ -361,7 +361,7 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    env, fpath_envs_map = Environment.from_cli(
+    env, fpath_envs_map = Environment.from_cli_with_file_envs(
         args=args,
         add_default_packages=command == "create" and not args.no_default_packages,
     )
