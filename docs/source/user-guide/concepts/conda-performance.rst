@@ -82,7 +82,7 @@ This section goes over some of the best practices we recommend for addressing pe
 
 .. _concepts-performance-channel-priority:
 
-3. Use strict channel priority. 
+3. Use strict channel priority.
 
    .. code-block:: shell
 
