@@ -17,4 +17,5 @@ def conda_environment_specifiers():
         name="requirements.txt",
         aliases=("requirements", "reqs"),
         environment_spec=RequirementsSpec,
+        default_filenames=("requirements.txt", "spec.txt"),
     )
