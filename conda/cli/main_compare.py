@@ -118,12 +118,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         filename = abspath(expanduser(expandvars(args.file)))
 
-    spec_hook = context.plugin_manager.get_environment_specifier(
+    env = context.plugin_manager.get_environment(
         source=filename,
         name=context.environment_specifier,
     )
-    spec = spec_hook.environment_spec(filename)
-    env = spec.env
 
     active_pkgs = prefix_data.map_records()
     specification_pkgs = (

@@ -104,7 +104,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..env.pip_util import get_pip_workdir
-    from ..exceptions import CondaEnvException, CondaValueError, InvalidInstaller
+    from ..exceptions import CondaEnvException, InvalidInstaller
     from ..gateways.disk.delete import rm_rf
     from .common import validate_file_exists
 
@@ -112,17 +112,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_file_exists(args.file)
 
     # detect the file format and get the env representation
-    try:
-        env = context.plugin_manager.get_environment(
-            source=args.file, name=context.environment_specifier
-        )
-    except CondaValueError:
-        spec_hook = context.plugin_manager.get_environment_specifier(
-            source=args.file,
-            name=context.environment_specifier,
-        )
-        spec = spec_hook.environment_spec(args.file)
-        env = spec.env
+    env = context.plugin_manager.get_environment(
+        source=args.file,
+        name=context.environment_specifier,
+    )
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
