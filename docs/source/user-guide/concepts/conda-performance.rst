@@ -82,20 +82,22 @@ This section goes over some of the best practices we recommend for addressing pe
 
 .. _concepts-performance-channel-priority:
 
-#. Use strict channel priority. This makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained pacakges.
+#. Use strict channel priority. 
 
-   .. warning::
-
-      Setting strict channel priority might make environments unsatisfiable. Learn more about :ref:`strict`.
-
-   .. figure:: ../../img/strict-disabled.png
-    :width: 50%
-   .. figure:: ../../img/strict-enabled.png
-    :width: 50%
-
-   .. code-block:: shell
+    .. code-block:: shell
 
       conda config --set channel_priority strict
+
+    Strict channel priority makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained packages.
+
+    .. warning::
+
+       Setting strict channel priority might make environments unsatisfiable. Learn more about :ref:`strict`.
+
+    .. figure:: ../../img/strict-disabled.png
+       :width: 50%
+    .. figure:: ../../img/strict-enabled.png
+       :width: 50%
 
 #. Enable sharded repodata. This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
 
