@@ -30,6 +30,7 @@ from ..common.io import dashlist, load_file
 from ..common.iterators import groupby_to_dict
 from ..exceptions import (
     AmbiguousEnvironmentSpecPlugin,
+    CondaError,
     CondaValueError,
     EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
@@ -1050,7 +1051,7 @@ class CondaPluginManager(pluggy.PluginManager):
         Raises EnvironmentSpecPluginNotDetected if no plugins were found.
         Raises CondaValueError if the requested plugin is not available.
 
-        :param filename: full path to the environment spec file/source
+        :param source: full path to the environment spec file/source
         :param name: name of the environment plugin to load
         :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
         """
@@ -1064,9 +1065,21 @@ class CondaPluginManager(pluggy.PluginManager):
         source: str,
         name: str | None = None,
     ) -> Environment:
+        """
+        Gets the environment from the CondaEnvironmentSpecifier or CondaEnvironmentSpecifier2 apis.
+
+        :param source: full path to the environment spec file/source
+        :param name: name of the environment plugin to load
+        :returns: an environment from a plugin that matches the provided plugin name, or can handle the provided file
+        """
         data = load_file(source)
-        plugin = self.get_environment_specifier2(source, name)
-        return plugin.env(data)
+        try:
+            plugin = self.get_environment_specifier2(source, name)
+            return plugin.env(data)
+        except CondaError:
+            spec_hook = self.get_environment_specifier(source, name)
+            spec = spec_hook.environment_spec(source)
+            return spec.env
 
     def get_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
         """
