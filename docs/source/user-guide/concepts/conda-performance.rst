@@ -40,11 +40,11 @@ Improving conda performance
 
 This section goes over some of the best practices we recommend for addressing performance challenges.
 
-1. Make your package specifications more narrow.
+#. Make your package specifications more narrow.
 
    For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
 
-1. Make sure you have libmamba set as your dependency solver. The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
+#. Make sure you have libmamba set as your dependency solver. The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
 
    To check which solver you have, run the following command:
 
@@ -52,27 +52,37 @@ This section goes over some of the best practices we recommend for addressing pe
 
       conda config --show solver
 
-   If you don't have the ``conda-libmamba-solver`` in your base environment, install it:
+   If libmamba is set as your solver, you will see the following:
 
    .. code-block:: shell
 
-      conda install --name base conda-libmamba-solver
+      solver: libmamba
 
-   Set libmamba as your default solver:
+   If you don't have libmamba set as your solver, follow these steps to enable it:
 
-   .. code-block:: shell
+   #. Make sure ``conda-libmamba-solver`` is installed in your base environment:
 
-      conda config --set solver libmamba
+      .. code-block:: shell
 
-   You can also use the libmamba solver temporarily when installing a package:
+         conda install --name base conda-libmamba-solver
 
-   .. code-block:: shell
+   #. Set libmamba as your default solver:
 
-      conda install --solver=libmamba package_name
+      .. code-block:: shell
+
+         conda config --set solver libmamba
+
+   .. tip::
+
+      You can also use the libmamba solver temporarily when installing a package:
+
+      .. code-block:: shell
+
+         conda install --solver=libmamba package_name
 
 .. _concepts-performance-channel-priority:
 
-2. Use strict channel priority. This makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained pacakges.
+#. Use strict channel priority. This makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained pacakges.
 
    .. warning::
 
@@ -87,23 +97,21 @@ This section goes over some of the best practices we recommend for addressing pe
 
       conda config --set channel_priority strict
 
-3. Enable sharded repodata. This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
+#. Enable sharded repodata. This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
 
    .. note::
 
       This option is currently available for conda-forge and prefix.dev for all channels as of March 2026.
 
-   If you are using Pixi, sharded repodata with conda-forge is already available by default.
+   Follow these steps to opt-in to sharded repodata:
 
-   If you are using conda, follow these steps to opt-in to sharded repodata:
-
-   1. Update conda-libmamba-solver, if needed:
+   #. Update conda-libmamba-solver, if needed:
 
       .. code-blocK:: shell
 
          conda install --name base "conda-libmamba-solver>=25.11.0"
 
-   2. Set the ``use_sharded_repodata`` plugin to ``true``:
+   #. Set the ``use_sharded_repodata`` plugin to ``true``:
 
       .. code-block:: shell
 
