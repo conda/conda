@@ -40,25 +40,25 @@ Improving conda performance
 
 This section goes over some of the best practices we recommend for addressing performance challenges.
 
-#. Make your package specifications more narrow.
+1. Make your package specifications more narrow.
 
    For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
 
-#. Make sure you have libmamba set as your dependency solver. The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
+2. Make sure you have libmamba set as your dependency solver. The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
 
-    To check which solver you have, run the following command:
+   To check which solver you have, run the following command:
 
     .. code-block:: shell
 
        conda config --show solver
 
-    If libmamba is set as your solver, you will see the following:
+   If libmamba is set as your solver, you will see the following:
 
     .. code-block:: shell
 
        solver: libmamba
 
-    If you don't have libmamba set as your solver, follow these steps to enable it:
+   If you don't have libmamba set as your solver, follow these steps to enable it:
 
     #. Make sure ``conda-libmamba-solver`` is installed in your base environment:
 
@@ -72,7 +72,7 @@ This section goes over some of the best practices we recommend for addressing pe
 
           conda config --set solver libmamba
 
-    .. tip::
+   .. tip::
 
        You can also use the libmamba solver temporarily when installing a package:
 
@@ -82,24 +82,24 @@ This section goes over some of the best practices we recommend for addressing pe
 
 .. _concepts-performance-channel-priority:
 
-#. Use strict channel priority. 
+3. Use strict channel priority. 
 
-    .. code-block:: shell
+   .. code-block:: shell
 
-      conda config --set channel_priority strict
+       conda config --set channel_priority strict
 
-    Strict channel priority makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained packages.
+   Strict channel priority makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained packages.
 
-    .. warning::
+   .. warning::
 
-       Setting strict channel priority might make environments unsatisfiable. Learn more about :ref:`strict`.
+      Setting strict channel priority might make environments unsatisfiable. Learn more about :ref:`strict`.
 
-    .. figure:: ../../img/strict-disabled.png
+   .. figure:: ../../img/strict-disabled.png
        :width: 50%
-    .. figure:: ../../img/strict-enabled.png
+   .. figure:: ../../img/strict-enabled.png
        :width: 50%
 
-#. Enable sharded repodata. This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
+4. Enable sharded repodata. This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
 
    .. note::
 
@@ -109,7 +109,7 @@ This section goes over some of the best practices we recommend for addressing pe
 
    #. Update conda-libmamba-solver, if needed:
 
-      .. code-blocK:: shell
+      .. code-block:: shell
 
          conda install --name base "conda-libmamba-solver>=25.11.0"
 
