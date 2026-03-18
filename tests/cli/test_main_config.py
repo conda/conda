@@ -94,6 +94,24 @@ def test_config_show_sources_json(conda_cli: CondaCLIFixture):
     assert not err
 
 
+def test_format_dict_mapping_items():
+    from frozendict import frozendict
+
+    from conda.cli.main_config import format_dict
+
+    result = format_dict(
+        {
+            "channel_settings": [
+                frozendict({"channel": "https://example.com/*", "auth": "token"}),
+            ],
+        }
+    )
+    formatted = "\n".join(result)
+    assert "frozendict" not in formatted
+    assert "channel_settings:" in formatted
+    assert "https://example.com/*" in formatted
+
+
 def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("CONDA_JSON", "true")
     reset_context()
