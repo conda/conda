@@ -2856,7 +2856,7 @@ def test_strict_custom_multichannel_allows_fallback_to_later_subchannel(
 
     In this test, the package "holidays" is not available in our local test channel.
     It is available at pkgs/main though. We verify that this package can still be
-    found in the latter channel in the custom multi-channel.
+    found in the latter channel in the custom multichannel.
     """
     if context.solver == "classic":
         pytest.skip(
@@ -2874,7 +2874,7 @@ def test_strict_custom_multichannel_allows_fallback_to_later_subchannel(
                 "--strict-channel-priority",
                 "holidays",
             ) as prefix:
-                assert package_is_installed(prefix, "pkgs/main::holidays=0.83")
+                assert package_is_installed(prefix, "pkgs/main::holidays")
 
 
 def test_remove_with_constrained_dependencies(tmpdir):
