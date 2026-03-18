@@ -32,6 +32,7 @@ def test_reorder_channel_priority(
     conda_cli: CondaCLIFixture,
     pinned_package: bool,
     clear_conda_session_cache: None,
+    clear_cache: None,
     test_recipes_channel: Path,
     tmp_channel: TmpChannelFixture,
     mock_channels: list[str],
@@ -42,7 +43,7 @@ def test_reorder_channel_priority(
 
     # set pinned package
     if pinned_package:
-        monkeypatch.setenv("CONDA_PINNED_PACKAGES", package1)
+        monkeypatch.setenv("CONDA_PINNED_PACKAGES", f"{package1}=1")
 
     # create a temporary channel with older versions of the packages
     with tmp_channel(f"{package1}=1", f"{package2}=1") as (
