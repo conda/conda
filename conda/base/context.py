@@ -966,7 +966,8 @@ class Context(Configuration):
             default_channels = list(self._default_channels)
 
         # Ensure that when "defaults" is present in custom multichannels, it overrides
-        # normal defaults.
+        # the built-in `default_channels` list (which combines channels like "main" and
+        # "r" into a single "defaults" multichannel).
         if self._custom_multichannels.get(DEFAULTS_CHANNEL_NAME) is not None:
             default_channel_dict = {}
         else:
