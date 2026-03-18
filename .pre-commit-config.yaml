@@ -67,7 +67,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.5
+    rev: v0.15.6
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
@@ -76,6 +76,19 @@ repos:
       - id: ruff-format
   - repo: local
     hooks:
+      - id: generate-test-recipes-readme
+        name: Generate test recipes README
+        entry: python tests/data/recipes/generate_recipes_readme.py
+        language: python
+        language_version: python3.14
+        additional_dependencies: [pyyaml]
+        pass_filenames: false
+        files: |
+          (?x)^(
+            tests/data/recipes/.+/meta.yaml |
+            tests/data/recipes/generate_recipes_readme.py |
+            tests/data/recipes/README.md
+          )$
       # sphinx-autoapi doesn't support #: comments, use trailing docstrings instead
       - id: no-sphinx-autodoc-comments
         name: 'Disallow #: comments, require trailing docstrings'
