@@ -266,16 +266,6 @@ def argv(args_list):
         sys.argv = saved_args
 
 
-@deprecated("25.9", "26.3", addendum="Use `logging._lock` instead.")
-@contextmanager
-def _logger_lock():
-    logging._acquireLock()
-    try:
-        yield
-    finally:
-        logging._releaseLock()
-
-
 @contextmanager
 def disable_logger(logger_name):
     logr = getLogger(logger_name)
