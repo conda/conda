@@ -2865,7 +2865,6 @@ def test_strict_custom_multichannel_allows_fallback_to_later_subchannel(
     with tmp_channel() as (channel_path, channel_path_str):
         multichannel = (channel_path_str, "https://repo.anaconda.com/pkgs/main")
         with context._override("_custom_multichannels", {"custom": multichannel}):
-            reset_context()
             assert context.custom_multichannels["custom"] == multichannel
 
             with tmp_env(
