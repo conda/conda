@@ -9,7 +9,7 @@ import os
 from ...base.context import context
 from ...common.url import is_url
 from ...deprecations import deprecated
-from ...exceptions import CondaValueError, InvalidMatchSpec
+from ...exceptions import CondaValueError, InvalidMatchSpec, PluginError
 from ...gateways.disk.read import yield_lines
 from ...models.environment import Environment
 from ...models.match_spec import MatchSpec
@@ -84,13 +84,13 @@ class RequirementsSpec(EnvironmentSpecBase):
         """
         # Return early if no filename was provided
         if self.filename is None:
-            return False
+            raise CondaValueError("No filename provided")
 
         if is_url(self.filename):
-            return False
+            raise CondaValueError(f"{self.filename} may not be a url")
 
         if not os.path.exists(self.filename):
-            return False
+            raise CondaValueError(f"{self.filename} does not exist")
 
         # Ensure this is not an explicit file. Requirements.txt and explicit files
         # may sometimes share file extension.
@@ -98,12 +98,14 @@ class RequirementsSpec(EnvironmentSpecBase):
         for dep in dependencies_list:
             # Ensure the file is not an explicit file
             if dep == "@EXPLICIT":
-                return False
+                raise PluginError(f"{self.filename} is an explicit file.")
             # Ensure that every item is a valid matchspec
             try:
                 MatchSpec(dep)
             except InvalidMatchSpec:
-                return False
+                raise PluginError(
+                    f"{self.filename} contains an invalid matchspec '{dep}'"
+                )
 
         return True
 

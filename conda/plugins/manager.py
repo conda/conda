@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib import NULL
-from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
@@ -29,6 +28,7 @@ from ..exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
+    EnvironmentSpecPluginSelectionError,
     PluginError,
 )
 from . import (
@@ -614,14 +614,16 @@ class CondaPluginManager(pluggy.PluginManager):
                 if plugin.environment_spec(source).can_handle():
                     return plugin
             except Exception as e:
-                raise PluginError(
-                    dals(
-                        f"""
-                        An error occurred when handling '{source}' with plugin '{name}'.
-
-                        {type(e).__name__}: {e}
-                        """
-                    )
+                raise EnvironmentSpecPluginSelectionError(
+                    msg=(
+                        f"Could not parse '{source}' as '{name}'. Check "
+                        "that the file contents match the expected format. "
+                        f"Errors reported from '{name}':\n\n"
+                        f"    ->  {type(e).__name__}: {str(e)}\n\n"
+                        "If this environment is a different format, try:\n"
+                        f"    conda create --file {source} --format <format>\n"
+                    ),
+                    plugin_specs=self.get_environment_specifiers(with_aliases=False),
                 )
             else:
                 # If the plugin was not able to handle the environment spec, raise an error
