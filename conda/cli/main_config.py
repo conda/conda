@@ -261,8 +261,16 @@ def format_dict(d):
         elif isiterable(v):
             if v:
                 lines.append(f"{k}:")
-                v = [dict(item) if isinstance(item, Mapping) else item for item in v]
-                lines.append(pretty_list(v))
+                if any(isinstance(item, Mapping) for item in v):
+                    for item in v:
+                        if isinstance(item, Mapping):
+                            formatted = format_dict(item)
+                            lines.append(f"  - {formatted[0]}")
+                            lines.extend(f"    {line}" for line in formatted[1:])
+                        else:
+                            lines.append(f"  - {item}")
+                else:
+                    lines.append(pretty_list(v))
             else:
                 lines.append(f"{k}: []")
         else:

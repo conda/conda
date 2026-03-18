@@ -109,7 +109,8 @@ def test_format_dict_mapping_items():
     formatted = "\n".join(result)
     assert "frozendict" not in formatted
     assert "channel_settings:" in formatted
-    assert "https://example.com/*" in formatted
+    assert "  - channel: https://example.com/*" in formatted
+    assert "    auth: token" in formatted
 
 
 def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
