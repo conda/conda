@@ -36,8 +36,6 @@ env:
 jobs:
   # detect whether any code changes are included in this PR
   changes:
-    if: github.event_name != 'schedule'
-
     runs-on: ubuntu-latest
     permissions:
       # necessary to detect changes
