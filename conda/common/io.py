@@ -9,6 +9,7 @@ import os
 import signal
 import sys
 from collections import defaultdict
+from collections.abc import Callable, Generator, Iterable, Iterator
 from concurrent.futures import Executor, Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
@@ -19,7 +20,7 @@ from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from threading import Lock
 from time import time
-from typing import TYPE_CHECKING, Any, Callable, Generator, Iterable, Iterator
+from typing import TYPE_CHECKING, Any
 
 from ..auxlib.decorators import memoizemethod
 
