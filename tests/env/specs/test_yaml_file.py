@@ -7,20 +7,22 @@ import pytest
 from conda.env import env
 from conda.env.specs.cep_24 import Cep24YamlFileSpec
 from conda.env.specs.yaml_file import YamlFileSpec
+from conda.exceptions import EnvironmentFileNotFound, PluginError
 
 from .. import support_file
 
 
 @pytest.mark.parametrize(
-    "cls,can_handle",
+    "cls",
     [
-        (YamlFileSpec, False),
-        (Cep24YamlFileSpec, False),
+        YamlFileSpec,
+        Cep24YamlFileSpec,
     ],
 )
-def test_no_environment_file(cls, can_handle):
+def test_no_environment_file(cls):
     spec = cls(name=None, filename="not-a-file")
-    assert can_handle == spec.can_handle()
+    with pytest.raises(EnvironmentFileNotFound):
+        spec.can_handle()
 
 
 @pytest.mark.parametrize("cls", [YamlFileSpec, Cep24YamlFileSpec])
@@ -30,19 +32,16 @@ def test_environment_file_exist(cls):
 
 
 @pytest.mark.parametrize(
-    "cls,err,can_handle",
+    "cls,err",
     [
-        (YamlFileSpec, None, False),
-        (Cep24YamlFileSpec, TypeError, False),
+        (YamlFileSpec, PluginError),
+        (Cep24YamlFileSpec, TypeError),
     ],
 )
-def test_environment_file_not_yaml(cls, err, can_handle):
+def test_environment_file_not_yaml(cls, err):
     spec = cls(name=None, filename=support_file("requirements.txt"))
-    if err:
-        with pytest.raises(err):
-            spec.can_handle()
-    else:
-        assert can_handle == spec.can_handle()
+    with pytest.raises(err):
+        spec.can_handle()
 
 
 @pytest.mark.parametrize("cls", [YamlFileSpec, Cep24YamlFileSpec])

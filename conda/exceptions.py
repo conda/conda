@@ -45,7 +45,7 @@ if TYPE_CHECKING:
     from conda.common.path import PathType
     from conda.models.match_spec import MatchSpec
     from conda.models.records import PackageRecord
-    from conda.plugins.types import CondaEnvironmentExporter
+    from conda.plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
 
 log = getLogger(__name__)
 
@@ -1285,7 +1285,6 @@ class CondaEnvException(CondaError):
 
 class EnvironmentFileInvalid(CondaEnvException):
     def __init__(self, msg: str, *args, **kwargs):
-        msg = f"Provided environment.yaml is invalid: {msg}"
         super().__init__(msg, *args, **kwargs)
 
 
@@ -1338,6 +1337,22 @@ class PluginError(CondaError):
 
 class SpecNotFound(CondaError):
     def __init__(self, msg: str, *args, **kwargs):
+        super().__init__(msg, *args, **kwargs)
+
+
+class EnvironmentSpecPluginSelectionError(CondaError):
+    def __init__(
+        self,
+        msg: str,
+        plugin_specs: dict[str, CondaEnvironmentSpecifier],
+        *args,
+        **kwargs,
+    ):
+        plugin_names = [
+            f"{name}{' (' if plugin.aliases else ''}{', '.join(plugin.aliases)}{')' if plugin.aliases else ''}"
+            for name, plugin in plugin_specs.items()
+        ]
+        msg += f"\nAvailable formats: {dashlist(plugin_names, 4)}"
         super().__init__(msg, *args, **kwargs)
 
 
