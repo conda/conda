@@ -107,7 +107,7 @@ def add_parser_create_install_update(p, prefix_required=False):
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
-        # "-f",
+        "-f",
         "--file",
         default=[],
         action="append",
