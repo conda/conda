@@ -522,7 +522,7 @@ class CondaPluginManager(pluggy.PluginManager):
         """
          Returns a mapping from environment specifier name to environment specifier.
 
-         :param supports_detection: ternary value that returns either everything, only supporting
+        :param supports_detection: ternary value that returns either everything, only supporting
                                     detection or not supporting detection.
         :param with_aliases: whether to include aliased values of environment specifiers.
         """
@@ -752,11 +752,7 @@ class CondaPluginManager(pluggy.PluginManager):
         ) as exc:
             # raise error if no plugins found that can read the environment file
             raise EnvironmentSpecPluginNotDetected(
-                name=source,
-                plugin_names=hooks,
-                autodetect_disabled_plugins=self.get_environment_specifiers(
-                    supports_detection=False
-                ),
+                plugin_specs=self.get_environment_specifiers(with_aliases=False),
             ) from exc
 
     def get_environment_specifier(

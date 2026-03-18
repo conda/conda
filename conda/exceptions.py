@@ -1359,29 +1359,16 @@ class EnvironmentSpecPluginSelectionError(CondaError):
 class EnvironmentSpecPluginNotDetected(SpecNotFound):
     def __init__(
         self,
-        name: str,
-        plugin_names: Iterable[str],
-        autodetect_disabled_plugins: Iterable[str] = (),
+        plugin_specs: dict[str, CondaEnvironmentSpecifier],
         *args,
         **kwargs,
     ):
-        self.name = name
-        msg = dals(
-            f"""
-            Environment at {name} is not able to be detected by any installed environment specifier plugins.
-
-            Available plugins: {dashlist(plugin_names, 16)}
-
-            """
+        plugin_names = [f"{name}{' (' if plugin.aliases else ''}{', '.join(plugin.aliases)}{')' if plugin.aliases else ''}" for name, plugin in plugin_specs.items()]
+        msg = (
+            "We weren't able to detect what kind of format this environment is. "
+            "Please add to your prior command: --env-spec [SELECT FROM BELOW]\n"
+            f"{dashlist(plugin_names, 8)}"
         )
-        if autodetect_disabled_plugins:
-            msg += dals(
-                """
-                Found compatible plugins but they must be explicitly selected.
-                Request conda to use these plugins by providing
-                the cli argument `--environment-spec PLUGIN_NAME`:
-                """
-            ) + dashlist(autodetect_disabled_plugins, 4)
         super().__init__(msg, *args, **kwargs)
 
 
