@@ -2867,6 +2867,8 @@ variables:
     prefix = path_factory()
     conda_cli(
         "create",
+        "--prefix",
+        str(prefix),
         "--file",
         str(env_yml),
         "--yes",
