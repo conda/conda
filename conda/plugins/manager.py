@@ -25,6 +25,7 @@ from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
 from ..exceptions import (
+    AmbiguousEnvironmentSpecPlugin,
     CondaValueError,
     EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
@@ -653,12 +654,10 @@ class CondaPluginManager(pluggy.PluginManager):
         ]
 
         if len(found) > 1:
-            raise PluginError(
-                f"Too many plugins found that can handle the environment file '{source}'.\n\n"
-                "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
-                "parser you want to use.\n\n"
-                "Available env specs:\n"
-                f"{dashlist(self.get_environment_specifiers())}"
+            raise AmbiguousEnvironmentSpecPlugin(
+                msg=f"File '{source}' matches the default filename pattern for multiple plugins.",
+                plugins=found,
+                source=source,
             )
 
         if len(found) == 1:
@@ -726,12 +725,10 @@ class CondaPluginManager(pluggy.PluginManager):
             found = self._detect_content_env_spec(source, hooks)
 
             if len(found) > 1:
-                raise PluginError(
-                    f"Too many plugins found that can handle the environment file '{source}'.\n\n"
-                    "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
-                    "parser you want to use.\n\n"
-                    "Available env specs:\n"
-                    f"{dashlist(self.get_environment_specifiers())}"
+                raise AmbiguousEnvironmentSpecPlugin(
+                    msg=f"File '{source}' can be handled by multiple plugins.",
+                    plugins=found,
+                    source=source,
                 )
 
         if len(found) == 1:

@@ -1353,6 +1353,22 @@ class EnvironmentSpecPluginSelectionError(CondaError):
             for name, plugin in plugin_specs.items()
         ]
         msg += f"\nAvailable formats: {dashlist(plugin_names, 4)}"
+
+class AmbiguousEnvironmentSpecPlugin(SpecNotFound):
+    def __init__(
+        self,
+        msg: str,
+        plugins: list[CondaEnvironmentSpecifier],
+        source: str,
+        *args,
+        **kwargs,
+    ):
+        msg += (
+            " To more exactly specify the format try:\n\n"
+            f"    conda env create --file {source} --env-spec <format>"
+            "\n\nMatched formats:"
+            f"{dashlist([plg.name for plg in plugins], 4)}"
+        )
         super().__init__(msg, *args, **kwargs)
 
 
@@ -1363,11 +1379,14 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         *args,
         **kwargs,
     ):
-        plugin_names = [f"{name}{' (' if plugin.aliases else ''}{', '.join(plugin.aliases)}{')' if plugin.aliases else ''}" for name, plugin in plugin_specs.items()]
+        plugin_names = [
+            f"{name}{' (' if plugin.aliases else ''}{', '.join(plugin.aliases)}{')' if plugin.aliases else ''}"
+            for name, plugin in plugin_specs.items()
+        ]
         msg = (
             "We weren't able to detect what kind of format this environment is. "
             "Please add to your prior command: --env-spec [SELECT FROM BELOW]\n"
-            f"{dashlist(plugin_names, 8)}"
+            f"{dashlist(plugin_names, 4)}"
         )
         super().__init__(msg, *args, **kwargs)
 

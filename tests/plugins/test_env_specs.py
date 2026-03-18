@@ -9,6 +9,7 @@ import pytest
 from conda import plugins
 from conda.auxlib.ish import dals
 from conda.exceptions import (
+    AmbiguousEnvironmentSpecPlugin,
     CondaValueError,
     EnvironmentSpecPluginNotDetected,
     EnvironmentSpecPluginSelectionError,
@@ -341,8 +342,16 @@ def test_raise_error_for_multiple_registered_installers(
     for the same section.
     """
     filename = "test.random"
-    with pytest.raises(PluginError):
+    with pytest.raises(
+        AmbiguousEnvironmentSpecPlugin,
+        match="File 'test.random' can be handled by multiple plugins.",
+    ) as error:
         dummy_random_spec_plugin.get_environment_specifier(filename)
+
+    # More assertions to make sure the error message includes suggestions
+    assert "Matched formats:" in str(error.value)
+    assert "rand-spec" in str(error.value)
+    assert "rand-spec-2" in str(error.value)
 
 
 def test_raise_error_for_overlapping_default_filename(
@@ -352,13 +361,13 @@ def test_raise_error_for_overlapping_default_filename(
     Ensure that we raise an error when default filenames overlap(``*.xml``)
     """
     with pytest.raises(
-        PluginError,
-        match=r"Too many plugins found that can handle the environment file '(.+)environment.xml'.",
+        AmbiguousEnvironmentSpecPlugin,
+        match=r"File '(.+)environment.xml' matches the default filename pattern for multiple plugins.",
     ) as error:
         plugin_manager_with_xml_spec_2.detect_environment_specifier(str(xml_env))
 
     # More assertions to make sure the error message includes suggestions
-    assert "Available env specs:" in str(error.value)
+    assert "Matched formats:" in str(error.value)
     assert "xml-spec" in str(error.value)
     assert "xml-spec-2" in str(error.value)
 
@@ -582,7 +591,10 @@ def test_alias_and_name_collision_detect(
     with pytest.raises(PluginError):
         plugin_manager.get_environment_specifier_by_name("something.random", "random")
 
-    with pytest.raises(PluginError):
+    with pytest.raises(
+        AmbiguousEnvironmentSpecPlugin,
+        match="'something.random' can be handled by multiple plugins.",
+    ):
         plugin_manager.detect_environment_specifier("something.random")
 
 
