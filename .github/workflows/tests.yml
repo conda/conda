@@ -106,9 +106,9 @@ jobs:
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: |
-          CACHE_KEY="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
-          echo "CACHE_KEY=${CACHE_KEY}" >> $GITHUB_ENV
-          echo "HASH=${CACHE_KEY}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
+          echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -247,9 +247,9 @@ jobs:
 
       - name: Hash + Timestamp
         run: |
-          CACHE_KEY="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
-          echo "CACHE_KEY=${CACHE_KEY}" >> $GITHUB_ENV
-          echo "HASH=${CACHE_KEY}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
+          echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -347,8 +347,9 @@ jobs:
 
       - name: Hash + Timestamp
         run: |
-          echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmark-$(date -u "+%Y%m")" >> $GITHUB_ENV
-          echo "CACHE_KEY=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-defaults-aux-$(date -u "+%Y%m")" >> $GITHUB_ENV
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
+          echo "HASH=${STEM}-benchmark" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -416,8 +417,9 @@ jobs:
 
       - name: Hash + Timestamp
         run: |
-          echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-typing-$(date -u "+%Y%m")" >> $GITHUB_ENV
-          echo "CACHE_KEY=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-defaults-aux-$(date -u "+%Y%m")" >> $GITHUB_ENV
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
+          echo "HASH=${STEM}-typing" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -567,8 +569,9 @@ jobs:
 
       - name: Hash + Timestamp
         run: |
-          echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-memray-$(date -u "+%Y%m")" >> $GITHUB_ENV
-          echo "CACHE_KEY=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-defaults-aux-$(date -u "+%Y%m")" >> $GITHUB_ENV
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
+          echo "HASH=${STEM}-memray" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -660,9 +663,9 @@ jobs:
 
       - name: Hash + Timestamp
         run: |
-          CACHE_KEY="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
-          echo "CACHE_KEY=${CACHE_KEY}" >> $GITHUB_ENV
-          echo "HASH=${CACHE_KEY}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
+          echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -915,8 +918,9 @@ jobs:
 
       - name: Hash + Timestamp + Job
         run: |
-          echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ github.job }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
-          echo "CACHE_KEY=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-defaults-aux-$(date -u "+%Y%m")" >> $GITHUB_ENV
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
+          echo "HASH=${STEM}-${{ matrix.default-channel }}-${{ github.job }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
