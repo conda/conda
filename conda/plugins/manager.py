@@ -24,8 +24,9 @@ from ..auxlib import NULL
 from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
-from ..common.io import dashlist
+from ..common.io import dashlist, load_file
 from ..exceptions import (
+    CondaError,
     CondaValueError,
     EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
@@ -55,12 +56,14 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
+    from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaEnvironmentSpecifier2,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPlugin,
@@ -771,6 +774,248 @@ class CondaPluginManager(pluggy.PluginManager):
             return self.detect_environment_specifier(source)
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
+
+    def get_environment_specifiers2(
+        self, *, supports_detection: bool | None = None, with_aliases: bool = True
+    ) -> dict[str, CondaEnvironmentSpecifier2]:
+        """
+         Returns a mapping from environment specifier v2 name to environment specifier v2.
+
+         :param supports_detection: ternary value that returns either everything, only supporting
+                                    detection or not supporting detection.
+        :param with_aliases: whether to include aliased values of environment specifiers.
+        """
+        if supports_detection is None:
+            env_spec_hooks = [
+                h for h in self.get_hook_results("environment_specifiers2")
+            ]
+        else:
+            env_spec_hooks = [
+                h
+                for h in self.get_hook_results("environment_specifiers2")
+                if h.detection_supported == supports_detection
+            ]
+
+        if not with_aliases:
+            return {hook.name: hook for hook in env_spec_hooks}
+
+        try:
+            return self._get_name_and_alias_mapping(env_spec_hooks)
+        except PluginError as err:
+            raise PluginError(
+                f"Plugin name conflicts detected in environment specifiers.\n{err}"
+            )
+
+    def get_environment_specifier2_by_name(
+        self,
+        source: str,
+        name: str,
+    ) -> CondaEnvironmentSpecifier2:
+        """Get an environment specifier v2 plugin by name
+
+        :param source: full path to the environment spec file/source
+        :param name: name of the environment plugin to load
+        :raises CondaValueError: if the requested plugin is not available.
+        :raises PluginError: if the requested plugin is unable to handle the provided file.
+        :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
+        """
+        name = name.lower().strip()
+        plugins = self.get_environment_specifiers2()
+
+        try:
+            plugin = plugins[name]
+        except KeyError:
+            raise CondaValueError(
+                f"You have chosen an unrecognized environment"
+                f" specifier type ({name}). Choose one of: "
+                f"{dashlist(plugins)}"
+            )
+        else:
+            data = load_file(source)
+            # Try to load the plugin and check if it can handle the environment spec
+            try:
+                if plugin.validate(data):
+                    return plugin
+            except Exception as e:
+                raise PluginError(
+                    dals(
+                        f"""
+                        An error occurred when handling '{source}' with plugin '{name}'.
+
+                        {type(e).__name__}: {e}
+                        """
+                    )
+                )
+            else:
+                # If the plugin was not able to handle the environment spec, raise an error
+                raise PluginError(
+                    f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
+                )
+
+    def _detect_filename_env_spec2(
+        self,
+        source: str,
+        basename: str,
+        hooks: dict[str, CondaEnvironmentSpecifier2],
+    ) -> list[CondaEnvironmentSpecifier2]:
+        """Detect environment specifier v2 by filename pattern matching.
+
+        :param basename: basename of the source file
+        :param hooks: mapping of environment specifier plugins
+        :returns: list of matching plugins, or None if no filename matches
+        """
+        found = [
+            hook
+            for hook_name, hook in hooks.items()
+            if hook.default_filenames
+            and any(
+                fnmatch.fnmatch(basename, pattern) for pattern in hook.default_filenames
+            )
+        ]
+
+        if len(found) > 1:
+            raise PluginError(
+                f"Too many plugins found that can handle the environment file '{source}'.\n\n"
+                "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
+                "parser you want to use.\n\n"
+                "Available env specs:\n"
+                f"{dashlist(self.get_environment_specifiers2())}"
+            )
+
+        if len(found) == 1:
+            data = load_file(source)
+            try:
+                if found[0].validate(data):
+                    return found
+            except Exception as e:
+                raise PluginError(
+                    f"Failed to parse environment specification from file: {e}"
+                ) from e
+
+        return found
+
+    @staticmethod
+    def _detect_content_env_spec2(
+        source: str,
+        hooks: dict[str, CondaEnvironmentSpecifier2],
+    ) -> list[CondaEnvironmentSpecifier2]:
+        """Detect environment specifier v2 by content-based autodetection.
+
+        :param source: full path to the environment spec file or source
+        :param hooks: mapping of environment specifier plugins
+        :returns: tuple of (found plugins, autodetect disabled plugin names)
+        """
+        found = []
+        data = load_file(source)
+        for hook_name, hook in hooks.items():
+            log.debug("EnvironmentSpec hook: checking %s", hook_name)
+            try:
+                if hook.validate(data):
+                    log.debug(
+                        "EnvironmentSpec hook: %s can be %s",
+                        source,
+                        hook_name,
+                    )
+                    found.append(hook)
+            except Exception:
+                pass
+
+        return found
+
+    def detect_environment_specifier2(self, source: str) -> CondaEnvironmentSpecifier2:
+        """Detect the environment specifier v2 plugin for a given spec source
+
+        Uses two-phase detection:
+        1. Filename-based filtering using fnmatch patterns
+        2. Fallback to content-based autodetection (can_handle())
+
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+
+        :param source: full path to the environment spec file or source
+        :returns: an environment specifier plugin that can handle the provided file
+        """
+        hooks = self.get_environment_specifiers2(
+            supports_detection=True, with_aliases=False
+        )
+        basename = os.path.basename(source)
+
+        # Filename detection
+        found = self._detect_filename_env_spec2(source, basename, hooks)
+
+        if len(found) == 0:
+            # Filename matching didn't find anything; try content based detection
+            found = self._detect_content_env_spec2(source, hooks)
+
+            if len(found) > 1:
+                raise PluginError(
+                    f"Too many plugins found that can handle the environment file '{source}'.\n\n"
+                    "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
+                    "parser you want to use.\n\n"
+                    "Available env specs:\n"
+                    f"{dashlist(self.get_environment_specifiers2())}"
+                )
+
+        if len(found) == 1:
+            return found[0]
+
+        # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
+        # FUTURE: Remove this final try at using the environment.yml to read the environment
+        # file. This should be removed in "26.9" when the deprecations warning for
+        # environment.yml's that are not compliant with cep-0024 are removed.
+        try:
+            return self.get_environment_specifier2_by_name(
+                source=source, name="environment.yml"
+            )
+        except (PluginError, CondaValueError) as exc:
+            # raise error if no plugins found that can read the environment file
+            raise EnvironmentSpecPluginNotDetected(
+                name=source,
+                plugin_names=hooks,
+                autodetect_disabled_plugins=self.get_environment_specifiers2(
+                    supports_detection=False
+                ),
+            ) from exc
+
+    def get_environment_specifier2(
+        self,
+        source: str,
+        name: str | None = None,
+    ) -> CondaEnvironmentSpecifier2:
+        """Get the environment specifier v2 plugin for a given spec source, or given a plugin name
+        Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
+        Raises EnvironmentSpecPluginNotDetected if no plugins were found.
+        Raises CondaValueError if the requested plugin is not available.
+
+        :param source: full path to the environment spec file/source
+        :param name: name of the environment plugin to load
+        :returns: an environment specifier plugin that matches the provided plugin name, or can handle the provided file
+        """
+        if not name:
+            return self.detect_environment_specifier2(source)
+        else:
+            return self.get_environment_specifier2_by_name(source=source, name=name)
+
+    def get_environment(
+        self,
+        source: str,
+        name: str | None = None,
+    ) -> Environment:
+        """
+        Gets the environment from the CondaEnvironmentSpecifier or CondaEnvironmentSpecifier2 apis.
+
+        :param source: full path to the environment spec file/source
+        :param name: name of the environment plugin to load
+        :returns: an environment from a plugin that matches the provided plugin name, or can handle the provided file
+        """
+        data = load_file(source)
+        try:
+            plugin = self.get_environment_specifier2(source, name)
+            return plugin.env(data)
+        except CondaError:
+            spec_hook = self.get_environment_specifier(source, name)
+            spec = spec_hook.environment_spec(source)
+            return spec.env
 
     def get_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
         """

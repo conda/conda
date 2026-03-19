@@ -111,12 +111,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     validate_file_exists(args.file)
 
     # detect the file format and get the env representation
-    spec_hook = context.plugin_manager.get_environment_specifier(
+    env = context.plugin_manager.get_environment(
         source=args.file,
         name=context.environment_specifier,
     )
-    spec = spec_hook.environment_spec(args.file)
-    env = spec.env
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
