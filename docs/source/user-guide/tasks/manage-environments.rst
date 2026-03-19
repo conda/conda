@@ -106,7 +106,10 @@ Use the terminal for the following steps:
 
    .. code::
 
-      conda env create -f environment.yml
+      conda create -f environment.yml
+
+   Alternatively, ``conda env create --file environment.yml`` is
+   another way to create an environment from an environment.yml file.
 
    The first line of the ``yml`` file sets the new environment's
    name. For details see :ref:`Creating an environment file manually
@@ -363,6 +366,12 @@ Use the terminal for the following steps:
    existing environment::
 
      conda install --name myenv --file spec-file.txt
+
+   The ``--file`` option also supports YAML and other
+   formats via environment specifier plugins. For ``conda install``
+   (and ``conda update``), only the package list is used; any name
+   or prefix in the file is ignored. Packages are installed into
+   the target environment (-n/-p or the current environment).
 
    Conda does not check architecture or dependencies when installing
    from a spec file. To ensure that the packages work correctly,
