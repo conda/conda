@@ -228,14 +228,39 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         channel_urls = ()
         subdirs = ()
 
+        from ..exceptions import (
+            PackagesNotFoundInChannelsError,
+            PackagesNotFoundInPrefixError,
+        )
+
         prefix_data = PrefixData(prefix)
         if unmatched_specs := [
             str(spec) for spec in specs if not tuple(prefix_data.query(spec))
         ]:
-            raise PackagesNotFoundError(tuple(sorted(unmatched_specs)))
+            raise PackagesNotFoundInPrefixError(
+                tuple(sorted(unmatched_specs)), prefix=prefix
+            )
 
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         solver = solver_backend(prefix, channel_urls, subdirs, specs_to_remove=specs)
-        txn = solver.solve_for_transaction()
+
+        try:
+            txn = solver.solve_for_transaction()
+        # If a backend raises the generic error, we convert it to the more specific one
+        # here. TODO: is this the best place to do this? Should backends raise the specific
+        # errors, say the CLS should? I have thoughts either way but gotta read more about
+        # this. FIXME: handle before merge
+        except PackagesNotFoundError as e:
+            if isinstance(
+                e, (PackagesNotFoundInPrefixError, PackagesNotFoundInChannelsError)
+            ):
+                raise
+
+            packages = getattr(e, "packages", None)
+            if not packages:
+                packages = tuple(sorted(str(s) for s in specs))
+
+            raise PackagesNotFoundInPrefixError(packages, prefix=prefix) from e
+
         handle_txn(txn, prefix, args, False, True)
         return 0
