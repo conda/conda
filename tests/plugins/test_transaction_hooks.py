@@ -9,6 +9,8 @@ import pytest
 
 from conda import plugins
 from conda.core.path_actions import Action
+from conda.plugins import package_extractors, solvers
+from conda.plugins.types import CondaPostTransactionAction, CondaPreTransactionAction
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -39,10 +41,8 @@ class DummyPreTransactionAction(DummyTransactionAction):
 
 class DummyPreActionPlugin:
     @plugins.hookimpl
-    def conda_pre_transaction_actions(
-        self,
-    ) -> Iterable[plugins.types.CondaPreTransactionAction]:
-        yield plugins.types.CondaPreTransactionAction(
+    def conda_pre_transaction_actions(self) -> Iterable[CondaPreTransactionAction]:
+        yield CondaPreTransactionAction(
             name="bar",
             action=DummyPreTransactionAction,
         )
@@ -50,10 +50,8 @@ class DummyPreActionPlugin:
 
 class DummyPostActionPlugin:
     @plugins.hookimpl
-    def conda_post_transaction_actions(
-        self,
-    ) -> Iterable[plugins.types.CondaPostTransactionAction]:
-        yield plugins.types.CondaPostTransactionAction(
+    def conda_post_transaction_actions(self) -> Iterable[CondaPostTransactionAction]:
+        yield CondaPostTransactionAction(
             name="foo",
             action=DummyPostTransactionAction,
         )
@@ -63,9 +61,9 @@ class DummyPostActionPlugin:
 def transaction_plugin(plugin_manager_with_reporter_backends, mocker):
     """Test that post transaction actions get called."""
     # Explicitly load the solver, since this is a dummy plugin manager and not the default
-    plugin_manager_with_reporter_backends.load_plugins(plugins.solvers)
     plugin_manager_with_reporter_backends.load_plugins(
-        *plugins.package_extractors.plugins
+        solvers,
+        *package_extractors.plugins,
     )
 
     pre_plugin = DummyPreActionPlugin()
