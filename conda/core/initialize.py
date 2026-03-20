@@ -333,15 +333,6 @@ def make_install_plan(conda_prefix):
                 },
             }
         )
-        plan.append(
-            {
-                "function": make_entry_point_exe.__name__,
-                "kwargs": {
-                    "target_path": join(conda_prefix, "Scripts", "conda-env.exe"),
-                    "conda_prefix": conda_prefix,
-                },
-            }
-        )
     else:
         # We can't put a conda.exe in condabin on Windows. It'll conflict with conda.bat.
         plan.append(
