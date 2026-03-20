@@ -220,6 +220,8 @@ ignore = [
 pydocstyle = {convention = "pep257"}
 # see https://docs.astral.sh/ruff/rules/
 select = [
+  # Enable ANN locally for type hints linting
+  # "ANN", # flake8-annotations
   "B012",  # bugbear
   "D1",  # pydocstyle
   "E",  # pycodestyle errors
@@ -238,12 +240,15 @@ select = [
 
 [tool.ruff.lint.extend-per-file-ignores]
 "conda/testing/*" = [
+  "ANN",  # flake8-annotations
   "S101",  # forbid assert
 ]
 "docs/*" = [
+  "ANN",  # flake8-annotations
   "D1",  # pydocstyle
 ]
 "tests/*" = [
+  "ANN",  # flake8-annotations
   "D1",  # pydocstyle
   "S101",  # forbid assert
   "TID251",  # flake8-tidy-imports
