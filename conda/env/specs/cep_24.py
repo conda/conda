@@ -7,8 +7,9 @@ from __future__ import annotations
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from ...common.io import dashlist
 from ...common.serialize import yaml
-from ...exceptions import CondaError
+from ...exceptions import CondaValueError, PluginError
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
@@ -32,21 +33,21 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
             * the provided file exists
             * the provided file is compliant with the CEP-0024
 
-        :return: True or False
+        :return: True if the file can be handled
+        :raises: if the file can not be handled
         """
         if not self.filename:
-            return False
+            raise CondaValueError("No filename provided")
 
-        try:
-            yamlstr = env.load_file(self.filename)
-            data = yaml.loads(yamlstr)
-            errors = env.get_schema_errors(data)
-            if errors:
-                return False
-            return True
-        except CondaError:
-            log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
-            return False
+        yamlstr = env.load_file(self.filename)
+        data = yaml.loads(yamlstr)
+        errors = env.get_schema_errors(data)
+        if errors:
+            raise PluginError(
+                "Provided environment file is invalid:"
+                f"{dashlist([err for err in errors], indent=4)}"
+            )
+        return True
 
     @property
     def env(self) -> Environment:
