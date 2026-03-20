@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `description` and `is_lockfile` metadata fields to environment plugin types (`CondaEnvironmentSpecifier` and `CondaEnvironmentExporter`). (#15577 via #15763).
+* Add `description` and `environment_format` metadata fields to environment plugin types (`CondaEnvironmentSpecifier` and `CondaEnvironmentExporter`). (#15577 via #15763).
 
 ### Bug fixes
 

@@ -14,7 +14,7 @@ from ... import __version__
 from ...common.url import join_url
 from ...exceptions import CondaValueError
 from ..hookspec import hookimpl
-from ..types import CondaEnvironmentExporter
+from ..types import CondaEnvironmentExporter, EnvironmentFormat
 
 if TYPE_CHECKING:
     from typing import Final
@@ -92,5 +92,5 @@ def conda_environment_exporters():
         export=export_explicit,
         default_filenames=("explicit.txt",),
         description="Explicit URLs for exact package reproduction (lockfile)",
-        is_lockfile=True,
+        environment_format=EnvironmentFormat.lockfile,
     )

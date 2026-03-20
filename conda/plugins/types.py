@@ -9,9 +9,9 @@ Each type corresponds to the plugin hook for which it is used.
 
 from __future__ import annotations
 
+import enum
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -592,6 +592,20 @@ class EnvironmentSpecBase(ABC):
         raise NotImplementedError()
 
 
+class EnvironmentFormat(enum.Enum):
+    """
+    Represents supported environment formats.
+
+    TODO: After minimum support for Python 3.11 is introduced, convert to using enum.StrEnum
+    """
+
+    lockfile = "lockfile"
+    environment = "environment"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 @dataclass
 class CondaEnvironmentSpecifier(CondaPlugin):
     """
@@ -607,7 +621,7 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     :param environment_spec: EnvironmentSpecBase subclass handler
     :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
     :param description: user-friendly description of what the format does. Defaults to the name if not provided.
-    :param is_lockfile: whether this format represents a lockfile (fully reproducible). Defaults to False, or True if "lock" appears in the name.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
@@ -615,7 +629,7 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     default_filenames: tuple[str, ...] = field(default_factory=tuple)
     aliases: tuple[str, ...] = field(default_factory=tuple)
     description: str | None = field(default=None)
-    is_lockfile: bool = field(default=False)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -632,13 +646,6 @@ class CondaEnvironmentSpecifier(CondaPlugin):
         if self.description is None:
             self.description = self.name
 
-        # Infer is_lockfile from name if not explicitly set to True
-        # Note: If user explicitly sets is_lockfile=False but name contains "lock",
-        # the inference will override it. This is acceptable as lockfiles should
-        # have "lock" in their name by convention.
-        if not self.is_lockfile and "lock" in self.name.lower():
-            self.is_lockfile = True
-
 
 @dataclass
 class CondaEnvironmentExporter(CondaPlugin):
@@ -652,7 +659,7 @@ class CondaEnvironmentExporter(CondaPlugin):
     :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
     :param export: callable that exports an Environment to string format
     :param description: user-friendly description of what the format does. Defaults to the name if not provided.
-    :param is_lockfile: whether this format represents a lockfile (fully reproducible). Defaults to False, or True if "lock" appears in the name.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
@@ -661,7 +668,7 @@ class CondaEnvironmentExporter(CondaPlugin):
     export: SinglePlatformEnvironmentExport | None = None
     multiplatform_export: MultiPlatformEnvironmentExport | None = None
     description: str | None = field(default=None)
-    is_lockfile: bool = field(default=False)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -682,13 +689,6 @@ class CondaEnvironmentExporter(CondaPlugin):
         # Set default description to name if not provided
         if self.description is None:
             self.description = self.name
-
-        # Infer is_lockfile from name if not explicitly set to True
-        # Note: If user explicitly sets is_lockfile=False but name contains "lock",
-        # the inference will override it. This is acceptable as lockfiles should
-        # have "lock" in their name by convention.
-        if not self.is_lockfile and "lock" in self.name.lower():
-            self.is_lockfile = True
 
 
 @dataclass

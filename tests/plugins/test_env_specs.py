@@ -16,7 +16,11 @@ from conda.exceptions import (
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.plugins import environment_specifiers
-from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
+from conda.plugins.types import (
+    CondaEnvironmentSpecifier,
+    EnvironmentFormat,
+    EnvironmentSpecBase,
+)
 
 
 class NaughtySpec(EnvironmentSpecBase):
@@ -582,27 +586,27 @@ def test_alias_and_name_collision_detect(
 
 
 @pytest.mark.parametrize(
-    "spec_name,expected_description,expected_is_lockfile",
+    "spec_name,expected_description,expected_environment_format",
     [
         (
             "environment.yml",
             "Standard YAML environment specification with dependencies",
-            False,
+            EnvironmentFormat.environment,
         ),
         (
             "explicit",
             "Explicit package URLs for fully reproducible environments",
-            True,
+            EnvironmentFormat.lockfile,
         ),
         (
             "requirements.txt",
             "Simple text file with package specifications",
-            False,
+            EnvironmentFormat.environment,
         ),
         (
             "cep-24",
             "CEP-24 compliant YAML environment specification",
-            False,
+            EnvironmentFormat.environment,
         ),
     ],
 )
@@ -610,7 +614,7 @@ def test_builtin_specifiers_have_metadata(
     plugin_manager_with_specifiers,
     spec_name: str,
     expected_description: str,
-    expected_is_lockfile: bool,
+    expected_environment_format: bool,
 ):
     """Test that all built-in specifiers have meaningful descriptions and correct lockfile classification."""
     # Get all environment specifiers (returns a dict)
@@ -629,4 +633,4 @@ def test_builtin_specifiers_have_metadata(
     )  # Should be more descriptive than just the name
 
     # Verify lockfile classification
-    assert specifier.is_lockfile == expected_is_lockfile
+    assert specifier.environment_format == expected_environment_format

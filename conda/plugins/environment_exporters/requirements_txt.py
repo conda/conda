@@ -61,5 +61,4 @@ def conda_environment_exporters():
         export=export_requirements,
         default_filenames=("requirements.txt", "spec.txt"),
         description="Simple text format with package specifications",
-        is_lockfile=False,
     )

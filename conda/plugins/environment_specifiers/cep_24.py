@@ -19,5 +19,4 @@ def conda_environment_specifiers():
         environment_spec=Cep24YamlFileSpec,
         default_filenames=("environment.yml", "environment.yaml"),
         description="CEP-24 compliant YAML environment specification",
-        is_lockfile=False,
     )
