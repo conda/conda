@@ -18,8 +18,7 @@ from __future__ import annotations
 from os.path import basename, join
 from pathlib import Path
 
-from boltons.timeutils import dt_to_timestamp, isoparse
-
+from .._vendor.timeutils import dt_to_timestamp, isoparse
 from ..auxlib.entity import (
     BooleanField,
     ComposableField,

@@ -15,7 +15,7 @@ from logging import getLogger
 from os.path import abspath, basename, exists, isdir
 from pathlib import Path
 
-from boltons.setutils import IndexedSet
+from conda._vendor.setutils import IndexedSet
 
 from ..base.constants import (
     REPODATA_FN,
