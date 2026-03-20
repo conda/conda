@@ -33,7 +33,6 @@ from ..auxlib.entity import (
 )
 from ..base.context import context
 from ..common.compat import isiterable
-from ..deprecations import deprecated
 from ..exceptions import PathNotFoundError
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
@@ -337,11 +336,6 @@ class PackageRecord(DictSafeMixin, Entity):
         Part of the :attr:`_pkey`.
         """
         return getattr(self.channel, "canonical_name", None)
-
-    @property
-    @deprecated("25.9", "26.3", addendum="Use .channel_name instead")
-    def schannel(self):
-        return self.channel_name
 
     @property
     def _pkey(self):

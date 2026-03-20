@@ -12,14 +12,13 @@ from __future__ import annotations
 
 import os
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir
+from os.path import abspath
 from pathlib import Path
 
 from boltons.setutils import IndexedSet
 
 from ..base.constants import (
     REPODATA_FN,
-    RESERVED_ENV_NAMES,
     UpdateModifier,
 )
 from ..base.context import context
@@ -29,9 +28,7 @@ from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
-from ..deprecations import deprecated
 from ..exceptions import (
-    CondaEnvException,
     CondaExitZero,
     CondaImportError,
     CondaIndexError,
@@ -92,71 +89,6 @@ def reinstall_packages(args, specs: list[str], **kwargs) -> int:
     return install(args, None)
 
 
-@deprecated("25.9", "26.3", addendum="Use PrefixData.exists()")
-def validate_prefix_exists(prefix: str | Path) -> None:
-    """
-    Validate that we are receiving at least one valid value for --name or --prefix.
-    """
-    prefix = Path(prefix)
-    if not prefix.exists():
-        raise CondaEnvException("The environment you have specified does not exist.")
-
-
-@deprecated(
-    "25.9", "26.3", addendum="Use PrefixData.exists() + PrefixData.validate_path()"
-)
-def validate_new_prefix(dest: str, force: bool = False) -> str:
-    """Ensure that the new prefix does not exist."""
-    from ..base.context import context, validate_prefix_name
-    from ..common.path import expand
-
-    if os.sep in dest:
-        dest = expand(dest)
-    else:
-        dest = validate_prefix_name(dest, ctx=context, allow_base=False)
-
-    if not force and os.path.exists(dest):
-        env_name = os.path.basename(os.path.normpath(dest))
-        raise CondaEnvException(
-            f"The environment '{env_name}' already exists. Override with --yes."
-        )
-
-    return dest
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use PrefixData.exists(), PrefixData.validate_path(), PrefixData.validate_name()",
-)
-def check_prefix(prefix: str, json=False):
-    if os.pathsep in prefix:
-        raise CondaValueError(
-            f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
-        )
-    name = basename(prefix)
-    error = None
-    if name in RESERVED_ENV_NAMES:
-        error = f"'{name}' is a reserved environment name"
-    if exists(prefix):
-        if isdir(prefix) and "conda-meta" not in tuple(
-            entry.name for entry in os.scandir(prefix)
-        ):
-            return None
-        error = f"prefix already exists: {prefix}"
-
-    if error:
-        raise CondaValueError(error, json)
-
-    if " " in prefix:
-        stderrlog.warning(
-            "WARNING: A space was detected in your requested environment path:\n"
-            f"'{prefix}'\n"
-            "Spaces in paths can sometimes be problematic. To minimize issues,\n"
-            "make sure you activate your environment before running any executables!\n"
-        )
-
-
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     # Validate source
     if os.sep in src_arg:
@@ -181,13 +113,6 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
             src_prefix=src_prefix,
             dst_prefix=dst_prefix,
         )
-
-
-@deprecated("25.9", "26.3", addendum="Use conda.cli.common.print_activate()")
-def print_activate(env_name_or_prefix):  # pragma: no cover
-    from .common import print_activate as _print_activate
-
-    _print_activate(env_name_or_prefix)
 
 
 def get_revision(arg, json=False):
@@ -340,16 +265,6 @@ def install(args, parser, command="install"):
     newenv = command == "create"
     isupdate = command == "update"
     isinstall = command == "install"
-
-    # fail early if using a deprecated option
-    if newenv and args.clone:
-        deprecated.topic(
-            "25.9",
-            "26.3",
-            topic="This function will not handle clones anymore.",
-            addendum="Use `conda.cli.install.install_clone()` instead",
-        )
-        return install_clone(args, parser)
 
     prefix = context.target_prefix
     index_args = get_index_args(args=args)
