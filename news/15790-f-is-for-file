@@ -1,0 +1,19 @@
+### Enhancements
+
+* `conda create|install -f` is now recognized as an alias to `conda create|install --file`. (#15790)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* `-f` is no longer an alias for `--force`. (#15790)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
