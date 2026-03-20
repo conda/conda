@@ -428,6 +428,11 @@ def get_comspec():
     return environ["COMSPEC"]
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `Path.mkdir(parents=True, exist_ok=True)` instead.",
+)
 def ensure_dir_exists(func):
     """
     Ensures that the directory exists for functions returning
