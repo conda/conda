@@ -54,10 +54,11 @@ def add_resp_to_mock(
     status_code: int,
     messages_json: dict,
     raise_exc: bool = False,
+    count: int = 1,
 ) -> None:
     """Adds any number of MockResponse to MagicMock object as side_effects"""
     mock_session().get.side_effect = chain(
-        [MockResponse(status_code, messages_json, raise_exc=raise_exc)],
+        repeat(MockResponse(status_code, messages_json, raise_exc=raise_exc), count),
         repeat(MockResponse(404, {})),
     )
 

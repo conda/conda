@@ -440,8 +440,8 @@ def test_notices_shown_after_previous_command_error(
     message = "Test One"
     messages_json = get_test_notices([message])
 
-    # initialize server notices
-    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
+    # configure server notices
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json, count=2)
 
     # notices are not shown
     out, err, _ = conda_cli(
@@ -453,9 +453,6 @@ def test_notices_shown_after_previous_command_error(
     )
     assert message not in out
     assert message not in err
-
-    # reset server response
-    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
     # notices are shown
     out, err, _ = conda_cli("create", f"--prefix={path_factory()}", "--yes")
