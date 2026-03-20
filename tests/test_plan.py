@@ -14,7 +14,6 @@ with pytest.deprecated_call():
         "sys",
         "defaultdict",
         "log",
-        "IndexedSet",
         "DEFAULTS_CHANNEL_NAME",
         "UNKNOWN_CHANNEL",
         "context",
