@@ -305,6 +305,12 @@ class Context(Configuration):
             PrimitiveParameter("", element_type=str), string_delimiter="&"
         )
     )  # TODO: consider a different string delimiter
+    cooldown = ParameterLoader(PrimitiveParameter(0, element_type=int))
+    cooldown_exclude = ParameterLoader(
+        SequenceParameter(
+            PrimitiveParameter("", element_type=str), string_delimiter="&"
+        ),
+    )
     disallowed_packages = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
@@ -1351,6 +1357,8 @@ class Context(Configuration):
                 "aggressive_update_packages",
                 "auto_update_conda",
                 "channel_priority",
+                "cooldown",
+                "cooldown_exclude",
                 "create_default_packages",
                 "disallowed_packages",
                 "force_reinstall",
@@ -1598,6 +1606,25 @@ class Context(Configuration):
             conda_build=dals(
                 """
                 General configuration parameters for conda-build.
+                """
+            ),
+            cooldown=dals(
+                """
+                Dependency cooldown period in seconds. When set to a positive value,
+                packages with a repodata timestamp more recent than (now - cooldown)
+                are excluded from the solver. This is a supply chain security measure
+                that gives security vendors and the community time to detect and flag
+                malicious packages before they are installed. Set to 0 to disable
+                (the default). Use the --cooldown CLI flag to specify human-readable
+                durations like 7d, 3d, or 24h, or --cooldown-days for a plain number
+                of days.
+                """
+            ),
+            cooldown_exclude=dals(
+                """
+                A list of package names exempt from the cooldown period. Use this for
+                security-critical packages (e.g. openssl, ca-certificates) where you
+                always want the latest version regardless of cooldown.
                 """
             ),
             # TODO: This is a bad parameter name. Consider an alternate.

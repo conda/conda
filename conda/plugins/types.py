@@ -26,7 +26,7 @@ from ..models.records import PackageRecord
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Hashable, Iterable
     from contextlib import AbstractContextManager
     from typing import Any, ClassVar, Literal, TypeAlias
 
@@ -343,6 +343,31 @@ class CondaPostSolve(CondaPlugin):
 
     name: str
     action: Callable[[str, tuple[PackageRecord, ...], tuple[PackageRecord, ...]], None]
+
+
+@dataclass
+class CondaRepodataFilter(CondaPlugin):
+    """
+    Return type to use when defining a conda repodata filter plugin hook.
+
+    Repodata filters are called for each package record during repodata
+    processing, before the record is added to the solver's candidate pool.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_repodata_filters`.
+
+    :param name: Filter name (e.g., ``cooldown``).
+    :param filter: Callable that receives the package filename and the record
+        dict and returns ``True`` to keep the record or ``False`` to exclude it.
+    :param cache_key: Optional callable returning a hashable value that
+        represents the filter's current configuration. Used for cache
+        invalidation: when the returned value changes, cached repodata
+        is reprocessed.
+    """
+
+    name: str
+    filter: Callable[[str, dict[str, Any]], bool]
+    cache_key: Callable[[], Hashable] | None = None
 
 
 @dataclass

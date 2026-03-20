@@ -37,6 +37,7 @@ from . import (
     package_extractors,
     post_solves,
     prefix_data_loaders,
+    repodata_filters,
     reporter_backends,
     solvers,
     subcommands,
@@ -72,6 +73,7 @@ if TYPE_CHECKING:
         CondaPrefixDataLoaderCallable,
         CondaPreSolve,
         CondaPreTransactionAction,
+        CondaRepodataFilter,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -277,6 +279,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["repodata_filters"]
+    ) -> list[CondaRepodataFilter]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -499,6 +506,12 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
+
+    def get_repodata_filters(self) -> list[CondaRepodataFilter]:
+        """
+        Return all registered repodata filter plugins.
+        """
+        return self.get_hook_results("repodata_filters")
 
     def load_settings(self) -> None:
         """
@@ -1004,6 +1017,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         *health_checks.plugins,
         *post_solves.plugins,
+        *repodata_filters.plugins,
         *reporter_backends.plugins,
         *package_extractors.plugins,
         *prefix_data_loaders.plugins,

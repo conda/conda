@@ -6,9 +6,11 @@ Collection of helper functions to standardize reused CLI arguments.
 
 from __future__ import annotations
 
+import re
 from argparse import (
     SUPPRESS,
     Action,
+    ArgumentTypeError,
     BooleanOptionalAction,
     _AppendAction,
     _HelpAction,
@@ -21,6 +23,51 @@ from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+
+_DURATION_UNITS: dict[str, int] = {
+    "w": 604800,
+    "d": 86400,
+    "h": 3600,
+    "m": 60,
+    "s": 1,
+}
+
+
+def parse_duration_to_seconds(value: str) -> int:
+    """Parse a human-readable duration string into seconds.
+
+    Accepts formats like ``7d``, ``24h``, ``1w``, ``3d12h``, or a plain
+    integer (interpreted as seconds).  Returns 0 for the string ``"0"``.
+
+    Raises :class:`~argparse.ArgumentTypeError` on unrecognised input.
+    """
+    value = value.strip()
+    if not value:
+        raise ArgumentTypeError("duration must not be empty")
+
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    pairs = re.findall(r"(\d+)\s*([wdhms])", value, re.IGNORECASE)
+    if not pairs:
+        raise ArgumentTypeError(
+            f"invalid duration {value!r}; use e.g. 7d, 24h, 1w, 3d12h"
+        )
+
+    consumed = re.sub(r"\d+\s*[wdhms]", "", value, flags=re.IGNORECASE).strip()
+    if consumed:
+        raise ArgumentTypeError(
+            f"invalid duration {value!r}; use e.g. 7d, 24h, 1w, 3d12h"
+        )
+
+    total = sum(int(n) * _DURATION_UNITS[u.lower()] for n, u in pairs)
+    if total == 0:
+        raise ArgumentTypeError(
+            f"invalid duration {value!r}; use e.g. 7d, 24h, 1w, 3d12h"
+        )
+    return total
 
 
 class LazyChoicesAction(Action):
@@ -383,6 +430,24 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
         dest="ignore_pinned",
         default=NULL,
         help="Ignore pinned file.",
+    )
+    solver_mode_options.add_argument(
+        "--cooldown",
+        type=parse_duration_to_seconds,
+        dest="cooldown",
+        default=NULL,
+        metavar="DURATION",
+        help="Exclude packages published more recently than DURATION "
+        "(e.g. 7d, 3d, 24h, 1w). Supply 0 to disable.",
+    )
+    solver_mode_options.add_argument(
+        "--cooldown-days",
+        type=lambda x: int(x) * 86400,
+        dest="cooldown",
+        default=NULL,
+        metavar="DAYS",
+        help="Exclude packages published fewer than DAYS days ago. "
+        "Alias for --cooldown with days as the unit.",
     )
     return solver_mode_options
 
