@@ -204,6 +204,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             return ""
 
         show_size = kwargs.get("show_size", False)
+        show_descriptions = kwargs.get("show_descriptions", False)
 
         output = [
             "",
@@ -213,7 +214,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             "# + -> frozen",
         ]
 
-        def disp_env(prefix: PrefixData) -> str:
+        def disp_env(prefix: PrefixData) -> Iterable[str]:
             active = (
                 "*"
                 if context.active_prefix
@@ -223,14 +224,17 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             frozen = "+" if prefix.is_frozen() else " "
             if show_size:
                 size_str = human_bytes(prefix.size())
-                return f"{prefix.name:20} {active} {frozen} {size_str:>10} {prefix.prefix_path}"
+                yield f"{prefix.name:20} {active} {frozen} {size_str:>10} {prefix.prefix_path}"
             else:
-                return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
+                yield f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
+            if show_descriptions and prefix.description_title:
+                # Show only the title (first line) in env list
+                yield f"    {prefix.description_title}"
 
         for env_prefix in prefixes:
             if not isinstance(env_prefix, PrefixData):
                 env_prefix = PrefixData(env_prefix)
-            output.append(disp_env(env_prefix))
+            output.extend(disp_env(env_prefix))
 
         output.append("\n")
 

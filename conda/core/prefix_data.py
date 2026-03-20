@@ -20,6 +20,7 @@ from frozendict import frozendict
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PREFIX_CREATION_TIMESTAMP_FILE,
+    PREFIX_DESCRIPTION_FILE,
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
@@ -413,6 +414,39 @@ class PrefixData(metaclass=PrefixDataType):
             return datetime.fromtimestamp(creation_time, tz=timezone.utc)
 
     @property
+    def description(self) -> str | None:
+        """
+        Returns the full environment description from ``conda-meta/description.txt``, if present.
+
+        The file uses a title + description format: first line is the title, remaining
+        lines are the full description. This property returns the entire file content
+        (stripped). Use :attr:`description_title` for the first line only.
+
+        :returns: Full description text, or None if the file is missing or empty.
+        """
+        try:
+            path = self.prefix_path / PREFIX_DESCRIPTION_FILE
+            text = path.read_text(encoding="utf-8", errors="replace").strip()
+            return text or None
+        except (OSError, FileNotFoundError):
+            return None
+
+    @property
+    def description_title(self) -> str | None:
+        """
+        Returns the first line of ``conda-meta/description.txt`` (the title), if present.
+
+        Used for short displays (e.g. ``conda env list --descriptions``). For the full
+        text use :attr:`description`.
+
+        :returns: First line (stripped), or None if the file is missing or empty.
+        """
+        desc = self.description
+        if not desc:
+            return None
+        return desc.splitlines()[0].strip() or None
+
+    @property
     def last_modified(self) -> datetime | None:
         """
         Returns the time when the environment was last modified, as evidenced by the
@@ -763,6 +797,17 @@ class PrefixData(metaclass=PrefixDataType):
         timestamp_file = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
         timestamp_file.parent.mkdir(parents=True, exist_ok=True)
         timestamp_file.write_text(str(timestamp))
+
+    def set_description(self, text: str = "") -> None:
+        """
+        Write ``conda-meta/description.txt`` with the given description.
+
+        Used when creating an environment (empty file) or when the user/LLM sets a
+        description. The format is plain UTF-8 text, suitable for human or LLM editing.
+        """
+        desc_file = self.prefix_path / PREFIX_DESCRIPTION_FILE
+        desc_file.parent.mkdir(parents=True, exist_ok=True)
+        desc_file.write_text(text, encoding="utf-8")
 
     def set_nonadmin(self) -> None:
         """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
