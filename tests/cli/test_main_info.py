@@ -276,18 +276,6 @@ def test_info_envs_size_json(conda_cli: CondaCLIFixture):
         assert details["size"] >= 0
 
 
-# conda info --license
-def test_info_license(conda_cli: CondaCLIFixture):
-    with pytest.deprecated_call():
-        conda_cli("info", "--license")
-
-
-# conda info --root
-def test_info_root(conda_cli: CondaCLIFixture):
-    with pytest.deprecated_call():
-        conda_cli("info", "--root")
-
-
 def test_iter_info_components() -> None:
     components = iter_info_components(
         args=SimpleNamespace(
