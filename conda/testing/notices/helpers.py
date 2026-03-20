@@ -7,7 +7,7 @@ from __future__ import annotations
 import datetime
 import os
 import uuid
-from itertools import chain
+from itertools import chain, repeat
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -56,16 +56,10 @@ def add_resp_to_mock(
     raise_exc: bool = False,
 ) -> None:
     """Adds any number of MockResponse to MagicMock object as side_effects"""
-
-    def forever_404():
-        while True:
-            yield MockResponse(404, {})
-
-    def one_200():
-        yield MockResponse(status_code, messages_json, raise_exc=raise_exc)
-
-    chn = chain(one_200(), forever_404())
-    mock_session().get.side_effect = tuple(next(chn) for _ in range(100))
+    mock_session().get.side_effect = chain(
+        [MockResponse(status_code, messages_json, raise_exc=raise_exc)],
+        repeat(MockResponse(404, {})),
+    )
 
 
 def create_notice_cache_files(
