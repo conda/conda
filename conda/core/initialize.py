@@ -324,7 +324,6 @@ def make_install_plan(conda_prefix):
     # ######################################
     if on_win:
         conda_exe_path = join(conda_prefix, "Scripts", "conda-script.py")
-        conda_env_exe_path = join(conda_prefix, "Scripts", "conda-env-script.py")
         plan.append(
             {
                 "function": make_entry_point_exe.__name__,
@@ -357,7 +356,6 @@ def make_install_plan(conda_prefix):
             }
         )
         conda_exe_path = join(conda_prefix, "bin", "conda")
-        conda_env_exe_path = join(conda_prefix, "bin", "conda-env")
 
     plan.append(
         {
@@ -366,18 +364,6 @@ def make_install_plan(conda_prefix):
                 "target_path": conda_exe_path,
                 "conda_prefix": conda_prefix,
                 "module": "conda.cli",
-                "func": "main",
-            },
-        }
-    )
-    plan.append(
-        {
-            "function": make_entry_point.__name__,
-            "kwargs": {
-                "target_path": conda_env_exe_path,
-                "conda_prefix": conda_prefix,
-                # TODO: Remove upon full deprecation in 25.3
-                "module": "conda_env.cli.main",
                 "func": "main",
             },
         }
@@ -2248,6 +2234,7 @@ def remove_conda_in_sp_dir(target_path):
         modified = True
     others = (
         "conda",
+        # conda-env was removed in conda 26.3, but we still include it in the uninstall plan if present
         "conda_env",
     )
     for other in others:
