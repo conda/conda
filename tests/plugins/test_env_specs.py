@@ -16,7 +16,11 @@ from conda.exceptions import (
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.plugins import environment_specifiers
-from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
+from conda.plugins.types import (
+    CondaEnvironmentSpecifier,
+    EnvironmentFormat,
+    EnvironmentSpecBase,
+)
 
 
 class NaughtySpec(EnvironmentSpecBase):
@@ -579,3 +583,54 @@ def test_alias_and_name_collision_detect(
 
     with pytest.raises(PluginError):
         plugin_manager.detect_environment_specifier("something.random")
+
+
+@pytest.mark.parametrize(
+    "spec_name,expected_description,expected_environment_format",
+    [
+        (
+            "environment.yml",
+            "Standard YAML environment specification with dependencies",
+            EnvironmentFormat.environment,
+        ),
+        (
+            "explicit",
+            "Explicit package URLs for fully reproducible environments",
+            EnvironmentFormat.lockfile,
+        ),
+        (
+            "requirements.txt",
+            "Simple text file with package specifications",
+            EnvironmentFormat.environment,
+        ),
+        (
+            "cep-24",
+            "CEP-24 compliant YAML environment specification",
+            EnvironmentFormat.environment,
+        ),
+    ],
+)
+def test_builtin_specifiers_have_metadata(
+    plugin_manager_with_specifiers,
+    spec_name: str,
+    expected_description: str,
+    expected_environment_format: bool,
+):
+    """Test that all built-in specifiers have meaningful descriptions and correct lockfile classification."""
+    # Get all environment specifiers (returns a dict)
+    specifiers = plugin_manager_with_specifiers.get_environment_specifiers()
+
+    # Get the specifier by name (it's the key in the dict)
+    specifier = specifiers.get(spec_name)
+
+    assert specifier is not None, f"Specifier {spec_name} not found"
+
+    # Verify description is meaningful (not just the name)
+    assert specifier.description is not None
+    assert specifier.description == expected_description
+    assert (
+        specifier.description != spec_name
+    )  # Should be more descriptive than just the name
+
+    # Verify lockfile classification
+    assert specifier.environment_format == expected_environment_format
