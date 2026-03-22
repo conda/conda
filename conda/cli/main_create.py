@@ -66,10 +66,19 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="Create a new environment as a copy of an existing local environment.",
         metavar="ENV",
     )
-    solver_mode_options, _, channel_options = add_parser_create_install_update(p)
+    solver_mode_options, package_install_options, channel_options = (
+        add_parser_create_install_update(p)
+    )
     add_parser_default_packages(solver_mode_options)
     add_parser_platform(channel_options)
     add_parser_solver(solver_mode_options)
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering (i.e. overwriting) of overlapping file paths "
+        "within packages and suppress related warnings.",
+    )
     p.add_argument(
         "--dev",
         action=NullCountAction,

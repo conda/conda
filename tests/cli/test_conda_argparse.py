@@ -34,6 +34,12 @@ def test_parser_basics():
     assert args.verbosity == 2
 
 
+def test_create_accepts_clobber():
+    p = generate_parser()
+    args = p.parse_args(["create", "-n", "test_env", "--clobber", "pkg"])
+    assert args.clobber
+
+
 def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
     stdout, stderr, err = conda_cli("config", "--show", "add_anaconda_token")
     assert stdout
