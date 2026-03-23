@@ -10,6 +10,7 @@ from pytest_mock import MockerFixture
 from conda.base.context import context, reset_context
 from conda.cli.common import (
     check_non_admin,
+    get_name_prefix_from_env_file,
     is_active_prefix,
     print_activate,
     validate_file_exists,
@@ -149,3 +150,142 @@ def test_print_activate_no_output(capsys, monkeypatch, env_var):
 
     captured = capsys.readouterr()
     assert captured.out == ""
+
+
+def test_get_name_prefix_from_env_file_with_both(mocker: MockerFixture):
+    """Test get_name_prefix_from_env_file returns name and prefix when both are present."""
+    # Mock the environment and spec hook
+    mock_env = mocker.Mock()
+    mock_env.name = "test_env"
+    mock_env.prefix = "/path/to/env"
+
+    mock_env_spec = mocker.Mock()
+    mock_env_spec.env = mock_env
+
+    mock_spec_hook = mocker.Mock()
+    mock_spec_hook.environment_spec.return_value = mock_env_spec
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_environment_specifier",
+        return_value=mock_spec_hook,
+    )
+
+    name, prefix = get_name_prefix_from_env_file("test.yaml")
+
+    assert name == "test_env"
+    assert prefix == "/path/to/env"
+
+
+def test_get_name_prefix_from_env_file_with_only_name(mocker: MockerFixture):
+    """Test get_name_prefix_from_env_file returns name when only name is present."""
+    # Mock the environment and spec hook
+    mock_env = mocker.Mock()
+    mock_env.name = "test_env"
+    mock_env.prefix = None
+
+    mock_env_spec = mocker.Mock()
+    mock_env_spec.env = mock_env
+
+    mock_spec_hook = mocker.Mock()
+    mock_spec_hook.environment_spec.return_value = mock_env_spec
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_environment_specifier",
+        return_value=mock_spec_hook,
+    )
+
+    name, prefix = get_name_prefix_from_env_file("test.yaml")
+
+    assert name == "test_env"
+    assert prefix is None
+
+
+def test_get_name_prefix_from_env_file_with_only_prefix(mocker: MockerFixture):
+    """Test get_name_prefix_from_env_file returns prefix when only prefix is present."""
+    # Mock the environment and spec hook
+    mock_env = mocker.Mock()
+    mock_env.name = None
+    mock_env.prefix = "/path/to/env"
+
+    mock_env_spec = mocker.Mock()
+    mock_env_spec.env = mock_env
+
+    mock_spec_hook = mocker.Mock()
+    mock_spec_hook.environment_spec.return_value = mock_env_spec
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_environment_specifier",
+        return_value=mock_spec_hook,
+    )
+
+    name, prefix = get_name_prefix_from_env_file("test.yaml")
+
+    assert name is None
+    assert prefix == "/path/to/env"
+
+
+def test_get_name_prefix_from_env_file_both_none(mocker: MockerFixture):
+    """Test get_name_prefix_from_env_file returns None, None when both are None."""
+    # Mock the environment and spec hook
+    mock_env = mocker.Mock()
+    mock_env.name = None
+    mock_env.prefix = None
+
+    mock_env_spec = mocker.Mock()
+    mock_env_spec.env = mock_env
+
+    mock_spec_hook = mocker.Mock()
+    mock_spec_hook.environment_spec.return_value = mock_env_spec
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_environment_specifier",
+        return_value=mock_spec_hook,
+    )
+
+    name, prefix = get_name_prefix_from_env_file("test.yaml")
+
+    assert name is None
+    assert prefix is None
+
+
+def test_get_name_prefix_from_env_file_exception_in_get_specifier(
+    mocker: MockerFixture,
+):
+    """Test get_name_prefix_from_env_file handles exceptions from get_environment_specifier."""
+    # Mock plugin_manager to raise an exception
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_environment_specifier",
+        side_effect=ValueError("Test error in get_environment_specifier"),
+    )
+
+    name, prefix = get_name_prefix_from_env_file("test.yaml")
+
+    assert name is None
+    assert prefix is None
+
+
+def test_get_name_prefix_from_env_file_exception_in_environment_spec(
+    mocker: MockerFixture,
+):
+    """Test get_name_prefix_from_env_file handles exceptions from environment_spec call."""
+    # Mock spec_hook to raise an exception when environment_spec is called
+    mock_spec_hook = mocker.Mock()
+    mock_spec_hook.environment_spec.side_effect = RuntimeError(
+        "Test error in environment_spec"
+    )
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_environment_specifier",
+        return_value=mock_spec_hook,
+    )
+
+    name, prefix = get_name_prefix_from_env_file("test.yaml")
+
+    assert name is None
+    assert prefix is None

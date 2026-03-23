@@ -10,15 +10,12 @@ from itertools import chain
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ..base.constants import EXPLICIT_MARKER, PLATFORMS, UNKNOWN_CHANNEL
-from ..base.context import context
-
-# TODO: this cli import will be removed once the Environment.from_cli method
-# is updated to use the environment spec plugins to read environment files.
-from ..cli.common import specs_from_url
+from ..base.constants import PLATFORMS, UNKNOWN_CHANNEL
+from ..base.context import context, validate_channels
+from ..common.constants import NULL
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
-from ..exceptions import CondaError, CondaValueError
+from ..exceptions import CondaValueError
 from ..history import History
 from ..misc import get_package_records_from_explicit
 from .match_spec import MatchSpec
@@ -112,6 +109,7 @@ class EnvironmentConfig:
         * Dicts get updated
         * Special cases:
           * channel settings is a list of dicts, it merges inner dicts, keyed on "channel"
+          * channels: last wins for priority (prepended so later config's channels take precedence)
         """
         # Return early if there is nothing to merge
         if other is None:
@@ -130,7 +128,7 @@ class EnvironmentConfig:
         if other.channel_priority is not None:
             self.channel_priority = other.channel_priority
 
-        self.channels = self._append_without_duplicates(self.channels, other.channels)
+        self.channels = self._append_without_duplicates(other.channels, self.channels)
 
         self.channel_settings = self._merge_channel_settings(
             self.channel_settings, other.channel_settings
@@ -184,6 +182,26 @@ class EnvironmentConfig:
             if key in field_names
         }
         return cls(**environment_settings)
+
+    @classmethod
+    def from_cli_channels(cls, args: Namespace) -> EnvironmentConfig:
+        """
+        Build a sparse EnvironmentConfig from CLI args for channels only.
+
+        Used to override channels from the CLI when files are provided.
+        """
+        # NOTE: In the future, we may want to add other relevant CLI
+        # options to the EnvironmentConfig.
+        channel = getattr(args, "channel", None)
+        # NULL is the default value for use_local. bool(NULL) is False.
+        use_local = getattr(args, "use_local", NULL)
+        if not channel and not use_local:
+            return cls()
+
+        local = ("local",) if use_local else ()
+        arg_channels = tuple(channel) if channel else ()
+        channels = validate_channels(local + arg_channels) if arg_channels else local
+        return cls(channels=channels)
 
     @classmethod
     def merge(cls, *configs: EnvironmentConfig) -> EnvironmentConfig:
@@ -285,9 +303,12 @@ class Environment:
         **Experimental** While experimental, expect both major and minor changes across minor releases.
 
         Merges multiple environments into a single environment following the rules:
-        * Keeps first name and/or prefix.
-        * Concatenates and deduplicates requirements.
-        * Reduces configuration and variables (last key wins).
+        * name, prefix: last wins (later env overrides earlier).
+        * platform: must match across all envs.
+        * requested_packages, explicit_packages, virtual_packages: union, deduplicated.
+        * variables: merged dict, last value wins per key.
+        * external_packages: concatenation per key (union of lists, deduplicated).
+        * config: EnvironmentConfig.merge (last wins for primitives, append for lists).
         """
         name = None
         prefix = None
@@ -296,26 +317,24 @@ class Environment:
         prefixes = [env.prefix for env in environments if env.prefix]
 
         if names:
-            name = names[0]
+            name = names[-1]
             if len(names) > 1:
-                log.debug("Several names passed %s. Picking first one %s", names, name)
+                log.debug("Several names passed %s. Picking last one %s", names, name)
 
         if prefixes:
-            prefix = prefixes[0]
+            prefix = prefixes[-1]
             if len(prefixes) > 1:
                 log.debug(
-                    "Several prefixes passed %s. Picking first one %s", prefixes, prefix
+                    "Several prefixes passed %s. Picking last one %s", prefixes, prefix
                 )
 
         platforms = [env.platform for env in environments if env.platform]
-        # Ensure that all environments have the same platform
-        if len(set(platforms)) == 1:
-            platform = platforms[0]
-        else:
+        if len(set(platforms)) != 1:
             raise CondaValueError(
                 "Conda can not merge environments of different platforms. "
                 f"Received environments with platforms: {platforms}"
             )
+        platform = platforms[0]
 
         requested_packages = list(
             dict.fromkeys(
@@ -341,19 +360,20 @@ class Environment:
             )
         )
 
-        variables = {k: v for env in environments for (k, v) in env.variables.items()}
+        variables = {
+            k: v for env in environments for (k, v) in (env.variables or {}).items()
+        }
 
         external_packages = {}
         for env in environments:
-            # External packages map values are always lists of strings. So,
-            # we'll want to concatenate each list.
-            for k, v in env.external_packages.items():
+            for k, v in (env.external_packages or {}).items():
+                if not isinstance(v, list):
+                    continue
                 if k in external_packages:
-                    for val in v:
-                        if val not in external_packages[k]:
-                            external_packages[k].append(val)
-                elif isinstance(v, list):
-                    external_packages[k] = v
+                    new_pkgs = [pkg for pkg in v if pkg not in external_packages[k]]
+                    external_packages[k].extend(new_pkgs)
+                else:
+                    external_packages[k] = list(v)
 
         config = EnvironmentConfig.merge(
             *[env.config for env in environments if env.config is not None]
@@ -498,31 +518,47 @@ class Environment:
         :param args: argparse Namespace containing command-line arguments
         :return: An Environment object representing the cli
         """
+        env, _ = cls.from_cli_with_file_envs(args, add_default_packages)
+        return env
+
+    @classmethod
+    def from_cli_with_file_envs(
+        cls,
+        args: Namespace,
+        add_default_packages: bool = False,
+    ) -> tuple[Environment, dict[str, Environment]]:
+        """
+        Create an Environment model from command-line arguments, with a map
+        of file path to Environment for each environment file specified.
+
+        :param args: argparse Namespace containing command-line arguments
+        :return: Tuple of (merged Environment, dict mapping file path to Environment)
+        """
         specs = [package.strip("\"'") for package in args.packages]
         requested_packages = []
         fetch_explicit_packages = []
 
-        # extract specs from files
-        # TODO: This should be replaced with reading files using the
-        # environment spec plugin. The core conda cli commands are not
-        # ready for that yet. So, use this old way of reading specs from
-        # files.
+        envs_from_file = []
+        fpath_envs_map = {}
         for fpath in args.file:
-            try:
-                specs.extend(
-                    [spec for spec in specs_from_url(fpath) if spec != EXPLICIT_MARKER]
-                )
-            except UnicodeError:
-                raise CondaError(
-                    "Error reading file, file should be a text file containing packages\n"
-                    "See `conda create --help` for details."
-                )
+            spec_hook = context.plugin_manager.get_environment_specifier(
+                source=fpath,
+                name=context.environment_specifier,
+            )
+            spec = spec_hook.environment_spec(fpath)
+            envs_from_file.append(spec.env)
+            fpath_envs_map[fpath] = spec.env
 
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any
         # version constraint from the default package).
         if add_default_packages:
             names = {MatchSpec(spec).name for spec in specs}
+            names |= {
+                pkg.name
+                for env in envs_from_file
+                for pkg in (*env.explicit_packages, *env.requested_packages)
+            }
             for default_package in context.create_default_packages:
                 if MatchSpec(default_package).name not in names:
                     specs.append(default_package)
@@ -533,26 +569,56 @@ class Environment:
             else:
                 requested_packages.append(match_spec)
 
+        # Don't allow mixing of explicit packages (url or path) with regular specs.
+        has_explicit = any(env.explicit_packages for env in envs_from_file) or bool(
+            fetch_explicit_packages
+        )
+        has_specs = any(env.requested_packages for env in envs_from_file) or bool(
+            requested_packages
+        )
+        if has_explicit and has_specs:
+            raise CondaValueError(
+                "Cannot combine package names with explicit package lists. "
+                "Package names (python, numpy) are resolved by the solver; "
+                "explicit files and URLs are installed directly. "
+                "Use only package names, or only explicit files/URLs."
+            )
+
         # transform explicit packages into package records
         explicit_packages = []
         if fetch_explicit_packages:
-            if len(fetch_explicit_packages) == len(specs):
-                explicit_packages = get_package_records_from_explicit(
-                    fetch_explicit_packages
-                )
-            else:
-                raise CondaValueError(
-                    "Cannot mix specifications with conda package filenames"
-                )
+            explicit_packages = get_package_records_from_explicit(
+                fetch_explicit_packages
+            )
 
-        return Environment(
+        base_env = Environment(
+            platform=context.subdir, config=EnvironmentConfig.from_context()
+        )
+
+        cli_env = Environment(
             name=args.name,
             prefix=context.target_prefix,
             platform=context.subdir,
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
-            config=EnvironmentConfig.from_context(),
+            config=EnvironmentConfig.from_cli_channels(args),
         )
+
+        if envs_from_file:
+            file_env = cls.merge(*envs_from_file)
+            merged = cls.merge(base_env, file_env, cli_env)
+
+        else:
+            merged = cls.merge(base_env, cli_env)
+
+        # Respect override_channels flag and only use channels from the CLI
+        # TODO: This is a way to override the channels from the CLI.
+        # We should probably add a way to handle this in a central place.
+        if getattr(args, "override_channels", False):
+            merged = replace(
+                merged, config=replace(merged.config, channels=cli_env.config.channels)
+            )
+        return merged, fpath_envs_map
 
     @staticmethod
     def from_history(prefix: PathType) -> list[MatchSpec]:
@@ -577,7 +643,7 @@ class Environment:
             with repodata_manager as repodata_fn:
                 solver = solver_backend(
                     prefix="/env/does/not/exist",
-                    channels=context.channels,
+                    channels=self.config.channels,
                     subdirs=(platform, "noarch"),
                     specs_to_add=requested_packages,
                     repodata_fn=repodata_fn,
@@ -588,7 +654,7 @@ class Environment:
             prefix=self.prefix,
             name=self.name,
             platform=platform,
-            config=EnvironmentConfig.from_context(),
+            config=self.config,
             requested_packages=requested_packages,
             explicit_packages=explicit_packages,
             external_packages=self.external_packages,
