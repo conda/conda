@@ -23,17 +23,13 @@ class RequirementsSpec(EnvironmentSpecBase):
 
     msg: str | None = None
 
-    def __init__(
-        self, filename: str | None = None, name: str | None = None, **kwargs
-    ) -> None:
+    def __init__(self, filename: str | None = None, **kwargs) -> None:
         """Initialize the requirements specification.
 
         :param filename: Path to the requirements file
-        :param name: (Deprecated) Name of the environment
         :param kwargs: Additional arguments
         """
         self.filename = filename
-        self._name = name
 
     def can_handle(self) -> bool:
         """
