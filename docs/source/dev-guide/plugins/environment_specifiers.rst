@@ -46,7 +46,7 @@ Be sure to be very specific when implementing the ``can_handle`` method. It shou
 return a ``True`` if the file can be parsed by the plugin. Making the ``can_handle``
 method too permissive in the types of files it handles may lead to conflicts with other
 plugins. If multiple installed plugins are able to ``can_handle`` the same file type,
-conda will return an error to the user.  Also, assure that the ``can_handle`` method
+conda will return an error to the user.  Also, ensure that the ``can_handle`` method
 does not depend on a file extension or specific file name as users may specify the
 plugin by name to read in files.
 

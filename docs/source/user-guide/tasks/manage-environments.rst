@@ -100,21 +100,41 @@ use the ``--no-default-packages`` flag:
 Creating an environment from an environment.yml file
 ====================================================
 
-Use the terminal for the following steps:
+Before you start, you need to use a text editor to create an environment file that
+looks like the following:
+
+.. code:: yaml
+
+   # environment.yml
+   name: myenv
+   channels:
+     - conda-forge
+   dependencies:
+     - python
+     - numpy
+
+The file above defines an environment named, "myenv" that uses ``conda-forge`` as its
+channel and adds the dependencies ``python`` and ``numpy``.
+
+Now that the ``environment.yml`` has been created, you can use the terminal for
+the following steps:
 
 #. Create the environment from the ``environment.yml`` file:
 
    .. code::
 
-      conda create -f environment.yml
-
-   Alternatively, ``conda env create --file environment.yml`` is
-   another way to create an environment from an environment.yml file.
+      conda create --file environment.yml
 
    The first line of the ``yml`` file sets the new environment's
    name. For details see :ref:`Creating an environment file manually
    <create-env-file-manually>`.
 
+   .. hint::
+
+      Creating environments from YAML files was previously done with
+      ``conda env create --file <file>``. This still works but is not the preferred
+      way of creating environments. This older invocation will be kept around to
+      ensure backwards compatibility with existing scripts and automations.
 
 #. Activate the new environment: ``conda activate myenv``
 

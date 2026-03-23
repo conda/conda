@@ -96,7 +96,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..gateways.disk.delete import rm_rf
     from ..reporters import confirm_yn
     from .common import (
-        get_name_prefix_from_env_files,
+        get_name_prefix_from_env_file,
         print_activate,
         validate_environment_files_consistency,
         validate_file_exists,
@@ -104,13 +104,22 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     )
     from .install import install, install_clone
 
-    if args.clone and args.file:
-        raise TooManyArgumentsError(
-            0,
-            len(args.file),
-            list(args.file),
-            "`--file` and `--clone` arguments are mutually exclusive.",
-        )
+    # When `--clone` is present, `--file` and `packages` are not allowed
+    if args.clone:
+        if args.file:
+            raise TooManyArgumentsError(
+                0,
+                len(args.file),
+                list(args.file),
+                "`--file` and `--clone` arguments are mutually exclusive.",
+            )
+        if args.packages:
+            raise TooManyArgumentsError(
+                0,
+                len(args.packages),
+                list(args.packages),
+                "Did not expect any new packages or arguments for `--clone`.",
+            )
 
     for fpath in args.file:
         validate_file_exists(fpath)
@@ -122,8 +131,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "Multiple environment files were specified but no name or prefix was provided. "
                 "Please provide -n/--name or -p/--prefix when using multiple --file arguments."
             )
+
         if args.file:
-            name, prefix = get_name_prefix_from_env_files(args.file)
+            # We know there's only a single file being passed in at this point
+            name, prefix = get_name_prefix_from_env_file(args.file[0])
             if name is not None:
                 args.name = name
             if prefix is not None and args.name is None:
@@ -144,13 +155,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 "one of the arguments -n/--name -p/--prefix is required"
             )
 
-    if args.clone and args.packages:
-        raise TooManyArgumentsError(
-            0,
-            len(args.packages),
-            list(args.packages),
-            "Did not expect any new packages or arguments for `--clone`.",
-        )
     prefix_data = PrefixData.from_context(validate=True)
 
     if prefix_data.is_environment():
