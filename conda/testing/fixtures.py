@@ -19,8 +19,6 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
-from conda.deprecations import deprecated
-
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
@@ -40,7 +38,6 @@ if TYPE_CHECKING:
     import http.server
     from collections.abc import Iterable, Iterator
 
-    from _pytest.capture import MultiCapture
     from pytest import (
         CaptureFixture,
         ExceptionInfo,
@@ -202,15 +199,6 @@ def _solver_helper(
     assert context.solver == solver
 
     yield solver
-
-
-@pytest.fixture(scope="session")
-@deprecated("25.9", "26.3")
-def session_capsys(request) -> Iterator[MultiCapture]:
-    # https://github.com/pytest-dev/pytest/issues/2704#issuecomment-603387680
-    capmanager = request.config.pluginmanager.getplugin("capturemanager")
-    with capmanager.global_and_fixture_disabled():
-        yield capmanager._global_capturing
 
 
 @dataclass
