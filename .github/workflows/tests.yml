@@ -57,7 +57,6 @@ jobs:
           filters: |
             code:
               - 'conda/**'
-              - 'conda_env/**'
               - 'tests/**'
               - '*.py'
               - 'recipe/**'
@@ -105,7 +104,10 @@ jobs:
 
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
+          echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -115,7 +117,7 @@ jobs:
           path: |
             D:\conda_pkgs_dir\*.tar.bz2
             D:\conda_pkgs_dir\*.conda
-          key: cache-${{ env.HASH }}
+          key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -243,7 +245,10 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
+          echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -251,7 +256,7 @@ jobs:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
             ~/conda_pkgs_dir/*.conda
-          key: cache-${{ env.HASH }}
+          key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -340,7 +345,10 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmark-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
+          echo "HASH=${STEM}-benchmark" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -348,7 +356,7 @@ jobs:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
             ~/conda_pkgs_dir/*.conda
-          key: cache-${{ env.HASH }}
+          key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -407,7 +415,10 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-benchmark-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
+          echo "HASH=${STEM}-typing" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -415,7 +426,7 @@ jobs:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
             ~/conda_pkgs_dir/*.conda
-          key: cache-${{ env.HASH }}
+          key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -556,7 +567,10 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-memray-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
+          echo "HASH=${STEM}-memray" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -564,7 +578,7 @@ jobs:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
             ~/conda_pkgs_dir/*.conda
-          key: cache-${{ env.HASH }}
+          key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -647,7 +661,10 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ matrix.test-type }}-${{ matrix.test-group }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
+          echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -655,7 +672,7 @@ jobs:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
             ~/conda_pkgs_dir/*.conda
-          key: cache-${{ env.HASH }}
+          key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
@@ -899,7 +916,10 @@ jobs:
           path: conda-build
 
       - name: Hash + Timestamp + Job
-        run: echo "HASH=${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-${{ github.job }}-$(date -u "+%Y%m")" >> $GITHUB_ENV
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
+          echo "HASH=${STEM}-${{ matrix.default-channel }}-${{ github.job }}" >> $GITHUB_ENV
 
       - name: Cache Conda
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -907,7 +927,7 @@ jobs:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
             ~/conda_pkgs_dir/*.conda
-          key: cache-${{ env.HASH }}
+          key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0

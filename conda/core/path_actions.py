@@ -32,7 +32,6 @@ from ..common.path import (
 )
 from ..common.serialize import json
 from ..common.url import has_platform, path_to_url
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaUpgradeError,
     CondaVerificationError,
@@ -175,15 +174,6 @@ class Action(ABC):
             if key not in REPR_IGNORE_KWARGS
         )
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
-
-
-deprecated.constant(
-    "25.9",
-    "26.3",
-    "_Action",
-    Action,
-    addendum="Use `conda.core.path_actions.Action` instead.",
-)
 
 
 class PathAction(Action):

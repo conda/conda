@@ -44,7 +44,6 @@ from .common.compat import on_win
 from .common.path import path_identity as _path_identity
 from .common.path import paths_equal, unix_path_to_win, win_path_to_unix
 from .common.serialize import json
-from .deprecations import deprecated
 from .exceptions import (
     ActivateHelp,
     ArgumentError,
@@ -196,7 +195,6 @@ class _Activator(metaclass=abc.ABCMeta):
             self._yield_commands(self.build_reactivate()), self.tempfile_extension
         )
 
-    @deprecated.argument("25.9", "26.3", "auto_activate_base", rename="auto_activate")
     def hook(self, auto_activate: bool | None = None) -> str:
         builder: list[str] = []
         if preamble := self._hook_preamble():
