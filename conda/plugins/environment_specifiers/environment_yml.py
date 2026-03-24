@@ -17,4 +17,5 @@ def conda_environment_specifiers():
         name="environment.yml",
         environment_spec=YamlFileSpec,
         default_filenames=("environment.yml", "environment.yaml"),
+        description="Standard YAML environment specification with dependencies",
     )
