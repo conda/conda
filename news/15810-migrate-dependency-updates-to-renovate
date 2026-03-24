@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Replace Dependabot and pre-commit autoupdate with Renovate for dependency updates, with separate schedules for CI and docs updates. (#15810)
