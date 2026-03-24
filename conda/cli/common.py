@@ -266,6 +266,26 @@ def print_activate(env_name_or_prefix):
         print(message)  # TODO: use logger
 
 
+def get_name_prefix_from_env_file(file: str) -> tuple[str | None, str | None]:
+    """
+    Get name and prefix from an environment spec file.
+
+    Intentionally swallows all errors and logs them.
+    """
+    try:
+        spec_hook = context.plugin_manager.get_environment_specifier(
+            source=file,
+            name=context.environment_specifier,
+        )
+        env = spec_hook.environment_spec(file).env
+        if env.name is not None or env.prefix is not None:
+            return env.name, env.prefix
+    except Exception as exc:
+        log.info(exc, exc_info=True)
+
+    return None, None
+
+
 def validate_environment_files_consistency(files: list[str]) -> None:
     """Validates that all the provided environment files are of the same format type.
 

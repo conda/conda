@@ -438,7 +438,7 @@ class EnvironmentYaml:
         ]
 
         return EnvironmentModel(
-            prefix=self.prefix or context.target_prefix,
+            prefix=self.prefix,
             platform=context.subdir,
             name=self.name,
             config=config,
