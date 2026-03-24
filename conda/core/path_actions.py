@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import re
 import sys
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from itertools import chain
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join
@@ -88,7 +88,7 @@ REPR_IGNORE_KWARGS = (
 )
 
 
-class Action:
+class Action(ABC):
     """Base class for path manipulation actions, including linking, unlinking, and others.
 
     Pre and post-transaction plugins should inherit this class to implement their
@@ -176,19 +176,21 @@ class Action:
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
-class PathAction(Action, metaclass=ABCMeta):
-    @abstractproperty
+class PathAction(Action):
+    @property
+    @abstractmethod
     def target_full_path(self):
         raise NotImplementedError()
 
 
-class MultiPathAction(Action, metaclass=ABCMeta):
-    @abstractproperty
+class MultiPathAction(Action):
+    @property
+    @abstractmethod
     def target_full_paths(self):
         raise NotImplementedError()
 
 
-class PrefixPathAction(PathAction, metaclass=ABCMeta):
+class PrefixPathAction(PathAction):
     def __init__(self, transaction_context, target_prefix, target_short_path):
         self.transaction_context = transaction_context
         self.target_prefix = target_prefix
@@ -212,7 +214,7 @@ class PrefixPathAction(PathAction, metaclass=ABCMeta):
 # ######################################################
 
 
-class CreateInPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
+class CreateInPrefixPathAction(PrefixPathAction):
     # All CreatePathAction subclasses must create a SINGLE new path
     #   the short/in-prefix version of that path must be returned by execute()
 
@@ -1159,7 +1161,7 @@ class RegisterEnvironmentLocationAction(PathAction):
 # ######################################################
 
 
-class RemoveFromPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
+class RemoveFromPrefixPathAction(PrefixPathAction):
     def __init__(
         self, transaction_context, linked_package_data, target_prefix, target_short_path
     ):
