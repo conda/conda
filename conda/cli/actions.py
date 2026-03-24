@@ -7,18 +7,22 @@ Collection of custom argparse actions.
 from argparse import Action, _CountAction
 
 from ..common.constants import NULL
+from ..deprecations import deprecated
 
 
 class NullCountAction(_CountAction):
     @staticmethod
+    @deprecated("26.9", "27.3")
     def _ensure_value(namespace, name, value):
         if getattr(namespace, name, NULL) in (NULL, None):
             setattr(namespace, name, value)
         return getattr(namespace, name)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        new_count = self._ensure_value(namespace, self.dest, 0) + 1
-        setattr(namespace, self.dest, new_count)
+        count = getattr(namespace, self.dest, NULL)
+        if not isinstance(count, int):
+            count = 0
+        setattr(namespace, self.dest, count + 1)
 
 
 class ExtendConstAction(Action):

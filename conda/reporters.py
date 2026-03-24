@@ -18,7 +18,7 @@ from .base.context import context
 from .exceptions import CondaSystemExit, DryRunExit
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from collections.abc import Callable
 
     from .plugins.types import ProgressBarBase, SpinnerBase
 

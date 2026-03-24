@@ -1,6 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import re
 
 import pytest
 from requests.auth import HTTPBasicAuth
@@ -29,13 +28,15 @@ class CustomAltCondaAuth(HTTPBasicAuth):
 class CustomAuthPlugin:
     @plugins.hookimpl
     def conda_auth_handlers(self):
-        yield plugins.CondaAuthHandler(handler=CustomCondaAuth, name=PLUGIN_NAME)
+        yield plugins.types.CondaAuthHandler(handler=CustomCondaAuth, name=PLUGIN_NAME)
 
 
 class CustomAltAuthPlugin:
     @plugins.hookimpl
     def conda_auth_handlers(self):
-        yield plugins.CondaAuthHandler(handler=CustomAltCondaAuth, name=PLUGIN_NAME_ALT)
+        yield plugins.types.CondaAuthHandler(
+            handler=CustomAltCondaAuth, name=PLUGIN_NAME_ALT
+        )
 
 
 def test_get_auth_handler(plugin_manager):
@@ -76,6 +77,6 @@ def test_duplicated(plugin_manager):
     plugin_manager.register(CustomAuthPlugin())
 
     with pytest.raises(
-        PluginError, match=re.escape("Conflicting `auth_handlers` plugins found")
+        PluginError, match=r"Conflicting plugins found for `auth_handlers`"
     ):
         plugin_manager.get_auth_handler(PLUGIN_NAME)

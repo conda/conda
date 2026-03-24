@@ -124,10 +124,19 @@ def notices(func):
                 logger.error(f"Unable to open cache file: {str(exc)}")
 
             if channel_notice_set is not None:
-                return_value = func(*args, **kwargs)
-                display_notices(channel_notice_set)
+                try:
+                    return_value = func(*args, **kwargs)
+                    display_notices(channel_notice_set)
 
-                return return_value
+                    return return_value
+
+                except Exception:
+                    try:
+                        # Remove the notices cache file if we encounter an exception
+                        cache.clear_cache()
+                    except OSError:
+                        pass
+                    raise
 
         return func(*args, **kwargs)
 

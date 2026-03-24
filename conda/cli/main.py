@@ -31,7 +31,8 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     args = args or ["--help"]
 
     pre_parser = generate_pre_parser(add_help=False)
-    pre_args, _ = pre_parser.parse_known_args(args)
+    args_subset = args[: args.index("--")] if "--" in args else args
+    pre_args, _ = pre_parser.parse_known_args(args_subset)
 
     # the arguments that we want to pass to the main parser later on
     override_args = {
@@ -71,6 +72,7 @@ def main_sourced(shell, *args, **kwargs):
 
     # This is called any way later in conda.activate, so no point in removing it
     from ..base.context import context
+    from ..common.compat import on_win
 
     context.__init__()
 
@@ -84,7 +86,14 @@ def main_sourced(shell, *args, **kwargs):
         raise CondaError(f"{shell} is not a supported shell.")
 
     activator = activator_cls(args)
-    print(activator.execute(), end="")
+    result = activator.execute()
+
+    # Fix line endings for shells that need it on Windows
+    if on_win and activator.needs_line_ending_fix:
+        result = result.replace("\r", "")
+        sys.stdout.reconfigure(encoding="utf-8", newline="\n")
+
+    print(result, end="")
     return 0
 
 

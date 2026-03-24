@@ -9,8 +9,6 @@ import re
 from functools import partial
 from typing import TYPE_CHECKING
 
-from ...deprecations import deprecated
-
 if TYPE_CHECKING:
     from . import PathType
 
@@ -150,36 +148,6 @@ def _to_unix_drive(match: re.Match, cygdrive: bool) -> str:
     return f"{'/cygdrive' if cygdrive else ''}/{drive}{path}"
 
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "RE_UNIX",
-    re.compile(
-        r"""
-        (?P<drive>[A-Za-z]:)?
-        (?P<path>[\/\\]+(?:[^:*?\"<>|;]+[\/\\]*)*)
-        """,
-        flags=re.VERBOSE,
-    ),
-    addendum="Use `conda.common.path._cygpath.RE_WIN_DRIVE` instead.",
-)
-
-
-@deprecated(
-    "25.3",
-    "25.9",
-    addendum="Use `conda.common.path._cygpath._to_unix_drive` instead.",
-)
-def translate_unix(match: re.Match) -> str:
-    return "/" + (
-        ((match.group("drive") or "").lower() + match.group("path"))
-        .replace("\\", "/")
-        .replace(":", "")  # remove drive letter delimiter
-        .replace("//", "/")
-        .rstrip("/")
-    )
-
-
 def posix_to_nt(path: PathType, prefix: PathType | None, cygdrive: bool = False) -> str:
     """
     A fallback implementation of `cygpath --windows`.
@@ -254,22 +222,6 @@ def _to_win_drive(match: re.Match) -> str:
     return f"{drive}:\\{path}"
 
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "RE_DRIVE",
-    RE_UNIX_DRIVE,
-    addendum="Use `conda.common.path._cygpath.RE_UNIX_DRIVE` instead.",
-)
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "translation_drive",
-    _to_win_drive,
-    addendum="Use `conda.common.path._cygpath._to_win_drive` instead.",
-)
-
-
 RE_UNIX_MOUNT = re.compile(
     r"""
     ^
@@ -289,22 +241,6 @@ def _to_win_mount(match: re.Match) -> str:
     return f"\\\\{mount}{path}"
 
 
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "RE_MOUNT",
-    RE_UNIX_MOUNT,
-    addendum="Use `conda.common.path._cygpath.RE_UNIX_MOUNT` instead.",
-)
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "translation_mount",
-    _to_win_mount,
-    addendum="Use `conda.common.path._cygpath._to_win_mount` instead.",
-)
-
-
 RE_UNIX_ROOT = re.compile(
     r"""
     ^
@@ -318,22 +254,6 @@ RE_UNIX_ROOT = re.compile(
 def _to_win_root(match: re.Match, root: str) -> str:
     path = match.group("path")
     return f"{root}{path}"
-
-
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "RE_ROOT",
-    RE_UNIX_ROOT,
-    addendum="Use `conda.common.path._cygpath.RE_UNIX_ROOT` instead.",
-)
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "translation_root",
-    _to_win_root,
-    addendum="Use `conda.common.path._cygpath._to_win_root` instead.",
-)
 
 
 def _resolve_path(path: str, sep: str) -> str:

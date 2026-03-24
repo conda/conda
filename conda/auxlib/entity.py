@@ -239,7 +239,6 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from enum import Enum
 from functools import reduce
-from json import JSONEncoder, dumps as json_dumps, loads as json_loads
 from logging import getLogger
 from pathlib import Path
 
@@ -249,12 +248,14 @@ from frozendict import getFreezeConversionMap as _getFreezeConversionMap
 from frozendict import register as _register
 
 from . import NULL
-from .compat import isiterable, odict
+from .compat import odict
+from ..common.compat import isiterable
 from .collection import AttrDict
 from .exceptions import Raise, ValidationError
 from .ish import find_or_raise
-from .logz import DumpEncoder
 from .type_coercion import maybecall
+from ..common.serialize import json
+from ..deprecations import deprecated
 
 if Enum not in _getFreezeConversionMap():
     # leave enums as is, deepfreeze will flatten it into a dict
@@ -816,7 +817,7 @@ class Entity(metaclass=EntityType):
 
     @classmethod
     def from_json(cls, json_str):
-        return cls(**json_loads(json_str))
+        return cls(**json.loads(json_str))
 
     @classmethod
     def load(cls, data_dict):
@@ -866,10 +867,10 @@ class Entity(metaclass=EntityType):
         pass
 
     def json(self, indent=None, separators=None, **kwargs):
-        return json_dumps(self, indent=indent, separators=separators, cls=DumpEncoder, **kwargs)
+        return json.dumps(self, indent=indent, separators=separators, **kwargs)
 
     def pretty_json(self, indent=2, separators=(',', ': '), **kwargs):
-        return self.json(indent=indent, separators=separators, **kwargs)
+        return json.dumps(self, indent=indent, separators=separators, **kwargs)
 
     def dump(self):
         return odict((field.name, field.dump(self, self.__class__, value))
@@ -972,19 +973,10 @@ class DictSafeMixin:
             self[k] = F[k]
 
 
-class EntityEncoder(JSONEncoder):
-    # json.dumps(obj, cls=SetEncoder)
-    def default(self, obj):
-        if hasattr(obj, 'dump'):
-            return obj.dump()
-        elif hasattr(obj, '__json__'):
-            return obj.__json__()
-        elif hasattr(obj, 'to_json'):
-            return obj.to_json()
-        elif hasattr(obj, 'as_json'):
-            return obj.as_json()
-        elif isinstance(obj, Enum):
-            return obj.value
-        elif isinstance(obj, Path):
-            return str(obj)
-        return JSONEncoder.default(self, obj)
+deprecated.constant(
+    "26.3",
+    "26.9",
+    "EntityEncoder",
+    json.CondaJSONEncoder,
+    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
+)

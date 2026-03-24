@@ -1,0 +1,53 @@
+{
+  "build": "h286801f_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/osx-arm64",
+  "constrains": [
+    "expat 2.6.4.*"
+  ],
+  "depends": [
+    "__osx >=11.0"
+  ],
+  "extracted_package_dir": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/libexpat-2.6.4-h286801f_0",
+  "features": "",
+  "files": [
+    "lib/libexpat.1.10.0.dylib",
+    "lib/libexpat.1.dylib"
+  ],
+  "fn": "libexpat-2.6.4-h286801f_0.conda",
+  "license": "MIT",
+  "license_family": "MIT",
+  "link": {
+    "source": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/libexpat-2.6.4-h286801f_0",
+    "type": 1
+  },
+  "md5": "38d2656dd914feb0cab8c629370768bf",
+  "name": "libexpat",
+  "package_tarball_full_path": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/libexpat-2.6.4-h286801f_0.conda",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/libexpat.1.10.0.dylib",
+        "path_type": "hardlink",
+        "sha256": "fe24e38ee48966e5814087d7f60aa4c7364ee8688a21c021e1cc1c8a62ff68b2",
+        "sha256_in_prefix": "fe24e38ee48966e5814087d7f60aa4c7364ee8688a21c021e1cc1c8a62ff68b2",
+        "size_in_bytes": 182368
+      },
+      {
+        "_path": "lib/libexpat.1.dylib",
+        "path_type": "softlink",
+        "sha256": "fe24e38ee48966e5814087d7f60aa4c7364ee8688a21c021e1cc1c8a62ff68b2",
+        "size_in_bytes": 182368
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "e42ab5ace927ee7c84e3f0f7d813671e1cf3529f5f06ee5899606630498c2745",
+  "size": 64693,
+  "subdir": "osx-arm64",
+  "timestamp": 1730967175868,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/conda-forge/osx-arm64/libexpat-2.6.4-h286801f_0.conda",
+  "version": "2.6.4"
+}

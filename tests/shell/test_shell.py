@@ -6,42 +6,22 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
-from uuid import uuid4
 
 import pytest
 
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.testing.integration import SPACER_CHARACTER
 
 from .. import TEST_RECIPES_CHANNEL
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from pytest import FixtureRequest
 
-    from pytest import FixtureRequest, TempPathFactory
-
-    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import TmpEnvFixture
 
     from . import Shell
 
 
 pytestmark = pytest.mark.integration
-
-
-@pytest.fixture(scope="module")
-def prefix(tmp_path_factory: TempPathFactory) -> Iterator[Path]:
-    name = f"{uuid4().hex[:4]}{SPACER_CHARACTER}{uuid4().hex[:4]}"
-    root = tmp_path_factory.mktemp(name)
-
-    (root / "conda-meta").mkdir(parents=True)
-    (root / "conda-meta" / "history").touch()
-
-    prefix = root / "envs" / "charizard"
-
-    (prefix / "conda-meta").mkdir(parents=True)
-    (prefix / "conda-meta" / "history").touch()
-
-    yield prefix
 
 
 @pytest.mark.parametrize(
@@ -74,26 +54,16 @@ def prefix(tmp_path_factory: TempPathFactory) -> Iterator[Path]:
     indirect=True,
 )
 def test_activate_deactivate_modify_path(
-    test_recipes_channel: Path,
+    test_recipes_channel: Path,  # mock channels
     shell: Shell,
-    prefix: Path,
-    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
 ):
-    original_path = os.environ.get("PATH")
-    conda_cli(
-        "install",
-        *("--prefix", prefix),
-        "activate_deactivate_package",
-        "--yes",
-    )
-
-    with shell.interactive() as sh:
+    original_path = os.getenv("PATH")
+    with tmp_env("activate_deactivate_package") as prefix, shell.interactive() as sh:
         sh.sendline(f'conda activate "{prefix}"')
-        activated_env_path = sh.get_env_var("PATH")
+        assert "teststringfromactivate/bin/test" in sh.get_env_var("PATH")
         sh.sendline("conda deactivate")
-
-    assert "teststringfromactivate/bin/test" in activated_env_path
-    assert original_path == os.environ.get("PATH")
+    assert original_path == os.getenv("PATH")
 
 
 @dataclass
@@ -114,7 +84,7 @@ class Env:
 @pytest.fixture(scope="module")
 def stacking_envs(session_tmp_env: TmpEnvFixture) -> dict[str, Env]:
     # create envs using full path to avoid solver
-    path = TEST_RECIPES_CHANNEL / "noarch" / "small-executable-1.0.0-0.tar.bz2"
+    path = TEST_RECIPES_CHANNEL / "noarch" / "small-executable-1.0.0-0.conda"
     with (
         session_tmp_env(path) as base_env,
         session_tmp_env(path) as has_env,

@@ -2,12 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from argparse import Namespace
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.context import context, reset_context
-from conda.exceptions import UnsatisfiableError
+from conda.cli.install import reinstall_packages
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import DryRunExit, EnvironmentIsFrozenError, UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
@@ -34,8 +37,6 @@ def test_pre_link_message(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    mocker.patch("conda.cli.common.confirm_yn", return_value=True)
-
     with tmp_env() as prefix:
         stdout, _, _ = conda_cli(
             "install",
@@ -53,8 +54,8 @@ def test_find_conflicts_called_once(
     path_factory: PathFactoryFixture,
     conda_cli: CondaCLIFixture,
 ):
-    if context.solver == "libmamba":
-        pytest.skip("conda-libmamba-solver handles conflicts differently")
+    if context.solver in ("libmamba", "rattler"):
+        pytest.skip(f"conda-{context.solver}-solver handle conflicts differently")
 
     bad_deps = {
         "python": {
@@ -127,3 +128,140 @@ def test_emscripten_forge(
         "pyjs",
     ) as prefix:
         assert package_is_installed(prefix, "pyjs")
+
+
+def test_frozen_env_cep22(tmp_env, conda_cli, monkeypatch):
+    with tmp_env("ca-certificates") as prefix:
+        prefix_data = PrefixData(prefix)
+        prefix_data._frozen_file.touch()
+        assert prefix_data.is_frozen()
+
+        # No message
+        conda_cli("install", "-p", prefix, "zlib", raises=EnvironmentIsFrozenError)
+        conda_cli(
+            "remove", "-p", prefix, "ca-certificates", raises=EnvironmentIsFrozenError
+        )
+        conda_cli(
+            "update", "-p", prefix, "ca-certificates", raises=EnvironmentIsFrozenError
+        )
+
+        # Bypass protection with CLI flag
+        conda_cli(
+            "install",
+            "-p",
+            prefix,
+            "zlib",
+            "--dry-run",
+            "--override-frozen",
+            raises=DryRunExit,
+        )
+        conda_cli(
+            "remove",
+            "-p",
+            prefix,
+            "ca-certificates",
+            "--dry-run",
+            "--override-frozen",
+            raises=DryRunExit,
+        )
+        out, err, rc = conda_cli(
+            "update",
+            "-p",
+            prefix,
+            "ca-certificates",
+            "--dry-run",
+            "--override-frozen",
+        )
+        assert rc == 0
+
+        # Bypass protection with env var
+        with monkeypatch.context() as monkeyctx:
+            monkeyctx.setenv("CONDA_PROTECT_FROZEN_ENVS", "0")
+            conda_cli(
+                "install",
+                "-p",
+                prefix,
+                "zlib",
+                "--dry-run",
+                raises=DryRunExit,
+            )
+            conda_cli(
+                "remove",
+                "-p",
+                prefix,
+                "ca-certificates",
+                "--dry-run",
+                raises=DryRunExit,
+            )
+            out, err, rc = conda_cli(
+                "update",
+                "-p",
+                prefix,
+                "ca-certificates",
+                "--dry-run",
+            )
+            assert rc == 0
+
+        # With message
+        prefix_data._frozen_file.write_text('{"message": "EnvOnTheRocks"}')
+        out, err, exc = conda_cli(
+            "install",
+            "-p",
+            prefix,
+            "zlib",
+            raises=EnvironmentIsFrozenError,
+        )
+        assert "EnvOnTheRocks" in str(exc)
+        out, err, exc = conda_cli(
+            "remove",
+            "-p",
+            prefix,
+            "ca-certificates",
+            raises=EnvironmentIsFrozenError,
+        )
+        assert "EnvOnTheRocks" in str(exc)
+        out, err, exc = conda_cli(
+            "update",
+            "-p",
+            prefix,
+            "ca-certificates",
+            raises=EnvironmentIsFrozenError,
+        )
+        assert "EnvOnTheRocks" in str(exc)
+
+        prefix_data._frozen_file.unlink()
+        conda_cli("install", "-p", prefix, "zlib", "--dry-run", raises=DryRunExit)
+        conda_cli(
+            "remove", "-p", prefix, "ca-certificates", "--dry-run", raises=DryRunExit
+        )
+        out, err, rc = conda_cli("update", "-p", prefix, "ca-certificates", "--dry-run")
+        assert rc == 0
+
+
+def test_reinstall_packages_calls_install(tmp_path: Path, mocker: MockerFixture):
+    """Test that reinstall_packages correctly calls install() with parser argument.
+
+    This is a regression test for #15669 where reinstall_packages() was calling
+    install(args) without the required parser argument, causing conda doctor --fix
+    to fail with: "install() missing 1 required positional argument: 'parser'"
+    """
+    # Mock install to verify it's called with correct arguments
+    mock_install = mocker.patch("conda.cli.install.install", return_value=0)
+
+    # Create minimal args namespace with required attributes
+    args = Namespace(
+        prefix=str(tmp_path),
+        name=None,
+    )
+
+    # This would fail without the fix:
+    # TypeError: install() missing 1 required positional argument: 'parser'
+    result = reinstall_packages(args, ["some-package"], force_reinstall=True)
+
+    assert result == 0
+    mock_install.assert_called_once()
+
+    # Verify install was called with at least 2 positional arguments (args, parser)
+    call_args = mock_install.call_args
+    assert call_args[0][0] is args  # First positional arg is args
+    assert len(call_args[0]) >= 2  # Must have at least 2 positional args

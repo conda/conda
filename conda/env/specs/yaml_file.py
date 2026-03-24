@@ -2,34 +2,76 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Define YAML spec."""
 
-from ...exceptions import EnvironmentFileEmpty, EnvironmentFileNotFound
+from __future__ import annotations
+
+from logging import getLogger
+from typing import TYPE_CHECKING
+
+from ...common.serialize import yaml
+from ...deprecations import deprecated
+from ...exceptions import CondaValueError
+from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
+if TYPE_CHECKING:
+    from ...models.environment import Environment
+    from ..env import EnvironmentYaml
 
-class YamlFileSpec:
+
+log = getLogger(__name__)
+
+
+class YamlFileSpec(EnvironmentSpecBase):
+    # Do not use this plugin for in the environment spec detection process.
+    # Users must specify using `environment.yaml` with the `--environment-specifier`
+    # option.
+    detection_supported = False
+
     _environment = None
-    extensions = {".yaml", ".yml"}
 
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
         self.msg = None
 
     def can_handle(self):
-        try:
-            self._environment = env.from_file(self.filename)
-            return True
-        except EnvironmentFileNotFound as e:
-            self.msg = str(e)
-            return False
-        except EnvironmentFileEmpty as e:
-            self.msg = e.message
-            return False
-        except TypeError:
-            self.msg = f"{self.filename} is not a valid yaml file."
+        """
+        Validates loader can process environment definition.
+        This can handle if:
+            * the provided file exists
+            * the yaml file can be loaded and is not empty
+
+        :return: True or False
+        """
+        if not self.filename:
             return False
 
+        try:
+            yamlstr = env.load_file(self.filename)
+            data = yaml.loads(yamlstr)
+            # We check for dict in order to avoid loading flat files as YAML.
+            # The standard really wants a nested dict structure.
+            if data is None or not isinstance(data, dict):
+                return False
+        except Exception:
+            log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
+            return False
+
+        return True
+
     @property
-    def environment(self):
+    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
+    def environment(self) -> EnvironmentYaml:
         if not self._environment:
-            self.can_handle()
+            if not self.can_handle():
+                raise CondaValueError(f"Cannot handle environment file: {self.msg}")
+            self._environment = env.from_file(self.filename)
+
+        if self._environment is None:
+            raise CondaValueError("Environment could not be loaded")
         return self._environment
+
+    @property
+    def env(self) -> Environment:
+        if not self._environment:
+            self._environment = env.from_file(self.filename)
+        return self._environment.to_environment_model()

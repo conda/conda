@@ -7,29 +7,32 @@ from contextlib import nullcontext
 import pytest
 
 from conda import exports
-from conda.common.compat import on_win
 
 
 @pytest.mark.parametrize(
     "function,raises",
     [
-        ("iteritems", TypeError),
-        ("Completer", None),
-        ("InstalledPackages", None),
-        ("hash_file", TypeError),
-        ("verify", TypeError),
-        ("symlink_conda", TypeError),
-        ("_symlink_conda_hlp", TypeError),
-        pytest.param(
-            "win_conda_bat_redirect",
-            TypeError,
-            marks=pytest.mark.skipif(
-                not on_win, reason="win_conda_bat_redirect is only defined on Windows"
-            ),
-        ),
-        ("KEYS", TypeError),
-        ("KEYS_DIR", TypeError),
-        ("move_to_trash", TypeError),
+        ("EntityEncoder", None),
+        ("input", OSError),
+        ("StringIO", None),
+        ("PY3", TypeError),
+        ("string_types", None),
+        ("text_type", None),
+        ("DEFAULT_CHANNELS", TypeError),
+        ("DEFAULT_CHANNELS_UNIX", TypeError),
+        ("DEFAULT_CHANNELS_WIN", TypeError),
+        ("PREFIX_PLACEHOLDER", TypeError),
+        ("_PREFIX_PLACEHOLDER", TypeError),
+        ("prefix_placeholder", TypeError),
+        ("CondaError", TypeError),
+        ("CondaHTTPError", TypeError),
+        ("CondaOSError", TypeError),
+        ("LinkError", TypeError),
+        ("LockError", TypeError),
+        ("PaddingError", TypeError),
+        ("PathNotFoundError", TypeError),
+        ("CondaFileNotFoundError", TypeError),
+        ("UnsatisfiableError", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

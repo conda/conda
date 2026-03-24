@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import os
 import re
 import sys
 from importlib.metadata import version
@@ -14,11 +13,12 @@ from unittest.mock import Mock, patch
 import pytest
 
 from conda.auxlib.ish import dals
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context, reset_context
+from conda.base.constants import PREFIX_PINNED_FILE
+from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.common.io import env_var, env_vars
-from conda.core.solve import DepsModifier, UpdateModifier, get_pinned_specs
+from conda.core.solve import DepsModifier, Solver, UpdateModifier, get_pinned_specs
 from conda.exceptions import (
+    NoChannelsConfiguredError,
     PackagesNotFoundError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
@@ -34,6 +34,7 @@ from conda.testing.helpers import (
     add_subdir,
     add_subdir_to_iter,
     convert_to_dist_str,
+    forward_to_subprocess,
     get_solver,
     get_solver_2,
     get_solver_4,
@@ -42,18 +43,45 @@ from conda.testing.helpers import (
     get_solver_cuda,
     get_solver_must_unfreeze,
 )
+from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpChannelFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
 @pytest.mark.benchmark
-def test_solve_1(tmpdir):
+@pytest.mark.flaky(reruns=5)
+def test_solve_1(tmpdir, request):
+    """
+    This test is flaky with libmamba. Sometimes it gets a different Python 2.x in the solution:
+
+    ```
+    File "/home/runner/work/conda/conda/tests/core/test_solve.py", line 101, in test_solve_1
+        assert convert_to_dist_str(final_state) == order
+    AssertionError:
+        (
+            'channel-1/linux-64::openssl-1.0.1c-0',
+            'channel-1/linux-64::readline-6.2-0',
+            'channel-1/linux-64::sqlite-3.7.13-0',
+            'channel-1/linux-64::system-5.8-1',
+            'channel-1/linux-64::tk-8.5.13-0',
+            'channel-1/linux-64::zlib-1.2.7-0',
+      -     'channel-1/linux-64::python-2.7.5-0',
+      ?                                   ^ ^ ^
+      +     'channel-1/linux-64::python-2.6.8-6',
+      ?                                   ^ ^ ^
+      -     'channel-1/linux-64::numpy-1.7.1-py27_0',
+      ?                                         ^
+      +     'channel-1/linux-64::numpy-1.7.1-py26_0',
+      ?                                         ^
+          )
+    ```
+    """
     specs = (MatchSpec("numpy"),)
 
     with get_solver(tmpdir, specs) as solver:
@@ -98,9 +126,9 @@ def test_solve_1(tmpdir):
 
 
 def test_solve_2(tmpdir):
-    if context.solver == "libmamba":
+    if context.solver in ("libmamba", "rattler"):
         pytest.skip(
-            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+            f"conda-{context.solver}-solver does not use Solver.ssc (SolverStateContainer)"
         )
 
     specs = (MatchSpec("numpy"),)
@@ -176,78 +204,84 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
-def test_virtual_package_solver(tmpdir, clear_cuda_version):
-    if context.solver == "libmamba":
+def test_virtual_package_solver(tmpdir, clear_cuda_version, monkeypatch):
+    if context.solver in ("libmamba", "rattler"):
         pytest.skip(
-            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+            f"conda-{context.solver}-solver does not use Solver.ssc (SolverStateContainer)"
         )
 
     specs = (MatchSpec("cudatoolkit"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            _ = solver.solve_final_state()
-            ssc = solver.ssc
-            # Check the cuda virtual package is included in the solver
-            assert "__cuda" in ssc.specs_map.keys()
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
 
-            # Check that the environment is consistent after installing a
-            # package which *depends* on a virtual package
-            for pkgs in ssc.solution_precs:
-                if pkgs.name == "cudatoolkit":
-                    # make sure this package depends on the __cuda virtual
-                    # package as a dependency since this is requirement of the
-                    # test the test
-                    assert "__cuda" in pkgs.depends[0]
-            assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
+    with get_solver_cuda(tmpdir, specs) as solver:
+        _ = solver.solve_final_state()
+        ssc = solver.ssc
+        # Check the cuda virtual package is included in the solver
+        assert "__cuda" in ssc.specs_map.keys()
+
+        # Check that the environment is consistent after installing a
+        # package which *depends* on a virtual package
+        for pkgs in ssc.solution_precs:
+            if pkgs.name == "cudatoolkit":
+                # make sure this package depends on the __cuda virtual
+                # package as a dependency since this is requirement of the
+                # test the test
+                assert "__cuda" in pkgs.depends[0]
+        assert ssc.r.bad_installed(ssc.solution_precs, ())[1] is None
 
 
-def test_solve_msgs_exclude_vp(tmpdir, clear_cuda_version):
+def test_solve_msgs_exclude_vp(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     # Sovler hints should exclude virtual packages that are not dependencies
     specs = (
         MatchSpec("python =2.7.5"),
         MatchSpec("readline =5.0"),
     )
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
-                solver.solve_final_state()
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        with pytest.raises(UnsatisfiableError) as exc:
+            solver.solve_final_state()
 
     assert "__cuda==10.0" not in str(exc.value).strip()
 
 
-def test_cuda_1(tmpdir, clear_cuda_version):
+def test_cuda_1(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cudatoolkit"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "9.2"):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            final_state = solver.solve_final_state()
-            # print(convert_to_dist_str(final_state))
-            order = add_subdir_to_iter(("channel-1::cudatoolkit-9.0-0",))
-            assert convert_to_dist_str(final_state) == order
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "9.2")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+        # print(convert_to_dist_str(final_state))
+        order = add_subdir_to_iter(("channel-1::cudatoolkit-9.0-0",))
+        assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_2(tmpdir, clear_cuda_version):
+def test_cuda_2(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cudatoolkit"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            final_state = solver.solve_final_state()
-            # print(convert_to_dist_str(final_state))
-            order = add_subdir_to_iter(("channel-1::cudatoolkit-10.0-0",))
-            assert convert_to_dist_str(final_state) == order
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+        # print(convert_to_dist_str(final_state))
+        order = add_subdir_to_iter(("channel-1::cudatoolkit-10.0-0",))
+        assert convert_to_dist_str(final_state) == order
 
 
-def test_cuda_fail_1(tmpdir, clear_cuda_version):
+def test_cuda_fail_1(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cudatoolkit"),)
 
     # No cudatoolkit in index for CUDA 8.0
-    with env_var("CONDA_OVERRIDE_CUDA", "8.0"):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
-                solver.solve_final_state()
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "8.0")
 
+    with get_solver_cuda(tmpdir, specs) as solver:
+        with pytest.raises(UnsatisfiableError) as exc:
+            solver.solve_final_state()
+
+    exc_msg = str(exc.value).strip()
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
@@ -261,10 +295,15 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version):
   - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
             ),
         ]
-        exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
+    elif context.solver == "rattler":
+        possible_messages = [
+            "__cuda >=9.0, for which no candidates were found.",
+            "cudatoolkit * cannot be installed because there are no viable options:",
+        ]
+        assert all(msg in exc_msg for msg in possible_messages)
     else:
-        assert str(exc.value).strip() == dals(
+        assert exc_msg == dals(
             f"""The following specifications were found to be incompatible with your system:
 
   - feature:/{context._native_subdir()}::__cuda==8.0=0
@@ -274,14 +313,18 @@ Your installed version is: 8.0"""
         )
 
 
-def test_cuda_fail_2(tmpdir, clear_cuda_version):
+def test_cuda_fail_2(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cudatoolkit"),)
 
     # No CUDA on system
-    with env_var("CONDA_OVERRIDE_CUDA", ""):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
-                solver.solve_final_state()
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        with pytest.raises(UnsatisfiableError) as exc:
+            solver.solve_final_state()
+
+    exc_msg = str(exc.value).strip()
+
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
@@ -295,10 +338,15 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version):
   - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
             ),
         ]
-        exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
+    elif context.solver == "rattler":
+        expected_messages = [
+            "cudatoolkit * cannot be installed because there are no viable options:",
+            "__cuda >=9.0, for which no candidates were found.",
+        ]
+        assert all(msg in exc_msg for msg in expected_messages)
     else:
-        assert str(exc.value).strip() == dals(
+        assert exc_msg == dals(
             """The following specifications were found to be incompatible with your system:
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
@@ -307,38 +355,41 @@ Your installed version is: not available"""
         )
 
 
-def test_cuda_constrain_absent(tmpdir, clear_cuda_version):
+def test_cuda_constrain_absent(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cuda-constrain"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", ""):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            final_state = solver.solve_final_state()
-            # print(convert_to_dist_str(final_state))
-            order = add_subdir_to_iter(("channel-1::cuda-constrain-11.0-0",))
-            assert convert_to_dist_str(final_state) == order
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+        # print(convert_to_dist_str(final_state))
+        order = add_subdir_to_iter(("channel-1::cuda-constrain-11.0-0",))
+        assert convert_to_dist_str(final_state) == order
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_sat(tmpdir, clear_cuda_version):
+def test_cuda_constrain_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cuda-constrain"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "10.0"):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            final_state = solver.solve_final_state()
-            # print(convert_to_dist_str(final_state))
-            order = add_subdir_to_iter(("channel-1::cuda-constrain-10.0-0",))
-            assert convert_to_dist_str(final_state) == order
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+        # print(convert_to_dist_str(final_state))
+        order = add_subdir_to_iter(("channel-1::cuda-constrain-10.0-0",))
+        assert convert_to_dist_str(final_state) == order
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
-def test_cuda_constrain_unsat(tmpdir, clear_cuda_version):
+def test_cuda_constrain_unsat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cuda-constrain"),)
 
     # No cudatoolkit in index for CUDA 8.0
-    with env_var("CONDA_OVERRIDE_CUDA", "8.0"):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
-                solver.solve_final_state()
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "8.0")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        with pytest.raises(UnsatisfiableError) as exc:
+            solver.solve_final_state()
 
     assert str(exc.value).strip() == dals(
         f"""The following specifications were found to be incompatible with your system:
@@ -351,29 +402,30 @@ Your installed version is: 8.0"""
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_sat(tmpdir, clear_cuda_version):
+def test_cuda_glibc_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with (
-        env_var("CONDA_OVERRIDE_CUDA", "10.0"),
-        env_var("CONDA_OVERRIDE_GLIBC", "2.23"),
-    ):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            final_state = solver.solve_final_state()
-            # print(convert_to_dist_str(final_state))
-            order = add_subdir_to_iter(("channel-1::cuda-glibc-10.0-0",))
-            assert convert_to_dist_str(final_state) == order
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.23")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+        # print(convert_to_dist_str(final_state))
+        order = add_subdir_to_iter(("channel-1::cuda-glibc-10.0-0",))
+        assert convert_to_dist_str(final_state) == order
 
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version):
+def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with env_var("CONDA_OVERRIDE_CUDA", "8.0"), env_var("CONDA_OVERRIDE_GLIBC", "2.23"):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError) as exc:
-                solver.solve_final_state()
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "8.0")
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.23")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        with pytest.raises(UnsatisfiableError) as exc:
+            solver.solve_final_state()
 
     assert str(exc.value).strip() == dals(
         f"""The following specifications were found to be incompatible with your system:
@@ -387,29 +439,34 @@ Your installed version is: 8.0"""
 
 @pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
-def test_cuda_glibc_unsat_constrain(tmpdir, clear_cuda_version):
+def test_cuda_glibc_unsat_constrain(
+    tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch
+):
     specs = (MatchSpec("cuda-glibc"),)
 
-    with (
-        env_var("CONDA_OVERRIDE_CUDA", "10.0"),
-        env_var("CONDA_OVERRIDE_GLIBC", "2.12"),
-    ):
-        with get_solver_cuda(tmpdir, specs) as solver:
-            with pytest.raises(UnsatisfiableError):
-                solver.solve_final_state()
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.12")
+
+    with get_solver_cuda(tmpdir, specs) as solver:
+        with pytest.raises(UnsatisfiableError):
+            solver.solve_final_state()
 
 
 @pytest.mark.skipif(
     not (on_win or on_mac or on_linux),
     reason="archspec is only supported on win, mac or linux",
 )
-def test_archspec_call(tmpdir):
+def test_archspec_call(
+    tmpdir,
+    monkeypatch: MonkeyPatch,
+):
     specs = (MatchSpec("numpy"),)
 
-    with env_vars(), patch("archspec.cpu.host") as archspec:
-        if "CONDA_OVERRIDE_ARCHSPEC" in os.environ:
-            del os.environ["CONDA_OVERRIDE_ARCHSPEC"]
+    # Remove CONDA_OVERRIDE_ARCHSPEC if it exists.
+    monkeypatch.delenv("CONDA_OVERRIDE_ARCHSPEC", raising=False)
+    reset_context()
 
+    with patch("archspec.cpu.host") as archspec:
         with get_solver_cuda(tmpdir, specs) as solver:
             solver.solve_final_state()
             archspec.assert_called()
@@ -418,8 +475,8 @@ def test_archspec_call(tmpdir):
 def test_prune_1(tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"Features not supported in conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -556,8 +613,8 @@ def test_update_prune_2(tmpdir, request):
     """
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"Features not supported in conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -634,8 +691,8 @@ def test_update_prune_3(tmpdir, request):
     """
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"Features not supported in conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -776,8 +833,8 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
     # "Create" a conda env with specs that "pin" dependencies.
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba" and not prune,
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler") and not prune,
+            reason=f"Features not supported conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -879,7 +936,12 @@ def test_force_remove_1(tmpdir, request):
                 "channel-1::zlib-1.2.7-0",
             )
         )
-        assert convert_to_dist_str(final_state_2) == order
+        if context.solver == "rattler":
+            # rattler puts numpy last; but without python in the mix, its position
+            # is not topologically relevant, so it's ok
+            assert sorted(convert_to_dist_str(final_state_2)) == sorted(order)
+        else:
+            assert convert_to_dist_str(final_state_2) == order
 
     # re-solving restores order
     with get_solver(tmpdir, prefix_records=final_state_2) as solver:
@@ -1161,8 +1223,10 @@ def test_update_all_1(tmpdir):
 
 
 def test_broken_install(tmpdir):
-    if context.solver == "libmamba":
-        pytest.skip("conda-libmamba-solver does not use a Solver._r (Resolve) object")
+    if context.solver in ("libmamba", "rattler"):
+        pytest.skip(
+            f"conda-{context.solver}-solver does not use a Solver._r (Resolve) object"
+        )
 
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
     with get_solver(tmpdir, specs) as solver:
@@ -1268,7 +1332,10 @@ def test_broken_install(tmpdir):
     assert not solver._r.environment_is_consistent(final_state_2_mod)
 
 
-def test_conda_downgrade(tmpdir, request):
+def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
+    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
+        return
+
     if context.solver == "libmamba":
         request.applymarker(
             pytest.mark.xfail(
@@ -1277,59 +1344,66 @@ def test_conda_downgrade(tmpdir, request):
             )
         )
     specs = (MatchSpec("conda-build"),)
-    with env_var(
-        "CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        with get_solver_aggregate_1(tmpdir, specs) as solver:
-            final_state_1 = solver.solve_final_state()
-            pprint(convert_to_dist_str(final_state_1))
-            order = add_subdir_to_iter(
-                (
-                    "channel-4::ca-certificates-2018.03.07-0",
-                    "channel-2::conda-env-2.6.0-0",
-                    "channel-2::libffi-3.2.1-1",
-                    "channel-4::libgcc-ng-8.2.0-hdf63c60_0",
-                    "channel-4::libstdcxx-ng-8.2.0-hdf63c60_0",
-                    "channel-2::zlib-1.2.11-0",
-                    "channel-4::ncurses-6.1-hf484d3e_0",
-                    "channel-4::openssl-1.0.2p-h14c3975_0",
-                    "channel-4::patchelf-0.9-hf484d3e_2",
-                    "channel-4::tk-8.6.7-hc745277_3",
-                    "channel-4::xz-5.2.4-h14c3975_4",
-                    "channel-4::yaml-0.1.7-had09818_2",
-                    "channel-4::libedit-3.1.20170329-h6b74fdf_2",
-                    "channel-4::readline-7.0-ha6073c6_4",
-                    "channel-4::sqlite-3.24.0-h84994c4_0",
-                    "channel-4::python-3.7.0-hc3d631a_0",
-                    "channel-4::asn1crypto-0.24.0-py37_0",
-                    "channel-4::beautifulsoup4-4.6.3-py37_0",
-                    "channel-4::certifi-2018.8.13-py37_0",
-                    "channel-4::chardet-3.0.4-py37_1",
-                    "channel-4::cryptography-vectors-2.3-py37_0",
-                    "channel-4::filelock-3.0.4-py37_0",
-                    "channel-4::glob2-0.6-py37_0",
-                    "channel-4::idna-2.7-py37_0",
-                    "channel-4::markupsafe-1.0-py37h14c3975_1",
-                    "channel-4::pkginfo-1.4.2-py37_1",
-                    "channel-4::psutil-5.4.6-py37h14c3975_0",
-                    "channel-4::pycosat-0.6.3-py37h14c3975_0",
-                    "channel-4::pycparser-2.18-py37_1",
-                    "channel-4::pysocks-1.6.8-py37_0",
-                    "channel-4::pyyaml-3.13-py37h14c3975_0",
-                    "channel-4::ruamel_yaml-0.15.46-py37h14c3975_0",
-                    "channel-4::six-1.11.0-py37_1",
-                    "channel-4::cffi-1.11.5-py37h9745a5d_0",
-                    "channel-4::setuptools-40.0.0-py37_0",
-                    "channel-4::cryptography-2.3-py37hb7f436b_0",
-                    "channel-4::jinja2-2.10-py37_0",
-                    "channel-4::pyopenssl-18.0.0-py37_0",
-                    "channel-4::urllib3-1.23-py37_0",
-                    "channel-4::requests-2.19.1-py37_0",
-                    "channel-4::conda-4.5.10-py37_0",
-                    "channel-4::conda-build-3.12.1-py37_0",
-                )
+
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "False")
+    reset_context()
+
+    with get_solver_aggregate_1(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(
+            (
+                "channel-4::ca-certificates-2018.03.07-0",
+                "channel-2::conda-env-2.6.0-0",
+                "channel-2::libffi-3.2.1-1",
+                "channel-4::libgcc-ng-8.2.0-hdf63c60_0",
+                "channel-4::libstdcxx-ng-8.2.0-hdf63c60_0",
+                "channel-2::zlib-1.2.11-0",
+                "channel-4::ncurses-6.1-hf484d3e_0",
+                "channel-4::openssl-1.0.2p-h14c3975_0",
+                "channel-4::patchelf-0.9-hf484d3e_2",
+                "channel-4::tk-8.6.7-hc745277_3",
+                "channel-4::xz-5.2.4-h14c3975_4",
+                "channel-4::yaml-0.1.7-had09818_2",
+                "channel-4::libedit-3.1.20170329-h6b74fdf_2",
+                "channel-4::readline-7.0-ha6073c6_4",
+                "channel-4::sqlite-3.24.0-h84994c4_0",
+                "channel-4::python-3.7.0-hc3d631a_0",
+                "channel-4::asn1crypto-0.24.0-py37_0",
+                "channel-4::beautifulsoup4-4.6.3-py37_0",
+                "channel-4::certifi-2018.8.13-py37_0",
+                "channel-4::chardet-3.0.4-py37_1",
+                "channel-4::cryptography-vectors-2.3-py37_0",
+                "channel-4::filelock-3.0.4-py37_0",
+                "channel-4::glob2-0.6-py37_0",
+                "channel-4::idna-2.7-py37_0",
+                "channel-4::markupsafe-1.0-py37h14c3975_1",
+                "channel-4::pkginfo-1.4.2-py37_1",
+                "channel-4::psutil-5.4.6-py37h14c3975_0",
+                "channel-4::pycosat-0.6.3-py37h14c3975_0",
+                "channel-4::pycparser-2.18-py37_1",
+                "channel-4::pysocks-1.6.8-py37_0",
+                "channel-4::pyyaml-3.13-py37h14c3975_0",
+                "channel-4::ruamel_yaml-0.15.46-py37h14c3975_0",
+                "channel-4::six-1.11.0-py37_1",
+                "channel-4::cffi-1.11.5-py37h9745a5d_0",
+                "channel-4::setuptools-40.0.0-py37_0",
+                "channel-4::cryptography-2.3-py37hb7f436b_0",
+                "channel-4::jinja2-2.10-py37_0",
+                "channel-4::pyopenssl-18.0.0-py37_0",
+                "channel-4::urllib3-1.23-py37_0",
+                "channel-4::requests-2.19.1-py37_0",
+                "channel-4::conda-4.5.10-py37_0",
+                "channel-4::conda-build-3.12.1-py37_0",
             )
+        )
+        if (
+            context.solver != "rattler"
+        ):  # skip this part for rattler, it's slightly different
             assert convert_to_dist_str(final_state_1) == order
+
+    monkeypatch.delenv("CONDA_CHANNEL_PRIORITY")
+    reset_context()
 
     specs_to_add = (MatchSpec("itsdangerous"),)  # MatchSpec("conda"),
     saved_sys_prefix = sys.prefix
@@ -1347,7 +1421,12 @@ def test_conda_downgrade(tmpdir, request):
             unlink_order = (
                 # no conda downgrade
             )
-            link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
+            if context.solver == "rattler":
+                link_order = add_subdir_to_iter(
+                    ("channel-4::itsdangerous-0.24-py37_1",)
+                )
+            else:
+                link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
 
@@ -1458,7 +1537,7 @@ def test_conda_downgrade(tmpdir, request):
                     "channel-4::conda-build-3.12.1-py36_0",
                 )
             )
-            if context.solver == "libmamba":
+            if context.solver in ("libmamba", "rattler"):
                 # LIBMAMBA ADJUSTMENT
                 # We only check for conda itself and the explicit specs
                 # The other packages are slightly different;
@@ -1468,7 +1547,9 @@ def test_conda_downgrade(tmpdir, request):
                     if pkg.name == "conda":
                         assert VersionOrder(pkg.version) < VersionOrder("4.4.10")
                     elif pkg.name == "python":
-                        assert pkg.version == "3.6.2"
+                        assert pkg.version == (
+                            "3.6.2" if context.solver == "libmamba" else "3.6.6"
+                        )
                     elif pkg.name == "conda-build":
                         assert pkg.version == "3.12.1"
                     elif pkg.name == "itsdangerous":
@@ -1547,7 +1628,7 @@ def test_unfreeze_when_required(tmpdir):
         assert convert_to_dist_str(final_state_2) == order
 
 
-def test_auto_update_conda(tmpdir):
+def test_auto_update_conda(tmpdir, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("conda=1.3"),)
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
@@ -1569,9 +1650,69 @@ def test_auto_update_conda(tmpdir):
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    with env_vars(
-        {"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "yes")
+    reset_context()
+    specs_to_add = (MatchSpec("pytz"),)
+    with get_solver(
+        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+    ) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::yaml-0.1.4-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.5-0",
+                "channel-1::pytz-2013b-py27_0",
+                "channel-1::pyyaml-3.10-py27_0",
+                "channel-1::conda-1.3.5-py27_0",
+            )
+        )
+        assert convert_to_dist_str(final_state_2) == order
+
+    monkeypatch.delenv("CONDA_AUTO_UPDATE_CONDA")
+    reset_context()
+
+    saved_sys_prefix = sys.prefix
+    try:
+        sys.prefix = tmpdir.strpath
+
+        monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "yes")
+        reset_context()
+
+        specs_to_add = (MatchSpec("pytz"),)
+        with get_solver(
+            tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        ) as solver:
+            final_state_2 = solver.solve_final_state()
+            # PrefixDag(final_state_2, specs).open_url()
+            print(convert_to_dist_str(final_state_2))
+            order = add_subdir_to_iter(
+                (
+                    "channel-1::openssl-1.0.1c-0",
+                    "channel-1::readline-6.2-0",
+                    "channel-1::sqlite-3.7.13-0",
+                    "channel-1::system-5.8-1",
+                    "channel-1::tk-8.5.13-0",
+                    "channel-1::yaml-0.1.4-0",
+                    "channel-1::zlib-1.2.7-0",
+                    "channel-1::python-2.7.5-0",
+                    "channel-1::pytz-2013b-py27_0",
+                    "channel-1::pyyaml-3.10-py27_0",
+                    "channel-1::conda-1.5.2-py27_0",
+                )
+            )
+            assert convert_to_dist_str(final_state_2) == order
+
+        monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "no")
+        reset_context()
+
         specs_to_add = (MatchSpec("pytz"),)
         with get_solver(
             tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
@@ -1595,70 +1736,11 @@ def test_auto_update_conda(tmpdir):
                 )
             )
             assert convert_to_dist_str(final_state_2) == order
-
-    saved_sys_prefix = sys.prefix
-    try:
-        sys.prefix = tmpdir.strpath
-        with env_vars(
-            {"CONDA_AUTO_UPDATE_CONDA": "yes"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            specs_to_add = (MatchSpec("pytz"),)
-            with get_solver(
-                tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
-            ) as solver:
-                final_state_2 = solver.solve_final_state()
-                # PrefixDag(final_state_2, specs).open_url()
-                print(convert_to_dist_str(final_state_2))
-                order = add_subdir_to_iter(
-                    (
-                        "channel-1::openssl-1.0.1c-0",
-                        "channel-1::readline-6.2-0",
-                        "channel-1::sqlite-3.7.13-0",
-                        "channel-1::system-5.8-1",
-                        "channel-1::tk-8.5.13-0",
-                        "channel-1::yaml-0.1.4-0",
-                        "channel-1::zlib-1.2.7-0",
-                        "channel-1::python-2.7.5-0",
-                        "channel-1::pytz-2013b-py27_0",
-                        "channel-1::pyyaml-3.10-py27_0",
-                        "channel-1::conda-1.5.2-py27_0",
-                    )
-                )
-                assert convert_to_dist_str(final_state_2) == order
-
-        with env_vars(
-            {"CONDA_AUTO_UPDATE_CONDA": "no"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            specs_to_add = (MatchSpec("pytz"),)
-            with get_solver(
-                tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
-            ) as solver:
-                final_state_2 = solver.solve_final_state()
-                # PrefixDag(final_state_2, specs).open_url()
-                print(convert_to_dist_str(final_state_2))
-                order = add_subdir_to_iter(
-                    (
-                        "channel-1::openssl-1.0.1c-0",
-                        "channel-1::readline-6.2-0",
-                        "channel-1::sqlite-3.7.13-0",
-                        "channel-1::system-5.8-1",
-                        "channel-1::tk-8.5.13-0",
-                        "channel-1::yaml-0.1.4-0",
-                        "channel-1::zlib-1.2.7-0",
-                        "channel-1::python-2.7.5-0",
-                        "channel-1::pytz-2013b-py27_0",
-                        "channel-1::pyyaml-3.10-py27_0",
-                        "channel-1::conda-1.3.5-py27_0",
-                    )
-                )
-                assert convert_to_dist_str(final_state_2) == order
     finally:
         sys.prefix = saved_sys_prefix
 
 
-def test_explicit_conda_downgrade(tmpdir):
+def test_explicit_conda_downgrade(tmpdir, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("conda=1.5"),)
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
@@ -1680,9 +1762,41 @@ def test_explicit_conda_downgrade(tmpdir):
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    with env_vars(
-        {"CONDA_AUTO_UPDATE_CONDA": "yes"}, stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
+    monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "yes")
+    reset_context()
+
+    specs_to_add = (MatchSpec("conda=1.3"),)
+    with get_solver(
+        tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+    ) as solver:
+        final_state_2 = solver.solve_final_state()
+        # PrefixDag(final_state_2, specs).open_url()
+        print(convert_to_dist_str(final_state_2))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::yaml-0.1.4-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.5-0",
+                "channel-1::pyyaml-3.10-py27_0",
+                "channel-1::conda-1.3.5-py27_0",
+            )
+        )
+        assert convert_to_dist_str(final_state_2) == order
+
+    monkeypatch.delenv("CONDA_AUTO_UPDATE_CONDA")
+    reset_context()
+
+    saved_sys_prefix = sys.prefix
+    try:
+        sys.prefix = tmpdir.strpath
+
+        monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "yes")
+        reset_context()
         specs_to_add = (MatchSpec("conda=1.3"),)
         with get_solver(
             tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
@@ -1706,67 +1820,36 @@ def test_explicit_conda_downgrade(tmpdir):
             )
             assert convert_to_dist_str(final_state_2) == order
 
-    saved_sys_prefix = sys.prefix
-    try:
-        sys.prefix = tmpdir.strpath
-        with env_vars(
-            {"CONDA_AUTO_UPDATE_CONDA": "yes"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            specs_to_add = (MatchSpec("conda=1.3"),)
-            with get_solver(
-                tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
-            ) as solver:
-                final_state_2 = solver.solve_final_state()
-                # PrefixDag(final_state_2, specs).open_url()
-                print(convert_to_dist_str(final_state_2))
-                order = add_subdir_to_iter(
-                    (
-                        "channel-1::openssl-1.0.1c-0",
-                        "channel-1::readline-6.2-0",
-                        "channel-1::sqlite-3.7.13-0",
-                        "channel-1::system-5.8-1",
-                        "channel-1::tk-8.5.13-0",
-                        "channel-1::yaml-0.1.4-0",
-                        "channel-1::zlib-1.2.7-0",
-                        "channel-1::python-2.7.5-0",
-                        "channel-1::pyyaml-3.10-py27_0",
-                        "channel-1::conda-1.3.5-py27_0",
-                    )
-                )
-                assert convert_to_dist_str(final_state_2) == order
+        monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "no")
+        reset_context()
 
-        with env_vars(
-            {"CONDA_AUTO_UPDATE_CONDA": "no"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            specs_to_add = (MatchSpec("conda=1.3"),)
-            with get_solver(
-                tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
-            ) as solver:
-                final_state_2 = solver.solve_final_state()
-                # PrefixDag(final_state_2, specs).open_url()
-                print(convert_to_dist_str(final_state_2))
-                order = add_subdir_to_iter(
-                    (
-                        "channel-1::openssl-1.0.1c-0",
-                        "channel-1::readline-6.2-0",
-                        "channel-1::sqlite-3.7.13-0",
-                        "channel-1::system-5.8-1",
-                        "channel-1::tk-8.5.13-0",
-                        "channel-1::yaml-0.1.4-0",
-                        "channel-1::zlib-1.2.7-0",
-                        "channel-1::python-2.7.5-0",
-                        "channel-1::pyyaml-3.10-py27_0",
-                        "channel-1::conda-1.3.5-py27_0",
-                    )
+        specs_to_add = (MatchSpec("conda=1.3"),)
+        with get_solver(
+            tmpdir, specs_to_add, prefix_records=final_state_1, history_specs=specs
+        ) as solver:
+            final_state_2 = solver.solve_final_state()
+            # PrefixDag(final_state_2, specs).open_url()
+            print(convert_to_dist_str(final_state_2))
+            order = add_subdir_to_iter(
+                (
+                    "channel-1::openssl-1.0.1c-0",
+                    "channel-1::readline-6.2-0",
+                    "channel-1::sqlite-3.7.13-0",
+                    "channel-1::system-5.8-1",
+                    "channel-1::tk-8.5.13-0",
+                    "channel-1::yaml-0.1.4-0",
+                    "channel-1::zlib-1.2.7-0",
+                    "channel-1::python-2.7.5-0",
+                    "channel-1::pyyaml-3.10-py27_0",
+                    "channel-1::conda-1.3.5-py27_0",
                 )
-                assert convert_to_dist_str(final_state_2) == order
+            )
+            assert convert_to_dist_str(final_state_2) == order
     finally:
         sys.prefix = saved_sys_prefix
 
 
-def test_aggressive_update_packages(tmpdir):
+def test_aggressive_update_packages(tmpdir, monkeypatch: MonkeyPatch):
     def solve(prev_state, specs_to_add, order):
         final_state_1, specs = prev_state
         specs_to_add = tuple(MatchSpec(spec_str) for spec_str in specs_to_add)
@@ -1782,106 +1865,106 @@ def test_aggressive_update_packages(tmpdir):
     # test with "libpng", "cmake": both have multiple versions and no requirements in "channel-1"
 
     empty_state = ((), ())
-    with env_vars(
-        {"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        base_state = solve(
-            empty_state,
-            ["libpng=1.2"],
-            add_subdir_to_iter(("channel-1::libpng-1.2.50-0",)),
-        )
+
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", "")
+    reset_context()
+
+    base_state = solve(
+        empty_state,
+        ["libpng=1.2"],
+        add_subdir_to_iter(("channel-1::libpng-1.2.50-0",)),
+    )
 
     # # ~~has "libpng" restricted to "=1.2" by history_specs~~ NOPE!
     # In conda 4.6 making aggressive_update *more* aggressive, making it override history specs.
     state_1 = base_state
-    with env_vars(
-        {"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        solve(
-            state_1,
-            ["cmake=2.8.9"],
-            add_subdir_to_iter(
-                (
-                    "channel-1::cmake-2.8.9-0",
-                    "channel-1::libpng-1.5.13-1",
-                )
-            ),
-        )
-    with env_vars(
-        {"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        state_1_2 = solve(
-            state_1,
-            ["cmake=2.8.9"],
-            add_subdir_to_iter(
-                (
-                    "channel-1::cmake-2.8.9-0",
-                    "channel-1::libpng-1.2.50-0",
-                )
-            ),
-        )
-    with env_vars(
-        {"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        solve(
-            state_1_2,
-            ["cmake>2.8.9"],
-            add_subdir_to_iter(
-                (
-                    "channel-1::cmake-2.8.10.2-0",
-                    "channel-1::libpng-1.5.13-1",
-                )
-            ),
-        )
+
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", "libpng")
+    reset_context()
+
+    solve(
+        state_1,
+        ["cmake=2.8.9"],
+        add_subdir_to_iter(
+            (
+                "channel-1::cmake-2.8.9-0",
+                "channel-1::libpng-1.5.13-1",
+            )
+        ),
+    )
+
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", "")
+    reset_context()
+
+    state_1_2 = solve(
+        state_1,
+        ["cmake=2.8.9"],
+        add_subdir_to_iter(
+            (
+                "channel-1::cmake-2.8.9-0",
+                "channel-1::libpng-1.2.50-0",
+            )
+        ),
+    )
+
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", "libpng")
+    reset_context()
+
+    solve(
+        state_1_2,
+        ["cmake>2.8.9"],
+        add_subdir_to_iter(
+            (
+                "channel-1::cmake-2.8.10.2-0",
+                "channel-1::libpng-1.5.13-1",
+            )
+        ),
+    )
 
     # use new history_specs to remove "libpng" version restriction
     state_2 = (base_state[0], (MatchSpec("libpng"),))
-    with env_vars(
-        {"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        solve(
-            state_2,
-            ["cmake=2.8.9"],
-            add_subdir_to_iter(
-                (
-                    "channel-1::cmake-2.8.9-0",
-                    "channel-1::libpng-1.5.13-1",
-                )
-            ),
-        )
-    with env_vars(
-        {"CONDA_AGGRESSIVE_UPDATE_PACKAGES": ""},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        state_2_2 = solve(
-            state_2,
-            ["cmake=2.8.9"],
-            add_subdir_to_iter(
-                (
-                    "channel-1::cmake-2.8.9-0",
-                    "channel-1::libpng-1.2.50-0",
-                )
-            ),
-        )
-    with env_vars(
-        {"CONDA_AGGRESSIVE_UPDATE_PACKAGES": "libpng"},
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        solve(
-            state_2_2,
-            ["cmake>2.8.9"],
-            add_subdir_to_iter(
-                (
-                    "channel-1::cmake-2.8.10.2-0",
-                    "channel-1::libpng-1.5.13-1",
-                )
-            ),
-        )
+
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", "libpng")
+    reset_context()
+
+    solve(
+        state_2,
+        ["cmake=2.8.9"],
+        add_subdir_to_iter(
+            (
+                "channel-1::cmake-2.8.9-0",
+                "channel-1::libpng-1.5.13-1",
+            )
+        ),
+    )
+
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", "")
+    reset_context()
+
+    state_2_2 = solve(
+        state_2,
+        ["cmake=2.8.9"],
+        add_subdir_to_iter(
+            (
+                "channel-1::cmake-2.8.9-0",
+                "channel-1::libpng-1.2.50-0",
+            )
+        ),
+    )
+
+    monkeypatch.setenv("CONDA_AGGRESSIVE_UPDATE_PACKAGES", "libpng")
+    reset_context()
+
+    solve(
+        state_2_2,
+        ["cmake>2.8.9"],
+        add_subdir_to_iter(
+            (
+                "channel-1::cmake-2.8.10.2-0",
+                "channel-1::libpng-1.5.13-1",
+            )
+        ),
+    )
 
 
 def test_python2_update(tmpdir):
@@ -1971,9 +2054,9 @@ def test_python2_update(tmpdir):
             )
         )
         full_solution = convert_to_dist_str(final_state_2)
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
-            # libmamba has a different solution here (cryptography 2.3 instead of 2.2.2)
+        if context.solver in ("libmamba", "rattler"):
+            # LIBMAMBA/RATTLER ADJUSTMENT
+            # they give a different solution here (cryptography 2.3 instead of 2.2.2)
             # and cryptography-vectors (not present in regular conda)
             # they are essentially the same functional solution; the important part here
             # is that the env migrated to Python 3.7, so we only check some packages
@@ -2231,8 +2314,8 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-3.6.4-hc3d631a_1",  # python is upgraded
             )
         )
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
+        if context.solver in ("libmamba", "rattler"):
+            # LIBMAMBA/RATTLER ADJUSTMENT
             # We only check python was upgraded as expected, not the full solution
             assert add_subdir(
                 "channel-4::python-2.7.14-h89e7a4a_22"
@@ -2269,8 +2352,8 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-2.7.15-h1571d57_0",  # python is not upgraded
             )
         )
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
+        if context.solver in ("libmamba", "rattler"):
+            # LIBMAMBA/RATTLER ADJUSTMENT
             # We only check sqlite was upgraded as expected and python stays the same
             assert add_subdir(
                 "channel-4::sqlite-3.21.0-h1bed415_2"
@@ -2301,7 +2384,7 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
 
 
 @pytest.mark.integration
-def test_pinned_1(tmpdir):
+def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("numpy"),)
     with get_solver(tmpdir, specs) as solver:
         final_state_1 = solver.solve_final_state()
@@ -2321,198 +2404,206 @@ def test_pinned_1(tmpdir):
         )
         assert convert_to_dist_str(final_state_1) == order
 
-    with env_var(
-        "CONDA_PINNED_PACKAGES",
-        "python=2.6&iopro<=1.4.2",
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        specs = (MatchSpec("system=5.8=0"),)
-        with get_solver(tmpdir, specs) as solver:
-            final_state_1 = solver.solve_final_state()
-            # PrefixDag(final_state_1, specs).open_url()
-            pprint(convert_to_dist_str(final_state_1))
-            order = add_subdir_to_iter(("channel-1::system-5.8-0",))
-            assert convert_to_dist_str(final_state_1) == order
+    monkeypatch.setenv("CONDA_PINNED_PACKAGES", "python=2.6&iopro<=1.4.2")
+    reset_context()
 
-        # ignore_pinned=True
-        specs_to_add = (MatchSpec("python"),)
-        with get_solver(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            prefix_records=final_state_1,
-            history_specs=specs,
-        ) as solver:
-            final_state_2 = solver.solve_final_state(ignore_pinned=True)
-            # PrefixDag(final_state_1, specs).open_url()
-            pprint(convert_to_dist_str(final_state_2))
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-0",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::python-3.3.2-0",
-                )
+    specs = (MatchSpec("system=5.8=0"),)
+    with get_solver(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(("channel-1::system-5.8-0",))
+        assert convert_to_dist_str(final_state_1) == order
+
+    # ignore_pinned=True
+    specs_to_add = (MatchSpec("python"),)
+    with get_solver(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
+    ) as solver:
+        final_state_2 = solver.solve_final_state(ignore_pinned=True)
+        # PrefixDag(final_state_1, specs).open_url()
+        pprint(convert_to_dist_str(final_state_2))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-0",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-3.3.2-0",
             )
-            assert convert_to_dist_str(final_state_2) == order
-
-        # ignore_pinned=False
-        specs_to_add = (MatchSpec("python"),)
-        with get_solver(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            prefix_records=final_state_1,
-            history_specs=specs,
-        ) as solver:
-            final_state_2 = solver.solve_final_state(ignore_pinned=False)
-            # PrefixDag(final_state_1, specs).open_url()
-            pprint(convert_to_dist_str(final_state_2))
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-0",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::python-2.6.8-6",
-                )
-            )
-            assert convert_to_dist_str(final_state_2) == order
-
-        # incompatible CLI and configured specs
-        specs_to_add = (MatchSpec("scikit-learn==0.13"),)
-        with get_solver(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            prefix_records=final_state_1,
-            history_specs=specs,
-        ) as solver:
-            if context.solver == "libmamba":
-                # LIBMAMBA ADJUSTMENT
-                # Original tests checks for SpecsConfigurationConflictError
-                # being raised but libmamba will fails with UnsatisfiableError
-                # instead. Hence, we check the error string.
-                with pytest.raises(UnsatisfiableError) as exc_info:
-                    solver.solve_final_state(ignore_pinned=False)
-                error = str(exc_info.value)
-                assert "package scikit-learn-0.13" in error
-                assert "requires python 2.7*" in error
-            else:
-                with pytest.raises(SpecsConfigurationConflictError) as exc:
-                    solver.solve_final_state(ignore_pinned=False)
-                kwargs = exc.value._kwargs
-                assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
-                assert kwargs["pinned_specs"] == ["python=2.6"]
-
-        specs_to_add = (MatchSpec("numba"),)
-        history_specs = (
-            MatchSpec("python"),
-            MatchSpec("system=5.8=0"),
         )
-        with get_solver(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            prefix_records=final_state_2,
-            history_specs=history_specs,
-        ) as solver:
-            final_state_3 = solver.solve_final_state()
-            # PrefixDag(final_state_1, specs).open_url()
-            pprint(convert_to_dist_str(final_state_3))
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-0",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::llvm-3.2-0",
-                    "channel-1::python-2.6.8-6",
-                    "channel-1::argparse-1.2.1-py26_0",
-                    "channel-1::llvmpy-0.11.2-py26_0",
-                    "channel-1::numpy-1.7.1-py26_0",
-                    "channel-1::numba-0.8.1-np17py26_0",
-                )
-            )
-            assert convert_to_dist_str(final_state_3) == order
+        assert convert_to_dist_str(final_state_2) == order
 
-        specs_to_add = (MatchSpec("python"),)
-        history_specs = (
-            MatchSpec("python"),
-            MatchSpec("system=5.8=0"),
-            MatchSpec("numba"),
+    # ignore_pinned=False
+    specs_to_add = (MatchSpec("python"),)
+    with get_solver(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
+    ) as solver:
+        final_state_2 = solver.solve_final_state(ignore_pinned=False)
+        # PrefixDag(final_state_1, specs).open_url()
+        pprint(convert_to_dist_str(final_state_2))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-0",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.6.8-6",
+            )
         )
-        with get_solver(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            prefix_records=final_state_3,
-            history_specs=history_specs,
-        ) as solver:
-            final_state_4 = solver.solve_final_state(
-                update_modifier=UpdateModifier.UPDATE_DEPS
-            )
-            # PrefixDag(final_state_1, specs).open_url()
-            pprint(convert_to_dist_str(final_state_4))
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-1",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::llvm-3.2-0",
-                    "channel-1::python-2.6.8-6",
-                    "channel-1::argparse-1.2.1-py26_0",
-                    "channel-1::llvmpy-0.11.2-py26_0",
-                    "channel-1::numpy-1.7.1-py26_0",
-                    "channel-1::numba-0.8.1-np17py26_0",
-                )
-            )
-            assert convert_to_dist_str(final_state_4) == order
+        assert convert_to_dist_str(final_state_2) == order
 
-        specs_to_add = (MatchSpec("python"),)
-        history_specs = (
-            MatchSpec("python"),
-            MatchSpec("system=5.8=0"),
-            MatchSpec("numba"),
+    # incompatible CLI and configured specs
+    specs_to_add = (MatchSpec("scikit-learn==0.13"),)
+    with get_solver(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        prefix_records=final_state_1,
+        history_specs=specs,
+    ) as solver:
+        if context.solver == "libmamba":
+            # LIBMAMBA ADJUSTMENT
+            # Original tests checks for SpecsConfigurationConflictError
+            # being raised but libmamba will fails with UnsatisfiableError
+            # instead. Hence, we check the error string.
+            with pytest.raises(UnsatisfiableError) as exc_info:
+                solver.solve_final_state(ignore_pinned=False)
+            error = str(exc_info.value)
+            assert "package scikit-learn-0.13" in error
+            assert "requires python 2.7*" in error
+        elif context.solver == "rattler":
+            # The error message is slightly different in rattler, but same meaning
+            with pytest.raises(UnsatisfiableError) as exc_info:
+                solver.solve_final_state(ignore_pinned=False)
+            error = str(exc_info.value)
+            assert "scikit-learn ==0.13 can be installed" in error
+            assert "constraint python 2.6.* cannot be fulfilled" in error
+        else:
+            with pytest.raises(SpecsConfigurationConflictError) as exc:
+                solver.solve_final_state(ignore_pinned=False)
+            kwargs = exc.value._kwargs
+            assert kwargs["requested_specs"] == ["scikit-learn==0.13"]
+            assert kwargs["pinned_specs"] == ["python=2.6"]
+
+    specs_to_add = (MatchSpec("numba"),)
+    history_specs = (
+        MatchSpec("python"),
+        MatchSpec("system=5.8=0"),
+    )
+    with get_solver(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        prefix_records=final_state_2,
+        history_specs=history_specs,
+    ) as solver:
+        final_state_3 = solver.solve_final_state()
+        # PrefixDag(final_state_1, specs).open_url()
+        pprint(convert_to_dist_str(final_state_3))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-0",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::llvm-3.2-0",
+                "channel-1::python-2.6.8-6",
+                "channel-1::argparse-1.2.1-py26_0",
+                "channel-1::llvmpy-0.11.2-py26_0",
+                "channel-1::numpy-1.7.1-py26_0",
+                "channel-1::numba-0.8.1-np17py26_0",
+            )
         )
-        with get_solver(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            prefix_records=final_state_4,
-            history_specs=history_specs,
-        ) as solver:
-            final_state_5 = solver.solve_final_state(
-                update_modifier=UpdateModifier.UPDATE_ALL
+        assert convert_to_dist_str(final_state_3) == order
+
+    specs_to_add = (MatchSpec("python"),)
+    history_specs = (
+        MatchSpec("python"),
+        MatchSpec("system=5.8=0"),
+        MatchSpec("numba"),
+    )
+    with get_solver(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        prefix_records=final_state_3,
+        history_specs=history_specs,
+    ) as solver:
+        final_state_4 = solver.solve_final_state(
+            update_modifier=UpdateModifier.UPDATE_DEPS
+        )
+        # PrefixDag(final_state_1, specs).open_url()
+        pprint(convert_to_dist_str(final_state_4))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::llvm-3.2-0",
+                "channel-1::python-2.6.8-6",
+                "channel-1::argparse-1.2.1-py26_0",
+                "channel-1::llvmpy-0.11.2-py26_0",
+                "channel-1::numpy-1.7.1-py26_0",
+                "channel-1::numba-0.8.1-np17py26_0",
             )
-            # PrefixDag(final_state_1, specs).open_url()
-            pprint(convert_to_dist_str(final_state_5))
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-1",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::llvm-3.2-0",
-                    "channel-1::python-2.6.8-6",
-                    "channel-1::argparse-1.2.1-py26_0",
-                    "channel-1::llvmpy-0.11.2-py26_0",
-                    "channel-1::numpy-1.7.1-py26_0",
-                    "channel-1::numba-0.8.1-np17py26_0",
-                )
+        )
+        assert convert_to_dist_str(final_state_4) == order
+
+    specs_to_add = (MatchSpec("python"),)
+    history_specs = (
+        MatchSpec("python"),
+        MatchSpec("system=5.8=0"),
+        MatchSpec("numba"),
+    )
+    with get_solver(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        prefix_records=final_state_4,
+        history_specs=history_specs,
+    ) as solver:
+        final_state_5 = solver.solve_final_state(
+            update_modifier=UpdateModifier.UPDATE_ALL
+        )
+        # PrefixDag(final_state_1, specs).open_url()
+        pprint(convert_to_dist_str(final_state_5))
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::llvm-3.2-0",
+                "channel-1::python-2.6.8-6",
+                "channel-1::argparse-1.2.1-py26_0",
+                "channel-1::llvmpy-0.11.2-py26_0",
+                "channel-1::numpy-1.7.1-py26_0",
+                "channel-1::numba-0.8.1-np17py26_0",
             )
-            assert convert_to_dist_str(final_state_5) == order
+        )
+        assert convert_to_dist_str(final_state_5) == order
+
+    monkeypatch.delenv("CONDA_PINNED_PACKAGES")
+    reset_context()
 
     # now update without pinning
-    if context.solver == "libmamba":
-        # LIBMAMBA ADJUSTMENT:
-        # libmamba decides to stay in python=2.6 unless explicit
+    if context.solver in ("libmamba", "rattler"):
+        # LIBMAMBA/RATTLER ADJUSTMENT:
+        # libmamba and rattler decide to stay in python=2.6 unless explicit
         specs_to_add = (MatchSpec("python=3"),)
     else:
         specs_to_add = (MatchSpec("python"),)
@@ -2727,8 +2818,8 @@ def test_channel_priority_churn_minimized(tmpdir):
 
     pprint(convert_to_dist_str(final_state))
 
-    if context.solver == "libmamba":
-        # With libmamba v2, we need this extra flag to make this test pass
+    if context.solver in ("libmamba", "rattler"):
+        # With libmamba v2 / rattler, we need this extra flag to make this test pass
         # Otherwise, the solver considers the current state as satisfying.
         solver_kwargs = {"force_reinstall": True}
     else:
@@ -2748,6 +2839,41 @@ def test_channel_priority_churn_minimized(tmpdir):
         pprint(convert_to_dist_str(link_dists))
         assert len(unlink_dists) == 1
         assert len(link_dists) == 1
+
+
+def test_strict_custom_multichannel_allows_fallback_to_later_subchannel(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_channel: TmpChannelFixture,
+):
+    """
+    Regression test for #15750.
+
+    Under strict priority, a custom multichannel should still be able to pick a
+    satisfiable version from a later subchannel when an earlier subchannel has
+    the same package name but no compatible version.
+
+    In this test, the package "holidays" is not available in our local test channel.
+    It is available at pkgs/main though. We verify that this package can still be
+    found in the latter channel in the custom multichannel.
+    """
+    if context.solver == "classic":
+        pytest.skip(
+            "classic solver does not support flexible priority within custom_multichannels"
+        )
+    with tmp_channel() as (channel_path, channel_path_str):
+        multichannel = (channel_path_str, "https://repo.anaconda.com/pkgs/main")
+        with context._override("_custom_multichannels", {"custom": multichannel}):
+            assert context.custom_multichannels["custom"] == multichannel
+
+            with tmp_env(
+                "--override-channels",
+                "--channel=custom",
+                "--strict-channel-priority",
+                "holidays",
+            ) as prefix:
+                assert package_is_installed(prefix, "pkgs/main::holidays")
 
 
 def test_remove_with_constrained_dependencies(tmpdir):
@@ -2831,116 +2957,116 @@ def test_remove_with_constrained_dependencies(tmpdir):
             assert spec in convert_to_dist_str(unlink_dists_2)
 
 
-def test_priority_1(tmpdir, request):
-    if context.solver == "libmamba":
+def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
+    if context.solver in ("libmamba", "rattler"):
         request.applymarker(
             pytest.mark.xfail(
-                context.solver == "libmamba",
-                reason="libmamba is 'lazier' to change channels if the installed one already "
-                "satisfies the request.",
+                context.solver in ("libmamba", "rattler"),
+                reason=f"conda-{context.solver}-solver is 'lazier' to change channels "
+                "if the installed one already satisfies the request.",
                 strict=True,
                 run=False,
             )
         )
 
-    with env_var(
-        "CONDA_SUBDIR", "linux-64", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        specs = (
-            MatchSpec("pandas"),
-            MatchSpec("python=2.7"),
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
+    reset_context()
+
+    specs = (
+        MatchSpec("pandas"),
+        MatchSpec("python=2.7"),
+    )
+
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
+    reset_context()
+
+    with get_solver_aggregate_1(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(
+            (
+                "channel-2::mkl-2017.0.3-0",
+                "channel-2::openssl-1.0.2l-0",
+                "channel-2::readline-6.2-2",
+                "channel-2::sqlite-3.13.0-0",
+                "channel-2::tk-8.5.18-0",
+                "channel-2::zlib-1.2.11-0",
+                "channel-2::python-2.7.13-0",
+                "channel-2::numpy-1.13.1-py27_0",
+                "channel-2::pytz-2017.2-py27_0",
+                "channel-2::six-1.10.0-py27_0",
+                "channel-2::python-dateutil-2.6.1-py27_0",
+                "channel-2::pandas-0.20.3-py27_0",
+            )
         )
-        with env_var(
-            "CONDA_CHANNEL_PRIORITY",
-            "True",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            with get_solver_aggregate_1(tmpdir, specs) as solver:
-                final_state_1 = solver.solve_final_state()
-                pprint(convert_to_dist_str(final_state_1))
-                order = add_subdir_to_iter(
-                    (
-                        "channel-2::mkl-2017.0.3-0",
-                        "channel-2::openssl-1.0.2l-0",
-                        "channel-2::readline-6.2-2",
-                        "channel-2::sqlite-3.13.0-0",
-                        "channel-2::tk-8.5.18-0",
-                        "channel-2::zlib-1.2.11-0",
-                        "channel-2::python-2.7.13-0",
-                        "channel-2::numpy-1.13.1-py27_0",
-                        "channel-2::pytz-2017.2-py27_0",
-                        "channel-2::six-1.10.0-py27_0",
-                        "channel-2::python-dateutil-2.6.1-py27_0",
-                        "channel-2::pandas-0.20.3-py27_0",
-                    )
-                )
-                assert convert_to_dist_str(final_state_1) == order
+        assert convert_to_dist_str(final_state_1) == order
 
-        with env_var(
-            "CONDA_CHANNEL_PRIORITY",
-            "False",
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ):
-            with get_solver_aggregate_1(
-                tmpdir, specs, prefix_records=final_state_1, history_specs=specs
-            ) as solver:
-                final_state_2 = solver.solve_final_state()
-                pprint(convert_to_dist_str(final_state_2))
-                # python and pandas will be updated as they are explicit specs.  Other stuff may or may not,
-                #     as required to satisfy python and pandas
-                order = add_subdir_to_iter(
-                    (
-                        "channel-4::python-2.7.15-h1571d57_0",
-                        "channel-4::pandas-0.23.4-py27h04863e7_0",
-                    )
-                )
-                for spec in order:
-                    assert spec in convert_to_dist_str(final_state_2)
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "False")
+    reset_context()
 
-        # channel priority taking effect here.  channel-2 should be the channel to draw from.  Downgrades expected.
+    with get_solver_aggregate_1(
+        tmpdir, specs, prefix_records=final_state_1, history_specs=specs
+    ) as solver:
+        final_state_2 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_2))
         # python and pandas will be updated as they are explicit specs.  Other stuff may or may not,
         #     as required to satisfy python and pandas
-        with get_solver_aggregate_1(
-            tmpdir, specs, prefix_records=final_state_2, history_specs=specs
-        ) as solver:
-            final_state_3 = solver.solve_final_state()
-            pprint(convert_to_dist_str(final_state_3))
-            order = add_subdir_to_iter(
-                (
-                    "channel-2::python-2.7.13-0",
-                    "channel-2::pandas-0.20.3-py27_0",
-                )
+        order = add_subdir_to_iter(
+            (
+                "channel-4::python-2.7.15-h1571d57_0",
+                "channel-4::pandas-0.23.4-py27h04863e7_0",
             )
-            for spec in order:
-                assert spec in convert_to_dist_str(final_state_3)
+        )
+        for spec in order:
+            assert spec in convert_to_dist_str(final_state_2)
 
-        specs_to_add = (MatchSpec("six<1.10"),)
-        specs_to_remove = (MatchSpec("pytz"),)
-        with get_solver_aggregate_1(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            specs_to_remove=specs_to_remove,
-            prefix_records=final_state_3,
-            history_specs=specs,
-        ) as solver:
-            final_state_4 = solver.solve_final_state()
-            pprint(convert_to_dist_str(final_state_4))
-            order = add_subdir_to_iter(
-                (
-                    "channel-2::python-2.7.13-0",
-                    "channel-2::six-1.9.0-py27_0",
-                )
+    monkeypatch.delenv("CONDA_CHANNEL_PRIORITY")
+    reset_context()
+
+    # channel priority taking effect here.  channel-2 should be the channel to draw from.  Downgrades expected.
+    # python and pandas will be updated as they are explicit specs.  Other stuff may or may not,
+    #     as required to satisfy python and pandas
+    with get_solver_aggregate_1(
+        tmpdir, specs, prefix_records=final_state_2, history_specs=specs
+    ) as solver:
+        final_state_3 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_3))
+        order = add_subdir_to_iter(
+            (
+                "channel-2::python-2.7.13-0",
+                "channel-2::pandas-0.20.3-py27_0",
             )
-            for spec in order:
-                assert spec in convert_to_dist_str(final_state_4)
-            assert "pandas" not in convert_to_dist_str(final_state_4)
+        )
+        for spec in order:
+            assert spec in convert_to_dist_str(final_state_3)
+
+    specs_to_add = (MatchSpec("six<1.10"),)
+    specs_to_remove = (MatchSpec("pytz"),)
+    with get_solver_aggregate_1(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        specs_to_remove=specs_to_remove,
+        prefix_records=final_state_3,
+        history_specs=specs,
+    ) as solver:
+        final_state_4 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_4))
+        order = add_subdir_to_iter(
+            (
+                "channel-2::python-2.7.13-0",
+                "channel-2::six-1.9.0-py27_0",
+            )
+        )
+        for spec in order:
+            assert spec in convert_to_dist_str(final_state_4)
+        assert "pandas" not in convert_to_dist_str(final_state_4)
 
 
-def test_features_solve_1(tmpdir, request):
+def test_features_solve_1(tmpdir, request, monkeypatch: MonkeyPatch):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"Features not supported in conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -2949,57 +3075,58 @@ def test_features_solve_1(tmpdir, request):
     #   and channel-4 is a view of the newer pkgs/main/linux-64
     # The channel list, equivalent to context.channels is ('channel-2', 'channel-4')
     specs = (MatchSpec("python=2.7"), MatchSpec("numpy"), MatchSpec("nomkl"))
-    with env_var(
-        "CONDA_CHANNEL_PRIORITY", "True", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        with get_solver_aggregate_1(tmpdir, specs) as solver:
-            final_state_1 = solver.solve_final_state()
-            pprint(convert_to_dist_str(final_state_1))
-            order = add_subdir_to_iter(
-                (
-                    "channel-2::nomkl-1.0-0",
-                    "channel-2::libgfortran-3.0.0-1",
-                    "channel-2::openssl-1.0.2l-0",
-                    "channel-2::readline-6.2-2",
-                    "channel-2::sqlite-3.13.0-0",
-                    "channel-2::tk-8.5.18-0",
-                    "channel-2::zlib-1.2.11-0",
-                    "channel-2::openblas-0.2.19-0",
-                    "channel-2::python-2.7.13-0",
-                    "channel-2::numpy-1.13.1-py27_nomkl_0",
-                )
-            )
-            assert convert_to_dist_str(final_state_1) == order
 
-    with env_var(
-        "CONDA_CHANNEL_PRIORITY", "False", stack_callback=conda_tests_ctxt_mgmt_def_pol
-    ):
-        with get_solver_aggregate_1(tmpdir, specs) as solver:
-            final_state_1 = solver.solve_final_state()
-            pprint(convert_to_dist_str(final_state_1))
-            order = add_subdir_to_iter(
-                (
-                    "channel-4::blas-1.0-openblas",
-                    "channel-4::ca-certificates-2018.03.07-0",
-                    "channel-2::libffi-3.2.1-1",
-                    "channel-4::libgcc-ng-8.2.0-hdf63c60_0",
-                    "channel-4::libgfortran-ng-7.2.0-hdf63c60_3",
-                    "channel-4::libstdcxx-ng-8.2.0-hdf63c60_0",
-                    "channel-2::zlib-1.2.11-0",
-                    "channel-4::libopenblas-0.2.20-h9ac9557_7",
-                    "channel-4::ncurses-6.1-hf484d3e_0",
-                    "channel-4::nomkl-3.0-0",
-                    "channel-4::openssl-1.0.2p-h14c3975_0",
-                    "channel-4::tk-8.6.7-hc745277_3",
-                    "channel-4::libedit-3.1.20170329-h6b74fdf_2",
-                    "channel-4::readline-7.0-ha6073c6_4",
-                    "channel-4::sqlite-3.24.0-h84994c4_0",
-                    "channel-4::python-2.7.15-h1571d57_0",
-                    "channel-4::numpy-base-1.15.0-py27h7cdd4dd_0",
-                    "channel-4::numpy-1.15.0-py27h2aefc1b_0",
-                )
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
+    reset_context()
+
+    with get_solver_aggregate_1(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(
+            (
+                "channel-2::nomkl-1.0-0",
+                "channel-2::libgfortran-3.0.0-1",
+                "channel-2::openssl-1.0.2l-0",
+                "channel-2::readline-6.2-2",
+                "channel-2::sqlite-3.13.0-0",
+                "channel-2::tk-8.5.18-0",
+                "channel-2::zlib-1.2.11-0",
+                "channel-2::openblas-0.2.19-0",
+                "channel-2::python-2.7.13-0",
+                "channel-2::numpy-1.13.1-py27_nomkl_0",
             )
-            assert convert_to_dist_str(final_state_1) == order
+        )
+        assert convert_to_dist_str(final_state_1) == order
+
+    monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "False")
+    reset_context()
+
+    with get_solver_aggregate_1(tmpdir, specs) as solver:
+        final_state_1 = solver.solve_final_state()
+        pprint(convert_to_dist_str(final_state_1))
+        order = add_subdir_to_iter(
+            (
+                "channel-4::blas-1.0-openblas",
+                "channel-4::ca-certificates-2018.03.07-0",
+                "channel-2::libffi-3.2.1-1",
+                "channel-4::libgcc-ng-8.2.0-hdf63c60_0",
+                "channel-4::libgfortran-ng-7.2.0-hdf63c60_3",
+                "channel-4::libstdcxx-ng-8.2.0-hdf63c60_0",
+                "channel-2::zlib-1.2.11-0",
+                "channel-4::libopenblas-0.2.20-h9ac9557_7",
+                "channel-4::ncurses-6.1-hf484d3e_0",
+                "channel-4::nomkl-3.0-0",
+                "channel-4::openssl-1.0.2p-h14c3975_0",
+                "channel-4::tk-8.6.7-hc745277_3",
+                "channel-4::libedit-3.1.20170329-h6b74fdf_2",
+                "channel-4::readline-7.0-ha6073c6_4",
+                "channel-4::sqlite-3.24.0-h84994c4_0",
+                "channel-4::python-2.7.15-h1571d57_0",
+                "channel-4::numpy-base-1.15.0-py27h7cdd4dd_0",
+                "channel-4::numpy-1.15.0-py27h2aefc1b_0",
+            )
+        )
+        assert convert_to_dist_str(final_state_1) == order
 
 
 @pytest.mark.integration  # this test is slower, so we'll lump it into integration
@@ -3109,13 +3236,17 @@ def test_freeze_deps_1(tmpdir):
             (
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
-                # LIBMAMBA ADJUSTMENT
-                # libmamba v1 doesn't remove xz in this solve
+                # LIBMAMBA/RATTLER ADJUSTMENT
+                # libmamba v1 / rattler don't remove xz in this solve
                 *(
                     ()
                     if (
-                        context.solver == "libmamba"
-                        and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
+                        context.solver == "rattler"
+                        or (
+                            context.solver == "libmamba"
+                            and VersionOrder(version("libmambapy"))
+                            < VersionOrder("2.0a0")
+                        )
                     )
                     else ("channel-2::xz-5.2.3-0",)
                 ),
@@ -3230,34 +3361,33 @@ def test_freeze_deps_1(tmpdir):
 #         assert tuple(final_state_3) == tuple(solver._index[Dist(d)] for d in order)
 
 
-def test_current_repodata_usage(tmpdir):
-    config = {
-        # force this to False, because otherwise tests
-        # fail when run with old conda-build
-        "CONDA_USE_ONLY_TAR_BZ2": False,
-        # explicitly set env var so libmamba recognizes
-        # the explicit setting (ignored otherwise)
-        "CONDA_REPODATA_FNS": "current_repodata.json",
-    }
-    with env_vars(config, stack_callback=conda_tests_ctxt_mgmt_def_pol):
-        solver = context.plugin_manager.get_solver_backend()(
-            tmpdir.strpath,
-            (Channel(CHANNEL_DIR_V1),),
-            ("win-64",),
-            specs_to_add=[MatchSpec("zlib")],
-            repodata_fn="current_repodata.json",
-        )
-        final_state = solver.solve_final_state()
-        # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
-        assert final_state
-        checked = False
-        for prec in final_state:
-            if prec.name == "zlib":
-                assert prec.version == "1.2.11"
-                assert prec.fn.endswith(".conda")
-                checked = True
-        if not checked:
-            raise ValueError("Didn't have expected state in solve (needed zlib record)")
+def test_current_repodata_usage(tmpdir, monkeypatch: MonkeyPatch):
+    # force this to False, because otherwise tests
+    # fail when run with old conda-build
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "False")
+    # explicitly set env var so libmamba recognizes
+    # the explicit setting (ignored otherwise)
+    monkeypatch.setenv("CONDA_REPODATA_FNS", "current_repodata.json")
+    reset_context()
+
+    solver = context.plugin_manager.get_solver_backend()(
+        tmpdir.strpath,
+        (Channel(CHANNEL_DIR_V1),),
+        ("win-64",),
+        specs_to_add=[MatchSpec("zlib")],
+        repodata_fn="current_repodata.json",
+    )
+    final_state = solver.solve_final_state()
+    # zlib 1.2.11, vc 14.1, vs2015_runtime, virtual package for vc track_feature
+    assert final_state
+    checked = False
+    for prec in final_state:
+        if prec.name == "zlib":
+            assert prec.version == "1.2.11"
+            assert prec.fn.endswith(".conda")
+            checked = True
+    if not checked:
+        raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
 def test_current_repodata_fallback(tmpdir):
@@ -3325,6 +3455,13 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 r"python.*2\.6",
                 r"scikit-learn.*0\.13",
             ]
+        elif context.solver == "rattler":
+            error_snippets = [
+                "Cannot solve the request because of",
+                r"the constraint .* cannot be fulfilled",
+                r"python.*2\.6",
+                r"scikit-learn.*0\.13",
+            ]
 
         for snippet in error_snippets:
             assert re.search(snippet, error_msg)
@@ -3352,6 +3489,13 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 "Pins seem to be involved in the conflict. Currently pinned specs",
                 r"python.*2\.6",
                 "unsatisfiable-with-py26",
+            ]
+        elif context.solver == "rattler":
+            error_snippets = [
+                "Cannot solve the request because of",
+                r"the constraint .* cannot be fulfilled",
+                r"python.*2\.6",
+                r"unsatisfiable-with-py26",
             ]
 
         for snippet in error_snippets:
@@ -3795,13 +3939,17 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     # context manager is now in the inner block!
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+        with pytest.raises(
+            (UnsatisfiableError, PackagesNotFoundError, ResolvePackageNotFound)
+        ):
             solver.solve_final_state()
 
     # Same here; the index has no accelerate pkg with BOTH np15 and py33
     specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+        with pytest.raises(
+            (UnsatisfiableError, PackagesNotFoundError, ResolvePackageNotFound)
+        ):
             solver.solve_final_state()
 
 
@@ -3822,7 +3970,7 @@ def test_pinned_specs_conda_meta_pinned(tmp_env: TmpEnvFixture):
     # Test pinned specs conda environment file
     specs = ("scipy ==0.14.2", "openjdk >=8")
     with tmp_env() as prefix:
-        (prefix / "conda-meta" / "pinned").write_text("\n".join(specs) + "\n")
+        (prefix / PREFIX_PINNED_FILE).write_text("\n".join(specs) + "\n")
 
         pinned_specs = get_pinned_specs(prefix)
         assert pinned_specs != specs
@@ -3868,7 +4016,7 @@ def test_pinned_specs_all(
     assert context.pinned_packages == specs1
 
     with tmp_env() as prefix:
-        (prefix / "conda-meta" / "pinned").write_text("\n".join(specs2) + "\n")
+        (prefix / PREFIX_PINNED_FILE).write_text("\n".join(specs2) + "\n")
 
         # mock active prefix
         mocker.patch(
@@ -3882,3 +4030,29 @@ def test_pinned_specs_all(
         pinned_specs = get_pinned_specs(prefix)
         assert pinned_specs != specs
         assert pinned_specs == tuple(MatchSpec(spec, optional=True) for spec in specs)
+
+
+def test_no_channels_error(tmpdir, mocker: MockerFixture):
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(),
+    )
+
+    specs = (MatchSpec("numpy"),)
+
+    solver = Solver(
+        prefix=str(tmpdir),
+        channels=[],
+        subdirs=context.subdirs,
+        specs_to_add=specs,
+    )
+
+    with pytest.raises(NoChannelsConfiguredError) as exc:
+        solver.solve_final_state()
+
+    error_message = str(exc.value)
+
+    assert "No channels are configured" in error_message
+    assert "numpy" in error_message
+    assert "conda config --append channels" in error_message

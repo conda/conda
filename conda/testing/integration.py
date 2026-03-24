@@ -17,9 +17,7 @@ from typing import TYPE_CHECKING
 
 from ..common.compat import on_win
 from ..common.io import dashlist
-from ..common.path import BIN_DIRECTORY
 from ..core.prefix_data import PrefixData
-from ..deprecations import deprecated
 from ..gateways.logging import DEBUG
 from ..models.match_spec import MatchSpec
 
@@ -28,14 +26,6 @@ if TYPE_CHECKING:
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
-deprecated.constant(
-    "25.3",
-    "25.9",
-    "BIN_DIRECTORY",
-    BIN_DIRECTORY,
-    addendum="Use `conda.common.path.BIN_DIRECTORY` instead.",
-)
-del BIN_DIRECTORY
 UNICODE_CHARACTERS = "ōγђ家固한áêñßôç"
 # UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
 UNICODE_CHARACTERS_RESTRICTED = "abcdef"
@@ -74,9 +64,13 @@ class Commands:
 def package_is_installed(
     prefix: str | os.PathLike | Path,
     spec: str | MatchSpec,
+    reload_records: bool = True,
 ) -> PrefixRecord | None:
     spec = MatchSpec(spec)
-    prefix_recs = tuple(PrefixData(str(prefix), pip_interop_enabled=True).query(spec))
+    prefix_data = PrefixData(prefix, interoperability=True)
+    if reload_records:
+        prefix_data.load()
+    prefix_recs = tuple(prefix_data.query(spec))
     if not prefix_recs:
         return None
     elif len(prefix_recs) > 1:

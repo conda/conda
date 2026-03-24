@@ -38,9 +38,9 @@ from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.channel import Channel
-from conda.models.enums import LinkType, NoarchType, PathType
+from conda.models.enums import LinkType, NoarchType, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
-from conda.models.records import PackageRecord, PathData, PathDataV1, PathsData
+from conda.models.records import PackageRecord, PathDataV1, PathsData
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -50,14 +50,11 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-def make_test_file(target_dir, suffix="", contents=""):
-    if not isdir(target_dir):
-        mkdir_p(target_dir)
-    fn = str(uuid4())[:8]
-    full_path = join(target_dir, fn + suffix)
-    with open(full_path, "w") as fh:
-        fh.write(contents or str(uuid4()))
-    return full_path
+def make_test_file(target_dir: Path) -> str:
+    """Create a test file with random content in target_dir."""
+    path = target_dir / uuid4().hex
+    path.write_text(uuid4().hex)
+    return str(path)
 
 
 def load_python_file(py_file_full_path):
@@ -69,14 +66,14 @@ def load_python_file(py_file_full_path):
 
 @pytest.fixture
 def prefix(path_factory: PathFactoryFixture) -> Path:
-    path = path_factory(prefix=uuid4().hex[:8], name=" ", suffix=uuid4().hex[:8])
+    path = path_factory(infix=" ")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 @pytest.fixture
 def pkgs_dir(path_factory: PathFactoryFixture) -> Path:
-    path = path_factory(prefix=uuid4().hex[:8], name=" ", suffix=uuid4().hex[:8])
+    path = path_factory(infix=" ")
     path.mkdir(parents=True, exist_ok=True)
     return path
 
@@ -189,9 +186,17 @@ def test_CompileMultiPycAction_noarch_python(prefix: Path):
     mkdir_p(dirname(python_full_path))
     create_link(sys.executable, python_full_path, LinkType.softlink)
 
+    # create conda-meta directory like _execute_actions does in real installation
+    conda_meta_dir = join(prefix, "conda-meta")
+    mkdir_p(conda_meta_dir)
+
     axn.execute()
     assert isfile(target_full_path0)
     assert isfile(target_full_path1)
+    for path_data, target_full_path in zip(
+        axn.prefix_paths_data, (target_full_path0, target_full_path1), strict=True
+    ):
+        assert path_data.size_in_bytes == getsize(target_full_path)
 
     # remove the source .py file so we're sure we're importing the pyc file below
     rm_rf(source_full_path0)
@@ -256,6 +261,9 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
     mkdir_p(dirname(py_ep_axn.target_full_path))
     py_ep_axn.execute()
     assert isfile(py_ep_axn.target_full_path)
+    assert py_ep_axn.prefix_path_data.size_in_bytes == getsize(
+        py_ep_axn.target_full_path
+    )
     if not on_win:
         assert is_executable(py_ep_axn.target_full_path)
     with open(py_ep_axn.target_full_path) as fh:
@@ -305,7 +313,7 @@ def test_simple_LinkPathAction_hardlink(prefix: Path, pkgs_dir: Path):
 
     correct_sha256 = compute_sum(source_full_path, "sha256")
     correct_size_in_bytes = getsize(source_full_path)
-    path_type = PathType.hardlink
+    path_type = PathEnum.hardlink
 
     source_path_data = PathDataV1(
         _path=source_short_path,
@@ -345,7 +353,7 @@ def test_simple_LinkPathAction_softlink(prefix: Path, pkgs_dir: Path):
 
     correct_sha256 = compute_sum(source_full_path, "sha256")
     correct_size_in_bytes = getsize(source_full_path)
-    path_type = PathType.hardlink
+    path_type = PathEnum.hardlink
 
     source_path_data = PathDataV1(
         _path=source_short_path,
@@ -408,7 +416,7 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     correct_sha256 = compute_sum(source_full_path, "sha256")
     correct_size_in_bytes = getsize(source_full_path)
-    path_type = PathType.hardlink
+    path_type = PathEnum.hardlink
 
     source_path_data = PathDataV1(
         _path=source_short_path,
@@ -467,8 +475,8 @@ def test_create_file_link_actions(tmp_path):
     # site-packages should be renamed to Python's site packages (given as
     # target_site_packages_short_path) whie test/path/2 should be left alone.
     paths = [
-        PathData(_path="site-packages/1", path_type=PathType.hardlink),
-        PathData(_path="test/path/2", path_type=PathType.hardlink),
+        PathDataV1(_path="site-packages/1", path_type=PathEnum.hardlink),
+        PathDataV1(_path="test/path/2", path_type=PathEnum.hardlink),
     ]
     paths_data = PathsData(paths_version=0, paths=paths)
 

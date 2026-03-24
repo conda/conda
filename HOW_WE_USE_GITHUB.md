@@ -39,6 +39,8 @@ This document seeks to outline how we as a community use GitHub Issues to track 
 
   - [What is "Issue Sorting"?](#what-is-issue-sorting)
   - [Issue Sorting Procedures](#issue-sorting-procedures)
+  - [Development Processes](#development-processes)
+  - [Code Review and Merging](#code-review-and-merging)
   - [Commit Signing](#commit-signing)
   - [Types of Issues](#types-of-issues)
     - [Standard Issue](#standard-issue)
@@ -265,21 +267,92 @@ Community support can be found elsewhere, though, and we encourage you to explor
 
 In order to not have to manually type or copy/paste the above repeatedly, note that it's possible to add text for the most commonly-used responses via [GitHub's "Add Saved Reply" option][docs-saved-reply].
 
-## Commit Signing
+## Development Processes
 
-For all maintainers, we require commit signing and strongly recommend it for all others wishing to contribute. More information about how to set this up within GitHub can be found here:
+The following are practices the conda organization encourages for feature
+development. While we recommend projects under the conda organization adopt
+these practices, they are not strictly required.
 
-- [GitHub's signing commits docs][docs-commit-signing]
+### How should we approach feature development?
+
+For new features, first open an issue if one doesn’t exist. Once the feature request
+has been accepted (indicated by the issue's status transitioning from "Sorting" to
+"Refinement"), create a specification to gather early feedback. This can include
+mockups, API/command references, a written plan in the issue, and sample CLI
+arguments (without functionality).
+
+### What is our change process?
+
+For larger features, break down the work into smaller, manageable issues
+that are added to the backlog. As long as a feature remains on the roadmap
+or backlog, do not create long-lived feature branches that span multiple
+pull requests. Instead, you should integrate small slices of an overall
+feature directly into the main branch to avoid complex integration challenges.
+
+### Should we make unrelated changes at the same time?
+
+When making changes, try to follow the Campsite Rule to leave things better
+than when you found them. You should enhance the code you encounter, even if
+primary goal is unrelated. This could involve refactoring small sections,
+improving readability, or fixing minor bugs.
+
+## Code Review and Merging
+
+### What are the review requirements?
+
+#### Standard Review
+
+Most code changes require one reviewer from someone on the maintainer team for
+the repository. Instead of waiting for someone on the team to review it,
+directly requesting a review from the person you previously identified to work
+with is preferred to optimize teamwork. If you paired with them during
+development, continuous review counts as this requirement.
+
+#### Second Review
+
+Required only when the code author or the first reviewer feels like it is
+necessary to get another set of eyes on a proposed change. In this case, they
+add someone specific through GitHub's Request Review feature with a comment on
+what they want the person to look for.
+
+### What are the code review best practices?
+
+If you are conducting a review, adhere to these best practices:
+
+- Provide comprehensive feedback in the first review to minimize review rounds
+- Reserve Request Changes for blocking issues (bugs or other major problems) —
+  Select Comment for suggestions and improvements
+- Follow-up reviews should focus on whether requested changes resolve original
+  comments
+- Code should be production-ready and maintainable when merged, but doesn't
+  need to be perfect
+- If providing feedback outside the core review focus (nitpicks, tips,
+  suggestions), clearly mark these as non-blocking comments that don't need to
+  be addressed before merging.
+
+### How do we merge code?
+
+If you are the approving reviewer (typically the first reviewer, or the second
+reviewer when needed) and you have completed your review and approved the
+changes, you should merge the code immediately to maintain development
+velocity.
+
+Normally, we use squash and merge to keep a clean git history. If you are
+merging a pull request, help ensure that the pull request title is updated.
 
 ## Types of Issues
 
 ### Standard Issue
 
-TODO
+Standard issues represent typical bug reports, feature requests, or other work
+items that have a clear definition and expected outcome.
 
 ### Epics
 
-TODO
+Epics are large work items that can be broken down into smaller, more
+manageable issues. They typically represent major features or significant
+changes that span multiple iterations or releases. Relate the smaller
+issues to the epic using the sub-issues feature in GitHub.
 
 ### Spikes
 

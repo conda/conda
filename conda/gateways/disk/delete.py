@@ -26,7 +26,6 @@ from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import TRACE
-from ...deprecations import deprecated
 from . import MAX_TRIES
 from .link import islink, lexists
 from .permissions import make_writable
@@ -74,7 +73,8 @@ def rmtree(path):
                 # that 'path' appears in it. This is not bulletproof but it could save you (me).
                 with open(name) as contents:
                     content = contents.read()
-                    assert path in content
+                    if path not in content:
+                        raise RuntimeError(f"Path {path} not listed in file {name}")
                 comspec = os.getenv("COMSPEC")
                 CREATE_NO_WINDOW = 0x08000000
                 # It is essential that we `pass stdout=None, stderr=None, stdin=None` here because
@@ -196,8 +196,6 @@ def remove_empty_parent_paths(path):
         parent_path = dirname(parent_path)
 
 
-@deprecated.argument("25.3", "25.9", "max_retries")
-@deprecated.argument("25.3", "25.9", "trash")
 def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     """
     Completely delete path
@@ -205,30 +203,27 @@ def rm_rf(path: str | os.PathLike, clean_empty_parents: bool = False) -> bool:
     to deleting a directory.
     If removing path fails and trash is True, files will be moved to the trash directory.
     """
-    try:
-        path = abspath(path)
-        log.log(TRACE, "rm_rf %s", path)
-        if isdir(path) and not islink(path):
-            backoff_rmdir(path)
-        elif lexists(path):
-            unlink_or_rename_to_trash(path)
-        else:
-            log.log(TRACE, "rm_rf failed. Not a link, file, or directory: %s", path)
-    finally:
-        if lexists(path):
-            log.info("rm_rf failed for %s", path)
-            return False
-    if isdir(path):
+    path = abspath(path)
+    log.log(TRACE, "rm_rf %s", path)
+
+    # attempt to delete the path
+    if isdir(path) and not islink(path):
+        backoff_rmdir(path)
+    elif lexists(path):
+        unlink_or_rename_to_trash(path)
+    else:
+        log.log(TRACE, "rm_rf failed. Not a link, file, or directory: %s", path)
+
+    # post-processing to clean up trash and empty parent paths
+    if isdir(path) and not islink(path):
         delete_trash(path)
     if clean_empty_parents:
         remove_empty_parent_paths(path)
+
+    if lexists(path):
+        log.info("rm_rf failed for %s", path)
+        return False
     return True
-
-
-# aliases that all do the same thing (legacy compat)
-deprecated.constant("25.3", "25.9", "try_rmdir_all_empty", rm_rf)
-deprecated.constant("25.3", "25.9", "move_to_trash", rm_rf)
-deprecated.constant("25.3", "25.9", "move_path_to_trash", rm_rf)
 
 
 def delete_trash(prefix):

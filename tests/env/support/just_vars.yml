@@ -1,0 +1,4 @@
+variables:
+  VARIABLE: value
+  VARIABLE2: value2
+dependencies: []

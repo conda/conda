@@ -12,11 +12,11 @@ conda packages when appropriate.
 
 If you’d like to try the feature, you can set this ``.condarc`` setting::
 
-   conda config --set pip_interop_enabled True
+   conda config --set prefix_data_interoperability True
 
 .. note::
 
-   Setting ``pip_interop_enabled`` to ``True`` may slow down conda.
+   Setting ``prefix_data_interoperability`` to ``True`` may slow down conda.
 
 Even without activating this feature, conda now understands pip metadata
 more intelligently. For example, if we create an environment with conda::

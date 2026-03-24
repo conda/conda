@@ -27,7 +27,7 @@ class PreSolvePlugin:
 
     @plugins.hookimpl
     def conda_pre_solves(self):
-        yield plugins.CondaPreSolve(
+        yield plugins.types.CondaPreSolve(
             name="custom-pre-solve",
             action=self.pre_solve_action,
         )

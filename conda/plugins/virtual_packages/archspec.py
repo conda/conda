@@ -2,20 +2,32 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Detect archspec name."""
 
-import os
+from __future__ import annotations
 
-from .. import CondaVirtualPackage, hookimpl
+from typing import TYPE_CHECKING
+
+from ...auxlib import NULL
+from .. import hookimpl
+from ..types import CondaVirtualPackage
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+
+def archspec_build():
+    from ...core.index import get_archspec_name
+
+    build_num = get_archspec_name()
+    return build_num or NULL
 
 
 @hookimpl
-def conda_virtual_packages():
-    archspec_name = os.getenv("CONDA_OVERRIDE_ARCHSPEC")
-    if archspec_name is None:  # no override found
-        from ...core.index import get_archspec_name
-
-        archspec_name = get_archspec_name()
-        if archspec_name:
-            yield CondaVirtualPackage("archspec", "1", archspec_name)
-    elif archspec_name:  # truthy override found
-        yield CondaVirtualPackage("archspec", "1", archspec_name)
-    # if a falsey override was found, the __archspec virtual package is not exported
+def conda_virtual_packages() -> Iterable[CondaVirtualPackage]:
+    # 1: __archspec==1=BUILD
+    yield CondaVirtualPackage(
+        name="archspec",
+        version="1",
+        build=archspec_build,
+        override_entity="build",
+        # empty_override=NULL,  # falsy override → skip __archspec
+    )

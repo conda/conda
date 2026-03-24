@@ -17,14 +17,12 @@ from logging import getLogger
 from subprocess import Popen
 
 from .. import __version__
-from ..auxlib.compat import isiterable
 from ..auxlib.ish import dals
 from ..base.context import context, sys_rc_path, user_rc_path
-from ..common.compat import on_win
+from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
-from ..deprecations import deprecated
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
-from .find_commands import find_commands, find_executable
+from .find_commands import find_commands
 from .helpers import (  # noqa: F401
     add_output_and_prompt_options,
     add_parser_channels,
@@ -72,7 +70,6 @@ log = getLogger(__name__)
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
 escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
 
-#: List of built-in commands; these cannot be overridden by plugin subcommands
 BUILTIN_COMMANDS = {
     "activate",  # Mock entry for shell command
     "clean",
@@ -97,6 +94,7 @@ BUILTIN_COMMANDS = {
     "update",
     "upgrade",  # update alias
 }
+"""List of built-in commands; these cannot be overridden by plugin subcommands."""
 
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:
@@ -181,20 +179,6 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         context.plugin_manager.invoke_pre_commands(plugin_subcommand.name)
         result = plugin_subcommand.action(getattr(args, "_args", args))
         context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
-    elif name := getattr(args, "_executable", None):
-        # run the subcommand from executables; legacy path
-        deprecated.topic(
-            "23.3",
-            "26.3",
-            topic="Loading conda subcommands via executables",
-            addendum="Use the plugin system instead.",
-        )
-        executable = find_executable(f"conda-{name}")
-        if not executable:
-            from ..exceptions import CommandNotFoundError
-
-            raise CommandNotFoundError(name)
-        return _exec([executable, *args._args], os.environ)
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
         module_name, func_name = args.func.rsplit(".", 1)

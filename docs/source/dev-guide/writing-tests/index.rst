@@ -15,11 +15,20 @@ This guide gives an overview of how to write integration tests using full
 command invocation. It also covers creating fixtures to use with these types
 of tests.
 
+:doc:`http-test-server`
+Guide for using the HTTP test server fixture to test scenarios requiring
+file serving (mock channels, remote files, etc.)
+
+:doc:`windows-applocker`
+This guide explains how to set up a testing environment with AppLocker to ensure ``conda``
+works correctly in these environments.
+
 .. toctree::
    :hidden:
    :maxdepth: 1
 
    integration-tests
+   http-test-server
    windows-applocker
 
 ----

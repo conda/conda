@@ -395,7 +395,8 @@ else:  # pragma: no cover
 
         in_buffer_size = len(in_buffer) if in_buffer is not None else 0
         out_buffer_size = len(out_buffer)
-        assert isinstance(out_buffer, Array)
+        if not isinstance(out_buffer, Array):
+            raise TypeError("out_buffer must be Array")
 
         returned_bytes = wintypes.DWORD()
 

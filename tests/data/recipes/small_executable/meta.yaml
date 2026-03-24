@@ -9,9 +9,9 @@ build:
     # executables
     - mkdir -p ${PREFIX}/bin
     - echo '#!/usr/bin/env bash' > ${PREFIX}/bin/small
-    - echo 'echo Hello!' >> ${PREFIX}/bin/small
+    - echo 'echo Hello! $@' >> ${PREFIX}/bin/small
     - mkdir -p ${PREFIX}/Scripts
-    - echo 'echo Hello!' > ${PREFIX}/Scripts/small.bat
+    - echo '@echo Hello! %*' > ${PREFIX}/Scripts/small.bat
     # activate scripts
     - mkdir -p ${PREFIX}/etc/conda/activate.d
     - echo 'SMALL_EXE="small-var-sh"' > ${PREFIX}/etc/conda/activate.d/small_executable.sh
