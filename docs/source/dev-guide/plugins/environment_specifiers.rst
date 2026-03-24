@@ -42,13 +42,17 @@ The class may also define the boolean class variable `detection_supported`. When
 the plugin will only be able to be used when it is specifically selected. By default, this
 value is ``True``.`
 
-Be sure to be very specific when implementing the ``can_handle`` method. It should only
-return a ``True`` if the file can be parsed by the plugin. Making the ``can_handle``
-method too permissive in the types of files it handles may lead to conflicts with other
-plugins. If multiple installed plugins are able to ``can_handle`` the same file type,
-conda will return an error to the user.  Also, ensure that the ``can_handle`` method
-does not depend on a file extension or specific file name as users may specify the
-plugin by name to read in files.
+Be sure to be very specific when implementing the ``can_handle`` method. Here are a few
+guiding principles:
+* It should only return a ``True`` if the file can be parsed by the plugin.
+* If it can not handle the file, it should raise an error. The error should describe why it can not
+  handle the file.
+* Making the ``can_handle`` method too permissive in the types of files it handles may 
+  lead to conflicts with other plugins. 
+* If multiple installed plugins are able to ``can_handle`` the same file type, conda will return an 
+  error to the user.
+* Ensure that the ``can_handle`` method does not depend on a file extension or specific file name 
+  as users may specify the plugin by name to read in files.
 
 Registering the plugin hook
 ---------------------------
@@ -154,23 +158,20 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
            return MySimpleEnvironment.model_validate_json(json_data)
 
        def can_handle(self) -> bool:
-           """
-           Validates loader can process environment definition.
-           This can handle if:
-                 * the file exists
-                 * the file can be read
-                 * the data can be parsed as JSON into a MySimpleEnvironment object
+            """
+            Validates loader can process environment definition.
+            This can handle if:
+                * the file exists
+                * the file can be read
+                * the data can be parsed as JSON into a MySimpleEnvironment object
 
-           :return: True if the file can be parsed and handled, False otherwise
-           """
-           if not os.path.exists(self.filename):
-               return False
-           try:
-               self._parse_data()
-           except Exception:
-               return False
-
-           return True
+            :return: True if the file can be parsed and handled, False otherwise
+            """
+            if not os.path.exists(self.filename):
+               raise FileNotFoundError
+            # Will raise an error if parsing fails
+            self._parse_data()
+            return True
 
        @property
        def env(self) -> Environment:

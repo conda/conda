@@ -672,7 +672,7 @@ class CondaSpecs:
             from pathlib import Path
             from subprocess import run
             from conda import plugins
-            from ...plugins.types import EnvironmentSpecBase
+            from conda.plugins.types import EnvironmentSpecBase
             from conda.env.env import Environment
 
             packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
@@ -687,7 +687,7 @@ class CondaSpecs:
                 def can_handle(self):
                     # Return early if no filename was provided
                     if self.filename is None:
-                        return False
+                        raise FileNotFoundError
 
                     # The can_handle method should check the contents of the file and
                     # not be reliant on file name or extension.  This allows a user to
