@@ -1,0 +1,38 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["github-actions", "pre-commit", "conda"],
+  "separateMajorMinor": false,
+  "commitMessagePrefix": "🤖",
+  "labels": ["dependencies"],
+  "pre-commit": {"enabled": true},
+  "github-actions": {"enabled": true},
+  "pip_requirements": {"enabled": false},
+  "packageRules": [
+    {
+      "description": "Weekly schedule for non-docs updates",
+      "matchManagers": ["github-actions", "pre-commit"],
+      "groupName": "ci",
+      "schedule": ["before 4am on Monday"]
+    },
+    {
+      "description": "Pin GitHub Actions to immutable SHAs",
+      "matchDepTypes": ["action"],
+      "pinDigests": true
+    },
+    {
+      "description": "Annotate GitHub Actions SHAs with versions",
+      "extends": ["helpers:pinGitHubActionDigests"],
+      "extractVersion": "^(?<version>v?\\d+\\.\\d+\\.\\d+)$",
+      "versioning": "regex:^v?(?<major>\\d+)(\\.(?<minor>\\d+)\\.(?<patch>\\d+))?$"
+    },
+    {
+      "description": "Keep docs updates limited to docs environment and monthly cadence",
+      "matchManagers": ["conda"],
+      "matchFileNames": ["docs/environment.yml"],
+      "schedule": ["before 4am on the first Monday of the month"],
+      "enabled": true,
+      "groupName": "docs"
+    }
+  ]
+}

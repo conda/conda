@@ -117,7 +117,7 @@ repos:
     hooks:
       # verify github syntaxes
       - id: check-github-workflows
-      - id: check-dependabot
+      - id: check-renovate
   - repo: meta
     # see https://pre-commit.com/#meta-hooks
     hooks:
