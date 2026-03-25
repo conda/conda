@@ -15,7 +15,7 @@ from logging import getLogger
 from os.path import basename
 from pathlib import Path
 from shutil import rmtree
-from subprocess import CalledProcessError, check_call, check_output, run
+from subprocess import CalledProcessError, check_output, run
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4

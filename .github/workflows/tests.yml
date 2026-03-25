@@ -33,7 +33,7 @@ env:
   # https://conda.github.io/conda-libmamba-solver/user-guide/configuration/#advanced-options
   CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
   # focused testing or any needed pytest arguments, default empty
-  PYTEST_EXTRA: -k test_dont_remove_conda_3[libmamba]
+  PYTEST_EXTRA: ''
 
 jobs:
   # detect whether any code changes are included in this PR
