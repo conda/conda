@@ -122,13 +122,9 @@ def dist_str(pkg: PackageRecord) -> str:
 
 
 def print_exception(exc: Exception, console: Console | None = None) -> None:
-    from rich.panel import Panel
+    from rich.rule import Rule
 
-    (console or create_console()).print(
-        Panel(
-            str(exc),
-            title=f"[red][dim]error:[/dim] {type(exc).__name__}",
-            padding=1,
-            border_style="red",
-        )
-    )
+    console = console or create_console()
+    console.print(Rule(title=f"[red][dim]error:[/dim] {type(exc).__name__}", style="red"))
+    console.print(str(exc).rstrip())
+    console.print(Rule(style="red"))
