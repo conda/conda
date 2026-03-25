@@ -2451,50 +2451,44 @@ def test_dont_remove_conda_3(
 
         print(f"Install {lightweight_dependency}")
 
-        with pytest.raises(CalledProcessError) as install_exc:
-            run(
-                [
-                    prefix / PYTHON_BINARY,
-                    "-m",
-                    "conda",
-                    "install",
-                    f"--prefix={prefix}",
-                    "--yes",
-                    lightweight_dependency,
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
-                env=subprocess_env,
-            )
-        install_output = (install_exc.value.stdout or "") + (
-            install_exc.value.stderr or ""
+        install_exc = run(
+            [
+                prefix / PYTHON_BINARY,
+                "-m",
+                "conda",
+                "install",
+                f"--prefix={prefix}",
+                "--yes",
+                lightweight_dependency,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=subprocess_env,
         )
+        install_output = (install_exc.stdout or "") + (install_exc.stderr or "")
         assert expected_remove_error not in install_output
 
         print(
             f"Remove {lightweight_dependency} (probably fails because it wasn't installed due to RemoveError"
         )
 
-        with pytest.raises(CalledProcessError) as remove_exc:
-            run(
-                [
-                    prefix / PYTHON_BINARY,
-                    "-m",
-                    "conda",
-                    "remove",
-                    f"--prefix={prefix}",
-                    "--yes",
-                    lightweight_dependency,
-                ],
-                check=True,
-                capture_output=True,
-                text=True,
-                env=subprocess_env,
-            )
-        remove_output = (remove_exc.value.stdout or "") + (
-            remove_exc.value.stderr or ""
+        remove_exc = run(
+            [
+                prefix / PYTHON_BINARY,
+                "-m",
+                "conda",
+                "remove",
+                f"--prefix={prefix}",
+                "--yes",
+                lightweight_dependency,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=subprocess_env,
         )
+        remove_output = (remove_exc.stdout or "") + (remove_exc.stderr or "")
         assert expected_remove_error not in remove_output
 
 
