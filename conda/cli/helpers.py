@@ -13,7 +13,6 @@ from argparse import (
     _AppendAction,
     _HelpAction,
     _StoreAction,
-    _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
 
