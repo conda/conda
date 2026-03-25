@@ -34,12 +34,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         for spec in History(prefix).get_requested_specs_map().values()
     ]
     installed = {
-        record.name.normalized: record
-        for record in installed_packages(prefix)
+        record.name.normalized: record for record in installed_packages(prefix)
     }
     if args.package_names:
         try:
-            names = [MatchSpec(spec, exact_names_only=False) for spec in args.package_names]
+            names = [
+                MatchSpec(spec, exact_names_only=False) for spec in args.package_names
+            ]
         except InvalidMatchSpecError as exc:
             raise ArgumentError(f"Invalid MatchSpec: {exc}") from exc
     elif args.all:

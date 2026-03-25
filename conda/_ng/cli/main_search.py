@@ -69,6 +69,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             # Remote channel search
             if any("*" in spec.name.normalized for spec in specs):
                 raise ArgumentError("Fuzzy search not yet available.")
+
             async def inner() -> Iterable[RepoDataRecord]:
                 gateway = Gateway(cache_dir=cache_dir())
                 return itertools.chain(
@@ -82,7 +83,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
             result = asyncio.run(inner())
 
-    records = sorted(result, key=lambda r: (r.name.normalized, r.version, r.build_number, r.build))
+    records = sorted(
+        result, key=lambda r: (r.name.normalized, r.version, r.build_number, r.build)
+    )
     if not records:
         raise PackagesNotFoundError(specs, channels)
 
