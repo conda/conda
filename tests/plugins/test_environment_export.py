@@ -21,13 +21,14 @@ from conda.models.channel import Channel
 from conda.models.environment import Environment
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.plugins import hookimpl
 from conda.plugins.environment_exporters.environment_yml import (
     ENVIRONMENT_JSON_FORMAT,
     ENVIRONMENT_YAML_FORMAT,
 )
 from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
 from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
-from conda.plugins.types import CondaEnvironmentExporter
+from conda.plugins.types import CondaEnvironmentExporter, EnvironmentFormat
 
 from ..conftest import Exporters
 
@@ -50,6 +51,17 @@ def test_env() -> Environment:
         prefix="/tmp/test-env",
         platform="linux-64",
         requested_packages=[MatchSpec("python=3.9"), MatchSpec("numpy")],
+    )
+
+
+@pytest.fixture
+def test_empty_env() -> Environment:
+    """Create a empty test environment for exporter testing."""
+    return Environment(
+        name="test-env",
+        prefix="/tmp/test-env",
+        platform="linux-64",
+        requested_packages=[],
     )
 
 
@@ -163,6 +175,24 @@ def test_yaml_exporter_explicit_packages_format(
         assert "==" not in dep, (
             f"Dependency '{dep}' should not contain '==' (should be single = throughout)"
         )
+
+
+def test_yaml_exporter_with_empty_env(
+    plugin_manager_with_exporters: CondaPluginManager,
+    test_empty_env: Environment,
+):
+    """Test that YAML exporter produces cep-24 compliant output - always include dependencies"""
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        ENVIRONMENT_YAML_FORMAT
+    )
+
+    # Export the environment
+    result = exporter.export(test_empty_env)
+    parsed = yaml.safe_load(result)
+
+    # Verify dependencies key included
+    dependencies = parsed["dependencies"]
+    assert len(dependencies) == 0
 
 
 def test_explicit_exporter_cep23_compliance_error(
@@ -332,7 +362,7 @@ def test_detect_environment_exporter(
     filename: str,
     expected_format: str | None,
 ):
-    """Test detecting exporter by exact filename matching."""
+    """Test detecting exporter by filename matching (exact filenames work via fnmatch)."""
     if expected_format is None:
         # Should raise exception for unrecognized filenames
         with pytest.raises(EnvironmentExporterNotDetected):
@@ -341,6 +371,63 @@ def test_detect_environment_exporter(
         exporter = plugin_manager_with_exporters.detect_environment_exporter(filename)
         assert exporter is not None
         assert exporter.name == expected_format
+
+
+def test_exporter_pattern_backward_compatibility(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """Test that exact filename matching still works (backward compatibility)."""
+    # All existing exact filenames should still work
+    for filename in [
+        "environment.yaml",
+        "environment.yml",
+        "requirements.txt",
+        "spec.txt",
+        "explicit.txt",
+        "environment.json",
+    ]:
+        # Should not raise
+        exporter = plugin_manager_with_exporters.detect_environment_exporter(filename)
+        assert exporter is not None
+
+
+def test_detect_environment_exporter_with_fnmatch_pattern(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """Test exporter detection with fnmatch pattern support."""
+
+    # Create a plugin with wildcard pattern
+    class PatternExporterPlugin:
+        @hookimpl
+        def conda_environment_exporters(self):
+            yield CondaEnvironmentExporter(
+                name="pattern-exporter",
+                aliases=(),
+                default_filenames=("*.lock.yml", "*.lock.yaml"),
+                export=lambda env: f"# Locked environment: {env.name}",
+            )
+
+    # Register the plugin
+    pattern_plugin = PatternExporterPlugin()
+    plugin_manager_with_exporters.register(pattern_plugin)
+
+    # Test that wildcard patterns work
+    exporter = plugin_manager_with_exporters.detect_environment_exporter(
+        "my-project.lock.yml"
+    )
+    assert exporter.name == "pattern-exporter"
+
+    exporter = plugin_manager_with_exporters.detect_environment_exporter(
+        "another.lock.yaml"
+    )
+    assert exporter.name == "pattern-exporter"
+
+    # Test that non-matching files still raise error
+    with pytest.raises(EnvironmentExporterNotDetected):
+        plugin_manager_with_exporters.detect_environment_exporter("something.lock.txt")
+
+    # Unregister the plugin to avoid affecting other tests
+    plugin_manager_with_exporters.unregister(pattern_plugin)
 
 
 @pytest.mark.parametrize(
@@ -576,3 +663,51 @@ def test_only_one_export(
             export=export,
             multiplatform_export=multiplatform_export,
         )
+
+
+@pytest.mark.parametrize(
+    "format_name,expected_description,expected_environment_format",
+    [
+        (
+            ENVIRONMENT_YAML_FORMAT,
+            "YAML format with channels and dependencies",
+            EnvironmentFormat.environment,
+        ),
+        (
+            ENVIRONMENT_JSON_FORMAT,
+            "JSON format with channels and dependencies",
+            EnvironmentFormat.environment,
+        ),
+        (
+            EXPLICIT_FORMAT,
+            "Explicit URLs for exact package reproduction (lockfile)",
+            EnvironmentFormat.lockfile,
+        ),
+        (
+            REQUIREMENTS_FORMAT,
+            "Simple text format with package specifications",
+            EnvironmentFormat.environment,
+        ),
+    ],
+)
+def test_builtin_exporters_have_metadata(
+    plugin_manager_with_exporters: CondaPluginManager,
+    format_name: str,
+    expected_description: str,
+    expected_environment_format: bool,
+):
+    """Test that all built-in exporters have meaningful descriptions and correct lockfile classification."""
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        format_name
+    )
+    assert exporter is not None
+
+    # Verify description is meaningful (not just the name)
+    assert exporter.description is not None
+    assert exporter.description == expected_description
+    assert (
+        exporter.description != format_name
+    )  # Should be more descriptive than just the name
+
+    # Verify lockfile classification
+    assert exporter.environment_format == expected_environment_format

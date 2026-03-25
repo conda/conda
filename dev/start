@@ -168,7 +168,7 @@ if [ -z "${_INSTALLER_TYPE}" ]; then
 fi
 
 # fallback to default values if not set
-_PYTHON="${_PYTHON:-3.10}"
+_PYTHON="${_PYTHON:-${_DEFAULT_PYTHON}}"
 _INSTALLER_TYPE="${_INSTALLER_TYPE:-${_DEFAULT_INSTALLER}}"
 _DEVENV="${_DEVENV:-${_DEFAULT_DEVENV}}"
 # $ uname -sm

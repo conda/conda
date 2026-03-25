@@ -129,8 +129,8 @@ def test_environments_merge():
             "two",
         ),
         channels=(
-            "defaults",
             "conda-forge",
+            "defaults",
         ),
         channel_settings=(
             {"channel": "one", "a": 1},
@@ -208,7 +208,7 @@ def test_environments_merge_colliding_name():
     merged = Environment.merge(env1, env2)
     assert merged.prefix == "/path/to/env1"
     assert merged.platform == "linux-64"
-    assert merged.name == "one"
+    assert merged.name == "two"
 
 
 def test_environments_merge_colliding_prefix():
@@ -221,7 +221,7 @@ def test_environments_merge_colliding_prefix():
         platform="linux-64",
     )
     merged = Environment.merge(env1, env2)
-    assert merged.prefix == "/path/to/env1"
+    assert merged.prefix == "/path/to/env2"
     assert merged.platform == "linux-64"
 
 
@@ -261,6 +261,102 @@ def test_merge_configs_primitive_none_values_order():
     assert result.use_only_tar_bz2 is True
 
 
+def test_merge_configs_channel_order_last_wins():
+    """Later config's channels take precedence (e.g. conda create -f env.yaml -c conda-forge)."""
+    file_config = EnvironmentConfig(channels=("defaults",))
+    cli_config = EnvironmentConfig(channels=("conda-forge", "defaults"))
+    result = EnvironmentConfig.merge(file_config, cli_config)
+    assert result.channels == ("conda-forge", "defaults")
+
+
+def test_config_from_cli_channels_empty():
+    args = SimpleNamespace()
+    config = EnvironmentConfig.from_cli_channels(args)
+    assert config.channels == ()
+    assert config == EnvironmentConfig()
+
+
+def test_config_from_cli_channels_behaviors():
+    config = EnvironmentConfig.from_cli_channels(
+        SimpleNamespace(channel=["conda-forge", "r"])
+    )
+    assert config.channels == ("conda-forge", "r")
+
+    config = EnvironmentConfig.from_cli_channels(SimpleNamespace(use_local=True))
+    assert config.channels == ("local",)
+
+    config = EnvironmentConfig.from_cli_channels(
+        SimpleNamespace(use_local=True, channel=["conda-forge"])
+    )
+    assert config.channels == ("local", "conda-forge")
+
+
+def test_from_cli_override_channels_excludes_file_channels(mocker: MockerFixture):
+    """conda create -f env.yaml -c conda-forge --override-channels uses only -c channels.
+
+    File channels are excluded when override_channels is set.
+    """
+    file_env = Environment(
+        prefix="/path",
+        platform=context.subdir,
+        requested_packages=[MatchSpec("numpy")],
+        explicit_packages=[],
+        config=EnvironmentConfig(channels=("defaults", "my-channel")),
+    )
+
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(
+            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+        ),
+    )
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=[],
+            file=["/some/env.yaml"],
+            channel=["conda-forge"],
+            override_channels=True,
+        )
+    )
+    assert env.config.channels == ("conda-forge",)
+
+
+def test_from_cli_channel_order_base_file_cli(mocker: MockerFixture):
+    """conda create -f env.yaml -c cli-chan merges base, file, CLI channels: CLI > file > configs."""
+    # The context contains both the .condarc settings and the CLI settings
+    context_config = EnvironmentConfig(channels=("base-channel", "cli-channel"))
+    file_env = Environment(
+        prefix="/path",
+        platform=context.subdir,
+        requested_packages=[MatchSpec("numpy")],
+        explicit_packages=[],
+        config=EnvironmentConfig(channels=("file-channel",)),
+    )
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(
+            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+        ),
+    )
+    mocker.patch(
+        "conda.models.environment.EnvironmentConfig.from_context",
+        return_value=context_config,
+    )
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=[],
+            file=["/some/env.yaml"],
+            channel=["cli-channel"],
+        ),
+        add_default_packages=False,
+    )
+    assert env.config.channels == ("cli-channel", "file-channel", "base-channel")
+
+
 def test_merge_configs_deduplicate_values():
     config1 = EnvironmentConfig(
         channels=(
@@ -291,10 +387,10 @@ def test_merge_configs_deduplicate_values():
 
     result = EnvironmentConfig.merge(config1, config2, config3)
     assert result.channels == (
-        "defaults",
         "conda-forge",
-        "my-channel",
         "b-channel",
+        "defaults",
+        "my-channel",
     )
     assert result.disallowed_packages == ("a",)
     assert result.pinned_packages == ("b",)
@@ -524,16 +620,26 @@ def test_from_cli_mix_explicit_and_specs():
                 file=[],
             ),
         )
-    assert "Cannot mix specifications with conda package filenames" in str(exc_info)
+    assert "Cannot combine package names with explicit package lists" in str(exc_info)
 
 
 def test_from_cli_with_files(mocker: MockerFixture):
     # Mock out extracting specs from a file by providing a list of specs.
     # This is similar output to extracting specs from a requirements.txt file.
-    fake_specs_from_url = ["numpy", "python >=3.9"]
+    fake_specs = ["numpy", "python >=3.9"]
+    fake_env = Environment(
+        prefix="/path",
+        platform=context.subdir,
+        requested_packages=[MatchSpec(s) for s in fake_specs],
+        explicit_packages=[],
+        config=EnvironmentConfig.from_context(),
+    )
+    mock_spec = SimpleNamespace(
+        environment_spec=lambda fpath: SimpleNamespace(env=fake_env)
+    )
     mocker.patch(
-        "conda.models.environment.specs_from_url",
-        return_value=fake_specs_from_url,
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=mock_spec,
     )
 
     env = Environment.from_cli(
@@ -547,9 +653,9 @@ def test_from_cli_with_files(mocker: MockerFixture):
     assert env.config == EnvironmentConfig.from_context()
     assert env.name == "testenv"
     assert env.requested_packages == [
-        MatchSpec("scipy"),
         MatchSpec("numpy"),
         MatchSpec("python >=3.9"),
+        MatchSpec("scipy"),
     ]
     assert env.explicit_packages == []
 
@@ -616,11 +722,16 @@ def test_from_cli_environment_inject_default_packages_override_file(
     monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,numpy==2.0.0")
     reset_context()
 
-    # Mock the contents of a requirements.txt file that contains the spec numpy==2.3.1
-    fake_specs_from_url = ["numpy==2.3.1"]
+    # Mock env spec plugin returning env with numpy==2.3.1
+    fake_env = Environment(
+        platform=context.subdir,
+        requested_packages=[MatchSpec("numpy==2.3.1")],
+    )
+    mock_spec = type("Spec", (), {"env": fake_env})()
+    mock_hook = type("Hook", (), {"environment_spec": lambda self, path: mock_spec})()
     mocker.patch(
-        "conda.models.environment.specs_from_url",
-        return_value=fake_specs_from_url,
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=mock_hook,
     )
 
     env = Environment.from_cli(

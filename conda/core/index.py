@@ -8,7 +8,7 @@ from collections import UserDict
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ..base.context import context, validate_channels
+from ..base.context import context
 from ..common.iterators import unique
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -33,21 +33,6 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 LAST_CHANNEL_URLS = []
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.base.context.validate_channels` instead.",
-)
-def check_allowlist(channel_urls: list[str]) -> None:
-    """
-    Check if the given channel URLs are allowed by the context's allowlist.
-    :param channel_urls: A list of channel URLs to check against the allowlist.
-    :raises ChannelNotAllowed: If any URL is not in the allowlist.
-    :raises ChannelDenied: If any URL is in the denylist.
-    """
-    validate_channels(channel_urls)
 
 
 class Index(UserDict):
@@ -608,20 +593,6 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     """
     match_spec = MatchSpec.from_dist_str(dist_str)
     return any(match_spec.match(prec) for prec in index.values())
-
-
-@deprecated("25.3", "26.3", addendum="Use `conda.core.Index.reload` instead.")
-def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
-    """
-    Loads and populates virtual package records from conda plugins
-    and adds them to the provided index, unless there is a naming
-    conflict.
-    :param index: The package index to supplement.
-    """
-    if isinstance(index, Index):
-        return
-    for package in context.plugin_manager.get_virtual_package_records():
-        index[package] = package
 
 
 def get_archspec_name() -> str | None:

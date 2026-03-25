@@ -8,7 +8,6 @@ from argparse import Namespace
 from contextlib import nullcontext
 from itertools import chain
 from os.path import abspath, join
-from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest import mock
@@ -30,7 +29,6 @@ from conda.base.context import (
     env_name,
     reset_context,
     validate_channels,
-    validate_prefix_name,
 )
 from conda.common.configuration import (
     DefaultValueRawParameter,
@@ -40,12 +38,7 @@ from conda.common.configuration import (
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml
 from conda.common.url import join_url, path_to_url
-from conda.exceptions import (
-    ChannelDenied,
-    ChannelNotAllowed,
-    CondaValueError,
-    EnvironmentNameNotFound,
-)
+from conda.exceptions import ChannelDenied, ChannelNotAllowed
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -53,11 +46,15 @@ from conda.utils import on_win
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
 
     from pytest import MonkeyPatch
 
-    from conda.testing import PathFactoryFixture
-    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 
 def test_migrated_custom_channels(context_testdata: None):
@@ -602,67 +599,6 @@ def test_local_build_root_default_rc():
         assert context.local_build_root == join(context.root_prefix, "conda-bld")
     else:
         assert context.local_build_root == expand("~/conda-bld")
-
-
-if on_win:
-    VALIDATE_PREFIX_NAME_BASE_DIR = Path("C:\\Users\\name\\prefix_dir\\")
-else:
-    VALIDATE_PREFIX_NAME_BASE_DIR = Path("/home/user/prefix_dir/")
-
-VALIDATE_PREFIX_ENV_NAME = "env-name"
-
-VALIDATE_PREFIX_TEST_CASES = (
-    # First scenario which triggers an Environment not found error
-    (
-        VALIDATE_PREFIX_ENV_NAME,
-        False,
-        (
-            VALIDATE_PREFIX_NAME_BASE_DIR,
-            EnvironmentNameNotFound(VALIDATE_PREFIX_ENV_NAME),
-        ),
-        VALIDATE_PREFIX_NAME_BASE_DIR.joinpath(VALIDATE_PREFIX_ENV_NAME),
-    ),
-    # Passing in not allowed characters as the prefix name
-    (
-        "not/allow#characters:in-path",
-        False,
-        (None, None),
-        CondaValueError("Invalid environment name"),
-    ),
-    # Passing in not allowed characters as the prefix name
-    (
-        "base",
-        False,
-        (None, None),
-        CondaValueError("Use of 'base' as environment name is not allowed here."),
-    ),
-)
-
-
-@pytest.mark.parametrize(
-    "prefix,allow_base,mock_return_values,expected", VALIDATE_PREFIX_TEST_CASES
-)
-def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
-    ctx = mock.MagicMock()
-
-    with (
-        mock.patch("conda.gateways.disk.create.first_writable_envs_dir") as mock_one,
-        mock.patch("conda.base.context.locate_prefix_by_name") as mock_two,
-    ):
-        mock_one.side_effect = [mock_return_values[0]]
-        mock_two.side_effect = [mock_return_values[1]]
-
-        if isinstance(expected, CondaValueError):
-            with pytest.raises(CondaValueError) as exc, pytest.deprecated_call():
-                validate_prefix_name(prefix, ctx, allow_base=allow_base)
-
-            # We fuzzy match the error message here. Doing this exactly is not important
-            assert str(expected) in str(exc)
-
-        else:
-            with pytest.deprecated_call():
-                actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
-            assert actual == str(expected)
 
 
 @pytest.mark.parametrize(

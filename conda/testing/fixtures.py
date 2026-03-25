@@ -19,8 +19,6 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
-from conda.deprecations import deprecated
-
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
@@ -40,7 +38,6 @@ if TYPE_CHECKING:
     import http.server
     from collections.abc import Iterable, Iterator
 
-    from _pytest.capture import MultiCapture
     from pytest import (
         CaptureFixture,
         ExceptionInfo,
@@ -202,15 +199,6 @@ def _solver_helper(
     assert context.solver == solver
 
     yield solver
-
-
-@pytest.fixture(scope="session")
-@deprecated("25.9", "26.3")
-def session_capsys(request) -> Iterator[MultiCapture]:
-    # https://github.com/pytest-dev/pytest/issues/2704#issuecomment-603387680
-    capmanager = request.config.pluginmanager.getplugin("capturemanager")
-    with capmanager.global_and_fixture_disabled():
-        yield capmanager._global_capturing
 
 
 @dataclass
@@ -589,7 +577,16 @@ class TmpChannelFixture:
         noarch = channel / "noarch"
         noarch.mkdir(parents=True)
 
-        repodata = {"info": {}, "packages": {}}
+        noarch_packages: dict[str, dict[str, object]] = {
+            "info": {"subdir": "noarch"},
+            "packages": {},
+            "packages.conda": {},
+        }
+        subdir_packages: dict[str, dict[str, object]] = {
+            "info": {"subdir": subdir.name},
+            "packages": {},
+            "packages.conda": {},
+        }
         iter_specs = list(specs)
         seen: dict[str, set[str]] = {}
         while iter_specs:
@@ -600,13 +597,26 @@ class TmpChannelFixture:
                 fname = package_record["fn"]
                 if fname in seen:
                     seen[fname].add(spec)
-                seen[fname] = {spec}
+                else:
+                    seen[fname] = {spec}
 
                 # copy package to channel
-                copyfile(pkgs_dir / fname, subdir / fname)
+                tarball = package_record.package_tarball_full_path
+                if Path(tarball).is_file():
+                    source = tarball
+                else:
+                    source = pkgs_dir / fname
+                if package_record.subdir == "noarch":
+                    target = noarch
+                    packages = noarch_packages
+                else:
+                    target = subdir
+                    packages = subdir_packages
+                copyfile(source, target / fname)
 
                 # add package to repodata
-                repodata["packages"][fname] = PackageRecord(
+                key = "packages" if fname.endswith(".tar.bz2") else "packages.conda"
+                packages[key][fname] = PackageRecord(
                     **{
                         field: value
                         for field, value in package_record.dump().items()
@@ -616,8 +626,8 @@ class TmpChannelFixture:
 
                 iter_specs.extend(package_record.depends)
 
-        (subdir / "repodata.json").write_text(json.dumps(repodata))
-        (noarch / "repodata.json").write_text(json.dumps({}))
+        (subdir / "repodata.json").write_text(json.dumps(subdir_packages))
+        (noarch / "repodata.json").write_text(json.dumps(noarch_packages))
 
         # ensure all packages were copied to the channel
         for spec in chain.from_iterable(seen.values()):
