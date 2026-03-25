@@ -8,7 +8,7 @@ import os
 import re
 import shutil
 from logging import getLogger
-from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from os.path import abspath, dirname, isdir, isfile, join, relpath
 from typing import TYPE_CHECKING
 
 from .base.constants import EXPLICIT_MARKER
@@ -280,16 +280,6 @@ def untracked(prefix, exclude_self_build=False):
             and path[:-1] in conda_files
         )
     }
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixData.set_nonadmin()")
-def touch_nonadmin(prefix):
-    """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
-    if on_win and exists(join(context.root_prefix, ".nonadmin")):
-        if not isdir(prefix):
-            os.makedirs(prefix)
-        with open_utf8(join(prefix, ".nonadmin"), "w") as fo:
-            fo.write("")
 
 
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):

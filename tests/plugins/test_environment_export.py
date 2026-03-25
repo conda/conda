@@ -28,7 +28,7 @@ from conda.plugins.environment_exporters.environment_yml import (
 )
 from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
 from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
-from conda.plugins.types import CondaEnvironmentExporter
+from conda.plugins.types import CondaEnvironmentExporter, EnvironmentFormat
 
 from ..conftest import Exporters
 
@@ -663,3 +663,51 @@ def test_only_one_export(
             export=export,
             multiplatform_export=multiplatform_export,
         )
+
+
+@pytest.mark.parametrize(
+    "format_name,expected_description,expected_environment_format",
+    [
+        (
+            ENVIRONMENT_YAML_FORMAT,
+            "YAML format with channels and dependencies",
+            EnvironmentFormat.environment,
+        ),
+        (
+            ENVIRONMENT_JSON_FORMAT,
+            "JSON format with channels and dependencies",
+            EnvironmentFormat.environment,
+        ),
+        (
+            EXPLICIT_FORMAT,
+            "Explicit URLs for exact package reproduction (lockfile)",
+            EnvironmentFormat.lockfile,
+        ),
+        (
+            REQUIREMENTS_FORMAT,
+            "Simple text format with package specifications",
+            EnvironmentFormat.environment,
+        ),
+    ],
+)
+def test_builtin_exporters_have_metadata(
+    plugin_manager_with_exporters: CondaPluginManager,
+    format_name: str,
+    expected_description: str,
+    expected_environment_format: bool,
+):
+    """Test that all built-in exporters have meaningful descriptions and correct lockfile classification."""
+    exporter = plugin_manager_with_exporters.get_environment_exporter_by_format(
+        format_name
+    )
+    assert exporter is not None
+
+    # Verify description is meaningful (not just the name)
+    assert exporter.description is not None
+    assert exporter.description == expected_description
+    assert (
+        exporter.description != format_name
+    )  # Should be more descriptive than just the name
+
+    # Verify lockfile classification
+    assert exporter.environment_format == expected_environment_format

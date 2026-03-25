@@ -328,17 +328,6 @@ def argv(args_list: list[str]) -> Generator[None, None, None]:
         sys.argv = saved_args
 
 
-@deprecated("25.9", "26.3", addendum="Use `logging._lock` instead.")
-@contextmanager
-def _logger_lock() -> Generator[None, None, None]:
-    """Context manager that acquires the logging module lock."""
-    logging._acquireLock()
-    try:
-        yield
-    finally:
-        logging._releaseLock()
-
-
 @contextmanager
 def disable_logger(logger_name: str) -> Generator[None, None, None]:
     """Temporarily disable a logger by setting its level above CRITICAL.

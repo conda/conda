@@ -49,7 +49,7 @@ def platform_in_record(platform, record):
 
 @pytest.mark.integration
 def test_get_index_no_platform_with_offline_cache(
-    monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
+    tmp_path, monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
 ):
     monkeypatch.setenv("CONDA_REPODATA_TIMEOUT_SECS", "0")
     monkeypatch.setenv("CONDA_PLATFORM", platform)
@@ -98,20 +98,29 @@ def test_get_index_no_platform_with_offline_cache(
     # 'osx-arm64' etc.)
     monkeypatch.setenv("CONDA_OFFLINE", "yes")
     monkeypatch.setenv("CONDA_PLATFORM", platform)
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
     reset_context()
     SubdirData._cache_.clear()
 
     local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     offline_channels = [local_channel]
     online_channels = context.channels or ["defaults"]
+
+    # In offline mode with an empty cache, we expect no results from online channels
     assert len(SubdirData.query_all("zlib", channels=offline_channels)) > 0
     assert len(SubdirData.query_all("zlib", channels=online_channels)) == 0
 
+    # If we re-enable the regular cache location, we do find zlib results
     monkeypatch.delenv("CONDA_PLATFORM")
+    monkeypatch.delenv("CONDA_PKGS_DIRS")
+    reset_context()
+    SubdirData._cache_.clear()
+    assert len(SubdirData.query_all("zlib", channels=online_channels)) > 1
+
+    # Of course, without offline mode, zlib is still found
     monkeypatch.delenv("CONDA_OFFLINE")
     reset_context()
     SubdirData._cache_.clear()
-
     assert len(SubdirData.query_all("zlib", channels=online_channels)) > 1
 
     # test load from cache
