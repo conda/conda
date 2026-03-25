@@ -9,3 +9,7 @@ initialize_logging()
 from conda.testing import conda_move_to_front_of_PATH
 
 conda_move_to_front_of_PATH()
+
+from pathlib import Path
+
+TEST_RECIPES_CHANNEL = Path(__file__).parent / "data" / "test-recipes"

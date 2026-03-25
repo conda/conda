@@ -3,21 +3,19 @@
 from __future__ import annotations
 
 import os
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from shutil import which
 from subprocess import CalledProcessError, check_output, run
 
 import pytest
 
+from conda import CONDA_PACKAGE_ROOT
+from conda.base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from conda.common.compat import on_win
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-REPO_ROOT = (Path(HERE) / "..").resolve().absolute()
-STUB_FOLDER = REPO_ROOT / "conda" / "shell"
 
-
-@lru_cache(maxsize=None)
+@cache
 def find_signtool() -> str | None:
     """Tries to find signtool
 
@@ -65,7 +63,7 @@ def find_signtool() -> str | None:
     return signtool_path
 
 
-@lru_cache(maxsize=None)
+@cache
 def signtool_unsupported_because() -> str:
     reason = ""
     if not on_win:
@@ -86,10 +84,10 @@ def signtool_unsupported() -> bool:
 
 
 @pytest.mark.skipif(signtool_unsupported(), reason=signtool_unsupported_because())
-@pytest.mark.parametrize("stub_file_name", ["cli-32.exe", "cli-64.exe"])
+@pytest.mark.parametrize("stub_file_name", WINDOWS_LAUNCHER_STUB_PATH.values())
 def test_stub_exe_signatures(stub_file_name: str) -> None:
     """Verify that signtool verifies the signature of the stub exes"""
-    stub_file = STUB_FOLDER / stub_file_name
+    stub_file = Path(CONDA_PACKAGE_ROOT, stub_file_name)
     signtool_exe = find_signtool()
     completed_process = run([signtool_exe, "verify", "/pa", "/v", stub_file])
     assert completed_process.returncode == 0

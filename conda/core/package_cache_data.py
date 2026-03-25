@@ -4,14 +4,12 @@
 
 from __future__ import annotations
 
-import codecs
 import os
 from collections import defaultdict
 from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
-from json import JSONDecodeError
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
@@ -26,20 +24,19 @@ from ..auxlib.entity import ValidationError
 from ..base.constants import (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
-    CONDA_PACKAGE_EXTENSIONS,
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
 from ..common.constants import NULL, TRACE
-from ..common.io import IS_INTERACTIVE, ProgressBar, time_recorder
+from ..common.io import IS_INTERACTIVE, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
+from ..common.serialize import json
 from ..common.signals import signal_handler
 from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
     create_package_cache_directory,
-    extract_tarball,
     write_as_json_to_file,
 )
 from ..gateways.disk.delete import rm_rf
@@ -55,12 +52,15 @@ from ..gateways.disk.read import (
 from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
+from ..reporters import get_progress_bar, get_progress_bar_context_manager
 from ..utils import human_bytes
 from .path_actions import CacheUrlAction, ExtractPackageAction
 
 if TYPE_CHECKING:
     from concurrent.futures import Future
     from pathlib import Path
+
+    from ..plugins.types import ProgressBarBase
 
 log = getLogger(__name__)
 
@@ -113,7 +113,6 @@ class PackageCacheData(metaclass=PackageCacheType):
             # no directory exists, and we didn't have permissions to create it
             return
 
-        _CONDA_TARBALL_EXTENSIONS = CONDA_PACKAGE_EXTENSIONS
         pkgs_dir_contents = tuple(entry.name for entry in scandir(self.pkgs_dir))
         for base_name in self._dedupe_pkgs_dir_contents(pkgs_dir_contents):
             full_path = join(self.pkgs_dir, base_name)
@@ -123,7 +122,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                 isdir(full_path)
                 and isfile(join(full_path, "info", "index.json"))
                 or isfile(full_path)
-                and full_path.endswith(_CONDA_TARBALL_EXTENSIONS)
+                and context.plugin_manager.has_package_extension(full_path)
             ):
                 try:
                     package_cache_record = self._make_single_record(base_name)
@@ -142,8 +141,9 @@ class PackageCacheData(metaclass=PackageCacheType):
         self.load()
         return self
 
-    def get(self, package_ref, default=NULL):
-        assert isinstance(package_ref, PackageRecord)
+    def get(self, package_ref: PackageRecord, default=NULL):
+        if not isinstance(package_ref, PackageRecord):
+            raise TypeError("`package_ref` must be a PackageRecord instance.")
         try:
             return self._package_cache_records[package_ref]
         except KeyError:
@@ -170,7 +170,8 @@ class PackageCacheData(metaclass=PackageCacheType):
                 if param.match(pcrec)
             )
         else:
-            assert isinstance(param, PackageRecord)
+            if not isinstance(param, PackageRecord):
+                raise TypeError("`package_ref` must be a PackageRecord instance.")
             return (
                 pcrec
                 for pcrec in self._package_cache_records.values()
@@ -304,8 +305,9 @@ class PackageCacheData(metaclass=PackageCacheType):
         tarball_basename = basename(tarball_full_path)
         pc_entry = first(
             (pc_entry for pc_entry in self.values()),
-            key=lambda pce: pce.tarball_basename == tarball_basename
-            and pce.md5 == md5sum,
+            key=lambda pce: (
+                pce.tarball_basename == tarball_basename and pce.md5 == md5sum
+            ),
         )
         return pc_entry
 
@@ -382,10 +384,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
-        except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
-            # EnvironmentError if info/repodata_record.json doesn't exists
-            # JsonDecodeError if info/repodata_record.json is partially extracted or corrupted
-            #   python 2.7 raises ValueError instead of JsonDecodeError
+        except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+            # EnvironmentError: info/repodata_record.json doesn't exists
+            # json.JSONDecodeError: info/repodata_record.json is partially extracted or corrupted
+            #   python 2.7 raises ValueError instead of json.JSONDecodeError
             #   ValueError("No JSON object could be decoded")
             log.debug(
                 "unable to read %s\n  because %r",
@@ -396,10 +398,10 @@ class PackageCacheData(metaclass=PackageCacheType):
             # try reading info/index.json
             try:
                 raw_json_record = read_index_json(extracted_package_dir)
-            except (OSError, JSONDecodeError, ValueError, FileNotFoundError) as e:
-                # EnvironmentError if info/index.json doesn't exist
-                # JsonDecodeError if info/index.json is partially extracted or corrupted
-                #   python 2.7 raises ValueError instead of JsonDecodeError
+            except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
+                # EnvironmentError: info/index.json doesn't exist
+                # json.JSONDecodeError: info/index.json is partially extracted or corrupted
+                #   python 2.7 raises ValueError instead of json.JSONDecodeError
                 #   ValueError("No JSON object could be decoded")
                 log.debug(
                     "unable to read %s\n  because %r",
@@ -422,8 +424,9 @@ class PackageCacheData(metaclass=PackageCacheType):
                             # to do is remove it and try extracting.
                             rm_rf(extracted_package_dir)
                         try:
-                            extract_tarball(
-                                package_tarball_full_path, extracted_package_dir
+                            context.plugin_manager.extract_package(
+                                package_tarball_full_path,
+                                extracted_package_dir,
                             )
                         except (OSError, InvalidArchiveError) as e:
                             if e.errno == ENOENT:
@@ -436,7 +439,7 @@ class PackageCacheData(metaclass=PackageCacheType):
                                 return None
                         try:
                             raw_json_record = read_index_json(extracted_package_dir)
-                        except (OSError, JSONDecodeError, FileNotFoundError):
+                        except (OSError, json.JSONDecodeError, FileNotFoundError):
                             # At this point, we can assume the package tarball is bad.
                             # Remove everything and move on.
                             rm_rf(package_tarball_full_path)
@@ -549,7 +552,7 @@ class UrlsData:
         return iter(self._urls_data)
 
     def add_url(self, url):
-        with codecs.open(self.urls_txt_path, mode="ab", encoding="utf-8") as fh:
+        with open(self.urls_txt_path, mode="a", encoding="utf-8") as fh:
             linefeed = "\r\n" if platform == "win32" else "\n"
             fh.write(url + linefeed)
         self._urls_data.insert(0, url)
@@ -563,7 +566,7 @@ class UrlsData:
         #       That's probably a good assumption going forward, because we should now always
         #       be recording the extension in urls.txt.  The extensionless situation should be
         #       legacy behavior only.
-        if not package_path.endswith(CONDA_PACKAGE_EXTENSIONS):
+        if not context.plugin_manager.has_package_extension(package_path):
             package_path += CONDA_PACKAGE_EXTENSION_V1
         return first(self, lambda url: basename(url) == package_path)
 
@@ -576,7 +579,8 @@ class UrlsData:
 class ProgressiveFetchExtract:
     @staticmethod
     def make_actions_for_record(pref_or_spec):
-        assert pref_or_spec is not None
+        if pref_or_spec is None:
+            raise TypeError("`pref_or_spec` cannot be None.")
         # returns a cache_action and extract_action
 
         # if the pref or spec has an md5 value
@@ -699,12 +703,22 @@ class ProgressiveFetchExtract:
         # if we got here, we couldn't find a matching package in the caches
         #   we'll have to download one; fetch and extract
         url = pref_or_spec.get("url")
-        assert url
+        if not url:
+            raise ValueError(".url field is required and must be non-empty.")
+
+        # Determine the target filename for the downloaded package.
+        # For the draft repodata v3 format (especially packages.whl), while the
+        # repodata contains the correct fn field (e.g., idna-3.10-py3-none-any.whl),
+        # rattler sanitizes it internally to a conda-style identifier
+        # (e.g., idna-3.10-py3_none_any_0). We extract from URL which always
+        # contains the correct filename.
+        # See: https://github.com/conda/conda/issues/15620
+        target_package_basename = basename(url) or pref_or_spec.fn
 
         cache_action = CacheUrlAction(
             url=url,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_package_basename=pref_or_spec.fn,
+            target_package_basename=target_package_basename,
             sha256=sha256,
             size=size,
             md5=md5,
@@ -712,7 +726,7 @@ class ProgressiveFetchExtract:
         extract_action = ExtractPackageAction(
             source_full_path=cache_action.target_full_path,
             target_pkgs_dir=first_writable_cache.pkgs_dir,
-            target_extracted_dirname=strip_pkg_extension(pref_or_spec.fn)[0],
+            target_extracted_dirname=strip_pkg_extension(target_package_basename)[0],
             record_or_spec=pref_or_spec,
             sha256=sha256,
             size=size,
@@ -780,145 +794,160 @@ class ProgressiveFetchExtract:
         if not self._prepared:
             self.prepare()
 
-        assert not context.dry_run
+        if context.dry_run:
+            raise RuntimeError("Cannot run .execute() in dry-run mode.")
 
-        if not self.paired_actions:
-            return
+        with get_progress_bar_context_manager() as pbar_context:
+            if self._executed:
+                return
+            if not self._prepared:
+                self.prepare()
 
-        if not context.verbose and not context.quiet and not context.json:
-            print(
-                "\nDownloading and Extracting Packages:",
-                end="\n" if IS_INTERACTIVE else " ...working...",
-            )
-        else:
-            log.debug(
-                "prepared package cache actions:\n"
-                "  cache_actions:\n"
-                "    %s\n"
-                "  extract_actions:\n"
-                "    %s\n",
-                "\n    ".join(str(ca) for ca in self.cache_actions),
-                "\n    ".join(str(ea) for ea in self.extract_actions),
-            )
+            if not context.verbose and not context.quiet and not context.json:
+                print(
+                    "\nDownloading and Extracting Packages:",
+                    end="\n" if IS_INTERACTIVE else " ...working...",
+                )
+            else:
+                log.debug(
+                    "prepared package cache actions:\n"
+                    "  cache_actions:\n"
+                    "    %s\n"
+                    "  extract_actions:\n"
+                    "    %s\n",
+                    "\n    ".join(str(ca) for ca in self.cache_actions),
+                    "\n    ".join(str(ea) for ea in self.extract_actions),
+                )
 
-        exceptions = []
-        progress_bars = {}
-        futures: list[Future] = []
+            exceptions = []
+            progress_bars = {}
+            futures: list[Future] = []
 
-        cancelled_flag = False
+            cancelled_flag = False
 
-        def cancelled():
-            """
-            Used to cancel download threads.
-            """
-            nonlocal cancelled_flag
-            return cancelled_flag
+            def cancelled():
+                """
+                Used to cancel download threads.
+                """
+                nonlocal cancelled_flag
+                return cancelled_flag
 
-        with signal_handler(conda_signal_handler), time_recorder(
-            "fetch_extract_execute"
-        ), ThreadPoolExecutor(
-            context.fetch_threads
-        ) as fetch_executor, ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor:
-            for prec_or_spec, (
-                cache_action,
-                extract_action,
-            ) in self.paired_actions.items():
-                if cache_action is None and extract_action is None:
-                    # Not sure when this is reached.
-                    continue
-
-                progress_bar = self._progress_bar(prec_or_spec, leave=False)
-
-                progress_bars[prec_or_spec] = progress_bar
-
-                future = fetch_executor.submit(
-                    do_cache_action,
-                    prec_or_spec,
+            with (
+                signal_handler(conda_signal_handler),
+                time_recorder("fetch_extract_execute"),
+                ThreadPoolExecutor(context.fetch_threads) as fetch_executor,
+                ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor,
+            ):
+                for prec_or_spec, (
                     cache_action,
-                    progress_bar,
-                    cancelled=cancelled,
-                )
+                    extract_action,
+                ) in self.paired_actions.items():
+                    if cache_action is None and extract_action is None:
+                        # Not sure when this is reached.
+                        continue
 
-                future.add_done_callback(
-                    partial(
-                        done_callback,
-                        actions=(cache_action,),
-                        exceptions=exceptions,
-                        progress_bar=progress_bar,
-                        finish=False,
+                    progress_bar = self._progress_bar(
+                        prec_or_spec, context_manager=pbar_context, leave=False
                     )
-                )
-                futures.append(future)
 
-            try:
-                for completed_future in as_completed(futures):
-                    futures.remove(completed_future)
-                    prec_or_spec = completed_future.result()
+                    progress_bars[prec_or_spec] = progress_bar
 
-                    cache_action, extract_action = self.paired_actions[prec_or_spec]
-                    extract_future = extract_executor.submit(
-                        do_extract_action,
+                    future = fetch_executor.submit(
+                        do_cache_action,
                         prec_or_spec,
-                        extract_action,
-                        progress_bars[prec_or_spec],
+                        cache_action,
+                        progress_bar,
+                        cancelled=cancelled,
                     )
-                    extract_future.add_done_callback(
+
+                    future.add_done_callback(
                         partial(
                             done_callback,
-                            actions=(cache_action, extract_action),
+                            actions=(cache_action,),
                             exceptions=exceptions,
-                            progress_bar=progress_bars[prec_or_spec],
+                            progress_bar=progress_bar,
                             finish=True,
                         )
                     )
-            except BaseException as e:
-                # We are interested in KeyboardInterrupt delivered to
-                # as_completed() while waiting, or any exception raised from
-                # completed_future.result(). cancelled_flag is checked in the
-                # progress callback to stop running transfers, shutdown() should
-                # prevent new downloads from starting.
-                cancelled_flag = True
-                for future in futures:  # needed on top of .shutdown()
-                    future.cancel()
-                # Has a Python >=3.9 cancel_futures= parameter that does not
-                # replace the above loop:
-                fetch_executor.shutdown(wait=False)
-                exceptions.append(e)
+                    futures.append(future)
 
-        for bar in progress_bars.values():
-            bar.close()
+                try:
+                    for completed_future in as_completed(futures):
+                        futures.remove(completed_future)
+                        prec_or_spec = completed_future.result()
 
-        if not context.verbose and not context.quiet and not context.json:
-            if IS_INTERACTIVE:
-                print("\r")  # move to column 0
-            else:
-                print(" done")
+                        cache_action, extract_action = self.paired_actions[prec_or_spec]
+                        extract_future = extract_executor.submit(
+                            do_extract_action,
+                            prec_or_spec,
+                            extract_action,
+                            progress_bars[prec_or_spec],
+                        )
+                        extract_future.add_done_callback(
+                            partial(
+                                done_callback,
+                                actions=(cache_action, extract_action),
+                                exceptions=exceptions,
+                                progress_bar=progress_bars[prec_or_spec],
+                                finish=True,
+                            )
+                        )
+                except BaseException as e:
+                    # We are interested in KeyboardInterrupt delivered to
+                    # as_completed() while waiting, or any exception raised from
+                    # completed_future.result(). cancelled_flag is checked in the
+                    # progress callback to stop running transfers, shutdown() should
+                    # prevent new downloads from starting.
+                    cancelled_flag = True
+                    for future in futures:  # needed on top of .shutdown()
+                        future.cancel()
+                    # Has a Python >=3.9 cancel_futures= parameter that does not
+                    # replace the above loop:
+                    fetch_executor.shutdown(wait=False)
+                    exceptions.append(e)
 
-        if exceptions:
-            # avoid printing one CancelledError() per pending download
-            not_cancelled = [e for e in exceptions if not isinstance(e, CancelledError)]
-            raise CondaMultiError(not_cancelled)
+            for bar in progress_bars.values():
+                bar.close()
 
-        self._executed = True
+            if not context.verbose and not context.quiet and not context.json:
+                if IS_INTERACTIVE:
+                    print("\r")  # move to column 0
+                else:
+                    print(" done")
+
+            if exceptions:
+                # avoid printing one CancelledError() per pending download
+                not_cancelled = [
+                    exception
+                    for exception in exceptions
+                    if not isinstance(exception, CancelledError)
+                ]
+                raise CondaMultiError(not_cancelled)
+
+            self._executed = True
 
     @staticmethod
-    def _progress_bar(prec_or_spec, position=None, leave=False) -> ProgressBar:
-        desc = ""
+    def _progress_bar(
+        prec_or_spec, position=None, leave=False, context_manager=None
+    ) -> ProgressBarBase:
+        description = ""
         if prec_or_spec.name and prec_or_spec.version:
-            desc = "{}-{}".format(prec_or_spec.name or "", prec_or_spec.version or "")
+            description = "{}-{}".format(
+                prec_or_spec.name or "", prec_or_spec.version or ""
+            )
         size = getattr(prec_or_spec, "size", None)
         size_str = size and human_bytes(size) or ""
-        if len(desc) > 0:
-            desc = "%-20.20s | " % desc
+        if len(description) > 0:
+            description = "%-20.20s | " % description
         if len(size_str) > 0:
-            desc += "%-9s | " % size_str
+            description += "%-9s | " % size_str
 
-        progress_bar = ProgressBar(
-            desc,
-            not context.verbose and not context.quiet and IS_INTERACTIVE,
-            context.json,
+        progress_bar = get_progress_bar(
+            description,
+            context_manager=context_manager,
             position=position,
             leave=leave,
+            enabled=not context.verbose and not context.quiet and IS_INTERACTIVE,
         )
 
         return progress_bar
@@ -983,7 +1012,7 @@ def do_reverse(actions):
 def done_callback(
     future: Future,
     actions: tuple[CacheUrlAction | ExtractPackageAction, ...],
-    progress_bar: ProgressBar,
+    progress_bar: ProgressBarBase,
     exceptions: list[Exception],
     finish: bool = False,
 ):

@@ -7,17 +7,15 @@ Removes the specified conda environment.
 
 from argparse import (
     ArgumentParser,
-    Namespace,
     _SubParsersAction,
 )
-
-from ..deprecations import deprecated
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
         add_output_and_prompt_options,
+        add_parser_frozen_env,
         add_parser_prefix,
         add_parser_solver,
     )
@@ -50,6 +48,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         **kwargs,
     )
 
+    add_parser_frozen_env(p)
     add_parser_prefix(p)
     add_parser_solver(p)
     add_output_and_prompt_options(p)
@@ -70,12 +69,3 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     return p
-
-
-@deprecated("25.3", "25.9", addendum="Use `conda.cli.main_remove.execute` instead.")
-def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..cli.main_remove import execute as remove
-
-    remove(args, parser)
-
-    return 0

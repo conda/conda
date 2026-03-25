@@ -1,0 +1,13 @@
+# empty pip package for use with testing python package
+package:
+  name: pip
+  version: 99.99.99
+
+build:
+  noarch: generic
+
+requirements:
+  host:
+    - python 3.99
+  run:
+    - python 3.99

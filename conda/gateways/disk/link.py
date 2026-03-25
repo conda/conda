@@ -212,7 +212,7 @@ else:  # pragma: no cover
         \\?\ in order to work with API calls.
         See http://msdn.microsoft.com/en-us/library/aa365247%28v=vs.85%29.aspx for
         details.
-        """  # NOQA
+        """
         if path.startswith("\\\\?\\"):
             return path
         path = abspath(path)
@@ -252,7 +252,7 @@ else:  # pragma: no cover
         >>> # This test might fail on a non-standard installation
         >>> 'Windows' in (fd.filename for fd in root_files)
         True
-        """  # NOQA
+        """
         fd = WIN32_FIND_DATA()
         handle = FindFirstFile(spec, byref(fd))
         while True:
@@ -395,7 +395,8 @@ else:  # pragma: no cover
 
         in_buffer_size = len(in_buffer) if in_buffer is not None else 0
         out_buffer_size = len(out_buffer)
-        assert isinstance(out_buffer, Array)
+        if not isinstance(out_buffer, Array):
+            raise TypeError("out_buffer must be Array")
 
         returned_bytes = wintypes.DWORD()
 

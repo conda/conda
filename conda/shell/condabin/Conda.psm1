@@ -49,10 +49,10 @@ function Get-CondaEnvironment {
         the head of $Env:PATH.
 
     .EXAMPLE
-        Enter-CondaEnvironment base
+        Enter-CondaEnvironment my-env
 
     .EXAMPLE
-        etenv base
+        etenv my-env
 
     .NOTES
         This command does not currently support activating environments stored

@@ -1,16 +1,19 @@
 version: 2
 
+sphinx:
+  configuration: docs/source/conf.py
+
 # Set the version of Python and other tools you might need
 build:
   os: ubuntu-22.04
   tools:
-    python: '3.10'
+    python: miniconda-latest
   jobs:
     post_checkout:
       # Unshallow the git clone to make sure we can identify the version
       - git fetch --unshallow
     pre_install:
-      - git update-index --assume-unchanged docs/requirements.txt docs/source/conf.py
+      - git update-index --assume-unchanged docs/environment.yml docs/source/conf.py
     pre_build:
       # Install conda so we can run conda commands (e.g., see configuration.rst)
       - python -m pip install --no-deps --no-cache-dir --editable .
@@ -19,9 +22,8 @@ build:
     - graphviz
     - default-jre
 
-python:
-  install:
-    - requirements: docs/requirements.txt
+conda:
+  environment: docs/environment.yml
 
 # Build PDF, ePub and zipped HTML
 formats:

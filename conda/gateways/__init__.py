@@ -7,7 +7,6 @@ and methods in ``conda.gateways`` must use ``conda.models`` for arguments and re
 
 Conda modules importable from ``conda.gateways`` are
 
-- ``conda._vendor``
 - ``conda.common``
 - ``conda.models``
 - ``conda.gateways``

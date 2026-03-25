@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from functools import lru_cache
+from functools import cache
 from logging import getLogger
 from os.path import exists
 
@@ -12,7 +12,7 @@ from ..compat import on_linux
 log = getLogger(__name__)
 
 
-@lru_cache(maxsize=None)
+@cache
 def linux_get_libc_version() -> tuple[str, str] | tuple[None, None]:
     """If on linux, returns (libc_family, version), otherwise (None, None)."""
     if not on_linux:

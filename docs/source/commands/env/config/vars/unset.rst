@@ -2,10 +2,10 @@
 *******************************
 
 .. argparse::
-   :module: conda_env.cli.main
-   :func: create_parser
-   :prog: conda env
-   :path: config vars unset
+   :module: conda.cli.conda_argparse
+   :func: generate_parser
+   :prog: conda
+   :path: env config vars unset
    :nosubcommands:
    :nodefault:
    :nodefaultconst:

@@ -21,7 +21,7 @@ permissions:
 jobs:
   stale:
     if: '!github.event.repository.fork'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     strategy:
       matrix:
         include:
@@ -33,12 +33,12 @@ jobs:
             days-before-issue-stale: 90
             days-before-issue-close: 21
     steps:
-      - uses: conda/actions/read-yaml@15f883f14f4232f83658e3609c3316d58905138f # v24.8.0
+      - uses: conda/actions/read-yaml@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
         id: read_yaml
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
 
-      - uses: actions/stale@28ca1036281a5e5922ead5184a1bbf96e5fc984e # v9.0.0
+      - uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
         id: stale
         with:
           # Only issues with these labels are checked whether they are stale

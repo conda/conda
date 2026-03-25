@@ -15,7 +15,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
-    from typing import Any, Iterable
+    from collections.abc import Iterable
+    from typing import Any
 
 log = getLogger(__name__)
 
@@ -149,25 +150,27 @@ def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
 
 
 def find_tarballs() -> dict[str, Any]:
-    from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_PARTS
+    from ..base.constants import PARTIAL_EXTENSION
+    from ..base.context import context
 
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
         # tarballs are files in pkgs_dir
-        _, _, tars = next(os.walk(pkgs_dir))
-        for tar in tars:
-            # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
-            if not tar.endswith((*CONDA_PACKAGE_EXTENSIONS, *CONDA_PACKAGE_PARTS)):
+        _, _, files = next(os.walk(pkgs_dir))
+        for file in files:
+            # tarballs end in .tar.bz2, .conda (or .tar.bz2.partial, .conda.partial)
+            package = file.removesuffix(PARTIAL_EXTENSION)
+            if not context.plugin_manager.has_package_extension(package):
                 continue
 
             # get size
             try:
-                size = _get_size(pkgs_dir, tar, warnings=warnings)
+                size = _get_size(pkgs_dir, file, warnings=warnings)
             except NotImplementedError:
                 pass
             else:
-                pkg_sizes.setdefault(pkgs_dir, {})[tar] = size
+                pkg_sizes.setdefault(pkgs_dir, {})[file] = size
 
     return {
         "warnings": warnings,
@@ -220,8 +223,8 @@ def rm_pkgs(
     name: str,
 ) -> None:
     from ..base.context import context
+    from ..reporters import confirm_yn
     from ..utils import human_bytes
-    from .common import confirm_yn
 
     if not quiet and warnings:
         for warning in warnings:
@@ -323,7 +326,7 @@ def rm_items(
     name: str,
 ) -> None:
     from ..base.context import context
-    from .common import confirm_yn
+    from ..reporters import confirm_yn
 
     if not items:
         if not quiet:

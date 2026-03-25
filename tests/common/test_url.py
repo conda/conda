@@ -116,7 +116,7 @@ def test_urlparse(test_url_str, exp_url_obj):
     """Tests a variety of different use cases for `conda.common.url.urlparse`."""
     answer = urlparse(test_url_str)
 
-    for attr in exp_url_obj.__annotations__.keys():
+    for attr in exp_url_obj._fields:
         assert getattr(answer, attr) == getattr(exp_url_obj, attr)
 
     assert str(answer) == test_url_str

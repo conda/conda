@@ -16,6 +16,7 @@ Object inheritance:
 from __future__ import annotations
 
 from os.path import basename, join
+from pathlib import Path
 
 from boltons.timeutils import dt_to_timestamp, isoparse
 
@@ -34,7 +35,7 @@ from ..base.context import context
 from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError
 from .channel import Channel
-from .enums import FileMode, LinkType, NoarchType, PackageType, PathType, Platform
+from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
 from .match_spec import MatchSpec
 
 
@@ -182,7 +183,8 @@ class FilenameField(StringField):
                     raise AttributeError()
             except AttributeError:
                 fn = f"{instance.name}-{instance.version}-{instance.build}"
-            assert fn
+            if not fn:
+                raise ValueError("Filename cannot be empty.")
             return self.unbox(instance, instance_type, fn)
 
 
@@ -220,7 +222,7 @@ class PathData(Entity):
     no_link = BooleanField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
-    path_type = EnumField(PathType)
+    path_type = EnumField(PathEnum)
 
     @property
     def path(self):
@@ -229,7 +231,7 @@ class PathData(Entity):
 
 
 class PathDataV1(PathData):
-    # TODO: sha256 and size_in_bytes should be required for all PathType.hardlink, but not for softlink and directory  # NOQA
+    # TODO: sha256 and size_in_bytes should be required for all PathEnum.hardlink, but not for softlink and directory
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(str, required=False, nullable=True)
@@ -240,7 +242,7 @@ class PathDataV1(PathData):
 class PathsData(Entity):
     # from info/paths.json
     paths_version = IntegerField()
-    paths = ListField(PathData)
+    paths = ListField(PathDataV1)
 
 
 class PackageRecord(DictSafeMixin, Entity):
@@ -249,9 +251,9 @@ class PackageRecord(DictSafeMixin, Entity):
     It captures all the relevant information about a given package archive, including its source,
     in the following attributes.
 
-    Note that there are two subclasses, :class:`PrefixRecord` and
+    Note that there are three subclasses, :class:`SolvedRecord`, :class:`PrefixRecord` and
     :class:`PackageCacheRecord`. These capture the same information, but are augmented with
-    additional information relevant for these two sources of packages.
+    additional information relevant for these sources of packages.
 
     Further note that :class:`PackageRecord` makes use of its :attr:`_pkey`
     for comparison and hash generation.
@@ -261,72 +263,79 @@ class PackageRecord(DictSafeMixin, Entity):
     The subclasses do not add further attributes to the :attr:`_pkey`.
     """
 
-    #: str: The name of the package.
-    #:
-    #: Part of the :attr:`_pkey`.
     name = StringField()
+    """The name of the package.
 
-    #: str: The version of the package.
-    #:
-    #: Part of the :attr:`_pkey`.
+    Part of the :attr:`_pkey`.
+    """
+
     version = StringField()
+    """The version of the package.
 
-    #: str: The build string of the package.
-    #:
-    #: Part of the :attr:`_pkey`.
+    Part of the :attr:`_pkey`.
+    """
+
     build = StringField(aliases=("build_string",))
+    """The build string of the package.
 
-    #: int: The build number of the package.
-    #:
-    #: Part of the :attr:`_pkey`.
+    Part of the :attr:`_pkey`.
+    """
+
     build_number = IntegerField()
+    """The build number of the package.
+
+    Part of the :attr:`_pkey`.
+    """
 
     # the canonical code abbreviation for PackageRef is `pref`
     # fields required to uniquely identifying a package
 
-    #: :class:`conda.models.channel.Channel`: The channel where the package can be found.
     channel = ChannelField(aliases=("schannel",))
+    """The channel where the package can be found."""
 
-    #: str: The subdir, i.e. ``noarch`` or a platform (``linux-64`` or similar).
-    #:
-    #: Part of the :attr:`_pkey`.
     subdir = SubdirField()
+    """The subdir, i.e. ``noarch`` or a platform (``linux-64`` or similar).
 
-    #: str: The filename of the package.
-    #:
-    #: Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>` is ``true`` (default: ``false``).
+    Part of the :attr:`_pkey`.
+    """
+
     fn = FilenameField(aliases=("filename",))
+    """The filename of the package.
 
-    #: str: The md5 checksum of the package.
+    Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>`
+    is ``true`` (default: ``false``).
+    """
+
     md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+    """The md5 checksum of the package."""
 
-    #: str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the md5 checksum of that package.
     legacy_bz2_md5 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+    """If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the md5 checksum of that package."""
 
-    #: str: If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the size of that package.
     legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
+    """If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the size of that package."""
 
-    #: str: The download url of the package.
     url = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+    """The download url of the package."""
 
-    #: str: The sha256 checksum of the package.
     sha256 = StringField(
         default=None, required=False, nullable=True, default_in_dump=False
     )
+    """The sha256 checksum of the package."""
 
     @property
-    def schannel(self):
+    def channel_name(self) -> str | None:
         """str: The canonical name of the channel of this package.
 
         Part of the :attr:`_pkey`.
         """
-        return self.channel.canonical_name
+        return getattr(self.channel, "canonical_name", None)
 
     @property
     def _pkey(self):
@@ -338,7 +347,7 @@ class PackageRecord(DictSafeMixin, Entity):
 
         The included fields are:
 
-        * :attr:`schannel`
+        * :attr:`channel_name`
         * :attr:`subdir`
         * :attr:`name`
         * :attr:`version`
@@ -373,9 +382,9 @@ class PackageRecord(DictSafeMixin, Entity):
     def __eq__(self, other):
         return self._pkey == other._pkey
 
-    def dist_str(self):
+    def dist_str(self, canonical_name: bool = True) -> str:
         return "{}{}::{}-{}-{}".format(
-            self.channel.canonical_name,
+            self.channel.canonical_name if canonical_name else self.channel.name,
             ("/" + self.subdir) if self.subdir else "",
             self.name,
             self.version,
@@ -409,7 +418,9 @@ class PackageRecord(DictSafeMixin, Entity):
     preferred_env = StringField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
-
+    python_site_packages_path = StringField(
+        default=None, required=False, nullable=True, default_in_dump=False
+    )
     license = StringField(
         required=False, nullable=True, default=None, default_in_dump=False
     )
@@ -467,6 +478,16 @@ class PackageRecord(DictSafeMixin, Entity):
     @property
     def namekey(self):
         return "global:" + self.name
+
+    @property
+    def spec(self):
+        """Return package spec: name=version=build"""
+        return f"{self.name}={self.version}={self.build}"
+
+    @property
+    def spec_no_build(self):
+        """Return package spec without build: name=version"""
+        return f"{self.name}={self.version}"
 
     def record_id(self):
         # WARNING: This is right now only used in link.py _change_report_str(). It is not
@@ -549,16 +570,17 @@ class PackageCacheRecord(PackageRecord):
     equal and will produce the same hash.
     """
 
-    #: str: Full path to the local package file.
     package_tarball_full_path = StringField()
+    """Full path to the local package file."""
 
-    #: str: Full path to the local extracted package.
     extracted_package_dir = StringField()
+    """Full path to the local extracted package."""
 
-    #: str: The md5 checksum of the package.
-    #:
-    #: If the package file exists locally, this class can calculate a missing checksum on-the-fly.
     md5 = Md5Field()
+    """The md5 checksum of the package.
+
+    If the package file exists locally, this class can calculate a missing checksum on-the-fly.
+    """
 
     @property
     def is_fetched(self):
@@ -595,7 +617,55 @@ class PackageCacheRecord(PackageRecord):
             return md5sum
 
 
-class PrefixRecord(PackageRecord):
+class SolvedRecord(PackageRecord):
+    """Representation of a package that has been returned as part of a solver solution.
+
+    This sits between :class:`PackageRecord` and :class:`PrefixRecord`, simply adding
+    ``requested_spec`` (and ``requested_specs``) so they can be used in lockfiles without
+    requiring the artifact on disk.
+    """
+
+    requested_spec = StringField(required=False)
+    """
+    The :class:`MatchSpec` that the user requested or ``None``
+    if the package it was installed as a dependency.
+    """
+    _requested_specs = ListField(
+        str, required=False, nullable=True, aliases=("requested_specs",)
+    )
+    """
+    The :class:`MatchSpec` objects that the user requested or ``()``
+    if the package was installed as a dependency.
+    See also `.requested_specs` property.
+    """
+
+    @property
+    def requested_specs(self) -> tuple[str, ...]:
+        """
+        This property will use 'requested_spec' as the source for
+        'requested_specs' for old `conda-meta/*.json` files that
+        did not define the plural version.
+        """
+        if specs := self.get("_requested_specs", None):
+            return tuple(specs)
+        if spec := self.get("requested_spec", None):
+            return (spec,)
+        return ()
+
+    def dump(self):
+        """
+        We need to expose _requested_specs as its public counterpart,
+        and also expose single specs as a plural list for backwards compatibility.
+        """
+        dumped = super().dump()
+        if dumped.get("_requested_specs"):
+            dumped["requested_specs"] = dumped.pop("_requested_specs")
+        elif spec := dumped.get("requested_spec"):
+            dumped["requested_specs"] = [spec]
+        return dumped
+
+
+class PrefixRecord(SolvedRecord):
     """Representation of a package that is installed in a local conda environmnet.
 
     Specialization of :class:`PackageRecord` that adds information for packages that are installed
@@ -609,32 +679,64 @@ class PrefixRecord(PackageRecord):
     Objects of this class are generally constructed from metadata in json files inside `$prefix/conda-meta`.
     """
 
-    #: str: The path to the originating package file, usually in the local cache.
     package_tarball_full_path = StringField(required=False)
+    """The path to the originating package file, usually in the local cache."""
 
-    #: str: The path to the extracted package directory, usually in the local cache.
     extracted_package_dir = StringField(required=False)
+    """The path to the extracted package directory, usually in the local cache."""
 
-    #: list(str): The list of all files comprising the package as relative paths from the prefix root.
     files = ListField(str, default=(), required=False)
+    """The list of all files comprising the package as relative paths from the prefix root."""
 
-    #: list(str): List with additional information about the files, e.g. checksums and link type.
     paths_data = ComposableField(
         PathsData, required=False, nullable=True, default_in_dump=False
     )
+    """List with additional information about the files, e.g. checksums and link type."""
 
-    #: :class:`Link`: Information about how the package was linked into the prefix.
     link = ComposableField(Link, required=False)
+    """Information about how the package was linked into the prefix."""
 
     # app = ComposableField(App, required=False)
 
-    #: str: The :class:`MatchSpec` that the user requested or ``None`` if dependency it was installed as a dependency.
-    requested_spec = StringField(required=False)
-
     # There have been requests in the past to save remote server auth
     # information with the package.  Open to rethinking that though.
-    #: str: Authentication information.
     auth = StringField(required=False, nullable=True)
+    """Authentication information."""
+
+    def package_size(self, prefix_path: Path) -> int:
+        """
+        Compute the installed size of this package within a prefix.
+
+        This sums up the size_in_bytes of all non-softlink paths in paths_data,
+        and stats the files on disk if size_in_bytes is missing and for the
+        package's conda-meta JSON manifest.
+
+        :returns: Total size in bytes of all files installed by this package.
+        """
+        total_size = 0
+
+        meta_file = (
+            prefix_path / "conda-meta" / f"{self.name}-{self.version}-{self.build}.json"
+        )
+        try:
+            total_size += meta_file.stat().st_size
+        except OSError:
+            pass
+
+        for path_data in self.paths_data.paths:
+            if path_data.path_type in (PathEnum.softlink, PathEnum.directory):
+                continue
+            if getattr(path_data, "size_in_bytes", None) is not None:
+                total_size += path_data.size_in_bytes
+                continue
+
+            file_path = Path(prefix_path) / path_data._path
+            try:
+                total_size += file_path.stat().st_size
+            except OSError:
+                pass
+
+        return total_size
 
     # @classmethod
     # def load(cls, conda_meta_json_path):

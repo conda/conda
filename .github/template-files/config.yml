@@ -43,7 +43,9 @@ conda/infrastructure:
   - src: templates/releases/RELEASE.md
     dst: RELEASE.md
     with:
-      placeholder: YY.M
+      canary_channel: https://anaconda.org/conda-canary
+      placeholder: YY.MM.MICRO
+      placeholder_x: YY.MM.x
   - src: templates/releases/rever.xsh
     dst: rever.xsh
   - src: templates/releases/TEMPLATE

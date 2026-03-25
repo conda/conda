@@ -17,7 +17,7 @@ plantuml_jarfile_url = (
 
 # files and folders to ignore during generating the UML files
 ignore = [
-    "_vendor",
+    "_vendor.py",
     "compat.py",
     "misc.py",
     "utils.py",

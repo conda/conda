@@ -6,13 +6,14 @@ from __future__ import annotations
 
 import collections
 import functools
-import json
 import pathlib
+import time
 from tempfile import TemporaryDirectory
 
 import pytest
 
 from ..base.context import context
+from ..common.serialize import json
 from ..core.solve import Solver
 from ..exceptions import (
     PackagesNotFoundError,
@@ -25,7 +26,7 @@ from ..models.records import PackageRecord
 from . import helpers
 
 
-@functools.lru_cache
+@functools.cache
 def index_packages(num):
     """Get the index data of the ``helpers.get_index_r_*`` helpers."""
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
@@ -117,7 +118,7 @@ class SimpleEnvironment:
     def _package_data(self, record):
         """Turn record into data, to be written in the JSON environment/repo files."""
         data = {
-            key: value
+            key: (",".join(value) if key in ("features", "track_features") else value)
             for key, value in vars(record).items()
             if key in self.REPO_DATA_KEYS
         }
@@ -371,7 +372,9 @@ class SolverTests:
             ],
         )
 
-        with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)) as exc_info:
+        with pytest.raises(
+            (ResolvePackageNotFound, PackagesNotFoundError, UnsatisfiableError)
+        ) as exc_info:
             env.install("numpy 1.5*", "numpy 1.6*")
         if exc_info.type is ResolvePackageNotFound:
             assert sorted(map(str, exc_info.value.bad_deps)) == [
@@ -601,7 +604,7 @@ class SolverTests:
         with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)):
             env.install("numpy 1.5")
 
-    def test_timestamps_and_deps(self, env):
+    def test_timestamps_and_deps(self, env: SimpleEnvironment):
         env.repo_packages = index_packages(1) + [
             helpers.record(
                 name="mypackage",
@@ -630,11 +633,23 @@ class SolverTests:
         # by newer timestamps. regression test of sorts for
         #  https://github.com/conda/conda/issues/6271
         assert (
-            env.install("mypackage", *env.install("libpng 1.2.*", as_specs=True))
+            env.install(
+                "mypackage",
+                *[
+                    record.to_match_spec().conda_build_form()
+                    for record in env.install("libpng 1.2.*", as_specs=True)
+                ],
+            )
             == records_12
         )
         assert (
-            env.install("mypackage", *env.install("libpng 1.5.*", as_specs=True))
+            env.install(
+                "mypackage",
+                *[
+                    record.to_match_spec().conda_build_form()
+                    for record in env.install("libpng 1.5.*", as_specs=True)
+                ],
+            )
             == records_15
         )
         # unspecified python version should maximize libpng (v1.5),
@@ -706,6 +721,9 @@ class SolverTests:
             "test::distribute-0.6.36-py33_1",
             "test::pip-1.3.1-py33_1",
         }
+
+        # Add 1s to make sure the new repodata.jsons have different mod times
+        time.sleep(1)
 
         # This time, the latest version is messed up
         env.repo_packages = index_packages(1) + [
@@ -1225,13 +1243,13 @@ class SolverTests:
         ]
         for record in env.install("top", as_specs=True):
             if record.name == "top":
-                assert (
-                    record.version == "2.0"
-                ), f"top version should be 2.0, but is {record.version}"
+                assert record.version == "2.0", (
+                    f"top version should be 2.0, but is {record.version}"
+                )
             elif record.name == "bottom":
-                assert (
-                    record.version == "2.5"
-                ), f"bottom version should be 2.5, but is {record.version}"
+                assert record.version == "2.5", (
+                    f"bottom version should be 2.5, but is {record.version}"
+                )
 
     def test_arch_preferred_over_noarch_when_otherwise_equal(self, env):
         env.repo_packages += [

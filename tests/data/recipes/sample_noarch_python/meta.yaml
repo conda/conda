@@ -1,0 +1,13 @@
+package:
+  name: "sample_noarch_python"
+  version: "1.0.0"
+
+build:
+  noarch: python
+  script: touch $SP_DIR/sample.py
+
+requirements:
+  host:
+    - python
+  run:
+    - python

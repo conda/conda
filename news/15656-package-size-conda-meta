@@ -1,0 +1,19 @@
+### Enhancements
+
+* Always include conda-meta manifest file size in `PrefixRecord.package_size()`, so packages with no files (such as metapackages, mutex packages) display a non-zero size instead of "0 B" in `conda list --size`. (#15681 via #15656)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
