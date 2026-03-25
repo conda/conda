@@ -1349,7 +1349,7 @@ class EnvironmentSpecPluginSelectionError(CondaError):
         **kwargs,
     ):
         plugin_names = [
-            f"{name}{' (' if plugin.aliases else ''}{', '.join(plugin.aliases)}{')' if plugin.aliases else ''}"
+            f"{name} ({', '.join(plugin.aliases)})" if plugin.aliases else name
             for name, plugin in plugin_specs.items()
         ]
         msg += f"\nAvailable formats: {dashlist(plugin_names, 4)}"
