@@ -190,14 +190,14 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
             ng_module_name = ".".join(
                 [
                     *module_name_components[:conda_idx],
-                    "ng",
+                    "_ng",
                     *module_name_components[conda_idx:],
                 ]
             )
         else:
             ng_module_name = module_name
         # func_name should always be 'execute'
-        if os.environ.get("CONDA_NG"):
+        if "ng" in context.experimental:
             try:
                 module = import_module(ng_module_name)
             except ImportError:
