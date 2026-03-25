@@ -52,8 +52,8 @@ def install(
     from conda.history import History
     from conda.reporters import confirm_yn
 
+    from ..exceptions import CondaSolverError
     from .common import cache_dir, create_console, installed_packages
-    from .exceptions import CondaSolverError
 
     specs = [MatchSpec(spec) if isinstance(spec, str) else spec for spec in specs]
     history = [MatchSpec(spec) if isinstance(spec, str) else spec for spec in history]

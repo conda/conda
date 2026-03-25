@@ -21,8 +21,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from conda.exceptions import ArgumentError
     from conda.history import History
 
+    from ..exceptions import CondaSolverError
     from .common import as_virtual_package, installed_packages
-    from .exceptions import CondaSolverError
     from .install import install, parse_conflicts
 
     prefix = context.target_prefix
