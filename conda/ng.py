@@ -5,6 +5,11 @@ conda-ng entry point, to be used as `python -m conda.ng`.
 """
 
 if __name__ == "__main__":
-    from ._ng.cli import main
+    import os
 
+    from .cli import main
+
+    os.environ["CONDA_EXPERIMENTAL"] = ",".join(
+        dict.fromkeys(["ng", *os.environ.get("CONDA_EXPERIMENTAL", "").split(",")])
+    )
     main()
