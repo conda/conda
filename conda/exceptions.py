@@ -1340,21 +1340,7 @@ class SpecNotFound(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
-class EnvironmentSpecPluginSelectionError(CondaError):
-    def __init__(
-        self,
-        msg: str,
-        plugin_specs: dict[str, CondaEnvironmentSpecifier],
-        *args,
-        **kwargs,
-    ):
-        plugin_names = [
-            f"{name} ({', '.join(plugin.aliases)})" if plugin.aliases else name
-            for name, plugin in plugin_specs.items()
-        ]
-        msg += f"\nAvailable formats: {dashlist(plugin_names, 4)}"
-
-class AmbiguousEnvironmentSpecPlugin(SpecNotFound):
+class AmbiguousEnvironmentSpecPlugin(PluginError):
     def __init__(
         self,
         msg: str,
@@ -1369,6 +1355,22 @@ class AmbiguousEnvironmentSpecPlugin(SpecNotFound):
             "\n\nMatched formats:"
             f"{dashlist([plg.name for plg in plugins], 4)}"
         )
+        super().__init__(msg, *args, **kwargs)
+
+
+class EnvironmentSpecPluginSelectionError(CondaError):
+    def __init__(
+        self,
+        msg: str,
+        plugin_specs: dict[str, CondaEnvironmentSpecifier],
+        *args,
+        **kwargs,
+    ):
+        plugin_names = [
+            f"{name} ({', '.join(plugin.aliases)})" if plugin.aliases else name
+            for name, plugin in plugin_specs.items()
+        ]
+        msg += f"\nAvailable formats: {dashlist(plugin_names, 4)}"
         super().__init__(msg, *args, **kwargs)
 
 

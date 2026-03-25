@@ -592,7 +592,7 @@ def test_alias_and_name_collision_detect(
         plugin_manager.get_environment_specifier_by_name("something.random", "random")
 
     with pytest.raises(
-        AmbiguousEnvironmentSpecPlugin,
+        PluginError,
         match="'something.random' can be handled by multiple plugins.",
     ):
         plugin_manager.detect_environment_specifier("something.random")
