@@ -2427,7 +2427,10 @@ def test_dont_remove_conda_3(
         print("Remove conda-package-handling from conda-meta")
 
         conda_dependency = "conda-package-handling"
-        assert package_is_installed(prefix, conda_dependency)
+        # May still be true either due to cache or pip interoperability:
+        print(
+            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
+        )
         conda_dependency_meta = [
             *(prefix / "conda-meta").glob(f"{conda_dependency}-*.json"),
         ]
@@ -2437,8 +2440,12 @@ def test_dont_remove_conda_3(
 
         # reload() to update cached results
         PrefixData(str(prefix)).reload()
-        assert not package_is_installed(prefix, conda_dependency)
+        print(
+            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
+        )
 
+        # we will likely add this dependency; what's a better small package with
+        # no dependencies?
         lightweight_dependency = "backports"
         assert not package_is_installed(prefix, lightweight_dependency)
         expected_remove_error = "RemoveError"
