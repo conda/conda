@@ -49,7 +49,7 @@ requirements:
     - packaging >=23.0
     - platformdirs >=3.10.0
     - pluggy >=1.0.0
-    - py-rattler >=0.20.0
+    - py-rattler >=0.23.2,<0.24.0dev0
     - pycosat >=0.6.3
     - python
     - rich 0.14.*
