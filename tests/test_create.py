@@ -2367,17 +2367,35 @@ def test_dont_remove_conda_3(
     with tmp_env("conda", "conda-pypi") as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         monkeypatch.setenv("CONDA_PREFIX", str(prefix))
+        monkeypatch.delenv("CONDA_DEFAULT_ENV", raising=False)
+        monkeypatch.delenv("CONDA_PROMPT_MODIFIER", raising=False)
+        monkeypatch.delenv("CONDA_SHLVL", raising=False)
         reset_context()
         assert context.root_prefix == str(prefix)
 
         conda_exe = prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda")
         assert conda_exe.exists()
 
+        subprocess_env = os.environ.copy()
+        for env_var in (
+            "CONDA_DEFAULT_ENV",
+            "CONDA_PREFIX",
+            "CONDA_PROMPT_MODIFIER",
+            "CONDA_SHLVL",
+            "CONDA_EXE",
+            "CONDA_PYTHON_EXE",
+            "_CE_M",
+            "_CE_CONDA",
+        ):
+            subprocess_env.pop(env_var, None)
+        subprocess_env["CONDA_ROOT_PREFIX"] = str(prefix)
+
         checkout_dir = Path(__file__).resolve().parents[1]
         run(
             [conda_exe, "pypi", "convert", str(checkout_dir)],
             check=True,
             cwd=prefix,
+            env=subprocess_env,
         )
         converted_pkgs = sorted((prefix / "conda-pypi-output").glob("conda-*.conda"))
         if not converted_pkgs:
@@ -2389,9 +2407,8 @@ def test_dont_remove_conda_3(
 
         foreign_root_prefix = prefix / "tmp-root-prefix"
         foreign_root_prefix.mkdir()
-        remove_env = os.environ.copy()
+        remove_env = subprocess_env.copy()
         remove_env["CONDA_ROOT_PREFIX"] = str(foreign_root_prefix)
-        remove_env.pop("CONDA_PREFIX", None)
 
         run(
             [conda_exe, "remove", f"--prefix={prefix}", "conda", "--force", "--yes"],
@@ -2413,6 +2430,7 @@ def test_dont_remove_conda_3(
                     f'CALL "{conda_bat}" activate "{prefix}" && conda --version',
                 ],
                 check=True,
+                env=subprocess_env,
             )
         else:
             run(
@@ -2422,6 +2440,7 @@ def test_dont_remove_conda_3(
                     f'eval "$("{conda_exe}" shell.bash hook)" && conda activate "{prefix}" && conda --version',
                 ],
                 check=True,
+                env=subprocess_env,
             )
 
         # conda-package-handling may be a more durable dependency than pycosat
@@ -2466,6 +2485,7 @@ def test_dont_remove_conda_3(
                 check=True,
                 capture_output=True,
                 text=True,
+                env=subprocess_env,
             )
         install_output = (install_exc.value.stdout or "") + (
             install_exc.value.stderr or ""
@@ -2486,6 +2506,7 @@ def test_dont_remove_conda_3(
                 check=True,
                 capture_output=True,
                 text=True,
+                env=subprocess_env,
             )
 
 
