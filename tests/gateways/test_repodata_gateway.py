@@ -41,7 +41,6 @@ from conda.gateways.repodata import (
     conda_http_errors,
     get_cache_control_max_age,
 )
-from conda.gateways.repodata.jlap.interface import JlapRepoInterface
 from conda.models.channel import Channel
 
 if TYPE_CHECKING:
@@ -246,6 +245,36 @@ def test_coverage_conda_http_errors(monkeypatch: MonkeyPatch):
     ):
         raise HTTPError(response=Response(404))
 
+    # 403 should have context-aware error messages (unlike 404)
+    # Test 403 on anaconda.org channel
+    with (
+        pytest.raises(CondaHTTPError, match="do not have permission"),
+        conda_http_errors("https://conda.anaconda.org/noarch", "repodata.json"),
+    ):
+        raise HTTPError(response=Response(403))
+
+    # Test 403 with a token - should trigger a different message
+    with (
+        pytest.raises(CondaHTTPError, match="insufficient permissions"),
+        conda_http_errors(
+            "/t/dh-73683400-b3ee-4f87-ade8-37de6d395bdb/conda-forge/noarch",
+            "repodata.json",
+        ),
+    ):
+        raise HTTPError(response=Response(403))
+
+    # Test 403 on non-anaconda URL
+    monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "1")
+    reset_context()
+    with (
+        pytest.raises(CondaHTTPError, match="do not have permission"),
+        conda_http_errors("https://example.org/main/linux-64", "repodata.json"),
+    ):
+        context.channel_alias.location = "xyzzy"
+        raise HTTPError(response=Response(403))
+
+    reset_context()
+
     # A variety of helpful error messages should follow
     with (
         pytest.raises(CondaHTTPError, match="invalid credentials"),
@@ -315,10 +344,8 @@ def test_ssl_unavailable_error_message():
         del sys.modules["ssl"]
 
 
-@pytest.mark.parametrize("use_jlap", [True, False])
 def test_repodata_fetch_formats(
     package_server: socket,
-    use_jlap: bool,
     tmp_path: Path,
     temp_package_cache: Path,
     package_repository_base: Path,
@@ -328,19 +355,9 @@ def test_repodata_fetch_formats(
     """
     assert temp_package_cache.exists()
 
-    # Remove leftover test data.
-    jlap_path = package_repository_base / "osx-64" / "repodata.jlap"
-    if jlap_path.exists():
-        jlap_path.unlink()
-
     host, port = package_server.getsockname()
     base = f"http://{host}:{port}/test"
     channel_url = f"{base}/osx-64"
-
-    if use_jlap:
-        repo_cls = JlapRepoInterface
-    else:
-        repo_cls = CondaRepoInterface
 
     # we always check for *and create* a writable cache dir before fetch
     cache_path_base = tmp_path / "fetch_formats" / "xyzzy"
@@ -349,7 +366,7 @@ def test_repodata_fetch_formats(
     channel = Channel(channel_url)
 
     fetch = RepodataFetch(
-        cache_path_base, channel, REPODATA_FN, repo_interface_cls=repo_cls
+        cache_path_base, channel, REPODATA_FN, repo_interface_cls=CondaRepoInterface
     )
 
     assert isinstance(fetch.cache_path_state, Path)  # coverage

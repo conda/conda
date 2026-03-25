@@ -8,7 +8,7 @@ import os
 import re
 import shutil
 from logging import getLogger
-from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from os.path import abspath, dirname, isdir, isfile, join, relpath
 from typing import TYPE_CHECKING
 
 from .base.constants import EXPLICIT_MARKER
@@ -57,17 +57,38 @@ def conda_installed_files(prefix, exclude_self_build=False):
     return res
 
 
-url_pat = re.compile(
-    r"(?:(?P<url_p>.+)(?:[/\\]))?"
-    r"(?P<fn>[^/\\#]+(?:\.tar\.bz2|\.conda))"
-    r"(?:#("
-    r"(?P<md5>[0-9a-f]{32})"
-    r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
-    r"))?$"
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "url_pat",
+    re.compile(
+        r"(?:(?P<url_p>.+)(?:[/\\]))?"
+        r"(?P<fn>[^/\\#]+(?:\.conda|\.tar\.bz2))"
+        r"(?:#("
+        r"(?P<md5>[0-9a-f]{32})"
+        r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+        r"))?$"
+    ),
+    addendum="Use `conda.misc._get_url_pattern()` instead.",
 )
 
 
+def _get_url_pattern() -> re.Pattern:
+    """Build URL pattern dynamically based on registered package extensions."""
+    extensions = context.plugin_manager.get_package_extractors().keys()
+    ext_pattern = "|".join(map(re.escape, extensions))
+    return re.compile(
+        r"(?:(?P<url_p>.+)(?:[/\\]))?"
+        rf"(?P<fn>[^/\\#]+(?:{ext_pattern}))"
+        r"(?:#("
+        r"(?P<md5>[0-9a-f]{32})"
+        r"|((sha256:)?(?P<sha256>[0-9a-f]{64}))"
+        r"))?$"
+    )
+
+
 def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
+    url_pat = _get_url_pattern()
     for spec in specs:
         if spec == EXPLICIT_MARKER:
             continue
@@ -259,16 +280,6 @@ def untracked(prefix, exclude_self_build=False):
             and path[:-1] in conda_files
         )
     }
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixData.set_nonadmin()")
-def touch_nonadmin(prefix):
-    """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
-    if on_win and exists(join(context.root_prefix, ".nonadmin")):
-        if not isdir(prefix):
-            os.makedirs(prefix)
-        with open_utf8(join(prefix, ".nonadmin"), "w") as fo:
-            fo.write("")
 
 
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):

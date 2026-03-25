@@ -3,6 +3,7 @@
 import getpass
 import json
 import sys
+from contextlib import nullcontext
 from unittest.mock import patch
 
 import pytest
@@ -645,7 +646,7 @@ def test_print_unexpected_error_message_upload_1(
     capsys: CaptureFixture,
 ):
     """
-    Test that error reports are auto submitted when CONDA_REPORT_ERRORS=true.
+    Test that error reports are not submitted when CONDA_REPORT_ERRORS=true.
     """
     post_mock = mocker.patch(
         "requests.post",
@@ -663,7 +664,8 @@ def test_print_unexpected_error_message_upload_1(
     monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
     monkeypatch.setenv("CONDA_JSON", "false")
     reset_context()
-    assert context.report_errors is True
+    with pytest.deprecated_call():
+        assert context.report_errors is True
     assert not context.json
     assert not context.always_yes
 
@@ -671,7 +673,7 @@ def test_print_unexpected_error_message_upload_1(
     stdout, stderr = capsys.readouterr()
 
     assert username_not_in_post_mock(post_mock, getpass.getuser())
-    assert post_mock.call_count == 2
+    assert post_mock.call_count == 0
     assert not stdout
     assert "conda version" in stderr
 
@@ -682,8 +684,8 @@ def test_print_unexpected_error_message_upload_2(
     capsys: CaptureFixture,
 ):
     """
-    Test that error reports are auto submitted when CONDA_ALWAYS_YES=true. Also
-    test that we receive the error report in as a JSON when CONDA_JSON=true.
+    Test that error reports are not submitted when CONDA_ALWAYS_YES=true. Also
+    test that we do not receive the error report in as a JSON when CONDA_JSON=true.
     """
     post_mock = mocker.patch(
         "requests.post",
@@ -706,7 +708,8 @@ def test_print_unexpected_error_message_upload_2(
     monkeypatch.setenv("CONDA_ALWAYS_YES", "true")
     monkeypatch.setenv("CONDA_JSON", "true")
     reset_context()
-    assert context.report_errors is None
+    with pytest.deprecated_call():
+        assert context.report_errors is None
     assert context.json
     assert context.always_yes
 
@@ -714,7 +717,7 @@ def test_print_unexpected_error_message_upload_2(
     stdout, stderr = capsys.readouterr()
 
     assert username_not_in_post_mock(post_mock, getpass.getuser())
-    assert post_mock.call_count == 3
+    assert post_mock.call_count == 0
     assert len(json.loads(stdout)["conda_info"]["channels"]) >= 2
     assert not stderr
 
@@ -725,28 +728,19 @@ def test_print_unexpected_error_message_upload_3(
     capsys: CaptureFixture,
 ):
     """
-    Test that we prompt for user confirmation before submitting error reports
-    when CONDA_REPORT_ERRORS=none, CONDA_ALWAYS_YES=false, and CONDA_JSON=false.
+    Test that we no longer prompt for user confirmation since error reporting
+    functionality has been removed.
     """
-    post_mock = mocker.patch(
-        "requests.post",
-        side_effect=(
-            AttrDict(
-                headers=AttrDict(Location="somewhere.else"),
-                status_code=302,
-                raise_for_status=lambda: None,
-            ),
-            AttrDict(raise_for_status=lambda: None),
-        ),
-    )
-    input_mock = mocker.patch("builtins.input", return_value="y")
-    isatty_mock = mocker.patch("os.isatty", return_value=True)
+    post_mock = mocker.patch("requests.post")
+    input_mock = mocker.patch("builtins.input")
+    isatty_mock = mocker.patch("os.isatty")
 
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "none")
     monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
     monkeypatch.setenv("CONDA_JSON", "false")
     reset_context()
-    assert context.report_errors is None
+    with pytest.deprecated_call():
+        assert context.report_errors is None
     assert not context.json
     assert not context.always_yes
 
@@ -754,90 +748,28 @@ def test_print_unexpected_error_message_upload_3(
     stdout, stderr = capsys.readouterr()
 
     assert username_not_in_post_mock(post_mock, username=getpass.getuser())
-    assert isatty_mock.call_count == 1
-    assert input_mock.call_count == 1
-    assert post_mock.call_count == 2
+    assert isatty_mock.call_count == 0
+    assert input_mock.call_count == 0
+    assert post_mock.call_count == 0
     assert not stdout
-    assert "conda version" in stderr
-
-
-@patch(
-    "requests.post",
-    side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
-            status_code=302,
-            raise_for_status=lambda: None,
-        ),
-        AttrDict(raise_for_status=lambda: None),
-    ),
-)
-@patch("getpass.getuser", return_value="some name")
-def test_print_unexpected_error_message_upload_username_with_spaces(
-    pwuid,
-    post_mock,
-    monkeypatch: MonkeyPatch,
-    capsys: CaptureFixture,
-) -> None:
-    monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
-    reset_context()
-    assert context.report_errors
-
-    ExceptionHandler()(_raise_helper, AssertionError())
-    stdout, stderr = capsys.readouterr()
-
-    error_data = json.loads(post_mock.call_args[1].get("data"))
-    assert error_data.get("has_spaces") is True
-    assert error_data.get("is_ascii") is True
-    assert post_mock.call_count == 2
-    assert stdout == ""
-    assert "conda version" in stderr
-
-
-@patch(
-    "requests.post",
-    side_effect=(
-        AttrDict(
-            headers=AttrDict(Location="somewhere.else"),
-            status_code=302,
-            raise_for_status=lambda: None,
-        ),
-        AttrDict(raise_for_status=lambda: None),
-    ),
-)
-@patch("getpass.getuser", return_value="my√nameΩ")
-def test_print_unexpected_error_message_upload_username_with_unicode(
-    pwuid,
-    post_mock,
-    monkeypatch: MonkeyPatch,
-    capsys: CaptureFixture,
-) -> None:
-    monkeypatch.setenv("CONDA_REPORT_ERRORS", "true")
-    reset_context()
-    assert context.report_errors
-
-    ExceptionHandler()(_raise_helper, AssertionError())
-    stdout, stderr = capsys.readouterr()
-
-    error_data = json.loads(post_mock.call_args[1].get("data"))
-    assert error_data.get("has_spaces") is False
-    assert error_data.get("is_ascii") is False
-    assert post_mock.call_count == 2
-    assert stdout == ""
     assert "conda version" in stderr
 
 
 @patch("requests.post", return_value=None)
 @patch("builtins.input", return_value="n")
 def test_print_unexpected_error_message_opt_out_1(
-    input_mock,
-    post_mock,
+    mocker: MockerFixture,
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
 ) -> None:
+    """Test that error reports are not submitted when report_errors is false."""
+    input_mock = mocker.patch("builtins.input")
+    post_mock = mocker.patch("requests.post")
+
     monkeypatch.setenv("CONDA_REPORT_ERRORS", "false")
     reset_context()
-    assert not context.report_errors
+    with pytest.deprecated_call():
+        assert not context.report_errors
 
     ExceptionHandler()(_raise_helper, AssertionError())
     stdout, stderr = capsys.readouterr()
@@ -861,7 +793,8 @@ def test_print_unexpected_error_message_opt_out_2(
     ExceptionHandler()(_raise_helper, AssertionError())
     stdout, stderr = capsys.readouterr()
 
-    assert input_mock.call_count == 1
+    # Since error submission was removed, no prompts should occur
+    assert input_mock.call_count == 0
     assert post_mock.call_count == 0
     assert stdout == ""
     assert "conda version" in stderr
@@ -962,3 +895,15 @@ def test_proxy_error_custom_message() -> None:
     assert str(exc_custom) == custom_message
 
     assert str(ProxyError()) != str(exc_custom)
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [("error_upload_url", TypeError)],
+)
+def test_ExceptionHandler_deprecations(
+    function: str, raises: type[Exception] | None
+) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(ExceptionHandler(), function)()

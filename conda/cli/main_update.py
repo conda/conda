@@ -41,6 +41,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         use the --no-update-deps option. This may force conda to install older
         versions of the requested packages, and it does not prevent additional
         dependency packages from being installed.
+
+        When using --file, only the package list from the file is used. Any name
+        or prefix in the file is ignored; packages are updated in the target
+        environment (-n/-p or the current environment).
         """
     )
     epilog = dals(

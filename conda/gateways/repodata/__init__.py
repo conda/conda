@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 stderrlog = logging.getLogger("conda.stderrlog")
 
 
-# if repodata_shards.msgpack.zst, repodata.json.zst or repodata.jlap were unavailable, check again later.
+# if alternate formats were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 # repodata.info/state.json keys to keep up with the CEP
@@ -101,24 +101,11 @@ class Response304ContentUnchanged(Exception):
 
 
 def get_repo_interface() -> type[RepoInterface]:
-    if "jlap" in context.experimental:
-        try:
-            from .jlap.interface import JlapRepoInterface
-
-            return JlapRepoInterface
-        except ImportError as e:  # pragma: no cover
-            warnings.warn(
-                "Could not load the configured jlap repo interface. "
-                f"Is the required jsonpatch package installed?  {e}"
-            )
-
     if context.repodata_use_zst:
-        try:
-            from .jlap.interface import ZstdRepoInterface
+        # We need lazy import to avoid circular imports.
+        from .zstd import ZstdRepoInterface
 
-            return ZstdRepoInterface
-        except ImportError:  # pragma: no cover
-            pass
+        return ZstdRepoInterface
 
     return CondaRepoInterface
 
@@ -238,7 +225,7 @@ Exception: {e}
 
     except (ConnectionError, HTTPError, ChunkedEncodingError) as e:
         status_code = getattr(e.response, "status_code", None)
-        if status_code in (403, 404):
+        if status_code == 404:
             if not url.endswith("/noarch"):
                 log.info(
                     "Unable to retrieve repodata (response: %d) for %s",
@@ -269,36 +256,64 @@ Exception: {e}
                         response=e.response,
                     )
 
+        elif status_code == 403:
+            channel = Channel(url)
+            if channel.token:
+                help_message = """\
+The token given for the URL has insufficient permissions to access this resource.
+
+You may not have the required permissions to access this channel or package.
+Consider requesting access from the channel owner.
+
+Use `conda config --show` to view your configuration's current state.
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
+            elif context.channel_alias.location in url:
+                help_message = """\
+The remote server has indicated you do not have permission to access this resource.
+
+This may mean:
+  (a) You are not authenticated. Check if authentication is required for this channel
+      and verify your credentials are correctly configured.
+  (b) You do not have access to this private channel or package. Contact the
+      channel owner to request access.
+
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
+            else:
+                help_message = """\
+You do not have permission to access this resource.
+
+This may indicate:
+  - The channel requires authentication. Check your credentials.
+  - You do not have access to this private channel or package.
+
+You will need to modify your conda configuration to proceed.
+Use `conda config --show` to view your configuration's current state.
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
         elif status_code == 401:
             channel = Channel(url)
             if channel.token:
                 help_message = """\
-The token '{}' given for the URL is invalid.
+The token given for the URL is invalid.
 
-If this token was pulled from anaconda-client, you will need to use
-anaconda-client to reauthenticate.
-
-If you supplied this token to conda directly, you will need to adjust your
-conda configuration to proceed.
+You will need to adjust your conda configuration to proceed.
 
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <{}>.
-""".format(
-                    channel.token,
-                    join_url(CONDA_HOMEPAGE_URL, "docs/config.html"),
-                )
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
             elif context.channel_alias.location in url:
-                # Note, this will not trigger if the binstar configured url does
-                # not match the conda configured one.
                 help_message = """\
 The remote server has indicated you are using invalid credentials for this channel.
 
-If the remote site is anaconda.org or follows the Anaconda Server API, you
-will need to
-    (a) remove the invalid token from your system with `anaconda logout`, optionally
-        followed by collecting a new token with `anaconda login`, or
-    (b) provide conda with a valid token directly.
+You may need to:
+  (a) Remove or update the invalid token from your configuration, or
+  (b) Provide conda with a valid token directly.
 
 Further configuration help can be found at <{}>.
 """.format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
@@ -875,7 +890,6 @@ class RepodataFetch:
                 if raw_repodata is RepodataOnDisk:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
-                    # XXX use self._repo_cache.load() or replace after passing temp path to jlap
                     raw_repodata = self.cache_path_json.read_text()
                     stat = self.cache_path_json.stat()
                     cache.state["size"] = stat.st_size  # type: ignore

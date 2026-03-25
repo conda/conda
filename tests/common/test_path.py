@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ntpath
 import re
+from contextlib import nullcontext
 from logging import getLogger
 from pathlib import PureWindowsPath
 from typing import TYPE_CHECKING
@@ -12,11 +13,13 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context
+from conda.common import path
 from conda.common.compat import on_win
 from conda.common.path import (
     get_major_minor_version,
     missing_pyc_files,
     path_identity,
+    strip_pkg_extension,
     unix_path_to_win,
     url_to_path,
     win_path_backout,
@@ -407,3 +410,55 @@ def test_path_conversion(
             cygdrive = f"/cygdrive{roundtrip}"
             path = win_path_to_unix(win, prefix=win_prefix, cygdrive=True)
             assert path == cygdrive, f"{win} → {path} ≠ {cygdrive}"
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("is_package_file", TypeError),
+        ("KNOWN_EXTENSIONS", TypeError),
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(path, function)()
+
+
+@pytest.mark.parametrize(
+    "path,expected_base,expected_ext",
+    [
+        # .tar.bz2 packages
+        (
+            "/path/numpy-1.26.4-py312h8753938_0.tar.bz2",
+            "/path/numpy-1.26.4-py312h8753938_0",
+            ".tar.bz2",
+        ),
+        (
+            "requests-2.32.3-py313h06a4308_0.tar.bz2",
+            "requests-2.32.3-py313h06a4308_0",
+            ".tar.bz2",
+        ),
+        # .conda packages
+        (
+            "/path/pandas-2.2.3-py312h526ad5a_1.conda",
+            "/path/pandas-2.2.3-py312h526ad5a_1",
+            ".conda",
+        ),
+        ("zlib-1.3.1-h5f15de7_0.conda", "zlib-1.3.1-h5f15de7_0", ".conda"),
+        # No extension - historic behavior: returns (path, None) for graceful handling
+        # of paths without known extensions. See docstring examples in strip_pkg_extension.
+        (
+            "/path/numpy-1.26.4-py312h8753938_0",
+            "/path/numpy-1.26.4-py312h8753938_0",
+            None,
+        ),
+        ("zlib-1.3.1-h5f15de7_0", "zlib-1.3.1-h5f15de7_0", None),
+    ],
+)
+def test_strip_pkg_extension(
+    path: str, expected_base: str, expected_ext: str | None
+) -> None:
+    base, ext = strip_pkg_extension(path)
+    assert base == expected_base
+    assert ext == expected_ext

@@ -162,4 +162,4 @@ More information
 
 * :doc:`Conda cheat sheet <cheatsheet>`
 * `Full documentation <https://conda.io/docs/>`_
-* `Free community support <https://groups.google.com/a/anaconda.com/forum/#!forum/anaconda>`_
+* `Free community support <https://docs.conda.io/en/latest/help-support.html>`_

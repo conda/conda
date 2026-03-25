@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import json
+import shutil
+import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,9 +17,10 @@ import pytest
 from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import CondaError, CorruptedEnvironmentError
+from conda.exceptions import CondaError, CondaValueError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PrefixRecord
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
 
@@ -27,6 +31,8 @@ if TYPE_CHECKING:
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
+CORRUPT_DATA_DIR = Path(__file__).parent.parent / "data" / "corrupt"
+DOT_UNDERSCORE_DIR = CORRUPT_DATA_DIR / "dot_underscore"
 
 
 @pytest.mark.parametrize(
@@ -255,6 +261,14 @@ ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
             id=PATH_TEST_ENV_2.name,
             marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
+        pytest.param(
+            PATH_TEST_ENV_3 := ENV_METADATA_DIR / "envpy313tosx_whl",
+            {
+                "imagesize",
+            },
+            id=PATH_TEST_ENV_3.name,
+            marks=pytest.mark.skipif(on_win, reason="Unix only"),
+        ),
     ],
 )
 def test_pip_interop(
@@ -319,6 +333,16 @@ def test_corrupt_json_conda_meta_json():
     """Test for graceful failure if a JSON corrupt file exists in conda-meta."""
     with pytest.raises(CorruptedEnvironmentError):
         PrefixData("tests/data/corrupt/json").load()
+
+
+def test_dot_underscore_conda_meta_json_ignored(tmp_path: Path):
+    target_prefix = tmp_path / "dot_underscore"
+    shutil.copytree(DOT_UNDERSCORE_DIR, target_prefix)
+
+    prefix_data = PrefixData(target_prefix)
+    prefix_data.load()
+
+    assert prefix_data.get("valid") is not None
 
 
 @pytest.fixture
@@ -948,3 +972,96 @@ def test_timestamps(
         assert created == pd.created
         assert first_modification < second_modification
         assert start < pd.created < second_modification < datetime.now(tz=timezone.utc)
+
+
+@pytest.mark.skipif(not on_win, reason="Windows only")
+@pytest.mark.parametrize("change_case", [True, False])
+def test_conda_package_recognized_windows(empty_env, change_case):
+    """
+    On Windows, case sensitivity would mess with package discovery. See
+    https://github.com/conda/conda/pull/15725
+    """
+    requests_text = next(
+        Path(sys.prefix, "conda-meta").glob("requests-*-*.json")
+    ).read_text()
+    if change_case:
+        requests_text = requests_text.replace("lib/site-packages", "LiB/siTe-PacKageS")
+    record = PrefixRecord.from_json(requests_text)
+    prefix_data = PrefixData(empty_env)
+    prefix_data.insert(record)
+    prefix_data.load()
+    assert prefix_data.get("requests").channel_name != "pypi"
+
+
+@pytest.mark.parametrize(
+    "char,should_raise",
+    [
+        # Valid chars
+        ("a", False),
+        ("A", False),
+        ("-", False),
+        ("_", False),
+        (".", False),
+        ("0", False),
+        # Problematic chars, see WINDOWS_PROBLEMATIC_CHARS
+        ("!", False),
+        ("^", False),
+        ("%", False),
+        ("=", False),
+        ("(", False),
+        (")", False),
+        # Invalid chars, see PREFIX_NAME_DISALLOWED_CHARS
+        # ("/", True),
+        (" ", True),
+        # (":", True),
+        ("#", True),
+    ],
+)
+def test_prefix_data_validate_name(
+    tmp_env: TmpEnvFixture,
+    char: str,
+    should_raise: bool,
+):
+    """
+    Test PrefixData.validate_name() for various environment names.
+
+    This test documents current behavior. When implementing #12558, update
+    the expected behavior for Windows-problematic characters.
+
+    See: https://github.com/conda/conda/issues/12558
+    """
+    with tmp_env(path_infix=char) as env_path:
+        pd = PrefixData(env_path)
+        with pytest.raises(CondaValueError) if should_raise else nullcontext():
+            pd.validate_name()
+
+
+@pytest.mark.parametrize(
+    "allow_base,raises",
+    [
+        (False, True),
+        (True, False),
+    ],
+)
+def test_prefix_data_validate_name_base(
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    allow_base: bool,
+    raises: bool,
+):
+    """Test that 'base' is rejected when allow_base=False."""
+    # Path envs/base so PrefixData.name resolves to "base" when envs_dir is mocked
+    with tmp_env(name="envs/base") as base_path:
+        mocker.patch(
+            "conda.base.context.Context.envs_dirs",
+            new_callable=mocker.PropertyMock,
+            return_value=(str(base_path.parent),),
+        )
+
+        pd = PrefixData(base_path)
+        with (
+            pytest.raises(CondaValueError, match="reserved environment name")
+            if raises
+            else nullcontext()
+        ):
+            pd.validate_name(allow_base=allow_base)

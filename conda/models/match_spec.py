@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 import warnings
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import reduce
 from itertools import chain
@@ -24,7 +24,7 @@ from ..base.context import context
 from ..common.compat import isiterable
 from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict as groupby
-from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_path
+from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
@@ -717,7 +717,7 @@ def _parse_spec_str(spec_str):
     spec_str = spec_split[0]
 
     # Step 2. done if spec_str is a tarball
-    if is_package_file(spec_str):
+    if context.plugin_manager.has_package_extension(spec_str):
         # treat as a normal url
         if not is_url(spec_str):
             spec_str = unquote(path_to_url(expand(spec_str)))
@@ -887,7 +887,8 @@ class MatchInterface(metaclass=ABCMeta):
     def raw_value(self):
         return self._raw_value
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def exact_value(self):
         """If the match value is an exact specification, returns the value.
         Otherwise returns None.

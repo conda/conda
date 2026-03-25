@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -12,7 +13,7 @@ import pytest
 from conda.base.constants import PREFIX_MAGIC_FILE
 from conda.base.context import context
 from conda.common.compat import on_win
-from conda.common.serialize import yaml_safe_dump, yaml_safe_load
+from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     CondaEnvException,
@@ -20,8 +21,8 @@ from conda.exceptions import (
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
     PackagesNotFoundError,
+    PluginError,
     ResolvePackageNotFound,
-    SpecNotFound,
 )
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
 
     from conda.testing.fixtures import (
         CondaCLIFixture,
+        HttpTestServerFixture,
         PathFactoryFixture,
         TmpEnvFixture,
     )
@@ -43,7 +45,7 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 TEST_ENV1 = "env1"
 
 # Environment config files we use for our tests
-ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
@@ -51,7 +53,7 @@ ENVIRONMENT_CA_CERTIFICATES = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates"],
@@ -64,7 +66,7 @@ ENVIRONMENT_CA_CERTIFICATES_WITH_VARIABLES = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
+ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["ca-certificates", "zlib"],
@@ -72,7 +74,7 @@ ENVIRONMENT_CA_CERTIFICATES_ZLIB = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
+ENVIRONMENT_PIP_CLICK = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click"]}],
@@ -80,7 +82,7 @@ ENVIRONMENT_PIP_CLICK = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
+ENVIRONMENT_PIP_CLICK_ATTRS = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["click", "attrs"]}],
@@ -88,7 +90,7 @@ ENVIRONMENT_PIP_CLICK_ATTRS = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
+ENVIRONMENT_PIP_NONEXISTING = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["pip>=23", {"pip": ["nonexisting_"]}],
@@ -96,7 +98,7 @@ ENVIRONMENT_PIP_NONEXISTING = yaml_safe_dump(
     }
 )
 
-ENVIRONMENT_UNSOLVABLE = yaml_safe_dump(
+ENVIRONMENT_UNSOLVABLE = yaml.write(
     {
         "name": TEST_ENV1,
         "dependencies": ["does-not-exist"],
@@ -204,7 +206,7 @@ def test_create_dry_run_yaml(
     else:
         pytest.fail("Didn't find YAML data in output")
 
-    output = yaml_safe_load("\n".join(lines[lineno:]))
+    output = yaml.loads("\n".join(lines[lineno:]))
     assert output["name"] == "env1"
     assert len(output["dependencies"]) > 0
 
@@ -268,23 +270,35 @@ def test_create_valid_env_with_variables(
 def test_conda_env_create_empty_file(
     conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
-    """Test `conda env create --file=file_name.yml` where file_name.yml is empty."""
+    """Test the environment.yaml format, `conda env create --file=file_name.yml` where file_name.yml is empty."""
     tmp_file = path_factory(suffix=".yml")
     tmp_file.touch()
 
-    with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={tmp_file}")
+    with pytest.raises(PluginError):
+        conda_cli("env", "create", "--env-spec=cep-24", f"--file={tmp_file}")
 
 
 @pytest.mark.integration
-def test_conda_env_create_http(conda_cli: CondaCLIFixture, tmp_path: Path):
+@pytest.mark.parametrize(
+    "http_test_server",
+    [Path(__file__).parent.parent / "env/support"],
+    indirect=True,
+)
+def test_conda_env_create_http(
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    test_recipes_channel: Path,
+    http_test_server: HttpTestServerFixture,
+):
     """Test `conda env create --file=https://some-website.com/environment.yml`."""
-    conda_cli(
-        *("env", "create"),
-        f"--prefix={tmp_path}",
-        "--file=https://raw.githubusercontent.com/conda/conda/main/tests/env/support/simple.yml",
-    )
+    url = http_test_server.get_url("small-executable.yml")
+    conda_cli("env", "create", f"--prefix={tmp_path}", f"--file={url}")
     assert (tmp_path / PREFIX_MAGIC_FILE).is_file()
+    stdout, stderr, code = conda_cli("list", f"--prefix={tmp_path}", "--json")
+    parsed = json.loads(stdout)
+    # We should have the `small-executable` package installed
+    assert len(parsed) == 1
+    assert parsed[0].get("name") == "small-executable"
 
 
 @pytest.mark.integration
@@ -539,7 +553,7 @@ def test_env_export(
             "env", "export", f"--prefix={prefix}", "--no-builds"
         )
         assert not stderr
-        env_description = yaml_safe_load(stdout)
+        env_description = yaml.loads(stdout)
         assert len(env_description["dependencies"])
         for spec_str in env_description["dependencies"]:
             assert spec_str.count("=") == 1  # package=version (no-builds format)
@@ -577,7 +591,7 @@ def test_env_export_with_variables(
             "env", "export", f"--prefix={prefix}", "--no-builds"
         )
         assert not stderr
-        env_description = yaml_safe_load(stdout)
+        env_description = yaml.loads(stdout)
         assert len(env_description["variables"])
         assert env_description["variables"].keys()
 
@@ -635,7 +649,6 @@ def test_export_multi_channel(
     """Test conda env export."""
     from conda.core.prefix_data import PrefixData
 
-    PrefixData._cache_.clear()
     with tmp_env() as prefix:
         conda_cli("create", f"--prefix={prefix}", "python", "--yes")
         assert PrefixData(prefix).is_environment()
@@ -672,18 +685,6 @@ def test_non_existent_file(conda_cli: CondaCLIFixture):
         conda_cli("env", "create", "--file", "i_do_not_exist.yml", "--yes")
 
 
-@pytest.mark.integration
-def test_invalid_extensions(
-    conda_cli: CondaCLIFixture,
-    path_factory: PathFactoryFixture,
-):
-    env_yml = path_factory(suffix=".ymla")
-    env_yml.touch()
-
-    with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={env_yml}", "--yes")
-
-
 # conda env list [--json]
 def test_list_info_envs(conda_cli: CondaCLIFixture):
     stdout_env, _, _ = conda_cli("env", "list")
@@ -693,3 +694,38 @@ def test_list_info_envs(conda_cli: CondaCLIFixture):
     stdout_env, _, _ = conda_cli("env", "list", "--json")
     stdout_info, _, _ = conda_cli("info", "--envs", "--json")
     assert stdout_env == stdout_info
+
+
+def test_env_list_size(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("env", "list", "--size")
+    assert not stderr
+    assert not err
+
+    lines = stdout.strip().split("\n")
+    non_comment_lines = [line for line in lines if line and not line.startswith("#")]
+
+    # regex to match: <any prefix stuff> <number> <unit> <path>
+    # The path is at the end of the line.
+    pattern = re.compile(
+        r"\s+(?P<size>\d+(\.\d+)?)\s+(?P<unit>B|KB|MB|GB)\s+(?P<path>.*)$"
+    )
+
+    for line in non_comment_lines:
+        match = pattern.search(line)
+        assert match, f"Line did not match size pattern: {line}"
+        assert match.group("unit") in ["B", "KB", "MB", "GB"]
+
+
+def test_env_list_size_json(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("env", "list", "--size", "--json")
+    assert not stderr
+    assert not err
+
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+    assert "envs_details" in parsed
+
+    for prefix, details in parsed["envs_details"].items():
+        assert "size" in details
+        assert isinstance(details["size"], int)
+        assert details["size"] >= 0

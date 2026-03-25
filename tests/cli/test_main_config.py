@@ -94,6 +94,25 @@ def test_config_show_sources_json(conda_cli: CondaCLIFixture):
     assert not err
 
 
+def test_format_dict_mapping_items():
+    from frozendict import frozendict
+
+    from conda.cli.main_config import format_dict
+
+    result = format_dict(
+        {
+            "channel_settings": [
+                frozendict({"channel": "https://example.com/*", "auth": "token"}),
+            ],
+        }
+    )
+    formatted = "\n".join(result)
+    assert "frozendict" not in formatted
+    assert "channel_settings:" in formatted
+    assert "  - channel: https://example.com/*" in formatted
+    assert "    auth: token" in formatted
+
+
 def test_config_get_key(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("CONDA_JSON", "true")
     reset_context()
@@ -305,15 +324,17 @@ def test_config_set_and_get_key_for_env(
         "config", "--append", "channels", test_channel_name, "--prefix", empty_env
     )
 
-    # check config is added to the prefix config
-    stdout, _, _ = conda_cli("config", "--show", "--prefix", empty_env, "--json")
-    parsed = json.loads(stdout.strip())
-    assert test_channel_name in parsed["channels"]
+    # TODO: a deprecation warning is emitted for `error_upload_url`.
+    with pytest.deprecated_call():
+        # check config is added to the prefix config
+        stdout, _, _ = conda_cli("config", "--show", "--prefix", empty_env, "--json")
+        parsed = json.loads(stdout.strip())
+        assert test_channel_name in parsed["channels"]
 
-    # check config is not added to the config of the base environment
-    stdout, _, _ = conda_cli("config", "--show", "--json")
-    parsed = json.loads(stdout.strip())
-    assert test_channel_name not in parsed["channels"]
+        # check config is not added to the config of the base environment
+        stdout, _, _ = conda_cli("config", "--show", "--json")
+        parsed = json.loads(stdout.strip())
+        assert test_channel_name not in parsed["channels"]
 
 
 def test_config_env_does_not_exist(

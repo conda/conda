@@ -19,15 +19,13 @@ from typing import TYPE_CHECKING, Literal, TypeVar, overload
 import py
 import pytest
 
-from conda.deprecations import deprecated
-
 from .. import CONDA_SOURCE_ROOT
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
 from ..base.context import context, reset_context
 from ..cli.main import main_subshell
 from ..common.configuration import YamlRawParameter
-from ..common.serialize import json, yaml_round_trip_load
+from ..common.serialize import json, yaml
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
@@ -40,7 +38,6 @@ if TYPE_CHECKING:
     import http.server
     from collections.abc import Iterable, Iterator
 
-    from _pytest.capture import MultiCapture
     from pytest import (
         CaptureFixture,
         ExceptionInfo,
@@ -204,15 +201,6 @@ def _solver_helper(
     yield solver
 
 
-@pytest.fixture(scope="session")
-@deprecated("25.9", "26.3")
-def session_capsys(request) -> Iterator[MultiCapture]:
-    # https://github.com/pytest-dev/pytest/issues/2704#issuecomment-603387680
-    capmanager = request.config.pluginmanager.getplugin("capturemanager")
-    with capmanager.global_and_fixture_disabled():
-        yield capmanager._global_capturing
-
-
 @dataclass
 class CondaCLIFixture:
     capsys: CaptureFixture | None
@@ -265,26 +253,8 @@ class CondaCLIFixture:
 
     @staticmethod
     def _cast_args(argv: tuple[PathType, ...]) -> Iterable[str]:
-        """Cast args to string and inspect for `conda run`.
-
-        `conda run` is a unique case that requires `--dev` to use the src shell scripts
-        and not the shell scripts provided by the installer.
-        """
-        # TODO: Refactor this so we don't expose testing infrastructure to the user
-        # (i.e., deprecate `conda run --dev`).
-        argv = map(str, argv)
-        for arg in argv:
-            yield arg
-
-            # detect if arg is the command (the first positional)
-            if arg[0] != "-":
-                # this is the first positional, return remaining arguments
-
-                # if this happens to be the `conda run` command, add --dev
-                if arg == "run":
-                    yield "--dev"  # use src, not installer's shell scripts
-
-                yield from argv
+        """Cast args to string."""
+        return map(str, argv)
 
 
 @pytest.fixture
@@ -395,7 +365,9 @@ class PathFactoryFixture:
     def __call__(
         self,
         name: str | None = None,
+        *,
         prefix: str | None = None,
+        infix: str | None = None,
         suffix: str | None = None,
     ) -> Path:
         """Unique, non-existent path factory.
@@ -403,15 +375,36 @@ class PathFactoryFixture:
         Extends pytest's `tmp_path` fixture with a new unique, non-existent path for usage in cases
         where we need a temporary path that doesn't exist yet.
 
-        :param name: Path name to append to `tmp_path`
-        :param prefix: Prefix to prepend to unique name generated
-        :param suffix: Suffix to append to unique name generated
+        Default behavior (no arguments):
+           ``path_factory()`` → ``tmp_path/ab12cd34ef56`` (12-char UUID)
+
+        Two modes of operation (mutually exclusive):
+
+        1. Name mode: Pass a complete path name.
+           ``path_factory("myfile.txt")`` → ``tmp_path/myfile.txt``
+
+        2. Parts mode: Pass prefix/infix/suffix; unspecified parts get UUID defaults.
+           ``path_factory(infix="!")`` → ``tmp_path/ab12!ef56``
+           ``path_factory(suffix=".yml")`` → ``tmp_path/ab12cd34.yml``
+
+        :param name: Complete path name (mutually exclusive with prefix/infix/suffix)
+        :param prefix: Prefix for generated name (mutually exclusive with name param)
+        :param infix: Infix for generated name (mutually exclusive with name param)
+        :param suffix: Suffix for generated name (mutually exclusive with name param)
         :return: A new unique path
         """
-        prefix = prefix or ""
-        name = name or uuid.uuid4().hex[:8]
-        suffix = suffix or ""
-        return self.tmp_path / (prefix + name + suffix)
+        if name and (prefix or infix or suffix):
+            raise ValueError(
+                "name and (prefix or infix or suffix) are mutually exclusive"
+            )
+        elif name:
+            return self.tmp_path / name
+        else:
+            random = uuid.uuid4().hex
+            prefix = prefix or random[:4]
+            infix = infix or random[4:8]
+            suffix = suffix or random[8:12]
+            return self.tmp_path / (prefix + infix + suffix)
 
 
 @pytest.fixture
@@ -429,32 +422,80 @@ class TmpEnvFixture:
     path_factory: PathFactoryFixture | TempPathFactory
     conda_cli: CondaCLIFixture
 
-    def get_path(self) -> Path:
+    def get_path(
+        self,
+        name: str | None = None,
+        prefix: str | None = None,
+        infix: str | None = None,
+        suffix: str | None = None,
+    ) -> Path:
         if isinstance(self.path_factory, PathFactoryFixture):
             # scope=function
-            return self.path_factory()
+            return self.path_factory(
+                name=name,
+                prefix=prefix,
+                infix=infix,
+                suffix=suffix,
+            )
         else:
             # scope=session
-            return self.path_factory.mktemp("tmp_env-")
+            return self.path_factory.mktemp(
+                name or ((prefix or "tmp_env-") + (infix or "") + (suffix or ""))
+            )
 
     @contextmanager
     def __call__(
         self,
         *args: str,
         prefix: str | os.PathLike | None = None,
+        name: str | None = None,
+        path_prefix: str | None = None,
+        path_infix: str | None = None,
+        path_suffix: str | None = None,
         shallow: bool | None = None,
     ) -> Iterator[Path]:
         """Generate a conda environment with the provided packages.
 
-        :param args: The arguments to pass to conda create (e.g., packages, flags, etc.)
-        :param prefix: The prefix at which to install the conda environment
-        :param shallow: Whether the environment is created only on disk without call to `conda create`
+        Path customization (mutually exclusive options):
+
+        1. Auto-generated path (default): Unique path in tmp_path.
+           ``tmp_env()`` → ``tmp_path/ab12cd34ef56`` (12-char UUID)
+
+        2. Custom prefix: Specify exact location.
+           ``tmp_env(prefix="/path/to/env")`` → ``/path/to/env``
+
+        3. Name mode: Specify env name directly.
+           ``tmp_env(name="my-test-env")`` → ``tmp_path/my-test-env``
+
+        4. Parts mode: Customize path name generation (useful for special char testing).
+           ``tmp_env(path_infix="!")`` → ``tmp_path/ab12!ef56``
+
+        :param args: Arguments to pass to conda create (e.g., packages, flags)
+        :param prefix: Exact prefix path (mutually exclusive with name/path_* params)
+        :param name: Env name (mutually exclusive with prefix/path_* params)
+        :param path_prefix: Prefix for path name (mutually exclusive with prefix/name params)
+        :param path_infix: Infix for path name (mutually exclusive with prefix/name params)
+        :param path_suffix: Suffix for path name (mutually exclusive with prefix/name params)
+        :param shallow: If True, create env on disk only without conda create
         :return: The conda environment's prefix
         """
         if shallow and args:
             raise ValueError("shallow=True cannot be used with any arguments")
 
-        prefix = Path(prefix or self.get_path())
+        if prefix and (name or path_prefix or path_infix or path_suffix):
+            raise ValueError(
+                "prefix and (name or path_prefix or path_infix or path_suffix) are mutually exclusive"
+            )
+
+        prefix = Path(
+            prefix
+            or self.get_path(
+                name,
+                path_prefix,
+                path_infix,
+                path_suffix,
+            )
+        )
 
         if shallow or (shallow is None and not args):
             # no arguments, just create an empty environment
@@ -536,7 +577,16 @@ class TmpChannelFixture:
         noarch = channel / "noarch"
         noarch.mkdir(parents=True)
 
-        repodata = {"info": {}, "packages": {}}
+        noarch_packages: dict[str, dict[str, object]] = {
+            "info": {"subdir": "noarch"},
+            "packages": {},
+            "packages.conda": {},
+        }
+        subdir_packages: dict[str, dict[str, object]] = {
+            "info": {"subdir": subdir.name},
+            "packages": {},
+            "packages.conda": {},
+        }
         iter_specs = list(specs)
         seen: dict[str, set[str]] = {}
         while iter_specs:
@@ -547,13 +597,26 @@ class TmpChannelFixture:
                 fname = package_record["fn"]
                 if fname in seen:
                     seen[fname].add(spec)
-                seen[fname] = {spec}
+                else:
+                    seen[fname] = {spec}
 
                 # copy package to channel
-                copyfile(pkgs_dir / fname, subdir / fname)
+                tarball = package_record.package_tarball_full_path
+                if Path(tarball).is_file():
+                    source = tarball
+                else:
+                    source = pkgs_dir / fname
+                if package_record.subdir == "noarch":
+                    target = noarch
+                    packages = noarch_packages
+                else:
+                    target = subdir
+                    packages = subdir_packages
+                copyfile(source, target / fname)
 
                 # add package to repodata
-                repodata["packages"][fname] = PackageRecord(
+                key = "packages" if fname.endswith(".tar.bz2") else "packages.conda"
+                packages[key][fname] = PackageRecord(
                     **{
                         field: value
                         for field, value in package_record.dump().items()
@@ -563,8 +626,8 @@ class TmpChannelFixture:
 
                 iter_specs.extend(package_record.depends)
 
-        (subdir / "repodata.json").write_text(json.dumps(repodata))
-        (noarch / "repodata.json").write_text(json.dumps({}))
+        (subdir / "repodata.json").write_text(json.dumps(subdir_packages))
+        (noarch / "repodata.json").write_text(json.dumps(noarch_packages))
 
         # ensure all packages were copied to the channel
         for spec in chain.from_iterable(seen.values()):
@@ -666,7 +729,7 @@ def context_testdata() -> None:
     context._set_raw_data(
         {
             "testdata": YamlRawParameter.make_raw_parameters(
-                "testdata", yaml_round_trip_load(TEST_CONDARC)
+                "testdata", yaml.loads(TEST_CONDARC)
             )
         }
     )

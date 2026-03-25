@@ -31,7 +31,6 @@ how that strategy is implemented.
 
 import os
 import re
-import struct
 import sys
 from difflib import unified_diff
 from errno import ENOENT
@@ -54,6 +53,7 @@ from ..activate import (
 )
 from ..auxlib.compat import Utf8NamedTemporaryFile
 from ..auxlib.ish import dals
+from ..base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from ..base.context import context
 from ..common.compat import (
     ensure_binary,
@@ -63,6 +63,7 @@ from ..common.compat import (
     on_win,
     open_utf8,
 )
+from ..common.io import dashlist
 from ..common.path import (
     BIN_DIRECTORY,
     expand,
@@ -323,21 +324,11 @@ def make_install_plan(conda_prefix):
     # ######################################
     if on_win:
         conda_exe_path = join(conda_prefix, "Scripts", "conda-script.py")
-        conda_env_exe_path = join(conda_prefix, "Scripts", "conda-env-script.py")
         plan.append(
             {
                 "function": make_entry_point_exe.__name__,
                 "kwargs": {
                     "target_path": join(conda_prefix, "Scripts", "conda.exe"),
-                    "conda_prefix": conda_prefix,
-                },
-            }
-        )
-        plan.append(
-            {
-                "function": make_entry_point_exe.__name__,
-                "kwargs": {
-                    "target_path": join(conda_prefix, "Scripts", "conda-env.exe"),
                     "conda_prefix": conda_prefix,
                 },
             }
@@ -356,7 +347,6 @@ def make_install_plan(conda_prefix):
             }
         )
         conda_exe_path = join(conda_prefix, "bin", "conda")
-        conda_env_exe_path = join(conda_prefix, "bin", "conda-env")
 
     plan.append(
         {
@@ -365,18 +355,6 @@ def make_install_plan(conda_prefix):
                 "target_path": conda_exe_path,
                 "conda_prefix": conda_prefix,
                 "module": "conda.cli",
-                "func": "main",
-            },
-        }
-    )
-    plan.append(
-        {
-            "function": make_entry_point.__name__,
-            "kwargs": {
-                "target_path": conda_env_exe_path,
-                "conda_prefix": conda_prefix,
-                # TODO: Remove upon full deprecation in 25.3
-                "module": "conda_env.cli.main",
                 "func": "main",
             },
         }
@@ -1205,9 +1183,15 @@ def make_entry_point(target_path, conda_prefix, module, func):
 
 def make_entry_point_exe(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
+    if context.subdir not in WINDOWS_LAUNCHER_STUB_PATH:
+        raise NotImplementedError(
+            f"Windows entry point stub not available for subdir {context.subdir!r}. "
+            f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
+        )
     exe_path = target_path
-    bits = 8 * struct.calcsize("P")
-    source_exe_path = join(CONDA_PACKAGE_ROOT, "shell", "cli-%d.exe" % bits)
+    source_exe_path = join(
+        CONDA_PACKAGE_ROOT, WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
+    )
     if isfile(exe_path):
         if compute_sum(exe_path, "md5") == compute_sum(source_exe_path, "md5"):
             return Result.NO_CHANGE
@@ -2241,6 +2225,7 @@ def remove_conda_in_sp_dir(target_path):
         modified = True
     others = (
         "conda",
+        # conda-env was removed in conda 26.3, but we still include it in the uninstall plan if present
         "conda_env",
     )
     for other in others:
