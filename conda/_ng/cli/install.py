@@ -88,6 +88,11 @@ def install(
         )
 
     console = create_console()
+    if context.verbose:
+        console.print(f"[dim]channels:[/] {','.join(map(str, channels))}")
+        console.print(f"[dim]platform:[/] {platform}")
+        if target_prefix:
+            console.print(f"[dim]prefix:[/] {target_prefix}")
 
     # pre-solve
     context.plugin_manager.invoke_pre_solves(

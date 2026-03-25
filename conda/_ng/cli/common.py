@@ -119,3 +119,16 @@ def dist_str(pkg: PackageRecord) -> str:
     if not channel_and_subdir.endswith(pkg.subdir):
         channel_and_subdir += f"/{pkg.subdir}"
     return f"{channel_and_subdir}::{pkg.name.normalized}-{pkg.version}-{pkg.build}"
+
+
+def print_exception(exc: Exception, console: Console | None = None) -> None:
+    from rich.panel import Panel
+
+    (console or create_console()).print(
+        Panel(
+            str(exc),
+            title=f"[red][dim]error:[/dim] {type(exc).__name__}",
+            padding=1,
+            border_style="red",
+        )
+    )
