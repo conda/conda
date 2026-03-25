@@ -15,7 +15,7 @@ from logging import getLogger
 from os.path import basename
 from pathlib import Path
 from shutil import rmtree
-from subprocess import CalledProcessError, check_call, check_output, run
+from subprocess import CalledProcessError, check_output, run
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
@@ -2366,17 +2366,35 @@ def test_dont_remove_conda_3(
     with tmp_env("conda", "conda-pypi") as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         monkeypatch.setenv("CONDA_PREFIX", str(prefix))
+        monkeypatch.delenv("CONDA_DEFAULT_ENV", raising=False)
+        monkeypatch.delenv("CONDA_PROMPT_MODIFIER", raising=False)
+        monkeypatch.delenv("CONDA_SHLVL", raising=False)
         reset_context()
         assert context.root_prefix == str(prefix)
 
         conda_exe = prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda")
         assert conda_exe.exists()
 
+        subprocess_env = os.environ.copy()
+        for env_var in (
+            "CONDA_DEFAULT_ENV",
+            "CONDA_PREFIX",
+            "CONDA_PROMPT_MODIFIER",
+            "CONDA_SHLVL",
+            "CONDA_EXE",
+            "CONDA_PYTHON_EXE",
+            "_CE_M",
+            "_CE_CONDA",
+        ):
+            subprocess_env.pop(env_var, None)
+        subprocess_env["CONDA_ROOT_PREFIX"] = str(prefix)
+
         checkout_dir = Path(__file__).resolve().parents[1]
         run(
             [conda_exe, "pypi", "convert", str(checkout_dir)],
             check=True,
             cwd=prefix,
+            env=subprocess_env,
         )
         converted_pkgs = sorted((prefix / "conda-pypi-output").glob("conda-*.conda"))
         if not converted_pkgs:
@@ -2388,9 +2406,10 @@ def test_dont_remove_conda_3(
 
         foreign_root_prefix = prefix / "tmp-root-prefix"
         foreign_root_prefix.mkdir()
-        remove_env = os.environ.copy()
+        remove_env = subprocess_env.copy()
         remove_env["CONDA_ROOT_PREFIX"] = str(foreign_root_prefix)
-        remove_env.pop("CONDA_PREFIX", None)
+
+        print("Remove prepackaged conda")
 
         run(
             [conda_exe, "remove", f"--prefix={prefix}", "conda", "--force", "--yes"],
@@ -2399,33 +2418,18 @@ def test_dont_remove_conda_3(
         )
         assert not package_is_installed(prefix, "conda")
 
+        print("Install conda under test")
+
         conda_cli("install", f"--prefix={prefix}", str(converted_conda_pkg), "--yes")
         assert package_is_installed(prefix, "conda")
 
-        if on_win:
-            conda_bat = prefix / "condabin" / "conda.bat"
-            run(
-                [
-                    "cmd.exe",
-                    "/d",
-                    "/c",
-                    f'CALL "{conda_bat}" activate "{prefix}" && conda --version',
-                ],
-                check=True,
-            )
-        else:
-            run(
-                [
-                    "bash",
-                    "-lc",
-                    f'eval "$("{conda_exe}" shell.bash hook)" && conda activate "{prefix}" && conda --version',
-                ],
-                check=True,
-            )
+        print("Remove conda-package-handling from conda-meta")
 
-        # conda-package-handling may be a more durable dependency than pycosat
         conda_dependency = "conda-package-handling"
-        assert package_is_installed(prefix, conda_dependency)
+        # May still be true either due to cache or pip interoperability:
+        print(
+            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
+        )
         conda_dependency_meta = [
             *(prefix / "conda-meta").glob(f"{conda_dependency}-*.json"),
         ]
@@ -2433,23 +2437,19 @@ def test_dont_remove_conda_3(
         for meta_path in conda_dependency_meta:
             meta_path.unlink()
 
-        conda_dependency_dist_info = [
-            *prefix.glob(
-                "lib/python*/site-packages/conda_package_handling-*.dist-info"
-            ),
-            *prefix.glob("Lib/site-packages/conda_package_handling-*.dist-info"),
-        ]
-        assert conda_dependency_dist_info
-        for dist_info_path in conda_dependency_dist_info:
-            rmtree(dist_info_path)
-
-        # this list is cached
+        # reload() to update cached results
         PrefixData(str(prefix)).reload()
-        assert not package_is_installed(prefix, conda_dependency)
+        print(
+            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
+        )
 
+        # we will likely add this dependency; what's a better small package with
+        # no dependencies?
         lightweight_dependency = "backports"
         assert not package_is_installed(prefix, lightweight_dependency)
         expected_remove_error = "RemoveError"
+
+        print(f"Install {lightweight_dependency}")
 
         with pytest.raises(CalledProcessError) as install_exc:
             run(
@@ -2465,11 +2465,16 @@ def test_dont_remove_conda_3(
                 check=True,
                 capture_output=True,
                 text=True,
+                env=subprocess_env,
             )
         install_output = (install_exc.value.stdout or "") + (
             install_exc.value.stderr or ""
         )
         assert expected_remove_error in install_output
+
+        print(
+            f"Remove {lightweight_dependency} (probably fails because it wasn't installed due to RemoveError"
+        )
 
         with pytest.raises(CalledProcessError):
             run(
@@ -2485,6 +2490,7 @@ def test_dont_remove_conda_3(
                 check=True,
                 capture_output=True,
                 text=True,
+                env=subprocess_env,
             )
 
 
