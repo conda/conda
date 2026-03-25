@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from ...common.serialize import yaml
 from ...deprecations import deprecated
-from ...exceptions import CondaValueError
+from ...exceptions import CondaValueError, PluginError
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
@@ -42,19 +42,15 @@ class YamlFileSpec(EnvironmentSpecBase):
 
         :return: True or False
         """
-        if not self.filename:
-            return False
+        if self.filename is None:
+            raise CondaValueError("No filename provided")
 
-        try:
-            yamlstr = env.load_file(self.filename)
-            data = yaml.loads(yamlstr)
-            # We check for dict in order to avoid loading flat files as YAML.
-            # The standard really wants a nested dict structure.
-            if data is None or not isinstance(data, dict):
-                return False
-        except Exception:
-            log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
-            return False
+        yamlstr = env.load_file(self.filename)
+        data = yaml.loads(yamlstr)
+        # We check for dict in order to avoid loading flat files as YAML.
+        # The standard really wants a nested dict structure.
+        if data is None or not isinstance(data, dict):
+            raise PluginError(f"{self.filename} is an empty yaml file.")
 
         return True
 
