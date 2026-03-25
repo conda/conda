@@ -103,6 +103,7 @@ def conda_environment_exporters():
         aliases=("yaml", "yml", "env.yml"),
         default_filenames=("environment.yaml", "environment.yml"),
         export=export_yaml,
+        description="YAML format with channels and dependencies",
     )
 
     yield CondaEnvironmentExporter(
@@ -110,4 +111,5 @@ def conda_environment_exporters():
         aliases=("json",),
         default_filenames=("environment.json",),
         export=export_json,
+        description="JSON format with channels and dependencies",
     )

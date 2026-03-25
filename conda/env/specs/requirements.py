@@ -8,13 +8,11 @@ import os
 
 from ...base.context import context
 from ...common.url import is_url
-from ...deprecations import deprecated
-from ...exceptions import CondaValueError, InvalidMatchSpec
+from ...exceptions import InvalidMatchSpec
 from ...gateways.disk.read import yield_lines
 from ...models.environment import Environment
 from ...models.match_spec import MatchSpec
 from ...plugins.types import EnvironmentSpecBase
-from ..env import EnvironmentYaml
 
 
 class RequirementsSpec(EnvironmentSpecBase):
@@ -25,52 +23,13 @@ class RequirementsSpec(EnvironmentSpecBase):
 
     msg: str | None = None
 
-    @deprecated.argument("24.7", "26.3", "name")
-    def __init__(
-        self, filename: str | None = None, name: str | None = None, **kwargs
-    ) -> None:
+    def __init__(self, filename: str | None = None, **kwargs) -> None:
         """Initialize the requirements specification.
 
         :param filename: Path to the requirements file
-        :param name: (Deprecated) Name of the environment
         :param kwargs: Additional arguments
         """
         self.filename = filename
-        self._name = name
-
-    @property
-    @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
-    def name(self):  # type: ignore[misc]
-        return self._name
-
-    @name.setter  # type: ignore[misc]
-    @deprecated("25.9", "26.3", addendum="This attribute is not used anymore.")
-    def name(self, value):  # type: ignore[misc]
-        self._name = value
-
-    @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
-    def _valid_file(self) -> bool:
-        """Check if the file exists.
-
-        :return: True if the file exists, False otherwise
-        """
-        if self.filename and os.path.exists(self.filename):
-            return True
-        else:
-            self.msg = "There is no requirements.txt"
-            return False
-
-    @deprecated("25.9", "26.3", addendum="This method is not used anymore.")
-    def _valid_name(self) -> bool:
-        """Check if the name is valid.
-
-        :return: True if the name is valid, False otherwise
-        """
-        if self.name is None:
-            self.msg = "The environment does not have a name"
-            return False
-        else:
-            return True
 
     def can_handle(self) -> bool:
         """
@@ -106,27 +65,6 @@ class RequirementsSpec(EnvironmentSpecBase):
                 return False
 
         return True
-
-    @property
-    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
-    def environment(self) -> EnvironmentYaml:
-        """
-        Build an environment from the requirements file.
-
-        This method reads the file as a generator and passes it directly to EnvironmentYaml.
-
-        :return: An Environment object containing the package specifications
-        :raises ValueError: If the file cannot be read
-        """
-        if not self.filename:
-            raise CondaValueError("No filename provided")
-
-        # Convert generator to list since Dependencies needs to access it multiple times
-        dependencies_list = list(yield_lines(self.filename))
-        return EnvironmentYaml(
-            dependencies=dependencies_list,
-            filename=self.filename,
-        )
 
     @property
     def env(self) -> Environment:
