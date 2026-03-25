@@ -32,6 +32,8 @@ concurrency:
 env:
   # https://conda.github.io/conda-libmamba-solver/user-guide/configuration/#advanced-options
   CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
+  # focused testing or any needed pytest arguments, default empty
+  PYTEST_EXTRA: -k test_dont_remove_conda_3[libmamba]
 
 jobs:
   # detect whether any code changes are included in this PR
@@ -175,6 +177,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
@@ -303,6 +306,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
@@ -714,6 +718,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
