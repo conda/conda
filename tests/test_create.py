@@ -2470,13 +2470,13 @@ def test_dont_remove_conda_3(
         install_output = (install_exc.value.stdout or "") + (
             install_exc.value.stderr or ""
         )
-        assert expected_remove_error in install_output
+        assert expected_remove_error not in install_output
 
         print(
             f"Remove {lightweight_dependency} (probably fails because it wasn't installed due to RemoveError"
         )
 
-        with pytest.raises(CalledProcessError):
+        with pytest.raises(CalledProcessError) as remove_exc:
             run(
                 [
                     prefix / PYTHON_BINARY,
@@ -2492,6 +2492,10 @@ def test_dont_remove_conda_3(
                 text=True,
                 env=subprocess_env,
             )
+        remove_output = (remove_exc.value.stdout or "") + (
+            remove_exc.value.stderr or ""
+        )
+        assert expected_remove_error not in remove_output
 
 
 def test_force_remove(
