@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-import json
 import os
 import platform
 import re
@@ -15,7 +14,7 @@ from logging import getLogger
 from os.path import basename
 from pathlib import Path
 from shutil import rmtree
-from subprocess import CalledProcessError, check_output, run
+from subprocess import check_output, run
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
