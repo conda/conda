@@ -11,6 +11,7 @@ from conda.auxlib.ish import dals
 from conda.exceptions import (
     CondaValueError,
     EnvironmentSpecPluginNotDetected,
+    EnvironmentSpecPluginSelectionError,
     PluginError,
 )
 from conda.models.environment import Environment, EnvironmentConfig
@@ -383,7 +384,7 @@ def test_explicitly_select_a_non_autodetect_plugin(
     assert env_spec.environment_spec.detection_supported is False
 
 
-def test_naught_plugin_does_not_cause_unhandled_errors(
+def test_naughty_plugin_does_not_cause_unhandled_errors(
     plugin_manager,
     dummy_random_spec_plugin,
     dummy_random_spec_plugin_no_autodetect,
@@ -394,8 +395,8 @@ def test_naught_plugin_does_not_cause_unhandled_errors(
     """
     filename = "test.random"
     with pytest.raises(
-        PluginError,
-        match=rf"An error occurred when handling '{filename}' with plugin 'naughty'.",
+        EnvironmentSpecPluginSelectionError,
+        match=r"Could not parse 'test.random' as 'naughty'.",
     ):
         plugin_manager.get_environment_specifier_by_name(filename, "naughty")
 

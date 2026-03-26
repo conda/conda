@@ -429,10 +429,14 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     cep24_warnings = [
         w
         for w in warning_list
-        if "Provided environment.yaml is invalid: Missing required field 'dependencies'"
+        if "The environment file is not fully CEP 24 compliant is pending deprecation and will be removed in 26.9"
         in str(w.message)
     ]
     assert len(cep24_warnings) > 0
+    assert any(
+        "Missing required field 'dependencies'" in str(warning.message)
+        for warning in cep24_warnings
+    )
 
     # When splitting the output on "EnvironmentSectionNotValid", we should
     # get an array of length 2 if the string only appears once. If it appears
