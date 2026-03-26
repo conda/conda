@@ -2336,6 +2336,7 @@ def test_dont_remove_conda_2(
         reset_context()
         assert context.root_prefix == str(prefix)
 
+        conda_cli("install", f"--prefix={prefix}", "conda", "--yes")
         assert package_is_installed(prefix, "conda")
         assert package_is_installed(prefix, "pycosat")
 
