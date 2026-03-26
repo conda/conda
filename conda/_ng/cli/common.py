@@ -125,6 +125,8 @@ def print_exception(exc: Exception, console: Console | None = None) -> None:
     from rich.rule import Rule
 
     console = console or create_console()
-    console.print(Rule(title=f"[red][dim]error:[/dim] {type(exc).__name__}", style="red"))
+    console.print(
+        Rule(title=f"[red][dim]error:[/dim] {type(exc).__name__}", style="red")
+    )
     console.print(str(exc).rstrip())
     console.print(Rule(style="red"))
