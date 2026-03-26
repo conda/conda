@@ -67,7 +67,6 @@ test:
   imports:
     # high-level imports
     - conda
-    - conda_env
     # new/updated submodules (can be dropped after 1-2 releases)
     - conda.plugins.subcommands.doctor
   commands:

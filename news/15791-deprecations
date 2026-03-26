@@ -10,7 +10,7 @@
 
 * Removed `conda info --root`. Use `conda info --base` instead. (#15791)
 * Removed `conda info -l/--license`. (#15791)
-* Removed `conda_env` module. (#15791)
+* Removed `conda_env` module. (#15791, #15816)
 * Removed `conda._vendor` module. Conda no longer vendors dependencies. (#15791)
 * Removed `conda.base.context._first_writable_envs_dir`. Use `conda.gateways.disk.create.first_writable_envs_dir` instead. (#15791)
 * Removed `conda.base.context.add_plugin_setting`. Use `conda.plugins.config.PluginConfig.add_plugin_setting` instead. (#15791)
