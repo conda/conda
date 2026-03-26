@@ -12,4 +12,3 @@ As of conda 4.5, we do not support ``pip install conda``. However, we are consid
    :titlesonly:
 
    api/conda/index
-   api/conda_env/index
