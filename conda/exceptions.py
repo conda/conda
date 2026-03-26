@@ -1340,20 +1340,35 @@ class SpecNotFound(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
+def format_env_spec_available_plugins(
+    plugin_specs: list[CondaEnvironmentSpecifier],
+    formats_header: str = "Available formats",
+    indent: int = 4,
+    cmd_suggestion: bool = True,
+):
+    msg = (
+        "\nPlease add to your prior command: --env-spec <format>\n"
+        if cmd_suggestion
+        else ""
+    )
+    msg += f"\n{formats_header}:"
+    msg += dashlist(
+        [f"{plugin.name}: {plugin.description}" for plugin in plugin_specs],
+        indent=indent,
+    )
+    return msg
+
+
 class AmbiguousEnvironmentSpecPlugin(PluginError):
     def __init__(
         self,
         msg: str,
         plugins: list[CondaEnvironmentSpecifier],
-        source: str,
         *args,
         **kwargs,
     ):
-        msg += (
-            f" Try explicitly specifying the format via `--env-spec=FORMAT` or "
-            f"setting `environment_specifier: FORMAT` in your `~/.condarc`.\n\n"
-            f"Matched formats:"
-            f"{dashlist([plg.name for plg in plugins], 4)}"
+        msg += format_env_spec_available_plugins(
+            plugins, formats_header="Matched formats"
         )
         super().__init__(msg, *args, **kwargs)
 
@@ -1362,34 +1377,23 @@ class EnvironmentSpecPluginSelectionError(CondaError):
     def __init__(
         self,
         msg: str,
-        plugin_specs: dict[str, CondaEnvironmentSpecifier],
+        plugin_specs: list[CondaEnvironmentSpecifier],
         *args,
         **kwargs,
     ):
-        plugin_names = [
-            f"{name} ({', '.join(plugin.aliases)})" if plugin.aliases else name
-            for name, plugin in plugin_specs.items()
-        ]
-        msg += f"\nAvailable formats: {dashlist(plugin_names, 4)}"
+        msg += format_env_spec_available_plugins(plugin_specs, cmd_suggestion=False)
         super().__init__(msg, *args, **kwargs)
 
 
 class EnvironmentSpecPluginNotDetected(SpecNotFound):
     def __init__(
         self,
-        plugin_specs: dict[str, CondaEnvironmentSpecifier],
+        plugin_specs: list[CondaEnvironmentSpecifier],
         *args,
         **kwargs,
     ):
-        plugin_names = [
-            f"{name} ({', '.join(plugin.aliases)})" if plugin.aliases else name
-            for name, plugin in plugin_specs.items()
-        ]
-        msg = (
-            "We weren't able to detect what kind of format this environment is. "
-            "Please add to your prior command: --env-spec [SELECT FROM BELOW]\n"
-            f"{dashlist(plugin_names, 4)}"
-        )
+        msg = "Unable to detect the environment format for the provided file."
+        msg += format_env_spec_available_plugins(plugin_specs)
         super().__init__(msg, *args, **kwargs)
 
 

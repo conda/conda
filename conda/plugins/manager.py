@@ -604,10 +604,13 @@ class CondaPluginManager(pluggy.PluginManager):
         try:
             plugin = plugins[name]
         except KeyError:
-            raise CondaValueError(
-                f"You have chosen an unrecognized environment"
-                f" specifier type ({name}). Choose one of: "
-                f"{dashlist(plugins)}"
+            raise EnvironmentSpecPluginSelectionError(
+                msg=(
+                    f"You have chosen an unrecognized environment "
+                    f"specifier type ({name}). Please choose one "
+                    "of the available formats."
+                ),
+                plugin_specs=self.get_hook_results("environment_specifiers"),
             )
         else:
             # Try to load the plugin and check if it can handle the environment spec
@@ -620,11 +623,9 @@ class CondaPluginManager(pluggy.PluginManager):
                         f"Could not parse '{source}' as '{name}'. Check "
                         "that the file contents match the expected format. "
                         f"Errors reported from '{name}':\n\n"
-                        f"    ->  {type(e).__name__}: {str(e)}\n\n"
-                        "If this environment is a different format, try:\n"
-                        f"    conda create --file {source} --format <format>\n"
+                        f"    ->  {type(e).__name__}: {str(e)}\n"
                     ),
-                    plugin_specs=self.get_environment_specifiers(with_aliases=False),
+                    plugin_specs=self.get_hook_results("environment_specifiers"),
                 )
             else:
                 # If the plugin was not able to handle the environment spec, raise an error
@@ -655,9 +656,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
         if len(found) > 1:
             raise AmbiguousEnvironmentSpecPlugin(
-                msg=f"File '{source}' matches the default filename pattern for multiple plugins.",
+                msg=f"File '{source}' matches the default filename pattern for multiple formats.",
                 plugins=found,
-                source=source,
             )
 
         if len(found) == 1:
@@ -726,9 +726,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
             if len(found) > 1:
                 raise AmbiguousEnvironmentSpecPlugin(
-                    msg=f"File '{source}' can be handled by multiple plugins.",
+                    msg=f"File '{source}' can be handled by multiple formats.",
                     plugins=found,
-                    source=source,
                 )
 
         if len(found) == 1:
@@ -749,7 +748,7 @@ class CondaPluginManager(pluggy.PluginManager):
         ) as exc:
             # raise error if no plugins found that can read the environment file
             raise EnvironmentSpecPluginNotDetected(
-                plugin_specs=self.get_environment_specifiers(with_aliases=False),
+                plugin_specs=self.get_hook_results("environment_specifiers")
             ) from exc
 
     def get_environment_specifier(
