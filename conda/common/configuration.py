@@ -31,7 +31,6 @@ from re import IGNORECASE, VERBOSE, compile
 from string import Template
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
 from frozendict import deepfreeze, frozendict
 from frozendict import getFreezeConversionMap as _getFreezeConversionMap
 from frozendict import register as _register
@@ -58,7 +57,7 @@ del _getFreezeConversionMap
 del _register
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Sequence
     from re import Match
     from typing import Any, Final
 
@@ -1411,7 +1410,7 @@ class Configuration(metaclass=ConfigurationType):
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}
         self._cache_ = {}
-        self._reset_callbacks = IndexedSet()
+        self._reset_callbacks: dict[Callable, None] = {}
         self._validation_errors = defaultdict(list)
 
         self._set_search_path(search_path, **kwargs)
@@ -1457,7 +1456,7 @@ class Configuration(metaclass=ConfigurationType):
         cls,
         search_path: Iterable[Path],
     ) -> Iterable[tuple[Path, dict]]:
-        for path in search_path:
+        for path in unique(search_path):
             try:
                 yield path, YamlRawParameter.make_raw_parameters_from_file(path)
             except ConfigurationLoadError as err:
@@ -1468,7 +1467,7 @@ class Configuration(metaclass=ConfigurationType):
                 )
 
     def _set_search_path(self, search_path: PathsType, **kwargs):
-        self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
+        self._search_path = self._expand_search_path(search_path, **kwargs)
 
         self._set_raw_data(dict(self._load_search_path(self._search_path)))
 
@@ -1586,7 +1585,7 @@ class Configuration(metaclass=ConfigurationType):
         return self
 
     def register_reset_callaback(self, callback):
-        self._reset_callbacks.add(callback)
+        self._reset_callbacks.setdefault(callback, None)
 
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__
