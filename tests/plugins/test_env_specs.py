@@ -344,7 +344,7 @@ def test_raise_error_for_multiple_registered_installers(
     filename = "test.random"
     with pytest.raises(
         AmbiguousEnvironmentSpecPlugin,
-        match="File 'test.random' can be handled by multiple plugins.",
+        match=r"File 'test\.random' can be handled by multiple plugins\.",
     ) as error:
         dummy_random_spec_plugin.get_environment_specifier(filename)
 
@@ -593,7 +593,7 @@ def test_alias_and_name_collision_detect(
 
     with pytest.raises(
         PluginError,
-        match="'something.random' can be handled by multiple plugins.",
+        match=r"'something\.random' can be handled by multiple plugins\.",
     ):
         plugin_manager.detect_environment_specifier("something.random")
 

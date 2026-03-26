@@ -1350,9 +1350,9 @@ class AmbiguousEnvironmentSpecPlugin(PluginError):
         **kwargs,
     ):
         msg += (
-            " To more exactly specify the format try:\n\n"
-            f"    conda env create --file {source} --env-spec <format>"
-            "\n\nMatched formats:"
+            f" Try explicitly specifying the format via `--env-spec=FORMAT` or "
+            f"setting `environment_specifier: FORMAT` in your `~/.condarc`.\n\n"
+            f"Matched formats:"
             f"{dashlist([plg.name for plg in plugins], 4)}"
         )
         super().__init__(msg, *args, **kwargs)
@@ -1382,7 +1382,7 @@ class EnvironmentSpecPluginNotDetected(SpecNotFound):
         **kwargs,
     ):
         plugin_names = [
-            f"{name}{' (' if plugin.aliases else ''}{', '.join(plugin.aliases)}{')' if plugin.aliases else ''}"
+            f"{name} ({', '.join(plugin.aliases)})" if plugin.aliases else name
             for name, plugin in plugin_specs.items()
         ]
         msg = (
