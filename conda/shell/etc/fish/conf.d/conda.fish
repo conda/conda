@@ -91,7 +91,10 @@ function __fish_conda_commands
 end
 
 function __fish_conda_env_commands
-    string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
+    set -l _ce_files \
+        $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_env_*.py \
+        $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_export.py
+    string replace -r '.*_([a-z]+)\.py$' '$1' $_ce_files
 end
 
 function __fish_conda_envs
