@@ -8,7 +8,7 @@ development process works and how you can be a part of it.
 
 ## Hosted on GitHub
 
-All development currently takes place on [GitHub][github]. This means we make extensive
+All development currently takes place on [GitHub][conda-github]. This means we make extensive
 use of the project management tools they provide such as [issues](https://github.com/conda/conda/issues)
 and [projects](https://github.com/orgs/conda/projects).
 
@@ -27,9 +27,30 @@ is a rather standard procedure for larger projects.
 [Python](https://www.python.org/psf/contrib/contrib-form/) for example
 both use similar agreements.
 
-[Click here to sign the Conda Contributor License Agreement][conda cla].
+[Click here to sign the Conda Contributor License Agreement][conda-cla].
 
 A record of prior signatories is kept in a [separate repo in conda's GitHub][clabot] organization.
+
+## Generative AI
+
+You're welcome to use generative AI tools when contributing to conda. However, please keep the following in mind:
+
+- You are responsible for all of your contributions. Review and understand any AI-generated content before including it in a Pull Request.
+- You have read and understood the [conda license](https://github.com/conda/conda/blob/main/LICENSE) and [conda contributor license agreement](https://docs.conda.io/en/latest/contributing.html#conda-contributor-license-agreement), especially in terms of submitting your contribution as an original work of authorship.
+- Be prepared to engage during contribution review. Reviewers expect to discuss the changes with you directly. Do not copy and paste AI responses.
+- Make minimal, focused changes. AI tools sometimes rewrite more than necessary, making reviews harder. Prefer small, targeted edits that match the existing style and patterns.
+- Don't bypass tests. Ensure AI-assisted changes actually fix the underlying problem rather than altering tests to make them pass.
+- Do not use AI agents or similar automated systems to submit your contributions or review Pull Requests autonomously.
+
+Pull Requests consisting of unchecked AI-generated content may be closed. Maintainer time is limited and contributions should be high quality, regardless of the tools used to create them.
+
+The [Conda Code of Conduct](https://github.com/conda/conda/blob/main/CODE_OF_CONDUCT.md) applies.
+
+## Paid Contribution Schemes
+
+While we support open source contributors receiving financial compensation, we do not accept contributions motivated by cryptocurrency payments, bounties, or similar gamification schemes. These systems incentivize low-quality, high-volume contributions that waste limited maintainer time.
+
+If you would like to add conda to such a system, or believe your situation warrants an exception, please reach out ahead of time on [Zulip](https://conda.zulipchat.com).
 
 ## Ways to contribute
 
@@ -45,7 +66,7 @@ It should be noted that `conda-build` issues need to be filed separately at
 
 For all other types of issues, please head to [Anaconda.org's "Report a Bug" page][anaconda-bug-report].
 For even more information and documentation on everything related to Anaconda, head to the
-[Support Center at Anaconda Nucleus][anaconda-support].
+[Support Center at anaconda.com][anaconda-support].
 
 Before submitting an issue via any of these channels, make sure to document it
 as well as possible and follow the submission guidelines (this makes everyone's job a lot easier!).
@@ -54,9 +75,9 @@ as well as possible and follow the submission guidelines (this makes everyone's 
 
 Here are steps you need to take to contribute to conda:
 
-1. [Signup for a GitHub account][github signup] (if you haven't already) and
-   [install Git on your system][install git].
-2. Sign the [Conda Contributor License Agreement][conda cla].
+1. [Signup for a GitHub account][github-signup] (if you haven't already) and
+   [install Git on your system][install-git].
+2. Sign the [Conda Contributor License Agreement][conda-cla].
 3. Fork the conda repository to your personal GitHub account by clicking the
    "Fork" button on [https://github.com/conda/conda](https://github.com/conda/conda) and follow GitHub's
    instructions.
@@ -162,3 +183,12 @@ If you need help with your contribution:
 - Join our [community chat channels](https://conda.zulipchat.com)
 
 We're here to help and appreciate your contribution!
+
+[development-environment]: https://docs.conda.io/projects/conda/en/stable/dev-guide/development-environment.html
+[conda-github]: https://github.com/conda/conda
+[conda-cla]: https://conda.io/en/latest/contributing.html#conda-contributor-license-agreement
+[clabot]: https://github.com/conda/infrastructure/blob/main/.clabot
+[anaconda-bug-report]: https://anaconda.org/contact/report
+[anaconda-support]: https://anaconda.com/app/support-center
+[github-signup]: https://github.com/signup
+[install-git]: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git

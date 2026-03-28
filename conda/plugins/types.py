@@ -9,9 +9,9 @@ Each type corresponds to the plugin hook for which it is used.
 
 from __future__ import annotations
 
+import enum
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -44,8 +44,17 @@ if TYPE_CHECKING:
         dict[str, PrefixRecord],
     ]
 
+    PackageExtract: TypeAlias = Callable[
+        [PathType, PathType],  # (source_path, destination_directory)
+        None,
+    ]
+
     SinglePlatformEnvironmentExport = Callable[[Environment], str]
     MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
+
+    # Callback type for health check fixer confirmation prompts.
+    # Raises CondaSystemExit if user declines, or DryRunExit in dry-run mode.
+    ConfirmCallback: TypeAlias = Callable[[str], None]
 
 
 @dataclass
@@ -253,10 +262,55 @@ class CondaAuthHandler(CondaPlugin):
 class CondaHealthCheck(CondaPlugin):
     """
     Return type to use when defining conda health checks plugin hook.
+
+    Health checks are diagnostic actions that report on the state of a conda
+    environment. They are invoked via ``conda doctor``.
+
+    Health checks can optionally provide a fix capability, which is invoked
+    via ``conda doctor --fix`` or ``conda doctor --fix <name>``.
+
+    **Fixer guidelines:**
+
+    Fixers receive a ``confirm`` function that handles user confirmation and
+    dry-run mode automatically. Simply call it with your message:
+
+    - In normal mode: Prompts the user for confirmation (default: no).
+    - In dry-run mode: Raises ``DryRunExit`` (handled by the framework).
+    - If user declines: Raises ``CondaSystemExit`` (handled by the framework).
+
+    Example::
+
+        from conda.plugins.types import ConfirmCallback
+
+        def my_fixer(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
+            issues = find_issues(prefix)
+            if not issues:
+                print("No issues found.")
+                return 0
+
+            print(f"Found {len(issues)} issues")
+            confirm("Fix these issues?")
+            # ... perform fix ...
+            return 0
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_health_checks`.
+
+    :param name: Health check identifier (e.g., ``missing-files``).
+    :param action: Callable that performs the check: ``action(prefix, verbose) -> None``.
+    :param fixer: Optional callable that fixes issues:
+                  ``fixer(prefix, args, confirm) -> int``.
+                  The ``confirm`` parameter is a function to call for user confirmation.
+                  It raises an exception if the user declines or in dry-run mode.
+    :param summary: Short description of what the check detects (shown in ``--list``).
+    :param fix: Short description of what the fix does (shown in ``--list``).
     """
 
     name: str
     action: Callable[[str, bool], None]
+    fixer: Callable[[str, Namespace, ConfirmCallback], int] | None = None
+    summary: str | None = None
+    fix: str | None = None
 
 
 @dataclass
@@ -524,6 +578,8 @@ class EnvironmentSpecBase(ABC):
         environment described by the `filename`.
 
         :returns bool: returns True, if the plugin can interpret the file.
+        :raises: raises an exception if it can not handle the file. The exception should
+                 describe why the file can not be handled.
         """
         raise NotImplementedError()
 
@@ -538,6 +594,20 @@ class EnvironmentSpecBase(ABC):
         raise NotImplementedError()
 
 
+class EnvironmentFormat(enum.Enum):
+    """
+    Represents supported environment formats.
+
+    TODO: After minimum support for Python 3.11 is introduced, convert to using enum.StrEnum
+    """
+
+    lockfile = "lockfile"
+    environment = "environment"
+
+    def __str__(self) -> str:
+        return self.value
+
+
 @dataclass
 class CondaEnvironmentSpecifier(CondaPlugin):
     """
@@ -549,11 +619,34 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
 
     :param name: name of the spec (e.g., ``environment_yaml``)
+    :param aliases: user-friendly format aliases (e.g., ("yaml",)). Defaults to an empty list.
     :param environment_spec: EnvironmentSpecBase subclass handler
+    :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
+    default_filenames: tuple[str, ...] = field(default_factory=tuple)
+    aliases: tuple[str, ...] = field(default_factory=tuple)
+    description: str | None = field(default=None)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
+
+    def __post_init__(self):
+        super().__post_init__()  # Handle name normalization
+        # Normalize aliases using same pattern as name normalization
+        try:
+            self.aliases = tuple(
+                dict.fromkeys(alias.lower().strip() for alias in self.aliases)
+            )
+        except AttributeError:
+            # AttributeError: alias is not a string
+            raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+        # Set default description to name if not provided
+        if self.description is None:
+            self.description = self.name
 
 
 @dataclass
@@ -567,6 +660,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     :param aliases: user-friendly format aliases (e.g., ("yaml",))
     :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
     :param export: callable that exports an Environment to string format
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
@@ -574,6 +669,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     default_filenames: tuple[str, ...]
     export: SinglePlatformEnvironmentExport | None = None
     multiplatform_export: MultiPlatformEnvironmentExport | None = None
+    description: str | None = field(default=None)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -590,3 +687,32 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+        # Set default description to name if not provided
+        if self.description is None:
+            self.description = self.name
+
+
+@dataclass
+class CondaPackageExtractor(CondaPlugin):
+    """
+    Return type to use when defining a conda package extractor plugin hook.
+
+    Package extractors handle the extraction of different package archive formats.
+    Each extractor specifies which file extensions it supports and provides an
+    extraction function to unpack the archive.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_package_extractors`.
+
+    :param name: Extractor name (e.g., ``conda-package``, ``wheel-package``).
+    :param extensions: List of file extensions this extractor handles
+                       (e.g., ``[".conda", ".tar.bz2"]`` or ``[".whl"]``).
+    :param extract: Callable that extracts the package archive. Takes the source
+                    archive path and the destination directory where the package
+                    contents should be extracted.
+    """
+
+    name: str
+    extensions: list[str]
+    extract: PackageExtract

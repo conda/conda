@@ -4,13 +4,12 @@
 
 from __future__ import annotations
 
-import os
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ...common.serialize import yaml_safe_load
+from ...common.serialize import yaml
 from ...deprecations import deprecated
-from ...exceptions import CondaValueError
+from ...exceptions import CondaValueError, PluginError
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
@@ -30,8 +29,6 @@ class YamlFileSpec(EnvironmentSpecBase):
 
     _environment = None
 
-    extensions = {".yaml", ".yml"}
-
     def __init__(self, filename=None, **kwargs):
         self.filename = filename
         self.msg = None
@@ -41,29 +38,19 @@ class YamlFileSpec(EnvironmentSpecBase):
         Validates loader can process environment definition.
         This can handle if:
             * the provided file exists
-            * the provided file ends in the supported file extensions (.yaml or .yml)
             * the yaml file can be loaded and is not empty
 
         :return: True or False
         """
-        if not self.filename:
-            return False
+        if self.filename is None:
+            raise CondaValueError("No filename provided")
 
-        # Extract the file extension (e.g., '.txt' or '' if no extension)
-        _, file_ext = os.path.splitext(self.filename)
-
-        # Check if the file has a supported extension and exists
-        if not any(spec_ext == file_ext for spec_ext in YamlFileSpec.extensions):
-            return False
-
-        try:
-            yamlstr = env.load_file(self.filename)
-            data = yaml_safe_load(yamlstr)
-            if data is None:
-                return False
-        except Exception:
-            log.debug("Failed to load %s as a YAML.", self.filename, exc_info=True)
-            return False
+        yamlstr = env.load_file(self.filename)
+        data = yaml.loads(yamlstr)
+        # We check for dict in order to avoid loading flat files as YAML.
+        # The standard really wants a nested dict structure.
+        if data is None or not isinstance(data, dict):
+            raise PluginError(f"{self.filename} is an empty yaml file.")
 
         return True
 

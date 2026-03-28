@@ -14,13 +14,10 @@ from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
-
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
-from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
-from ..common.iterators import groupby_to_dict as groupby
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import url_to_path
 from ..common.serialize import json
 from ..common.url import join_url
@@ -173,15 +170,6 @@ class SubdirData(metaclass=SubdirDataType):
         if channels is None:
             channels = context.channels
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
-        if context.offline:
-            grouped_urls = groupby(lambda url: url.startswith("file://"), channel_urls)
-            ignored_urls = grouped_urls.get(False, ())
-            if ignored_urls:
-                log.info(
-                    "Ignoring the following channel urls because mode is offline.%s",
-                    dashlist(ignored_urls),
-                )
-            channel_urls = IndexedSet(grouped_urls.get(True, ()))
 
         def subdir_query(url: str) -> tuple[PackageRecord, ...]:
             """

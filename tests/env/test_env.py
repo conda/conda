@@ -10,8 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from conda.common.serialize import yaml_round_trip_load
-from conda.core.prefix_data import PrefixData
+from conda.common.serialize import yaml
 from conda.env.env import (
     VALID_KEYS,
     EnvironmentYaml,
@@ -236,7 +235,7 @@ def test_to_yaml_returns_yaml_parseable_string():
         "dependencies": ["nodejs"],
     }
 
-    actual = yaml_round_trip_load(StringIO(e.to_yaml()))
+    actual = yaml.loads(StringIO(e.to_yaml()))
     assert expected == actual
 
 
@@ -363,7 +362,6 @@ def test_env_advanced_pip(
         *("--file", str(pip_argh)),
     )
     assert prefix.exists()
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "argh==0.26.2")
 
 

@@ -22,12 +22,11 @@ from ...auxlib.ish import dals
 from ...base.constants import PREFIX_PLACEHOLDER
 from ...common.compat import open_utf8
 from ...common.serialize import json
-from ...deprecations import deprecated
 from ...exceptions import CondaUpgradeError, CondaVerificationError, PathNotFoundError
 from ...models.channel import Channel
 from ...models.enums import FileMode, PathEnum
 from ...models.package_info import PackageInfo, PackageMetadata
-from ...models.records import PathData, PathDataV1, PathsData
+from ...models.records import PathDataV1, PathsData
 from .create import TemporaryDirectory
 from .link import islink, lexists  # noqa
 
@@ -196,7 +195,7 @@ def read_paths_json(extracted_package_directory):
                     path_info["path_type"] = PathEnum.softlink
                 else:
                     path_info["path_type"] = PathEnum.hardlink
-                yield PathData(**path_info)
+                yield PathDataV1(**path_info)
 
         paths = tuple(read_files_file())
         paths_data = PathsData(
@@ -244,14 +243,3 @@ def read_no_link(info_dir):
 
 def read_soft_links(extracted_package_directory, files):
     return tuple(f for f in files if islink(join(extracted_package_directory, f)))
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use 'conda.plugins.prefix_data_loaders.pypi.pkg_format.read_python_record'",
-)
-def read_python_record(prefix_path, anchor_file, python_version):
-    from ...plugins.prefix_data_loaders.pypi.pkg_format import read_python_record
-
-    return read_python_record(prefix_path, anchor_file, python_version)

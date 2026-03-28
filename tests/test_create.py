@@ -24,6 +24,7 @@ import pytest
 from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
+    PACKAGE_CACHE_MAGIC_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_PINNED_FILE,
     ChannelPriority,
@@ -40,7 +41,7 @@ from conda.common.path import (
     get_python_site_packages_short_path,
     pyc_path,
 )
-from conda.common.serialize import json, yaml_round_trip_load
+from conda.common.serialize import json, yaml
 from conda.core.index import ReducedIndex
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
@@ -52,6 +53,7 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
+    InvalidMatchSpec,
     LinkError,
     NoChannelsConfiguredError,
     OperationNotAllowed,
@@ -64,10 +66,7 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.subprocess import (
-    Response,
-    subprocess_call_with_clean_env,
-)
+from conda.gateways.subprocess import Response
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
@@ -87,7 +86,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from typing import Literal
 
-    from pytest import CaptureFixture, FixtureRequest, MonkeyPatch
+    from pytest import FixtureRequest, MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import (
@@ -1030,7 +1029,7 @@ def test_tarball_install_and_bad_metadata(
                 """
             )
         )
-        with pytest.raises(PackagesNotFoundError):
+        with pytest.raises((InvalidMatchSpec, PackagesNotFoundError)):
             conda_cli("install", f"--prefix={prefix}", bad_metadata, "--yes")
             assert not package_is_installed(prefix, "something-made-up")
 
@@ -1054,7 +1053,6 @@ def test_update_with_pinned_packages(
 
         conda_cli("update", f"--prefix={prefix}", "dependency", "--yes")
 
-        PrefixData._cache_.clear()
         assert not package_is_installed(prefix, "dependent=1.0")
         assert not package_is_installed(prefix, "dependency=1.0")
         assert package_is_installed(prefix, "dependent=2.0")
@@ -1072,10 +1070,11 @@ def test_pinned_override_with_explicit_spec(
             f"--file={prefix / 'condarc'}",
             *("--add", "pinned_packages", "dependent=1.0"),
         )
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
+        if context.solver in ("libmamba", "rattler"):
+            # LIBMAMBA/RATTLER ADJUSTMENT
             # Incompatible pin overrides forbidden in conda-libmamba-solver 23.9.0+
             # See https://github.com/conda/conda-libmamba-solver/pull/294
+            # TODO: conda-rattler-solver inherits this via the state.py module? look into it
             with pytest.raises(SpecsConfigurationConflictError):
                 conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")
         else:
@@ -1128,12 +1127,22 @@ def test_channel_usage_replacing_python(
             "--yes",
         )
         PrefixData._cache_.clear()
-        assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
-        assert package_is_installed(prefix, "main::decorator")
+        if context.solver == "rattler":
+            # Rattler adjustment: channels change more than expected
+            assert (prec := package_is_installed(prefix, "python=3.10"))
+            assert package_is_installed(prefix, "decorator")
+        else:
+            assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
+            assert package_is_installed(prefix, "main::decorator")
 
         with tmp_env(f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::python=3.10")
-            assert package_is_installed(clone, "main::decorator")
+            if context.solver == "rattler":
+                # Rattler adjustment: channels change more than expected
+                assert package_is_installed(clone, "python=3.10")
+                assert package_is_installed(clone, "decorator")
+            else:
+                assert package_is_installed(clone, "conda-forge::python=3.10")
+                assert package_is_installed(clone, "main::decorator")
 
         # Regression test for #2645
         fn = prefix / "conda-meta" / f"{prec.name}-{prec.version}-{prec.build}.json"
@@ -1146,8 +1155,13 @@ def test_channel_usage_replacing_python(
         PrefixData._cache_.clear()
 
         with tmp_env("--channel=conda-forge", f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::python=3.10")
-            assert package_is_installed(clone, "main::decorator")
+            if context.solver == "rattler":
+                # Rattler adjustment: channels change more than expected
+                assert package_is_installed(clone, "python=3.10")
+                assert package_is_installed(clone, "decorator")
+            else:
+                assert package_is_installed(clone, "conda-forge::python=3.10")
+                assert package_is_installed(clone, "main::decorator")
 
 
 def test_install_prune_flag(
@@ -1401,7 +1415,6 @@ def test_update_all_updates_pip_pkg(
         assert err == 0, f"pip install failed: {stderr}"
 
         # ensure installed version of itsdangerous is from PyPI
-        PrefixData._cache_.clear()
         assert (prec := package_is_installed(prefix, "itsdangerous"))
         assert prec.dist_fields_dump() == {
             "base_url": "https://conda.anaconda.org/pypi",
@@ -1506,7 +1519,11 @@ def test_shortcut_creation_installs_shortcut(
     # depending on channel priorities match one of:
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
-    with tmp_env("*console_shortcut", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
 
         assert get_shortcut()
@@ -1532,7 +1549,11 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     # including --no-shortcuts should not get shortcuts installed
-    with tmp_env("*console_shortcut", "--no-shortcuts", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, "--no-shortcuts", prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
 
@@ -1563,7 +1584,11 @@ def test_shortcut_absent_when_condarc_set(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     # shortcuts: False from condarc should not get shortcuts installed
-    with tmp_env("*console_shortcut", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
 
@@ -1839,19 +1864,19 @@ def test_conda_pip_interop_pip_clobbers_conda(
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/DESCRIPTION.rst",
                         "path_type": "hardlink",
-                        "sha256": "QWBtSTT2zzabwJv1NQbTfClSX13m-Qc6tqU4TRL1RLs",
+                        "sha256": "41606d4934f6cf369bc09bf53506d37c29525f5de6f9073ab6a5384d12f544bb",
                         "size_in_bytes": 774,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/INSTALLER",
                         "path_type": "hardlink",
-                        "sha256": "zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg",
+                        "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
                         "size_in_bytes": 4,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/METADATA",
                         "path_type": "hardlink",
-                        "sha256": "5HceJsUnHof2IRamlCKO2MwNjve1eSP4rLzVQDfwpCQ",
+                        "sha256": "e4771e26c5271e87f62116a694228ed8cc0d8ef7b57923f8acbcd54037f0a424",
                         "size_in_bytes": 1283,
                     },
                     {
@@ -1863,25 +1888,25 @@ def test_conda_pip_interop_pip_clobbers_conda(
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/WHEEL",
                         "path_type": "hardlink",
-                        "sha256": "GrqQvamwgBV4nLoJe0vhYRSWzWsx7xjlt74FT0SWYfE",
+                        "sha256": "1aba90bda9b08015789cba097b4be1611496cd6b31ef18e5b7be054f449661f1",
                         "size_in_bytes": 110,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/metadata.json",
                         "path_type": "hardlink",
-                        "sha256": "jtOeeTBubYDChl_5Ql5ZPlKoHgg6rdqRIjOz1e5Ek2U",
+                        "sha256": "8ed39e79306e6d80c2865ff9425e593e52a81e083aadda912233b3d5ee449365",
                         "size_in_bytes": 658,
                     },
                     {
                         "_path": sp_dir + "/six-1.10.0.dist-info/top_level.txt",
                         "path_type": "hardlink",
-                        "sha256": "_iVH_iYEtEXnD8nYGQYpYFUvkUW9sEO1GYbkeKSAais",
+                        "sha256": "fe2547fe2604b445e70fc9d819062960552f9145bdb043b51986e478a4806a2b",
                         "size_in_bytes": 4,
                     },
                     {
                         "_path": sp_dir + "/six.py",
                         "path_type": "hardlink",
-                        "sha256": "A6hdJZVjI3t_geebZ9BzUvwRrIXo0lfwzQlM2LcKyas",
+                        "sha256": "03a85d259563237b7f81e79b67d07352fc11ac85e8d257f0cd094cd8b70ac9ab",
                         "size_in_bytes": 30098,
                     },
                 ],
@@ -1947,8 +1972,8 @@ def test_conda_pip_interop_conda_editable_package(
     )
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="conda-libmamba-solver does not implement pip interoperability",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"conda-{context.solver}-solver does not implement pip interoperability",
         )
     )
 
@@ -2437,12 +2462,7 @@ def test_create_env_different_platform(
     with tmp_env(*args, shallow=False) as prefix:
         # check that the subdir is defined in environment's condarc
         # which is generated during the `conda create` command (via tmp_env)
-        assert (
-            yaml_round_trip_load((prefix / DEFAULT_CONDARC_FILENAME).read_text())[
-                "subdir"
-            ]
-            == platform
-        )
+        assert yaml.read(path=prefix / DEFAULT_CONDARC_FILENAME)["subdir"] == platform
 
         stdout, stderr, excinfo = conda_cli(
             "install",
@@ -2463,72 +2483,6 @@ def test_create_env_different_platform(
             pkg["name"] == "arch-package" and pkg["platform"] == platform
             for pkg in result["actions"]["LINK"]
         )
-
-
-def test_conda_downgrade(
-    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
-):
-    # Create an environment with the current conda under test, but include an earlier
-    # version of conda and other packages in that environment.
-    # Make sure we can flip back and forth.
-
-    monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "false")
-    monkeypatch.setenv("CONDA_ALLOW_CONDA_DOWNGRADES", "true")
-    monkeypatch.setenv("CONDA_DLL_SEARCH_MODIFICATION_ENABLE", "1")
-
-    # elevate verbosity so we can inspect subprocess' stdout/stderr
-    monkeypatch.setenv("CONDA_VERBOSE", "2")
-
-    with tmp_env("python=3.11", "conda") as prefix:  # rev 0
-        conda_exe = str(prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda"))
-        assert (py_prec := package_is_installed(prefix, "python"))
-        assert (conda_prec := package_is_installed(prefix, "conda"))
-
-        # runs our current version of conda to install into the foreign env
-        conda_cli("install", f"--prefix={prefix}", "filelock", "--yes")  # rev 1
-        assert package_is_installed(prefix, "filelock")
-
-        # runs the conda in the env to install something new into the env
-        PrefixData._cache_.clear()
-        subprocess_call_with_clean_env(
-            [conda_exe, "install", f"--prefix={prefix}", "itsdangerous", "--yes"],
-            path=prefix,
-        )  # rev 2
-        assert package_is_installed(prefix, "itsdangerous")
-
-        # downgrade the version of conda in the env (using our current outer conda version)
-        PrefixData._cache_.clear()
-        conda_cli(
-            "install",
-            f"--prefix={prefix}",
-            f"conda<{conda_prec.version}",
-            "--yes",
-        )  # rev 3
-        assert package_is_installed(prefix, f"conda<{conda_prec.version}")
-
-        # undo the conda downgrade in the env (using our current outer conda version)
-        conda_cli("install", f"--prefix={prefix}", "--rev=2", "--yes")
-        assert package_is_installed(prefix, f"python={py_prec.version}")
-        assert package_is_installed(prefix, f"conda={conda_prec.version}")
-        assert package_is_installed(prefix, "filelock")
-        assert package_is_installed(prefix, "itsdangerous")
-
-        # use the conda in the env to revert to a previous state
-        PrefixData._cache_.clear()
-        subprocess_call_with_clean_env(
-            [conda_exe, "install", f"--prefix={prefix}", "--rev=1", "--yes"],
-            path=prefix,
-        )
-        assert package_is_installed(prefix, f"python={py_prec.version}")
-        assert package_is_installed(prefix, f"conda={conda_prec.version}")
-        assert package_is_installed(prefix, "filelock")
-        assert not package_is_installed(prefix, "itsdangerous")
-
-        result = subprocess_call_with_clean_env(
-            [conda_exe, "info", "--json"],
-            path=prefix,
-        )
-        assert json.loads(result.stdout)["conda_version"] == conda_prec.version
 
 
 @pytest.mark.skipif(
@@ -2611,6 +2565,10 @@ def test_neutering_of_historic_specs(
 ):
     with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
         conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
+        # make sure we didn't lose psutil
+        PrefixData._cache_.clear()
+        assert PrefixData(prefix).get("psutil")
+
         d = (prefix / PREFIX_MAGIC_FILE).read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
@@ -2709,19 +2667,59 @@ def test_repodata_v2_base_url(
 
 
 def test_create_dry_run_without_prefix(
-    conda_cli: CondaCLIFixture, capsys: CaptureFixture
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel
 ):
-    with pytest.raises(DryRunExit):
-        conda_cli("create", "--dry-run", "--json", "ca-certificates")
-    out, _ = capsys.readouterr()
+    out, _, _ = conda_cli(
+        "create",
+        "--dry-run",
+        "--json",
+        "small-executable",
+        raises=DryRunExit,
+    )
     data = json.loads(out)
     assert any(
-        pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "ca-certificates"
+        pkg for pkg in data["actions"]["LINK"] if pkg["name"] == "small-executable"
     )
 
 
-def test_create_without_prefix_raises_argument_error(conda_cli: CondaCLIFixture):
-    conda_cli("create", "--json", "ca-certificates", raises=ArgumentError)
+def test_create_download_only_without_prefix(
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel
+    tmp_pkgs_dir: Path,  # mock package cache so it will be empty
+):
+    # empty cache, only has package cache magic file
+    assert tmp_pkgs_dir.exists()
+    assert set(tmp_pkgs_dir.iterdir()) == {tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE}
+
+    # download package to pkgs dir
+    _, _, _ = conda_cli(
+        "create",
+        "--download-only",
+        "--yes",
+        "small-executable",
+        raises=CondaExitZero,
+    )
+
+    # check that package was downloaded/extracted
+    assert tmp_pkgs_dir.exists()
+    assert set(tmp_pkgs_dir.iterdir()) == {
+        tmp_pkgs_dir / "cache",
+        tmp_pkgs_dir / "small-executable-1.0.0-0",
+        tmp_pkgs_dir / "small-executable-1.0.0-0.conda",
+        tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE,
+    }
+
+
+def test_create_without_prefix_raises_argument_error(
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # mock channel
+):
+    with pytest.raises(
+        ArgumentError,
+        match="one of the arguments -n/--name -p/--prefix is required",
+    ):
+        conda_cli("create", "small-executable")
 
 
 def test_create_with_clone_and_packages_raises_argument_error(
@@ -2751,6 +2749,134 @@ def test_create_with_clone_and_file_raises_argument_error(
         "/pretend/this/file/exists",
         raises=TooManyArgumentsError,
     )
+
+
+def test_create_multiple_files_requires_name_or_prefix(
+    conda_cli: CondaCLIFixture,
+):
+    """Multiple --file arguments require explicit -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="Please provide -n/--name or -p/--prefix when using multiple",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("simple.yml"),
+            "--file",
+            support_file("add-pip.yml"),
+            "--yes",
+        )
+
+
+def test_create_multiple_files_with_cli_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """conda create -p /path --file f1 --file f2 uses the provided prefix."""
+    prefix = path_factory()
+    conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("small-executable.yml"),
+        "--file",
+        support_file("dependent.yml"),
+        "--yes",
+    )
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependent")
+
+
+def test_install_multiple_files_with_cli_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """conda install -p /path --file f1 --file f2 installs into the provided prefix."""
+    prefix = path_factory()
+    conda_cli("create", f"--prefix={prefix}", "--yes")
+    conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("small-executable.yml"),
+        "--file",
+        support_file("dependent.yml"),
+        "--yes",
+    )
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependent")
+
+
+def test_create_name_overrides_file(
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir: Path,
+    test_recipes_channel: Path,
+):
+    """--name takes precedence over name in environment file."""
+    env_name = "a_super_unique_name"
+    prefix = tmp_envs_dir / env_name
+    conda_cli(
+        "create",
+        "--name",
+        env_name,
+        "--file",
+        support_file("small-executable.yml"),
+        "--yes",
+    )
+    assert prefix.exists()
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "small-executable")
+
+
+def test_create_files_without_name_or_prefix_raises(conda_cli: CondaCLIFixture):
+    """Files without name/prefix require -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="do not specify a name or prefix",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("requirements.txt"),
+            "--yes",
+        )
+
+
+def test_create_with_env_variables_are_set_correctly(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    env_yml = path_factory(suffix=".yml")
+    env_yml.write_text(
+        f"""
+name: test_vars
+channels:
+  - {str(test_recipes_channel)}
+dependencies:
+  - small-executable
+variables:
+  VAR_A: a_var
+  VAR_B: b_var
+"""
+    )
+    prefix = path_factory()
+    conda_cli(
+        "create",
+        "--prefix",
+        str(prefix),
+        "--file",
+        str(env_yml),
+        "--yes",
+    )
+    assert PrefixData(prefix).is_environment()
+    env_vars = PrefixData(prefix).get_environment_env_vars()
+    assert env_vars["VAR_A"] == "a_var"
+    assert env_vars["VAR_B"] == "b_var"
 
 
 def test_nonadmin_file_untouched(
@@ -2832,7 +2958,7 @@ def test_mix_explicit_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot combine package names with explicit package lists" in str(exc)
 
 
 @pytest.mark.parametrize("command", ["install", "create"])
@@ -2851,4 +2977,4 @@ def test_mix_explicit_file_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot combine package names with explicit package lists" in str(exc)

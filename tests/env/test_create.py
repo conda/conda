@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -20,8 +21,6 @@ from conda.testing.integration import package_is_installed
 from . import remote_support_file, support_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest import MonkeyPatch
 
     from conda.testing.fixtures import (
@@ -68,7 +67,6 @@ def test_create_update(
         *("--name", env_name),
         *("--file", support_file("example/environment_pinned_updated.yml")),
     )
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "flask=2.0.3")
     assert not package_is_installed(prefix, "flask=2.0.2")
 
@@ -144,7 +142,6 @@ def test_create_advanced_pip(
         "--verbose",
     )
 
-    PrefixData._cache_.clear()
     assert prefix.exists()
     assert package_is_installed(prefix, "python")
     assert package_is_installed(prefix, "argh")
@@ -274,7 +271,6 @@ def test_create_update_remote_env_file(
             ),
         ),
     )
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "flask=2.0.3")
     assert not package_is_installed(prefix, "flask=2.0.2")
 
@@ -433,12 +429,94 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     cep24_warnings = [
         w
         for w in warning_list
-        if "Provided environment.yaml is invalid: Missing required field 'dependencies'"
+        if "The environment file is not fully CEP 24 compliant is pending deprecation and will be removed in 26.9"
         in str(w.message)
     ]
     assert len(cep24_warnings) > 0
+    assert any(
+        "Missing required field 'dependencies'" in str(warning.message)
+        for warning in cep24_warnings
+    )
 
     # When splitting the output on "EnvironmentSectionNotValid", we should
     # get an array of length 2 if the string only appears once. If it appears
     # multiple times, the array will have more elements.
     assert len(stdout.split("EnvironmentSectionNotValid")) == 2
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "spec_name,content",
+    [
+        ("cep-24", support_file("env_with_dependencies.yml")),
+        ("requirements.txt", support_file("requirements.txt")),
+        ("explicit", support_file("explicit.txt")),
+    ],
+)
+def test_create_env_from_file_with_mismatched_extension_via_env_spec(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    spec_name: str,
+    content: str,
+):
+    """When --env-spec is provided, content is validated, not filename."""
+    tmp_file = path_factory(suffix=".foobar")
+    tmp_file.write_text(Path(content).read_text())
+
+    prefix = path_factory()
+    conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        f"--environment-specifier={spec_name}",
+        "--file",
+        str(tmp_file),
+    )
+    assert PrefixData(prefix).exists()
+    assert PrefixData(prefix).is_environment()
+
+
+@pytest.mark.parametrize(
+    "target_format,file_name",
+    [
+        ("environment-yaml", "env.yaml"),
+        ("env.yml", "env.yaml"),
+        ("requirements", "env.txt"),
+        ("reqs", "env.txt"),
+    ],
+)
+@pytest.mark.integration
+def test_export_and_recreate_environment(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
+    target_format,
+    file_name,
+):
+    """
+    Test that a user can recreate an environment with the same
+    plugin name they used to export the environment.
+    Ref: https://github.com/conda-incubator/conda-lockfiles/issues/79
+    """
+    # Setup a simple environment
+    with tmp_env("ca-certificates") as prefix:
+        env_file_path = path_factory(file_name)
+        stdout, stderr, rc = conda_cli(
+            "export",
+            f"--prefix={prefix}",
+            f"--format={target_format}",
+            f"--file={env_file_path}",
+        )
+        assert rc == 0, "Unable to export env to format {target_format}"
+
+        # recreate the environment
+        recreate_prefix = path_factory()
+        stdout, stderr, rc = conda_cli(
+            "env",
+            "create",
+            f"--prefix={recreate_prefix}",
+            f"--env-spec={target_format}",
+            f"--file={env_file_path}",
+            "--dry-run",
+        )
+        assert rc == 0, "Unable to recreate env from format {target_format}"

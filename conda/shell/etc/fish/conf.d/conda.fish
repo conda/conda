@@ -12,54 +12,55 @@ if not set -q CONDA_SHLVL
     set -gx PATH $_CONDA_ROOT/condabin $PATH
 end
 
-function __conda_add_prompt
-    if set -q CONDA_PROMPT_MODIFIER
-        set_color -o green
-        echo -n $CONDA_PROMPT_MODIFIER
-        set_color normal
+if not set -q CONDA_DISABLE_FISH_PROMPT
+    function __conda_add_prompt
+        if set -q CONDA_PROMPT_MODIFIER
+            set_color -o green
+            echo -n $CONDA_PROMPT_MODIFIER
+            set_color normal
+        end
+    end
+
+    if functions -q fish_prompt
+        if not functions -q __fish_prompt_orig
+            functions -c fish_prompt __fish_prompt_orig
+        end
+        functions -e fish_prompt
+    else
+        function __fish_prompt_orig
+        end
+    end
+
+    function return_last_status
+        return $argv
+    end
+
+    function fish_prompt
+        set -l last_status $status
+        if set -q CONDA_LEFT_PROMPT
+            __conda_add_prompt
+        end
+        return_last_status $last_status
+        __fish_prompt_orig
+    end
+
+    if functions -q fish_right_prompt
+        if not functions -q __fish_right_prompt_orig
+            functions -c fish_right_prompt __fish_right_prompt_orig
+        end
+        functions -e fish_right_prompt
+    else
+        function __fish_right_prompt_orig
+        end
+    end
+
+    function fish_right_prompt
+        if not set -q CONDA_LEFT_PROMPT
+            __conda_add_prompt
+        end
+        __fish_right_prompt_orig
     end
 end
-
-if functions -q fish_prompt
-    if not functions -q __fish_prompt_orig
-        functions -c fish_prompt __fish_prompt_orig
-    end
-    functions -e fish_prompt
-else
-    function __fish_prompt_orig
-    end
-end
-
-function return_last_status
-    return $argv
-end
-
-function fish_prompt
-    set -l last_status $status
-    if set -q CONDA_LEFT_PROMPT
-        __conda_add_prompt
-    end
-    return_last_status $last_status
-    __fish_prompt_orig
-end
-
-if functions -q fish_right_prompt
-    if not functions -q __fish_right_prompt_orig
-        functions -c fish_right_prompt __fish_right_prompt_orig
-    end
-    functions -e fish_right_prompt
-else
-    function __fish_right_prompt_orig
-    end
-end
-
-function fish_right_prompt
-    if not set -q CONDA_LEFT_PROMPT
-        __conda_add_prompt
-    end
-    __fish_right_prompt_orig
-end
-
 
 function conda --inherit-variable CONDA_EXE
     if [ (count $argv) -lt 1 ]
@@ -90,7 +91,10 @@ function __fish_conda_commands
 end
 
 function __fish_conda_env_commands
-    string replace -r '.*_([a-z]+)\.py$' '$1' $_CONDA_ROOT/lib/python*/site-packages/conda_env/cli/main_*.py
+    set -l _ce_files \
+        $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_env_*.py \
+        $_CONDA_ROOT/lib/python*/site-packages/conda/cli/main_export.py
+    string replace -r '.*_([a-z]+)\.py$' '$1' $_ce_files
 end
 
 function __fish_conda_envs

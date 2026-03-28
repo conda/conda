@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import stat
+import subprocess
 import uuid
 from logging import WARNING, getLogger
 from pathlib import Path
@@ -19,7 +20,7 @@ from conda.exceptions import (
     EnvironmentLocationNotFound,
 )
 from conda.gateways.logging import initialize_logging
-from conda.testing.integration import env_or_set, which_or_where
+from conda.testing.integration import env_or_set
 from conda.utils import wrap_subprocess_call
 
 if TYPE_CHECKING:
@@ -79,12 +80,26 @@ def test_run_uncaptured(
         assert not err
 
 
-@pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
-def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request):
     with tmp_env() as prefix:
         # Remove write permissions
-        current = stat.S_IMODE(os.lstat(prefix).st_mode)
-        os.chmod(prefix, current & ~stat.S_IWRITE)
+        if on_win:
+            username = os.environ.get("USERNAME")
+            subprocess.run(
+                ["icacls", str(prefix), "/deny", f"{username}:W"],
+                check=True,
+                capture_output=True,
+            )
+            request.addfinalizer(
+                lambda: subprocess.run(
+                    ["icacls", str(prefix), "/grant", f"{username}:F"],
+                    capture_output=True,
+                )
+            )
+        else:
+            current = stat.S_IMODE(os.lstat(prefix).st_mode)
+            os.chmod(prefix, current & ~stat.S_IWRITE)
+            request.addfinalizer(lambda: os.chmod(prefix, current))
 
         # Confirm we do not have write access
         with pytest.raises(PermissionError):
@@ -107,8 +122,12 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
         conda_cli("run", f"--prefix={tmp_path}", "echo", "hello")
 
 
-def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
+def test_multiline_run_command(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("small-executable") as prefix:
         stdout, stderr, _ = conda_cli(
             "run",
             f"--prefix={prefix}",
@@ -116,11 +135,11 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
             dals(
                 f"""
                 {env_or_set}
-                {which_or_where} conda
+                small
                 """
             ),
         )
-        assert stdout
+        assert stdout.strip().endswith("Hello!")
         assert not stderr
 
 
@@ -483,6 +502,60 @@ def test_run_preserves_exit_code_despite_deactivation_failure(
         assert retcode == 42
 
         assert deactivation_marker_file.exists()
+
+
+def test_run_wrapper_has_condabin_on_path(
+    request: pytest.FixtureRequest,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Test to ensure condabin is on PATH in the wrapper script.
+    See https://github.com/conda/conda/pull/15672 for context.
+
+    Without the shell hook, the conda shell functions are not defined,
+    so nested conda commands rely on the conda executable in ``condabin``
+    being discoverable via PATH.
+    """
+    monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
+
+    with tmp_env() as prefix:
+        script_path, _ = wrap_subprocess_call(
+            root_prefix=context.root_prefix,
+            prefix=str(prefix),
+            dev_mode=False,
+            debug_wrapper_scripts=False,
+            arguments=["echo", "test"],
+        )
+
+        request.addfinalizer(lambda: Path(script_path).unlink(missing_ok=True))
+
+        script_content = Path(script_path).read_text()
+        condabin_dir = os.path.join(context.root_prefix, "condabin")
+        assert condabin_dir in script_content
+
+
+def test_run_allows_nested_conda_cli_command(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Test to ensure that nested `conda` CLI commands work under `conda run` without
+    the shell hook. See https://github.com/conda/conda/pull/15672 for context.
+    """
+    monkeypatch.setenv("CONDA_TEST_SAVE_TEMPS", "1")
+
+    with tmp_env() as prefix:
+        stdout, stderr, rc = conda_cli(
+            "run",
+            "--prefix",
+            str(prefix),
+            "conda",
+            "--version",
+        )
+
+        assert rc == 0, (stdout, stderr)
+        assert stdout.strip().startswith("conda ")
 
 
 def test_run_with_empty_command_will_raise(

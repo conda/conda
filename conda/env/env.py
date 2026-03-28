@@ -13,8 +13,7 @@ from ..base.context import context
 from ..cli import common
 from ..common.io import dashlist
 from ..common.iterators import unique
-from ..common.path import expand
-from ..common.serialize import json, yaml_safe_dump, yaml_safe_load
+from ..common.serialize import json, yaml
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
 from ..exceptions import (
@@ -277,7 +276,7 @@ def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
         is found to be invalid
     :returns EnvironmentYaml: A representation of the environment file
     """
-    data = yaml_safe_load(yamlstr)
+    data = yaml.loads(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
@@ -419,9 +418,7 @@ class EnvironmentYaml:
     def to_yaml(self, stream=None):
         """Convert information related to the ``EnvironmentYaml`` into a ``yaml`` string"""
         d = self.to_dict()
-        out = yaml_safe_dump(d, stream)
-        if stream is None:
-            return out
+        return yaml.write(d, fp=stream)
 
     def save(self):
         """Save the ``EnvironmentYaml`` data to a ``yaml`` file"""
@@ -441,7 +438,7 @@ class EnvironmentYaml:
         ]
 
         return EnvironmentModel(
-            prefix=self.prefix or context.target_prefix,
+            prefix=self.prefix,
             platform=context.subdir,
             name=self.name,
             config=config,
@@ -454,16 +451,6 @@ class EnvironmentYaml:
 @deprecated("26.3", "26.9", addendum="Use `conda.env.env.EnvironmentYaml` instead.")
 class Environment(EnvironmentYaml):
     """A class representing an ``environment.yaml`` file"""
-
-
-@deprecated("25.9", "26.3")
-def get_filename(filename):
-    """Expand filename if local path or return the ``url``"""
-    url_scheme = filename.split("://", 1)[0]
-    if url_scheme in CONDA_SESSION_SCHEMES:
-        return filename
-    else:
-        return expand(filename)
 
 
 def print_result(args, prefix, result):

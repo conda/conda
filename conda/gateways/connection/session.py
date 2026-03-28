@@ -20,7 +20,7 @@ from ...common.url import (
     split_anaconda_token,
     urlparse,
 )
-from ...exceptions import OfflineError, ProxyError
+from ...exceptions import OfflineError, PluginError, ProxyError
 from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
@@ -56,6 +56,45 @@ CONDA_SESSION_SCHEMES = frozenset(
     )
 )
 
+# Forbidden headers, which should never be set by plugins. Based on
+# https://web.archive.org/web/20251124174612/https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
+# (last updated as of November 17, 2025). Set-Cookie is a response header and not a request header, but
+# it's semantically invalid, so we include it here.
+
+FORBIDDEN_HEADERS = frozenset(
+    [
+        "accept-charset",
+        "accept-encoding",
+        "access-control-request-headers",
+        "access-control-request-method",
+        "connection",
+        "content-length",
+        "cookie",
+        "date",
+        "dnt",
+        "expect",
+        "host",
+        "keep-alive",
+        "origin",
+        "referer",
+        "set-cookie",
+        "te",
+        "trailer",
+        "transfer-encoding",
+        "upgrade",
+        "via",
+    ]
+)
+# Headers that override HTTP methods, which are forbidden when they contain the following.
+FORBIDDEN_METHOD_OVERRIDE_HEADERS = frozenset(
+    [
+        "x-http-method",
+        "x-http-method-override",
+        "x-method-override",
+    ]
+)
+FORBIDDEN_HTTP_METHODS = frozenset(["connect", "trace", "track"])
+
 
 class EnforceUnusedAdapter(BaseAdapter):
     def send(self, request: Request, *args, **kwargs):
@@ -73,6 +112,42 @@ def get_channel_name_from_url(url: str) -> str | None:
     Given a URL, determine the channel it belongs to and return its name.
     """
     return Channel.from_url(url).canonical_name
+
+
+def _validate_plugin_headers(headers: dict) -> None:
+    """
+    Validate plugin-provided headers and raise PluginError if any forbidden
+    headers are detected. This prevents plugins from compromising conda's
+    core network stack.
+
+    :param headers: Dictionary of headers to validate
+    :raises PluginError: If any forbidden headers are detected
+    """
+    for key, value in headers.items():
+        key_lower = key.lower()
+
+        if key_lower in FORBIDDEN_HEADERS:
+            raise PluginError(
+                f"Plugin attempted to set forbidden header '{key}'. "
+                "This header is not allowed as it could compromise conda's network stack. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
+            )
+
+        if key_lower.startswith("proxy-") or key_lower.startswith("sec-"):
+            raise PluginError(
+                f"Plugin attempted to set forbidden header '{key}'. "
+                "Headers starting with 'Proxy-' or 'Sec-' are not allowed as they could "
+                "compromise conda's network stack. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
+            )
+
+        if key_lower in FORBIDDEN_METHOD_OVERRIDE_HEADERS:
+            if isinstance(value, str) and value.lower() in FORBIDDEN_HTTP_METHODS:
+                raise PluginError(
+                    f"Plugin attempted to set header '{key}' with forbidden method '{value}'. "
+                    "This method override is not allowed as it could compromise conda's network stack. "
+                    "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
+                )
 
 
 @cache
@@ -232,15 +307,22 @@ class CondaSession(Session, metaclass=CondaSessionType):
         # inject headers from plugins if this is a https/http request
         url = urlparse(request.url)
         if url.scheme in ("https", "http"):
+            session_headers = context.plugin_manager.get_cached_session_headers(
+                host=url.netloc
+            )
+            request_headers = context.plugin_manager.get_cached_request_headers(
+                host=url.netloc, path=url.path
+            )
+
+            # Validate plugin headers - raises PluginError if forbidden headers detected
+            _validate_plugin_headers(session_headers)
+            _validate_plugin_headers(request_headers)
+
             request.headers = CaseInsensitiveDict(
                 {
                     # hardcoded session headers (self.headers) are injected in super().prepare_request
-                    **context.plugin_manager.get_cached_session_headers(
-                        host=url.netloc
-                    ),
-                    **context.plugin_manager.get_cached_request_headers(
-                        host=url.netloc, path=url.path
-                    ),
+                    **session_headers,
+                    **request_headers,
                     **(request.headers or {}),
                 }
             )

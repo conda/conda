@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from ...base.constants import EXPLICIT_MARKER
 from ...base.context import context
-from ...exceptions import CondaValueError
+from ...exceptions import CondaValueError, PluginError
 from ...gateways.disk.read import yield_lines
 from ...misc import get_package_records_from_explicit
 from ...models.environment import Environment
@@ -38,14 +38,16 @@ class ExplicitSpec(EnvironmentSpecBase):
         """
         # Return early if no filename was provided
         if self.filename is None:
-            return False
+            raise CondaValueError("No filename provided")
 
         # Ensure the file has the "@EXPLICIT" marker
         dependencies_list = list(yield_lines(self.filename))
         if EXPLICIT_MARKER in dependencies_list:
             return True
         else:
-            return False
+            raise PluginError(
+                f"{self.filename} is not an explicit file. Missing the explicit marker."
+            )
 
     @property
     def env(self) -> Environment:

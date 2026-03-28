@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Remove internal use of `boltons.setutils.IndexedSet()`. It has been replaced with either sequences or sets. (#15742 via #15744)

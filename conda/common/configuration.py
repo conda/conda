@@ -21,7 +21,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping
 from enum import Enum, EnumMeta
-from functools import wraps
+from functools import cache, wraps
 from itertools import chain
 from logging import getLogger
 from os import environ
@@ -31,7 +31,6 @@ from re import IGNORECASE, VERBOSE, compile
 from string import Template
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
 from frozendict import deepfreeze, frozendict
 from frozendict import getFreezeConversionMap as _getFreezeConversionMap
 from frozendict import register as _register
@@ -47,7 +46,7 @@ from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
 from .compat import isiterable, primitive_types
 from .constants import NULL
-from .serialize import yaml_round_trip_load
+from .serialize import yaml
 
 if Enum not in _getFreezeConversionMap():
     # leave enums as is, deepfreeze will flatten it into a dict
@@ -58,7 +57,7 @@ del _getFreezeConversionMap
 del _register
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Sequence
     from re import Match
     from typing import Any, Final
 
@@ -391,10 +390,21 @@ class YamlRawParameter(RawParameter):
         return EMPTY_MAP
 
     @classmethod
+    @cache
     def make_raw_parameters_from_file(cls, filepath):
+        """
+        Read the provided file path and convert the contents into configuration parameters.
+
+        This function will cache the result for each filepath. In order to re-read the same
+        file path with updated content, be sure to clear this cache.
+
+        For example::
+
+            YamlRawParameter.cache_clear()
+        """
         with open(filepath) as fh:
             try:
-                yaml_obj = yaml_round_trip_load(fh)
+                yaml_obj = yaml.loads(fh)
             except ScannerError as err:
                 mark = err.problem_mark
                 raise ConfigurationLoadError(
@@ -410,6 +420,10 @@ class YamlRawParameter(RawParameter):
                     position=err.position,
                 )
             return cls.make_raw_parameters(filepath, yaml_obj) or EMPTY_MAP
+
+    @classmethod
+    def cache_clear(cls) -> None:
+        cls.make_raw_parameters_from_file.cache_clear()
 
 
 class DefaultValueRawParameter(RawParameter):
@@ -1396,7 +1410,7 @@ class Configuration(metaclass=ConfigurationType):
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}
         self._cache_ = {}
-        self._reset_callbacks = IndexedSet()
+        self._reset_callbacks: dict[Callable, None] = {}
         self._validation_errors = defaultdict(list)
 
         self._set_search_path(search_path, **kwargs)
@@ -1442,7 +1456,7 @@ class Configuration(metaclass=ConfigurationType):
         cls,
         search_path: Iterable[Path],
     ) -> Iterable[tuple[Path, dict]]:
-        for path in search_path:
+        for path in unique(search_path):
             try:
                 yield path, YamlRawParameter.make_raw_parameters_from_file(path)
             except ConfigurationLoadError as err:
@@ -1453,7 +1467,7 @@ class Configuration(metaclass=ConfigurationType):
                 )
 
     def _set_search_path(self, search_path: PathsType, **kwargs):
-        self._search_path = IndexedSet(self._expand_search_path(search_path, **kwargs))
+        self._search_path = self._expand_search_path(search_path, **kwargs)
 
         self._set_raw_data(dict(self._load_search_path(self._search_path)))
 
@@ -1571,7 +1585,7 @@ class Configuration(metaclass=ConfigurationType):
         return self
 
     def register_reset_callaback(self, callback):
-        self._reset_callbacks.add(callback)
+        self._reset_callbacks.setdefault(callback, None)
 
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__

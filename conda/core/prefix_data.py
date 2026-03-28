@@ -19,7 +19,6 @@ from frozendict import frozendict
 
 from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
-    CONDA_PACKAGE_EXTENSIONS,
     PREFIX_CREATION_TIMESTAMP_FILE,
     PREFIX_FROZEN_FILE,
     PREFIX_MAGIC_FILE,
@@ -34,14 +33,12 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_mac, on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
-from ..common.path import expand, paths_equal
+from ..common.path import expand, paths_equal, strip_pkg_extension
 from ..common.serialize import json
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
-from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
-    CondaDependencyError,
     CondaError,
     CondaValueError,
     CorruptedEnvironmentError,
@@ -75,9 +72,6 @@ log = getLogger(__name__)
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
-    @deprecated.argument(
-        "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
-    )
     def __call__(
         cls,
         prefix_path: PathType,
@@ -127,16 +121,13 @@ class PrefixData(metaclass=PrefixDataType):
 
     _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
 
-    @deprecated.argument(
-        "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
-    )
     def __init__(
         self,
         prefix_path: PathType,
         interoperability: bool | None = None,
     ):
-        # pip_interop_enabled is a temporary parameter; DO NOT USE
-        # TODO: when removing pip_interop_enabled, also remove from meta class
+        # interoperability is a temporary parameter; DO NOT USE
+        # TODO: when removing interoperability, also remove from meta class
         self.prefix_path: Path = Path(prefix_path)
         self._magic_file: Path = self.prefix_path / PREFIX_MAGIC_FILE
         self._frozen_file: Path = self.prefix_path / PREFIX_FROZEN_FILE
@@ -226,7 +217,7 @@ class PrefixData(metaclass=PrefixDataType):
 
     def is_environment(self) -> bool:
         """
-        Check whether the PrefixData path is a valida conda environment.
+        Check whether the PrefixData path is a valid conda environment.
 
         This is assessed by checking if `conda-meta/history` marker file exists.
         """
@@ -427,6 +418,38 @@ class PrefixData(metaclass=PrefixDataType):
         else:
             return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
 
+    def size(self) -> int:
+        """
+        Compute the total size of a conda environment prefix.
+
+        This aggregates the installed size of all packages in the environment,
+        plus the size of non-manifest files under conda-meta (history, markers,
+        etc.)
+
+        :returns: Total size in bytes.
+        """
+        total_size = 0
+
+        # 1. sum up the installed size of each package
+        for record in self.iter_records():
+            total_size += record.package_size(self.prefix_path)
+
+        # 2. add up the size of non-manifest files under conda-meta
+        conda_meta_dir = self.prefix_path / "conda-meta"
+        if self.exists():
+            try:
+                for meta_file in conda_meta_dir.iterdir():
+                    if meta_file.suffix == ".json":
+                        continue
+                    try:
+                        total_size += meta_file.stat().st_size
+                    except OSError:
+                        pass
+            except OSError:
+                pass
+
+        return total_size
+
     # endregion
     # region Records
 
@@ -436,9 +459,9 @@ class PrefixData(metaclass=PrefixDataType):
         _conda_meta_dir = self.prefix_path / "conda-meta"
         if lexists(_conda_meta_dir):
             conda_meta_json_paths = (
-                p
-                for p in (entry.path for entry in os.scandir(_conda_meta_dir))
-                if p[-5:] == ".json"
+                entry.path
+                for entry in os.scandir(_conda_meta_dir)
+                if entry.name.endswith(".json") and not entry.name.startswith("._")
             )
             for meta_file in conda_meta_json_paths:
                 self._load_single_record(meta_file)
@@ -450,24 +473,17 @@ class PrefixData(metaclass=PrefixDataType):
         self.load()
         return self
 
-    @property
-    @deprecated("25.9", "26.3", addendum="Use PrefixData.interoperability.")
-    def _pip_interop_enabled(self):
-        return self.interoperability
-
     def _get_json_fn(self, prefix_record: PrefixRecord) -> str:
         fn = prefix_record.fn
-        known_ext = False
-        # .dist-info is for things installed by pip
-        for ext in CONDA_PACKAGE_EXTENSIONS + (".dist-info",):
-            if fn.endswith(ext):
-                fn = fn[: -len(ext)]
-                known_ext = True
-        if not known_ext:
+        # Check package extensions (dynamic) or .dist-info (pip-installed)
+        stripped, ext = strip_pkg_extension(fn)
+        if not ext and fn.endswith(".dist-info"):
+            stripped = fn[: -len(".dist-info")]
+        elif not ext:
             raise ValueError(
                 f"Attempted to make prefix record for unknown package type: {fn}"
             )
-        return fn + ".json"
+        return stripped + ".json"
 
     def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
         if prefix_record.name in self._prefix_records:
@@ -608,7 +624,6 @@ class PrefixData(metaclass=PrefixDataType):
         return self.__prefix_records or self.load() or self.__prefix_records
 
     def _load_single_record(self, prefix_record_json_path: PathType) -> None:
-        log.debug("loading prefix record %s", prefix_record_json_path)
         with open(prefix_record_json_path) as fh:
             try:
                 data = json.load(fh)
@@ -631,32 +646,6 @@ class PrefixData(metaclass=PrefixDataType):
             # TODO: consider, at least in memory, storing prefix_record_json_path as part
             #       of PrefixRecord
             self.__prefix_records[name] = data
-
-    # endregion
-    # region Python records
-
-    @property
-    @deprecated("25.9", "26.3", addendum="Use PrefixData.get('python').")
-    def _python_pkg_record(self) -> PrefixRecord | None:
-        """Return the prefix record for the package python."""
-        return next(
-            (
-                prefix_record
-                for prefix_record in self.__prefix_records.values()
-                if prefix_record.name == "python"
-            ),
-            None,
-        )
-
-    @deprecated(
-        "25.9",
-        "26.3",
-        addendum="Use 'conda.plugins.prefix_data_loaders.pypi.load_site_packages' instead.",
-    )
-    def _load_site_packages(self) -> dict[str, PrefixRecord]:
-        from ..plugins.prefix_data_loaders.pypi import load_site_packages
-
-        return load_site_packages(self.prefix_path, self.__prefix_records)
 
     # endregion
     # region State and environment variables
@@ -771,7 +760,8 @@ def get_conda_anchor_files_and_records(
         r"^{}/[^/]+(?:{})$".format(
             re.escape(site_packages_short_path),
             r"|".join(re.escape(fn) for fn in anchor_file_endings),
-        )
+        ),
+        flags=re.IGNORECASE if on_win else 0,
     ).match
 
     # We could fix this earlier in the PrefixRecord instantiation, but then
@@ -788,7 +778,7 @@ def get_conda_anchor_files_and_records(
             if matcher(fpath):
                 anchor_paths.append(fpath)
         if len(anchor_paths) > 1:
-            anchor_path = sorted(anchor_paths, key=len)[0]
+            anchor_path = max(anchor_paths, key=len)
             log.info(
                 "Package %s has multiple python anchor files.\n  Using %s",
                 prefix_record.record_id(),
@@ -799,43 +789,6 @@ def get_conda_anchor_files_and_records(
             conda_python_packages[anchor_paths[0]] = prefix_record
 
     return conda_python_packages
-
-
-@deprecated("25.9", "26.3", addendum="Use `PrefixData.get('python', None)` instead.")
-def python_record_for_prefix(prefix: os.PathLike) -> PrefixRecord | None:
-    """
-    For the given conda prefix, return the PrefixRecord of the Python installed
-    in that prefix.
-    """
-    python_record_iterator = (
-        record
-        for record in PrefixData(prefix).iter_records()
-        if record.name == "python"
-    )
-    record = next(python_record_iterator, None)
-    if record is not None:
-        next_record = next(python_record_iterator, None)
-        if next_record is not None:
-            raise CondaDependencyError(
-                f"multiple python records found in prefix {prefix}"
-            )
-    return record
-
-
-@deprecated("25.9", "26.3", addendum="Use `PrefixData.get('python').version` instead.")
-def get_python_version_for_prefix(prefix: os.PathLike) -> str | None:
-    """
-    For the given conda prefix, return the version of the Python installation
-    in that prefix.
-    """
-    # returns a string e.g. "2.7", "3.4", "3.5" or None
-    record = PrefixData(prefix).get("python", None)
-    if record is not None:
-        if record.version[3].isdigit():
-            return record.version[:4]
-        else:
-            return record.version[:3]
-    return None
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:
