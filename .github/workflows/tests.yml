@@ -51,7 +51,7 @@ jobs:
         if: github.event_name != 'pull_request'
 
       - name: Filter Changes
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: filter
         with:
           filters: |
@@ -110,7 +110,7 @@ jobs:
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           # Use faster GNU tar for all runners
           enableCrossOsArchive: true
@@ -177,7 +177,7 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -251,7 +251,7 @@ jobs:
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -305,7 +305,7 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -351,7 +351,7 @@ jobs:
           echo "HASH=${STEM}-benchmark" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -386,7 +386,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@2ac572851726409c88c02a307f1ea2632a9ea59b # v4.11.0
+        uses: CodSpeedHQ/action@1c8ae4843586d3ba879736b7f6b7b0c990757fab # v4.12.1
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/python -m pytest --codspeed
@@ -421,7 +421,7 @@ jobs:
           echo "HASH=${STEM}-typing" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -465,7 +465,7 @@ jobs:
 
       - name: Upload Coverage
         if: '!cancelled()'
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},MyPy
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -516,7 +516,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
         with:
           platforms: linux/${{ matrix.platform }}
 
@@ -573,7 +573,7 @@ jobs:
           echo "HASH=${STEM}-memray" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -667,7 +667,7 @@ jobs:
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -716,7 +716,7 @@ jobs:
           -m "${{ env.PYTEST_MARKER }}"
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -747,7 +747,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
 
       - name: Upload Combined Test Results
         # provides one downloadable archive of all matrix run test results for further analysis
@@ -922,7 +922,7 @@ jobs:
           echo "HASH=${STEM}-${{ matrix.default-channel }}-${{ github.job }}" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
