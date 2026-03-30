@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
-from conda.common.io import captured, env_vars
+from conda.base.context import context, reset_context
 from conda.exceptions import CondaSystemExit, DryRunExit
 from conda.plugins.reporter_backends.console import TQDMProgressBar
 from conda.reporters import (
@@ -69,65 +68,47 @@ def test_get_progress_bar_context_managers():
     assert isinstance(progress_bar_context_manager, nullcontext)
 
 
-def test_confirm_yn_dry_run_exit():
-    with (
-        env_vars(
-            {"CONDA_DRY_RUN": "true"},
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-        pytest.raises(DryRunExit),
-    ):
-        confirm_yn()
-
-
-def test_confirm_yn_always_yes():
-    with env_vars(
-        {
-            "CONDA_ALWAYS_YES": "true",
-            "CONDA_DRY_RUN": "false",
-        },
-        stack_callback=conda_tests_ctxt_mgmt_def_pol,
-    ):
-        assert context.always_yes
-        assert not context.dry_run
+def test_confirm_yn_dry_run_exit(monkeypatch: MonkeyPatch):
+    with pytest.raises(DryRunExit):
+        monkeypatch.setenv("CONDA_DRY_RUN", "true")
+        reset_context()
 
         confirm_yn()
 
 
-def test_confirm_yn_yes(monkeypatch: MonkeyPatch):
+def test_confirm_yn_always_yes(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("CONDA_ALWAYS_YES", "true")
+    monkeypatch.setenv("CONDA_DRY_RUN", "false")
+    reset_context()
+    assert context.always_yes
+    assert not context.dry_run
+
+    confirm_yn()
+
+
+def test_confirm_yn_yes(monkeypatch: MonkeyPatch, capsys: CaptureFixture):
     monkeypatch.setattr("sys.stdin", StringIO("blah\ny\n"))
 
-    with (
-        env_vars(
-            {
-                "CONDA_ALWAYS_YES": "false",
-                "CONDA_DRY_RUN": "false",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-        captured() as cap,
-    ):
-        assert not context.always_yes
-        assert not context.dry_run
+    monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+    monkeypatch.setenv("CONDA_DRY_RUN", "false")
+    reset_context()
+    assert not context.always_yes
+    assert not context.dry_run
 
-        assert confirm_yn()
+    assert confirm_yn()
 
-    assert "Invalid choice" in cap.stdout
+    stdout, stderr = capsys.readouterr()
+    assert "Invalid choice" in stdout
 
 
 def test_confirm_yn_no(monkeypatch: MonkeyPatch):
     monkeypatch.setattr("sys.stdin", StringIO("n\n"))
 
-    with (
-        env_vars(
-            {
-                "CONDA_ALWAYS_YES": "false",
-                "CONDA_DRY_RUN": "false",
-            },
-            stack_callback=conda_tests_ctxt_mgmt_def_pol,
-        ),
-        pytest.raises(CondaSystemExit),
-    ):
+    with pytest.raises(CondaSystemExit):
+        monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+        monkeypatch.setenv("CONDA_DRY_RUN", "false")
+        reset_context()
+
         assert not context.always_yes
         assert not context.dry_run
 

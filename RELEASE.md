@@ -137,7 +137,7 @@ These are synced from [`conda/infrastructure`][infrastructure].
 <details>
 <summary><h2>5. Run rever. (ideally done on the Monday of release week)</h2></summary>
 
-Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from builtin race conditions (_i.e._, to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
+Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from a builtin circular dependency (_i.e._, to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
 
 1. Install [`rever`][rever docs] and activate the environment:
 

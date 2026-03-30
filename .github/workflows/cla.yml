@@ -15,10 +15,10 @@ jobs:
         && github.event.comment.body == '@conda-bot check'
         || github.event_name == 'pull_request_target'
       )
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - name: Check CLA
-        uses: conda/actions/check-cla@eb545bb8ab48d499b31c057a6df3cf46753fdbcb # v25.3.1
+        uses: conda/actions/check-cla@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
         with:
           # [required]
           # A token with ability to comment, label, and modify the commit status

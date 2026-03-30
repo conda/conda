@@ -6,14 +6,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context
-from conda.common.compat import on_linux
-from conda.core.prefix_data import PrefixData
+from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import MonkeyPatch
 
-    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpChannelFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -32,41 +32,49 @@ def test_reorder_channel_priority(
     conda_cli: CondaCLIFixture,
     pinned_package: bool,
     clear_conda_session_cache: None,
+    clear_cache: None,
+    test_recipes_channel: Path,
+    tmp_channel: TmpChannelFixture,
+    mock_channels: list[str],
 ):
-    # use "cheap" packages with no dependencies
-    package1 = "zlib"
-    package2 = "ca-certificates"
+    package1 = "versioned"
+    package2 = "dependent"  # with transitive dependency
+    package3 = "dependency"
 
     # set pinned package
     if pinned_package:
-        monkeypatch.setenv("CONDA_PINNED_PACKAGES", package1)
+        monkeypatch.setenv("CONDA_PINNED_PACKAGES", f"{package1}=1")
 
-    # create environment with package1 and package2
-    with tmp_env(
-        "--override-channels", "--channel=defaults", package1, package2
-    ) as prefix:
-        # check both packages are installed from defaults
-        PrefixData._cache_.clear()
-        assert PrefixData(prefix).get(package1).channel.name == "pkgs/main"
-        assert PrefixData(prefix).get(package2).channel.name == "pkgs/main"
+    # create a temporary channel with older versions of the packages
+    with tmp_channel(f"{package1}=1", f"{package2}=1") as (
+        old_recipes_path,
+        old_recipes_channel,
+    ):
+        mock_channels[:] = [old_recipes_channel]
 
-        # update --all
-        conda_cli(
-            "update",
-            f"--prefix={prefix}",
-            "--override-channels",
-            "--channel=conda-forge",
-            "--all",
-            "--yes",
-        )
-        # check pinned package is unchanged but unpinned packages are updated from conda-forge
-        PrefixData._cache_.clear()
-        expected_channel = "pkgs/main" if pinned_package else "conda-forge"
-        assert PrefixData(prefix).get(package1).channel.name == expected_channel
-        if context.solver == "libmamba":
-            # libmamba considers that 'ca-certificates' doesn't need to change to satisfy
-            # the request, so it stays in pkgs/main. Other transient deps do change, though.
-            if on_linux:  # lazy, only check on linux
-                assert PrefixData(prefix).get("libgcc").channel.name == "conda-forge"
-        else:
-            assert PrefixData(prefix).get(package2).channel.name == "conda-forge"
+        # create environment with package1 and package2
+        with tmp_env(package1, package2) as prefix:
+            # check both packages are installed from old_recipes_channel
+            assert (
+                package_is_installed(prefix, f"{package1}=1").channel.name
+                == package_is_installed(prefix, f"{package2}=1").channel.name
+                == package_is_installed(prefix, f"{package3}=1").channel.name
+                == old_recipes_path.name
+            )
+
+            # update --all using the new channel
+            mock_channels[:] = [str(test_recipes_channel)]
+            conda_cli("update", f"--prefix={prefix}", "--all", "--yes")
+
+            # check pinned package is unchanged but unpinned packages are updated from test_recipes_channel
+            version = "1" if pinned_package else "2"
+            channel = old_recipes_path if pinned_package else test_recipes_channel
+            assert (
+                package_is_installed(prefix, f"{package1}={version}").channel.name
+                == channel.name
+            )
+            assert (
+                package_is_installed(prefix, f"{package2}=2").channel.name
+                == package_is_installed(prefix, f"{package3}=2").channel.name
+                == test_recipes_channel.name
+            )

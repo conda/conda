@@ -299,7 +299,7 @@ Use the terminal for the following steps.
 
 .. note::
    Conda updates to the highest version in its series, so
-   Python 3.9 updates to the highest available in the 3.x series.
+   when updating Python, it updates to the highest available in the 3.x series.
 
 To update the Anaconda metapackage:
 

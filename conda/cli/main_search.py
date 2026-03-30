@@ -68,7 +68,21 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         Search for a package on a specific channel::
 
             conda search conda-forge::numpy
+
+        Search for a package on a specific channel and platform::
+
             conda search 'numpy[channel=conda-forge, subdir=osx-64]'
+
+        Search for a package with a specific software version and python version::
+
+            conda search 'numpy-base=2.4.2=py313*'
+            conda search 'numpy-base[version="2.4.2",build=py313*]'
+
+        Search for a package with a specific software version and build string::
+
+            conda search 'r-shiny=1.12.0=r45*'
+            conda search 'r-shiny[version="1.12.0",build=r45*]'
+
         """
     )
 
@@ -167,7 +181,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..cli.common import stdout_json
     from ..core.envs_manager import query_all_prefixes
-    from ..core.index import calculate_channel_urls
     from ..core.subdir_data import SubdirData
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
@@ -198,6 +211,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 }
                 for prefix, prefix_recs in prefix_matches
             )
+
+            if not ordered_result:
+                from ..exceptions import PackagesNotFoundError
+
+                raise PackagesNotFoundError([spec])
+
         if context.json:
             stdout_json(ordered_result)
         elif args.info:
@@ -248,17 +267,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     if not matches:
-        channels_urls = tuple(
-            calculate_channel_urls(
-                channel_urls=context.channels,
-                prepend=not args.override_channels,
-                platform=subdirs[0],
-                use_local=args.use_local,
-            )
-        )
         from ..exceptions import PackagesNotFoundError
+        from ..models.channel import all_channel_urls
 
-        raise PackagesNotFoundError((str(spec),), channels_urls)
+        raise PackagesNotFoundError([spec], all_channel_urls(context.channels, subdirs))
 
     if context.json:
         json_obj = defaultdict(list)

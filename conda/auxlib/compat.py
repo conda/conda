@@ -5,6 +5,7 @@ from shlex import split
 from ..deprecations import deprecated
 
 
+@deprecated("26.3", "26.9", addendum="Use `conda.common.compat.isiterable` instead.")
 def isiterable(obj):
     # and not a string
     from collections.abc import Iterable

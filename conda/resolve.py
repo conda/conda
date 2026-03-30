@@ -12,6 +12,7 @@ import itertools
 from collections import defaultdict, deque
 from functools import cache
 from logging import DEBUG, getLogger
+from typing import TYPE_CHECKING
 
 from frozendict import frozendict
 from tqdm import tqdm
@@ -37,11 +38,14 @@ from .exceptions import (
     ResolvePackageNotFound,
     UnsatisfiableError,
 )
-from .models.channel import Channel, MultiChannel
+from .models.channel import Channel
 from .models.enums import NoarchType, PackageType
 from .models.match_spec import MatchSpec
 from .models.records import PackageRecord
 from .models.version import VersionOrder
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 log = getLogger(__name__)
 stdoutlog = getLogger("conda.stdoutlog")
@@ -943,17 +947,28 @@ class Resolve:
         return vkey
 
     @staticmethod
-    def _make_channel_priorities(channels):
+    def _make_channel_priorities(channels: Iterable[Channel | str]) -> dict[str, int]:
         priorities_map = {}
-        for priority_counter, chn in enumerate(
-            itertools.chain.from_iterable(
-                (Channel(cc) for cc in c._channels)
-                if isinstance(c, MultiChannel)
-                else (c,)
-                for c in (Channel(c) for c in channels)
-            )
-        ):
-            channel_name = chn.name
+        """Make a dictionary of channel priorities.
+
+        Maps channel names to priorities, e.g.:
+
+        .. code-block:: pycon
+
+           >>> Resolve._make_channel_priorities(["conda-canary", "defaults", "conda-forge"])
+           {
+               'conda-canary': 0,
+               'pkgs/main': 1,
+               'pkgs/r': 2,
+               'conda-forge': 3,
+           }
+
+        Compare with ``conda.models.channel.prioritize_channels``.
+        """
+        channel_names = (
+            channel.name for name in channels for channel in Channel(name).channels
+        )
+        for priority_counter, channel_name in enumerate(channel_names):
             if channel_name in priorities_map:
                 continue
             priorities_map[channel_name] = min(
@@ -1002,7 +1017,8 @@ class Resolve:
         if nm:
             tgroup = libs = self.groups.get(nm, [])
         elif tf:
-            assert len(tf) == 1
+            if len(tf) != 1:
+                raise RuntimeError
             k = next(iter(tf))
             tgroup = libs = self.trackers.get(k, [])
         else:
@@ -1186,7 +1202,8 @@ class Resolve:
         self,
         must_have: dict[str, PackageRecord],
     ) -> list[PackageRecord]:
-        assert isinstance(must_have, dict)
+        if not isinstance(must_have, dict):
+            raise TypeError("'must_have' must be a dict.")
 
         digraph = {}  # dict[str, set[dependent_package_names]]
         for package_name, prec in must_have.items():

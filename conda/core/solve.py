@@ -8,11 +8,8 @@ import copy
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
-from os.path import exists, join
 from textwrap import dedent
 from typing import TYPE_CHECKING
-
-from boltons.setutils import IndexedSet
 
 from .. import CondaError
 from .. import __version__ as CONDA_VERSION
@@ -23,8 +20,10 @@ from ..base.context import context
 from ..common.constants import NULL, TRACE
 from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
+from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
+    NoChannelsConfiguredError,
     PackagesNotFoundError,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -37,7 +36,7 @@ from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..reporters import get_spinner
 from ..resolve import Resolve
-from .index import _supplement_index_with_system, get_reduced_index
+from .index import Index, ReducedIndex
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
@@ -48,7 +47,7 @@ except ImportError:
     from ..auxlib.collection import frozendict
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
     from ..models.records import PackageRecord
 
@@ -65,10 +64,13 @@ class Solver:
       * :meth:`solve_for_transaction`
     """
 
+    _index: ReducedIndex | None
+    _r: Resolve | None
+
     def __init__(
         self,
         prefix: str,
-        channels: Iterable[Channel],
+        channels: Iterable[Channel] | None = None,
         subdirs: Iterable[str] = (),
         specs_to_add: Iterable[MatchSpec] = (),
         specs_to_remove: Iterable[MatchSpec] = (),
@@ -92,15 +94,18 @@ class Solver:
         """
         self.prefix = prefix
         self._channels = channels or context.channels
-        self.channels = IndexedSet(Channel(c) for c in self._channels)
-        self.subdirs = tuple(s for s in subdirs or context.subdirs)
+        self.channels = tuple(unique(Channel(c) for c in self._channels))
+        self.subdirs = tuple(subdirs or context.subdirs)
         self.specs_to_add = frozenset(MatchSpec.merge(s for s in specs_to_add))
         self.specs_to_add_names = frozenset(_.name for _ in self.specs_to_add)
         self.specs_to_remove = frozenset(MatchSpec.merge(s for s in specs_to_remove))
+        self.unmerged_specs_to_add = frozenset(MatchSpec(s) for s in specs_to_add)
+        self.unmerged_specs_to_remove = frozenset(MatchSpec(s) for s in specs_to_remove)
         self.neutered_specs = ()
         self._command = command
 
-        assert all(s in context.known_subdirs for s in self.subdirs)
+        if unknown_subdirs := set(self.subdirs) - context.known_subdirs:
+            raise ValueError(f"Unknown subdir(s):{dashlist(sorted(unknown_subdirs))}")
         self._repodata_fn = repodata_fn
         self._index = None
         self._r = None
@@ -116,8 +121,8 @@ class Solver:
         force_remove=NULL,
         force_reinstall=NULL,
         should_retry_solve=False,
-    ):
-        """Gives an UnlinkLinkTransaction instance that can be used to execute the solution
+    ) -> UnlinkLinkTransaction:
+        """Return an UnlinkLinkTransaction instance that can be used to execute the solution
         on an environment.
 
         Args:
@@ -138,6 +143,11 @@ class Solver:
             UnlinkLinkTransaction:
 
         """
+        if self.specs_to_add and (not self.channels or len(self.channels) == 0):
+            raise NoChannelsConfiguredError(
+                packages=[spec.name for spec in self.specs_to_add if spec.name],
+            )
+
         if self.prefix == context.root_prefix and context.enable_private_envs:
             # This path has the ability to generate a multi-prefix transaction. The basic logic
             # is in the commented out get_install_transaction() function below. Exercised at
@@ -146,8 +156,8 @@ class Solver:
 
         # run pre-solve processes here before solving for a solution
         context.plugin_manager.invoke_pre_solves(
-            self.specs_to_add,
-            self.specs_to_remove,
+            self.unmerged_specs_to_add,
+            self.unmerged_specs_to_remove,
         )
 
         unlink_precs, link_precs = self.solve_for_diff(
@@ -175,8 +185,8 @@ class Solver:
                 self.prefix,
                 unlink_precs,
                 link_precs,
-                self.specs_to_remove,
-                self.specs_to_add,
+                self.unmerged_specs_to_remove,
+                self.unmerged_specs_to_add,
                 self.neutered_specs,
             )
         )
@@ -250,7 +260,7 @@ class Solver:
         ignore_pinned=NULL,
         force_remove=NULL,
         should_retry_solve=False,
-    ):
+    ) -> tuple[PackageRecord, ...]:
         """Gives the final, solved state of the environment.
 
         Args:
@@ -282,11 +292,17 @@ class Solver:
                 whether to call find_conflicts (slow) in ssc.r.solve
 
         Returns:
-            tuple[PackageRef]:
+            tuple[PackageRecord, ...]:
                 In sorted dependency order from roots to leaves, the package references for
                 the solved state of the environment.
 
         """
+
+        if self.specs_to_add and (not self.channels or len(self.channels) == 0):
+            raise NoChannelsConfiguredError(
+                packages=[spec.name for spec in self.specs_to_add if spec.name],
+            )
+
         if prune and update_modifier == UpdateModifier.FREEZE_INSTALLED:
             update_modifier = NULL
         if update_modifier is NULL:
@@ -338,7 +354,7 @@ class Solver:
                 for prec in ssc.solution_precs
                 if not any(spec.match(prec) for spec in self.specs_to_remove)
             )
-            return IndexedSet(PrefixGraph(solution).graph)
+            return tuple(PrefixGraph(solution).graph)
 
         # Check if specs are satisfied by current environment. If they are, exit early.
         if (
@@ -352,7 +368,7 @@ class Solver:
             else:
                 # All specs match a package in the current environment.
                 # Return early, with a solution that should just be PrefixData().iter_records()
-                return IndexedSet(PrefixGraph(ssc.solution_precs).graph)
+                return tuple(PrefixGraph(ssc.solution_precs).graph)
 
         if not ssc.r:
             with get_spinner(f"Collecting package metadata ({self._repodata_fn})"):
@@ -415,7 +431,7 @@ class Solver:
 
         time_recorder.log_totals()
 
-        ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
+        ssc.solution_precs = tuple(PrefixGraph(ssc.solution_precs).graph)
         log.debug(
             "solved prefix %s\n  solved_linked_dists:\n    %s\n",
             self.prefix,
@@ -536,8 +552,7 @@ class Solver:
                     ssc.specs_map[pkg_name] = MatchSpec(pkg_name)
 
             # Add virtual packages so they are taken into account by the solver
-            virtual_pkg_index = {}
-            _supplement_index_with_system(virtual_pkg_index)
+            virtual_pkg_index = Index().system_packages
             virtual_pkgs = [p.name for p in virtual_pkg_index.keys()]
             for virtual_pkgs_name in virtual_pkgs:
                 if virtual_pkgs_name not in ssc.specs_map:
@@ -959,7 +974,7 @@ class Solver:
 
     @time_recorder(module_name=__name__)
     def _run_sat(self, ssc):
-        final_environment_specs = IndexedSet(
+        final_environment_specs = dict.fromkeys(
             (
                 *ssc.specs_map.values(),
                 *ssc.track_features_specs,
@@ -972,7 +987,7 @@ class Solver:
             raise PackagesNotFoundError(absent_specs)
 
         # We've previously checked `solution` for consistency (which at that point was the
-        # pre-solve state of the environment). Now we check our compiled set of
+        # pre-solve state of the environment). Now we check our compiled list of
         # `final_environment_specs` for the possibility of a solution.  If there are conflicts,
         # we can often avoid them by neutering specs that have a target (e.g. removing version
         # constraint) and also making them optional. The result here will be less cases of
@@ -1025,12 +1040,12 @@ class Solver:
             for spec in conflicting_specs:
                 if spec.target and not spec.optional:
                     specs_modified = True
-                    final_environment_specs.remove(spec)
+                    final_environment_specs.pop(spec, None)
                     if spec.get("version"):
                         neutered_spec = MatchSpec(spec.name, version=spec.version)
                     else:
                         neutered_spec = MatchSpec(spec.name)
-                    final_environment_specs.add(neutered_spec)
+                    final_environment_specs.setdefault(neutered_spec)
                     ssc.specs_map[spec.name] = neutered_spec
             if specs_modified:
                 conflicting_specs = set(
@@ -1082,9 +1097,9 @@ class Solver:
                         _ for _ in ssc.solution_precs if _.name != name
                     ]
                     ssc.solution_precs.append(prec)
-                    final_environment_specs.add(spec)
+                    final_environment_specs.setdefault(spec)
 
-        ssc.final_environment_specs = final_environment_specs
+        ssc.final_environment_specs = tuple(final_environment_specs)
         return ssc
 
     def _post_sat_handling(self, ssc):
@@ -1097,11 +1112,12 @@ class Solver:
             #
             # Help information notes that use of NO_DEPS is expected to lead to broken
             # environments.
-            _no_deps_solution = IndexedSet(ssc.prefix_data.iter_records())
+            starting_records = tuple(ssc.prefix_data.iter_records())
+            _no_deps_solution = set(starting_records)
             only_remove_these = {
                 prec
                 for spec in self.specs_to_remove
-                for prec in _no_deps_solution
+                for prec in starting_records
                 if spec.match(prec)
             }
             _no_deps_solution -= only_remove_these
@@ -1113,13 +1129,13 @@ class Solver:
                 if spec.match(prec)
             }
             remove_before_adding_back = {prec.name for prec in only_add_these}
-            _no_deps_solution = IndexedSet(
+            _no_deps_solution = set(
                 prec
                 for prec in _no_deps_solution
                 if prec.name not in remove_before_adding_back
             )
             _no_deps_solution |= only_add_these
-            ssc.solution_precs = _no_deps_solution
+            ssc.solution_precs = tuple(PrefixGraph(_no_deps_solution).graph)
 
             # TODO: check if solution is satisfiable, and emit warning if it's not
 
@@ -1261,7 +1277,7 @@ class Solver:
                     file=sys.stderr,
                 )
 
-    def _prepare(self, prepared_specs):
+    def _prepare(self, prepared_specs) -> tuple[ReducedIndex, Resolve]:
         # All of this _prepare() method is hidden away down here. Someday we may want to further
         # abstract away the use of `index` or the Resolve object.
 
@@ -1271,7 +1287,6 @@ class Solver:
         if hasattr(self, "_index") and self._index:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
-            _supplement_index_with_system(self._index)
             self._r = Resolve(self._index, channels=self.channels)
         else:
             # add in required channels that aren't explicitly given in the channels list
@@ -1279,26 +1294,27 @@ class Solver:
             #  is given by PrefixData(self.prefix).all_subdir_urls().  However that causes
             #  usability problems with bad / expired tokens.
 
-            additional_channels = set()
+            additional_channels = {}
             for spec in self.specs_to_add:
                 # TODO: correct handling for subdir isn't yet done
                 channel = spec.get_exact_value("channel")
-                if channel:
-                    additional_channels.add(Channel(channel))
+                if channel and channel not in self.channels:
+                    additional_channels.setdefault(Channel(channel))
 
-            self.channels.update(additional_channels)
-
-            reduced_index = get_reduced_index(
-                self.prefix,
-                self.channels,
-                self.subdirs,
-                prepared_specs,
-                self._repodata_fn,
-            )
-            _supplement_index_with_system(reduced_index)
+            self.channels = (*self.channels, *additional_channels)
 
             self._prepared_specs = prepared_specs
-            self._index = reduced_index
+            self._index = reduced_index = ReducedIndex(
+                prepared_specs,
+                channels=self.channels,
+                prepend=False,
+                subdirs=self.subdirs,
+                use_local=False,
+                use_cache=False,
+                prefix=self.prefix,
+                repodata_fn=self._repodata_fn,
+                use_system=True,
+            )
             self._r = Resolve(reduced_index, channels=self.channels)
 
         self._prepared = True
@@ -1385,47 +1401,33 @@ class SolverStateContainer:
         self.final_environment_specs = None
 
 
-def get_pinned_specs(prefix):
+def get_pinned_specs(prefix: str) -> tuple[MatchSpec]:
     """Find pinned specs from file and return a tuple of MatchSpec."""
-    pinfile = join(prefix, "conda-meta", "pinned")
-    if exists(pinfile):
-        with open(pinfile) as f:
-            from_file = (
-                i
-                for i in f.read().strip().splitlines()
-                if i and not i.strip().startswith("#")
-            )
-    else:
-        from_file = ()
-
-    return tuple(
-        MatchSpec(spec, optional=True)
-        for spec in (*context.pinned_packages, *from_file)
+    context_pinned_packages = tuple(
+        MatchSpec(spec, optional=True) for spec in context.pinned_packages
     )
+    prefix_data = PrefixData(prefix_path=prefix)
+    return context_pinned_packages + prefix_data.get_pinned_specs()
 
 
 def diff_for_unlink_link_precs(
     prefix,
-    final_precs,
-    specs_to_add=(),
+    final_precs: Sequence[PackageRecord],
+    specs_to_add: Iterable[MatchSpec] = (),
     force_reinstall=NULL,
 ) -> tuple[tuple[PackageRecord, ...], tuple[PackageRecord, ...]]:
-    # Ensure final_precs supports the IndexedSet interface
-    if not isinstance(final_precs, IndexedSet):
-        assert hasattr(final_precs, "__getitem__"), (
-            "final_precs must support list indexing"
-        )
-        assert hasattr(final_precs, "__sub__"), (
-            "final_precs must support set difference"
-        )
-
-    previous_records = IndexedSet(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    final_precs_set = set(final_precs)
+    # This one is toposorted:
+    previous_records = tuple(PrefixGraph(PrefixData(prefix).iter_records()).graph)
+    previous_records_set = set(previous_records)
     force_reinstall = (
         context.force_reinstall if force_reinstall is NULL else force_reinstall
     )
 
-    unlink_precs = previous_records - final_precs
-    link_precs = final_precs - previous_records
+    # These "lose" order here, but it's ok, we'll sort them later using their
+    # position in the original sorted collections defined above
+    unlink_precs: set[PackageRecord] = previous_records_set - final_precs_set
+    link_precs: set[PackageRecord] = final_precs_set - previous_records_set
 
     def _add_to_unlink_and_link(rec):
         link_precs.add(rec)
@@ -1437,7 +1439,8 @@ def diff_for_unlink_link_precs(
     if force_reinstall:
         for spec in specs_to_add:
             prec = next((rec for rec in final_precs if spec.match(rec)), None)
-            assert prec
+            if not prec:
+                raise RuntimeError(f"Could not find record for spec {spec}")
             _add_to_unlink_and_link(prec)
 
     # add back 'noarch: python' packages to unlink and link if python version changes
@@ -1456,8 +1459,8 @@ def diff_for_unlink_link_precs(
         for prec in noarch_python_precs:
             _add_to_unlink_and_link(prec)
 
-    unlink_precs = IndexedSet(
+    unlink_precs = tuple(
         reversed(sorted(unlink_precs, key=lambda x: previous_records.index(x)))
     )
-    link_precs = IndexedSet(sorted(link_precs, key=lambda x: final_precs.index(x)))
-    return tuple(unlink_precs), tuple(link_precs)
+    link_precs = tuple(sorted(link_precs, key=lambda x: final_precs.index(x)))
+    return unlink_precs, link_precs

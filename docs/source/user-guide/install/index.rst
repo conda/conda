@@ -50,8 +50,6 @@ System requirements
 
 * For Anaconda: Minimum 3 GB disk space to download and install
 
-* For Windows: Windows 8.1 or newer for Python 3.9
-
 .. admonition:: Tip
 
     You do not need administrative or root permissions to install conda if you select a
@@ -128,4 +126,3 @@ Download the installer file and, before installing, verify it as follows:
    windows
    macos
    linux
-   rpm-debian

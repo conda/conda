@@ -88,7 +88,7 @@ def test_lock_rename(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
 
     monkeypatch.setenv("CONDA_EXPERIMENTAL", "lock")
     reset_context()
-    assert context.experimental == ("lock",)
+    assert "lock" in context.experimental
 
     cache = RepodataCache(tmp_path / "lockme", "puny.json")
     cache.save("{}")

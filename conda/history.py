@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import codecs
 import logging
 import os
 import re
@@ -17,6 +16,7 @@ from itertools import islice
 from operator import itemgetter
 from os.path import isdir, isfile, join
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 from . import __version__ as CONDA_VERSION
 from .auxlib.ish import dals
@@ -31,6 +31,9 @@ from .gateways.disk.update import touch
 from .models.dist import dist_str_to_quad
 from .models.match_spec import MatchSpec
 from .models.version import VersionOrder, version_relation_re
+
+if TYPE_CHECKING:
+    from .common.path import PathType
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +87,7 @@ class History:
     spec_pat = re.compile(r"#\s*(\w+)\s*specs:\s*(.+)?")
     conda_v_pat = re.compile(r"#\s*conda version:\s*(.+)")
 
-    def __init__(self, prefix):
+    def __init__(self, prefix: PathType):
         self.prefix = prefix
         self.meta_dir = join(prefix, "conda-meta")
         self.path = join(self.meta_dir, "history")
@@ -393,7 +396,7 @@ class History:
     def write_changes(self, last_state, current_state):
         if not isdir(self.meta_dir):
             os.makedirs(self.meta_dir)
-        with codecs.open(self.path, mode="ab", encoding="utf-8") as fo:
+        with open(self.path, mode="a", encoding="utf-8") as fo:
             write_head(fo)
             for fn in sorted(last_state - current_state):
                 fo.write(f"-{fn}\n")
@@ -405,7 +408,7 @@ class History:
         update_specs = [str(MatchSpec(s)) for s in update_specs]
         neutered_specs = [str(MatchSpec(s)) for s in neutered_specs]
         if any((update_specs, remove_specs, neutered_specs)):
-            with codecs.open(self.path, mode="ab", encoding="utf-8") as fh:
+            with open(self.path, mode="a", encoding="utf-8") as fh:
                 if remove_specs:
                     fh.write(f"# remove specs: {remove_specs}\n")
                 if update_specs:

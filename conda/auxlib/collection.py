@@ -4,8 +4,8 @@ from collections.abc import Mapping, Set
 
 from frozendict import frozendict
 
-from .compat import isiterable
 from ..deprecations import deprecated
+from ..common.compat import isiterable
 
 
 # http://stackoverflow.com/a/14620633/2127762
