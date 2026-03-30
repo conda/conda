@@ -1,6 +1,7 @@
 # disable autofixing PRs, commenting "pre-commit.ci autofix" on a pull request triggers a autofix
 ci:
   autofix_prs: false
+  autoupdate_schedule: quarterly
 # generally speaking we ignore all vendored code as well as tests data
 # ignore patches/diffs since slight reformatting can break them
 exclude: |
