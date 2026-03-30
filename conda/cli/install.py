@@ -440,6 +440,7 @@ def install(args, parser, command="install"):
                 # no extra processing for subclasses of PackagesNotFoundError
                 raise
             except PackagesNotFoundError as e:
+                # If a backend raises the generic error, convert it to a more specific one
                 if e.channel_urls:
                     raise PackagesNotFoundInChannelsError(
                         e.packages, e.channel_urls

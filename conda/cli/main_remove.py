@@ -246,14 +246,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
         try:
             txn = solver.solve_for_transaction()
-        # If a backend raises the generic error, we convert it to the more specific one
-        # here. TODO: is this the best place to do this? Should backends raise the specific
-        # errors, say the CLS should? I have thoughts either way but gotta read more about
-        # this. FIXME: handle before merge
         except (PackagesNotFoundInPrefixError, PackagesNotFoundInChannelsError):
             # no extra processing for subclasses of PackagesNotFoundError
             raise
         except PackagesNotFoundError as e:
+            # If a backend raises the generic error, convert it to a more specific one
             packages = getattr(e, "packages", None)
             if not packages:
                 packages = tuple(sorted(str(s) for s in specs))
