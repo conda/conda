@@ -436,12 +436,10 @@ def install(args, parser, command="install"):
                     )
                 else:
                     raise e
+            except (PackagesNotFoundInChannelsError, PackagesNotFoundInPrefixError):
+                # no extra processing for subclasses of PackagesNotFoundError
+                raise
             except PackagesNotFoundError as e:
-                if isinstance(
-                    e, (PackagesNotFoundInChannelsError, PackagesNotFoundInPrefixError)
-                ):
-                    raise
-
                 if e.channel_urls:
                     raise PackagesNotFoundInChannelsError(
                         e.packages, e.channel_urls
