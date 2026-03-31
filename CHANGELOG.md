@@ -20,11 +20,6 @@
 * Add support for defining aliases of environment spec plugins. (#15701)
 * Add pattern matching support to environment specifier and exporter plugins via `default_filenames` field. Plugins can now use wildcards (e.g., `*.conda-lock.yml`) for filename-based detection (#15717 via #15719).
 * `conda create|install -f` is now recognized as an alias to `conda create|install --file`. (#15790)
-* None
-
-### Bug Fixes
-
-* None
 
 ### Bug fixes
 
@@ -67,8 +62,8 @@
 * Removed `conda.common.io._logger_lock`. Use `logging._lock` instead. (#15791)
 * Removed `conda.common.pkg_formats` module. Use `conda.plugins.prefix_data_loaders.pypi.pkg_format` instead. (#15791)
 * Removed `conda.common.url.hex_octal_to_int`. Use `int(..., 16)` instead. (#15791)
-* Removed `conda.core.index._supplement_index_with_system`. Use`conda.core.Index.reload` instead. (#15791)
-* Removed `conda.core.index.check_allowlist`. Use`conda.base.context.validate_channels` instead. (#15791)
+* Removed `conda.core.index._supplement_index_with_system`. Use `conda.core.Index.reload` instead. (#15791)
+* Removed `conda.core.index.check_allowlist`. Use `conda.base.context.validate_channels` instead. (#15791)
 * Removed `conda.core.path_actions._Action`. Use `conda.core.path_actions.Action` instead. (#15791)
 * Removed `conda.core.prefix_data.get_python_version_for_prefix`. Use `conda.core.prefix_data.PrefixData.get("python").version` instead. (#15791)
 * Removed `conda.core.prefix_data.PrefixData._load_site_packages`. Use `conda.plugins.prefix_data_loaders.pypi.load_site_packages` instead. (#15791)
@@ -96,7 +91,7 @@
 * Renamed `conda.core.prefix_data.PrefixData(pip_interop_enabled)` to `interoperability`. (#15791)
 * Remove `conda.trust` module. The implementation has been moved to `conda-content-trust`. (#15649)
 * Remove built-in `signature-verification` post-solve plugin. Signature verification is now provided by the `conda-content-trust` plugin when installed. (#15649)
-* Rename `conda.core.PrefixAction` to `conda.core.PrefixGroup`. (#15824)
+* Rename `conda.core.PrefixAction` to `conda.core.PrefixActionGroup`. (#15824)
 
 ### Docs
 
@@ -104,7 +99,6 @@
 * Remove docs about RPM and DEB packages since no longer supported.
 * Update advice on improving conda performance in the Concepts section of the conda User Guide. (#15780)
 * Update pip interoperability documentation page with historical note and link to conda-pypi documentation. (#15815)
-* None
 * Expands `conda search` documentation to include more search examples. (#15774)
 
 ### Other
@@ -115,7 +109,6 @@
 * Remove internal use of `boltons.setutils.IndexedSet()`. It has been replaced with either sequences or sets. (#15742 via #15744)
 * Provide a better error message when a user explicitly requests using an environment spec plugin (#15718 via #15792)
 * Add `pre-commit` updates to Dependabot and keep automated dependency updates managed via `.github/dependabot.yml`. (#15814)
-* None
 
 ### Contributors
 
