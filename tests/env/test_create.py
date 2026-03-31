@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -411,33 +410,24 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
 ):
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
 
-    with warnings.catch_warnings(record=True) as warning_list:
-        warnings.simplefilter("always", PendingDeprecationWarning)
-        prefix = path_factory()
-        stdout, stderr, err = conda_cli(
+    # The environment file is not fully CEP 24 compliant is pending deprecation and will be removed in 26.9. In the future, this configuration will be rejected. Please fix the following errors in order to make the configuration valid:
+    #   - Missing required field 'dependencies'
+
+    with pytest.deprecated_call(
+        match=(
+            r"(?s)The environment file is not fully CEP 24 compliant.+"
+            r"Missing required field 'dependencies'"
+        ),
+    ):
+        stdout, _, _ = conda_cli(
             "env",
             "create",
-            f"--prefix={prefix}",
-            "--file",
-            support_file("invalid_keys.yml"),
+            f"--prefix={path_factory()}",
+            f"--file={support_file('invalid_keys.yml')}",
         )
 
-    cep24_warnings = [
-        w
-        for w in warning_list
-        if "The environment file is not fully CEP 24 compliant is pending deprecation and will be removed in 26.9"
-        in str(w.message)
-    ]
-    assert len(cep24_warnings) > 0
-    assert any(
-        "Missing required field 'dependencies'" in str(warning.message)
-        for warning in cep24_warnings
-    )
-
-    # When splitting the output on "EnvironmentSectionNotValid", we should
-    # get an array of length 2 if the string only appears once. If it appears
-    # multiple times, the array will have more elements.
-    assert len(stdout.split("EnvironmentSectionNotValid")) == 2
+    # EnvironmentSectionNotValid should only appear once in the output
+    assert stdout.count("EnvironmentSectionNotValid") == 1
 
 
 @pytest.mark.integration
