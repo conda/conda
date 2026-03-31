@@ -8,22 +8,11 @@ on:
       - labeled
 
 jobs:
-  build:
+  remove-build-label:
     if: >-
       !github.event.repository.fork
       && github.event.label.name == 'build::review'
-    strategy:
-      matrix:
-        include:
-          - runner: ubuntu-latest
-            subdir: linux-64
-          - runner: macos-latest
-            subdir: osx-arm64
-          - runner: macos-15-intel
-            subdir: osx-64
-          - runner: windows-latest
-            subdir: win-64
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-slim
     steps:
       - name: Remove build label
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
@@ -46,6 +35,23 @@ jobs:
                 })
             }
 
+  build:
+    if: >-
+      !github.event.repository.fork
+      && github.event.label.name == 'build::review'
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            subdir: linux-64
+          - runner: macos-latest
+            subdir: osx-arm64
+          - runner: macos-15-intel
+            subdir: osx-64
+          - runner: windows-latest
+            subdir: win-64
+    runs-on: ${{ matrix.runner }}
+    steps:
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
