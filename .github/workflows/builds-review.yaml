@@ -44,16 +44,13 @@ jobs:
         include:
           - runs-on: ubuntu-latest
             subdir: linux-64
+          - runs-on: ubuntu-24.04-arm
+            subdir: linux-aarch64
           - runs-on: macos-latest
             subdir: osx-arm64
-          - runs-on: macos-15-intel
-            subdir: osx-64
           - runs-on: windows-latest
             subdir: win-64
     runs-on: ${{ matrix.runs-on }}
-    env:
-      PY314_VARIANTS: '--variants="{python: [3.10, 3.11, 3.12, 3.13, 3.14]}"'
-      PY313_VARIANTS: '--variants="{python: [3.10, 3.11, 3.12, 3.13]}"'
     steps:
       # Clean checkout of specific git ref needed for package metadata version
       # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
