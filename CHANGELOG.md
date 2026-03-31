@@ -9,16 +9,16 @@
 * Pass unmerged MatchSpec objects to `pre-solve` plugins (instead of pre-merged). (#15110)
 * Add option to disable redefining Fish shell prompt functions in conda init. (#15545 via #15549)
 * `conda create --file <filename>` now supports environment.yaml files as well as requirements.txt and explicit environment exports, and detects name and prefix automatically when `--name` / `--prefix` are omitted. (#15573 via #15770)
-* Add `description` and `environment_format` metadata fields to environment plugin types (`CondaEnvironmentSpecifier` and `CondaEnvironmentExporter`). (#15577 via #15763).
+* Add `description` and `environment_format` metadata fields to environment plugin types (`CondaEnvironmentSpecifier` and `CondaEnvironmentExporter`). (#15577 via #15763)
 * Optimize S3 downloads to avoid an extra file copy through a temporary buffer. (#15636)
 * Add path customization parameters to `tmp_env` fixture (`name`, `path_prefix`, `path_infix`, `path_suffix`) that pass through to `path_factory`. Add "parts mode" to `path_factory` where specifying `prefix`, `infix`, or `suffix` triggers UUID defaults for unspecified parts, enabling easier special character path testing. (#15650)
 * Add `PackagesNotFoundInChannelsError` and `PackagesNotFoundInPrefixError` as specialized cases of `PackagesNotFoundError`, to distinguish between packages missing from configured channels and packages missing from a specific environment prefix. (#12197 via #15653)
 * Always include conda-meta manifest file size in `PrefixRecord.package_size()`, so packages with no files (such as metapackages, mutex packages) display a non-zero size instead of "0 B" in `conda list --size`. (#15681 via #15656)
-* Speed up `conda run` by dropping the shell hook subprocess and relying on inline activators (#14993 via #15672)
+* Speed up `conda run` by dropping the shell hook subprocess and relying on inline activators. (#14993 via #15672)
 * `conda remove <spec>` with the classic solver now exits early if the spec to be removed does not exist in the environment. (#15697)
 * `conda search --envs <package>` now raises an error when the package is not found in any environment. (#15698)
 * Add support for defining aliases of environment spec plugins. (#15701)
-* Add pattern matching support to environment specifier and exporter plugins via `default_filenames` field. Plugins can now use wildcards (e.g., `*.conda-lock.yml`) for filename-based detection (#15717 via #15719).
+* Add pattern matching support to environment specifier and exporter plugins via `default_filenames` field. Plugins can now use wildcards (e.g., `*.conda-lock.yml`) for filename-based detection. (#15717 via #15719)
 * `conda create|install -f` is now recognized as an alias to `conda create|install --file`. (#15790)
 * Improve log messages when conda auto-detects the applicable environment file format. (#15736)
 
@@ -93,11 +93,11 @@
 * Rename `conda.core.prefix_data.PrefixData(pip_interop_enabled)` to `interoperability`. (#15791)
 * Remove `conda.trust` module. The implementation has been moved to `conda-content-trust`. (#15649)
 * Remove built-in `signature-verification` post-solve plugin. Signature verification is now provided by the `conda-content-trust` plugin when installed. (#15649)
-* Rename `conda.core.PrefixAction` to `conda.core.PrefixActionGroup`. (#15824)
+* Rename `conda.core.PrefixActions` to `conda.core.PrefixActionGroup`. (#15824)
 
 ### Docs
 
-* Update documentation for ``conda create --file`` env specifier support in several places. (#15573 via #15770)
+* Update documentation for `conda create --file` env specifier support in several places. (#15573 via #15770)
 * Remove documentation for RPM and DEB packages, which are no longer supported. (#13896 and #14826 via #15694)
 * Update advice on improving conda performance in the Concepts section of the conda User Guide. (#15780)
 * Update pip interoperability documentation page with historical note and link to conda-pypi documentation. (#15815)
