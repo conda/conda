@@ -122,7 +122,7 @@
 * @agriyakhetarpal
 * @conda-bot
 * @danyeaw
-* @ELundby45
+* @ELundby45 made their first contribution in <https://github.com/conda/conda/pull/15716>
 * @jaimergp
 * @jezdez
 * @kathatherine
@@ -131,12 +131,12 @@
 * @ryanskeith
 * @schuylermartin45
 * @soapy1
-* @crowecawcaw
+* @crowecawcaw made their first contribution in <https://github.com/conda/conda/pull/15636>
 * @travishathaway
 * @dependabot[bot]
-* @lsoksane
+* @lsoksane made their first contribution in <https://github.com/conda/conda/pull/15549>
 * @pre-commit-ci[bot]
-* @shenhaofang
+* @shenhaofang made their first contribution in <https://github.com/conda/conda/pull/15664>
 
 
 
