@@ -96,6 +96,7 @@
 * Renamed `conda.core.prefix_data.PrefixData(pip_interop_enabled)` to `interoperability`. (#15791)
 * Remove `conda.trust` module. The implementation has been moved to `conda-content-trust`. (#15649)
 * Remove built-in `signature-verification` post-solve plugin. Signature verification is now provided by the `conda-content-trust` plugin when installed. (#15649)
+* Rename `conda.core.PrefixAction` to `conda.core.PrefixGroup`. (#15824)
 
 ### Docs
 
