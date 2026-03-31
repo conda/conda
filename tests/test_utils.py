@@ -169,33 +169,29 @@ def test_quote_for_shell(args, expected):
     assert utils.quote_for_shell(args) == expected
 
 
-def test_ensure_dir(tmpdir):
+def test_ensure_dir(tmp_path: Path):
     """Ensures that this decorator creates a directory."""
-    new_dir = "test_dir"
-
-    @utils.ensure_dir_exists
-    def get_test_dir() -> Path:
-        return Path(tmpdir).joinpath(new_dir)
-
-    new_dir = get_test_dir()
-
-    assert new_dir.is_dir()
-
-
-def test_ensure_dir_errors():
-    """Test to ensure correct error handling."""
-    new_dir = "test_dir"
-    exc_message = "Test!"
-
-    with patch("pathlib.Path.mkdir") as mock_mkdir:
-        mock_mkdir.side_effect = OSError(exc_message)
-
+    with pytest.deprecated_call():
         @utils.ensure_dir_exists
         def get_test_dir() -> Path:
-            test_dir = Path(new_dir)
-            return test_dir
+            path = tmp_path / "stem"
+            assert not path.is_dir()
+            return path
 
-        with pytest.raises(CondaError) as exc_info:
-            get_test_dir()
+    assert get_test_dir().is_dir()
 
-    assert exc_message in str(exc_info.value)
+
+def test_ensure_dir_errors(mocker: MockerFixture, tmp_path: Path):
+    """Test to ensure correct error handling."""
+    exc_message = "Test!"
+    mocker.patch("pathlib.Path.mkdir", side_effect=OSError(exc_message))
+
+    with pytest.deprecated_call():
+        @utils.ensure_dir_exists
+        def get_test_dir() -> Path:
+            path = tmp_path / "stem"
+            assert not path.is_dir()
+            return path
+
+    with pytest.raises(CondaError, match=exc_message):
+        get_test_dir()
