@@ -6,15 +6,19 @@ import sys
 from logging import getLogger
 from os import environ, pathsep
 from os.path import dirname, join
-from pathlib import Path
 from shutil import which
-from unittest.mock import patch
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda import CondaError, utils
 from conda.activate import CmdExeActivator, PosixActivator
 from conda.common.compat import on_win
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 SOME_PREFIX = "/some/prefix"
 SOME_FILES = ["a", "b", "c"]
@@ -172,6 +176,7 @@ def test_quote_for_shell(args, expected):
 def test_ensure_dir(tmp_path: Path):
     """Ensures that this decorator creates a directory."""
     with pytest.deprecated_call():
+
         @utils.ensure_dir_exists
         def get_test_dir() -> Path:
             path = tmp_path / "stem"
@@ -187,6 +192,7 @@ def test_ensure_dir_errors(mocker: MockerFixture, tmp_path: Path):
     mocker.patch("pathlib.Path.mkdir", side_effect=OSError(exc_message))
 
     with pytest.deprecated_call():
+
         @utils.ensure_dir_exists
         def get_test_dir() -> Path:
             path = tmp_path / "stem"
