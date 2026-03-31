@@ -24,7 +24,8 @@ from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
     NoChannelsConfiguredError,
-    PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
+    PackagesNotFoundInPrefixError,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
 )
@@ -623,8 +624,9 @@ class Solver:
                 if not any(spec.match(rec) for rec in all_removed_records)
             )
             if unmatched_specs_to_remove:
-                raise PackagesNotFoundError(
-                    tuple(sorted(str(s) for s in unmatched_specs_to_remove))
+                raise PackagesNotFoundInPrefixError(
+                    tuple(sorted(str(s) for s in unmatched_specs_to_remove)),
+                    prefix=self.prefix,
                 )
 
             for rec in all_removed_records:
@@ -984,7 +986,8 @@ class Solver:
 
         absent_specs = [s for s in ssc.specs_map.values() if not ssc.r.find_matches(s)]
         if absent_specs:
-            raise PackagesNotFoundError(absent_specs)
+            # Not in the index/package pool means not available from any of the configured channels.
+            raise PackagesNotFoundInChannelsError(absent_specs, context.channels)
 
         # We've previously checked `solution` for consistency (which at that point was the
         # pre-solve state of the environment). Now we check our compiled list of
