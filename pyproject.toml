@@ -167,8 +167,6 @@ filterwarnings = [
   "error::PendingDeprecationWarning",
   "error::DeprecationWarning",
   "error::FutureWarning",
-  # ##### external library deprecations that we cannot fix in the conda source code
-  # (none at the moment)
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
