@@ -131,6 +131,7 @@ Authors are sorted alphabetically.
 * Eli Rykoff
 * Elsa Granger
 * Eric Dill
+* Eric Lundby
 * Eric Prestat
 * Erik Sundell
 * Erik Whiting
@@ -411,6 +412,7 @@ Authors are sorted alphabetically.
 * Stefan Seefeld
 * Steffen Van
 * Stephan Hoyer
+* Stephen Crowe
 * Stephen Robinson
 * Steve Palmroth
 * Steven Engler
@@ -473,6 +475,7 @@ Authors are sorted alphabetically.
 * giumas
 * kanehira
 * lexual
+* lsoksane
 * mcopes73
 * oinizan
 * ovz
@@ -481,6 +484,7 @@ Authors are sorted alphabetically.
 * pre-commit CI
 * saraneem
 * shadow_walker
+* shenhaofang
 * ugurthemaster
 * wulmer
 * Øystein Idema Torget
