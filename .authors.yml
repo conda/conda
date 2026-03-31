@@ -2439,10 +2439,12 @@
   num_commits: 1
   first_commit: 2023-10-23 07:46:44
 - name: Schuyler Martin
-  email: schuylermartin45@gmail.com
+  email: schuyler-martin-oss@pm.me
   num_commits: 1
   first_commit: 2023-12-05 10:47:28
   github: schuylermartin45
+  alternate_emails:
+  - schuylermartin45@gmail.com
 - name: Sam Haese
   aliases:
   - samhaese
@@ -2640,3 +2642,15 @@
   github: gayanMatch
   num_commits: 1
   first_commit: 2026-01-26 11:36:23
+- name: Eric Lundby
+  email: Eric.Lundby@gmail.com
+  github: ELundby45
+- name: shenhaofang
+  email: 35650594+shenhaofang@users.noreply.github.com
+  github: shenhaofang
+- name: lsoksane
+  email: lsoksane@gmail.com
+  github: lsoksane
+- name: Stephen Crowe
+  email: 6042774+crowecawcaw@users.noreply.github.com
+  github: crowecawcaw
