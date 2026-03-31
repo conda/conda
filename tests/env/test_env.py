@@ -308,9 +308,8 @@ def test_valid_keys():
 
 
 def test_invalid_keys():
-    with pytest.warns(
-        PendingDeprecationWarning,
-        match="The environment file is not fully CEP 24 compliant",
+    with pytest.deprecated_call(
+        match=r"The environment file is not fully CEP 24 compliant",
     ):
         e = get_invalid_keys_environment()
         e_dict = e.to_dict()
