@@ -1,5 +1,144 @@
 [//]: # (current developments)
 
+## 26.3.0 (2026-03-30)
+
+### Enhancements
+
+* Improve Windows CMD.EXE activation failure for environment paths containing `^` (caret) character. (#12558 via #15628)
+* Add support for `PackageRecord.requested_specs`. This will store all the MatchSpec objects that were involved in requesting a package (instead of a single, pre-merged object). To that end, two new attributes in `conda.core.solve.Solver`, `unmerged_specs_to_add` and `unmerged_specs_to_remove`, store the list of input specs as received, instead of always attempting to merge them. (#15111 via #15110)
+* Pass unmerged MatchSpec objects to `pre-solve` plugins (instead of pre-merged). (#15110)
+* Add option to disable redefining Fish shell prompt functions in conda init. (#15545)
+* conda create --file <filename> now supports environment.yaml files as well as requirements.txt and explicit environment exports and also supports automatically detecting name and prefix when --name/--prefix are omitted (#15573)
+* Add `description` and `environment_format` metadata fields to environment plugin types (`CondaEnvironmentSpecifier` and `CondaEnvironmentExporter`). (#15577 via #15763).
+* Optimize S3 downloads to avoid an extra file copy through a temporary buffer. (#15636)
+* Add path customization parameters to `tmp_env` fixture (`name`, `path_prefix`, `path_infix`, `path_suffix`) that pass through to `path_factory`. Add "parts mode" to `path_factory` where specifying `prefix`, `infix`, or `suffix` triggers UUID defaults for unspecified parts, enabling easier special character path testing. (#15650)
+* Add `PackagesNotFoundInChannelsError` and `PackagesNotFoundInPrefixError` as specialised cases of `PackagesNotFoundError`, to distinguish between packages missing from configured channels versus packages missing from a specific environment prefix. (#12197 via #15653)
+* Always include conda-meta manifest file size in `PrefixRecord.package_size()`, so packages with no files (such as metapackages, mutex packages) display a non-zero size instead of "0 B" in `conda list --size`. (#15681 via #15656)
+* Speed up `conda run` by dropping the shell hook subprocess and relying on inline activators (#14993 via #15672)
+* `conda remove <spec>` with the classic solver now exits early if the spec to be removed does not exist in the environment. (#15697)
+* `conda search --envs <package>` now raises an error when the package is not found in any environment. (#15698)
+* Add support for defining aliases of environment spec plugins. (#15701)
+* Add pattern matching support to environment specifier and exporter plugins via `default_filenames` field. Plugins can now use wildcards (e.g., `*.conda-lock.yml`) for filename-based detection (#15717 via #15719).
+* `conda create|install -f` is now recognized as an alias to `conda create|install --file`. (#15790)
+* None
+
+### Bug Fixes
+
+* None
+
+### Bug fixes
+
+* Fix `conda config --show-sources` displaying `frozendict.frozendict(...)` for `channel_settings` entries instead of readable dict format. (#15505)
+* conda should not include pip installed packages in the list of explicit packages when building a `conda.models.Environment` using `conda.models.Environment.from_prefix`. (#15619)
+* Use bundled Windows stub executables (`conda/shell/cli-32.exe`, `conda/shell/cli-64.exe`) for creating entry points instead of relying on `Scripts/conda.exe` so that entry point creation works when conda is not installed as a conda package (e.g. tests via `python -m pytest`). Select the correct exe for the target env via a platform-to-stub mapping; for win-arm64 use `cli-64.exe` (relying on Windows x64-on-ARM64 emulation). Use target platform for `conda init` as well, fixing cross-architecture installs (e.g. win-32 host creating a win-64 env). (#15678)
+* Use case-insensitive matching when finding Python metadata files on Windows to make sure they are correctly identified as conda packages. (#15153 via #15725)
+* Always include dependencies field when exporting an environment.yaml style environment in order to be compliant with cep-24. (#15753)
+* Fixes a regression first introduced in #14661 that adversely affects package resolution for custom multichannels (#15750 via #15776)
+* Let `conda search --offline` use the local channel cache. (#15781 via #15795)
+* Fix flaky `test_token_not_present_in_conda_create` test by removing unreliable assertion that expected `/t/<TOKEN>/` in output. The test now focuses on the critical security guarantee (raw tokens must not leak) while new unit tests verify the `TokenURLFilter` integration. (#13939)
+* Fix `win-arm64` subdir detection on native Windows ARM64. `platform.machine()` returns uppercase `ARM64` on Windows, which did not match the lowercase entries in `non_x86_machines`, causing the platform to incorrectly resolve to `win-64`. (#15716)
+
+### Deprecations
+
+* Mark `conda.common.io.env_var`, `conda.common.io.env_vars`, and `conda.common.io.env_unmodified` as pending deprecation to be removed in 27.3. In tests, prefer `monkeypatch.setenv` / `monkeypatch.delenv` instead. (#14095 via #15728)
+* Mark `conda run --dev` as pending deprecation, to be removed in 27.3. Set `PYTHONPATH` to the conda source root instead. (#15641)
+* `-f` is no longer an alias for `--force`. (#15790)
+* Removed `conda info --root`. Use `conda info --base` instead. (#15791)
+* Removed `conda info -l/--license`. (#15791)
+* Removed `conda_env` module. (#15791, #15816)
+* Removed `conda._vendor` module. Conda no longer vendors dependencies. (#15791)
+* Removed `conda.base.context._first_writable_envs_dir`. Use `conda.gateways.disk.create.first_writable_envs_dir` instead. (#15791)
+* Removed `conda.base.context.add_plugin_setting`. Use `conda.plugins.config.PluginConfig.add_plugin_setting` instead. (#15791)
+* Removed `conda.base.context.Context.auto_activate_base`. Use `conda.base.context.Context.auto_activate` instead. (#15791)
+* Removed `conda.base.context.Context.conda_exe`. Use `conda.base.context.Context.conda_exe_vars_dict` instead. (#15791)
+* Removed `conda.base.context.Context.pip_interop_enabled`. Use `conda.base.context.Context.prefix_data_interoperability` instead. (#15791)
+* Removed `conda.base.context.get_plugin_config_data`. Use `conda.base.context.context.plugins.raw_data` instead. (#15791)
+* Removed `conda.base.context.remove_all_plugin_settings`. Use `conda.plugins.config.PluginConfig.remove_all_plugin_settings` instead. (#15791)
+* Removed `conda.base.context.validate_prefix_name`. Use `conda.core.prefix_data.PrefixData.{validate_name,from_name}` instead. (#15791)
+* Removed `conda.cli.common.validate_prefix_is_writable`. Use `conda.core.prefix_data.PrefixData.assert_writable` instead. (#15791)
+* Removed `conda.cli.common.validate_prefix`. Use `conda.core.prefix_data.PrefixData.assert_environment` instead. (#15791)
+* Removed `conda.cli.install.check_prefix`. Use `conda.core.prefix_data.PrefixData.{exists,validate_path,validate_name}` instead. (#15791)
+* Removed `conda.cli.install.print_activate`. Use `conda.cli.common.print_activate` instead. (#15791)
+* Removed `conda.cli.install.validate_new_prefix`. Use `conda.core.prefix_data.PrefixData.{exists,validate_path}` instead. (#15791)
+* Removed `conda.cli.install.validate_prefix_exists`. Use `conda.core.prefix_data.PrefixData.exists` instead. (#15791)
+* Removed `conda.cli.main_info.get_info_components`. Use `conda.cli.main_info.iter_info_components` instead. (#15791)
+* Removed `conda.cli.main_rename.check_protected_dirs`. Use `conda.core.prefix_data.PrefixData.validate_path` instead. (#15791)
+* Removed `conda.cli.main_rename.validate_src`. Use `conda.core.prefix_data.PrefixData.{validate_path,validate_name}` instead. (#15791)
+* Removed `conda.common.io._logger_lock`. Use `logging._lock` instead. (#15791)
+* Removed `conda.common.pkg_formats` module. Use `conda.plugins.prefix_data_loaders.pypi.pkg_format` instead. (#15791)
+* Removed `conda.common.url.hex_octal_to_int`. Use `int(..., 16)` instead. (#15791)
+* Removed `conda.core.index._supplement_index_with_system`. Use`conda.core.Index.reload` instead. (#15791)
+* Removed `conda.core.index.check_allowlist`. Use`conda.base.context.validate_channels` instead. (#15791)
+* Removed `conda.core.path_actions._Action`. Use `conda.core.path_actions.Action` instead. (#15791)
+* Removed `conda.core.prefix_data.get_python_version_for_prefix`. Use `conda.core.prefix_data.PrefixData.get("python").version` instead. (#15791)
+* Removed `conda.core.prefix_data.PrefixData._load_site_packages`. Use `conda.plugins.prefix_data_loaders.pypi.load_site_packages` instead. (#15791)
+* Removed `conda.core.prefix_data.PrefixData._pip_interop_enabled`. Use `conda.core.prefix_data.PrefixData.interoperability` instead. (#15791)
+* Removed `conda.core.prefix_data.PrefixData._python_pkg_record`. Use `conda.core.prefix_data.PrefixData.get("python")` instead. (#15791)
+* Removed `conda.core.prefix_data.python_record_for_prefix`. Use `conda.core.prefix_data.PrefixData.get("python")` instead. (#15791)
+* Removed `conda.env.env.get_filename`. (#15791)
+* Removed `conda.env.specs.binstar` module. (#15791)
+* Removed `conda.env.specs.detect(name,directory)`. Specify the full path in filename instead. (#15791)
+* Removed `conda.env.specs.get_spec_class_from_file`. Use `conda.base.context.plugin_manager.detect_environment_specifier` instead. (#15791)
+* Removed `conda.env.specs.requirements.RequirementsSpec._valid_file`. (#15791)
+* Removed `conda.env.specs.requirements.RequirementsSpec._valid_name`. (#15791)
+* Removed `conda.env.specs.requirements.RequirementsSpec.environment`. Use `conda.env.specs.requirements.RequirementsSpec.env` instead. (#15791)
+* Removed `conda.env.specs.requirements.RequirementsSpec.name`. (#15791)
+* Removed `conda.env.specs.requirements.RequirementsSpec(name)`. (#15791)
+* Removed `conda.gateways.disk.read.read_python_record`. Use `conda.plugins.prefix_data_loaders.pypi.pkg_format.read_python_record` instead. (#15791)
+* Removed `conda.gateways.disk.test.is_conda_environment`. Use `conda.core.prefix_data.PrefixData.is_environment` instead. (#15791)
+* Removed `conda.misc.touch_nonadmin`. Use `conda.core.prefix_data.PrefixData.set_nonadmin` instead. (#15791)
+* Removed `conda.models.records.PackageRecord.schannel`. Use `conda.models.records.PackageRecord.channel_name` instead. (#15791)
+* Removed `conda.plan` module. (#15791)
+* Removed `conda.testing.fixtures.session_capsys`. (#15791)
+* Removed `conda.utils.unix_path_to_win`. Use `conda.common.path.unix_path_to_win` instead. (#15791)
+* Removed loading conda subcommands via executables. Use the plugin system instead. (#15791)
+* Renamed `conda.activate._Activator.hook(auto_activate_base)` to `auto_activate`. (#15791)
+* Renamed `conda.core.prefix_data.PrefixData(pip_interop_enabled)` to `interoperability`. (#15791)
+* Remove `conda.trust` module. The implementation has been moved to `conda-content-trust`. (#15649)
+* Remove built-in `signature-verification` post-solve plugin. Signature verification is now provided by the `conda-content-trust` plugin when installed. (#15649)
+
+### Docs
+
+* Update documentation for ``conda create --file`` env specifier support in several places.
+* Remove docs about RPM and DEB packages since no longer supported.
+* Update advice on improving conda performance in the Concepts section of the conda User Guide. (#15780)
+* Update pip interoperability documentation page with historical note and link to conda-pypi documentation. (#15815)
+* None
+* Expands `conda search` documentation to include more search examples. (#15774)
+
+### Other
+
+* Add comprehensive test cases to characterize environment name validation behavior for Windows special characters (`!`, `=`, `^`, `%`, `(`, `)`). Tests confirm that `!` now works (previously fixed in #14607) and identify `^` as broken. (#12558 via #15628)
+* Remove JLAP (JSON Line-oriented Patch) experimental support. Zstd-compressed repodata (`.json.zst`) functionality is preserved and continues to work as before. (#15233)
+* Remove file extension validation from environment spec plugins. Requirements plugin now validates that all lines are valid matchspecs to avoid collisions with other plugins (e.g., environment.yaml). (#15714)
+* Remove internal use of `boltons.setutils.IndexedSet()`. It has been replaced with either sequences or sets. (#15742 via #15744)
+* Provide a better error message when a user explicitly requests using an environment spec plugin (#15718 via #15792)
+* Add `pre-commit` updates to Dependabot and keep automated dependency updates managed via `.github/dependabot.yml`. (#15814)
+* None
+
+### Contributors
+
+* @agriyakhetarpal
+* @conda-bot
+* @danyeaw
+* @ELundby45
+* @jaimergp
+* @jezdez
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @ryanskeith
+* @schuylermartin45
+* @soapy1
+* @crowecawcaw
+* @travishathaway
+* @dependabot[bot]
+* @lsoksane
+* @pre-commit-ci[bot]
+* @shenhaofang
+
+
+
 ## 26.1.1 (2026-02-17)
 
 ### Bug fixes
