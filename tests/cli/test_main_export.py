@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context
+from conda.cli.main_export import CondaExportWarning
 from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
@@ -668,7 +669,8 @@ def test_export_with_pip_dependencies_integration(
     format_flag,
     parser_func,
 ):
-    """Test that conda export properly includes pip dependencies when present.
+    """Test that conda export properly includes pip dependencies when present. Including raising a warning
+    message when pip is used to install dependencies.
 
     Uses our small-python-package as a reliable test package that's proven to work in conda's test suite.
     """
@@ -688,36 +690,40 @@ def test_export_with_pip_dependencies_integration(
             [format_flag] if format_flag else []
         )
 
-        stdout, stderr, code = conda_cli(*export_args)
-        assert code == 0, f"{format_name} export failed: {stderr}"
+        with pytest.warns(
+            CondaExportWarning,
+            match="The exported environment contains 3rd party Python packages",
+        ):
+            stdout, stderr, code = conda_cli(*export_args)
+            assert code == 0, f"{format_name} export failed: {stderr}"
 
-        # Parse the output using the appropriate parser
-        env_data = parser_func(stdout)
-        dependencies = env_data.get("dependencies", [])
+            # Parse the output using the appropriate parser
+            env_data = parser_func(stdout)
+            dependencies = env_data.get("dependencies", [])
 
-        # Should have conda packages
-        assert [dep for dep in dependencies if isinstance(dep, str)], (
-            f"Should have conda dependencies in {format_name} export"
-        )
-        # Should have pip dependencies
-        assert (
-            pip_deps := next(
-                (
-                    dep["pip"]
-                    for dep in dependencies
-                    if isinstance(dep, dict) and "pip" in dep
-                ),
-                None,
+            # Should have conda packages
+            assert [dep for dep in dependencies if isinstance(dep, str)], (
+                f"Should have conda dependencies in {format_name} export"
             )
-        ), f"Expected pip dependencies in {format_name} export"
+            # Should have pip dependencies
+            assert (
+                pip_deps := next(
+                    (
+                        dep["pip"]
+                        for dep in dependencies
+                        if isinstance(dep, dict) and "pip" in dep
+                    ),
+                    None,
+                )
+            ), f"Expected pip dependencies in {format_name} export"
 
-        # Should include the pip package we installed (small-python-package)
-        # and potentially its dependencies
-        pip_packages = {pkg.split("==")[0] for pkg in pip_deps if "==" in pkg}
+            # Should include the pip package we installed (small-python-package)
+            # and potentially its dependencies
+            pip_packages = {pkg.split("==")[0] for pkg in pip_deps if "==" in pkg}
 
-        assert "small-python-package" in pip_packages, (
-            f"Expected 'small-python-package' in {format_name} export: {pip_deps}"
-        )
+            assert "small-python-package" in pip_packages, (
+                f"Expected 'small-python-package' in {format_name} export: {pip_deps}"
+            )
 
 
 def test_export_override_channels_and_ignore_channels_independence(conda_cli):
