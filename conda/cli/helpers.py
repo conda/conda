@@ -618,10 +618,26 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
+        action=deprecated.action(
+            "26.5",
+            "26.9",
+            LazyChoicesAction,
+            addendum="Use the `--format` flag instead.",
+        ),
+        choices_func=context.plugin_manager.get_environment_specifiers,
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--format",
+        dest="environment_specifier",
         action=LazyChoicesAction,
         choices_func=context.plugin_manager.get_environment_specifiers,
         default=NULL,
-        help="(EXPERIMENTAL) Specify the environment specifier plugin to use.",
+        help=(
+            "Format for the created environment. If not specified, "
+            "format will be determined by file contents or extension."
+        ),
     )
 
 
