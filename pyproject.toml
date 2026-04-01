@@ -41,6 +41,8 @@ dependencies = [
   "setuptools >=60.0.0",
   "tqdm >=4",
   "truststore >=0.8.0; python_version>='3.10'",
+  "typing_extensions >=4.12.2; python_version<'3.11'",
+  "msgpack >=1.1.1",
   "zstandard >=0.15",
 ]
 description = "OS-agnostic, system-level binary package manager."

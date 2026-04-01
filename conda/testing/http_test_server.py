@@ -38,12 +38,21 @@ import http.server
 import queue
 import socket
 import threading
+from collections.abc import Callable
 
 
-def run_test_server(directory: str) -> http.server.ThreadingHTTPServer:
+def run_test_server(
+    directory: str,
+    *,
+    finish_request_action: Callable[[], None] | None = None,
+) -> http.server.ThreadingHTTPServer:
     """
     Run a test server on a random port. Inspect returned server to get port,
     shutdown etc.
+
+    finish_request_action
+        If set, invoked at the start of each request (before the handler runs).
+        Useful for simulating slow servers in ordering or concurrency tests.
     """
 
     class DualStackServer(http.server.ThreadingHTTPServer):
@@ -58,6 +67,8 @@ def run_test_server(directory: str) -> http.server.ThreadingHTTPServer:
             return super().server_bind()
 
         def finish_request(self, request, client_address):
+            if finish_request_action is not None:
+                finish_request_action()
             self.RequestHandlerClass(request, client_address, self, directory=directory)
 
     def start_server(queue):
@@ -81,5 +92,5 @@ def run_test_server(directory: str) -> http.server.ThreadingHTTPServer:
 
 
 if __name__ == "__main__":
-    server = run_test_server(directory=".")
+    server = run_test_server(".")
     print(server)
