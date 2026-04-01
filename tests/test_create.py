@@ -2356,7 +2356,10 @@ def test_dont_remove_conda_2(
 
 
 def test_dont_remove_conda_3(
-    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    test_recipes_channel: Path,
 ):
     """
     If conda thinks its core dependency is uninstalled (happens when pip
@@ -2443,9 +2446,7 @@ def test_dont_remove_conda_3(
             f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
         )
 
-        # we will likely add this dependency; what's a better small package with
-        # no dependencies?
-        lightweight_dependency = "backports"
+        lightweight_dependency = "small-executable"
         assert not package_is_installed(prefix, lightweight_dependency)
         expected_remove_error = "RemoveError"
 
@@ -2458,6 +2459,8 @@ def test_dont_remove_conda_3(
                 "conda",
                 "install",
                 f"--prefix={prefix}",
+                "-c",
+                str(test_recipes_channel),
                 "--yes",
                 lightweight_dependency,
             ],
@@ -2480,6 +2483,8 @@ def test_dont_remove_conda_3(
                 "conda",
                 "remove",
                 f"--prefix={prefix}",
+                "-c",
+                str(test_recipes_channel),
                 "--yes",
                 lightweight_dependency,
             ],
