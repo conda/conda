@@ -508,7 +508,6 @@ class InfoRenderer:
         return self._info_dict_envs
 
     def _system_component(self) -> str:
-        from .find_commands import find_commands, find_executable
 
         output = [
             f"sys.version: {sys.version[:40]}...",
@@ -517,8 +516,11 @@ class InfoRenderer:
             "conda location: {}".format(self._info_dict["conda_location"]),
         ]
 
-        for cmd in sorted(set(find_commands() + ("build",))):
-            output.append("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
+        for name, plugin in sorted(
+            self._context.plugin_manager.get_subcommands().items()
+        ):
+            plugin_name = getattr(getattr(plugin, "impl", None), "plugin_name", None)
+            output.append(f"conda {name}: {plugin_name or '(unknown)'}")
 
         site_dirs = self._info_dict["site_dirs"]
         if site_dirs:
