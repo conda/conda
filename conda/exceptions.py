@@ -358,10 +358,10 @@ class CommandNotFoundError(CondaError):
         else:
             from difflib import get_close_matches
 
-            from .cli.conda_argparse import find_builtin_commands
+            from .cli.conda_argparse import find_builtin_commands, generate_parser
 
             message = "No command 'conda %(command)s'."
-            choices = find_builtin_commands()
+            choices = find_builtin_commands(generate_parser())
             close = get_close_matches(command, choices)
             if close:
                 message += f"\nDid you mean 'conda {close[0]}'?"

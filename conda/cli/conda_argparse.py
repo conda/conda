@@ -191,9 +191,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     return result
 
 
-def find_builtin_commands(parser: ArgumentParserBase | None = None) -> tuple[str, ...]:
-    if parser is None:
-        parser = generate_parser(add_help=True)
+def find_builtin_commands(parser: ArgumentParserBase) -> tuple[str, ...]:
     # ArgumentParser doesn't have an API for getting back what subparsers
     # exist, so we need to use internal properties to do so.
     return tuple(parser._subparsers._group_actions[0].choices.keys())
