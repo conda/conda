@@ -8,7 +8,7 @@ import os
 import re
 import shutil
 from logging import getLogger
-from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from os.path import abspath, dirname, isdir, isfile, join, relpath
 from typing import TYPE_CHECKING
 
 from .base.constants import EXPLICIT_MARKER
@@ -25,7 +25,7 @@ from .deprecations import deprecated
 from .exceptions import (
     DisallowedPackageError,
     DryRunExit,
-    PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
     ParseError,
     SpecNotFoundInPackageCache,
 )
@@ -282,16 +282,6 @@ def untracked(prefix, exclude_self_build=False):
     }
 
 
-@deprecated("25.9", "26.3", addendum="Use PrefixData.set_nonadmin()")
-def touch_nonadmin(prefix):
-    """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
-    if on_win and exists(join(context.root_prefix, ".nonadmin")):
-        if not isdir(prefix):
-            os.makedirs(prefix)
-        with open_utf8(join(prefix, ".nonadmin"), "w") as fo:
-            fo.write("")
-
-
 def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
     """Clone existing prefix1 into new prefix2."""
     untracked_files = untracked(prefix1)
@@ -318,7 +308,10 @@ def clone_env(prefix1, prefix2, verbose=True, quiet=False, index_args=None):
                 drecs.remove(prec)
                 drecs.add(precs[0])
     if notfound:
-        raise PackagesNotFoundError(notfound)
+        # these specs were not found in the Index (i.e., not available from channels).
+        # index_args["channels"] was set from index_args.pop("channel_urls") above.
+        channel_urls = (index_args.get("channels") or ()) if index_args else ()
+        raise PackagesNotFoundInChannelsError(notfound, channel_urls)
 
     # Assemble the URL and channel list
     urls = {}

@@ -20,9 +20,9 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
+    EnvironmentSpecPluginSelectionError,
     PackagesNotFoundError,
     ResolvePackageNotFound,
-    SpecNotFound,
 )
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
@@ -270,12 +270,12 @@ def test_create_valid_env_with_variables(
 def test_conda_env_create_empty_file(
     conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
 ):
-    """Test `conda env create --file=file_name.yml` where file_name.yml is empty."""
+    """Test the environment.yaml format, `conda env create --file=file_name.yml` where file_name.yml is empty."""
     tmp_file = path_factory(suffix=".yml")
     tmp_file.touch()
 
-    with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={tmp_file}")
+    with pytest.raises(EnvironmentSpecPluginSelectionError):
+        conda_cli("env", "create", "--env-spec=cep-24", f"--file={tmp_file}")
 
 
 @pytest.mark.integration
@@ -294,6 +294,11 @@ def test_conda_env_create_http(
     url = http_test_server.get_url("small-executable.yml")
     conda_cli("env", "create", f"--prefix={tmp_path}", f"--file={url}")
     assert (tmp_path / PREFIX_MAGIC_FILE).is_file()
+    stdout, stderr, code = conda_cli("list", f"--prefix={tmp_path}", "--json")
+    parsed = json.loads(stdout)
+    # We should have the `small-executable` package installed
+    assert len(parsed) == 1
+    assert parsed[0].get("name") == "small-executable"
 
 
 @pytest.mark.integration
@@ -678,18 +683,6 @@ def test_export_multi_channel(
 def test_non_existent_file(conda_cli: CondaCLIFixture):
     with pytest.raises(EnvironmentFileNotFound):
         conda_cli("env", "create", "--file", "i_do_not_exist.yml", "--yes")
-
-
-@pytest.mark.integration
-def test_invalid_extensions(
-    conda_cli: CondaCLIFixture,
-    path_factory: PathFactoryFixture,
-):
-    env_yml = path_factory(suffix=".ymla")
-    env_yml.touch()
-
-    with pytest.raises(SpecNotFound):
-        conda_cli("env", "create", f"--file={env_yml}", "--yes")
 
 
 # conda env list [--json]

@@ -10,11 +10,13 @@ from argparse import (
     SUPPRESS,
     Action,
     BooleanOptionalAction,
+    _AppendAction,
     _HelpAction,
     _StoreAction,
-    _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
+
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
@@ -104,13 +106,16 @@ def add_parser_create_install_update(p, prefix_required=False):
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
-        # "-f",  # FUTURE: 26.3: Enable this after deprecating alias in --force
+        "-f",
         "--file",
         default=[],
         action="append",
-        help="Read package versions from the given file. Repeated file "
-        "specifications can be passed (e.g. --file=file1 --file=file2).",
+        help="Read environment or package specs from the given file. Supports "
+        "YAML, requirements.txt, explicit, and other formats via env specifier "
+        "plugins. Repeated file specs of some type can be passed "
+        "(e.g. --file=file1 --file=file2).",
     )
+    add_parser_environment_specifier(p)
     p.add_argument(
         "packages",
         metavar="package_spec",
@@ -298,12 +303,17 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
             "conda config --describe repodata_fns."
         ),
     )
+    # jlap and lock experimental features are deprecated but are left in so older scripts will still work.
     channel_customization_options.add_argument(
         "--experimental",
-        action="append",
+        action=deprecated.action(
+            "26.3",
+            "26.5",
+            _AppendAction,
+            addendum="Deprecated: jlap and lock no longer supported.",
+        ),
         choices=["jlap", "lock"],
-        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+        help="Deprecated: jlap and lock no longer supported.  These options will have no effect.",
     )
     channel_customization_options.add_argument(
         "--no-lock",
@@ -497,22 +507,9 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
-    from ..deprecations import deprecated
 
     package_install_options = p.add_argument_group(
         "Package Linking and Install-time Options"
-    )
-    package_install_options.add_argument(
-        "-f",
-        dest="force",
-        action=deprecated.action(
-            "25.9",
-            "26.3",
-            _StoreTrueAction,
-            addendum="Use `--force` instead.",
-        ),
-        default=NULL,
-        help=SUPPRESS,
     )
     package_install_options.add_argument(
         "--force",

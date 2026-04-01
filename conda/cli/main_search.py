@@ -68,7 +68,21 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         Search for a package on a specific channel::
 
             conda search conda-forge::numpy
+
+        Search for a package on a specific channel and platform::
+
             conda search 'numpy[channel=conda-forge, subdir=osx-64]'
+
+        Search for a package with a specific software version and python version::
+
+            conda search 'numpy-base=2.4.2=py313*'
+            conda search 'numpy-base[version="2.4.2",build=py313*]'
+
+        Search for a package with a specific software version and build string::
+
+            conda search 'r-shiny=1.12.0=r45*'
+            conda search 'r-shiny[version="1.12.0",build=r45*]'
+
         """
     )
 
@@ -253,10 +267,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         )
 
     if not matches:
-        from ..exceptions import PackagesNotFoundError
+        from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls
 
-        raise PackagesNotFoundError([spec], all_channel_urls(context.channels, subdirs))
+        raise PackagesNotFoundInChannelsError(
+            [spec], all_channel_urls(context.channels, subdirs)
+        )
 
     if context.json:
         json_obj = defaultdict(list)

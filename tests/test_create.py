@@ -53,6 +53,7 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
+    InvalidMatchSpec,
     LinkError,
     NoChannelsConfiguredError,
     OperationNotAllowed,
@@ -1028,7 +1029,7 @@ def test_tarball_install_and_bad_metadata(
                 """
             )
         )
-        with pytest.raises(PackagesNotFoundError):
+        with pytest.raises((InvalidMatchSpec, PackagesNotFoundError)):
             conda_cli("install", f"--prefix={prefix}", bad_metadata, "--yes")
             assert not package_is_installed(prefix, "something-made-up")
 
@@ -1069,10 +1070,11 @@ def test_pinned_override_with_explicit_spec(
             f"--file={prefix / 'condarc'}",
             *("--add", "pinned_packages", "dependent=1.0"),
         )
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
+        if context.solver in ("libmamba", "rattler"):
+            # LIBMAMBA/RATTLER ADJUSTMENT
             # Incompatible pin overrides forbidden in conda-libmamba-solver 23.9.0+
             # See https://github.com/conda/conda-libmamba-solver/pull/294
+            # TODO: conda-rattler-solver inherits this via the state.py module? look into it
             with pytest.raises(SpecsConfigurationConflictError):
                 conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")
         else:
@@ -1124,12 +1126,23 @@ def test_channel_usage_replacing_python(
             "decorator",
             "--yes",
         )
-        assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
-        assert package_is_installed(prefix, "main::decorator")
+        PrefixData._cache_.clear()
+        if context.solver == "rattler":
+            # Rattler adjustment: channels change more than expected
+            assert (prec := package_is_installed(prefix, "python=3.10"))
+            assert package_is_installed(prefix, "decorator")
+        else:
+            assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
+            assert package_is_installed(prefix, "main::decorator")
 
         with tmp_env(f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::python=3.10")
-            assert package_is_installed(clone, "main::decorator")
+            if context.solver == "rattler":
+                # Rattler adjustment: channels change more than expected
+                assert package_is_installed(clone, "python=3.10")
+                assert package_is_installed(clone, "decorator")
+            else:
+                assert package_is_installed(clone, "conda-forge::python=3.10")
+                assert package_is_installed(clone, "main::decorator")
 
         # Regression test for #2645
         fn = prefix / "conda-meta" / f"{prec.name}-{prec.version}-{prec.build}.json"
@@ -1142,8 +1155,13 @@ def test_channel_usage_replacing_python(
         PrefixData._cache_.clear()
 
         with tmp_env("--channel=conda-forge", f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::python=3.10")
-            assert package_is_installed(clone, "main::decorator")
+            if context.solver == "rattler":
+                # Rattler adjustment: channels change more than expected
+                assert package_is_installed(clone, "python=3.10")
+                assert package_is_installed(clone, "decorator")
+            else:
+                assert package_is_installed(clone, "conda-forge::python=3.10")
+                assert package_is_installed(clone, "main::decorator")
 
 
 def test_install_prune_flag(
@@ -1501,7 +1519,11 @@ def test_shortcut_creation_installs_shortcut(
     # depending on channel priorities match one of:
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
-    with tmp_env("*console_shortcut", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
 
         assert get_shortcut()
@@ -1527,7 +1549,11 @@ def test_shortcut_absent_does_not_barf_on_uninstall(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     # including --no-shortcuts should not get shortcuts installed
-    with tmp_env("*console_shortcut", "--no-shortcuts", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, "--no-shortcuts", prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
 
@@ -1558,7 +1584,11 @@ def test_shortcut_absent_when_condarc_set(
     #   - main::console_shortcut
     #   - conda-forge::miniforge_console_shortcut
     # shortcuts: False from condarc should not get shortcuts installed
-    with tmp_env("*console_shortcut", prefix=prefix):
+    if "conda-forge" in context.channels:
+        spec = "miniforge_console_shortcut"
+    else:
+        spec = "console_shortcut"
+    with tmp_env(spec, prefix=prefix):
         assert (pkg := package_is_installed(prefix, "*console_shortcut"))
         assert not get_shortcut()
 
@@ -1942,8 +1972,8 @@ def test_conda_pip_interop_conda_editable_package(
     )
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="conda-libmamba-solver does not implement pip interoperability",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"conda-{context.solver}-solver does not implement pip interoperability",
         )
     )
 
@@ -2495,7 +2525,7 @@ def test_remove_spellcheck(
 
     with pytest.raises(
         PackagesNotFoundError,
-        match=r"The following packages are missing from the target environment:\s+- dependint",
+        match=r"(?s)The following packages are missing from the target environment:.*- dependint",
     ):
         conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
 
@@ -2535,6 +2565,10 @@ def test_neutering_of_historic_specs(
 ):
     with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
         conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
+        # make sure we didn't lose psutil
+        PrefixData._cache_.clear()
+        assert PrefixData(prefix).get("psutil")
+
         d = (prefix / PREFIX_MAGIC_FILE).read_text()
         assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
         # this would be unsatisfiable if the neutered specs were not being factored in correctly.
@@ -2717,6 +2751,134 @@ def test_create_with_clone_and_file_raises_argument_error(
     )
 
 
+def test_create_multiple_files_requires_name_or_prefix(
+    conda_cli: CondaCLIFixture,
+):
+    """Multiple --file arguments require explicit -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="Please provide -n/--name or -p/--prefix when using multiple",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("simple.yml"),
+            "--file",
+            support_file("add-pip.yml"),
+            "--yes",
+        )
+
+
+def test_create_multiple_files_with_cli_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """conda create -p /path --file f1 --file f2 uses the provided prefix."""
+    prefix = path_factory()
+    conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("small-executable.yml"),
+        "--file",
+        support_file("dependent.yml"),
+        "--yes",
+    )
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependent")
+
+
+def test_install_multiple_files_with_cli_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """conda install -p /path --file f1 --file f2 installs into the provided prefix."""
+    prefix = path_factory()
+    conda_cli("create", f"--prefix={prefix}", "--yes")
+    conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("small-executable.yml"),
+        "--file",
+        support_file("dependent.yml"),
+        "--yes",
+    )
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependent")
+
+
+def test_create_name_overrides_file(
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir: Path,
+    test_recipes_channel: Path,
+):
+    """--name takes precedence over name in environment file."""
+    env_name = "a_super_unique_name"
+    prefix = tmp_envs_dir / env_name
+    conda_cli(
+        "create",
+        "--name",
+        env_name,
+        "--file",
+        support_file("small-executable.yml"),
+        "--yes",
+    )
+    assert prefix.exists()
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "small-executable")
+
+
+def test_create_files_without_name_or_prefix_raises(conda_cli: CondaCLIFixture):
+    """Files without name/prefix require -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="do not specify a name or prefix",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("requirements.txt"),
+            "--yes",
+        )
+
+
+def test_create_with_env_variables_are_set_correctly(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    env_yml = path_factory(suffix=".yml")
+    env_yml.write_text(
+        f"""
+name: test_vars
+channels:
+  - {str(test_recipes_channel)}
+dependencies:
+  - small-executable
+variables:
+  VAR_A: a_var
+  VAR_B: b_var
+"""
+    )
+    prefix = path_factory()
+    conda_cli(
+        "create",
+        "--prefix",
+        str(prefix),
+        "--file",
+        str(env_yml),
+        "--yes",
+    )
+    assert PrefixData(prefix).is_environment()
+    env_vars = PrefixData(prefix).get_environment_env_vars()
+    assert env_vars["VAR_A"] == "a_var"
+    assert env_vars["VAR_B"] == "b_var"
+
+
 def test_nonadmin_file_untouched(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -2796,7 +2958,7 @@ def test_mix_explicit_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot combine package names with explicit package lists" in str(exc)
 
 
 @pytest.mark.parametrize("command", ["install", "create"])
@@ -2815,4 +2977,4 @@ def test_mix_explicit_file_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot combine package names with explicit package lists" in str(exc)

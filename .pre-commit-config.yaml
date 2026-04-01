@@ -1,6 +1,7 @@
 # disable autofixing PRs, commenting "pre-commit.ci autofix" on a pull request triggers a autofix
 ci:
   autofix_prs: false
+  autoupdate_schedule: quarterly
 # generally speaking we ignore all vendored code as well as tests data
 # ignore patches/diffs since slight reformatting can break them
 exclude: |
@@ -20,7 +21,7 @@ exclude: |
 repos:
   # generic verification and formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
     hooks:
       # standard end of line/end of file cleanup
       - id: mixed-line-ending
@@ -50,7 +51,7 @@ repos:
         files: tests/data/test-recipes/.+/repodata\.json
   # Python verification and formatting
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.6
+    rev: ad1b27d73581aa16cca06fc4a0761fc563ffe8e8  # frozen: v1.5.6
     hooks:
       # auto inject license blurb
       - id: insert-license
@@ -62,12 +63,12 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: 1.20.0
+    rev: fda77690955e9b63c6687d8806bafd56a526e45f  # frozen: 1.20.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.2
+    rev: aca6d4c8045a504e2812ea4bedff1d0a09e437bc  # frozen: v0.15.8
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
@@ -76,6 +77,19 @@ repos:
       - id: ruff-format
   - repo: local
     hooks:
+      - id: generate-test-recipes-readme
+        name: Generate test recipes README
+        entry: python tests/data/recipes/generate_recipes_readme.py
+        language: python
+        language_version: python3.14
+        additional_dependencies: [pyyaml]
+        pass_filenames: false
+        files: |
+          (?x)^(
+            tests/data/recipes/.+/meta.yaml |
+            tests/data/recipes/generate_recipes_readme.py |
+            tests/data/recipes/README.md
+          )$
       # sphinx-autoapi doesn't support #: comments, use trailing docstrings instead
       - id: no-sphinx-autodoc-comments
         name: 'Disallow #: comments, require trailing docstrings'
@@ -83,12 +97,12 @@ repos:
         language: pygrep
         types: [python]
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.16.0
+    rev: 4380fbb73a154b5f5624794c1c78d9719ccc860f  # frozen: v2.16.0
     hooks:
       - id: pretty-format-toml
         args: [--autofix, --trailing-commas]
   - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
-    rev: 0.2.3
+    rev: 8d1b9cadaf854cb25bb0b0f5870e1cc66a083d6b  # frozen: 0.2.3
     hooks:
       - id: yamlfmt
         # ruamel.yaml doesn't line wrap correctly (?) so set width to 1M to avoid issues
@@ -100,7 +114,7 @@ repos:
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.36.2
+    rev: 13614ab716a3113145f1294ed259d9fbe5678ff3  # frozen: 0.37.1
     hooks:
       # verify github syntaxes
       - id: check-github-workflows

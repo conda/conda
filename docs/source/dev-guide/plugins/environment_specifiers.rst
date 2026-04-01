@@ -42,11 +42,17 @@ The class may also define the boolean class variable `detection_supported`. When
 the plugin will only be able to be used when it is specifically selected. By default, this
 value is ``True``.`
 
-Be sure to be very specific when implementing the ``can_handle`` method. It should only
-return a ``True`` if the file can be parsed by the plugin. Making the ``can_handle``
-method too permissive in the types of files it handles may lead to conflicts with other
-plugins. If multiple installed plugins are able to ``can_handle`` the same file type,
-conda will return an error to the user.
+Be sure to be very specific when implementing the ``can_handle`` method. Here are a few
+guiding principles:
+* It should only return a ``True`` if the file can be parsed by the plugin.
+* If it can not handle the file, it should raise an error. The error should describe why it can not
+  handle the file.
+* Making the ``can_handle`` method too permissive in the types of files it handles may
+  lead to conflicts with other plugins.
+* If multiple installed plugins are able to ``can_handle`` the same file type, conda will return an
+  error to the user.
+* Ensure that the ``can_handle`` method does not depend on a file extension or specific file name
+  as users may specify the plugin by name to read in files.
 
 Registering the plugin hook
 ---------------------------
@@ -55,6 +61,8 @@ manager. Define a function with the ``plugins.hookimpl`` decorator to register
 our plugin which returns our class wrapped in a
 :class:`~conda.plugins.types.CondaEnvironmentSpecifier` object. Note, that by default
 autodetection is enabled.
+Plugin authors can additionally define aliases for their plugin. This will allow users
+to select the plugin using the aliased names in addition to the provided name.
 
 .. code-block:: python
 
@@ -63,13 +71,15 @@ autodetection is enabled.
        yield plugins.CondaEnvSpec(
            name="random",
            environment_spec=RandomSpec,
+           aliases=("rand", "rnd"),
        )
 
 Using the Plugin
 ----------------
 Once this plugin is registered, users will be able to create environments from the
-types of files specified by the plugin. For example to create a `random` environment
-using the plugin defined above:
+types of files specified by the plugin. The ``conda env create``, ``conda create``,
+and ``conda install`` commands all use these plugins when given a ``--file`` argument.
+For example to create a `random` environment using the plugin defined above:
 
 .. code-block:: bash
 
@@ -109,7 +119,7 @@ by configuring conda to use a particular installed plugin. This can be done by e
 
 Another example plugin
 -----------------------
-In this example, we want to build a more realistic environemnt spec plugin. This
+In this example, we want to build a more realistic environment spec plugin. This
 plugin has a scheme which expresses what it expects a valid environment file to
 contain. In this example, a valid environment file is a ``.json`` file that defines:
 
@@ -151,19 +161,16 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
            """
            Validates loader can process environment definition.
            This can handle if:
-                 * the file exists
-                 * the file can be read
-                 * the data can be parsed as JSON into a MySimpleEnvironment object
+               * the file exists
+               * the file can be read
+               * the data can be parsed as JSON into a MySimpleEnvironment object
 
            :return: True if the file can be parsed and handled, False otherwise
            """
            if not os.path.exists(self.filename):
-               return False
-           try:
-               self._parse_data()
-           except Exception:
-               return False
-
+               raise FileNotFoundError
+           # Will raise an error if parsing fails
+           self._parse_data()
            return True
 
        @property

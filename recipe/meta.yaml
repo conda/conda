@@ -41,11 +41,10 @@ requirements:
     - archspec >=0.2.3
     - boltons >=23.0.0
     - charset-normalizer
-    - conda-libmamba-solver >=25.4.0
+    - conda-libmamba-solver >=25.11.0
     - conda-package-handling >=2.2.0
     - distro >=1.5.0
     - frozendict >=2.4.2
-    - jsonpatch >=1.32
     - menuinst >=2
     - packaging >=23.0
     - platformdirs >=3.10.0
@@ -60,16 +59,15 @@ requirements:
     - zstandard >=0.15
   run_constrained:
     - conda-build >=25.9
-    - conda-content-trust >=0.1.1
+    # minimum version when conda-content-trust plugin is installed
+    - conda-content-trust >=0.3.0
     - conda-env >=2.6
 
 test:
   imports:
     # high-level imports
     - conda
-    - conda_env
     # new/updated submodules (can be dropped after 1-2 releases)
-    - conda.gateways.repodata.jlap
     - conda.plugins.subcommands.doctor
   commands:
     # builtin subcommands

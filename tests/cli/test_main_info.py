@@ -15,10 +15,7 @@ import pytest
 
 from conda.base.constants import PREFIX_FROZEN_FILE
 from conda.base.context import context
-from conda.cli.main_info import (
-    get_info_components,
-    iter_info_components,
-)
+from conda.cli.main_info import iter_info_components
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
@@ -279,18 +276,6 @@ def test_info_envs_size_json(conda_cli: CondaCLIFixture):
         assert details["size"] >= 0
 
 
-# conda info --license
-def test_info_license(conda_cli: CondaCLIFixture):
-    with pytest.deprecated_call():
-        conda_cli("info", "--license")
-
-
-# conda info --root
-def test_info_root(conda_cli: CondaCLIFixture):
-    with pytest.deprecated_call():
-        conda_cli("info", "--root")
-
-
 def test_iter_info_components() -> None:
     components = iter_info_components(
         args=SimpleNamespace(
@@ -304,22 +289,6 @@ def test_iter_info_components() -> None:
     )
     assert isinstance(components, Iterable)
     assert tuple(components) == ("base", "channels", "envs", "envs_details", "system")
-
-
-def test_get_info_components() -> None:
-    with pytest.deprecated_call():
-        components = get_info_components(
-            args=SimpleNamespace(
-                base=True,
-                unsafe_channels=True,
-                all=True,
-                envs=True,
-                system=True,
-            ),
-            context=SimpleNamespace(json=False),
-        )
-    assert isinstance(components, set)
-    assert components == {"base", "channels", "envs", "envs_details", "system"}
 
 
 def test_compute_prefix_size(tmp_env: TmpEnvFixture):

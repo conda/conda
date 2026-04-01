@@ -67,7 +67,6 @@ from .constants import (
     KNOWN_SUBDIRS,
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
-    PREFIX_NAME_DISALLOWED_CHARS,
     REPODATA_FN,
     RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
@@ -86,7 +85,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
     from typing import Any, Literal
 
-    from ..common.configuration import Parameter, RawParameter
     from ..common.path import PathsType, PathType
     from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
@@ -259,11 +257,6 @@ class Context(Configuration):
     prefix_data_interoperability = ParameterLoader(
         PrimitiveParameter(False), aliases=("pip_interop_enabled",)
     )
-
-    @property
-    @deprecated("25.9", "26.3", addendum="Use 'Context.prefix_data_interoperability'.")
-    def pip_interop_enabled(self):
-        return self.prefix_data_interoperability
 
     # multithreading in various places
     _default_threads = ParameterLoader(
@@ -861,16 +854,6 @@ class Context(Configuration):
         return abspath(sys.prefix)
 
     @property
-    @deprecated(
-        "23.9",
-        "26.3",
-        addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
-    )
-    def conda_exe(self) -> PathType:
-        exe = "conda.exe" if on_win else "conda"
-        return join(self.conda_prefix, BIN_DIRECTORY, exe)
-
-    @property
     def av_data_dir(self) -> PathType:
         """Where critical artifact verification data (e.g., various public keys) can be found."""
         # TODO (AV): Find ways to make this user configurable?
@@ -965,14 +948,22 @@ class Context(Configuration):
         else:
             default_channels = list(self._default_channels)
 
+        # Ensure that when "defaults" is present in custom multichannels, it overrides
+        # the built-in `default_channels` list (which combines channels like "main" and
+        # "r" into a single "defaults" multichannel).
+        if self._custom_multichannels.get(DEFAULTS_CHANNEL_NAME) is not None:
+            default_channel_dict = {}
+        else:
+            default_channel_dict = {DEFAULTS_CHANNEL_NAME: default_channels}
+
         return {
             name: tuple(
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls
             )
             for name, urls in {
                 # order matters
-                DEFAULTS_CHANNEL_NAME: default_channels,  # default_channels is a legacy keyword
                 **self._custom_multichannels,  # custom_multichannels.defaults overrides default_channels
+                **default_channel_dict,  # default_channels is a legacy keyword
                 "local": self.conda_build_local_urls,  # always last, local is a reserved name and cannot be overridden
             }.items()
         }
@@ -1218,15 +1209,6 @@ class Context(Configuration):
         if self.json:
             return DEFAULT_JSON_REPORTER_BACKEND
         return self._console
-
-    @property
-    @deprecated(
-        "25.9",
-        "26.3",
-        addendum="Please use `conda.base.context.context.auto_activate` instead",
-    )
-    def auto_activate_base(self) -> bool:
-        return self.auto_activate
 
     @property
     def default_activation_env(self) -> str:
@@ -2284,45 +2266,6 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
     )
 
 
-@deprecated(
-    "25.9", "26.3", addendum="Use PrefixData.validate_name() + PrefixData.from_name()"
-)
-def validate_prefix_name(
-    prefix_name: str, ctx: Context, allow_base: bool = True
-) -> PathType:
-    """Run various validations to make sure prefix_name is valid"""
-    from ..exceptions import CondaValueError
-
-    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
-        raise CondaValueError(
-            dals(
-                f"""
-                Invalid environment name: {prefix_name!r}
-                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
-                If you are specifying a path to an environment, the `-p`
-                flag should be used instead.
-                """
-            )
-        )
-
-    if prefix_name in RESERVED_ENV_NAMES:
-        if allow_base:
-            return ctx.root_prefix
-        else:
-            raise CondaValueError(
-                "Use of 'base' as environment name is not allowed here."
-            )
-
-    else:
-        from ..exceptions import EnvironmentNameNotFound
-        from ..gateways.disk.create import first_writable_envs_dir
-
-        try:
-            return locate_prefix_by_name(prefix_name)
-        except EnvironmentNameNotFound:
-            return join(first_writable_envs_dir(), prefix_name)
-
-
 def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> PathType:
     """Get the prefix to operate in.  The prefix may not yet exist.
 
@@ -2361,54 +2304,6 @@ def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> Path
         from ..core.prefix_data import PrefixData
 
         return str(PrefixData.from_name(prefix_name).prefix_path)
-
-
-@deprecated(
-    "25.9", "26.3", addendum="Use conda.gateways.disk.create.first_writable_envs_dir"
-)
-def _first_writable_envs_dir() -> PathType:
-    from conda.gateways.disk.create import first_writable_envs_dir
-
-    return first_writable_envs_dir()
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.base.context.context.plugins.raw_data` instead.",
-)
-def get_plugin_config_data(
-    data: dict[Path, dict[str, RawParameter]],
-) -> dict[Path, dict[str, RawParameter]]:
-    from ..plugins.config import PluginConfig
-
-    return PluginConfig(data).raw_data
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.plugins.config.PluginConfig.add_plugin_setting` instead.",
-)
-def add_plugin_setting(
-    name: str,
-    parameter: Parameter,
-    aliases: tuple[str, ...] = (),
-) -> None:
-    from ..plugins.config import PluginConfig
-
-    return PluginConfig.add_plugin_setting(name, parameter, aliases)
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.plugins.config.PluginConfig.remove_all_plugin_settings` instead.",
-)
-def remove_all_plugin_settings() -> None:
-    from ..plugins.config import PluginConfig
-
-    return PluginConfig.remove_all_plugin_settings()
 
 
 try:

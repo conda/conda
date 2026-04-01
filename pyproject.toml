@@ -31,7 +31,6 @@ dependencies = [
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
   "frozendict >=2.4.2",
-  "jsonpatch >=1.32",
   "menuinst >=2",
   "packaging >=23.0",
   "platformdirs >=3.10.0",
@@ -81,7 +80,6 @@ omit = [
   "conda/exports.py",
   "conda/gateways/connection/adapters/ftp.py",
   "conda/gateways/connection/adapters/s3.py",
-  "conda_env/*",
   "tests/*",
   "utils/*",
 ]
@@ -94,7 +92,7 @@ sort = "Miss"
 relative_files = true
 
 [tool.hatch.build]
-include = ["conda", "conda_env"]
+include = ["conda"]
 
 [tool.hatch.build.hooks.vcs]
 version-file = "conda/_version.py"
@@ -169,12 +167,6 @@ filterwarnings = [
   "error::PendingDeprecationWarning",
   "error::DeprecationWarning",
   "error::FutureWarning",
-  # ##### external library deprecations that we cannot fix in the conda source code
-  # - conda_content_trust.plugin uses old CondaSubcommand import path; remove when conda-content-trust plugin is updated
-  "ignore:conda.plugins.CondaSubcommand:PendingDeprecationWarning:conda_content_trust.plugin",
-  # ##### internal conda deprecations that need some special handling right now
-  # - ignore this until 26.3 due to a circular deprecation warning
-  "ignore:conda.core.link.PrefixActions:DeprecationWarning:conda.core.link",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
