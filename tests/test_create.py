@@ -81,6 +81,7 @@ from conda.testing.integration import (
     which_or_where,
 )
 
+from . import TEST_RECIPES_CHANNEL
 from .env import support_file
 
 if TYPE_CHECKING:
@@ -2359,7 +2360,6 @@ def test_dont_remove_conda_3(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     monkeypatch: MonkeyPatch,
-    test_recipes_channel: Path,
 ):
     """
     If conda thinks its core dependency is uninstalled (happens when pip
@@ -2460,7 +2460,7 @@ def test_dont_remove_conda_3(
                 "install",
                 f"--prefix={prefix}",
                 "-c",
-                str(test_recipes_channel),
+                str(TEST_RECIPES_CHANNEL),
                 "--yes",
                 lightweight_dependency,
             ],
@@ -2484,7 +2484,7 @@ def test_dont_remove_conda_3(
                 "remove",
                 f"--prefix={prefix}",
                 "-c",
-                str(test_recipes_channel),
+                str(TEST_RECIPES_CHANNEL),
                 "--yes",
                 lightweight_dependency,
             ],
