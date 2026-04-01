@@ -10,6 +10,9 @@ from functools import cache
 from os.path import basename, expanduser, isfile, join
 
 from ..common.compat import on_win
+from ..deprecations import deprecated
+
+deprecated.module("26.9", "27.3")
 
 
 def find_executable(executable, include_others=True):
