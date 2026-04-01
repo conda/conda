@@ -64,6 +64,7 @@ urlpath = url_path = path_to_url
 
 
 @cache
+@deprecated("26.9", "27.3")
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to

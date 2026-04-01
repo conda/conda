@@ -15,6 +15,7 @@ from ..deprecations import deprecated
 deprecated.module("26.9", "27.3")
 
 
+@deprecated("26.9", "27.3")
 def find_executable(executable, include_others=True):
     # backwards compatibility
     global dir_paths
@@ -48,6 +49,7 @@ def find_executable(executable, include_others=True):
 
 
 @cache
+@deprecated("26.9", "27.3")
 def find_commands(include_others=True):
     if include_others:
         from ..utils import sys_prefix_unfollowed
