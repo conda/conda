@@ -15,6 +15,7 @@ import functools
 import logging
 import os
 from collections.abc import Iterable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
@@ -118,10 +119,8 @@ class _HookImplWrapper:
 
     @staticmethod
     def _set_impl(result, impl):
-        try:
+        with suppress(AttributeError, TypeError):
             setattr(result, "impl", impl)
-        except (AttributeError, TypeError):
-            pass
         return result
 
 
@@ -175,7 +174,8 @@ class CondaPluginManager(pluggy.PluginManager):
             # register plugin but ignore ValueError since that means
             # the plugin has already been registered
             plugin_name = super().register(plugin, name=name)
-            setattr(plugin, "plugin_name", plugin_name)
+            with suppress(AttributeError, TypeError):
+                setattr(plugin, "plugin_name", plugin_name)
             return plugin_name
         except ValueError:
             return None
