@@ -21,14 +21,15 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib import NULL
-from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
 from ..exceptions import (
+    AmbiguousEnvironmentSpecPlugin,
     CondaValueError,
     EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
+    EnvironmentSpecPluginSelectionError,
     PluginError,
 )
 from . import (
@@ -522,7 +523,7 @@ class CondaPluginManager(pluggy.PluginManager):
         """
          Returns a mapping from environment specifier name to environment specifier.
 
-         :param supports_detection: ternary value that returns either everything, only supporting
+        :param supports_detection: ternary value that returns either everything, only supporting
                                     detection or not supporting detection.
         :param with_aliases: whether to include aliased values of environment specifiers.
         """
@@ -603,10 +604,13 @@ class CondaPluginManager(pluggy.PluginManager):
         try:
             plugin = plugins[name]
         except KeyError:
-            raise CondaValueError(
-                f"You have chosen an unrecognized environment"
-                f" specifier type ({name}). Choose one of: "
-                f"{dashlist(plugins)}"
+            raise EnvironmentSpecPluginSelectionError(
+                msg=(
+                    f"You have chosen an unrecognized environment "
+                    f"specifier type ({name}). Please choose one "
+                    "of the available formats."
+                ),
+                plugin_specs=self.get_hook_results("environment_specifiers"),
             )
         else:
             # Try to load the plugin and check if it can handle the environment spec
@@ -614,14 +618,14 @@ class CondaPluginManager(pluggy.PluginManager):
                 if plugin.environment_spec(source).can_handle():
                     return plugin
             except Exception as e:
-                raise PluginError(
-                    dals(
-                        f"""
-                        An error occurred when handling '{source}' with plugin '{name}'.
-
-                        {type(e).__name__}: {e}
-                        """
-                    )
+                raise EnvironmentSpecPluginSelectionError(
+                    msg=(
+                        f"Could not parse '{source}' as '{name}'. Check "
+                        "that the file contents match the expected format. "
+                        f"Errors reported from '{name}':\n\n"
+                        f"    ->  {type(e).__name__}: {str(e)}\n"
+                    ),
+                    plugin_specs=self.get_hook_results("environment_specifiers"),
                 )
             else:
                 # If the plugin was not able to handle the environment spec, raise an error
@@ -651,12 +655,9 @@ class CondaPluginManager(pluggy.PluginManager):
         ]
 
         if len(found) > 1:
-            raise PluginError(
-                f"Too many plugins found that can handle the environment file '{source}'.\n\n"
-                "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
-                "parser you want to use.\n\n"
-                "Available env specs:\n"
-                f"{dashlist(self.get_environment_specifiers())}"
+            raise AmbiguousEnvironmentSpecPlugin(
+                msg=f"File '{source}' matches the default filename pattern for multiple formats.",
+                plugins=found,
             )
 
         if len(found) == 1:
@@ -724,12 +725,9 @@ class CondaPluginManager(pluggy.PluginManager):
             found = self._detect_content_env_spec(source, hooks)
 
             if len(found) > 1:
-                raise PluginError(
-                    f"Too many plugins found that can handle the environment file '{source}'.\n\n"
-                    "Try using --env-spec=<spec-name> to more exactly specify the environment spec\n"
-                    "parser you want to use.\n\n"
-                    "Available env specs:\n"
-                    f"{dashlist(self.get_environment_specifiers())}"
+                raise AmbiguousEnvironmentSpecPlugin(
+                    msg=f"File '{source}' can be handled by multiple formats.",
+                    plugins=found,
                 )
 
         if len(found) == 1:
@@ -743,14 +741,14 @@ class CondaPluginManager(pluggy.PluginManager):
             return self.get_environment_specifier_by_name(
                 source=source, name="environment.yml"
             )
-        except (PluginError, CondaValueError) as exc:
+        except (
+            PluginError,
+            CondaValueError,
+            EnvironmentSpecPluginSelectionError,
+        ) as exc:
             # raise error if no plugins found that can read the environment file
             raise EnvironmentSpecPluginNotDetected(
-                name=source,
-                plugin_names=hooks,
-                autodetect_disabled_plugins=self.get_environment_specifiers(
-                    supports_detection=False
-                ),
+                plugin_specs=self.get_hook_results("environment_specifiers")
             ) from exc
 
     def get_environment_specifier(
@@ -862,7 +860,7 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[Action]:
         """Get the plugin-defined pre-transaction actions.
 
-        :param transaction_context: Mapping between target prefixes and PrefixActions
+        :param transaction_context: Mapping between target prefixes and PrefixActionGroup
             instances
         :param target_prefix: Target prefix for the action
         :param unlink_precs: Package records to be unlinked
@@ -897,7 +895,7 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[Action]:
         """Get the plugin-defined post-transaction actions.
 
-        :param transaction_context: Mapping between target prefixes and PrefixActions
+        :param transaction_context: Mapping between target prefixes and PrefixActionGroup
             instances
         :param target_prefix: Target prefix for the action
         :param unlink_precs: Package records to be unlinked

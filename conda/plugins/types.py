@@ -578,6 +578,8 @@ class EnvironmentSpecBase(ABC):
         environment described by the `filename`.
 
         :returns bool: returns True, if the plugin can interpret the file.
+        :raises: raises an exception if it can not handle the file. The exception should
+                 describe why the file can not be handled.
         """
         raise NotImplementedError()
 

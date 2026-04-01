@@ -101,7 +101,7 @@ class Action(ABC):
         4. ``cleanup``
 
 
-    :param transaction_context: Mapping between target prefixes and PrefixActions
+    :param transaction_context: Mapping between target prefixes and PrefixActionGroup
         instances
     :param target_prefix: Target prefix for the action
     :param unlink_precs: Package records to be unlinked
