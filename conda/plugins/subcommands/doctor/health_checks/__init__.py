@@ -12,6 +12,7 @@ from . import (
     altered_files,
     consistency,
     environment_txt,
+    external_packages,
     file_locking,
     missing_files,
     pinned,
@@ -27,6 +28,7 @@ plugins = [
     missing_files,
     pinned,
     requests_ca_bundle,
+    external_packages,
 ]
 
 __all__ = ["plugins"]
