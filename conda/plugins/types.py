@@ -14,7 +14,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 from requests.auth import AuthBase
 
@@ -74,7 +74,7 @@ class CondaPlugin:
             raise PluginError(f"Invalid plugin name for {self!r}")
 
 
-@dataclass
+@dataclass(init=False)
 class CondaSubcommand(CondaPlugin):
     """
     Return type to use when defining a conda subcommand plugin hook.
@@ -82,19 +82,56 @@ class CondaSubcommand(CondaPlugin):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_subcommands`.
 
+    Subcommands support two shapes, distinguished by ``configure_parser``:
+
+    * If ``configure_parser`` is set, ``action`` receives the parsed
+      :class:`argparse.Namespace`.
+    * If ``configure_parser`` is omitted, ``action`` receives the remaining
+      argv as :class:`tuple[str, ...]`.
+
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
     :param configure_parser: Callable that will be run when the subcommand parser is initialized.
     """
 
-    name: str
     summary: str
-    action: Callable[
-        [Namespace | tuple[str]],  # arguments
-        int | None,  # return code
-    ]
+    action: Callable[[Namespace], int | None] | Callable[[tuple[str, ...]], int | None]
     configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
+
+    @overload
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[Namespace], int | None],
+        configure_parser: Callable[[ArgumentParser], None],
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[tuple[str, ...]], int | None],
+        configure_parser: None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[Namespace], int | None]
+        | Callable[[tuple[str, ...]], int | None],
+        configure_parser: Callable[[ArgumentParser], None] | None = None,
+    ) -> None:
+        super().__init__(name=name)
+        self.summary = summary
+        self.action = action
+        self.configure_parser = configure_parser
 
 
 @dataclass

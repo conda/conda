@@ -82,7 +82,7 @@ def _safe_toposort(data):
             log.debug(err.args[0])
 
             if not data:
-                return  # pragma: nocover
+                return  # pragma: no cover
 
             yield pop_key(data)
 

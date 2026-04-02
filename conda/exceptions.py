@@ -1409,48 +1409,60 @@ class SpecNotFound(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
+def format_env_spec_available_plugins(
+    plugin_specs: list[CondaEnvironmentSpecifier],
+    formats_header: str = "Available formats",
+    indent: int = 4,
+    cmd_suggestion: bool = True,
+):
+    msg = (
+        "\nPlease add to your prior command: --env-spec <format>\n"
+        if cmd_suggestion
+        else ""
+    )
+    msg += f"\n{formats_header}:"
+    msg += dashlist(
+        [f"{plugin.name}: {plugin.description}" for plugin in plugin_specs],
+        indent=indent,
+    )
+    return msg
+
+
+class AmbiguousEnvironmentSpecPlugin(PluginError):
+    def __init__(
+        self,
+        msg: str,
+        plugins: list[CondaEnvironmentSpecifier],
+        *args,
+        **kwargs,
+    ):
+        msg += format_env_spec_available_plugins(
+            plugins, formats_header="Matched formats"
+        )
+        super().__init__(msg, *args, **kwargs)
+
+
 class EnvironmentSpecPluginSelectionError(CondaError):
     def __init__(
         self,
         msg: str,
-        plugin_specs: dict[str, CondaEnvironmentSpecifier],
+        plugin_specs: list[CondaEnvironmentSpecifier],
         *args,
         **kwargs,
     ):
-        plugin_names = [
-            f"{name} ({', '.join(plugin.aliases)})" if plugin.aliases else name
-            for name, plugin in plugin_specs.items()
-        ]
-        msg += f"\nAvailable formats: {dashlist(plugin_names, 4)}"
+        msg += format_env_spec_available_plugins(plugin_specs, cmd_suggestion=False)
         super().__init__(msg, *args, **kwargs)
 
 
 class EnvironmentSpecPluginNotDetected(SpecNotFound):
     def __init__(
         self,
-        name: str,
-        plugin_names: Iterable[str],
-        autodetect_disabled_plugins: Iterable[str] = (),
+        plugin_specs: list[CondaEnvironmentSpecifier],
         *args,
         **kwargs,
     ):
-        self.name = name
-        msg = dals(
-            f"""
-            Environment at {name} is not able to be detected by any installed environment specifier plugins.
-
-            Available plugins: {dashlist(plugin_names, 16)}
-
-            """
-        )
-        if autodetect_disabled_plugins:
-            msg += dals(
-                """
-                Found compatible plugins but they must be explicitly selected.
-                Request conda to use these plugins by providing
-                the cli argument `--environment-spec PLUGIN_NAME`:
-                """
-            ) + dashlist(autodetect_disabled_plugins, 4)
+        msg = "Unable to detect the environment format for the provided file."
+        msg += format_env_spec_available_plugins(plugin_specs)
         super().__init__(msg, *args, **kwargs)
 
 
