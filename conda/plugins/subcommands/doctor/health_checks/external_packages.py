@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 def find_external_packages(prefix: str) -> list[PrefixData]:
-    prefix_data = PrefixData(prefix)
+    prefix_data = PrefixData(prefix, interoperability=True)
     external_packages = prefix_data.get_python_packages()
     return external_packages
 
