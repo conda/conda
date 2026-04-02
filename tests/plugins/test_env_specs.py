@@ -9,7 +9,7 @@ import pytest
 from conda import plugins
 from conda.auxlib.ish import dals
 from conda.exceptions import (
-    CondaValueError,
+    AmbiguousEnvironmentSpecPlugin,
     EnvironmentSpecPluginNotDetected,
     EnvironmentSpecPluginSelectionError,
     PluginError,
@@ -311,7 +311,7 @@ def test_raises_an_error_if_plugin_name_does_not_exist(dummy_random_spec_plugin)
     """
     Ensures that an error is raised if the user requests a plugin that doesn't exist
     """
-    with pytest.raises(CondaValueError):
+    with pytest.raises(EnvironmentSpecPluginSelectionError):
         dummy_random_spec_plugin.get_environment_specifier_by_name(
             name="uhoh", source="test.random"
         )
@@ -341,8 +341,16 @@ def test_raise_error_for_multiple_registered_installers(
     for the same section.
     """
     filename = "test.random"
-    with pytest.raises(PluginError):
+    with pytest.raises(
+        AmbiguousEnvironmentSpecPlugin,
+        match=r"File 'test\.random' can be handled by multiple formats\.",
+    ) as error:
         dummy_random_spec_plugin.get_environment_specifier(filename)
+
+    # More assertions to make sure the error message includes suggestions
+    assert "Matched formats:" in str(error.value)
+    assert "rand-spec" in str(error.value)
+    assert "rand-spec-2" in str(error.value)
 
 
 def test_raise_error_for_overlapping_default_filename(
@@ -352,13 +360,13 @@ def test_raise_error_for_overlapping_default_filename(
     Ensure that we raise an error when default filenames overlap(``*.xml``)
     """
     with pytest.raises(
-        PluginError,
-        match=r"Too many plugins found that can handle the environment file '(.+)environment.xml'.",
+        AmbiguousEnvironmentSpecPlugin,
+        match=r"File '(.+)environment.xml' matches the default filename pattern for multiple formats.",
     ) as error:
         plugin_manager_with_xml_spec_2.detect_environment_specifier(str(xml_env))
 
     # More assertions to make sure the error message includes suggestions
-    assert "Available env specs:" in str(error.value)
+    assert "Matched formats:" in str(error.value)
     assert "xml-spec" in str(error.value)
     assert "xml-spec-2" in str(error.value)
 
@@ -529,7 +537,7 @@ def test_get_spec_by_aliases(plugin_manager, dummy_random_spec_plugin_aliases):
     assert env_spec_backend.environment_spec(filename).env is not None
 
     # Ensure an error is raised for an alias that doesn't exist
-    with pytest.raises(CondaValueError):
+    with pytest.raises(EnvironmentSpecPluginSelectionError):
         env_spec_backend = plugin_manager.get_environment_specifier_by_name(
             filename, "notalias"
         )
@@ -582,7 +590,10 @@ def test_alias_and_name_collision_detect(
     with pytest.raises(PluginError):
         plugin_manager.get_environment_specifier_by_name("something.random", "random")
 
-    with pytest.raises(PluginError):
+    with pytest.raises(
+        PluginError,
+        match=r"'something\.random' can be handled by multiple formats\.",
+    ):
         plugin_manager.detect_environment_specifier("something.random")
 
 
