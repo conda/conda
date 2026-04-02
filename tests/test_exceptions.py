@@ -564,7 +564,8 @@ def test_CommandNotFoundError_simple(
     capsys: CaptureFixture,
 ) -> None:
     cmd = "instate"
-    exc = CommandNotFoundError(cmd)
+    with pytest.deprecated_call():
+        exc = CommandNotFoundError(cmd)
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
@@ -605,7 +606,8 @@ def test_CommandNotFoundError_conda_build(
     capsys: CaptureFixture,
 ) -> None:
     cmd = "build"
-    exc = CommandNotFoundError(cmd)
+    with pytest.deprecated_call():
+        exc = CommandNotFoundError(cmd)
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
