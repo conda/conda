@@ -376,7 +376,6 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          --file tests/requirements-benchmarks.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
