@@ -82,6 +82,21 @@ def _pedantic_setup() -> tuple[tuple[()], dict[str, object]]:
     return (), {}
 
 
+@pytest.fixture()
+def _restore_modules():
+    """Save ``sys.modules`` before an import benchmark and restore it after.
+
+    Without this, ``_clean_modules()`` leaves the process-wide module cache in
+    a partially loaded state, breaking other benchmark tests that run later in
+    the same pytest session (e.g. ``test_subcommands.py``, ``test_solve.py``).
+    """
+    saved = sys.modules.copy()
+    yield
+    sys.modules.clear()
+    sys.modules.update(saved)
+
+
+@pytest.mark.usefixtures("_restore_modules")
 def test_import_cli_main(benchmark: BenchmarkFixture) -> None:
     """Cost of ``from conda.cli.main import main``."""
 
@@ -93,6 +108,7 @@ def test_import_cli_main(benchmark: BenchmarkFixture) -> None:
     benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
 
 
+@pytest.mark.usefixtures("_restore_modules")
 def test_import_context(benchmark: BenchmarkFixture) -> None:
     """Cost of importing ``conda.base.context.context``."""
 
@@ -104,6 +120,7 @@ def test_import_context(benchmark: BenchmarkFixture) -> None:
     benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
 
 
+@pytest.mark.usefixtures("_restore_modules")
 def test_import_conda_argparse(benchmark: BenchmarkFixture) -> None:
     """Cost of importing ``conda.cli.conda_argparse``."""
 
