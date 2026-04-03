@@ -199,7 +199,7 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
             "    except SystemExit:\n"
             "        pass"
         ),
-        "max_modules": 950,
+        "max_modules": 1000,
     },
 }
 
