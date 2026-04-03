@@ -16,7 +16,6 @@ and fail when a phase exceeds its module budget.
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
 import subprocess
 import sys
@@ -40,14 +39,6 @@ if TYPE_CHECKING:
 
 pytestmark = pytest.mark.benchmark
 
-# The ``benchmark`` fixture is provided by pytest-codspeed, which is only
-# installed in the dedicated benchmarks CI job.  Tests that need it are
-# skipped in regular unit-test runs so they don't cause fixture-not-found
-# errors.
-_needs_codspeed = pytest.mark.skipif(
-    importlib.util.find_spec("pytest_codspeed") is None,
-    reason="pytest-codspeed not installed",
-)
 
 # Packages the test runner needs — never remove these from sys.modules.
 _TEST_INFRA = frozenset(
@@ -106,7 +97,6 @@ def _restore_modules():
     sys.modules.update(saved)
 
 
-@_needs_codspeed
 @pytest.mark.usefixtures("_restore_modules")
 def test_import_cli_main(benchmark: BenchmarkFixture) -> None:
     """Cost of ``from conda.cli.main import main``."""
@@ -119,7 +109,6 @@ def test_import_cli_main(benchmark: BenchmarkFixture) -> None:
     benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
 
 
-@_needs_codspeed
 @pytest.mark.usefixtures("_restore_modules")
 def test_import_context(benchmark: BenchmarkFixture) -> None:
     """Cost of importing ``conda.base.context.context``."""
@@ -132,7 +121,6 @@ def test_import_context(benchmark: BenchmarkFixture) -> None:
     benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
 
 
-@_needs_codspeed
 @pytest.mark.usefixtures("_restore_modules")
 def test_import_conda_argparse(benchmark: BenchmarkFixture) -> None:
     """Cost of importing ``conda.cli.conda_argparse``."""
@@ -145,20 +133,17 @@ def test_import_conda_argparse(benchmark: BenchmarkFixture) -> None:
     benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
 
 
-@_needs_codspeed
 def test_context_init(benchmark: BenchmarkFixture) -> None:
     """Cost of ``context.__init__()`` (config loading)."""
     benchmark(context.__init__)
 
 
-@_needs_codspeed
 def test_generate_parser(benchmark: BenchmarkFixture) -> None:
     """Cost of building the full CLI argument parser."""
     context.__init__()
     benchmark(generate_parser, add_help=True)
 
 
-@_needs_codspeed
 def test_version_main(benchmark: BenchmarkFixture) -> None:
     """Cost of ``conda --version`` through ``main()``."""
 
