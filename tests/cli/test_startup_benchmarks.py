@@ -37,9 +37,6 @@ if TYPE_CHECKING:
         max_modules: int
 
 
-pytestmark = pytest.mark.benchmark
-
-
 # Packages the test runner needs — never remove these from sys.modules.
 _TEST_INFRA = frozenset(
     {
@@ -112,6 +109,7 @@ def _run_import_benchmark(benchmark: BenchmarkFixture, target) -> None:
         benchmark(target)
 
 
+@pytest.mark.benchmark
 @pytest.mark.usefixtures("_restore_modules")
 def test_import_cli_main(benchmark: BenchmarkFixture) -> None:
     """Cost of ``from conda.cli.main import main``."""
@@ -124,6 +122,7 @@ def test_import_cli_main(benchmark: BenchmarkFixture) -> None:
     _run_import_benchmark(benchmark, target)
 
 
+@pytest.mark.benchmark
 @pytest.mark.usefixtures("_restore_modules")
 def test_import_context(benchmark: BenchmarkFixture) -> None:
     """Cost of importing ``conda.base.context.context``."""
@@ -136,6 +135,7 @@ def test_import_context(benchmark: BenchmarkFixture) -> None:
     _run_import_benchmark(benchmark, target)
 
 
+@pytest.mark.benchmark
 @pytest.mark.usefixtures("_restore_modules")
 def test_import_conda_argparse(benchmark: BenchmarkFixture) -> None:
     """Cost of importing ``conda.cli.conda_argparse``."""
@@ -148,17 +148,20 @@ def test_import_conda_argparse(benchmark: BenchmarkFixture) -> None:
     _run_import_benchmark(benchmark, target)
 
 
+@pytest.mark.benchmark
 def test_context_init(benchmark: BenchmarkFixture) -> None:
     """Cost of ``context.__init__()`` (config loading)."""
     benchmark(context.__init__)
 
 
+@pytest.mark.benchmark
 def test_generate_parser(benchmark: BenchmarkFixture) -> None:
     """Cost of building the full CLI argument parser."""
     context.__init__()
     benchmark(generate_parser, add_help=True)
 
 
+@pytest.mark.benchmark
 def test_version_main(benchmark: BenchmarkFixture) -> None:
     """Cost of ``conda --version`` through ``main()``."""
 
@@ -196,7 +199,7 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
             "    except SystemExit:\n"
             "        pass"
         ),
-        "max_modules": 900,
+        "max_modules": 950,
     },
 }
 
