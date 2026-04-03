@@ -97,6 +97,21 @@ def _restore_modules():
     sys.modules.update(saved)
 
 
+def _run_import_benchmark(benchmark: BenchmarkFixture, target) -> None:
+    """Run an import benchmark, using pedantic mode when available.
+
+    ``benchmark.pedantic`` (with per-round ``sys.modules`` cleanup) is only
+    available under CodSpeed instrumentation or pytest-benchmark.  In plain
+    pytest-codspeed walltime/local mode it is absent, so fall back to a
+    single ``benchmark(target)`` call — still useful as a smoke test.
+    """
+    if hasattr(benchmark, "pedantic"):
+        benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
+    else:
+        _clean_modules()
+        benchmark(target)
+
+
 @pytest.mark.usefixtures("_restore_modules")
 def test_import_cli_main(benchmark: BenchmarkFixture) -> None:
     """Cost of ``from conda.cli.main import main``."""
@@ -106,7 +121,7 @@ def test_import_cli_main(benchmark: BenchmarkFixture) -> None:
 
         return main
 
-    benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
+    _run_import_benchmark(benchmark, target)
 
 
 @pytest.mark.usefixtures("_restore_modules")
@@ -118,7 +133,7 @@ def test_import_context(benchmark: BenchmarkFixture) -> None:
 
         return context
 
-    benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
+    _run_import_benchmark(benchmark, target)
 
 
 @pytest.mark.usefixtures("_restore_modules")
@@ -130,7 +145,7 @@ def test_import_conda_argparse(benchmark: BenchmarkFixture) -> None:
 
         return generate_parser
 
-    benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
+    _run_import_benchmark(benchmark, target)
 
 
 def test_context_init(benchmark: BenchmarkFixture) -> None:
