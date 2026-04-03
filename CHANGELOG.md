@@ -4,11 +4,11 @@
 
 ### Enhancements
 
-* Record what hook object contributed a plugin allowing `conda info` and diagnostics to show where a plugin was registered from. (#15840)
+* Record the originating hook for each plugin, enabling `conda info` and diagnostics to show where plugins were registered from. (#15840)
 
 ### Bug fixes
 
-* Stop discovering legacy `conda-*` executables on `PATH` when building the CLI parser. (#15840)
+* No longer search for `conda-*` executables on `PATH` when building the CLI parser. (#15840)
 
 ### Deprecations
 
