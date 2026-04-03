@@ -231,9 +231,6 @@ select = [
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
-"conda/common/serialize/json.py" = [
-  "TID251",  # this file IS the json wrapper; it must import stdlib json
-]
 "conda/testing/*" = [
   "S101",  # forbid assert
 ]
