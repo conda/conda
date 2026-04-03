@@ -1,0 +1,19 @@
+### Enhancements
+
+* Use stdlib `json` instead of `requests.compat.json` in `conda.common.serialize.json`, avoiding the transitive import of `requests`, `urllib3`, `cryptography`, and ~120 other modules during context initialization. (#15838)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

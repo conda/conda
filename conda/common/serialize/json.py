@@ -4,14 +4,12 @@
 
 from __future__ import annotations
 
+import json
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, overload
 
 from frozendict import frozendict
-
-# detect the best json library to use
-from requests.compat import json
 
 if TYPE_CHECKING:
     from io import IO
