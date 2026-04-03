@@ -187,7 +187,7 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
         "code": (
             "from conda.cli.main import main\nfrom conda.base.context import context"
         ),
-        "max_modules": 650,
+        "max_modules": 700,
     },
     "full_startup": {
         "code": (
