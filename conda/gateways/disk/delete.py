@@ -156,7 +156,7 @@ def unlink_or_rename_to_trash(path):
                     dest_fn = path + ".conda_trash"
                     counter = 1
                     while isfile(dest_fn):
-                        dest_fn = dest_fn.splitext[0] + f".conda_trash_{counter}"
+                        dest_fn = os.path.splitext(dest_fn)[0] + f".conda_trash_{counter}"
                         counter += 1
                     out = "< empty >"
                     try:
