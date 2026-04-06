@@ -22,7 +22,6 @@ from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
-from .find_commands import find_commands
 from .helpers import (  # noqa: F401
     add_output_and_prompt_options,
     add_parser_channels,
@@ -192,7 +191,7 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     return result
 
 
-def find_builtin_commands(parser):
+def find_builtin_commands(parser: ArgumentParserBase) -> tuple[str, ...]:
     # ArgumentParser doesn't have an API for getting back what subparsers
     # exist, so we need to use internal properties to do so.
     return tuple(parser._subparsers._group_actions[0].choices.keys())
@@ -321,38 +320,3 @@ def configure_parser_plugins(sub_parsers) -> None:
 
         # underscore prefixed indicating this is not a normal argparse argument
         parser.set_defaults(_plugin_subcommand=plugin_subcommand)
-
-    if context.no_plugins:
-        return
-
-    # Ignore the legacy `conda-env` entrypoints since we already register `env`
-    # as a subcommand in `generate_parser` above
-    legacy = set(find_commands()).difference(plugin_subcommands) - {"env"}
-
-    for name in legacy:
-        # if the name of the plugin-based subcommand overlaps a built-in
-        # subcommand, we print an error
-        if name in BUILTIN_COMMANDS:
-            log.error(
-                dals(
-                    f"""
-                    The (legacy) plugin '{name}' is trying to override the built-in command
-                    with the same name, which is not allowed.
-
-                    Please uninstall the plugin to stop seeing this error message.
-                    """
-                )
-            )
-            continue
-
-        parser = sub_parsers.add_parser(
-            name,
-            description=f"See `conda {name} --help`.",
-            help=f"See `conda {name} --help`.",
-            add_help=False,  # defer to subcommand's help processing
-        )
-
-        # case 3: legacy plugins are always greedy
-        parser.greedy = True
-
-        parser.set_defaults(_executable=name)
