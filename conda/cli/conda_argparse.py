@@ -68,12 +68,14 @@ _DEPRECATED_CONFIGURE_PARSER_EXPORTS: dict[str, str] = {
     "configure_parser_update": "conda.cli.main_update",
 }
 
-_DEPRECATED_RC_PATH_EXPORTS = frozenset({
-    "user_rc_path",
-    "sys_rc_path",
-    "escaped_user_rc_path",
-    "escaped_sys_rc_path",
-})
+_DEPRECATED_RC_PATH_EXPORTS = frozenset(
+    {
+        "user_rc_path",
+        "sys_rc_path",
+        "escaped_user_rc_path",
+        "escaped_sys_rc_path",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -135,7 +137,12 @@ _BUILTIN_SUBCOMMANDS: list[tuple[str, str, str, dict]] = [
         "Generally only used by tab-completion.",
         {},
     ),
-    ("compare", "conda.cli.main_compare", "Compare packages between conda environments.", {}),
+    (
+        "compare",
+        "conda.cli.main_compare",
+        "Compare packages between conda environments.",
+        {},
+    ),
     ("config", "conda.cli.main_config", "Modify configuration values in .condarc.", {}),
     (
         "create",
@@ -151,7 +158,12 @@ _BUILTIN_SUBCOMMANDS: list[tuple[str, str, str, dict]] = [
     ),
     ("env", "conda.cli.main_env", "Create and manage conda environments.", {}),
     ("export", "conda.cli.main_export", "Export a given environment", {}),
-    ("info", "conda.cli.main_info", "Display information about current conda install.", {}),
+    (
+        "info",
+        "conda.cli.main_info",
+        "Display information about current conda install.",
+        {},
+    ),
     ("init", "conda.cli.main_init", "Initialize conda for shell interaction.", {}),
     (
         "install",
@@ -159,9 +171,19 @@ _BUILTIN_SUBCOMMANDS: list[tuple[str, str, str, dict]] = [
         "Install a list of packages into a specified conda environment.",
         {},
     ),
-    ("list", "conda.cli.main_list", "List installed packages in a conda environment.", {}),
+    (
+        "list",
+        "conda.cli.main_list",
+        "List installed packages in a conda environment.",
+        {},
+    ),
     ("notices", "conda.cli.main_notices", "Retrieve latest channel notifications.", {}),
-    ("package", "conda.cli.main_package", "Create low-level conda packages. (EXPERIMENTAL)", {}),
+    (
+        "package",
+        "conda.cli.main_package",
+        "Create low-level conda packages. (EXPERIMENTAL)",
+        {},
+    ),
     (
         "remove",
         "conda.cli.main_remove",
@@ -343,6 +365,24 @@ class _GreedySubParsersAction(argparse._SubParsersAction):
         return sorted(self._choices_actions, key=lambda action: action.dest)
 
 
+class _LazyParserMap(dict):
+    """A dict that triggers lazy parser loading on key access.
+
+    Used as the _name_parser_map for _LazySubParsersAction so that any
+    consumer reading a specific subcommand parser (e.g. sphinx-argparse
+    navigating a :path: directive) gets the fully-configured parser rather
+    than the lightweight stub registered at generate_parser() time.
+    """
+
+    def __init__(self, action):
+        super().__init__()
+        self._action = action
+
+    def __getitem__(self, key):
+        self._action._ensure_loaded(key)
+        return super().__getitem__(key)
+
+
 class _LazySubParsersAction(_GreedySubParsersAction):
     """Extends _GreedySubParsersAction with lazy loading of subcommand parsers.
 
@@ -356,6 +396,9 @@ class _LazySubParsersAction(_GreedySubParsersAction):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._name_parser_map = _LazyParserMap(self)
+        # choices is the same dict object in argparse's _SubParsersAction
+        self.choices = self._name_parser_map
         self._lazy_loaders: dict[str, tuple[str, dict]] = {}
         self._lazy_aliases: dict[str, str] = {}
         self._loading_name: str | None = None
