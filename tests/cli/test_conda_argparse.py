@@ -75,9 +75,28 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.add_parser_solver_mode", isfunction),
         ("conda.cli.conda_argparse.add_parser_update_modifiers", isfunction),
         ("conda.cli.conda_argparse.add_parser_verbose", isfunction),
-        # derived from argparse.ArgumentParser
         ("conda.cli.conda_argparse.ArgumentParser", isclass),
         ("conda.cli.conda_argparse.BUILTIN_COMMANDS", lambda x: isinstance(x, set)),
+        ("conda.cli.conda_argparse.configure_parser_plugins", isfunction),
+        ("conda.cli.conda_argparse.do_call", isfunction),
+        ("conda.cli.conda_argparse.ExtendConstAction", isclass),
+        ("conda.cli.conda_argparse.find_builtin_commands", isfunction),
+        ("conda.cli.conda_argparse.generate_parser", isfunction),
+        ("conda.cli.conda_argparse.generate_pre_parser", isfunction),
+        ("conda.cli.conda_argparse.NullCountAction", isclass),
+    ],
+)
+def test_imports(path: str, validate: Callable[[Any], bool]):
+    path, attr = path.rsplit(".", 1)
+    module = importlib.import_module(path)
+    assert hasattr(module, attr)
+    assert validate(getattr(module, attr))
+
+
+@pytest.mark.parametrize(
+    "path,validate",
+    [
+        # configure_parser_* functions moved to their own main_* modules (deprecated in 26.5)
         ("conda.cli.conda_argparse.configure_parser_clean", isfunction),
         ("conda.cli.conda_argparse.configure_parser_compare", isfunction),
         ("conda.cli.conda_argparse.configure_parser_config", isfunction),
@@ -88,29 +107,27 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.configure_parser_list", isfunction),
         ("conda.cli.conda_argparse.configure_parser_notices", isfunction),
         ("conda.cli.conda_argparse.configure_parser_package", isfunction),
-        ("conda.cli.conda_argparse.configure_parser_plugins", isfunction),
         ("conda.cli.conda_argparse.configure_parser_remove", isfunction),
         ("conda.cli.conda_argparse.configure_parser_rename", isfunction),
         ("conda.cli.conda_argparse.configure_parser_run", isfunction),
         ("conda.cli.conda_argparse.configure_parser_search", isfunction),
         ("conda.cli.conda_argparse.configure_parser_update", isfunction),
-        ("conda.cli.conda_argparse.do_call", isfunction),
+        # rc_path variables moved to conda.base.context (deprecated in 26.5)
         ("conda.cli.conda_argparse.escaped_sys_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.escaped_user_rc_path", lambda x: isinstance(x, str)),
-        ("conda.cli.conda_argparse.ExtendConstAction", isclass),
-        ("conda.cli.conda_argparse.find_builtin_commands", isfunction),
-        ("conda.cli.conda_argparse.generate_parser", isfunction),
-        ("conda.cli.conda_argparse.generate_pre_parser", isfunction),
-        ("conda.cli.conda_argparse.NullCountAction", isclass),
         ("conda.cli.conda_argparse.sys_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.user_rc_path", lambda x: isinstance(x, str)),
     ],
 )
-def test_imports(path: str, validate: Callable[[Any], bool]):
+def test_deprecated_imports(path: str, validate: Callable[[Any], bool]):
+    """Verify deprecated re-exports still work but emit PendingDeprecationWarning."""
     path, attr = path.rsplit(".", 1)
     module = importlib.import_module(path)
+    # First access registers the deprecation without warning (lazy registration).
     assert hasattr(module, attr)
-    assert validate(getattr(module, attr))
+    # Second access goes through the _ConstantDeprecationRegistry and warns.
+    with pytest.warns(PendingDeprecationWarning):
+        assert validate(getattr(module, attr))
 
 
 def test_sorted_commands_in_error(capsys):
