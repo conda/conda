@@ -1,12 +1,12 @@
 name: Canary Builds
 
 on:
-  # Every label change starts the workflow; jobs only run when build::review is applied.
+  # Build canaries from PRs labeled build::review.
   pull_request:
     types:
       - labeled
 
-  # Auto-canary after success when Tests was not triggered by pull_request and head_branch is main, feature/*, or *.x.
+  # Build canaries from successful Tests runs on main, feature/*, or *.x branches.
   workflow_run:
     workflows:
       - Tests
@@ -155,6 +155,7 @@ jobs:
         uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5 # v2.9.2
         env:
           GITHUB_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
           TITLE: Canary Builds failed
         with:
