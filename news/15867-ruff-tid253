@@ -1,0 +1,3 @@
+### Enhancements
+
+* Add Ruff `TID253` rule to ban module-level imports of `requests` on the startup path, preventing accidental re-introduction of heavy import chains (e.g. the A1 regression fixed in #15866). Files in `conda/gateways/` and other non-startup-path locations that legitimately import `requests` are annotated with `# noqa: TID253`.

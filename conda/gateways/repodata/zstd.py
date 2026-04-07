@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 import zstandard
-from requests import HTTPError
+from requests import HTTPError  # noqa: TID253
 
 from ...base.constants import REPODATA_FN
 from ...base.context import context
