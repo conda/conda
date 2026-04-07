@@ -30,6 +30,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .conda_argparse import find_builtin_commands
 
+    # Ensure plugin subcommands are discovered before listing
+    sub_parsers_action = parser._subparsers._group_actions[0]
+    if hasattr(sub_parsers_action, "_ensure_plugins_loaded"):
+        sub_parsers_action._ensure_plugins_loaded()
+
     print(
         *sorted(find_builtin_commands(parser)),
         sep="\n",
