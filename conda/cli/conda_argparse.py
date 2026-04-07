@@ -288,11 +288,13 @@ class ArgumentParser(ArgumentParserBase):
         if isinstance(action, _LazySubParsersAction) and isinstance(
             action.choices, dict
         ):
-            action.choices = dict(sorted(action.choices.items()))
-            # Unknown command: discover plugins before rejecting
-            if not isiterable(value) and value not in action.choices:
+            # Unknown command: discover plugins before rejecting so that plugin
+            # subcommands appear in the "choose from" error message.  Must read
+            # from _name_parser_map (not choices) after loading because the
+            # sort-reassignment above disconnects choices from _name_parser_map.
+            if not isiterable(value) and value not in action._name_parser_map:
                 action._ensure_plugins_loaded()
-                action.choices = dict(sorted(action.choices.items()))
+            action.choices = dict(sorted(action._name_parser_map.items()))
         elif isinstance(action, _GreedySubParsersAction) and isinstance(
             action.choices, dict
         ):
