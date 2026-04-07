@@ -619,8 +619,8 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
         "--environment-specifier",
         "--env-spec",  # for brevity
         action=deprecated.action(
-            "26.5",
             "26.9",
+            "27.3",
             LazyChoicesAction,
             addendum="Use the `--format` flag instead.",
         ),
