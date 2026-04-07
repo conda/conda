@@ -17,8 +17,6 @@ from logging import getLogger
 from subprocess import Popen
 
 from .. import __version__
-from ..auxlib.ish import dals
-from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
@@ -43,57 +41,121 @@ from .helpers import (  # noqa: F401
     add_parser_update_modifiers,
     add_parser_verbose,
 )
-from .main_clean import configure_parser as configure_parser_clean
-from .main_commands import configure_parser as configure_parser_commands
-from .main_compare import configure_parser as configure_parser_compare
-from .main_config import configure_parser as configure_parser_config
-from .main_create import configure_parser as configure_parser_create
-from .main_env import configure_parser as configure_parser_env
-from .main_export import configure_parser as configure_parser_export
-from .main_info import configure_parser as configure_parser_info
-from .main_init import configure_parser as configure_parser_init
-from .main_install import configure_parser as configure_parser_install
-from .main_list import configure_parser as configure_parser_list
-from .main_mock_activate import configure_parser as configure_parser_activate
-from .main_mock_deactivate import configure_parser as configure_parser_deactivate
-from .main_notices import configure_parser as configure_parser_notices
-from .main_package import configure_parser as configure_parser_package
-from .main_remove import configure_parser as configure_parser_remove
-from .main_rename import configure_parser as configure_parser_rename
-from .main_run import configure_parser as configure_parser_run
-from .main_search import configure_parser as configure_parser_search
-from .main_update import configure_parser as configure_parser_update
 
 log = getLogger(__name__)
 
-escaped_user_rc_path = user_rc_path.replace("%", "%%")
-escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
-
-BUILTIN_COMMANDS = {
-    "activate",  # Mock entry for shell command
-    "clean",
-    "commands",
-    "compare",
-    "config",
-    "create",
-    "deactivate",  # Mock entry for shell command
-    "env",
-    "export",
-    "info",
-    "init",
-    "install",
-    "list",
-    "notices",
-    "package",
-    "remove",
-    "rename",
-    "run",
-    "search",
-    "uninstall",  # remove alias
-    "update",
-    "upgrade",  # update alias
+# Map configure_parser_* names to their modules for lazy re-export (backward compat).
+_CONFIGURE_PARSER_EXPORTS: dict[str, str] = {
+    "configure_parser_activate": "conda.cli.main_mock_activate",
+    "configure_parser_clean": "conda.cli.main_clean",
+    "configure_parser_commands": "conda.cli.main_commands",
+    "configure_parser_compare": "conda.cli.main_compare",
+    "configure_parser_config": "conda.cli.main_config",
+    "configure_parser_create": "conda.cli.main_create",
+    "configure_parser_deactivate": "conda.cli.main_mock_deactivate",
+    "configure_parser_env": "conda.cli.main_env",
+    "configure_parser_export": "conda.cli.main_export",
+    "configure_parser_info": "conda.cli.main_info",
+    "configure_parser_init": "conda.cli.main_init",
+    "configure_parser_install": "conda.cli.main_install",
+    "configure_parser_list": "conda.cli.main_list",
+    "configure_parser_notices": "conda.cli.main_notices",
+    "configure_parser_package": "conda.cli.main_package",
+    "configure_parser_remove": "conda.cli.main_remove",
+    "configure_parser_rename": "conda.cli.main_rename",
+    "configure_parser_run": "conda.cli.main_run",
+    "configure_parser_search": "conda.cli.main_search",
+    "configure_parser_update": "conda.cli.main_update",
 }
-"""List of built-in commands; these cannot be overridden by plugin subcommands."""
+
+
+def __getattr__(name: str):
+    # Lazy re-export of configure_parser_* functions
+    if name in _CONFIGURE_PARSER_EXPORTS:
+        mod = import_module(_CONFIGURE_PARSER_EXPORTS[name])
+        val = mod.configure_parser
+        globals()[name] = val
+        return val
+
+    # Lazy re-export of rc_path variables (avoids eagerly importing context)
+    if name in ("user_rc_path", "sys_rc_path", "escaped_user_rc_path", "escaped_sys_rc_path"):
+        from ..base.context import sys_rc_path, user_rc_path
+
+        globals()["user_rc_path"] = user_rc_path
+        globals()["sys_rc_path"] = sys_rc_path
+        globals()["escaped_user_rc_path"] = user_rc_path.replace("%", "%%")
+        globals()["escaped_sys_rc_path"] = sys_rc_path.replace("%", "%%")
+        return globals()[name]
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+_BUILTIN_SUBCOMMANDS: list[tuple[str, str, str, dict]] = [
+    # (name, module_path, help_text, extra_kwargs)
+    ("activate", "conda.cli.main_mock_activate", "Activate a conda environment.", {}),
+    ("clean", "conda.cli.main_clean", "Remove unused packages and caches.", {}),
+    (
+        "commands",
+        "conda.cli.main_commands",
+        "List all available conda subcommands (including those from plugins). "
+        "Generally only used by tab-completion.",
+        {},
+    ),
+    ("compare", "conda.cli.main_compare", "Compare packages between conda environments.", {}),
+    ("config", "conda.cli.main_config", "Modify configuration values in .condarc.", {}),
+    (
+        "create",
+        "conda.cli.main_create",
+        "Create a new conda environment from a list of specified packages.",
+        {},
+    ),
+    (
+        "deactivate",
+        "conda.cli.main_mock_deactivate",
+        "Deactivate the current active conda environment.",
+        {},
+    ),
+    ("env", "conda.cli.main_env", "Create and manage conda environments.", {}),
+    ("export", "conda.cli.main_export", "Export a given environment", {}),
+    ("info", "conda.cli.main_info", "Display information about current conda install.", {}),
+    ("init", "conda.cli.main_init", "Initialize conda for shell interaction.", {}),
+    (
+        "install",
+        "conda.cli.main_install",
+        "Install a list of packages into a specified conda environment.",
+        {},
+    ),
+    ("list", "conda.cli.main_list", "List installed packages in a conda environment.", {}),
+    ("notices", "conda.cli.main_notices", "Retrieve latest channel notifications.", {}),
+    ("package", "conda.cli.main_package", "Create low-level conda packages. (EXPERIMENTAL)", {}),
+    (
+        "remove",
+        "conda.cli.main_remove",
+        "Remove a list of packages from a specified conda environment.",
+        {"aliases": ["uninstall"]},
+    ),
+    ("rename", "conda.cli.main_rename", "Rename an existing environment.", {}),
+    ("run", "conda.cli.main_run", "Run an executable in a conda environment.", {}),
+    (
+        "search",
+        "conda.cli.main_search",
+        "Search for packages and display associated information "
+        "using the MatchSpec format.",
+        {},
+    ),
+    (
+        "update",
+        "conda.cli.main_update",
+        "Update conda packages to the latest compatible version.",
+        {"aliases": ["upgrade"]},
+    ),
+]
+
+BUILTIN_COMMANDS = {name for name, *_ in _BUILTIN_SUBCOMMANDS}
+for _name, _module, _help, _kw in _BUILTIN_SUBCOMMANDS:
+    for _alias in _kw.get("aliases", ()):
+        BUILTIN_COMMANDS.add(_alias)
+"""Names (and aliases) of built-in commands; these cannot be overridden by plugin subcommands."""
 
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:
@@ -136,31 +198,12 @@ def generate_parser(**kwargs) -> ArgumentParser:
         title="commands",
         description="The following built-in and plugins subcommands are available.",
         dest="cmd",
-        action=_GreedySubParsersAction,
+        action=_LazySubParsersAction,
         required=True,
     )
 
-    configure_parser_activate(sub_parsers)
-    configure_parser_clean(sub_parsers)
-    configure_parser_commands(sub_parsers)
-    configure_parser_compare(sub_parsers)
-    configure_parser_config(sub_parsers)
-    configure_parser_create(sub_parsers)
-    configure_parser_deactivate(sub_parsers)
-    configure_parser_env(sub_parsers)
-    configure_parser_export(sub_parsers)
-    configure_parser_info(sub_parsers)
-    configure_parser_init(sub_parsers)
-    configure_parser_install(sub_parsers)
-    configure_parser_list(sub_parsers)
-    configure_parser_notices(sub_parsers)
-    configure_parser_package(sub_parsers)
-    configure_parser_plugins(sub_parsers)
-    configure_parser_remove(sub_parsers, aliases=["uninstall"])
-    configure_parser_rename(sub_parsers)
-    configure_parser_run(sub_parsers)
-    configure_parser_search(sub_parsers)
-    configure_parser_update(sub_parsers, aliases=["upgrade"])
+    for name, module_path, help_text, extra_kwargs in _BUILTIN_SUBCOMMANDS:
+        sub_parsers.add_lazy_subcommand(name, module_path, help_text, **extra_kwargs)
 
     return parser
 
@@ -170,6 +213,8 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
+    from ..base.context import context
+
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
     if plugin_subcommand := getattr(args, "_plugin_subcommand", None):
@@ -206,8 +251,15 @@ class ArgumentParser(ArgumentParserBase):
             add_parser_help(self)
 
     def _check_value(self, action, value):
-        # For our greedy subparsers, sort the choices by their repr for stable output
-        if isinstance(action, _GreedySubParsersAction) and isinstance(
+        if isinstance(action, _LazySubParsersAction) and isinstance(
+            action.choices, dict
+        ):
+            action.choices = dict(sorted(action.choices.items()))
+            # Unknown command: discover plugins before rejecting
+            if not isiterable(value) and value not in action.choices:
+                action._ensure_plugins_loaded()
+                action.choices = dict(sorted(action.choices.items()))
+        elif isinstance(action, _GreedySubParsersAction) and isinstance(
             action.choices, dict
         ):
             action.choices = dict(sorted(action.choices.items()))
@@ -255,6 +307,76 @@ class _GreedySubParsersAction(argparse._SubParsersAction):
         return sorted(self._choices_actions, key=lambda action: action.dest)
 
 
+class _LazySubParsersAction(_GreedySubParsersAction):
+    """Extends _GreedySubParsersAction with lazy loading of subcommand parsers.
+
+    Registers lightweight stub parsers for all built-in subcommands at
+    generate_parser() time (name + help text only). The real configure_parser
+    is called on demand when a subcommand is actually invoked.
+
+    Plugin subcommand discovery is deferred until a non-builtin command is
+    requested or --help is displayed.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._lazy_loaders: dict[str, tuple[str, dict]] = {}
+        self._lazy_aliases: dict[str, str] = {}
+        self._loading_name: str | None = None
+        self._plugins_loaded = False
+
+    def add_lazy_subcommand(self, name, module_path, help_text, **kwargs):
+        """Register a lazy-loaded subcommand with a stub parser."""
+        aliases = kwargs.get("aliases", ())
+        stub = super().add_parser(name, help=help_text, **kwargs)
+        self._lazy_loaders[name] = (module_path, kwargs)
+        for alias in aliases:
+            self._lazy_aliases[alias] = name
+        return stub
+
+    def add_parser(self, name, **kwargs):
+        """During lazy loading, return the existing stub instead of creating a new parser."""
+        if self._loading_name is not None and name in self._name_parser_map:
+            parser = self._name_parser_map[name]
+            for attr in ("description", "epilog"):
+                if attr in kwargs:
+                    setattr(parser, attr, kwargs[attr])
+            return parser
+        return super().add_parser(name, **kwargs)
+
+    def _ensure_loaded(self, name):
+        """Load a lazy subcommand's full parser configuration."""
+        canonical = self._lazy_aliases.get(name, name)
+        if canonical not in self._lazy_loaders:
+            return
+        module_path, loader_kwargs = self._lazy_loaders.pop(canonical)
+        for alias in loader_kwargs.get("aliases", ()):
+            self._lazy_aliases.pop(alias, None)
+        self._loading_name = canonical
+        try:
+            mod = import_module(module_path)
+            mod.configure_parser(self, **loader_kwargs)
+        finally:
+            self._loading_name = None
+
+    def _ensure_plugins_loaded(self):
+        """Discover and register plugin subcommands on demand."""
+        if self._plugins_loaded:
+            return
+        self._plugins_loaded = True
+        configure_parser_plugins(self)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser_name = values[0]
+        self._ensure_loaded(parser_name)
+        super().__call__(parser, namespace, values, option_string)
+
+    def _get_subactions(self):
+        """Ensure plugins are discovered before listing subcommands in help."""
+        self._ensure_plugins_loaded()
+        return super()._get_subactions()
+
+
 def _exec(executable_args, env_vars):
     return (_exec_win if on_win else _exec_unix)(executable_args, env_vars)
 
@@ -280,6 +402,9 @@ def configure_parser_plugins(sub_parsers) -> None:
     :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
     with the newly created subcommand specific argument parser.
     """
+    from ..auxlib.ish import dals
+    from ..base.context import context
+
     plugin_subcommands = context.plugin_manager.get_subcommands()
     for name, plugin_subcommand in plugin_subcommands.items():
         # if the name of the plugin-based subcommand overlaps a built-in
