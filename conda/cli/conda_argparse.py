@@ -378,13 +378,23 @@ class _LazyParserMap(dict):
         super().__init__()
         self._action = action
 
-    def __getitem__(self, key):
+    def _resolve(self, key):
+        """Ensure *key* is fully loaded (builtin or plugin)."""
         self._action._ensure_loaded(key)
-        # If the key is still absent after loading builtins, it may be a plugin
-        # subcommand (e.g. sphinx-argparse navigating to :path: doctor).
-        if key not in self:
+        if not super().__contains__(key):
             self._action._ensure_plugins_loaded()
+
+    def __getitem__(self, key):
+        self._resolve(key)
         return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        self._resolve(key)
+        return super().get(key, default)
+
+    def __contains__(self, key):
+        self._resolve(key)
+        return super().__contains__(key)
 
 
 class _LazySubParsersAction(_GreedySubParsersAction):
