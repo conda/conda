@@ -141,11 +141,13 @@ jobs:
 
   report-canary-failure:
     needs: [build]
+    # Only main and release (*.x) branches: feature/* canaries can fail without opening issues.
     if: >-
       always()
       && !github.event.repository.fork
       && github.event_name == 'workflow_run'
       && needs.build.result == 'failure'
+      && !startsWith(github.event.workflow_run.head_branch, 'feature/')
     runs-on: ubuntu-slim
     steps:
       - name: Checkout our source
@@ -157,7 +159,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
-          TITLE: Canary Builds failed
+          TITLE: Canary Builds failed `${{ github.event.workflow_run.head_branch }}`
         with:
           filename: .github/WORKFLOW_FAILURE_REPORT_TEMPLATE.md
           update_existing: true
