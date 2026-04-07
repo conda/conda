@@ -32,6 +32,8 @@ concurrency:
 env:
   # https://conda.github.io/conda-libmamba-solver/user-guide/configuration/#advanced-options
   CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
+  # focused testing or any needed pytest arguments, default empty
+  PYTEST_EXTRA: ''
 
 jobs:
   # detect whether any code changes are included in this PR
@@ -175,6 +177,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
@@ -303,6 +306,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
@@ -386,7 +390,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@1c8ae4843586d3ba879736b7f6b7b0c990757fab # v4.12.1
+        uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2 # v4.13.0
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/python -m pytest --codspeed
@@ -714,6 +718,7 @@ jobs:
           --group=${{ matrix.test-group }}
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
+          ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0

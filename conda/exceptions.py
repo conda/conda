@@ -30,7 +30,10 @@ from .common.serialize.json import JSONDecodeError
 from .common.serialize.json import dumps as json_dumps
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
-from .deprecations import DeprecatedError  # noqa: F401
+from .deprecations import (
+    DeprecatedError,  # noqa: F401
+    deprecated,
+)
 from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
 from .models.channel import Channel
 
@@ -297,26 +300,12 @@ class SharedLinkPathClobberError(ClobberError):
 
 
 class CommandNotFoundError(CondaError):
+    @deprecated("26.9", "27.3")
     def __init__(self, command: str):
         activate_commands = {
             "activate",
             "deactivate",
             "run",
-        }
-        conda_commands = {
-            "clean",
-            "config",
-            "create",
-            "--help",  # https://github.com/conda/conda/issues/11585
-            "info",
-            "install",
-            "list",
-            "package",
-            "remove",
-            "search",
-            "uninstall",
-            "update",
-            "upgrade",
         }
         build_commands = {
             "build",
@@ -369,15 +358,10 @@ class CommandNotFoundError(CondaError):
         else:
             from difflib import get_close_matches
 
-            from .cli.find_commands import find_commands
+            from .cli.conda_argparse import find_builtin_commands, generate_parser
 
             message = "No command 'conda %(command)s'."
-            choices = (
-                activate_commands
-                | conda_commands
-                | build_commands
-                | set(find_commands())
-            )
+            choices = find_builtin_commands(generate_parser())
             close = get_close_matches(command, choices)
             if close:
                 message += f"\nDid you mean 'conda {close[0]}'?"
@@ -1409,48 +1393,60 @@ class SpecNotFound(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
+def format_env_spec_available_plugins(
+    plugin_specs: list[CondaEnvironmentSpecifier],
+    formats_header: str = "Available formats",
+    indent: int = 4,
+    cmd_suggestion: bool = True,
+):
+    msg = (
+        "\nPlease add to your prior command: --env-spec <format>\n"
+        if cmd_suggestion
+        else ""
+    )
+    msg += f"\n{formats_header}:"
+    msg += dashlist(
+        [f"{plugin.name}: {plugin.description}" for plugin in plugin_specs],
+        indent=indent,
+    )
+    return msg
+
+
+class AmbiguousEnvironmentSpecPlugin(PluginError):
+    def __init__(
+        self,
+        msg: str,
+        plugins: list[CondaEnvironmentSpecifier],
+        *args,
+        **kwargs,
+    ):
+        msg += format_env_spec_available_plugins(
+            plugins, formats_header="Matched formats"
+        )
+        super().__init__(msg, *args, **kwargs)
+
+
 class EnvironmentSpecPluginSelectionError(CondaError):
     def __init__(
         self,
         msg: str,
-        plugin_specs: dict[str, CondaEnvironmentSpecifier],
+        plugin_specs: list[CondaEnvironmentSpecifier],
         *args,
         **kwargs,
     ):
-        plugin_names = [
-            f"{name} ({', '.join(plugin.aliases)})" if plugin.aliases else name
-            for name, plugin in plugin_specs.items()
-        ]
-        msg += f"\nAvailable formats: {dashlist(plugin_names, 4)}"
+        msg += format_env_spec_available_plugins(plugin_specs, cmd_suggestion=False)
         super().__init__(msg, *args, **kwargs)
 
 
 class EnvironmentSpecPluginNotDetected(SpecNotFound):
     def __init__(
         self,
-        name: str,
-        plugin_names: Iterable[str],
-        autodetect_disabled_plugins: Iterable[str] = (),
+        plugin_specs: list[CondaEnvironmentSpecifier],
         *args,
         **kwargs,
     ):
-        self.name = name
-        msg = dals(
-            f"""
-            Environment at {name} is not able to be detected by any installed environment specifier plugins.
-
-            Available plugins: {dashlist(plugin_names, 16)}
-
-            """
-        )
-        if autodetect_disabled_plugins:
-            msg += dals(
-                """
-                Found compatible plugins but they must be explicitly selected.
-                Request conda to use these plugins by providing
-                the cli argument `--environment-spec PLUGIN_NAME`:
-                """
-            ) + dashlist(autodetect_disabled_plugins, 4)
+        msg = "Unable to detect the environment format for the provided file."
+        msg += format_env_spec_available_plugins(plugin_specs)
         super().__init__(msg, *args, **kwargs)
 
 

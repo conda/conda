@@ -14,7 +14,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, EnvironmentSpecPluginSelectionError
 from conda.testing.integration import package_is_installed
 
 from . import remote_support_file, support_file
@@ -340,7 +340,7 @@ def test_create_env_from_non_existent_plugin(
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "nonexistent_plugin")
     with tmp_env() as prefix:
         with pytest.raises(
-            CondaValueError,
+            EnvironmentSpecPluginSelectionError,
         ) as excinfo:
             conda_cli(
                 "env",
