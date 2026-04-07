@@ -380,6 +380,10 @@ class _LazyParserMap(dict):
 
     def __getitem__(self, key):
         self._action._ensure_loaded(key)
+        # If the key is still absent after loading builtins, it may be a plugin
+        # subcommand (e.g. sphinx-argparse navigating to :path: doctor).
+        if key not in self:
+            self._action._ensure_plugins_loaded()
         return super().__getitem__(key)
 
 
