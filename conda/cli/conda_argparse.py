@@ -44,8 +44,8 @@ from .helpers import (  # noqa: F401
 
 log = getLogger(__name__)
 
-# Map configure_parser_* names to their modules for lazy re-export (backward compat).
-_CONFIGURE_PARSER_EXPORTS: dict[str, str] = {
+
+_DEPRECATED_CONFIGURE_PARSER_EXPORTS: dict[str, str] = {
     "configure_parser_activate": "conda.cli.main_mock_activate",
     "configure_parser_clean": "conda.cli.main_clean",
     "configure_parser_commands": "conda.cli.main_commands",
@@ -68,24 +68,58 @@ _CONFIGURE_PARSER_EXPORTS: dict[str, str] = {
     "configure_parser_update": "conda.cli.main_update",
 }
 
+_DEPRECATED_RC_PATH_EXPORTS = frozenset({
+    "user_rc_path",
+    "sys_rc_path",
+    "escaped_user_rc_path",
+    "escaped_sys_rc_path",
+})
+
 
 def __getattr__(name: str):
-    # Lazy re-export of configure_parser_* functions
-    if name in _CONFIGURE_PARSER_EXPORTS:
-        mod = import_module(_CONFIGURE_PARSER_EXPORTS[name])
+    # Lazily register deprecated re-exports using conda's deprecation system.
+    # deprecated.constant() installs a _ConstantDeprecationRegistry as the module's
+    # __getattr__; on first access here we register + return the value silently,
+    # and all subsequent accesses go through the registry and emit the warning.
+    from ..deprecations import deprecated
+
+    if name in _DEPRECATED_CONFIGURE_PARSER_EXPORTS:
+        module_path = _DEPRECATED_CONFIGURE_PARSER_EXPORTS[name]
+        mod = import_module(module_path)
         val = mod.configure_parser
-        globals()[name] = val
+        deprecated.constant(
+            "26.5",
+            "27.3",
+            name,
+            val,
+            addendum=f"Use `from {module_path} import configure_parser` instead.",
+        )
         return val
 
-    # Lazy re-export of rc_path variables (avoids eagerly importing context)
-    if name in ("user_rc_path", "sys_rc_path", "escaped_user_rc_path", "escaped_sys_rc_path"):
+    if name in _DEPRECATED_RC_PATH_EXPORTS:
         from ..base.context import sys_rc_path, user_rc_path
 
-        globals()["user_rc_path"] = user_rc_path
-        globals()["sys_rc_path"] = sys_rc_path
-        globals()["escaped_user_rc_path"] = user_rc_path.replace("%", "%%")
-        globals()["escaped_sys_rc_path"] = sys_rc_path.replace("%", "%%")
-        return globals()[name]
+        _rc_addenda = {
+            "user_rc_path": "Use `from conda.base.context import user_rc_path` instead.",
+            "sys_rc_path": "Use `from conda.base.context import sys_rc_path` instead.",
+            "escaped_user_rc_path": "Use `from conda.base.context import user_rc_path` and escape locally.",
+            "escaped_sys_rc_path": "Use `from conda.base.context import sys_rc_path` and escape locally.",
+        }
+        _rc_values = {
+            "user_rc_path": user_rc_path,
+            "sys_rc_path": sys_rc_path,
+            "escaped_user_rc_path": user_rc_path.replace("%", "%%"),
+            "escaped_sys_rc_path": sys_rc_path.replace("%", "%%"),
+        }
+        val = _rc_values[name]
+        deprecated.constant(
+            "26.5",
+            "27.3",
+            name,
+            val,
+            addendum=_rc_addenda[name],
+        )
+        return val
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
