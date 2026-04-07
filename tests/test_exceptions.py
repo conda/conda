@@ -26,10 +26,14 @@ from conda.exceptions import (
     PackagesNotFoundError,
     PathNotFoundError,
     ProxyError,
+    RemoveError,
     SharedLinkPathClobberError,
     TooManyArgumentsError,
     UnknownPackageClobberError,
+    UserErrorHint,
+    UserFacingErrorDetails,
     conda_exception_handler,
+    print_conda_exception,
 )
 
 
@@ -859,6 +863,64 @@ def test_BinaryPrefixReplacementError(
             "",
         )
     )
+
+
+def test_RemoveError_user_facing_str_and_dump_map() -> None:
+    exc = RemoveError(
+        "'x' is a dependency of conda and cannot be removed from\n"
+        "conda's operating environment.",
+        user_facing=UserFacingErrorDetails(
+            summary="'x' is required by conda and cannot be removed from this environment.",
+            cause="The solver planned a change that would remove this package.",
+            hints=(UserErrorHint("Create a new environment.", "use_non_base_env"),),
+        ),
+    )
+    assert "Next steps:" in str(exc)
+    assert "Create a new environment." in str(exc)
+    dm = exc.dump_map()
+    assert "user_facing" in dm
+    assert dm["user_facing"]["summary"].startswith("'x' is required")
+    assert "use_non_base_env" in dm["user_facing"]["hint_codes"]
+
+
+def test_print_conda_exception_user_facing_rich_stderr(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    monkeypatch.setenv("NO_COLOR", "1")
+    reset_context()
+    exc = RemoveError(
+        "legacy",
+        user_facing=UserFacingErrorDetails(
+            summary="Summary for rich panel.",
+            cause="Cause line.",
+            hints=(UserErrorHint("Do the thing.", "do_thing"),),
+        ),
+    )
+    print_conda_exception(exc)
+    err = capsys.readouterr().err
+    assert "Summary for rich panel." in err
+    assert "Cause line." in err
+    assert "Next steps" in err
+    assert "Do the thing." in err
+    assert "RemoveError" in err
+
+
+def test_PackagesNotFoundError_broad_channel_hint_codes(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+    pkgs = [f"pkg{i}" for i in range(5)]
+    exc = PackagesNotFoundError(
+        pkgs,
+        channel_urls=["https://repo.anaconda.org/pkgs/main"],
+    )
+    dm = exc.dump_map()
+    assert dm.get("hint_codes") == ("broad_channel_or_index_failure",)
+    assert "channel configuration" in str(exc).lower()
+    assert "conda clean -i" in str(exc)
 
 
 @pytest.mark.parametrize("use_only_tar_bz2", [True, False])

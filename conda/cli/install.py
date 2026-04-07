@@ -22,6 +22,7 @@ from ..base.constants import (
 from ..base.context import context
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..common.constants import NULL
+from ..common.path import paths_equal
 from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
@@ -370,7 +371,15 @@ def install(args, parser, command="install"):
                     raise CondaImportError(str(e))
                 raise e
 
-    handle_txn(unlink_link_transaction, prefix, args, newenv)
+    requested_names = tuple(MatchSpec(s).name for s in env.requested_packages)
+    handle_txn(
+        unlink_link_transaction,
+        prefix,
+        args,
+        newenv,
+        install_command=command,
+        requested_names=requested_names,
+    )
 
     if env.external_packages and not context.dry_run and not context.download_only:
         from .. import CondaError
@@ -508,18 +517,64 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
     return UnlinkLinkTransaction(setup)
 
 
-def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
+def _nothing_to_do_message(
+    prefix: str,
+    install_command: str | None,
+    requested_names: tuple[str, ...],
+) -> str:
+    """Human-readable message when the solver produced an empty transaction."""
+    lines = ["", "# All requested packages already installed.", ""]
+    if (
+        install_command in ("update", "install")
+        and "conda" in requested_names
+        and paths_equal(prefix, context.root_prefix)
+        and context.notify_outdated_conda
+    ):
+        lines.extend(
+            [
+                "# If you also saw a notice that a newer conda exists on your channels but",
+                "# nothing changed, your current constraints may block upgrading conda (for",
+                "# example: pins, other dependencies, or mixed pip and conda installs).",
+                "# Try: conda install conda=<version>, review pinned packages, or use a new env.",
+                "",
+            ]
+        )
+    return "\n".join(lines)
+
+
+def handle_txn(
+    unlink_link_transaction,
+    prefix,
+    args,
+    newenv,
+    remove_op=False,
+    *,
+    install_command: str | None = None,
+    requested_names: tuple[str, ...] = (),
+):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
             raise PackagesNotFoundInPrefixError(args.package_names, prefix=prefix)
         elif not newenv:
             if context.json:
-                common.stdout_json_success(
-                    message="All requested packages already installed."
-                )
+                msg = "All requested packages already installed."
+                extra = {}
+                if (
+                    install_command in ("update", "install")
+                    and "conda" in requested_names
+                    and paths_equal(prefix, context.root_prefix)
+                    and context.notify_outdated_conda
+                ):
+                    extra["hint_codes"] = ["conda_upgrade_blocked_hints"]
+                    extra["hint"] = (
+                        "A newer conda may exist on your channels, but no transaction was "
+                        "generated. Pins, dependencies, or mixed pip installs may block the "
+                        "upgrade; try conda install conda=<version> or a clean environment."
+                    )
+                common.stdout_json_success(message=msg, **extra)
             else:
-                print("\n# All requested packages already installed.\n")
+                print(_nothing_to_do_message(prefix, install_command, requested_names))
             return
 
     if not context.json:

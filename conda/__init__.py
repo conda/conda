@@ -10,6 +10,8 @@ from json import JSONEncoder  # noqa: TID251
 from os.path import abspath, dirname
 from typing import TYPE_CHECKING
 
+from .common.user_error import format_user_facing_error, user_facing_details_to_json
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from subprocess import Popen
@@ -73,16 +75,31 @@ class CondaError(Exception):
     return_code: int = 1
     reportable: bool = False  # Exception may be reported to core maintainers
 
-    def __init__(self, message: str | None, caused_by: Any = None, **kwargs):
+    def __init__(
+        self,
+        message: str | None,
+        caused_by: Any = None,
+        *,
+        user_facing: Any = None,
+        **kwargs,
+    ):
         self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
+        self._user_facing_details = user_facing
         super().__init__(message)
+
+    @property
+    def user_facing_details(self) -> Any:
+        """Structured summary/cause/hints for terminal and JSON, if provided."""
+        return self._user_facing_details
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: {self}"
 
     def __str__(self) -> str:
+        if self._user_facing_details is not None:
+            return format_user_facing_error(self._user_facing_details).rstrip("\n")
         try:
             return str(self.message) % self._kwargs
         except Exception:
@@ -109,6 +126,10 @@ class CondaError(Exception):
             caused_by=repr(self._caused_by),
             **self._kwargs,
         )
+        if self._user_facing_details is not None:
+            result["user_facing"] = user_facing_details_to_json(
+                self._user_facing_details
+            )
         return result
 
 

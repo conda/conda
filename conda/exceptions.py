@@ -23,6 +23,7 @@ from .base.constants import (
     PathConflict,
     SafetyChecks,
 )
+from .common import user_error
 from .common.compat import on_win
 from .common.io import dashlist
 from .common.iterators import groupby_to_dict as groupby
@@ -36,6 +37,10 @@ from .deprecations import (
 )
 from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
 from .models.channel import Channel
+
+# Public re-exports for structured user-facing errors.
+UserFacingErrorDetails = user_error.UserFacingErrorDetails
+UserErrorHint = user_error.UserErrorHint
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -754,6 +759,22 @@ class PackagesNotFoundError(CondaError):
                 )
             packages_formatted = dashlist(packages)
             channels_formatted = dashlist(channel_urls)
+            # Many missing specs often indicate channel/index configuration issues,
+            # not only wrong package names (see e.g. conda#6633).
+            if len(self.packages) >= 5:
+                message += dals(
+                    """
+
+                    When this many packages are unavailable at once, the cause is often
+                    channel configuration, an incomplete package index, or a platform
+                    mismatch—not misspelled package names alone.
+
+                    Things to check:
+                      - Run `conda config --show channels` and verify the channels you expect.
+                      - Run `conda info` and confirm the platform (subdir) matches your use case.
+                      - Try `conda clean -i` to clear the index cache, then retry.
+                    """
+                )
         else:
             message = dals(
                 """
@@ -764,12 +785,17 @@ class PackagesNotFoundError(CondaError):
             packages_formatted = dashlist(packages)
             channels_formatted = ""
 
+        extra_kwargs: dict[str, object] = {}
+        if self.channel_urls and len(self.packages) >= 5:
+            extra_kwargs["hint_codes"] = ("broad_channel_or_index_failure",)
+
         super().__init__(
             message,
             packages=self.packages,
             packages_formatted=packages_formatted,
             channel_urls=list(self.channel_urls),
             channels_formatted=channels_formatted,
+            **extra_kwargs,
         )
 
 
@@ -1029,9 +1055,13 @@ conda config --set unsatisfiable_hints True
 
 
 class RemoveError(CondaError):
-    def __init__(self, message: str):
-        msg = f"{message}"
-        super().__init__(msg)
+    def __init__(
+        self,
+        message: str,
+        *,
+        user_facing: UserFacingErrorDetails | None = None,
+    ):
+        super().__init__(f"{message}", user_facing=user_facing)
 
 
 class DisallowedPackageError(CondaError):
@@ -1530,6 +1560,55 @@ def maybe_raise(error: BaseException, context: Context):
         raise error
 
 
+def _build_user_facing_error_panel(
+    exc_class_name: str, details: user_error.UserFacingErrorDetails
+):
+    """Return a Rich panel for structured conda errors (terminal only)."""
+    from rich import box
+    from rich.console import Group
+    from rich.panel import Panel
+    from rich.text import Text
+
+    pieces: list[Text] = []
+    pieces.append(Text(details.summary.rstrip(), style="bold"))
+    if details.cause:
+        pieces.append(Text(""))
+        cause_block = Text()
+        cause_block.append("Cause\n", style="bold yellow")
+        cause_block.append(details.cause.rstrip())
+        pieces.append(cause_block)
+    if details.hints:
+        pieces.append(Text(""))
+        pieces.append(Text("Next steps", style="bold cyan"))
+        for i, hint in enumerate(details.hints, 1):
+            line = Text()
+            line.append(f"{i}. ", style="bold dim")
+            line.append(hint.text.rstrip())
+            pieces.append(line)
+    return Panel(
+        Group(*pieces),
+        title=f"[bold red]{exc_class_name}[/bold red]",
+        border_style="red",
+        box=box.ROUNDED,
+        padding=(1, 2),
+    )
+
+
+def _print_user_facing_error_rich(exc_val: CondaError) -> None:
+    """Print structured user-facing errors to stderr using Rich."""
+    from rich.console import Console
+
+    details = exc_val.user_facing_details
+    if details is None:
+        return
+    console = Console(
+        stderr=True,
+        no_color=bool(os.environ.get("NO_COLOR")),
+    )
+    console.print(_build_user_facing_error_panel(exc_val.__class__.__name__, details))
+    console.print()
+
+
 def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = None):
     from .base.context import context
 
@@ -1544,7 +1623,11 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
         logger.info(f"{exc_json}\n")
     else:
         stderrlog = getLogger("conda.stderr")
-        stderrlog.error("\n%r\n", exc_val)
+        ufd = getattr(exc_val, "user_facing_details", None)
+        if ufd is not None:
+            _print_user_facing_error_rich(exc_val)
+        else:
+            stderrlog.error("\n%r\n", exc_val)
         # An alternative which would allow us not to reload sys with newly setdefaultencoding()
         # is to not use `%r`, e.g.:
         # Still, not being able to use `%r` seems too great a price to pay.
