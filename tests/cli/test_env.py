@@ -275,7 +275,7 @@ def test_conda_env_create_empty_file(
     tmp_file.touch()
 
     with pytest.raises(EnvironmentSpecPluginSelectionError):
-        conda_cli("env", "create", "--env-spec=cep-24", f"--file={tmp_file}")
+        conda_cli("env", "create", "--format=cep-24", f"--file={tmp_file}")
 
 
 @pytest.mark.integration
