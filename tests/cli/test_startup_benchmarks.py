@@ -178,6 +178,11 @@ def test_version_main(benchmark: BenchmarkFixture) -> None:
 # Module-count budgets: these should ratchet *down* as startup is optimised.
 # Headroom accounts for cross-platform differences (Linux CI with Python 3.14
 # and full plugin set loads more modules than a local macOS devenv).
+#
+# Ratchet plan:
+#   import_argparse / generate_parser budgets are set at the pre-A2/A3 level
+#   (all 20 main_* subcommand modules loaded eagerly).  Lower them
+#   significantly once conda/conda#15868 (lazy subcommand parser) merges.
 _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
     "import_main": {
         "code": "from conda.cli.main import main",
@@ -188,6 +193,24 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
             "from conda.cli.main import main\nfrom conda.base.context import context"
         ),
         "max_modules": 700,
+    },
+    # Covers the argparse module itself.  Pre-A2/A3 this eagerly imports all
+    # 20 main_* subcommand modules; post-A2/A3 (#15868) it should drop to
+    # ~100.  Ratchet this budget down when that PR merges.
+    "import_argparse": {
+        "code": "from conda.cli.conda_argparse import generate_parser",
+        "max_modules": 1050,
+    },
+    # Covers building the full parser.  Pre-A2/A3 generate_parser() also
+    # triggers plugin discovery, loading all plugin modules.  Post-A2/A3
+    # plugin discovery is deferred, so this should also drop to ~100.
+    # Ratchet this budget down when #15868 merges.
+    "generate_parser": {
+        "code": (
+            "from conda.cli.conda_argparse import generate_parser\n"
+            "generate_parser()"
+        ),
+        "max_modules": 1200,
     },
     "full_startup": {
         "code": (
