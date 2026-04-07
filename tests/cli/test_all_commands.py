@@ -137,11 +137,11 @@ def test_env_spec_deprecation_pending(mocker: MockerFixture, flag: str) -> None:
 @_ENV_SPEC_FLAGS
 def test_env_spec_deprecation_active(mocker: MockerFixture, flag: str) -> None:
     """
-    From 26.5 onwards the flag emits a ``FutureWarning`` (active deprecation).
+    From 26.9 onwards the flag emits a ``FutureWarning`` (active deprecation).
 
-    TODO: Remove test before 26.9.0 release
+    TODO: Remove test before 27.3.0 release
     """
-    parser = _make_parser(mocker, DeprecationHandler("26.5"))
+    parser = _make_parser(mocker, DeprecationHandler("26.9"))
 
     with pytest.warns(FutureWarning, match="deprecated"):
         parser.parse_args([flag, _FAKE_SPECIFIER])
@@ -149,12 +149,12 @@ def test_env_spec_deprecation_active(mocker: MockerFixture, flag: str) -> None:
 
 def test_env_spec_deprecation_removal(mocker: MockerFixture) -> None:
     """
-    At 26.9 the option should no longer exist: building the parser raises
+    At 27.3 the option should no longer exist: building the parser raises
     ``DeprecatedError`` to alert developers that the dead code must be removed.
 
-    TODO: Remove test before 26.9.0 release
+    TODO: Remove test before  27.3.0 release
     """
-    mocker.patch("conda.cli.helpers.deprecated", DeprecationHandler("26.9"))
+    mocker.patch("conda.cli.helpers.deprecated", DeprecationHandler("27.3"))
     mocker.patch(
         "conda.base.context.context.plugin_manager.get_environment_specifiers",
         return_value=[_FAKE_SPECIFIER],
@@ -171,9 +171,9 @@ def test_env_spec_no_warning_when_not_used(mocker: MockerFixture) -> None:
     deprecation warning, even when the deprecated handler is at the active
     version.
 
-    TODO: Remove before 26.9.0 release
+    TODO: Remove before 27.3.0 release
     """
-    parser = _make_parser(mocker, DeprecationHandler("26.5"))
+    parser = _make_parser(mocker, DeprecationHandler("26.9"))
 
     # pytest.warns(None) would raise in newer pytest when *no* warning fires;
     # use warnings.catch_warnings to assert silence instead.
