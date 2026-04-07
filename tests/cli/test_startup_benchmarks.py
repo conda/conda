@@ -207,8 +207,7 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
     # Ratchet this budget down when #15868 merges.
     "generate_parser": {
         "code": (
-            "from conda.cli.conda_argparse import generate_parser\n"
-            "generate_parser()"
+            "from conda.cli.conda_argparse import generate_parser\ngenerate_parser()"
         ),
         "max_modules": 1200,
     },
