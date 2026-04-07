@@ -405,6 +405,10 @@ class _LazySubParsersAction(_GreedySubParsersAction):
     def __call__(self, parser, namespace, values, option_string=None):
         parser_name = values[0]
         self._ensure_loaded(parser_name)
+        # Always discover plugins when a subcommand is dispatched so that
+        # the builtin-override check in configure_parser_plugins() runs even
+        # when the invoked command is a builtin (e.g. `conda info --help`).
+        self._ensure_plugins_loaded()
         super().__call__(parser, namespace, values, option_string)
 
     def _get_subactions(self):
