@@ -378,11 +378,29 @@ class _LazyParserMap(dict):
         super().__init__()
         self._action = action
 
+    @property
+    def _ready(self):
+        """True once the owning action is initialized and not mid-build."""
+        action = self._action
+        return hasattr(action, "_lazy_loaders") and not getattr(
+            action, "_building", False
+        )
+
     def _resolve(self, key):
         """Ensure *key* is fully loaded (builtin or plugin)."""
+        if not self._ready:
+            return
         self._action._ensure_loaded(key)
         if not super().__contains__(key):
             self._action._ensure_plugins_loaded()
+
+    def _resolve_all(self):
+        """Load every lazy subcommand and all plugins."""
+        if not self._ready:
+            return
+        for name in list(self._action._lazy_loaders):
+            self._action._ensure_loaded(name)
+        self._action._ensure_plugins_loaded()
 
     def __getitem__(self, key):
         self._resolve(key)
@@ -395,6 +413,26 @@ class _LazyParserMap(dict):
     def __contains__(self, key):
         self._resolve(key)
         return super().__contains__(key)
+
+    def items(self):
+        self._resolve_all()
+        return super().items()
+
+    def values(self):
+        self._resolve_all()
+        return super().values()
+
+    def keys(self):
+        self._resolve_all()
+        return super().keys()
+
+    def __iter__(self):
+        self._resolve_all()
+        return super().__iter__()
+
+    def __len__(self):
+        self._resolve_all()
+        return super().__len__()
 
 
 class _LazySubParsersAction(_GreedySubParsersAction):
@@ -411,17 +449,21 @@ class _LazySubParsersAction(_GreedySubParsersAction):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._name_parser_map = _LazyParserMap(self)
-        # choices is the same dict object in argparse's _SubParsersAction
         self.choices = self._name_parser_map
         self._lazy_loaders: dict[str, tuple[str, dict]] = {}
         self._lazy_aliases: dict[str, str] = {}
         self._loading_name: str | None = None
         self._plugins_loaded = False
+        self._building = False
 
     def add_lazy_subcommand(self, name, module_path, help_text, **kwargs):
         """Register a lazy-loaded subcommand with a stub parser."""
         aliases = kwargs.get("aliases", ())
-        stub = super().add_parser(name, help=help_text, **kwargs)
+        self._building = True
+        try:
+            stub = super().add_parser(name, help=help_text, **kwargs)
+        finally:
+            self._building = False
         self._lazy_loaders[name] = (module_path, kwargs)
         for alias in aliases:
             self._lazy_aliases[alias] = name
