@@ -794,7 +794,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           TITLE: Tests failed
         with:
-          filename: .github/TEST_FAILURE_REPORT_TEMPLATE.md
+          filename: .github/WORKFLOW_FAILURE_REPORT_TEMPLATE.md
           update_existing: false
 
   # check conda-build imports
