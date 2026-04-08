@@ -543,6 +543,13 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         help="Install shortcuts only for this package name. Can be used several times.",
         dest="shortcuts_only",
     )
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering (i.e. overwriting) of overlapping file paths "
+        "within packages and suppress related warnings.",
+    )
     return package_install_options
 
 

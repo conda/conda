@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
 
+    from pytest import Subtests
+
     from conda.testing.fixtures import CondaCLIFixture
 
 log = getLogger(__name__)
@@ -34,10 +36,15 @@ def test_parser_basics():
     assert args.verbosity == 2
 
 
-def test_create_accepts_clobber():
+def test_parse_clobber(subtests: Subtests):
+    # setup
     p = generate_parser()
-    args = p.parse_args(["create", "-n", "test_env", "--clobber", "pkg"])
-    assert args.clobber
+
+    # tests
+    for command in ["create", "install", "update"]:
+        with subtests.test(command):
+            args = p.parse_args([command, "--clobber"])
+            assert args.clobber
 
 
 def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
