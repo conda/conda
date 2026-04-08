@@ -324,8 +324,12 @@ jobs:
         if: matrix.python-version != '3.14'
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false
           activate-environment: test
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+          pkgs-dirs: ~/conda_pkgs_dir
 
       - name: Conda Install
         if: matrix.python-version == '3.14'
@@ -783,8 +787,12 @@ jobs:
         if: matrix.python-version != '3.14'
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false
           activate-environment: test
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+          pkgs-dirs: ~/conda_pkgs_dir
 
       - name: Conda Install
         if: matrix.python-version == '3.14'
