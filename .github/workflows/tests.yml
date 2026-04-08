@@ -129,8 +129,10 @@ jobs:
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
 
-      - name: Install conda-lockfiles (base)
-        run: conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
+      - name: Update conda and install conda-lockfiles (base)
+        run: |
+          conda install -n base --yes "conda>=26.3.1"
+          conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
 
       - name: Conda create test environment
         run: |
@@ -276,8 +278,10 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
-      - name: Install conda-lockfiles (base)
-        run: conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
+      - name: Update conda and install conda-lockfiles (base)
+        run: |
+          conda install -n base --yes "conda>=26.3.1"
+          conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
 
       - name: Conda create test environment
         run: |
@@ -711,8 +715,10 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
-      - name: Install conda-lockfiles (base)
-        run: conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
+      - name: Update conda and install conda-lockfiles (base)
+        run: |
+          conda install -n base --yes "conda>=26.3.1"
+          conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
 
       - name: Conda create test environment
         run: |
