@@ -132,7 +132,7 @@ jobs:
           installation-dir: D:\conda
 
       - name: Install conda-lockfiles and conda from conda-canary in base
-        run: conda install -n base --yes conda-canary/label/dev::conda conda-canary/label/dev::conda-lockfiles
+        run: conda install -n base --yes 'conda>=26.3.1' conda-canary/label/dev::conda-lockfiles
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
@@ -297,7 +297,7 @@ jobs:
           pkgs-dirs: ~/conda_pkgs_dir
 
       - name: Install conda-lockfiles and conda from conda-canary in base
-        run: conda install -n base --yes conda-canary/label/dev::conda conda-canary/label/dev::conda-lockfiles
+        run: conda install -n base --yes 'conda>=26.3.1' conda-canary/label/dev::conda-lockfiles
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
@@ -749,7 +749,7 @@ jobs:
           pkgs-dirs: ~/conda_pkgs_dir
 
       - name: Install conda-lockfiles and conda from conda-canary in base
-        run: conda install -n base --yes conda-canary/label/dev::conda conda-canary/label/dev::conda-lockfiles
+        run: conda install -n base --yes 'conda>=26.3.1' conda-canary/label/dev::conda-lockfiles
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
