@@ -137,7 +137,7 @@ jobs:
         with:
           run-post: false
           activate-environment: test
-          environment-file: tests\conda-lock-python${{ replace(matrix.python-version, '.', '') }}.yml
+          environment-file: tests\conda-lock-python-${{ matrix.python-version }}.yml
 
       - name: Conda create test environment (Python 3.14)
         if: matrix.python-version == '3.14'
@@ -293,7 +293,7 @@ jobs:
         with:
           run-post: false
           activate-environment: test
-          environment-file: tests/conda-lock-python${{ replace(matrix.python-version, '.', '') }}.yml
+          environment-file: tests/conda-lock-python-${{ matrix.python-version }}.yml
 
       - name: Conda create test environment (Python 3.14)
         if: matrix.python-version == '3.14'
@@ -739,7 +739,7 @@ jobs:
         with:
           run-post: false
           activate-environment: test
-          environment-file: tests/conda-lock-python${{ replace(matrix.python-version, '.', '') }}.yml
+          environment-file: tests/conda-lock-python-${{ matrix.python-version }}.yml
 
       - name: Conda create test environment (Python 3.14)
         if: matrix.python-version == '3.14'

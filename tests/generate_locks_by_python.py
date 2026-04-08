@@ -40,8 +40,7 @@ def main() -> None:
 
     for py in PYTHON_VERSIONS:
         patched = PYTHON_LINE.sub(rf"\1python {py}.*", text)
-        tag = py.replace(".", "")
-        out = ROOT / "tests" / f"conda-lock-python{tag}.yml"
+        out = ROOT / "tests" / f"conda-lock-python-{py}.yml"
         print(f"==> python {py} -> {out}", file=sys.stderr)
 
         with tempfile.NamedTemporaryFile(
