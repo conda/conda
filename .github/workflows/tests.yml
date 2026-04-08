@@ -435,18 +435,14 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Conda Install
-        run: |
-          conda create -n test --yes \
-            --file tests/requirements.txt \
-            --file tests/requirements-ci.txt \
-            "python=${{ matrix.python-version }}"
-
-      - name: Conda install Linux-only test dependency (patchelf)
-        if: runner.os == 'Linux'
-        run: conda install --yes --file tests/requirements-Linux.txt
-
-      - name: Conda install benchmark dependencies
-        run: conda install --yes --file tests/requirements-benchmarks.txt
+        run: >
+          conda install
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          python=${{ matrix.python-version }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -507,19 +503,16 @@ jobs:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
 
-      - name: Conda create test environment
-        run: |
-          conda create -n test --yes \
-            --file tests/requirements.txt \
-            --file tests/requirements-ci.txt \
-            "python=${{ matrix.python-version }}"
-
-      - name: Conda install Linux-only test dependency (patchelf)
-        if: runner.os == 'Linux'
-        run: conda install --yes --file tests/requirements-Linux.txt
-
-      - name: Conda install typing dependencies
-        run: conda install --yes --file tests/requirements-typing.txt
+      - name: Conda Install
+        run: >
+          conda install
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          --file tests/requirements-typing.txt
+          python=${{ matrix.python-version }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -662,19 +655,16 @@ jobs:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
 
-      - name: Conda create test environment
-        run: |
-          conda create -n test --yes \
-            --file tests/requirements.txt \
-            --file tests/requirements-ci.txt \
-            "python=${{ matrix.python-version }}"
-
-      - name: Conda install Linux-only test dependency (patchelf)
-        if: runner.os == 'Linux'
-        run: conda install --yes --file tests/requirements-Linux.txt
-
-      - name: Conda install pytest-memray
-        run: conda install --yes conda-forge::pytest-memray
+      - name: Conda Install
+        run: >
+          conda install
+          --yes
+          --file tests/requirements.txt
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
+          python=${{ matrix.python-version }}
+          conda-forge::pytest-memray
 
       - name: Conda Info
         # view test env info (not base)
@@ -1058,11 +1048,6 @@ jobs:
           --file ../conda-build/tests/requirements-ci.txt
           --file ../conda-build/tests/requirements-${{ runner.os }}.txt
           python=${{ matrix.python-version }}
-
-      - name: Conda install Linux-only test dependency (patchelf)
-        if: runner.os == 'Linux'
-        working-directory: conda
-        run: conda install --yes --file tests/requirements-Linux.txt
 
       - name: Install conda, conda-build source code
         env:
