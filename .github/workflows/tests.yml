@@ -130,8 +130,8 @@ jobs:
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
 
-      - name: Install conda-lockfiles in base
-        run: conda install -n base --yes -c conda-forge "conda>=26.3.1" conda-lockfiles
+      - name: Install conda-lockfiles and canary conda in base
+        run: conda install -n base --yes conda-forge::conda-lockfiles conda-canary/label/dev::conda
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
@@ -294,8 +294,8 @@ jobs:
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
           pkgs-dirs: ~/conda_pkgs_dir
 
-      - name: Install conda-lockfiles in base
-        run: conda install -n base --yes -c conda-forge "conda>=26.3.1" conda-lockfiles
+      - name: Install conda-lockfiles and canary conda in base
+        run: conda install -n base --yes conda-canary/label/dev::conda conda-forge::conda-lockfiles
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
@@ -745,8 +745,8 @@ jobs:
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
           pkgs-dirs: ~/conda_pkgs_dir
 
-      - name: Install conda-lockfiles in base
-        run: conda install -n base --yes -c conda-forge "conda>=26.3.1" conda-lockfiles
+      - name: Install conda-lockfiles and canary conda in base
+        run: conda install -n base --yes conda-canary/label/dev::conda conda-forge::conda-lockfiles
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
