@@ -47,7 +47,7 @@ dependencies:
   - boto3 !=1.33.0
   - conda-forge::minio-server
 
-# requirements-Linux.txt (patchelf: tests/requirements-linux-patchelf.txt + CI)
+# requirements-Linux.txt (patchelf isn't cross-platform)
   - conda-forge::xonsh
 
 # requirements-Windows.txt

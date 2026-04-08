@@ -1062,7 +1062,7 @@ jobs:
       - name: Conda install Linux-only test dependency (patchelf)
         if: runner.os == 'Linux'
         working-directory: conda
-        run: conda install --yes --file tests/requirements-linux-patchelf.txt
+        run: conda install --yes --file tests/requirements-Linux.txt
 
       - name: Install conda, conda-build source code
         env:
