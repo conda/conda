@@ -125,28 +125,35 @@ jobs:
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
+          run-post: false
+          activate-environment: ''
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
 
-      - name: Update conda and install conda-lockfiles (base)
-        run: |
-          conda install -n base --yes "conda>=26.3.1"
-          conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
 
-      - name: Conda create test environment
+      - name: Setup test environment from lockfile
+        if: matrix.python-version != '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          run-post: false
+          activate-environment: test
+          environment-file: tests\conda-lock-python${{ replace(matrix.python-version, '.', '') }}.yml
+
+      - name: Conda create test environment (Python 3.14)
+        if: matrix.python-version == '3.14'
         run: |
-          $py = '${{ matrix.python-version }}'
-          if ($py -eq '3.14') {
-            conda create -n test --yes `
-              --file tests\requirements.txt `
-              --file tests\requirements-Windows.txt `
-              --file tests\requirements-ci.txt `
-              "python=$py"
-          } else {
-            $tag = $py -replace '\.',''
-            conda create -n test --yes --file "tests\conda-lock-python$tag.yml"
-          }
+          conda create -n test --yes `
+            --file tests\requirements.txt `
+            --file tests\requirements-Windows.txt `
+            --file tests\requirements-ci.txt `
+            "python=${{ matrix.python-version }}"
+
+      - name: Activate test environment (Python 3.14)
+        if: matrix.python-version == '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          run-post: false
+          activate-environment: test
 
       - name: Conda Info
         # view test env info (not base)
@@ -274,26 +281,34 @@ jobs:
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
+          run-post: false
+          activate-environment: ''
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+          pkgs-dirs: ~/conda_pkgs_dir
 
-      - name: Update conda and install conda-lockfiles (base)
-        run: |
-          conda install -n base --yes "conda>=26.3.1"
-          conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
+      - name: Setup test environment from lockfile
+        if: matrix.python-version != '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          run-post: false
+          activate-environment: test
+          environment-file: tests/conda-lock-python${{ replace(matrix.python-version, '.', '') }}.yml
 
-      - name: Conda create test environment
+      - name: Conda create test environment (Python 3.14)
+        if: matrix.python-version == '3.14'
         run: |
-          py='${{ matrix.python-version }}'
-          if [[ "$py" == 3.14 ]]; then
-            conda create -n test --yes \
-              --file tests/requirements.txt \
-              --file tests/requirements-ci.txt \
-              "python=${py}"
-          else
-            conda create -n test --yes --file "tests/conda-lock-python${py//./}.yml"
-          fi
+          conda create -n test --yes \
+            --file tests/requirements.txt \
+            --file tests/requirements-ci.txt \
+            "python=${{ matrix.python-version }}"
+
+      - name: Activate test environment (Python 3.14)
+        if: matrix.python-version == '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          run-post: false
+          activate-environment: test
 
       - name: Conda install Linux-only test dependency (patchelf)
         if: runner.os == 'Linux'
@@ -711,26 +726,35 @@ jobs:
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
+          run-post: false
+          activate-environment: ''
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+          pkgs-dirs: ~/conda_pkgs_dir
 
-      - name: Update conda and install conda-lockfiles (base)
-        run: |
-          conda install -n base --yes "conda>=26.3.1"
-          conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
 
-      - name: Conda create test environment
+      - name: Setup test environment from lockfile
+        if: matrix.python-version != '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          run-post: false
+          activate-environment: test
+          environment-file: tests/conda-lock-python${{ replace(matrix.python-version, '.', '') }}.yml
+
+      - name: Conda create test environment (Python 3.14)
+        if: matrix.python-version == '3.14'
         run: |
-          py='${{ matrix.python-version }}'
-          if [[ "$py" == 3.14 ]]; then
-            conda create -n test --yes \
-              --file tests/requirements.txt \
-              --file tests/requirements-ci.txt \
-              "python=${py}"
-          else
-            conda create -n test --yes --file "tests/conda-lock-python${py//./}.yml"
-          fi
+          conda create -n test --yes \
+            --file tests/requirements.txt \
+            --file tests/requirements-ci.txt \
+            "python=${{ matrix.python-version }}"
+
+      - name: Activate test environment (Python 3.14)
+        if: matrix.python-version == '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          run-post: false
+          activate-environment: test
 
       - name: Conda Info
         # view test env info (not base)
