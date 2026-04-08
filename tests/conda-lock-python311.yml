@@ -15,7 +15,7 @@ metadata:
   sources:
     - ''
   time_metadata:
-    created_at: '2026-04-08T00:53:47Z'
+    created_at: '2026-04-08T01:26:22Z'
   custom_metadata:
     created_by: conda-lockfiles 0.1.2.dev27+gcd929daee
 package:
@@ -2355,20 +2355,6 @@ package:
       sha256: e7bbce9c80a118b221c1dc37075f746354dd5fa6784a800c56e0f57b1274082b
     category: main
     optional: false
-  - name: icu
-    version: '78.3'
-    manager: conda
-    platform: linux-aarch64
-    dependencies:
-      libgcc: '>=14'
-      libstdcxx: '>=14'
-    url:
-      https://conda.anaconda.org/conda-forge/linux-aarch64/icu-78.3-hcab7f73_0.conda
-    hash:
-      md5: 546da38c2fa9efacf203e2ad3f987c59
-      sha256: 49ba6aed2c6b482bb0ba41078057555d29764299bc947b990708617712ef6406
-    category: main
-    optional: false
   - name: keyutils
     version: 1.6.3
     manager: conda
@@ -2688,14 +2674,13 @@ package:
     manager: conda
     platform: linux-aarch64
     dependencies:
-      icu: '>=78.2,<79.0a0'
       libgcc: '>=14'
       libzlib: '>=1.3.1,<2.0a0'
     url:
-      https://conda.anaconda.org/conda-forge/linux-aarch64/libsqlite-3.52.0-h10b116e_0.conda
+      https://conda.anaconda.org/conda-forge/linux-aarch64/libsqlite-3.52.0-h022381a_0.conda
     hash:
-      md5: 77891484f18eca74b8ad83694da9815e
-      sha256: 1ddaf91b44fae83856276f4cb7ce544ffe41d4b55c1e346b504c6b45f19098d6
+      md5: 8e3ccd7bd0e0369fd743c5eec6ce849c
+      sha256: 69d3c370a6e21a362765988f9693efdfa7864498120a223b1f91101f4fb2628a
     category: main
     optional: false
   - name: libssh2
@@ -2757,16 +2742,15 @@ package:
     manager: conda
     platform: linux-aarch64
     dependencies:
-      icu: '>=78.2,<79.0a0'
       libgcc: '>=14'
       libiconv: '>=1.18,<2.0a0'
       liblzma: '>=5.8.2,<6.0a0'
       libzlib: '>=1.3.1,<2.0a0'
     url:
-      https://conda.anaconda.org/conda-forge/linux-aarch64/libxml2-16-2.15.2-h79dcc73_0.conda
+      https://conda.anaconda.org/conda-forge/linux-aarch64/libxml2-16-2.15.2-h064b767_0.conda
     hash:
-      md5: e3ec9079759d35b875097d6a9a69e744
-      sha256: da6b2ebbcecc158200d90be39514e4e902971628029b35b7f6ad57270659c5d9
+      md5: 3a4f72b35cd5058f10b37643c20b10f7
+      sha256: dac2d213b589bb43be9a0c69715be36ac78a50d422d74e64bb0dfba3646df6e5
     category: main
     optional: false
   - name: libxml2
@@ -2774,17 +2758,16 @@ package:
     manager: conda
     platform: linux-aarch64
     dependencies:
-      icu: '>=78.2,<79.0a0'
       libgcc: '>=14'
       libiconv: '>=1.18,<2.0a0'
       liblzma: '>=5.8.2,<6.0a0'
       libxml2-16: 2.15.2
       libzlib: '>=1.3.1,<2.0a0'
     url:
-      https://conda.anaconda.org/conda-forge/linux-aarch64/libxml2-2.15.2-h825857f_0.conda
+      https://conda.anaconda.org/conda-forge/linux-aarch64/libxml2-2.15.2-h49afab2_0.conda
     hash:
-      md5: 19de96909ee1198e2853acd8aba89f6c
-      sha256: 3e51e1952cb60c8107094b6b78473d91ff49d428ad4bef6806124b383e8fe29c
+      md5: 8e7352cb825c97f6f8945db66ac074f4
+      sha256: 7325511542b860dee82d862ab5264e9b89d47cf587eb0b627a74ab51c205928c
     category: main
     optional: false
   - name: libzlib
