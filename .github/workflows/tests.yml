@@ -129,15 +129,22 @@ jobs:
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
 
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests\requirements.txt
-          --file tests\requirements-${{ runner.os }}.txt
-          --file tests\requirements-ci.txt
-          --file tests\requirements-s3.txt
-          python=${{ matrix.python-version }}
+      - name: Install conda-lockfiles (base)
+        run: conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
+
+      - name: Conda create test environment
+        run: |
+          $py = '${{ matrix.python-version }}'
+          if ($py -eq '3.14') {
+            conda create -n test --yes `
+              --file tests\requirements.txt `
+              --file tests\requirements-Windows.txt `
+              --file tests\requirements-ci.txt `
+              "python=$py"
+          } else {
+            $tag = $py -replace '\.',''
+            conda create -n test --yes --file "tests\conda-lock-python$tag.yml"
+          }
 
       - name: Conda Info
         # view test env info (not base)
@@ -269,15 +276,24 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
+      - name: Install conda-lockfiles (base)
+        run: conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
+
+      - name: Conda create test environment
+        run: |
+          py='${{ matrix.python-version }}'
+          if [[ "$py" == 3.14 ]]; then
+            conda create -n test --yes \
+              --file tests/requirements.txt \
+              --file tests/requirements-ci.txt \
+              "python=${py}"
+          else
+            conda create -n test --yes --file "tests/conda-lock-python${py//./}.yml"
+          fi
+
+      - name: Conda install Linux-only test dependency (patchelf)
+        if: runner.os == 'Linux'
+        run: conda install --yes --file tests/requirements-Linux.txt
 
       - name: Conda Info
         # view test env info (not base)
@@ -369,14 +385,18 @@ jobs:
           run-post: false  # skip post cleanup
 
       - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
+        run: |
+          conda create -n test --yes \
+            --file tests/requirements.txt \
+            --file tests/requirements-ci.txt \
+            "python=${{ matrix.python-version }}"
+
+      - name: Conda install Linux-only test dependency (patchelf)
+        if: runner.os == 'Linux'
+        run: conda install --yes --file tests/requirements-Linux.txt
+
+      - name: Conda install benchmark dependencies
+        run: conda install --yes --file tests/requirements-benchmarks.txt
 
       - name: Conda Info
         # view test env info (not base)
@@ -437,16 +457,19 @@ jobs:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
 
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          --file tests/requirements-typing.txt
-          python=${{ matrix.python-version }}
+      - name: Conda create test environment
+        run: |
+          conda create -n test --yes \
+            --file tests/requirements.txt \
+            --file tests/requirements-ci.txt \
+            "python=${{ matrix.python-version }}"
+
+      - name: Conda install Linux-only test dependency (patchelf)
+        if: runner.os == 'Linux'
+        run: conda install --yes --file tests/requirements-Linux.txt
+
+      - name: Conda install typing dependencies
+        run: conda install --yes --file tests/requirements-typing.txt
 
       - name: Conda Info
         # view test env info (not base)
@@ -538,7 +561,7 @@ jobs:
           --name test
           --yes
           --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-Linux.txt
           --file tests/requirements-ci.txt
           python=${{ matrix.python-version }}
           && conda activate test
@@ -589,16 +612,19 @@ jobs:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
 
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
-          conda-forge::pytest-memray
+      - name: Conda create test environment
+        run: |
+          conda create -n test --yes \
+            --file tests/requirements.txt \
+            --file tests/requirements-ci.txt \
+            "python=${{ matrix.python-version }}"
+
+      - name: Conda install Linux-only test dependency (patchelf)
+        if: runner.os == 'Linux'
+        run: conda install --yes --file tests/requirements-Linux.txt
+
+      - name: Conda install pytest-memray
+        run: conda install --yes conda-forge::pytest-memray
 
       - name: Conda Info
         # view test env info (not base)
@@ -685,14 +711,20 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests/requirements.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
+      - name: Install conda-lockfiles (base)
+        run: conda install -n base --yes -c conda-canary/label/dev conda-lockfiles
+
+      - name: Conda create test environment
+        run: |
+          py='${{ matrix.python-version }}'
+          if [[ "$py" == 3.14 ]]; then
+            conda create -n test --yes \
+              --file tests/requirements.txt \
+              --file tests/requirements-ci.txt \
+              "python=${py}"
+          else
+            conda create -n test --yes --file "tests/conda-lock-python${py//./}.yml"
+          fi
 
       - name: Conda Info
         # view test env info (not base)
@@ -952,6 +984,11 @@ jobs:
           --file ../conda-build/tests/requirements-ci.txt
           --file ../conda-build/tests/requirements-${{ runner.os }}.txt
           python=${{ matrix.python-version }}
+
+      - name: Conda install Linux-only test dependency (patchelf)
+        if: runner.os == 'Linux'
+        working-directory: conda
+        run: conda install --yes --file tests/requirements-linux-patchelf.txt
 
       - name: Install conda, conda-build source code
         env:

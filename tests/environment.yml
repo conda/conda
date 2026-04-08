@@ -1,0 +1,54 @@
+name: environment-combined
+channels:
+  - conda-forge
+dependencies:
+# requirements.txt
+  - archspec >=0.2.3
+  - boltons >=23.0.0
+  - charset-normalizer
+  - conda-libmamba-solver >=25.4.0
+  - conda-package-handling >=2.2.0
+  - distro >=1.5.0
+  - frozendict >=2.4.2
+  - menuinst >=2
+  - packaging >=23.0
+  - platformdirs >=3.10.0
+  - pluggy >=1.0.0
+  - pycosat >=0.6.3
+  - python >=3.10
+  - requests >=2.28.0,<3
+  - ruamel.yaml >=0.11.14,<0.19
+  - setuptools >=60.0.0
+  - setuptools_scm  # for devenv version detection
+  - tqdm >=4
+  - zstandard >=0.15
+
+# requirements-ci.txt
+  - conda  # for Windows shell activation tests
+  - coverage
+  - flask >=2.2  # package server pytest fixture
+  - git
+  - importlib_resources >= 5.10  # only necessary for Python < 3.12
+  - pexpect
+  - pip
+  - pytest
+  - pytest-cov
+  - pytest-mock
+  - pytest-rerunfailures
+  - pytest-split
+  - pytest-timeout
+  - pytest-xprocess
+  - responses
+  - tomli  # for coverage pyproject.toml, only necessary for Python <= 3.11.0a6
+  - truststore >=0.8.0
+  - werkzeug >=2.2  # package server pytest fixture
+
+# requirements-s3.txt
+  - boto3 !=1.33.0
+  - conda-forge::minio-server
+
+# requirements-Linux.txt (patchelf: tests/requirements-linux-patchelf.txt + CI)
+  - conda-forge::xonsh
+
+# requirements-Windows.txt
+  - pywin32
