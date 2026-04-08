@@ -1514,3 +1514,33 @@ def test_no_triple_equals_roundtrip():
     assert "===" not in str(ms)
     assert str(ms) == "numpy=2"
     assert MatchSpec("numpy=2").version == ms.version
+
+
+def test_conditional_specs():
+    # should not be present
+    assert MatchSpec("python").get("condition") is None
+
+    # This is the normal syntax
+    input_spec = "python; if __win"
+    ms = MatchSpec(input_spec)
+    assert ms.get("condition") == "__win"
+    assert str(ms) == input_spec
+
+    # This is the normal syntax, with version and build string
+    ms = MatchSpec("python 2.* *cpython*; if __win")
+    assert ms.get("condition") == "__win"
+    assert str(ms) == "python=2[build=*cpython*]; if __win"
+
+    # This is the normal syntax, with version in brackets
+    ms = MatchSpec("python[version=2]; if __win")
+    assert ms.get("condition") == "__win"
+    assert str(ms) == "python==2; if __win"
+
+    # test space normalization
+    assert str(MatchSpec("python ;  if  __win")) == "python; if __win"
+
+    # test greediness; this is not a valid condition but we need to make sure
+    # one of the conditions does not end up in the actual match spec
+    nested = MatchSpec("python; if __win; if __unix")
+    assert str(nested) == "python; if __win; if __unix"
+    assert nested.get("condition") == "__win; if __unix"
