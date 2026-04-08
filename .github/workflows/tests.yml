@@ -156,7 +156,11 @@ jobs:
         run: |
           $prefix = Join-Path $env:CONDA "envs\test"
           $scripts = Join-Path $prefix "Scripts"
+          $libBin = Join-Path $prefix "Library\bin"
+          # GITHUB_PATH prepends each line; last line ends up leftmost on PATH.
+          Add-Content -Path $env:GITHUB_PATH -Value $libBin
           Add-Content -Path $env:GITHUB_PATH -Value $scripts
+          Add-Content -Path $env:GITHUB_PATH -Value $prefix
           Add-Content -Path $env:GITHUB_ENV -Value "CONDA_PREFIX=$prefix"
           Add-Content -Path $env:GITHUB_ENV -Value "CONDA_DEFAULT_ENV=test"
 
