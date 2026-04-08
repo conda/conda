@@ -20,8 +20,8 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileNotFound,
     EnvironmentLocationNotFound,
+    EnvironmentSpecPluginSelectionError,
     PackagesNotFoundError,
-    PluginError,
     ResolvePackageNotFound,
 )
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
@@ -274,8 +274,8 @@ def test_conda_env_create_empty_file(
     tmp_file = path_factory(suffix=".yml")
     tmp_file.touch()
 
-    with pytest.raises(PluginError):
-        conda_cli("env", "create", "--env-spec=cep-24", f"--file={tmp_file}")
+    with pytest.raises(EnvironmentSpecPluginSelectionError):
+        conda_cli("env", "create", "--format=cep-24", f"--file={tmp_file}")
 
 
 @pytest.mark.integration

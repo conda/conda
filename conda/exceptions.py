@@ -30,7 +30,10 @@ from .common.serialize.json import JSONDecodeError
 from .common.serialize.json import dumps as json_dumps
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
-from .deprecations import DeprecatedError  # noqa: F401
+from .deprecations import (
+    DeprecatedError,  # noqa: F401
+    deprecated,
+)
 from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
 from .models.channel import Channel
 
@@ -45,7 +48,7 @@ if TYPE_CHECKING:
     from conda.common.path import PathType
     from conda.models.match_spec import MatchSpec
     from conda.models.records import PackageRecord
-    from conda.plugins.types import CondaEnvironmentExporter
+    from conda.plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
 
 log = getLogger(__name__)
 
@@ -297,26 +300,12 @@ class SharedLinkPathClobberError(ClobberError):
 
 
 class CommandNotFoundError(CondaError):
+    @deprecated("26.9", "27.3")
     def __init__(self, command: str):
         activate_commands = {
             "activate",
             "deactivate",
             "run",
-        }
-        conda_commands = {
-            "clean",
-            "config",
-            "create",
-            "--help",  # https://github.com/conda/conda/issues/11585
-            "info",
-            "install",
-            "list",
-            "package",
-            "remove",
-            "search",
-            "uninstall",
-            "update",
-            "upgrade",
         }
         build_commands = {
             "build",
@@ -369,15 +358,10 @@ class CommandNotFoundError(CondaError):
         else:
             from difflib import get_close_matches
 
-            from .cli.find_commands import find_commands
+            from .cli.conda_argparse import find_builtin_commands, generate_parser
 
             message = "No command 'conda %(command)s'."
-            choices = (
-                activate_commands
-                | conda_commands
-                | build_commands
-                | set(find_commands())
-            )
+            choices = find_builtin_commands(generate_parser())
             close = get_close_matches(command, choices)
             if close:
                 message += f"\nDid you mean 'conda {close[0]}'?"
@@ -658,18 +642,6 @@ class ChecksumMismatchError(CondaError):
         )
 
 
-class PackageNotInstalledError(CondaError):
-    def __init__(self, prefix: PathType, package_name: str):
-        message = dals(
-            """
-        Package is not installed in prefix.
-          prefix: %(prefix)s
-          package name: %(package_name)s
-        """
-        )
-        super().__init__(message, prefix=prefix, package_name=package_name)
-
-
 class CondaHTTPError(CondaError):
     def __init__(
         self,
@@ -738,11 +710,22 @@ class AuthenticationError(CondaError):
 
 
 class PackagesNotFoundError(CondaError):
+    """Base error for missing packages.
+
+    Prefer raising one of the more specific subclasses:
+
+    - :class:`PackagesNotFoundInChannelsError` – packages unavailable in channels.
+    - :class:`PackageNotInstalledError` – packages missing from a target prefix.
+    """
+
     def __init__(
         self,
         packages: Iterable[MatchSpec | PackageRecord | str],
         channel_urls: Iterable[str] = (),
     ):
+        self.packages = tuple(packages)
+        self.channel_urls = tuple(channel_urls)
+
         if channel_urls:
             message = dals(
                 """
@@ -783,11 +766,81 @@ class PackagesNotFoundError(CondaError):
 
         super().__init__(
             message,
-            packages=packages,
+            packages=self.packages,
             packages_formatted=packages_formatted,
-            channel_urls=list(channel_urls),
+            channel_urls=list(self.channel_urls),
             channels_formatted=channels_formatted,
         )
+
+
+class PackagesNotFoundInChannelsError(PackagesNotFoundError):
+    """
+    The requested packages are not available from the configured channels.
+    """
+
+    def __init__(
+        self,
+        packages: Iterable[MatchSpec | PackageRecord | str],
+        channel_urls: Iterable[str],
+    ):
+        super().__init__(packages, channel_urls=channel_urls)
+
+
+class PackageNotInstalledError(PackagesNotFoundError):
+    """
+    The requested package(s) are missing from the target environment/prefix.
+    """
+
+    def __init__(
+        self,
+        prefix: PathType,
+        package_name: str | Iterable[MatchSpec | PackageRecord | str],
+    ):
+        if isinstance(package_name, str):
+            message = dals(
+                """
+                Package is not installed in prefix.
+                  prefix: %(prefix)s
+                  package name: %(package_name)s
+                """
+            )
+        else:
+            package_name = tuple(package_name)
+            message = dals(
+                """
+                The following packages are missing from the target environment:
+                  prefix: %(prefix)s
+                %(packages_formatted)s
+                """
+            )
+
+        # We call CondaError directly here because PackagesNotFoundError decides
+        # the behaviour based on channel_urls, but this is a case of the package(s)
+        # being specifically "missing from prefix" and not a more general "not found".
+        CondaError.__init__(
+            self,
+            message,
+            prefix=prefix,
+            package_name=package_name,
+            packages_formatted=dashlist(package_name)
+            if not isinstance(package_name, str)
+            else "",
+        )
+
+
+class PackagesNotFoundInPrefixError(PackageNotInstalledError):
+    """
+    The requested package(s) are missing from the target environment/prefix.
+
+    This is a backwards-compatible alias for :class:`PackageNotInstalledError`.
+    """
+
+    def __init__(
+        self,
+        packages: Iterable[MatchSpec | PackageRecord | str],
+        prefix: PathType,
+    ):
+        super().__init__(prefix=prefix, package_name=packages)
 
 
 class NoChannelsConfiguredError(CondaError):
@@ -1285,7 +1338,6 @@ class CondaEnvException(CondaError):
 
 class EnvironmentFileInvalid(CondaEnvException):
     def __init__(self, msg: str, *args, **kwargs):
-        msg = f"Provided environment.yaml is invalid: {msg}"
         super().__init__(msg, *args, **kwargs)
 
 
@@ -1341,32 +1393,60 @@ class SpecNotFound(CondaError):
         super().__init__(msg, *args, **kwargs)
 
 
-class EnvironmentSpecPluginNotDetected(SpecNotFound):
+def format_env_spec_available_plugins(
+    plugin_specs: list[CondaEnvironmentSpecifier],
+    formats_header: str = "Available formats",
+    indent: int = 4,
+    cmd_suggestion: bool = True,
+):
+    msg = (
+        "\nPlease add to your prior command: --env-spec <format>\n"
+        if cmd_suggestion
+        else ""
+    )
+    msg += f"\n{formats_header}:"
+    msg += dashlist(
+        [f"{plugin.name}: {plugin.description}" for plugin in plugin_specs],
+        indent=indent,
+    )
+    return msg
+
+
+class AmbiguousEnvironmentSpecPlugin(PluginError):
     def __init__(
         self,
-        name: str,
-        plugin_names: Iterable[str],
-        autodetect_disabled_plugins: Iterable[str] = (),
+        msg: str,
+        plugins: list[CondaEnvironmentSpecifier],
         *args,
         **kwargs,
     ):
-        self.name = name
-        msg = dals(
-            f"""
-            Environment at {name} is not able to be detected by any installed environment specifier plugins.
-
-            Available plugins: {dashlist(plugin_names, 16)}
-
-            """
+        msg += format_env_spec_available_plugins(
+            plugins, formats_header="Matched formats"
         )
-        if autodetect_disabled_plugins:
-            msg += dals(
-                """
-                Found compatible plugins but they must be explicitly selected.
-                Request conda to use these plugins by providing
-                the cli argument `--environment-spec PLUGIN_NAME`:
-                """
-            ) + dashlist(autodetect_disabled_plugins, 4)
+        super().__init__(msg, *args, **kwargs)
+
+
+class EnvironmentSpecPluginSelectionError(CondaError):
+    def __init__(
+        self,
+        msg: str,
+        plugin_specs: list[CondaEnvironmentSpecifier],
+        *args,
+        **kwargs,
+    ):
+        msg += format_env_spec_available_plugins(plugin_specs, cmd_suggestion=False)
+        super().__init__(msg, *args, **kwargs)
+
+
+class EnvironmentSpecPluginNotDetected(SpecNotFound):
+    def __init__(
+        self,
+        plugin_specs: list[CondaEnvironmentSpecifier],
+        *args,
+        **kwargs,
+    ):
+        msg = "Unable to detect the environment format for the provided file."
+        msg += format_env_spec_available_plugins(plugin_specs)
         super().__init__(msg, *args, **kwargs)
 
 

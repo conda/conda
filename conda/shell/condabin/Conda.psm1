@@ -111,6 +111,20 @@ function Exit-CondaEnvironment {
     end {}
 }
 
+<#
+    .SYNOPSIS
+        Runs the conda reactivate command and invokes the resulting shell
+        script, if any. Called after install/update/remove/etc. so that
+        environment variables set by activate.ps1 are refreshed in the
+        current session.
+#>
+function Invoke-CondaReactivate {
+    $reactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell reactivate | Out-String);
+    if ($reactivateCommand.Trim().Length -gt 0) {
+        Invoke-Expression -Command $reactivateCommand;
+    }
+}
+
 ## CONDA WRAPPER ###############################################################
 
 <#
@@ -138,12 +152,23 @@ function Invoke-Conda() {
         } else {
             $OtherArgs = @();
         }
-        switch ($Command) {
-            "activate" {
+        switch -Regex ($Command) {
+            "^activate$" {
                 Enter-CondaEnvironment @OtherArgs;
             }
-            "deactivate" {
+            "^deactivate$" {
                 Exit-CondaEnvironment;
+            }
+
+            # Run the command, then reactivate so activate.ps1 runs and env vars
+            # (e.g. from packages like proj, GDAL) are set in this session.
+            # Matches behavior of conda.sh and conda.bat (see issue #15643).
+            "^(install|update|upgrade|remove|uninstall)$" {
+                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
+                $succeeded = $?;
+                $exitCode = if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $LASTEXITCODE } else { if ($succeeded) { 0 } else { 1 } };
+                if ($succeeded) { Invoke-CondaReactivate }
+                if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $global:LASTEXITCODE = $exitCode; }
             }
 
             default {

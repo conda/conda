@@ -12,14 +12,11 @@ from __future__ import annotations
 
 import os
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir
+from os.path import abspath
 from pathlib import Path
-
-from boltons.setutils import IndexedSet
 
 from ..base.constants import (
     REPODATA_FN,
-    RESERVED_ENV_NAMES,
     UpdateModifier,
 )
 from ..base.context import context
@@ -29,9 +26,7 @@ from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
-from ..deprecations import deprecated
 from ..exceptions import (
-    CondaEnvException,
     CondaExitZero,
     CondaImportError,
     CondaIndexError,
@@ -40,9 +35,12 @@ from ..exceptions import (
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DryRunExit,
+    InvalidInstaller,
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
+    PackagesNotFoundInPrefixError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -92,71 +90,6 @@ def reinstall_packages(args, specs: list[str], **kwargs) -> int:
     return install(args, None)
 
 
-@deprecated("25.9", "26.3", addendum="Use PrefixData.exists()")
-def validate_prefix_exists(prefix: str | Path) -> None:
-    """
-    Validate that we are receiving at least one valid value for --name or --prefix.
-    """
-    prefix = Path(prefix)
-    if not prefix.exists():
-        raise CondaEnvException("The environment you have specified does not exist.")
-
-
-@deprecated(
-    "25.9", "26.3", addendum="Use PrefixData.exists() + PrefixData.validate_path()"
-)
-def validate_new_prefix(dest: str, force: bool = False) -> str:
-    """Ensure that the new prefix does not exist."""
-    from ..base.context import context, validate_prefix_name
-    from ..common.path import expand
-
-    if os.sep in dest:
-        dest = expand(dest)
-    else:
-        dest = validate_prefix_name(dest, ctx=context, allow_base=False)
-
-    if not force and os.path.exists(dest):
-        env_name = os.path.basename(os.path.normpath(dest))
-        raise CondaEnvException(
-            f"The environment '{env_name}' already exists. Override with --yes."
-        )
-
-    return dest
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use PrefixData.exists(), PrefixData.validate_path(), PrefixData.validate_name()",
-)
-def check_prefix(prefix: str, json=False):
-    if os.pathsep in prefix:
-        raise CondaValueError(
-            f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
-        )
-    name = basename(prefix)
-    error = None
-    if name in RESERVED_ENV_NAMES:
-        error = f"'{name}' is a reserved environment name"
-    if exists(prefix):
-        if isdir(prefix) and "conda-meta" not in tuple(
-            entry.name for entry in os.scandir(prefix)
-        ):
-            return None
-        error = f"prefix already exists: {prefix}"
-
-    if error:
-        raise CondaValueError(error, json)
-
-    if " " in prefix:
-        stderrlog.warning(
-            "WARNING: A space was detected in your requested environment path:\n"
-            f"'{prefix}'\n"
-            "Spaces in paths can sometimes be problematic. To minimize issues,\n"
-            "make sure you activate your environment before running any executables!\n"
-        )
-
-
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
     # Validate source
     if os.sep in src_arg:
@@ -181,13 +114,6 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
             src_prefix=src_prefix,
             dst_prefix=dst_prefix,
         )
-
-
-@deprecated("25.9", "26.3", addendum="Use conda.cli.common.print_activate()")
-def print_activate(env_name_or_prefix):  # pragma: no cover
-    from .common import print_activate as _print_activate
-
-    _print_activate(env_name_or_prefix)
 
 
 def get_revision(arg, json=False):
@@ -252,8 +178,8 @@ class TryRepodata:
         ):
             return True
         elif isinstance(exc_value, ResolvePackageNotFound):
-            # convert the ResolvePackageNotFound into PackagesNotFoundError
-            raise PackagesNotFoundError(
+            # convert the ResolvePackageNotFound into PackagesNotFoundInChannelsError
+            raise PackagesNotFoundInChannelsError(
                 exc_value._formatted_chains,
                 all_channel_urls(context.channels),
             )
@@ -341,16 +267,6 @@ def install(args, parser, command="install"):
     isupdate = command == "update"
     isinstall = command == "install"
 
-    # fail early if using a deprecated option
-    if newenv and args.clone:
-        deprecated.topic(
-            "25.9",
-            "26.3",
-            topic="This function will not handle clones anymore.",
-            addendum="Use `conda.cli.install.install_clone()` instead",
-        )
-        return install_clone(args, parser)
-
     prefix = context.target_prefix
     index_args = get_index_args(args=args)
 
@@ -360,7 +276,7 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    env = Environment.from_cli(
+    env, fpath_envs_map = Environment.from_cli_with_file_envs(
         args=args,
         add_default_packages=command == "create" and not args.no_default_packages,
     )
@@ -434,6 +350,19 @@ def install(args, parser, command="install"):
                     )
                 else:
                     raise e
+            except (PackagesNotFoundInChannelsError, PackagesNotFoundInPrefixError):
+                # no extra processing for subclasses of PackagesNotFoundError
+                raise
+            except PackagesNotFoundError as e:
+                # If a backend raises the generic error, convert it to a more specific one
+                if e.channel_urls:
+                    raise PackagesNotFoundInChannelsError(
+                        e.packages, e.channel_urls
+                    ) from e
+                else:
+                    raise PackagesNotFoundInPrefixError(
+                        e.packages, prefix=prefix
+                    ) from e
             except SystemExit as e:
                 if not getattr(e, "allow_retry", True):
                     raise e
@@ -442,6 +371,36 @@ def install(args, parser, command="install"):
                 raise e
 
     handle_txn(unlink_link_transaction, prefix, args, newenv)
+
+    if env.external_packages and not context.dry_run and not context.download_only:
+        from .. import CondaError
+        from ..env.installers.base import get_installer
+        from ..env.pip_util import get_pip_workdir
+
+        external_envs = [
+            (fpath, file_env)
+            for fpath, file_env in fpath_envs_map.items()
+            if file_env.external_packages
+        ]
+        for fpath, file_env in external_envs:
+            for installer_type, pkg_specs in file_env.external_packages.items():
+                try:
+                    installer = get_installer(installer_type)
+                    if installer_type == "pip":
+                        workdir = get_pip_workdir(fpath)
+                        installer.install(
+                            prefix, list(pkg_specs), args, file_env, workdir=workdir
+                        )
+                    else:
+                        installer.install(prefix, list(pkg_specs), args, file_env)
+                except InvalidInstaller:
+                    raise CondaError(
+                        f"Unable to install package for {installer_type} from environment file {fpath}. "
+                        "Please ensure your dependencies file has the correct spelling."
+                    )
+
+    if env.variables:
+        PrefixData(prefix).set_environment_env_vars(env.variables)
 
 
 def install_clone(args, parser):
@@ -538,9 +497,12 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
             link_precs.add(precs[0])
 
     if not_found_in_index_specs:
-        raise PackagesNotFoundError(not_found_in_index_specs)
+        raise PackagesNotFoundInChannelsError(
+            not_found_in_index_specs,
+            all_channel_urls(context.channels, context.subdirs),
+        )
 
-    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
+    final_precs = tuple(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
     setup = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
     return UnlinkLinkTransaction(setup)
@@ -550,7 +512,7 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
-            raise PackagesNotFoundError(args.package_names)
+            raise PackagesNotFoundInPrefixError(args.package_names, prefix=prefix)
         elif not newenv:
             if context.json:
                 common.stdout_json_success(

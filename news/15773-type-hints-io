@@ -12,8 +12,8 @@
 
 ### Docs
 
-* Remove docs about RPM and DEB packages since no longer supported.
+* <news item>
 
 ### Other
 
-* <news item>
+* Add type hints to `conda.common.io`. (#15773)

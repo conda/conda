@@ -9,14 +9,19 @@ import pytest
 from conda import plugins
 from conda.auxlib.ish import dals
 from conda.exceptions import (
-    CondaValueError,
+    AmbiguousEnvironmentSpecPlugin,
     EnvironmentSpecPluginNotDetected,
+    EnvironmentSpecPluginSelectionError,
     PluginError,
 )
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.plugins import environment_specifiers
-from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
+from conda.plugins.types import (
+    CondaEnvironmentSpecifier,
+    EnvironmentFormat,
+    EnvironmentSpecBase,
+)
 
 
 class NaughtySpec(EnvironmentSpecBase):
@@ -306,7 +311,7 @@ def test_raises_an_error_if_plugin_name_does_not_exist(dummy_random_spec_plugin)
     """
     Ensures that an error is raised if the user requests a plugin that doesn't exist
     """
-    with pytest.raises(CondaValueError):
+    with pytest.raises(EnvironmentSpecPluginSelectionError):
         dummy_random_spec_plugin.get_environment_specifier_by_name(
             name="uhoh", source="test.random"
         )
@@ -336,8 +341,16 @@ def test_raise_error_for_multiple_registered_installers(
     for the same section.
     """
     filename = "test.random"
-    with pytest.raises(PluginError):
+    with pytest.raises(
+        AmbiguousEnvironmentSpecPlugin,
+        match=r"File 'test\.random' can be handled by multiple formats\.",
+    ) as error:
         dummy_random_spec_plugin.get_environment_specifier(filename)
+
+    # More assertions to make sure the error message includes suggestions
+    assert "Matched formats:" in str(error.value)
+    assert "rand-spec" in str(error.value)
+    assert "rand-spec-2" in str(error.value)
 
 
 def test_raise_error_for_overlapping_default_filename(
@@ -347,13 +360,13 @@ def test_raise_error_for_overlapping_default_filename(
     Ensure that we raise an error when default filenames overlap(``*.xml``)
     """
     with pytest.raises(
-        PluginError,
-        match=r"Too many plugins found that can handle the environment file '(.+)environment.xml'.",
+        AmbiguousEnvironmentSpecPlugin,
+        match=r"File '(.+)environment.xml' matches the default filename pattern for multiple formats.",
     ) as error:
         plugin_manager_with_xml_spec_2.detect_environment_specifier(str(xml_env))
 
     # More assertions to make sure the error message includes suggestions
-    assert "Available env specs:" in str(error.value)
+    assert "Matched formats:" in str(error.value)
     assert "xml-spec" in str(error.value)
     assert "xml-spec-2" in str(error.value)
 
@@ -379,7 +392,7 @@ def test_explicitly_select_a_non_autodetect_plugin(
     assert env_spec.environment_spec.detection_supported is False
 
 
-def test_naught_plugin_does_not_cause_unhandled_errors(
+def test_naughty_plugin_does_not_cause_unhandled_errors(
     plugin_manager,
     dummy_random_spec_plugin,
     dummy_random_spec_plugin_no_autodetect,
@@ -390,8 +403,8 @@ def test_naught_plugin_does_not_cause_unhandled_errors(
     """
     filename = "test.random"
     with pytest.raises(
-        PluginError,
-        match=rf"An error occurred when handling '{filename}' with plugin 'naughty'.",
+        EnvironmentSpecPluginSelectionError,
+        match=r"Could not parse 'test.random' as 'naughty'.",
     ):
         plugin_manager.get_environment_specifier_by_name(filename, "naughty")
 
@@ -524,7 +537,7 @@ def test_get_spec_by_aliases(plugin_manager, dummy_random_spec_plugin_aliases):
     assert env_spec_backend.environment_spec(filename).env is not None
 
     # Ensure an error is raised for an alias that doesn't exist
-    with pytest.raises(CondaValueError):
+    with pytest.raises(EnvironmentSpecPluginSelectionError):
         env_spec_backend = plugin_manager.get_environment_specifier_by_name(
             filename, "notalias"
         )
@@ -577,5 +590,59 @@ def test_alias_and_name_collision_detect(
     with pytest.raises(PluginError):
         plugin_manager.get_environment_specifier_by_name("something.random", "random")
 
-    with pytest.raises(PluginError):
+    with pytest.raises(
+        PluginError,
+        match=r"'something\.random' can be handled by multiple formats\.",
+    ):
         plugin_manager.detect_environment_specifier("something.random")
+
+
+@pytest.mark.parametrize(
+    "spec_name,expected_description,expected_environment_format",
+    [
+        (
+            "environment.yml",
+            "Standard YAML environment specification with dependencies",
+            EnvironmentFormat.environment,
+        ),
+        (
+            "explicit",
+            "Explicit package URLs for fully reproducible environments",
+            EnvironmentFormat.lockfile,
+        ),
+        (
+            "requirements.txt",
+            "Simple text file with package specifications",
+            EnvironmentFormat.environment,
+        ),
+        (
+            "cep-24",
+            "CEP-24 compliant YAML environment specification",
+            EnvironmentFormat.environment,
+        ),
+    ],
+)
+def test_builtin_specifiers_have_metadata(
+    plugin_manager_with_specifiers,
+    spec_name: str,
+    expected_description: str,
+    expected_environment_format: bool,
+):
+    """Test that all built-in specifiers have meaningful descriptions and correct lockfile classification."""
+    # Get all environment specifiers (returns a dict)
+    specifiers = plugin_manager_with_specifiers.get_environment_specifiers()
+
+    # Get the specifier by name (it's the key in the dict)
+    specifier = specifiers.get(spec_name)
+
+    assert specifier is not None, f"Specifier {spec_name} not found"
+
+    # Verify description is meaningful (not just the name)
+    assert specifier.description is not None
+    assert specifier.description == expected_description
+    assert (
+        specifier.description != spec_name
+    )  # Should be more descriptive than just the name
+
+    # Verify lockfile classification
+    assert specifier.environment_format == expected_environment_format

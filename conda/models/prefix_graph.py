@@ -9,16 +9,22 @@ Object inheritance:
    :parts: 1
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from logging import getLogger
-
-from boltons.setutils import IndexedSet
+from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..common.compat import on_win
 from ..exceptions import CyclicalDependencyError
 from .enums import NoarchType
 from .match_spec import MatchSpec
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .records import PrefixRecord
 
 log = getLogger(__name__)
 
@@ -37,18 +43,24 @@ class PrefixGraph:
     Most public methods mutate the graph.
     """
 
-    def __init__(self, records, specs=()):
+    def __init__(
+        self, records: Iterable[PrefixRecord], specs: Iterable[MatchSpec] = ()
+    ):
         records = tuple(records)
         specs = set(specs)
-        self.graph = graph = {}  # dict[PrefixRecord, set[PrefixRecord]]
-        self.spec_matches = spec_matches = {}  # dict[PrefixRecord, set[MatchSpec]]
+        self.graph: dict[PrefixRecord, dict[PrefixRecord, None]]
+        self.graph = graph = {}
+        self.spec_matches: dict[PrefixRecord, dict[MatchSpec, None]]
+        self.spec_matches = spec_matches = {}
         for node in records:
             parent_match_specs = tuple(MatchSpec(d) for d in node.depends)
             parent_nodes = {
-                rec for rec in records if any(m.match(rec) for m in parent_match_specs)
+                rec: None
+                for rec in records
+                if any(m.match(rec) for m in parent_match_specs)
             }
             graph[node] = parent_nodes
-            matching_specs = IndexedSet(s for s in specs if s.match(node))
+            matching_specs = dict.fromkeys(s for s in specs if s.match(node))
             if matching_specs:
                 spec_matches[node] = matching_specs
 
@@ -188,11 +200,12 @@ class PrefixGraph:
         self.spec_matches.pop(node, None)
 
         for node, edges in graph.items():
-            if node in edges:
-                edges.remove(node)
+            edges.pop(node, None)
 
     def _toposort(self):
-        graph_copy = {node: IndexedSet(parents) for node, parents in self.graph.items()}
+        graph_copy = {
+            node: dict.fromkeys(parents) for node, parents in self.graph.items()
+        }
         self._toposort_prepare_graph(graph_copy)
         if context.allow_cycles:
             sorted_nodes = tuple(self._topo_sort_handle_cycles(graph_copy))
@@ -208,7 +221,7 @@ class PrefixGraph:
             return
 
         while True:
-            no_parent_nodes = IndexedSet(
+            no_parent_nodes = dict.fromkeys(
                 sorted(
                     (node for node, parents in graph.items() if len(parents) == 0),
                     key=lambda x: x.name,
@@ -222,7 +235,8 @@ class PrefixGraph:
                 graph.pop(node, None)
 
             for parents in graph.values():
-                parents -= no_parent_nodes
+                for node in no_parent_nodes:
+                    parents.pop(node, None)
 
         if len(graph) != 0:
             raise CyclicalDependencyError(tuple(graph))
@@ -231,7 +245,7 @@ class PrefixGraph:
     def _topo_sort_handle_cycles(cls, graph):
         # remove edges that point directly back to the node
         for k, v in graph.items():
-            v.discard(k)
+            v.pop(k, None)
 
         # disconnected nodes go first
         nodes_that_are_parents = {
@@ -279,7 +293,7 @@ class PrefixGraph:
         graph.pop(node_with_fewest_parents)
 
         for parents in graph.values():
-            parents.discard(node_with_fewest_parents)
+            parents.pop(node_with_fewest_parents, None)
 
         return node_with_fewest_parents
 
@@ -294,7 +308,7 @@ class PrefixGraph:
                 parents = graph[node]
                 for parent in tuple(parents):
                     if parent.name == "pip":
-                        parents.remove(parent)
+                        parents.pop(parent, None)
 
         # 2. Special case code for menuinst.
         #    Always link/unlink menuinst first/last in case a subsequent
@@ -309,7 +323,7 @@ class PrefixGraph:
             menuinst_parents = graph[menuinst_node]
             for node, parents in graph.items():
                 if python_node in parents and node not in menuinst_parents:
-                    parents.add(menuinst_node)
+                    parents.setdefault(menuinst_node)
 
         if on_win:
             # 3. On windows, python noarch packages need an implicit dependency on conda added, if
@@ -327,7 +341,7 @@ class PrefixGraph:
                         and node.noarch == NoarchType.python
                         and node not in conda_parents
                     ):
-                        parents.add(conda_node)
+                        parents.setdefault(conda_node)
 
 
 #     def dot_repr(self, title=None):  # pragma: no cover
@@ -403,16 +417,16 @@ class GeneralGraph(PrefixGraph):
         for node in records:
             parent_dict = self.specs_by_name.get(node.name, {})
             for dep in tuple(MatchSpec(d) for d in node.depends):
-                deps = parent_dict.get(dep.name, set())
-                deps.add(dep)
+                deps = parent_dict.get(dep.name, {})
+                deps.setdefault(dep)
                 parent_dict[dep.name] = deps
             self.specs_by_name[node.name] = parent_dict
 
         consolidated_graph = {}
         # graph is toposorted, so looping over it is in dependency order
         for node, parent_nodes in reversed(list(self.graph.items())):
-            cg = consolidated_graph.get(node.name, set())
-            cg.update(_.name for _ in parent_nodes)
+            cg = consolidated_graph.get(node.name, {})
+            cg.update(dict.fromkeys(_.name for _ in parent_nodes))
             consolidated_graph[node.name] = cg
         self.graph_by_name = consolidated_graph
 

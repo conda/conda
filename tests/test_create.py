@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 import platform
 import re
 import sys
@@ -13,7 +14,7 @@ from logging import getLogger
 from os.path import basename
 from pathlib import Path
 from shutil import rmtree
-from subprocess import check_output
+from subprocess import check_output, run
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
@@ -80,6 +81,7 @@ from conda.testing.integration import (
     which_or_where,
 )
 
+from . import TEST_RECIPES_CHANNEL
 from .env import support_file
 
 if TYPE_CHECKING:
@@ -2354,6 +2356,147 @@ def test_dont_remove_conda_2(
         assert package_is_installed(prefix, "pycosat")
 
 
+def test_dont_remove_conda_3(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    If conda thinks its core dependency is uninstalled (happens when pip
+    upgrades a dependency) it could produce spurious RemoveError, blocking
+    further use of conda.
+    """
+    with tmp_env("conda", "conda-pypi") as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
+        monkeypatch.setenv("CONDA_PREFIX", str(prefix))
+        monkeypatch.delenv("CONDA_DEFAULT_ENV", raising=False)
+        monkeypatch.delenv("CONDA_PROMPT_MODIFIER", raising=False)
+        monkeypatch.delenv("CONDA_SHLVL", raising=False)
+        reset_context()
+        assert context.root_prefix == str(prefix)
+
+        conda_exe = prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda")
+        assert conda_exe.exists()
+
+        subprocess_env = os.environ.copy()
+        for env_var in (
+            "CONDA_DEFAULT_ENV",
+            "CONDA_PREFIX",
+            "CONDA_PROMPT_MODIFIER",
+            "CONDA_SHLVL",
+            "CONDA_EXE",
+            "CONDA_PYTHON_EXE",
+            "_CE_M",
+            "_CE_CONDA",
+        ):
+            subprocess_env.pop(env_var, None)
+        subprocess_env["CONDA_ROOT_PREFIX"] = str(prefix)
+
+        checkout_dir = Path(__file__).resolve().parents[1]
+        run(
+            [conda_exe, "pypi", "convert", str(checkout_dir)],
+            check=True,
+            cwd=prefix,
+            env=subprocess_env,
+        )
+        converted_pkgs = sorted((prefix / "conda-pypi-output").glob("conda-*.conda"))
+        if not converted_pkgs:
+            converted_pkgs = sorted(
+                (prefix / "conda-pypi-output").glob("conda-*.tar.bz2")
+            )
+        assert converted_pkgs
+        converted_conda_pkg = converted_pkgs[-1]
+
+        foreign_root_prefix = prefix / "tmp-root-prefix"
+        foreign_root_prefix.mkdir()
+        remove_env = subprocess_env.copy()
+        remove_env["CONDA_ROOT_PREFIX"] = str(foreign_root_prefix)
+
+        print("Remove prepackaged conda")
+
+        run(
+            [conda_exe, "remove", f"--prefix={prefix}", "conda", "--force", "--yes"],
+            check=True,
+            env=remove_env,
+        )
+        assert not package_is_installed(prefix, "conda")
+
+        print("Install conda under test")
+
+        conda_cli("install", f"--prefix={prefix}", str(converted_conda_pkg), "--yes")
+        assert package_is_installed(prefix, "conda")
+
+        print("Remove conda-package-handling from conda-meta")
+
+        conda_dependency = "conda-package-handling"
+        # May still be true either due to cache or pip interoperability:
+        print(
+            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
+        )
+        conda_dependency_meta = [
+            *(prefix / "conda-meta").glob(f"{conda_dependency}-*.json"),
+        ]
+        assert conda_dependency_meta
+        for meta_path in conda_dependency_meta:
+            meta_path.unlink()
+
+        # reload() to update cached results
+        PrefixData(str(prefix)).reload()
+        print(
+            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
+        )
+
+        lightweight_dependency = "small-executable"
+        assert not package_is_installed(prefix, lightweight_dependency)
+        expected_remove_error = "RemoveError"
+
+        print(f"Install {lightweight_dependency}")
+
+        install_exc = run(
+            [
+                prefix / PYTHON_BINARY,
+                "-m",
+                "conda",
+                "install",
+                f"--prefix={prefix}",
+                "-c",
+                str(TEST_RECIPES_CHANNEL),
+                "--yes",
+                lightweight_dependency,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=subprocess_env,
+        )
+        install_output = (install_exc.stdout or "") + (install_exc.stderr or "")
+        assert expected_remove_error not in install_output
+
+        print(
+            f"Remove {lightweight_dependency} (probably fails because it wasn't installed due to RemoveError"
+        )
+
+        remove_exc = run(
+            [
+                prefix / PYTHON_BINARY,
+                "-m",
+                "conda",
+                "remove",
+                f"--prefix={prefix}",
+                "-c",
+                str(TEST_RECIPES_CHANNEL),
+                "--yes",
+                lightweight_dependency,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=subprocess_env,
+        )
+        remove_output = (remove_exc.stdout or "") + (remove_exc.stderr or "")
+        assert expected_remove_error not in remove_output
+
+
 def test_force_remove(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
 ):
@@ -2525,7 +2668,7 @@ def test_remove_spellcheck(
 
     with pytest.raises(
         PackagesNotFoundError,
-        match=r"The following packages are missing from the target environment:\s+- dependint",
+        match=r"(?s)The following packages are missing from the target environment:.*- dependint",
     ):
         conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
 
@@ -2751,6 +2894,134 @@ def test_create_with_clone_and_file_raises_argument_error(
     )
 
 
+def test_create_multiple_files_requires_name_or_prefix(
+    conda_cli: CondaCLIFixture,
+):
+    """Multiple --file arguments require explicit -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="Please provide -n/--name or -p/--prefix when using multiple",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("simple.yml"),
+            "--file",
+            support_file("add-pip.yml"),
+            "--yes",
+        )
+
+
+def test_create_multiple_files_with_cli_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """conda create -p /path --file f1 --file f2 uses the provided prefix."""
+    prefix = path_factory()
+    conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("small-executable.yml"),
+        "--file",
+        support_file("dependent.yml"),
+        "--yes",
+    )
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependent")
+
+
+def test_install_multiple_files_with_cli_prefix(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """conda install -p /path --file f1 --file f2 installs into the provided prefix."""
+    prefix = path_factory()
+    conda_cli("create", f"--prefix={prefix}", "--yes")
+    conda_cli(
+        "install",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("small-executable.yml"),
+        "--file",
+        support_file("dependent.yml"),
+        "--yes",
+    )
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependent")
+
+
+def test_create_name_overrides_file(
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir: Path,
+    test_recipes_channel: Path,
+):
+    """--name takes precedence over name in environment file."""
+    env_name = "a_super_unique_name"
+    prefix = tmp_envs_dir / env_name
+    conda_cli(
+        "create",
+        "--name",
+        env_name,
+        "--file",
+        support_file("small-executable.yml"),
+        "--yes",
+    )
+    assert prefix.exists()
+    assert PrefixData(prefix).is_environment()
+    assert package_is_installed(prefix, "small-executable")
+
+
+def test_create_files_without_name_or_prefix_raises(conda_cli: CondaCLIFixture):
+    """Files without name/prefix require -n/--name or -p/--prefix."""
+    with pytest.raises(
+        ArgumentError,
+        match="do not specify a name or prefix",
+    ):
+        conda_cli(
+            "create",
+            "--file",
+            support_file("requirements.txt"),
+            "--yes",
+        )
+
+
+def test_create_with_env_variables_are_set_correctly(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    env_yml = path_factory(suffix=".yml")
+    env_yml.write_text(
+        f"""
+name: test_vars
+channels:
+  - {str(test_recipes_channel)}
+dependencies:
+  - small-executable
+variables:
+  VAR_A: a_var
+  VAR_B: b_var
+"""
+    )
+    prefix = path_factory()
+    conda_cli(
+        "create",
+        "--prefix",
+        str(prefix),
+        "--file",
+        str(env_yml),
+        "--yes",
+    )
+    assert PrefixData(prefix).is_environment()
+    env_vars = PrefixData(prefix).get_environment_env_vars()
+    assert env_vars["VAR_A"] == "a_var"
+    assert env_vars["VAR_B"] == "b_var"
+
+
 def test_nonadmin_file_untouched(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -2830,7 +3101,7 @@ def test_mix_explicit_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot combine package names with explicit package lists" in str(exc)
 
 
 @pytest.mark.parametrize("command", ["install", "create"])
@@ -2849,4 +3120,4 @@ def test_mix_explicit_file_and_packages(
             "--yes",
             raises=CondaValueError,
         )
-        assert "Cannot mix specifications with conda package filenames" in str(exc)
+        assert "Cannot combine package names with explicit package lists" in str(exc)

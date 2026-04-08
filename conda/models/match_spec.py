@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 import warnings
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import reduce
 from itertools import chain
@@ -887,7 +887,8 @@ class MatchInterface(metaclass=ABCMeta):
     def raw_value(self):
         return self._raw_value
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def exact_value(self):
         """If the match value is an exact specification, returns the value.
         Otherwise returns None.

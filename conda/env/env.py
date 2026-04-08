@@ -13,7 +13,6 @@ from ..base.context import context
 from ..cli import common
 from ..common.io import dashlist
 from ..common.iterators import unique
-from ..common.path import expand
 from ..common.serialize import json, yaml
 from ..core.prefix_data import PrefixData
 from ..deprecations import deprecated
@@ -439,7 +438,7 @@ class EnvironmentYaml:
         ]
 
         return EnvironmentModel(
-            prefix=self.prefix or context.target_prefix,
+            prefix=self.prefix,
             platform=context.subdir,
             name=self.name,
             config=config,
@@ -452,16 +451,6 @@ class EnvironmentYaml:
 @deprecated("26.3", "26.9", addendum="Use `conda.env.env.EnvironmentYaml` instead.")
 class Environment(EnvironmentYaml):
     """A class representing an ``environment.yaml`` file"""
-
-
-@deprecated("25.9", "26.3")
-def get_filename(filename):
-    """Expand filename if local path or return the ``url``"""
-    url_scheme = filename.split("://", 1)[0]
-    if url_scheme in CONDA_SESSION_SCHEMES:
-        return filename
-    else:
-        return expand(filename)
 
 
 def print_result(args, prefix, result):
