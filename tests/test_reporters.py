@@ -10,16 +10,25 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.exceptions import CondaSystemExit, DryRunExit
+from conda.gateways.logging import TokenURLFilter
 from conda.plugins.reporter_backends.console import TQDMProgressBar
 from conda.reporters import (
     confirm_yn,
     get_progress_bar,
     get_progress_bar_context_manager,
+    redact_token_urls,
     render,
+    render_error,
 )
 
 if TYPE_CHECKING:
     from pytest import CaptureFixture, MonkeyPatch
+
+
+def test_redact_token_urls_matches_token_replace():
+    url = "https://example.com/t/secret-token-abc/channel"
+    sanitized = "https://example.com/t/<TOKEN>/channel"
+    assert redact_token_urls(url) == TokenURLFilter.TOKEN_REPLACE(url) == sanitized
 
 
 def test_render(capsys: CaptureFixture):
@@ -47,6 +56,17 @@ def test_render(capsys: CaptureFixture):
         match="'non_existent_view' is not a valid reporter backend style",
     ):
         render({"test": "data"}, style="non_existent_view")
+
+
+def test_render_error(capsys: CaptureFixture):
+    """
+    Ensure basic coverage of the :func:`~conda.reporters.render_error` function.
+    """
+    render_error("test-string")
+
+    stdout, stderr = capsys.readouterr()
+    assert not stdout
+    assert "test-string" in stderr
 
 
 def test_get_progress_bar():

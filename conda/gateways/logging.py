@@ -3,10 +3,9 @@
 """Configure logging for conda."""
 
 import logging
-import re
 import sys
 from datetime import datetime, timezone
-from functools import cache, partial
+from functools import cache
 from logging import (
     DEBUG,
     INFO,
@@ -19,6 +18,7 @@ from logging import (
 
 from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
+from ..reporters import _TOKEN_URL_PATTERN, redact_token_urls
 
 log = getLogger(__name__)
 _VERBOSITY_LEVELS = {
@@ -34,18 +34,8 @@ logging.addLevelName(TRACE, "TRACE")
 
 
 class TokenURLFilter(Filter):
-    TOKEN_URL_PATTERN = re.compile(
-        r"(|https?://)"  # \1  scheme
-        r"(|\s"  # \2  space, or
-        r"|(?:(?:\d{1,3}\.){3}\d{1,3})"  # ipv4, or
-        r"|(?:"  # domain name
-        r"(?:[a-zA-Z0-9-]{1,20}\.){0,10}"  # non-tld
-        r"(?:[a-zA-Z]{2}[a-zA-Z0-9-]{0,18})"  # tld
-        r"))"  # end domain name
-        r"(|:\d{1,5})?"  # \3  port
-        r"/t/[a-z0-9A-Z-]+/"  # token
-    )
-    TOKEN_REPLACE = staticmethod(partial(TOKEN_URL_PATTERN.sub, r"\1\2\3/t/<TOKEN>/"))
+    TOKEN_URL_PATTERN = _TOKEN_URL_PATTERN
+    TOKEN_REPLACE = staticmethod(redact_token_urls)
 
     def filter(self, record):
         """
