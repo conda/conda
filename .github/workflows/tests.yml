@@ -136,7 +136,7 @@ jobs:
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
-        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes --format conda-lock-v1
+        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes
 
       - name: Activate test environment (lockfile)
         if: matrix.python-version != '3.14'
@@ -301,7 +301,7 @@ jobs:
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
-        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes --format conda-lock-v1
+        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes
 
       - name: Activate test environment (lockfile)
         if: matrix.python-version != '3.14'
@@ -753,7 +753,7 @@ jobs:
 
       - name: Create test environment from lockfile
         if: matrix.python-version != '3.14'
-        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes --format conda-lock-v1
+        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes
 
       - name: Activate test environment (lockfile)
         if: matrix.python-version != '3.14'
