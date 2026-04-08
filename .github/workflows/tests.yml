@@ -133,13 +133,18 @@ jobs:
       - name: Install conda-lockfiles in base
         run: conda install -n base --yes -c conda-forge "conda>=26.3.1" conda-lockfiles
 
-      - name: Setup test environment from lockfile
+      - name: Create test environment from lockfile
+        if: matrix.python-version != '3.14'
+        run: conda env create -n test -f tests/conda-lock-python-${{ matrix.python-version }}.yml --yes --format conda-lock-v1
+
+      - name: Activate test environment (lockfile)
         if: matrix.python-version != '3.14'
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           run-post: false
           activate-environment: test
-          environment-file: tests\conda-lock-python-${{ matrix.python-version }}.yml
+          installation-dir: D:\conda
+          pkgs-dirs: D:\conda_pkgs_dir
 
       - name: Conda create test environment (Python 3.14)
         if: matrix.python-version == '3.14'
@@ -292,13 +297,16 @@ jobs:
       - name: Install conda-lockfiles in base
         run: conda install -n base --yes -c conda-forge "conda>=26.3.1" conda-lockfiles
 
-      - name: Setup test environment from lockfile
+      - name: Create test environment from lockfile
+        if: matrix.python-version != '3.14'
+        run: conda env create -n test -f tests/conda-lock-python-${{ matrix.python-version }}.yml --yes --format conda-lock-v1
+
+      - name: Activate test environment (lockfile)
         if: matrix.python-version != '3.14'
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           run-post: false
           activate-environment: test
-          environment-file: tests/conda-lock-python-${{ matrix.python-version }}.yml
 
       - name: Conda create test environment (Python 3.14)
         if: matrix.python-version == '3.14'
@@ -740,13 +748,16 @@ jobs:
       - name: Install conda-lockfiles in base
         run: conda install -n base --yes -c conda-forge "conda>=26.3.1" conda-lockfiles
 
-      - name: Setup test environment from lockfile
+      - name: Create test environment from lockfile
+        if: matrix.python-version != '3.14'
+        run: conda env create -n test -f tests/conda-lock-python-${{ matrix.python-version }}.yml --yes --format conda-lock-v1
+
+      - name: Activate test environment (lockfile)
         if: matrix.python-version != '3.14'
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           run-post: false
           activate-environment: test
-          environment-file: tests/conda-lock-python-${{ matrix.python-version }}.yml
 
       - name: Conda create test environment (Python 3.14)
         if: matrix.python-version == '3.14'
