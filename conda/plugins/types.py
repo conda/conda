@@ -9,12 +9,12 @@ Each type corresponds to the plugin hook for which it is used.
 
 from __future__ import annotations
 
+import enum
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 from requests.auth import AuthBase
 
@@ -74,7 +74,7 @@ class CondaPlugin:
             raise PluginError(f"Invalid plugin name for {self!r}")
 
 
-@dataclass
+@dataclass(init=False)
 class CondaSubcommand(CondaPlugin):
     """
     Return type to use when defining a conda subcommand plugin hook.
@@ -82,19 +82,56 @@ class CondaSubcommand(CondaPlugin):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_subcommands`.
 
+    Subcommands support two shapes, distinguished by ``configure_parser``:
+
+    * If ``configure_parser`` is set, ``action`` receives the parsed
+      :class:`argparse.Namespace`.
+    * If ``configure_parser`` is omitted, ``action`` receives the remaining
+      argv as :class:`tuple[str, ...]`.
+
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
     :param configure_parser: Callable that will be run when the subcommand parser is initialized.
     """
 
-    name: str
     summary: str
-    action: Callable[
-        [Namespace | tuple[str]],  # arguments
-        int | None,  # return code
-    ]
+    action: Callable[[Namespace], int | None] | Callable[[tuple[str, ...]], int | None]
     configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
+
+    @overload
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[Namespace], int | None],
+        configure_parser: Callable[[ArgumentParser], None],
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[tuple[str, ...]], int | None],
+        configure_parser: None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[Namespace], int | None]
+        | Callable[[tuple[str, ...]], int | None],
+        configure_parser: Callable[[ArgumentParser], None] | None = None,
+    ) -> None:
+        super().__init__(name=name)
+        self.summary = summary
+        self.action = action
+        self.configure_parser = configure_parser
 
 
 @dataclass
@@ -578,6 +615,8 @@ class EnvironmentSpecBase(ABC):
         environment described by the `filename`.
 
         :returns bool: returns True, if the plugin can interpret the file.
+        :raises: raises an exception if it can not handle the file. The exception should
+                 describe why the file can not be handled.
         """
         raise NotImplementedError()
 
@@ -590,6 +629,20 @@ class EnvironmentSpecBase(ABC):
         :returns Environment: the conda environment represented by the file.
         """
         raise NotImplementedError()
+
+
+class EnvironmentFormat(enum.Enum):
+    """
+    Represents supported environment formats.
+
+    TODO: After minimum support for Python 3.11 is introduced, convert to using enum.StrEnum
+    """
+
+    lockfile = "lockfile"
+    environment = "environment"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 @dataclass
@@ -606,12 +659,16 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     :param aliases: user-friendly format aliases (e.g., ("yaml",)). Defaults to an empty list.
     :param environment_spec: EnvironmentSpecBase subclass handler
     :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
     default_filenames: tuple[str, ...] = field(default_factory=tuple)
     aliases: tuple[str, ...] = field(default_factory=tuple)
+    description: str | None = field(default=None)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -623,6 +680,10 @@ class CondaEnvironmentSpecifier(CondaPlugin):
         except AttributeError:
             # AttributeError: alias is not a string
             raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+        # Set default description to name if not provided
+        if self.description is None:
+            self.description = self.name
 
 
 @dataclass
@@ -636,6 +697,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     :param aliases: user-friendly format aliases (e.g., ("yaml",))
     :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
     :param export: callable that exports an Environment to string format
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
@@ -643,6 +706,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     default_filenames: tuple[str, ...]
     export: SinglePlatformEnvironmentExport | None = None
     multiplatform_export: MultiPlatformEnvironmentExport | None = None
+    description: str | None = field(default=None)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -659,6 +724,10 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+        # Set default description to name if not provided
+        if self.description is None:
+            self.description = self.name
 
 
 @dataclass

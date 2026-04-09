@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from argparse import SUPPRESS, _StoreTrueAction
+from argparse import SUPPRESS
 from functools import cached_property
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
@@ -18,7 +18,6 @@ from tempfile import gettempdir
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
-from ..deprecations import deprecated
 from ..exceptions import ArgumentError
 
 if TYPE_CHECKING:
@@ -72,12 +71,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="List all known conda environments. Combine with `--json` to obtain more details.",
     )
     p.add_argument(
-        "-l",
-        "--license",
-        action=deprecated.action("25.9", "26.3", _StoreTrueAction),
-        help=SUPPRESS,
-    )
-    p.add_argument(
         "-s",
         "--system",
         action="store_true",
@@ -87,17 +80,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--size",
         action="store_true",
         help="Show conda-managed disk usage for each environment (excludes untracked files created after installation).",
-    )
-    p.add_argument(
-        "--root",
-        action=deprecated.action(
-            "25.9",
-            "26.3",
-            _StoreTrueAction,
-            addendum="Use `--base` instead.",
-        ),
-        help=SUPPRESS,
-        dest="base",
     )
     p.add_argument(
         "--unsafe-channels",
@@ -526,7 +508,6 @@ class InfoRenderer:
         return self._info_dict_envs
 
     def _system_component(self) -> str:
-        from .find_commands import find_commands, find_executable
 
         output = [
             f"sys.version: {sys.version[:40]}...",
@@ -535,8 +516,13 @@ class InfoRenderer:
             "conda location: {}".format(self._info_dict["conda_location"]),
         ]
 
-        for cmd in sorted(set(find_commands() + ("build",))):
-            output.append("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
+        subcommands = self._context.plugin_manager.get_subcommands()
+        conda_build = subcommands.pop("build", None)
+        plugin_name = getattr(getattr(conda_build, "impl", None), "plugin_name", None)
+        output.append(f"conda-build: {plugin_name or '(missing)'}")
+        for name, plugin in sorted(subcommands.items()):
+            plugin_name = getattr(getattr(plugin, "impl", None), "plugin_name", None)
+            output.append(f"conda-{name}: {plugin_name or '(unknown)'}")
 
         site_dirs = self._info_dict["site_dirs"]
         if site_dirs:
@@ -558,15 +544,6 @@ class InfoRenderer:
 
     def _json_all_component(self) -> dict[str, Any]:
         return self._info_dict
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.cli.main_info.iter_info_components` instead.",
-)
-def get_info_components(args: Namespace, context: Context) -> set[InfoComponents]:
-    return set(iter_info_components(args, context))
 
 
 def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:

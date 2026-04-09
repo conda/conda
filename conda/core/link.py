@@ -38,7 +38,6 @@ from ..common.path import (
     get_python_site_packages_short_path,
 )
 from ..common.signals import signal_handler
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaSystemExit,
     DisallowedPackageError,
@@ -186,13 +185,8 @@ class ActionGroup(NamedTuple):
     target_prefix: str
 
 
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="PrefixActions will be renamed to PrefixActionGroup in 26.3.",
-)
 @dataclass
-class PrefixActions:
+class PrefixActionGroup:
     """A container for groups of actions carried out during an UnlinkLinkTransaction.
 
     :param remove_menu_action_groups: Actions which remove menu items
@@ -223,19 +217,6 @@ class PrefixActions:
     def __iter__(self) -> Generator[Iterable[ActionGroup], None, None]:
         for field in fields(self):
             yield getattr(self, field.name)
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixActions instead.")
-class PrefixActionGroup(NamedTuple):
-    remove_menu_action_groups: Iterable[ActionGroup]
-    unlink_action_groups: Iterable[ActionGroup]
-    unregister_action_groups: Iterable[ActionGroup]
-    link_action_groups: Iterable[ActionGroup]
-    register_action_groups: Iterable[ActionGroup]
-    compile_action_groups: Iterable[ActionGroup]
-    make_menu_action_groups: Iterable[ActionGroup]
-    entry_point_action_groups: Iterable[ActionGroup]
-    prefix_record_groups: Iterable[ActionGroup]
 
 
 class ChangeReport(NamedTuple):
@@ -388,8 +369,8 @@ class UnlinkLinkTransaction:
             raise RuntimeError("Cannot run .execute() with dry-run enabled.")
 
         try:
-            # innermost dict.values() is an iterable of PrefixActions
-            # instances; zip() is an iterable of each PrefixActions
+            # innermost dict.values() is an iterable of PrefixActionGroup
+            # instances; zip() is an iterable of each PrefixActionGroup
             self._execute(
                 tuple(chain(*chain(*zip(*self.prefix_action_groups.values()))))
             )
@@ -618,7 +599,7 @@ class UnlinkLinkTransaction:
             neutered_specs,
         )
 
-        return PrefixActions(
+        return PrefixActionGroup(
             remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,
@@ -802,7 +783,6 @@ class UnlinkLinkTransaction:
             # means we're not unlinking then linking a new package, so look up current conda record
             conda_final_prefix = context.conda_prefix
             pd = PrefixData(conda_final_prefix)
-            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = ()
             pkg_names_being_unlnkd = ()
             conda_linked_depends = next(
@@ -816,7 +796,6 @@ class UnlinkLinkTransaction:
         else:
             conda_final_prefix = conda_final_setup.target_prefix
             pd = PrefixData(conda_final_prefix)
-            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = tuple(
                 prec.name for prec in conda_final_setup.link_precs or ()
             )
@@ -829,8 +808,7 @@ class UnlinkLinkTransaction:
             for conda_dependency in conda_linked_depends:
                 dep_name = MatchSpec(conda_dependency).name
                 if dep_name not in pkg_names_being_lnkd and (
-                    dep_name not in pkg_names_already_lnkd
-                    or dep_name in pkg_names_being_unlnkd
+                    dep_name in pkg_names_being_unlnkd
                 ):
                     yield RemoveError(
                         f"'{dep_name}' is a dependency of conda and cannot be removed from\n"

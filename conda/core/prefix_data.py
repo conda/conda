@@ -37,10 +37,8 @@ from ..common.path import expand, paths_equal, strip_pkg_extension
 from ..common.serialize import json
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
-from ..deprecations import deprecated
 from ..exceptions import (
     BasicClobberError,
-    CondaDependencyError,
     CondaError,
     CondaValueError,
     CorruptedEnvironmentError,
@@ -74,9 +72,6 @@ log = getLogger(__name__)
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
-    @deprecated.argument(
-        "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
-    )
     def __call__(
         cls,
         prefix_path: PathType,
@@ -126,16 +121,13 @@ class PrefixData(metaclass=PrefixDataType):
 
     _cache_: dict[tuple[Path, bool | None], PrefixData] = {}
 
-    @deprecated.argument(
-        "25.9", "26.3", "pip_interop_enabled", rename="interoperability"
-    )
     def __init__(
         self,
         prefix_path: PathType,
         interoperability: bool | None = None,
     ):
-        # pip_interop_enabled is a temporary parameter; DO NOT USE
-        # TODO: when removing pip_interop_enabled, also remove from meta class
+        # interoperability is a temporary parameter; DO NOT USE
+        # TODO: when removing interoperability, also remove from meta class
         self.prefix_path: Path = Path(prefix_path)
         self._magic_file: Path = self.prefix_path / PREFIX_MAGIC_FILE
         self._frozen_file: Path = self.prefix_path / PREFIX_FROZEN_FILE
@@ -481,11 +473,6 @@ class PrefixData(metaclass=PrefixDataType):
         self.load()
         return self
 
-    @property
-    @deprecated("25.9", "26.3", addendum="Use PrefixData.interoperability.")
-    def _pip_interop_enabled(self):
-        return self.interoperability
-
     def _get_json_fn(self, prefix_record: PrefixRecord) -> str:
         fn = prefix_record.fn
         # Check package extensions (dynamic) or .dist-info (pip-installed)
@@ -661,32 +648,6 @@ class PrefixData(metaclass=PrefixDataType):
             self.__prefix_records[name] = data
 
     # endregion
-    # region Python records
-
-    @property
-    @deprecated("25.9", "26.3", addendum="Use PrefixData.get('python').")
-    def _python_pkg_record(self) -> PrefixRecord | None:
-        """Return the prefix record for the package python."""
-        return next(
-            (
-                prefix_record
-                for prefix_record in self.__prefix_records.values()
-                if prefix_record.name == "python"
-            ),
-            None,
-        )
-
-    @deprecated(
-        "25.9",
-        "26.3",
-        addendum="Use 'conda.plugins.prefix_data_loaders.pypi.load_site_packages' instead.",
-    )
-    def _load_site_packages(self) -> dict[str, PrefixRecord]:
-        from ..plugins.prefix_data_loaders.pypi import load_site_packages
-
-        return load_site_packages(self.prefix_path, self.__prefix_records)
-
-    # endregion
     # region State and environment variables
 
     def _get_environment_state_file(self) -> dict[str, dict[str, str]]:
@@ -828,43 +789,6 @@ def get_conda_anchor_files_and_records(
             conda_python_packages[anchor_paths[0]] = prefix_record
 
     return conda_python_packages
-
-
-@deprecated("25.9", "26.3", addendum="Use `PrefixData.get('python', None)` instead.")
-def python_record_for_prefix(prefix: os.PathLike) -> PrefixRecord | None:
-    """
-    For the given conda prefix, return the PrefixRecord of the Python installed
-    in that prefix.
-    """
-    python_record_iterator = (
-        record
-        for record in PrefixData(prefix).iter_records()
-        if record.name == "python"
-    )
-    record = next(python_record_iterator, None)
-    if record is not None:
-        next_record = next(python_record_iterator, None)
-        if next_record is not None:
-            raise CondaDependencyError(
-                f"multiple python records found in prefix {prefix}"
-            )
-    return record
-
-
-@deprecated("25.9", "26.3", addendum="Use `PrefixData.get('python').version` instead.")
-def get_python_version_for_prefix(prefix: os.PathLike) -> str | None:
-    """
-    For the given conda prefix, return the version of the Python installation
-    in that prefix.
-    """
-    # returns a string e.g. "2.7", "3.4", "3.5" or None
-    record = PrefixData(prefix).get("python", None)
-    if record is not None:
-        if record.version[3].isdigit():
-            return record.version[:4]
-        else:
-            return record.version[:3]
-    return None
 
 
 def delete_prefix_from_linked_data(path: str | os.PathLike | Path) -> bool:

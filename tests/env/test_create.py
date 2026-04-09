@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -15,7 +14,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, EnvironmentSpecPluginSelectionError
 from conda.testing.integration import package_is_installed
 
 from . import remote_support_file, support_file
@@ -159,20 +158,16 @@ def test_create_empty_env(
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    with warnings.catch_warnings(record=True) as warning_list:
-        warnings.simplefilter("always", PendingDeprecationWarning)
+    with pytest.deprecated_call(
+        match=r"The environment file is not fully CEP 24 compliant",
+    ):
         conda_cli(
-            *("env", "create"),
-            *("--name", env_name),
-            *("--file", support_file("empty_env.yml")),
+            "env",
+            "create",
+            f"--name={env_name}",
+            f"--file={support_file('empty_env.yml')}",
         )
 
-    cep24_warnings = [
-        w
-        for w in warning_list
-        if "The environment file is not fully CEP 24 compliant" in str(w.message)
-    ]
-    assert len(cep24_warnings) > 0
     assert prefix.exists()
 
 
@@ -345,7 +340,7 @@ def test_create_env_from_non_existent_plugin(
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "nonexistent_plugin")
     with tmp_env() as prefix:
         with pytest.raises(
-            CondaValueError,
+            EnvironmentSpecPluginSelectionError,
         ) as excinfo:
             conda_cli(
                 "env",
@@ -415,29 +410,24 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
 ):
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
 
-    with warnings.catch_warnings(record=True) as warning_list:
-        warnings.simplefilter("always", PendingDeprecationWarning)
-        prefix = path_factory()
-        stdout, stderr, err = conda_cli(
+    # The environment file is not fully CEP 24 compliant is pending deprecation and will be removed in 26.9. In the future, this configuration will be rejected. Please fix the following errors in order to make the configuration valid:
+    #   - Missing required field 'dependencies'
+
+    with pytest.deprecated_call(
+        match=(
+            r"(?s)The environment file is not fully CEP 24 compliant.+"
+            r"Missing required field 'dependencies'"
+        ),
+    ):
+        stdout, _, _ = conda_cli(
             "env",
             "create",
-            f"--prefix={prefix}",
-            "--file",
-            support_file("invalid_keys.yml"),
+            f"--prefix={path_factory()}",
+            f"--file={support_file('invalid_keys.yml')}",
         )
 
-    cep24_warnings = [
-        w
-        for w in warning_list
-        if "Provided environment.yaml is invalid: Missing required field 'dependencies'"
-        in str(w.message)
-    ]
-    assert len(cep24_warnings) > 0
-
-    # When splitting the output on "EnvironmentSectionNotValid", we should
-    # get an array of length 2 if the string only appears once. If it appears
-    # multiple times, the array will have more elements.
-    assert len(stdout.split("EnvironmentSectionNotValid")) == 2
+    # EnvironmentSectionNotValid should only appear once in the output
+    assert stdout.count("EnvironmentSectionNotValid") == 1
 
 
 @pytest.mark.integration
@@ -455,7 +445,7 @@ def test_create_env_from_file_with_mismatched_extension_via_env_spec(
     spec_name: str,
     content: str,
 ):
-    """When --env-spec is provided, content is validated, not filename."""
+    """When --format is provided, content is validated, not filename."""
     tmp_file = path_factory(suffix=".foobar")
     tmp_file.write_text(Path(content).read_text())
 
@@ -464,7 +454,7 @@ def test_create_env_from_file_with_mismatched_extension_via_env_spec(
         "env",
         "create",
         f"--prefix={prefix}",
-        f"--environment-specifier={spec_name}",
+        f"--format={spec_name}",
         "--file",
         str(tmp_file),
     )
@@ -511,7 +501,7 @@ def test_export_and_recreate_environment(
             "env",
             "create",
             f"--prefix={recreate_prefix}",
-            f"--env-spec={target_format}",
+            f"--format={target_format}",
             f"--file={env_file_path}",
             "--dry-run",
         )

@@ -15,8 +15,6 @@ from copy import copy
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
-
 from ..base.constants import (
     DEFAULTS_CHANNEL_NAME,
     MAX_CHANNEL_PRIORITY,
@@ -24,6 +22,7 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.compat import ensure_text_type, isiterable
+from ..common.iterators import unique
 from ..common.path import is_path, win_path_backout
 from ..common.url import (
     Url,
@@ -721,12 +720,12 @@ def all_channel_urls(
     channels: Iterable[str | Channel],
     subdirs: Iterable[str] | None = None,
     with_credentials: bool = True,
-) -> IndexedSet:
-    result = IndexedSet()
+) -> tuple[Channel, ...]:
+    result = []
     for chn in channels:
         channel = Channel(chn)
-        result.update(channel.urls(with_credentials, subdirs))
-    return result
+        result.extend(channel.urls(with_credentials, subdirs))
+    return tuple(unique(result))
 
 
 def offline_keep(url: Any) -> bool:
