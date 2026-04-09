@@ -185,9 +185,23 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
 
-        context.plugin_manager.invoke_pre_commands(command)
+        # Only invoke plugin hooks when the plugin manager has already been
+        # loaded.  With lazy subcommand parser loading (A2/A3), commands like
+        # `conda run` reach do_call() without triggering plugin discovery,
+        # so accessing context.plugin_manager here would load all plugins
+        # (~430 modules, ~240 ms) for commands that never use them.
+        from ..plugins.manager import get_plugin_manager
+
+        try:
+            plugins_loaded = get_plugin_manager.cache_info().currsize > 0
+        except (AttributeError, TypeError):
+            plugins_loaded = True
+
+        if plugins_loaded:
+            context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)
-        context.plugin_manager.invoke_post_commands(command)
+        if plugins_loaded:
+            context.plugin_manager.invoke_post_commands(command)
     return result
 
 
