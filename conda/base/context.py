@@ -1279,7 +1279,7 @@ class Context(Configuration):
         """Returns a dict of environment related settings"""
         return {key: getattr(self, key) for key in self.environment_context_keys}
 
-    @property
+    @memoizedproperty
     def category_map(self) -> dict[str, tuple[str, ...]]:
         return {
             "Channel Configuration": (
