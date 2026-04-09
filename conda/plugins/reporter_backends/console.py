@@ -197,12 +197,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         return "\n".join(table_parts)
 
     @staticmethod
-    def envs_list(
-        prefixes: Iterable[PathType | PrefixData], output=True, **kwargs
-    ) -> str:
-        if not output:
-            return ""
-
+    def envs_list(prefixes: Iterable[PathType | PrefixData], **kwargs) -> str:
         show_size = kwargs.get("show_size", False)
 
         output = [
