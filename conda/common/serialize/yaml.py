@@ -4,13 +4,10 @@
 
 from __future__ import annotations
 
-from enum import Enum
 from functools import cache
 from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING, overload
-
-import ruamel.yaml
 
 if TYPE_CHECKING:
     from io import IO
@@ -19,30 +16,32 @@ if TYPE_CHECKING:
     from ..path import PathType
 
 
-class CondaYAMLRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
-    def default(self, data: Any) -> Any:
-        # Python types
-        if isinstance(data, Enum):
-            return self.represent_str(data.value)
-        elif isinstance(data, Path):
-            return self.represent_str(str(data))
-
-        # auxlib entity types
-        for attr in ("dump", "__json__", "to_json", "as_json"):
-            if method := getattr(data, attr, None):
-                return self.represent_data(method())
-
-        # mirror JSON behavior
-        raise TypeError(
-            f"Object of type {data.__class__.__name__} is not YAML serializable"
-        )
-
-
-CondaYAMLRepresenter.add_representer(None, CondaYAMLRepresenter.default)
-
-
 @cache
-def _yaml() -> ruamel.yaml.YAML:
+def _yaml():
+    import ruamel.yaml
+
+    class CondaYAMLRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
+        def default(self, data: Any) -> Any:
+            from enum import Enum
+
+            # Python types
+            if isinstance(data, Enum):
+                return self.represent_str(data.value)
+            elif isinstance(data, Path):
+                return self.represent_str(str(data))
+
+            # auxlib entity types
+            for attr in ("dump", "__json__", "to_json", "as_json"):
+                if method := getattr(data, attr, None):
+                    return self.represent_data(method())
+
+            # mirror JSON behavior
+            raise TypeError(
+                f"Object of type {data.__class__.__name__} is not YAML serializable"
+            )
+
+    CondaYAMLRepresenter.add_representer(None, CondaYAMLRepresenter.default)
+
     parser = ruamel.yaml.YAML(typ="rt")
     parser.Representer = CondaYAMLRepresenter
     parser.indent(mapping=2, offset=2, sequence=4)
@@ -124,4 +123,9 @@ def loads(s: str) -> Any:
     return read(text=s)
 
 
-YAMLError = ruamel.yaml.YAMLError
+def __getattr__(name: str):
+    if name == "YAMLError":
+        import ruamel.yaml
+
+        return ruamel.yaml.YAMLError
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
