@@ -1,0 +1,6 @@
+### Enhancements
+
+* `ContextStack` now allocates a single slot on construction instead of three.
+  Slots are still doubled on demand, so deep nesting works identically.
+  Eliminates two unnecessary `ContextStackObject` allocations at import time.
+  (#15867)
