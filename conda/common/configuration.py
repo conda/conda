@@ -1467,7 +1467,17 @@ class Configuration(metaclass=ConfigurationType):
                 )
 
     def _set_search_path(self, search_path: PathsType, **kwargs):
-        self._search_path = self._expand_search_path(search_path, **kwargs)
+        # Cache the expanded result so repeated calls with the same arguments
+        # (e.g. the two context.__init__ calls in main_subshell) skip the
+        # filesystem stat/iterdir work.
+        cache_key = (tuple(search_path), tuple(sorted(kwargs.items())))
+        cached = getattr(self, "_search_path_cache", None)
+        if cached is not None and cached[0] == cache_key:
+            self._search_path = cached[1]
+            return self
+
+        self._search_path = tuple(self._expand_search_path(search_path, **kwargs))
+        self._search_path_cache = (cache_key, self._search_path)
 
         self._set_raw_data(dict(self._load_search_path(self._search_path)))
 

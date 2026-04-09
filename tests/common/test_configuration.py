@@ -875,6 +875,74 @@ def test_expand_search_path(tmp_path):
 
 
 @pytest.fixture
+def minimal_config_class():
+    """A minimal Configuration subclass with a single channels parameter."""
+
+    class MinimalConfig(Configuration):
+        channels = ParameterLoader(SequenceParameter(PrimitiveParameter("")))
+
+    return MinimalConfig
+
+
+def test_set_search_path_result_is_tuple(tmp_path: Path, minimal_config_class) -> None:
+    """_set_search_path should materialise the result as a tuple, not a lazy generator."""
+    condarc = tmp_path / "condarc"
+    condarc.write_text("channels:\n  - defaults\n")
+
+    cfg = minimal_config_class([str(condarc)])
+
+    assert isinstance(cfg._search_path, tuple)
+    assert condarc in cfg._search_path
+
+
+def test_set_search_path_caches_on_repeat_call(
+    tmp_path: Path, minimal_config_class
+) -> None:
+    """Calling _set_search_path twice with the same args should reuse the cached result."""
+    condarc = tmp_path / "condarc"
+    condarc.write_text("channels:\n  - defaults\n")
+
+    cfg = minimal_config_class([str(condarc)])
+    first = cfg._search_path
+
+    # Second call with identical args — must return the same tuple object (identity).
+    cfg._set_search_path([str(condarc)])
+    assert cfg._search_path is first
+
+
+@pytest.mark.parametrize(
+    "channels_a,channels_b",
+    [
+        (["defaults"], ["conda-forge"]),
+        (["conda-forge", "defaults"], ["defaults"]),
+    ],
+)
+def test_set_search_path_refreshes_on_new_path(
+    tmp_path: Path,
+    minimal_config_class,
+    channels_a: list[str],
+    channels_b: list[str],
+) -> None:
+    """_set_search_path should re-expand and reload when called with a different path."""
+    condarc1 = tmp_path / "condarc1"
+    condarc1.write_text("channels:\n" + "".join(f"  - {c}\n" for c in channels_a))
+    condarc2 = tmp_path / "condarc2"
+    condarc2.write_text("channels:\n" + "".join(f"  - {c}\n" for c in channels_b))
+
+    cfg = minimal_config_class([str(condarc1)])
+    assert cfg._search_path == (condarc1,)
+
+    cfg._set_search_path([str(condarc2)])
+    assert cfg._search_path == (condarc2,)
+
+
+def test_set_search_path_empty_path(minimal_config_class) -> None:
+    """An empty search path should produce an empty tuple without errors."""
+    cfg = minimal_config_class([])
+    assert cfg._search_path == ()
+
+
+@pytest.fixture
 def unique_sequence_map_test_class():
     """
     Creates a class that is used for ``unique_sequence_map`` tests
