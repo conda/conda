@@ -7,10 +7,13 @@ from os.path import isfile, join
 
 from .core.link import UnlinkLinkTransaction
 from .core.package_cache_data import ProgressiveFetchExtract
+from .deprecations import deprecated
 from .exceptions import CondaFileIOError
 from .gateways.disk.link import islink
 
 log = getLogger(__name__)
+
+deprecated.module("26.9", "27.3")
 
 # op codes
 CHECK_FETCH = "CHECK_FETCH"
