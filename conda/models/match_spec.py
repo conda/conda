@@ -37,6 +37,14 @@ except ImportError:
 
 log = getLogger(__name__)
 
+_BRACKETS_RE = re.compile(r".*(?:(\[.*\]))")
+_BRACKETS_KV_RE = re.compile(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)')
+_PARENS_RE = re.compile(r".*(?:(\(.*\)))")
+_NAME_VERSION_RE = re.compile(r"([^ =<>!~]+)?([><!=~ ].+)?")
+_VERSION_BUILD_RE = re.compile(
+    r"((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>~]+?))?$"
+)
+
 
 class MatchSpecType(type):
     def __call__(cls, spec_arg=None, **kwargs):
@@ -599,9 +607,7 @@ def _parse_version_plus_build(v_plus_b):
         >>> _parse_version_plus_build("* *")
         ('*', '*')
     """
-    parts = re.search(
-        r"((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>~]+?))?$", v_plus_b
-    )
+    parts = _VERSION_BUILD_RE.search(v_plus_b)
     if parts:
         version, build = parts.groups()
         build = build and build.strip()
@@ -751,14 +757,12 @@ def _parse_spec_str(spec_str):
 
     # Step 3. strip off brackets portion
     brackets = {}
-    m3 = re.match(r".*(?:(\[.*\]))", spec_str)
+    m3 = _BRACKETS_RE.match(spec_str)
     if m3:
         brackets_str = m3.groups()[0]
         spec_str = spec_str.replace(brackets_str, "")
         brackets_str = brackets_str[1:-1]
-        m3b = re.finditer(
-            r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets_str
-        )
+        m3b = _BRACKETS_KV_RE.finditer(brackets_str)
         for match in m3b:
             key, _, value, _ = match.groups()
             if not key or not value:
@@ -770,15 +774,13 @@ def _parse_spec_str(spec_str):
             brackets[key] = value
 
     # Step 4. strip off parens portion
-    m4 = re.match(r".*(?:(\(.*\)))", spec_str)
+    m4 = _PARENS_RE.match(spec_str)
     parens = {}
     if m4:
         parens_str = m4.groups()[0]
         spec_str = spec_str.replace(parens_str, "")
         parens_str = parens_str[1:-1]
-        m4b = re.finditer(
-            r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', parens_str
-        )
+        m4b = _BRACKETS_KV_RE.finditer(parens_str)
         for match in m4b:
             key, _, value, _ = match.groups()
             parens[key] = value
@@ -809,7 +811,7 @@ def _parse_spec_str(spec_str):
         subdir = brackets.pop("subdir")
 
     # Step 6. strip off package name from remaining version + build
-    m3 = re.match(r"([^ =<>!~]+)?([><!=~ ].+)?", spec_str)
+    m3 = _NAME_VERSION_RE.match(spec_str)
     if m3:
         name, spec_str = m3.groups()
         if name is None:
