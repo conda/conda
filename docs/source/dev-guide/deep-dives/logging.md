@@ -24,7 +24,6 @@ flowchart LR
     conda -.-> conda.stdoutlog
     conda -.-> conda.stderrlog
     root --> auxlib
-    root --> progress.update & progress.stop
 ```
 
 The full hierarchy of all module level loggers is given below at {ref}`full-module-loggers`.
@@ -47,7 +46,7 @@ These are likely to be replaced and should not be used in new code.
 
 ### Other loggers
 
-Three more loggers appear in conda, namely `progress.update`and `progress.stop`, which only appear in `conda.plan.execute_actions`, which in turn is deprecated (c.f. https://github.com/conda/conda/pull/13881); and `auxlib` which likely is a remnant from before the auxlib code was completely
+The `auxlib` logger likely is a remnant from before the auxlib code was completely
 absorbed into conda, since it only appears to be adorned with {class}`conda.auxlib.NullHandler` in `conda.auxlib.__init__`.
 
 ## Potential effect on other loggers
