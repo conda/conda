@@ -210,8 +210,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     pd = PrefixData(prefix, interoperability=True)
     pypi_packages = pd.get_python_packages()
-    if pypi_packages and not context.quiet:
-        warnings.warn(
+    warns = []
+    if pypi_packages:
+        warns.append(
             "The exported environment contains 3rd party Python packages.\n\n"
             f"Your environment contains {len(pypi_packages)} package{'s' if len(pypi_packages) > 1 else ''} "
             "installed via pip. Conda cannot reliably lock these packages for reproducible "
@@ -219,7 +220,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             "Detected packages:"
             f"{dashlist([package.to_simple_match_spec() for package in pypi_packages])}"
             "\n\nLearn more: https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/pip-interoperability.html",
-            category=CondaExportWarning,
         )
 
     # Export using the appropriate method
@@ -241,8 +241,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         with open(args.file, "w") as fp:
             fp.write(exported_content)
         if args.json:
-            stdout_json({"success": True, "file": args.file, "format": target_format})
+            stdout_json(
+                {
+                    "success": True,
+                    "file": args.file,
+                    "format": target_format,
+                    "warnings": warns,
+                }
+            )
+        elif warns and not context.quiet:
+            warnings.warn("\n\n".join(warns), CondaExportWarning)
     else:
+        if warns and not context.quiet:
+            warnings.warn("\n\n".join(warns), CondaExportWarning)
         print(exported_content, end="")
 
     return 0
