@@ -46,9 +46,6 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     if context.no_plugins:
         context.plugin_manager.disable_external_plugins()
 
-    # reinitialize in case any of the entrypoints modified the context
-    context.__init__(argparse_args=pre_args)
-
     parser = generate_parser(add_help=True)
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 

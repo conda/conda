@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.cli.main import main_sourced
+from conda.base.context import context
+from conda.cli.main import main_sourced, main_subshell
 from conda.common.compat import on_win
 
 if TYPE_CHECKING:
@@ -32,6 +33,26 @@ def test_ensure_no_command_provided_returns_help(
     captured = capsys.readouterr()
 
     assert "error: the following arguments are required: COMMAND" in captured.err
+
+
+def test_main_subshell_help_exits_cleanly(capsys) -> None:
+    """main_subshell("--help") should exit with SystemExit and print usage."""
+    with pytest.raises(SystemExit) as exc_info:
+        main_subshell("--help")
+
+    assert exc_info.value.code == 0
+    out = capsys.readouterr().out
+    assert "usage" in out.lower()
+
+
+def test_main_subshell_no_plugins_flag(monkeypatch) -> None:
+    """CONDA_NO_PLUGINS=true should disable external plugins via main_subshell."""
+    monkeypatch.setenv("CONDA_NO_PLUGINS", "true")
+
+    with pytest.raises(SystemExit):
+        main_subshell("--help")
+
+    assert context.no_plugins is True
 
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test")
