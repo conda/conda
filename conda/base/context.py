@@ -756,7 +756,7 @@ class Context(Configuration):
         else:
             return 8 * struct.calcsize("P")
 
-    @property
+    @memoizedproperty
     def root_writable(self) -> bool:
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
