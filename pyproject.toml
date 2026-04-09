@@ -225,7 +225,8 @@ select = [
   "S101",  # forbid assert
   "T10",  # flake8-debugger
   "TC",  # flake8-type-checking
-  "TID251",  # flake8-tidy-imports
+  "TID251",  # flake8-tidy-imports: banned-api
+  "TID253",  # flake8-tidy-imports: banned-module-level-imports
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
 ]
@@ -241,7 +242,14 @@ select = [
   "D1",  # pydocstyle
   "S101",  # forbid assert
   "TID251",  # flake8-tidy-imports
+  "TID253",  # flake8-tidy-imports: tests may import requests directly
 ]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Prevent accidental module-level imports of heavy packages on the startup path.
+# Files that legitimately import these packages (e.g. conda/gateways/) should
+# suppress the warning with # noqa: TID253 on the relevant import lines.
+banned-module-level-imports = ["requests"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "json".msg = "Use `conda.common.serialize.json` instead."

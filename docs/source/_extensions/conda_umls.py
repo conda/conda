@@ -6,7 +6,7 @@ import os
 import shutil
 import sys
 
-import requests
+import requests  # noqa: TID253
 from pylint.pyreverse.main import Run
 
 here = os.path.dirname(__file__)
