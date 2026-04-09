@@ -1065,3 +1065,42 @@ def test_prefix_data_validate_name_base(
             else nullcontext()
         ):
             pd.validate_name(allow_base=allow_base)
+
+
+@pytest.mark.parametrize(
+    "record_data",
+    [
+        {
+            "name": "numpy",
+            "version": "1.24.0",
+            "build": "py310h0000000_0",
+            "build_number": 0,
+            "channel": "defaults",
+            "subdir": "linux-64",
+            "fn": "numpy-1.24.0-py310h0000000_0.conda",
+        },
+    ],
+)
+def test_load_single_record_reads_bytes(tmp_path: Path, record_data: dict) -> None:
+    """_load_single_record should parse a JSON file written as bytes."""
+    conda_meta = tmp_path / "conda-meta"
+    conda_meta.mkdir()
+    fn = f"{record_data['name']}-{record_data['version']}-{record_data['build']}.json"
+    (conda_meta / fn).write_text(json.dumps(record_data))
+
+    pd = PrefixData(tmp_path)
+    pd.load()
+
+    assert record_data["name"] in pd._PrefixData__prefix_records
+
+
+def test_load_single_record_raises_on_corrupt_json(tmp_path: Path) -> None:
+    """_load_single_record should raise CorruptedEnvironmentError for invalid JSON."""
+    conda_meta = tmp_path / "conda-meta"
+    conda_meta.mkdir()
+    (conda_meta / "bad-1.0-h0000000_0.json").write_bytes(b"not valid json {{{")
+
+    pd = PrefixData(tmp_path)
+
+    with pytest.raises(CorruptedEnvironmentError):
+        pd.load()
