@@ -2268,3 +2268,77 @@ def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
     if activator_cls == CmdExeActivator:
         output = Path(output.strip()).read_text()
     assert str(tmp_path) in output
+
+
+class _TrackingPrePostPlugin:
+    """Plugin that records pre/post command invocations without mock."""
+
+    def __init__(self):
+        self.pre_calls: list[str] = []
+        self.post_calls: list[str] = []
+
+    def _pre_action(self, command: str) -> None:
+        self.pre_calls.append(command)
+
+    def _post_action(self, command: str) -> None:
+        self.post_calls.append(command)
+
+    @plugins.hookimpl
+    def conda_pre_commands(self):
+        yield CondaPreCommand(
+            name="tracking-pre",
+            action=self._pre_action,
+            run_for={"activate", "deactivate", "reactivate", "hook"},
+        )
+
+    @plugins.hookimpl
+    def conda_post_commands(self):
+        yield CondaPostCommand(
+            name="tracking-post",
+            action=self._post_action,
+            run_for={"activate", "deactivate", "reactivate", "hook"},
+        )
+
+
+@pytest.fixture()
+def _clear_plugin_manager_cache():
+    """Ensure the plugin manager cache is empty before and after the test."""
+    from conda.plugins.manager import get_plugin_manager
+
+    get_plugin_manager.cache_clear()
+    yield
+    get_plugin_manager.cache_clear()
+
+
+@pytest.mark.usefixtures("_clear_plugin_manager_cache")
+@pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
+def test_plugin_hooks_skipped_when_manager_not_loaded(command: str) -> None:
+    """Plugin hooks are skipped when the plugin manager has not been loaded.
+
+    This is the fast path for ``conda shell.posix activate`` — no plugins
+    are imported, saving ~430 modules and ~240 ms.
+    """
+    from conda.plugins.manager import get_plugin_manager
+
+    assert get_plugin_manager.cache_info().currsize == 0
+
+    activator = PosixActivator([command])
+    activator.execute()
+
+    assert get_plugin_manager.cache_info().currsize == 0
+
+
+@pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
+def test_plugin_hooks_invoked_when_manager_loaded(
+    plugin_manager: CondaPluginManager,
+    command: str,
+) -> None:
+    """Plugin hooks fire when the plugin manager is already initialized."""
+    tracker = _TrackingPrePostPlugin()
+    plugin_manager.register(tracker)
+
+    activator = PosixActivator([command])
+    activator.execute()
+
+    assert tracker.pre_calls == [command]
+    assert tracker.post_calls == [command]
