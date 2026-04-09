@@ -1,0 +1,19 @@
+### Enhancements
+
+* Skip plugin pre/post command hooks in `do_call()` when the plugin manager has not been loaded, avoiding unnecessary plugin discovery for commands like `conda run`. (#15867)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
