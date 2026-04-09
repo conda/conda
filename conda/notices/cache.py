@@ -25,7 +25,7 @@ from ..base.constants import (
     NOTICES_DECORATOR_DISPLAY_INTERVAL,
 )
 from ..common.serialize import json
-from ..utils import ensure_dir_exists
+from ..exceptions import CondaError
 from .types import ChannelNoticeResponse
 
 if TYPE_CHECKING:
@@ -77,12 +77,19 @@ def is_notice_response_cache_expired(
     )
 
 
-@ensure_dir_exists
 def get_notices_cache_dir() -> Path:
     """Returns the location of the notices cache directory as a Path object"""
-    cache_dir = user_cache_dir(APP_NAME, appauthor=APP_NAME)
-
-    return Path(cache_dir).joinpath(NOTICES_CACHE_SUBDIR)
+    cache_dir = Path(user_cache_dir(APP_NAME, appauthor=APP_NAME))
+    cache_subdir = cache_dir / NOTICES_CACHE_SUBDIR
+    try:
+        cache_subdir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise CondaError(
+            "Error encountered while attempting to create cache directory.\n"
+            f"  Directory: {cache_subdir}\n"
+            f"  Exception: {exc}"
+        )
+    return cache_subdir
 
 
 def get_notices_cache_file() -> Path:

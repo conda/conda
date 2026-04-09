@@ -27,6 +27,8 @@ from conda.testing.notices.helpers import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
@@ -425,7 +427,8 @@ def test_notices_shown_after_previous_command_error(
     notices_cache_dir,
     notices_mock_fetch_get_session,
     conda_cli: CondaCLIFixture,
-    test_recipes_channel,
+    test_recipes_channel: Path,
+    path_factory: PathFactoryFixture,
 ):
     """
     As a user, when I run a command that generates an error (e.g. trying to install a package that
@@ -434,32 +437,24 @@ def test_notices_shown_after_previous_command_error(
 
     Regression test for: https://github.com/conda/conda/issues/14072
     """
-    env_one = "notices-test"
+    message = "Test One"
+    messages_json = get_test_notices([message])
 
-    messages = ("Test One",)
-    messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
+    # configure server notices
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json, count=2)
 
-    with pytest.raises(PackagesNotFoundError):
-        conda_cli(
-            "create",
-            f"--name={env_one}",
-            f"--channel={test_recipes_channel}",
-            "--override-channels",
-            "--yes",
-            "package-does-not-exist",
-        )
-
-    messages = ("Test One",)
-    messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
-
-    out, err, exc = conda_cli(
+    # notices are not shown
+    out, err, _ = conda_cli(
         "create",
-        f"--name={env_one}",
-        f"--channel={test_recipes_channel}",
-        "--override-channels",
+        f"--prefix={path_factory()}",
         "--yes",
+        "package-does-not-exist",
+        raises=PackagesNotFoundError,
     )
+    assert message not in out
+    assert message not in err
 
-    assert "Test One" in out
+    # notices are shown
+    out, err, _ = conda_cli("create", f"--prefix={path_factory()}", "--yes")
+    assert message in out
+    assert message not in err
