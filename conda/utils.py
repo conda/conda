@@ -296,7 +296,8 @@ def wrap_subprocess_call(
         with Utf8NamedTemporaryFile(mode="w", delete=False) as fh:
             # If any of these calls to the activation hook scripts fail, we want
             # to exit the wrapper immediately and abort `conda run` right away.
-            fh.write("set -e\n")
+            # fh.write("set -e\n")
+            # print("activation code:", "set -e\n", file=sys.__stderr__, flush=True)
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
 
@@ -331,21 +332,26 @@ def wrap_subprocess_call(
                 environ["PATH"] = old_path
 
             fh.write(activate_code)
+            print("activation code:", activate_code, file=sys.__stderr__, flush=True)
 
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
             # Disable exit-on-error for the user's command so we can capture its exit code.
-            fh.write("set +e\n")
+            # fh.write("set +e\n")
+            # print("activation code:", "set +e\n", file=sys.__stderr__, flush=True)
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
                 fh.write("{}\n".format(" ".join(arguments)))
+                print("activation code:", "{}\n".format(" ".join(arguments)), file=sys.__stderr__, flush=True)
             else:
                 fh.write(f"{quote_for_shell(*arguments)}\n")
+                print("activation code:", f"{quote_for_shell(*arguments)}\n", file=sys.__stderr__, flush=True)
             # Capture the return code of the user's command in a variable
             # before deactivating. We don't need to unset this per se, because
             # the shell process will terminate and clean it up afterwards.
             fh.write("_CONDA_EXE_RC=$?\n")
+            print("activation code:", "_CONDA_EXE_RC=$?\n", file=sys.__stderr__, flush=True)
             deactivate_d = Path(prefix) / "etc" / "conda" / "deactivate.d"
             if deactivate_d.is_dir():
                 deactivate_scripts = sorted(
@@ -356,9 +362,11 @@ def wrap_subprocess_call(
                 for script in deactivate_scripts:
                     if script.is_file():
                         fh.write(f'. "{script}"\n')
+                        print("activation code:", f'. "{script}"\n', file=sys.__stderr__, flush=True)
 
             # Exit with this captured return code from the user's command.
             fh.write("exit $_CONDA_EXE_RC\n")
+            print("activation code:", "exit $_CONDA_EXE_RC\n", file=sys.__stderr__, flush=True)
             script_caller = fh.name
         if debug_wrapper_scripts:
             command_args = [shell_path, "-x", script_caller]
