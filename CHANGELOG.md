@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 26.3.2 (2026-04-10)
+
+### Bug fixes
+
+* Revert inline environment activation for and subsequent optimizations to `conda run` (#15534, #15672), due to regressions with post-link scripts. (#15896)
+
+### Contributors
+
+* @agriyakhetarpal
+
+
+
 ## 26.3.1 (2026-04-03)
 
 ### Enhancements
