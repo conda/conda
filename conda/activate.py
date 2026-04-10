@@ -37,6 +37,7 @@ from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
     PREFIX_STATE_FILE,
+    RESERVED_ENV_NAMES,
     RESERVED_ENV_VARS,
 )
 from .base.context import context, locate_prefix_by_name
@@ -850,6 +851,8 @@ class _Activator(metaclass=abc.ABCMeta):
             prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, "conda-meta")):
                 raise EnvironmentLocationNotFound(prefix)
+        elif env_name_or_prefix in RESERVED_ENV_NAMES:
+            prefix = context.root_prefix
         else:
             prefix = str(locate_prefix_by_name(env_name_or_prefix))
         return prefix
@@ -1026,20 +1029,6 @@ class CmdExeActivator(_Activator):
         return prefix
 
 
-class CmdExeRunActivator(CmdExeActivator):
-    # CmdExeActivator writes an .env file by default; let's force in-memory output here
-    # so that we can embed the activation output directly into our wrapper script.
-    tempfile_extension = None
-
-    unset_var_tmpl = 'SET "%s="'
-    export_var_tmpl = 'SET "%s=%s"'
-    path_var_tmpl = export_var_tmpl
-    set_var_tmpl = export_var_tmpl
-    # If any of these calls to the activation hook scripts fail, we want
-    # to exit the wrapper immediately and abort `conda run` right away.
-    run_script_tmpl = 'CALL "%s"\nIF %%ERRORLEVEL%% NEQ 0 EXIT /b %%ERRORLEVEL%%'
-
-
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
@@ -1159,7 +1148,6 @@ activator_map: dict[str, type[_Activator]] = {
     "tcsh": CshActivator,
     "xonsh": XonshActivator,
     "cmd.exe": CmdExeActivator,
-    "cmd.exe.run": CmdExeRunActivator,
     "fish": FishActivator,
     "powershell": PowerShellActivator,
 }
