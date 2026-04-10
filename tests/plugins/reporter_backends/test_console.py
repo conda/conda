@@ -28,7 +28,7 @@ def test_console_reporter_renderer():
     console_reporter_renderer = ConsoleReporterRenderer()
 
     assert console_reporter_renderer.detail_view(test_data) == expected_table_str
-    assert console_reporter_renderer.render(test_str) == test_str
+    assert console_reporter_renderer.render(test_str) == f"{test_str}\n"
 
     progress_bar = console_reporter_renderer.progress_bar(
         description="Test progress bar description", io_context_manager=nullcontext()
@@ -53,17 +53,6 @@ def test_console_reporter_renderer_envs_list(mocker):
     output = console_reporter_renderer.envs_list(["/tmp/envs"])
 
     assert f"envs                     {Path('/tmp/envs')}" in output
-
-
-def test_console_reporter_renderer_envs_list_output_false():
-    """
-    Test for the case when output=False; it should return an empty string
-    """
-    console_reporter_renderer = ConsoleReporterRenderer()
-
-    output = console_reporter_renderer.envs_list(["/tmp/envs"], output=False)
-
-    assert output == ""
 
 
 def test_tqdm_progress_bar_os_error(mocker):

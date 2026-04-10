@@ -199,9 +199,10 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             table_parts.append(f" {header:>{longest_header}} : {value}")
 
         # leading and trailing newlines
-        return "\n" + "\n".join(table_parts) + "\n"
+        return "\n" + "\n".join(table_parts) + "\n\n"
 
-    def envs_list(self, prefixes: Iterable[PathType | PrefixData], **kwargs) -> str:
+    @staticmethod
+    def envs_list(prefixes: Iterable[PathType | PrefixData], **kwargs) -> str:
         show_size = kwargs.get("show_size", False)
 
         output = [
@@ -231,7 +232,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             output.append(disp_env(env_prefix))
 
         # leading and trailing newlines
-        return "\n" + "\n".join(output) + "\n"
+        return "\n" + "\n".join(output) + "\n\n"
 
     def progress_bar(
         self,
