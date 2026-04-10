@@ -149,6 +149,12 @@ def do_not_notify_outdated_conda(monkeypatch):
     monkeypatch.setenv("CONDA_NOTIFY_OUTDATED_CONDA", "false")
 
 
+@pytest.fixture(autouse=True)
+def force_use_ng(monkeypatch):
+    """Opt-in to `conda-ng` to see what breaks"""
+    monkeypatch.setenv("CONDA_EXPERIMENTAL", "ng")
+
+
 @pytest.fixture
 def plugin_manager(mocker) -> CondaPluginManager:
     pm = CondaPluginManager()

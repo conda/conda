@@ -1536,12 +1536,16 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
     rc = getattr(exc_val, "return_code", None)
     if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
-    elif context.json:
+    if context.json:
         if isinstance(exc_val, DryRunExit):
             return
         logger = getLogger("conda.stdout" if rc else "conda.stderr")
         exc_json = json_dumps(exc_val.dump_map(), sort_keys=True)
         logger.info(f"{exc_json}\n")
+    elif "ng" in context.experimental and not isinstance(exc_val, DryRunExit):
+        from ._ng.cli.common import print_exception
+
+        print_exception(exc_val)
     else:
         stderrlog = getLogger("conda.stderr")
         stderrlog.error("\n%r\n", exc_val)

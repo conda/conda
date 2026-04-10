@@ -9,3 +9,8 @@ import pytest
 def urllib3_logger_error(caplog):
     """Increase log level to error to prevent retries from polluting stderr."""
     caplog.set_level(logging.ERROR, logger="urllib3.connectionpool")
+
+
+# @pytest.fixture(autouse=True)
+# def enable_conda_ng(monkeypatch):
+#     monkeypatch.setenv("CONDA_NG", "1")

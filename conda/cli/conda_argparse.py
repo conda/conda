@@ -179,10 +179,30 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         result = plugin_subcommand.action(getattr(args, "_args", args))
         context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
     else:
-        # let's call the subcommand the old-fashioned way via the assigned func..
+        # let's call the subcommand the old-fashioned way via the assigned func.
         module_name, func_name = args.func.rsplit(".", 1)
+
+        # PATCH to force 'ng' mode
+        module_name_components = module_name.split(".")
+        if "conda" in module_name_components:
+            conda_idx = module_name_components.index("conda") + 1
+            ng_module_name = ".".join(
+                [
+                    *module_name_components[:conda_idx],
+                    "_ng",
+                    *module_name_components[conda_idx:],
+                ]
+            )
+        else:
+            ng_module_name = module_name
         # func_name should always be 'execute'
-        module = import_module(module_name)
+        if "ng" in context.experimental:
+            try:
+                module = import_module(ng_module_name)
+            except ImportError:
+                module = import_module(module_name)
+        else:
+            module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
 
         context.plugin_manager.invoke_pre_commands(command)
