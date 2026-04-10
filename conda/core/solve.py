@@ -68,6 +68,8 @@ class Solver:
     _index: ReducedIndex | None
     _r: Resolve | None
 
+    supports_exclude_newer: bool = True
+
     def __init__(
         self,
         prefix: str,
@@ -112,6 +114,14 @@ class Solver:
         self._r = None
         self._prepared = False
         self._pool_cache = {}
+
+        if context.exclude_newer and not self.supports_exclude_newer:
+            log.warning(
+                "The %s solver does not support --exclude-newer. "
+                "The setting will be ignored during solving. "
+                "It will still apply to 'conda search' results.",
+                context.solver,
+            )
 
     def solve_for_transaction(
         self,
