@@ -471,12 +471,14 @@ class CondaSpecs:
     def conda_repodata_filters(self) -> Iterable[CondaRepodataFilter]:
         """
         Register repodata filters that control which package records are
-        included in the solver's candidate pool.
+        included during repodata processing.
 
-        Each filter is called once per package record during repodata
-        processing. If any registered filter returns ``False`` for a record,
-        that record is excluded before the solver ever sees it. This applies
-        regardless of which solver backend is in use (classic or libmamba).
+        Each filter is called once per package record in
+        ``SubdirData._process_raw_repodata()``. If any registered filter
+        returns ``False`` for a record, that record is excluded. This covers
+        the classic solver and ``conda search``. Solver backends that bypass
+        ``SubdirData`` (e.g. libmamba, rattler) handle filtering in their
+        own code paths.
 
         Filters receive the package filename and a dict of record metadata
         (name, version, timestamp, channel, subdir, depends, etc.) and must

@@ -356,7 +356,7 @@ class CondaRepodataFilter(CondaPlugin):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_repodata_filters`.
 
-    :param name: Filter name (e.g., ``cooldown``).
+    :param name: Filter name (e.g., ``exclude-newer``).
     :param filter: Callable that receives the package filename and the record
         dict and returns ``True`` to keep the record or ``False`` to exclude it.
     :param cache_key: Optional callable returning a hashable value that
