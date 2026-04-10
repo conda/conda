@@ -2208,8 +2208,8 @@ def env_name(prefix: PathType) -> PathType | str | None:
 
 
 def locate_prefix_by_name(name: str, envs_dirs: PathsType | None = None) -> PathType:
-    """Find the location of a prefix given a conda env name. If the location does not exist, an
-    error is raised. If the prefix is the base or root env, the root prefix is returned.
+    """Find the location of a prefix given a conda env name.  If the location does not exist, an
+    error is raised.
     """
     if not name:
         raise ValueError("'name' cannot be empty.")
