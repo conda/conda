@@ -75,9 +75,7 @@ def parse_duration_to_seconds(value: str) -> int:
             dt = dt.replace(tzinfo=timezone.utc)
         delta = int(time.time()) - int(dt.timestamp())
         if delta < 0:
-            raise ArgumentTypeError(
-                f"timestamp {value!r} is in the future"
-            )
+            raise ArgumentTypeError(f"timestamp {value!r} is in the future")
         return delta
     except ValueError:
         pass
@@ -85,20 +83,11 @@ def parse_duration_to_seconds(value: str) -> int:
     # ISO 8601 duration (P7D, PT24H, P1W, P1DT12H, etc.)
     m = _ISO8601_DURATION_RE.match(value)
     if m:
-        weeks, days, hours, minutes, secs = (
-            int(g) if g else 0 for g in m.groups()
-        )
-        total = (
-            weeks * 604800
-            + days * 86400
-            + hours * 3600
-            + minutes * 60
-            + secs
-        )
+        weeks, days, hours, minutes, secs = (int(g) if g else 0 for g in m.groups())
+        total = weeks * 604800 + days * 86400 + hours * 3600 + minutes * 60 + secs
         if total == 0:
             raise ArgumentTypeError(
-                f"invalid duration {value!r}; "
-                "use e.g. 7d, P7D, 2026-04-01"
+                f"invalid duration {value!r}; use e.g. 7d, P7D, 2026-04-01"
             )
         return total
 
@@ -106,22 +95,19 @@ def parse_duration_to_seconds(value: str) -> int:
     pairs = re.findall(r"(\d+)\s*([wdhms])", value, re.IGNORECASE)
     if not pairs:
         raise ArgumentTypeError(
-            f"invalid duration {value!r}; "
-            "use e.g. 7d, P7D, 2026-04-01"
+            f"invalid duration {value!r}; use e.g. 7d, P7D, 2026-04-01"
         )
 
     consumed = re.sub(r"\d+\s*[wdhms]", "", value, flags=re.IGNORECASE).strip()
     if consumed:
         raise ArgumentTypeError(
-            f"invalid duration {value!r}; "
-            "use e.g. 7d, P7D, 2026-04-01"
+            f"invalid duration {value!r}; use e.g. 7d, P7D, 2026-04-01"
         )
 
     total = sum(int(n) * _DURATION_UNITS[u.lower()] for n, u in pairs)
     if total == 0:
         raise ArgumentTypeError(
-            f"invalid duration {value!r}; "
-            "use e.g. 7d, P7D, 2026-04-01"
+            f"invalid duration {value!r}; use e.g. 7d, P7D, 2026-04-01"
         )
     return total
 
