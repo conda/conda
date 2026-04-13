@@ -12,9 +12,10 @@ from __future__ import annotations
 import enum
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from requests.auth import AuthBase
 
@@ -345,6 +346,72 @@ class CondaPostSolve(CondaPlugin):
     action: Callable[[str, tuple[PackageRecord, ...], tuple[PackageRecord, ...]], None]
 
 
+@dataclass(frozen=True)
+class SolveLifecycleBegin:
+    """Emitted immediately before the inner solve (``solve_for_diff`` / rattler ``solve``)."""
+
+    span_id: str
+    prefix: str
+    solver: str
+    repodata_fn: str
+    command: str | None
+    specs_to_add_count: int
+    specs_to_remove_count: int
+
+
+@dataclass(frozen=True)
+class SolveLifecycleEndSuccess:
+    """Emitted after a successful inner solve, before ``conda_post_solves``.
+
+    ``record_count`` is used for the same Rich solve summary as rattler (full solution
+    size there; classic uses ``len(link_precs) + len(unlink_precs)``).
+    """
+
+    span_id: str
+    prefix: str
+    solver: str
+    repodata_fn: str
+    command: str | None
+    duration_s: int
+    duration_ms: float
+    unlink_count: int
+    link_count: int
+    record_count: int
+
+
+@dataclass(frozen=True)
+class SolveLifecycleEndFailure:
+    """Emitted when the inner solve raises; ``conda_post_solves`` is not run."""
+
+    span_id: str
+    prefix: str
+    solver: str
+    repodata_fn: str
+    command: str | None
+    duration_s: int
+    duration_ms: float
+    error_type: str
+    error_message: str
+
+
+SolveLifecycleEvent = (
+    SolveLifecycleBegin | SolveLifecycleEndSuccess | SolveLifecycleEndFailure
+)
+
+
+@dataclass
+class CondaSolveLifecycle(CondaPlugin):
+    """
+    Return type for :meth:`~conda.plugins.hookspec.CondaSpecs.conda_solve_lifecycle`.
+
+    :param name: Observer name (e.g. ``my-telemetry``).
+    :param on_event: Synchronous callback; should not raise (the manager logs and continues).
+    """
+
+    name: str
+    on_event: Callable[[SolveLifecycleEvent], None]
+
+
 @dataclass
 class CondaSetting(CondaPlugin):
     """
@@ -459,6 +526,35 @@ class ReporterRendererBase(ABC):
         """
         Allows for defining an implementation of a "yes/no" confirmation function
         """
+
+    def install_like_progress(self, data: dict[str, Any], **kwargs) -> str:
+        """
+        Optional structured progress for rattler and classic install flows.
+
+        Payloads use string ``kind`` (e.g. ``solve_finished``, ``install_plan_table``,
+        ``verbose_hints``, transaction milestones).
+
+        Default delegates to :meth:`ng_install_progress` so legacy renderers that only
+        override ``ng_install_progress`` keep working; prefer overriding this method
+        for new code.
+        """
+        return self.ng_install_progress(data, **kwargs)
+
+    def ng_install_progress(self, data: dict[str, Any], **kwargs) -> str:
+        """
+        Deprecated synonym for :meth:`install_like_progress`.
+
+        New reporter implementations should override :meth:`install_like_progress` only.
+        """
+        return ""
+
+    def post_create_activate(self, data: dict[str, Any], **kwargs) -> str:
+        """
+        Optional post-``conda create`` activation hint (``kind`` + ``env`` in ``data``).
+
+        Default is silent so third-party renderers need not implement this style.
+        """
+        return ""
 
 
 @dataclass

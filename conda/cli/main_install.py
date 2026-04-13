@@ -166,6 +166,20 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.revision:
         install_revision(args, parser)
     else:
-        install(args, parser, "install")
+        from .._ng.runner.shared_cli import (
+            dispatch_install_like,
+            shared_cli_engine,
+            shared_cli_install_supported,
+        )
+
+        eng = shared_cli_engine()
+        use_shared = eng is not None and (
+            eng == "classic"
+            or (eng == "rattler" and shared_cli_install_supported(args))
+        )
+        if use_shared:
+            dispatch_install_like(args, parser, "install")
+        else:
+            install(args, parser, "install")
 
     return 0

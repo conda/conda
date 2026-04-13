@@ -8,17 +8,17 @@ from __future__ import annotations
 
 import logging
 import sys
+from contextlib import nullcontext
 from functools import cache
 from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from contextlib import AbstractContextManager
 
 from .base.context import context
 from .exceptions import CondaSystemExit, DryRunExit
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from contextlib import AbstractContextManager
+    from pathlib import Path
 
     from .plugins.types import ProgressBarBase, SpinnerBase
 
@@ -43,6 +43,63 @@ def _get_render_func(style: str | None = None) -> Callable:
         render_func = getattr(renderer, "render")
 
     return render_func
+
+
+def get_solve_activity_context(
+    message: str, *, fail_message: str = "failed\n"
+) -> AbstractContextManager:
+    """
+    Rich ``Console.status`` on an interactive TTY; otherwise the configured spinner.
+
+    Used for classic solve/link phases and conda-ng rattler solve so busy output matches.
+    No-op context when ``quiet`` or ``json`` is set (same guards as install-like progress).
+    """
+    if context.quiet or context.json:
+        return nullcontext()
+    if sys.stdout.isatty():
+        try:
+            from ._ng.cli.common import create_console
+
+            return create_console().status(message, spinner="dots")
+        except (
+            AttributeError,
+            ImportError,
+            OSError,
+            RuntimeError,
+            ValueError,
+        ):
+            pass
+    return get_spinner(message, fail_message)
+
+
+def emit_install_like_progress(data: dict[str, object]) -> None:
+    """
+    Emit install/solve progress or plan chunks (Rich on the console backend).
+
+    No-op when ``quiet`` or ``json`` is set. Used by the rattler runner and classic
+    transaction summary so both paths share the same reporter style
+    (``install_like_progress``, deprecated name ``ng_install_progress``).
+    """
+    if context.quiet or context.json:
+        return
+    try:
+        render(data, style="install_like_progress")
+    except (AttributeError, TypeError, ValueError, OSError):
+        return
+
+
+def render_post_create_activate(env_name_or_prefix: str | Path) -> None:
+    """
+    Show how to activate a newly created environment (Rich on console backend).
+
+    No-op when ``quiet`` or ``json`` output is configured.
+    """
+    if context.quiet or context.json:
+        return
+    render(
+        {"kind": "post_create_activate", "env": str(env_name_or_prefix)},
+        style="post_create_activate",
+    )
 
 
 def render(data, style: str | None = None, **kwargs) -> None:

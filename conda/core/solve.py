@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import copy
 import sys
+import time
+import uuid
 from itertools import chain
 from logging import DEBUG, getLogger
 from textwrap import dedent
@@ -35,7 +37,12 @@ from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
-from ..reporters import get_spinner
+from ..plugins.types import (
+    SolveLifecycleBegin,
+    SolveLifecycleEndFailure,
+    SolveLifecycleEndSuccess,
+)
+from ..reporters import get_solve_activity_context
 from ..resolve import Resolve
 from .index import Index, ReducedIndex
 from .link import PrefixSetup, UnlinkLinkTransaction
@@ -161,14 +168,63 @@ class Solver:
             self.unmerged_specs_to_remove,
         )
 
-        unlink_precs, link_precs = self.solve_for_diff(
-            update_modifier,
-            deps_modifier,
-            prune,
-            ignore_pinned,
-            force_remove,
-            force_reinstall,
-            should_retry_solve,
+        span_id = str(uuid.uuid4())
+        t_ls = time.perf_counter()
+        context.plugin_manager.invoke_solve_lifecycle(
+            SolveLifecycleBegin(
+                span_id=span_id,
+                prefix=self.prefix,
+                solver=context.solver,
+                repodata_fn=self._repodata_fn,
+                command=None if self._command is NULL else str(self._command),
+                specs_to_add_count=len(self.unmerged_specs_to_add),
+                specs_to_remove_count=len(self.unmerged_specs_to_remove),
+            )
+        )
+        try:
+            unlink_precs, link_precs = self.solve_for_diff(
+                update_modifier,
+                deps_modifier,
+                prune,
+                ignore_pinned,
+                force_remove,
+                force_reinstall,
+                should_retry_solve,
+            )
+        except BaseException as exc:
+            dt = time.perf_counter() - t_ls
+            dur_s = int(dt)
+            dur_ms = (dt - dur_s) * 1000
+            context.plugin_manager.invoke_solve_lifecycle(
+                SolveLifecycleEndFailure(
+                    span_id=span_id,
+                    prefix=self.prefix,
+                    solver=context.solver,
+                    repodata_fn=self._repodata_fn,
+                    command=None if self._command is NULL else str(self._command),
+                    duration_s=dur_s,
+                    duration_ms=dur_ms,
+                    error_type=type(exc).__name__,
+                    error_message=str(exc)[:500],
+                )
+            )
+            raise
+        dt = time.perf_counter() - t_ls
+        dur_s = int(dt)
+        dur_ms = (dt - dur_s) * 1000
+        context.plugin_manager.invoke_solve_lifecycle(
+            SolveLifecycleEndSuccess(
+                span_id=span_id,
+                prefix=self.prefix,
+                solver=context.solver,
+                repodata_fn=self._repodata_fn,
+                command=None if self._command is NULL else str(self._command),
+                duration_s=dur_s,
+                duration_ms=dur_ms,
+                unlink_count=len(unlink_precs),
+                link_count=len(link_precs),
+                record_count=len(link_precs) + len(unlink_precs),
+            )
         )
         # TODO: Only explicitly requested remove and update specs are being included in
         #   History right now. Do we need to include other categories from the solve?
@@ -372,7 +428,9 @@ class Solver:
                 return IndexedSet(PrefixGraph(ssc.solution_precs).graph)
 
         if not ssc.r:
-            with get_spinner(f"Collecting package metadata ({self._repodata_fn})"):
+            with get_solve_activity_context(
+                f"Collecting package metadata ({self._repodata_fn})"
+            ):
                 ssc = self._collect_all_metadata(ssc)
 
         if should_retry_solve and update_modifier == UpdateModifier.FREEZE_INSTALLED:
@@ -388,7 +446,9 @@ class Solver:
         else:
             fail_message = "failed\n"
 
-        with get_spinner("Solving environment", fail_message=fail_message):
+        with get_solve_activity_context(
+            "Solving environment", fail_message=fail_message
+        ):
             ssc = self._remove_specs(ssc)
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)

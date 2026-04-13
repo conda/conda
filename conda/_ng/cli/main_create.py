@@ -13,14 +13,14 @@ if TYPE_CHECKING:
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from pathlib import Path
 
-    import rich
     from rattler import MatchSpec
 
     from conda.base.context import context
     from conda.exceptions import ArgumentError
+    from conda.reporters import render_post_create_activate
 
-    from .common import activate_panel, as_virtual_package
-    from .install import install
+    from ..runner import build_create_request, default_rattler_runner
+    from .common import as_virtual_package
 
     if not args.name and not args.prefix and not context.dry_run:
         raise ArgumentError("one of the arguments -n/--name -p/--prefix is required")
@@ -40,17 +40,20 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         as_virtual_package(pkg)
         for pkg in context.plugin_manager.get_virtual_package_records()
     ]
-    install(
-        specs=specs,
-        channels=context.channels,
-        platform=context.subdir,
-        target_prefix=target_prefix,
-        virtual_packages=virtual_packages,
-        report=not context.quiet and not context.json,
-        dry_run=context.dry_run,
+    runner = default_rattler_runner()
+    runner.create(
+        build_create_request(
+            specs=specs,
+            channels=context.channels,
+            platform=context.subdir,
+            target_prefix=target_prefix,
+            virtual_packages=virtual_packages,
+            report=not context.quiet and not context.json,
+            dry_run=context.dry_run,
+        )
     )
 
     if not context.quiet and not context.json:
-        rich.print(activate_panel(args.name or target_prefix))
+        render_post_create_activate(args.name or target_prefix)
 
     return 0

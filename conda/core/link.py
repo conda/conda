@@ -61,7 +61,11 @@ from ..gateways.disk.test import (
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
-from ..reporters import confirm_yn, get_spinner
+from ..reporters import (
+    confirm_yn,
+    emit_install_like_progress,
+    get_solve_activity_context,
+)
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
@@ -251,6 +255,79 @@ class ChangeReport(NamedTuple):
     revised_precs: Iterable[PackageRecord]
 
 
+def _convert_namekey_sort(namekey: str) -> str:
+    return ("0:" + namekey[7:]) if namekey.startswith("global:") else namekey
+
+
+def _classic_install_plan_rows(
+    change_report: ChangeReport,
+) -> tuple[list[dict[str, str]], str | None]:
+    """Row dicts aligned with :func:`conda._ng.cli.planning.solution_install_plan_rows`."""
+
+    rows: list[dict[str, str]] = []
+
+    def channel_disp(prec) -> str:
+        s = str(prec.channel.canonical_name)
+        if context.show_channel_urls is False:
+            return ""
+        if context.show_channel_urls is None and s == DEFAULTS_CHANNEL_NAME:
+            return ""
+        return s
+
+    def requested_for(nm: str) -> str:
+        out: list[str] = []
+        for s in change_report.specs_to_add:
+            if s.name == nm:
+                out.append(str(s))
+        return " & ".join(out)
+
+    def add_row(status: str, prec, requested: str, style: str) -> None:
+        rows.append(
+            {
+                "status": status,
+                "name": prec.name,
+                "version": str(prec.version),
+                "build": str(prec.build),
+                "channel": channel_disp(prec),
+                "subdir": str(getattr(prec, "subdir", "") or ""),
+                "requested": requested,
+                "style": style,
+            }
+        )
+
+    def prec_map(attr: str) -> dict:
+        m = getattr(change_report, attr)
+        return dict(m) if hasattr(m, "items") else {}
+
+    def add_pair_rows(pair_map: dict, *, style_unlink: str) -> None:
+        for namekey in sorted(pair_map, key=_convert_namekey_sort):
+            unlink_prec, link_prec = pair_map[namekey]
+            add_row("-", unlink_prec, "", style_unlink)
+            add_row("+", link_prec, requested_for(link_prec.name), "green")
+
+    removed = prec_map("removed_precs")
+    for namekey in sorted(removed, key=_convert_namekey_sort):
+        prec = removed[namekey]
+        add_row("-", prec, requested_for(prec.name), "red dim")
+
+    newp = prec_map("new_precs")
+    for namekey in sorted(newp, key=_convert_namekey_sort):
+        prec = newp[namekey]
+        add_row("+", prec, requested_for(prec.name), "green")
+
+    add_pair_rows(prec_map("updated_precs"), style_unlink="red dim")
+    add_pair_rows(prec_map("superseded_precs"), style_unlink="red dim")
+    add_pair_rows(prec_map("downgraded_precs"), style_unlink="red dim")
+    add_pair_rows(prec_map("revised_precs"), style_unlink="red dim")
+
+    def _status_rank(st: str) -> int:
+        return {"-": 0, "+": 1, "": 2}.get(st, 3)
+
+    rows.sort(key=lambda r: (r["name"].lower(), _status_rank(r["status"])))
+    caption = "Legend: bold=requested, green=added, red=removed, blue=historic"
+    return rows, caption
+
+
 class UnlinkLinkTransaction:
     def __init__(self, *setups):
         self.prefix_setups = {stp.target_prefix: stp for stp in setups}
@@ -311,7 +388,8 @@ class UnlinkLinkTransaction:
 
         self.transaction_context = {}
 
-        with get_spinner("Preparing transaction"):
+        emit_install_like_progress({"kind": "transaction_prepare"})
+        with get_solve_activity_context("Preparing transaction"):
             for stp in self.prefix_setups.values():
                 self.prefix_action_groups[stp.target_prefix] = self._prepare(
                     self.transaction_context,
@@ -337,7 +415,8 @@ class UnlinkLinkTransaction:
             self._verified = True
             return
 
-        with get_spinner("Verifying transaction"):
+        emit_install_like_progress({"kind": "transaction_verify"})
+        with get_solve_activity_context("Verifying transaction"):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
                 try:
@@ -918,7 +997,8 @@ class UnlinkLinkTransaction:
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
-            with get_spinner("Executing transaction"):
+            emit_install_like_progress({"kind": "transaction_execute"})
+            with get_solve_activity_context("Executing transaction"):
                 # Execute any user-defined pre-transaction actions
                 for exc in self.execute_executor.map(
                     UnlinkLinkTransaction._execute_actions,
@@ -1043,7 +1123,8 @@ class UnlinkLinkTransaction:
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
-                    with get_spinner("Rolling back transaction"):
+                    emit_install_like_progress({"kind": "transaction_rollback"})
+                    with get_solve_activity_context("Rolling back transaction"):
                         reverse_actions = reversed(tuple(all_action_groups))
                         for axngroup in reverse_actions:
                             excs = UnlinkLinkTransaction._reverse_actions(axngroup)
@@ -1324,8 +1405,17 @@ class UnlinkLinkTransaction:
                 stp.remove_specs,
                 stp.update_specs,
             )
-            change_report_str = self._change_report_str(change_report)
-            print(ensure_text_type(change_report_str))
+            plan_rows, plan_caption = _classic_install_plan_rows(change_report)
+            emit_install_like_progress(
+                {
+                    "kind": "install_plan_table",
+                    "rows": plan_rows,
+                    "caption": plan_caption,
+                    "prefix": change_report.prefix,
+                    "specs_to_remove": [str(s) for s in change_report.specs_to_remove],
+                    "specs_to_add": [str(s) for s in change_report.specs_to_add],
+                }
+            )
 
         return legacy_action_groups
 

@@ -189,7 +189,20 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if args.clone:
         install_clone(args, parser)
     else:
-        install(args, parser, "create")
+        from .._ng.runner.shared_cli import (
+            dispatch_install_like,
+            shared_cli_create_supported,
+            shared_cli_engine,
+        )
+
+        eng = shared_cli_engine()
+        use_shared = eng is not None and (
+            eng == "classic" or (eng == "rattler" and shared_cli_create_supported(args))
+        )
+        if use_shared:
+            dispatch_install_like(args, parser, "create")
+        else:
+            install(args, parser, "create")
     # Run post-install steps applicable to all new environments
     prefix_data.set_nonadmin()
     print_activate(args.name or context.target_prefix)

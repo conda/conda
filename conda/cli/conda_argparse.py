@@ -183,7 +183,8 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # let's call the subcommand the old-fashioned way via the assigned func.
         module_name, func_name = args.func.rsplit(".", 1)
 
-        # PATCH to force 'ng' mode
+        command = module_name.split(".")[-1].replace("main_", "")
+        # conda-ng only replaces create/install; other subcommands use classic CLI.
         module_name_components = module_name.split(".")
         if "conda" in module_name_components:
             conda_idx = module_name_components.index("conda") + 1
@@ -197,14 +198,13 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         else:
             ng_module_name = module_name
         # func_name should always be 'execute'
-        if "ng" in context.experimental:
+        if "ng" in context.experimental and command in ("create", "install"):
             try:
                 module = import_module(ng_module_name)
             except ImportError:
                 module = import_module(module_name)
         else:
             module = import_module(module_name)
-        command = module_name.split(".")[-1].replace("main_", "")
 
         context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)

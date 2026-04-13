@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
     from rattler import GenericVirtualPackage, PackageRecord, PrefixRecord
     from rich.console import Console
-    from rich.panel import Panel
     from rich.table import Table
 
 
@@ -28,24 +27,19 @@ def cache_dir(kind: Literal["pkgs", "index"] = "pkgs") -> Path:
         return Path(pkgs_dir)
 
 
-def activate_panel(env_name_or_prefix) -> Panel:
-    from rich.panel import Panel
+def export_rich_renderable(*objects) -> str:
+    """Serialize Rich renderables (or plain strings) to text for ``reporters.render``."""
+    import sys
 
-    from conda.auxlib.ish import dals
+    from rich.console import Console
 
-    if " " in env_name_or_prefix:
-        env_name_or_prefix = f'"{env_name_or_prefix}"'
-    message = dals(
-        f"""
-        To activate this environment, use:
-
-            $ conda activate {env_name_or_prefix}
-
-        To deactivate an active environment, use:
-
-            $ conda deactivate"""
-    )
-    return Panel(message, title="Activation instructions", expand=False, padding=1)
+    kwargs: dict = {"record": True, "soft_wrap": True}
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        kwargs["width"] = 100_000
+    console = Console(**kwargs)
+    with console.capture() as capture:
+        console.print(*objects)
+    return capture.get()
 
 
 def create_console(*args, **kwargs) -> Console:

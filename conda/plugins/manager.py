@@ -38,6 +38,7 @@ from . import (
     post_solves,
     prefix_data_loaders,
     reporter_backends,
+    solve_lifecycle,
     solvers,
     subcommands,
     virtual_packages,
@@ -75,9 +76,11 @@ if TYPE_CHECKING:
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
+        CondaSolveLifecycle,
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
+        SolveLifecycleEvent,
     )
 
 log = logging.getLogger(__name__)
@@ -229,6 +232,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["post_solves"]
     ) -> list[CondaPostSolve]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["solve_lifecycle"]
+    ) -> list[CondaSolveLifecycle]: ...
 
     @overload
     def get_hook_results(
@@ -499,6 +507,22 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         for hook in self.get_hook_results("post_solves"):
             hook.action(repodata_fn, unlink_precs, link_precs)
+
+    def invoke_solve_lifecycle(self, event: SolveLifecycleEvent) -> None:
+        """
+        Invoke ``conda_solve_lifecycle`` observers with a begin or end event.
+
+        Callback exceptions are logged and suppressed so a bad plugin cannot break solves.
+        """
+        for hook in self.get_hook_results("solve_lifecycle"):
+            try:
+                hook.on_event(event)
+            except Exception as err:  # pragma: no cover - defensive
+                log.warning(
+                    "Solve lifecycle observer %r raised; continuing.",
+                    hook.name,
+                    exc_info=err,
+                )
 
     def load_settings(self) -> None:
         """
@@ -1004,6 +1028,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *subcommands.plugins,
         *health_checks.plugins,
         *post_solves.plugins,
+        *solve_lifecycle.plugins,
         *reporter_backends.plugins,
         *package_extractors.plugins,
         *prefix_data_loaders.plugins,

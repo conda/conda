@@ -31,7 +31,7 @@ from ..exceptions import (
 )
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..models.match_spec import MatchSpec
-from ..reporters import render
+from ..reporters import render, render_post_create_activate
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -248,22 +248,7 @@ def validate_subdir_config():
 
 
 def print_activate(env_name_or_prefix):
-    if not context.quiet and not context.json:
-        if " " in env_name_or_prefix:
-            env_name_or_prefix = f'"{env_name_or_prefix}"'
-        message = dals(
-            f"""
-            #
-            # To activate this environment, use
-            #
-            #     $ conda activate {env_name_or_prefix}
-            #
-            # To deactivate an active environment, use
-            #
-            #     $ conda deactivate
-            """
-        )
-        print(message)  # TODO: use logger
+    render_post_create_activate(env_name_or_prefix)
 
 
 def get_name_prefix_from_env_file(file: str) -> tuple[str | None, str | None]:

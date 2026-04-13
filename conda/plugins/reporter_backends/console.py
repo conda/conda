@@ -34,6 +34,7 @@ from ..types import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from typing import Any
 
     from ...common.path import PathType
 
@@ -289,6 +290,185 @@ class ConsoleReporterRenderer(ReporterRendererBase):
                 sys.stdout.write("\n")
                 sys.stdout.flush()
                 return choices[user_choice]
+
+    def install_like_progress(self, data: dict[str, Any], **kwargs) -> str:
+        """Install/solve milestones and package plans (classic + rattler, Rich on console)."""
+        from io import StringIO
+
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.text import Text
+
+        kind = data.get("kind")
+        if kind == "solve_started":
+            return ""
+        if kind == "solve_finished":
+            rc = int(data.get("record_count", 0))
+            sec = int(data.get("duration_seconds", 0))
+            ms = float(data.get("duration_ms", 0))
+            tail = f"{rc} packages in "
+            if sec:
+                tail += f"{sec}s "
+            tail += f"{ms:.0f}ms"
+            markup = f"[green]✔[/] solving [dim]{tail}[/]"
+            buf = StringIO()
+            kwargs: dict[str, Any] = {"file": buf, "soft_wrap": True}
+            if not sys.stdin.isatty() or not sys.stdout.isatty():
+                kwargs["width"] = 100_000
+            Console(force_terminal=True, **kwargs).print(markup, highlight=False)
+            return buf.getvalue() + "\n"
+        if kind == "solve_failed":
+            err_t = data.get("error_type", "Error")
+            err_m = str(data.get("error_message", ""))[:300]
+            markup = f"[red]✗[/] solve failed [dim]({err_t})[/]: {err_m}"
+            buf = StringIO()
+            kwargs = {"file": buf, "soft_wrap": True}
+            if not sys.stdin.isatty() or not sys.stdout.isatty():
+                kwargs["width"] = 100_000
+            Console(force_terminal=True, **kwargs).print(markup, highlight=False)
+            return buf.getvalue() + "\n"
+        if kind == "verbose_hints":
+            hints = data.get("hints") or ()
+            buf = StringIO()
+            kwargs = {"file": buf, "soft_wrap": True}
+            if not sys.stdin.isatty() or not sys.stdout.isatty():
+                kwargs["width"] = 100_000
+            c = Console(force_terminal=True, **kwargs)
+            for label, value in hints:
+                if value is None or value == "":
+                    continue
+                c.print(f"[dim]{label}:[/] {value}", highlight=False)
+            out = buf.getvalue()
+            return out + "\n" if out else ""
+        if kind == "install_plan_table":
+            from ..._ng.cli.planning import build_install_plan_table
+
+            rows = data.get("rows") or ()
+            if not rows:
+                return ""
+            caption = data.get("caption")
+            table = build_install_plan_table(rows, caption=caption)
+            buf = StringIO()
+            kwargs_ip: dict[str, Any] = {"file": buf, "soft_wrap": True}
+            if not sys.stdin.isatty() or not sys.stdout.isatty():
+                kwargs_ip["width"] = 100_000
+            c = Console(force_terminal=True, **kwargs_ip)
+            prefix = data.get("prefix")
+            specs_add = data.get("specs_to_add") or ()
+            specs_rm = data.get("specs_to_remove") or ()
+            if prefix:
+                c.print("[bold]## Package Plan ##[/]", highlight=False)
+                c.print(f"  [dim]environment location:[/] {prefix}", highlight=False)
+                c.print("", highlight=False)
+            if specs_rm:
+                c.print("  [dim]removed specs:[/]", highlight=False)
+                for s in specs_rm:
+                    c.print(f"    - {s}", highlight=False)
+                c.print("", highlight=False)
+            if specs_add:
+                c.print("  [dim]added / updated specs:[/]", highlight=False)
+                for s in specs_add:
+                    c.print(f"    - {s}", highlight=False)
+                c.print("", highlight=False)
+            c.print(
+                Panel(table, title="Package Plan", expand=False, padding=(0, 1)),
+                highlight=False,
+            )
+            return buf.getvalue() + "\n"
+        if kind in (
+            "transaction_prepare",
+            "transaction_verify",
+            "transaction_execute",
+            "transaction_rollback",
+        ):
+            if sys.stdout.isatty():
+                return ""
+            labels = {
+                "transaction_prepare": "preparing transaction",
+                "transaction_verify": "verifying transaction",
+                "transaction_execute": "executing transaction",
+                "transaction_rollback": "rolling back transaction",
+            }
+            buf = StringIO()
+            kwargs_tx: dict[str, Any] = {"file": buf, "soft_wrap": True}
+            kwargs_tx["width"] = 100_000
+            Console(force_terminal=True, **kwargs_tx).print(
+                f"[dim][conda][/] {labels[kind]}", highlight=False
+            )
+            return buf.getvalue() + "\n"
+        if kind == "solution_plan_text":
+            text = data.get("text") or ""
+            return text + ("\n" if text and not text.endswith("\n") else "")
+        if kind == "legacy_plan_text":
+            body = (data.get("text") or "").rstrip("\n")
+            if not body:
+                return ""
+            panel = Panel(
+                Text(body),
+                title="Package Plan",
+                expand=False,
+                padding=(0, 1),
+            )
+            buf = StringIO()
+            kwargs = {"file": buf, "soft_wrap": True}
+            if not sys.stdin.isatty() or not sys.stdout.isatty():
+                kwargs["width"] = 100_000
+            Console(force_terminal=True, **kwargs).print(panel)
+            return buf.getvalue() + "\n"
+        if kind == "awaiting_confirmation":
+            return ""
+        if kind == "transaction_started":
+            buf = StringIO()
+            kwargs: dict[str, Any] = {"file": buf, "soft_wrap": True}
+            if not sys.stdin.isatty() or not sys.stdout.isatty():
+                kwargs["width"] = 100_000
+            Console(force_terminal=True, **kwargs).print(
+                "[dim][conda][/] applying transaction", highlight=False
+            )
+            return buf.getvalue() + "\n"
+        if kind == "transaction_finished":
+            buf = StringIO()
+            kwargs = {"file": buf, "soft_wrap": True}
+            if not sys.stdin.isatty() or not sys.stdout.isatty():
+                kwargs["width"] = 100_000
+            Console(force_terminal=True, **kwargs).print(
+                "[dim][conda][/] transaction finished", highlight=False
+            )
+            return buf.getvalue() + "\n\n"
+        return ""
+
+    def ng_install_progress(self, data: dict[str, Any], **kwargs) -> str:
+        """Deprecated: use :meth:`install_like_progress`."""
+        return self.install_like_progress(data, **kwargs)
+
+    def post_create_activate(self, data: dict[str, Any], **kwargs) -> str:
+        """Rich panel with activation instructions (same content as former conda-ng only)."""
+        from rich.console import Console
+        from rich.panel import Panel
+
+        from ...auxlib.ish import dals
+
+        env_name_or_prefix = data.get("env", "")
+        if " " in str(env_name_or_prefix):
+            env_name_or_prefix = f'"{env_name_or_prefix}"'
+        message = dals(
+            f"""
+            To activate this environment, use:
+
+                $ conda activate {env_name_or_prefix}
+
+            To deactivate an active environment, use:
+
+                $ conda deactivate"""
+        )
+        panel = Panel(message, title="Activation instructions", expand=False, padding=1)
+        width_kw: dict[str, Any] = {"record": True, "soft_wrap": True}
+        if not sys.stdin.isatty() or not sys.stdout.isatty():
+            width_kw["width"] = 100_000
+        console = Console(**width_kw)
+        with console.capture() as capture:
+            console.print(panel)
+        return capture.get() + "\n"
 
 
 @hookimpl(

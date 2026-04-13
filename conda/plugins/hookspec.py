@@ -36,6 +36,7 @@ if TYPE_CHECKING:
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
+        CondaSolveLifecycle,
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
@@ -462,6 +463,48 @@ class CondaSpecs:
                yield plugins.types.CondaPostSolve(
                    name="example-post-solve",
                    action=example_post_solve,
+               )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_solve_lifecycle(self) -> Iterable[CondaSolveLifecycle]:
+        """
+        Register callbacks for coarse solve lifecycle events (begin / end success / end failure).
+
+        Events are emitted from :meth:`conda.core.solve.Solver.solve_for_transaction` around
+        the inner :meth:`~conda.core.solve.Solver.solve_for_diff` call, and from the rattler
+        runner around its ``solve`` step. Ordering relative to other hooks:
+
+        1. ``conda_pre_solves``
+        2. **Solve lifecycle begin** (:class:`~conda.plugins.types.SolveLifecycleBegin`)
+        3. Inner solve (``solve_for_diff`` or rattler ``solve``)
+        4. **Solve lifecycle end success** (:class:`~conda.plugins.types.SolveLifecycleEndSuccess`)
+           or **end failure** (:class:`~conda.plugins.types.SolveLifecycleEndFailure`) if the
+           inner solve raises (in the failure case, ``conda_post_solves`` is **not** run).
+        5. ``conda_post_solves`` (success path only)
+
+        Third-party solvers that override :meth:`~conda.core.solve.Solver.solve_for_transaction`
+        without calling ``super()`` must invoke
+        :meth:`~conda.plugins.manager.CondaPluginManager.invoke_solve_lifecycle` with the same
+        event types around their own inner solve if they want observers to run.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+           from conda.plugins.types import SolveLifecycleEvent
+
+
+           def my_observer(event: SolveLifecycleEvent) -> None: ...
+
+
+           @plugins.hookimpl
+           def conda_solve_lifecycle():
+               yield plugins.types.CondaSolveLifecycle(
+                   name="example-solve-lifecycle",
+                   on_event=my_observer,
                )
         """
         yield from ()

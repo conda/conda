@@ -19,8 +19,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from conda.exceptions import ArgumentError
     from conda.history import History
 
+    from ..runner import build_install_request, default_rattler_runner
     from .common import as_virtual_package, installed_packages
-    from .install import install
 
     prefix = context.target_prefix
     if not Path(prefix).exists():
@@ -35,16 +35,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         as_virtual_package(pkg)
         for pkg in context.plugin_manager.get_virtual_package_records()
     ]
-    install(
-        specs=specs,
-        history=history,
-        channels=context.channels,
-        platform=context.subdir,
-        target_prefix=prefix,
-        locked_packages=installed_packages(context.target_prefix),
-        virtual_packages=virtual_packages,
-        report=not context.quiet and not context.json,
-        dry_run=context.dry_run,
+    runner = default_rattler_runner()
+    runner.install(
+        build_install_request(
+            specs=specs,
+            history=history,
+            locked_packages=installed_packages(context.target_prefix),
+            channels=context.channels,
+            platform=context.subdir,
+            target_prefix=prefix,
+            virtual_packages=virtual_packages,
+            report=not context.quiet and not context.json,
+            dry_run=context.dry_run,
+        )
     )
 
     return 0

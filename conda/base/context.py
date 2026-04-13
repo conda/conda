@@ -2008,6 +2008,10 @@ class Context(Configuration):
             experimental=dals(
                 """
                 List of experimental features to enable.
+
+                ``shared_cli_rattler`` and ``shared_cli_classic`` route plain
+                ``conda create`` / ``conda install`` through the shared runner
+                (rattler path skips ``--file`` and ``--clone``).
                 """
             ),
             no_lock=dals(
