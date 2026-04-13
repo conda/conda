@@ -70,27 +70,21 @@ def test_parse_duration_valid(value: str, expected: int):
 
 def test_parse_duration_iso_date():
     result = parse_duration_to_seconds("2020-01-01")
-    expected_ts = int(
-        datetime(2020, 1, 1, tzinfo=timezone.utc).timestamp()
-    )
+    expected_ts = int(datetime(2020, 1, 1, tzinfo=timezone.utc).timestamp())
     expected_delta = int(time()) - expected_ts
     assert abs(result - expected_delta) < 2
 
 
 def test_parse_duration_rfc3339_timestamp():
     result = parse_duration_to_seconds("2020-06-15T12:00:00Z")
-    expected_ts = int(
-        datetime(2020, 6, 15, 12, 0, 0, tzinfo=timezone.utc).timestamp()
-    )
+    expected_ts = int(datetime(2020, 6, 15, 12, 0, 0, tzinfo=timezone.utc).timestamp())
     expected_delta = int(time()) - expected_ts
     assert abs(result - expected_delta) < 2
 
 
 def test_parse_duration_rfc3339_with_offset():
     result = parse_duration_to_seconds("2020-06-15T12:00:00+02:00")
-    expected_ts = int(
-        datetime(2020, 6, 15, 10, 0, 0, tzinfo=timezone.utc).timestamp()
-    )
+    expected_ts = int(datetime(2020, 6, 15, 10, 0, 0, tzinfo=timezone.utc).timestamp())
     expected_delta = int(time()) - expected_ts
     assert abs(result - expected_delta) < 2
 
@@ -296,9 +290,7 @@ def test_exclude_newer_prefers_indexed_timestamp(
     )
 
 
-def test_exclude_newer_per_package_duration(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-):
+def test_exclude_newer_per_package_duration(tmp_path: Path, monkeypatch: MonkeyPatch):
     """Per-package override with a custom duration."""
     subdir_path = tmp_path / PLATFORM
     subdir_path.mkdir()
@@ -333,15 +325,15 @@ def test_exclude_newer_per_package_duration(
     sd = SubdirData(channel=Channel(str(subdir_path)))
     names = {rec.name for rec in sd.iter_records()}
 
-    assert "recent-pkg" not in names, "recent-pkg should be excluded by global 1d threshold"
+    assert "recent-pkg" not in names, (
+        "recent-pkg should be excluded by global 1d threshold"
+    )
     assert "two-day-old-pkg" not in names, (
         "two-day-old-pkg should be excluded by its per-package 3d threshold"
     )
 
 
-def test_exclude_newer_per_package_bool_false(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-):
+def test_exclude_newer_per_package_bool_false(tmp_path: Path, monkeypatch: MonkeyPatch):
     """Boolean False (from YAML parsing) exempts a package, same as string 'false'."""
     subdir_path = tmp_path / PLATFORM
     subdir_path.mkdir()
