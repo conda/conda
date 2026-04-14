@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `--no-plugin=<name>` flag to selectively disable individual plugins at runtime, complementing the existing `--no-plugins` flag. (#15914 via #15915)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
