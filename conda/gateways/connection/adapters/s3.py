@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from ....common.compat import ensure_binary
 from ....common.serialize import json
 from ....common.url import url_to_s3_info
+from ....deprecations import deprecated
 from .. import BaseAdapter, CaseInsensitiveDict, Response
 
 if TYPE_CHECKING:
@@ -20,7 +21,13 @@ if TYPE_CHECKING:
     from .. import PreparedRequest
 
 log = getLogger(__name__)
-stderrlog = LoggerAdapter(getLogger("conda.stderrlog"), extra=dict(terminator="\n"))
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stderrlog",
+    LoggerAdapter(getLogger("conda.stderrlog"), extra=dict(terminator="\n")),
+    addendum="Use `conda.gateways.streams.stderrlog` instead.",
+)
 
 
 class S3Adapter(BaseAdapter):

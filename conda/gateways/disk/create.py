@@ -82,7 +82,13 @@ class TemporaryDirectory:
 
 
 log = getLogger(__name__)
-stdoutlog = getLogger("conda.stdoutlog")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stdoutlog",
+    getLogger("conda.stdoutlog"),
+    addendum="Use `conda.gateways.streams.stdoutlog` instead.",
+)
 
 # in __init__.py to help with circular imports
 mkdir_p = mkdir_p

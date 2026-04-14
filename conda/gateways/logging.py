@@ -18,6 +18,7 @@ from logging import (
 
 from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
+from ..deprecations import deprecated
 from .streams import _TOKEN_URL_PATTERN, _redact_token_urls
 
 log = getLogger(__name__)
@@ -132,9 +133,9 @@ def initialize_logging():
     # 'conda' gets level WARN and does not propagate to root.
     getLogger("conda").setLevel(WARN)
     set_conda_log_level()
-    initialize_std_loggers()
 
 
+@deprecated("26.9", "27.3")
 def initialize_std_loggers():
     # Set up special loggers 'conda.stdout'/'conda.stderr' which output directly to the
     # corresponding sys streams, filter token urls and don't propagate.
