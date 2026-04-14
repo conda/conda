@@ -100,6 +100,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    auth_handlers
    environment_exporters
    environment_specifiers
+   exception_handlers
    health_checks
    package_extractors
    post_commands

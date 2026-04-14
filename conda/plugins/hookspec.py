@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaExceptionHandler,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPostCommand,
@@ -805,5 +806,48 @@ class CondaSpecs:
                 )
 
         :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_exception_handlers(self) -> Iterable[CondaExceptionHandler]:
+        """
+        Register exception handler callbacks in conda.
+
+        Exception handlers are invoked when a ``CondaError`` (or subclass) is
+        handled by the ``ExceptionHandler``. They are **purely observational**:
+        they cannot suppress, modify, or redirect the exception. Their return
+        value is ignored. This follows the same model as CPython's
+        ``sys.excepthook``.
+
+        Any exception raised by a handler is caught at the ``BaseException``
+        level, logged at DEBUG, and swallowed — a buggy plugin can never
+        disrupt conda's error reporting path.
+
+        Handlers receive a frozen :class:`~conda.plugins.types.CondaExceptionInfo`
+        dataclass with ``exc_type``, ``exc_value``, ``exc_traceback``, ``argv``,
+        ``conda_version``, ``return_code``, and ``active_prefix`` fields.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def report_missing(exc_info):
+                print(f"Missing packages: {exc_info.exc_value.packages}")
+                print(f"Command was: {' '.join(exc_info.argv)}")
+
+
+            @plugins.hookimpl
+            def conda_exception_handlers():
+                yield plugins.types.CondaExceptionHandler(
+                    name="missing-package-reporter",
+                    hook=report_missing,
+                    run_for={"PackagesNotFoundInChannelsError"},
+                )
+
+        :return: An iterable of :class:`~conda.plugins.types.CondaExceptionHandler` entries.
         """
         yield from ()
