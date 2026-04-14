@@ -222,7 +222,8 @@ when the runtime is available (meaning no environment is active):
    * - ``target_prefix``
      - The prefix the command was operating on.
    * - ``channels``
-     - The configured channels at the time of error.
+     - The configured channel names at the time of error (canonical
+       names, e.g. ``defaults``, ``conda-forge``).
    * - ``subdir``
      - The platform subdirectory (e.g., ``linux-64``, ``osx-arm64``).
    * - ``offline``
