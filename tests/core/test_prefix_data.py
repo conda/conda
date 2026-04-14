@@ -1094,11 +1094,20 @@ def test_load_single_record_reads_bytes(tmp_path: Path, record_data: dict) -> No
     assert record_data["name"] in pd._PrefixData__prefix_records
 
 
-def test_load_single_record_raises_on_corrupt_json(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param(b"not valid json {{{", id="bad-json"),
+        pytest.param(b"{\x00\x00\x00\x00", id="null-bytes-unicode-error"),
+    ],
+)
+def test_load_single_record_raises_on_corrupt_json(
+    tmp_path: Path, content: bytes
+) -> None:
     """_load_single_record should raise CorruptedEnvironmentError for invalid JSON."""
     conda_meta = tmp_path / "conda-meta"
     conda_meta.mkdir()
-    (conda_meta / "bad-1.0-h0000000_0.json").write_bytes(b"not valid json {{{")
+    (conda_meta / "bad-1.0-h0000000_0.json").write_bytes(content)
 
     pd = PrefixData(tmp_path)
 
