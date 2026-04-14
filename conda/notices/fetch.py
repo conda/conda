@@ -8,7 +8,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
-import requests
+import requests  # noqa: TID253
 
 from ..gateways.connection.session import get_session
 from ..reporters import get_spinner

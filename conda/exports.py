@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from builtins import input  # noqa: UP029
 from io import StringIO
-from typing import TYPE_CHECKING
 
 from . import CondaError
 from .base.constants import (
@@ -68,9 +67,6 @@ from .resolve import (  # noqa: F401
 )
 from .utils import human_bytes, url_path  # noqa: F401
 
-if TYPE_CHECKING:
-    from typing import Any
-
 reset_context()  # initialize context when conda.exports is imported
 
 
@@ -95,17 +91,6 @@ PaddingError = PaddingError
 LinkError = LinkError
 CondaOSError = CondaOSError
 # Replacements for six exports for compatibility
-
-
-# FUTURE: conda 26.3+ remove this
-def __getattr__(name: str) -> Any:
-    # lazy load the deprecated module
-    if name == "plan":
-        from . import plan
-
-        return plan
-
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 deprecated.constant(

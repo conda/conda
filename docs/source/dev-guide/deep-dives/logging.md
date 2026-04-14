@@ -34,7 +34,7 @@ Historically, additional loggers were used for user-facing CLI text to stdout/st
 
 ### Other loggers
 
-The `auxlib` logger is a remnant from before the auxlib code was completely absorbed into conda.
+The `auxlib` logger a remnant from before the auxlib code was completely absorbed into conda.
 
 ## Potential effect on other loggers
 
