@@ -178,7 +178,9 @@ def test_non_conda_error_skipped(catch_all_plugin, plugin_manager):
     assert len(catch_all_plugin.calls) == 0
 
 
-def test_handler_exception_swallowed(exploding_plugin, catch_all_plugin, plugin_manager):
+def test_handler_exception_swallowed(
+    exploding_plugin, catch_all_plugin, plugin_manager
+):
     """A handler that raises does not break the invocation of subsequent handlers."""
     try:
         raise CondaError("test")
