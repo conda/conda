@@ -37,12 +37,36 @@ except ImportError:
 
 log = getLogger(__name__)
 
-_BRACKETS_RE = re.compile(r".*(?:(\[.*\]))")
-_BRACKETS_KV_RE = re.compile(r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)')
-_PARENS_RE = re.compile(r".*(?:(\(.*\)))")
-_NAME_VERSION_RE = re.compile(r"([^ =<>!~]+)?([><!=~ ].+)?")
-_VERSION_BUILD_RE = re.compile(
-    r"((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>~]+?))?$"
+_BRACKETS_RE: re.Pattern[str] = re.compile(r".*(?:(\[.*\]))")
+_BRACKETS_KV_RE: re.Pattern[str] = re.compile(
+    r"""
+    ([a-zA-Z0-9_-]+?)       # key
+    =                        # separator
+    (["\']?)                 # optional opening quote
+    ([^\'"]*?)               # value
+    (\2)                     # matching closing quote
+    (?:[,\ ]|$)              # delimiter or end
+    """,
+    re.VERBOSE,
+)
+_PARENS_RE: re.Pattern[str] = re.compile(r".*(?:(\(.*\)))")
+_NAME_VERSION_RE: re.Pattern[str] = re.compile(
+    r"""
+    ([^\ =<>!~]+)?          # package name
+    ([><!=~\ ].+)?          # version constraint
+    """,
+    re.VERBOSE,
+)
+_VERSION_BUILD_RE: re.Pattern[str] = re.compile(
+    r"""
+    ((?:.+?)[^><!,|]?)      # version (non-greedy, not ending in operator)
+    (?:
+        (?<![=!|,<>~])      # not preceded by an operator
+        (?:[\ =])           # space or equals separator
+        ([^-=,|<>~]+?)      # build string
+    )?$
+    """,
+    re.VERBOSE,
 )
 
 
