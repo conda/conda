@@ -280,13 +280,13 @@ class CondaPluginManager(pluggy.PluginManager):
                     # conda's custom entry point loader.
                     self._plugin_distinfo.append((plugin, DistFacade(dist)))
                     count += 1
-                    self.plugin_aliases.setdefault(
-                        entry_point.name, set()
-                    ).add(plugin_name)
+                    self.plugin_aliases.setdefault(entry_point.name, set()).add(
+                        plugin_name
+                    )
                     if dist_name := dist.metadata.get("Name"):
-                        self.plugin_aliases.setdefault(
-                            dist_name, set()
-                        ).add(plugin_name)
+                        self.plugin_aliases.setdefault(dist_name, set()).add(
+                            plugin_name
+                        )
         return count
 
     def _hookexec(
