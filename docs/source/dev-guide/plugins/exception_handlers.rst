@@ -50,6 +50,9 @@ Step 1 — write the hook
        Uses conda's built-in session so that proxy settings, SSL
        configuration, and per-channel auth are picked up automatically.
        """
+       if info.offline or info.dry_run:
+           return
+
        from conda.gateways.connection.session import get_session
 
        exc = info.exc_value
