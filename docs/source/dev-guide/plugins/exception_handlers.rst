@@ -183,6 +183,10 @@ Handlers are called with a single frozen
      - The exit code conda will use for this error.
    * - ``active_prefix``
      - The currently active conda environment prefix, or ``None``.
+   * - ``quiet``
+     - Whether conda is running in quiet mode (``--quiet``).
+   * - ``json``
+     - Whether conda is running in JSON output mode (``--json``).
 
 .. warning::
 
