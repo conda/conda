@@ -72,12 +72,9 @@ class ExceptionHandler:
         )
 
         if isinstance(exc_val, CondaError):
-            try:
-                from .base.context import context
+            from .base.context import context
 
-                context.plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
-            except BaseException:
-                pass
+            context.plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
 
             if exc_val.reportable:
                 return self.handle_reportable_application_exception(exc_val, exc_tb)
