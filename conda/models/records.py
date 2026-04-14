@@ -741,3 +741,14 @@ class PrefixRecord(SolvedRecord):
     # @classmethod
     # def load(cls, conda_meta_json_path):
     #     return cls()
+
+
+import os as _os
+
+if _os.environ.get("CONDA_DATACLASS_RECORDS"):
+    from .records_dc import (
+        PackageCacheRecordDC as PackageCacheRecord,  # noqa: F401
+    )
+    from .records_dc import PackageRecordDC as PackageRecord
+    from .records_dc import PrefixRecordDC as PrefixRecord  # noqa: F401
+    from .records_dc import SolvedRecordDC as SolvedRecord
