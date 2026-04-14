@@ -1417,7 +1417,7 @@ class Context(Configuration):
                 "protect_frozen_envs",
                 # prevent modifications to envs marked with conda-meta/frozen
             ),
-            "Plugin Configuration": ("no_plugins",),
+            "Plugin Configuration": ("no_plugins", "no_plugin"),
             "Experimental": ("environment_specifier",),
         }
 
@@ -1761,6 +1761,11 @@ class Context(Configuration):
             no_plugins=dals(
                 """
                 Disable all currently-registered plugins, except built-in conda plugins.
+                """
+            ),
+            no_plugin=dals(
+                """
+                Disable specific plugins by name. Can be repeated.
                 """
             ),
             non_admin_enabled=dals(
