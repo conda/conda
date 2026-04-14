@@ -830,6 +830,11 @@ class CondaExceptionInfo:
     :param return_code: The exit code conda will return for this error.
     :param active_prefix: The currently active conda environment prefix,
                           or ``None`` if no environment is active.
+    :param target_prefix: The prefix the command was operating on.
+    :param channels: The configured channels at the time of error.
+    :param subdir: The platform subdirectory (e.g., ``linux-64``, ``osx-arm64``).
+    :param offline: Whether conda is running in offline mode (``--offline``).
+    :param dry_run: Whether conda is running in dry-run mode (``--dry-run``).
     :param quiet: Whether conda is running in quiet mode (``--quiet``).
     :param json: Whether conda is running in JSON output mode (``--json``).
     """
@@ -841,6 +846,11 @@ class CondaExceptionInfo:
     conda_version: str
     return_code: int
     active_prefix: str | None
+    target_prefix: str
+    channels: tuple[str, ...]
+    subdir: str
+    offline: bool
+    dry_run: bool
     quiet: bool
     json: bool
 

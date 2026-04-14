@@ -183,6 +183,16 @@ Handlers are called with a single frozen
      - The exit code conda will use for this error.
    * - ``active_prefix``
      - The currently active conda environment prefix, or ``None``.
+   * - ``target_prefix``
+     - The prefix the command was operating on.
+   * - ``channels``
+     - The configured channels at the time of error.
+   * - ``subdir``
+     - The platform subdirectory (e.g., ``linux-64``, ``osx-arm64``).
+   * - ``offline``
+     - Whether conda is running in offline mode (``--offline``).
+   * - ``dry_run``
+     - Whether conda is running in dry-run mode (``--dry-run``).
    * - ``quiet``
      - Whether conda is running in quiet mode (``--quiet``).
    * - ``json``
