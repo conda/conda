@@ -146,6 +146,31 @@ def test_parser_no_plugins(plugin_manager):
         args = parser.parse_args(["custom"])
 
 
+def test_parser_no_plugin_specific(plugin_manager):
+    """--no-plugin disables a specific plugin while leaving others intact."""
+    plugin_a = SubcommandPlugin(name="alpha", summary="Alpha.")
+    plugin_b = SubcommandPlugin(name="beta", summary="Beta.")
+    assert plugin_manager.load_plugins(plugin_a) == 1
+    assert plugin_manager.load_plugins(plugin_b) == 1
+
+    parser = generate_parser()
+    args = parser.parse_args(["alpha"])
+    assert args.cmd == "alpha"
+    args = parser.parse_args(["beta"])
+    assert args.cmd == "beta"
+
+    name_a = plugin_manager.get_name(plugin_a)
+    plugin_manager.disable_plugins([name_a])
+
+    parser = generate_parser()
+
+    with pytest.raises(SystemExit, match="2"):
+        parser.parse_args(["alpha"])
+
+    args = parser.parse_args(["beta"])
+    assert args.cmd == "beta"
+
+
 def test_custom_plugin_not_extend_parser(
     plugin_manager,
     conda_cli: CondaCLIFixture,

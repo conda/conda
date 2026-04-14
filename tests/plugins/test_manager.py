@@ -264,6 +264,80 @@ def test_get_solvers(plugin_manager: CondaPluginManager):
     assert plugin_manager.get_solvers() == {"verbose-classic": VerboseCondaSolver}
 
 
+def test_disable_plugins_by_canonical_name(plugin_manager: CondaPluginManager):
+    """Plugins can be disabled by their canonical (registered) name."""
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
+    canonical = plugin_manager.get_name(VerboseSolverPlugin)
+    assert canonical is not None
+
+    plugin_manager.disable_plugins([canonical])
+    assert plugin_manager.is_blocked(canonical)
+
+
+def test_disable_plugins_by_alias(plugin_manager: CondaPluginManager):
+    """Plugins can be disabled via plugin_aliases (dist/entry point name)."""
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
+    canonical = plugin_manager.get_name(VerboseSolverPlugin)
+    assert canonical is not None
+
+    plugin_manager.plugin_aliases["my-cool-plugin"] = {canonical}
+    plugin_manager.disable_plugins(["my-cool-plugin"])
+    assert plugin_manager.is_blocked(canonical)
+
+
+@pytest.fixture()
+def log_records(request):
+    """Capture log records from conda.plugins.manager."""
+    records: list[logging.LogRecord] = []
+    handler = logging.Handler()
+    handler.emit = records.append  # type: ignore[assignment]
+    logger = logging.getLogger("conda.plugins.manager")
+    logger.addHandler(handler)
+    request.addfinalizer(lambda: logger.removeHandler(handler))
+    return records
+
+
+def test_disable_plugins_unknown_name(
+    plugin_manager: CondaPluginManager, log_records: list[logging.LogRecord]
+):
+    """A warning is logged when the plugin name is not recognized."""
+    plugin_manager.disable_plugins(["does-not-exist"])
+    assert any("does-not-exist" in r.getMessage() for r in log_records)
+
+
+def test_disable_plugins_builtin_rejected(plugin_manager: CondaPluginManager):
+    """Built-in conda plugins cannot be disabled."""
+    plugin_manager.plugin_aliases["sneaky"] = {"conda.plugins.subcommands"}
+    with pytest.raises(PluginError, match="Built-in plugin.*cannot be disabled"):
+        plugin_manager.disable_plugins(["sneaky"])
+
+
+def test_disable_plugins_already_blocked(plugin_manager: CondaPluginManager):
+    """Disabling an already-blocked plugin is a no-op."""
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
+    canonical = plugin_manager.get_name(VerboseSolverPlugin)
+    assert canonical is not None
+
+    plugin_manager.set_blocked(canonical)
+    plugin_manager.disable_plugins([canonical])
+    assert plugin_manager.is_blocked(canonical)
+
+
+def test_disable_plugins_multi_alias(plugin_manager: CondaPluginManager):
+    """A dist name mapping to multiple canonical names disables all of them."""
+    assert plugin_manager.load_plugins(this_module) == 1
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
+
+    name_a = plugin_manager.get_name(this_module)
+    name_b = plugin_manager.get_name(VerboseSolverPlugin)
+    assert name_a is not None and name_b is not None
+
+    plugin_manager.plugin_aliases["multi-pkg"] = {name_a, name_b}
+    plugin_manager.disable_plugins(["multi-pkg"])
+    assert plugin_manager.is_blocked(name_a)
+    assert plugin_manager.is_blocked(name_b)
+
+
 def test_get_session_headers(plugin_manager: CondaPluginManager):
     """
     Ensure that an empty dict is returned when no ``conda_request_headers`` plugin
