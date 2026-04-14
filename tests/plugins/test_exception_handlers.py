@@ -31,6 +31,21 @@ class CatchAllPlugin:
         )
 
 
+class BaseExceptionPlugin:
+    """Records every exception regardless of type."""
+
+    def __init__(self):
+        self.calls: list[CondaExceptionInfo] = []
+
+    @plugins.hookimpl
+    def conda_exception_handlers(self):
+        yield CondaExceptionHandler(
+            name="base-exception",
+            hook=self.calls.append,
+            run_for={"BaseException"},
+        )
+
+
 class PackagesOnlyPlugin:
     """Only fires for PackagesNotFoundError (and subclasses via MRO)."""
 
@@ -82,6 +97,13 @@ class SystemExitPlugin:
 @pytest.fixture()
 def catch_all_plugin(plugin_manager):
     p = CatchAllPlugin()
+    plugin_manager.register(p)
+    return p
+
+
+@pytest.fixture()
+def base_exception_plugin(plugin_manager):
+    p = BaseExceptionPlugin()
     plugin_manager.register(p)
     return p
 
@@ -167,8 +189,8 @@ def test_run_for_matches_subclasses_via_mro(packages_only_plugin, plugin_manager
     assert packages_only_plugin.calls[0].exc_value is exc
 
 
-def test_non_conda_error_skipped(catch_all_plugin, plugin_manager):
-    """Non-CondaError exceptions are not dispatched to handlers."""
+def test_non_conda_error_not_matched_by_conda_handler(catch_all_plugin, plugin_manager):
+    """A ValueError is dispatched but not matched by a handler with run_for={'CondaError'}."""
     try:
         raise ValueError("not a conda error")
     except ValueError:
@@ -235,3 +257,141 @@ def test_no_handlers_registered(plugin_manager):
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
         plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+
+def test_base_exception_plugin_receives_value_error(
+    base_exception_plugin, plugin_manager
+):
+    """A handler with run_for={'BaseException'} fires for any exception type."""
+    exc = ValueError("oops")
+    try:
+        raise exc
+    except ValueError:
+        _, exc_val, exc_tb = sys.exc_info()
+        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+    assert len(base_exception_plugin.calls) == 1
+    info = base_exception_plugin.calls[0]
+    assert info.exc_value is exc
+    assert info.exc_type is ValueError
+
+
+def test_memory_error_dispatched(base_exception_plugin, plugin_manager):
+    """MemoryError is dispatched to handlers registered for BaseException."""
+    exc = MemoryError()
+    try:
+        raise exc
+    except MemoryError:
+        _, exc_val, exc_tb = sys.exc_info()
+        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+    assert len(base_exception_plugin.calls) == 1
+    info = base_exception_plugin.calls[0]
+    assert info.exc_value is exc
+    assert info.exc_type is MemoryError
+
+
+def test_keyboard_interrupt_dispatched(base_exception_plugin, plugin_manager):
+    """KeyboardInterrupt is dispatched to handlers registered for BaseException."""
+    exc = KeyboardInterrupt()
+    try:
+        raise exc
+    except KeyboardInterrupt:
+        _, exc_val, exc_tb = sys.exc_info()
+        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+    assert len(base_exception_plugin.calls) == 1
+    info = base_exception_plugin.calls[0]
+    assert info.exc_value is exc
+    assert info.exc_type is KeyboardInterrupt
+
+
+def test_system_exit_dispatched(base_exception_plugin, plugin_manager):
+    """SystemExit is dispatched to handlers registered for BaseException."""
+    exc = SystemExit(2)
+    try:
+        raise exc
+    except SystemExit:
+        _, exc_val, exc_tb = sys.exc_info()
+        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+    assert len(base_exception_plugin.calls) == 1
+    info = base_exception_plugin.calls[0]
+    assert info.exc_value is exc
+    assert info.exc_type is SystemExit
+    assert info.return_code == 2
+
+
+def test_system_exit_return_code_from_code_attr(base_exception_plugin, plugin_manager):
+    """SystemExit.code is used as the return_code."""
+    exc = SystemExit(42)
+    try:
+        raise exc
+    except SystemExit:
+        _, exc_val, exc_tb = sys.exc_info()
+        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+    info = base_exception_plugin.calls[0]
+    assert info.return_code == 42
+
+
+def test_conda_error_not_matched_by_memory_error_handler(plugin_manager):
+    """A handler with run_for={'MemoryError'} does not fire for CondaError."""
+
+    class MemoryErrorPlugin:
+        def __init__(self):
+            self.calls: list[CondaExceptionInfo] = []
+
+        @plugins.hookimpl
+        def conda_exception_handlers(self):
+            yield CondaExceptionHandler(
+                name="memory-only",
+                hook=self.calls.append,
+                run_for={"MemoryError"},
+            )
+
+    p = MemoryErrorPlugin()
+    plugin_manager.register(p)
+
+    try:
+        raise CondaError("test")
+    except CondaError:
+        _, exc_val, exc_tb = sys.exc_info()
+        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+    assert len(p.calls) == 0
+
+
+def test_combined_run_for_scopes(plugin_manager):
+    """A handler with run_for={'CondaError', 'MemoryError'} fires for both types."""
+
+    class CombinedPlugin:
+        def __init__(self):
+            self.calls: list[CondaExceptionInfo] = []
+
+        @plugins.hookimpl
+        def conda_exception_handlers(self):
+            yield CondaExceptionHandler(
+                name="combined",
+                hook=self.calls.append,
+                run_for={"CondaError", "MemoryError"},
+            )
+
+    p = CombinedPlugin()
+    plugin_manager.register(p)
+
+    try:
+        raise CondaError("test")
+    except CondaError:
+        _, exc_val, exc_tb = sys.exc_info()
+        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+    try:
+        raise MemoryError()
+    except MemoryError:
+        _, exc_val, exc_tb = sys.exc_info()
+        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+
+    assert len(p.calls) == 2
+    assert p.calls[0].exc_type is CondaError
+    assert p.calls[1].exc_type is MemoryError
