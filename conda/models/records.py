@@ -113,6 +113,8 @@ FIELDS_WITHOUT_DEFAULT_IN_DUMP = frozenset(
         "package_type",
         "timestamp",
         "paths_data",
+        "package_tarball_full_path",
+        "extracted_package_dir",
     }
 )
 
@@ -732,8 +734,8 @@ class PrefixRecord(SolvedRecord):
         "paths_data": resolve_paths_data,
     }
 
-    package_tarball_full_path: str | None = None
-    extracted_package_dir: str | None = None
+    package_tarball_full_path: str = ""
+    extracted_package_dir: str = ""
     files: tuple[str, ...] = ()
     paths_data: Any = None
     link: Any = None
