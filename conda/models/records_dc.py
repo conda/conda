@@ -102,19 +102,57 @@ def get_known_fields(cls: type) -> frozenset[str]:
     return frozenset(f.name for f in fields(cls) if f.name not in CACHE_FIELDS)
 
 
-def coerce_channel(val: Any) -> Channel | None:
-    if val is None or isinstance(val, Channel):
+def resolve_channel(val: Any, record: PackageRecordDC) -> Channel | None:
+    if val is not None:
+        if isinstance(val, Channel):
+            return val
+        return Channel(val)
+    url = record.url
+    if url:
+        return Channel(url)
+    return None
+
+
+def resolve_subdir(val: Any, record: PackageRecordDC) -> str | None:
+    if val is not None:
         return val
-    return Channel(val)
+    url = record.url
+    if url:
+        subdir = Channel(url).subdir
+        if subdir:
+            return subdir
+    plat = record.platform
+    arch = record.arch
+    if plat is not None:
+        plat_name = plat.name if isinstance(plat, Platform) else str(plat)
+        if not arch:
+            return "noarch"
+        if "x86" in arch:
+            arch = "64" if "64" in arch else "32"
+        return f"{plat_name}-{arch}"
+    from ..base.context import context
+
+    return context.subdir
 
 
-def coerce_timestamp(val: Any) -> int | float:
+def resolve_fn(val: Any, record: PackageRecordDC) -> str:
+    if val is not None:
+        return val
+    url = record.url
+    if url:
+        fn = Channel(url).package_filename
+        if fn:
+            return fn
+    return f"{record.name}-{record.version}-{record.build}"
+
+
+def resolve_timestamp(val: Any, record: PackageRecordDC) -> int | float:
     if val and val > TS_BOUNDARY:
         return val / 1000
     return val
 
 
-def coerce_features(val: Any) -> tuple[str, ...]:
+def resolve_features(val: Any, record: PackageRecordDC) -> tuple[str, ...]:
     if isinstance(val, tuple):
         return val
     if not val:
@@ -124,19 +162,27 @@ def coerce_features(val: Any) -> tuple[str, ...]:
     return tuple(f for f in (ff.strip() for ff in val) if f)
 
 
-def coerce_noarch(val: Any) -> NoarchType | None:
+def resolve_as_tuple(val: Any, record: PackageRecordDC) -> tuple:
+    if isinstance(val, tuple):
+        return val
+    if not val:
+        return ()
+    return tuple(val)
+
+
+def resolve_noarch(val: Any, record: PackageRecordDC) -> NoarchType | None:
     if val is None or isinstance(val, NoarchType):
         return val
     return NoarchType.coerce(val)
 
 
-def coerce_package_type(val: Any) -> PackageType | None:
+def resolve_package_type(val: Any, record: PackageRecordDC) -> PackageType | None:
     if val is None or isinstance(val, PackageType):
         return val
     return PackageType(val)
 
 
-def coerce_platform(val: Any) -> Platform | None:
+def resolve_platform(val: Any, record: PackageRecordDC) -> Platform | None:
     if val is None or isinstance(val, Platform):
         return val
     try:
@@ -145,12 +191,12 @@ def coerce_platform(val: Any) -> Platform | None:
         return Platform[val]
 
 
-def as_tuple(val: Any) -> tuple:
-    if isinstance(val, tuple):
-        return val
-    if not val:
-        return ()
-    return tuple(val)
+def resolve_paths_data(val: Any, record: PrefixRecordDC) -> Any:
+    if isinstance(val, dict):
+        from .records import PathsData
+
+        return PathsData(**val)
+    return val
 
 
 def dump_channel(val: Any) -> str:
@@ -171,14 +217,6 @@ def dump_features(val: Any) -> str | tuple:
     return val or ()
 
 
-def coerce_paths_data(val: Any) -> Any:
-    if isinstance(val, dict):
-        from .records import PathsData
-
-        return PathsData(**val)
-    return val
-
-
 def dump_enum(val: Any) -> Any:
     return val.value if isinstance(val, enum.Enum) else val
 
@@ -197,17 +235,19 @@ class PackageRecordDC:
         "filename": "fn",
     }
 
-    COERCIONS: ClassVar[dict[str, Callable]] = {
-        "channel": coerce_channel,
-        "timestamp": coerce_timestamp,
-        "track_features": coerce_features,
-        "features": coerce_features,
-        "depends": as_tuple,
-        "constrains": as_tuple,
-        "files": as_tuple,
-        "noarch": coerce_noarch,
-        "package_type": coerce_package_type,
-        "platform": coerce_platform,
+    FIELD_RESOLVERS: ClassVar[dict[str, Callable]] = {
+        "channel": resolve_channel,
+        "subdir": resolve_subdir,
+        "fn": resolve_fn,
+        "timestamp": resolve_timestamp,
+        "track_features": resolve_features,
+        "features": resolve_features,
+        "depends": resolve_as_tuple,
+        "constrains": resolve_as_tuple,
+        "files": resolve_as_tuple,
+        "noarch": resolve_noarch,
+        "package_type": resolve_package_type,
+        "platform": resolve_platform,
     }
 
     DUMP_TRANSFORMS: ClassVar[dict[str, Callable]] = {
@@ -276,25 +316,13 @@ class PackageRecordDC:
                     setattr_(self, name, default_factory())
                 else:
                     setattr_(self, name, default)
-                continue
+            else:
+                setattr_(self, name, val)
 
-            coerce = self.COERCIONS.get(name)
-            if coerce is not None:
-                val = coerce(val)
-
-            setattr_(self, name, val)
-
-        url = self.url
-        if url:
-            ch = Channel(url)
-            if self.channel is None:
-                setattr_(self, "channel", ch)
-            if self.fn is None:
-                fn = ch.package_filename
-                if fn:
-                    setattr_(self, "fn", fn)
-            if self.subdir is None:
-                setattr_(self, "subdir", ch.subdir)
+        for name, resolve in self.FIELD_RESOLVERS.items():
+            val = getattr(self, name, SENTINEL)
+            if val is not SENTINEL:
+                setattr_(self, name, resolve(val, self))
 
         for fname in INTERN_FIELDS:
             val = getattr(self, fname, None)
@@ -320,84 +348,6 @@ class PackageRecordDC:
             return None
         return getattr(ch, "canonical_name", str(ch))
 
-    def resolve_subdir(self) -> str:
-        val = self.subdir
-        if val is not None:
-            return val
-        url = self.url
-        if url:
-            return Channel(url).subdir
-        plat = self.platform
-        arch = self.arch
-        if plat is not None:
-            plat_name = plat.name if isinstance(plat, Platform) else str(plat)
-            if not arch:
-                return "noarch"
-            if "x86" in arch:
-                arch = "64" if "64" in arch else "32"
-            return f"{plat_name}-{arch}"
-        from ..base.context import context
-
-        return context.subdir
-
-    def resolve_fn(self) -> str:
-        val = self.fn
-        if val is not None:
-            return val
-        url = self.url
-        if url:
-            fn = Channel(url).package_filename
-            if fn:
-                return fn
-        return f"{self.name}-{self.version}-{self.build}"
-
-    def resolve_channel(self) -> Channel | None:
-        ch = self.channel
-        if ch is not None:
-            return ch
-        url = self.url
-        if url:
-            return Channel(url)
-        return None
-
-    def resolve_url_derived(self) -> tuple[Channel | None, str, str]:
-        """Resolve channel, subdir, and fn from url in a single Channel lookup."""
-        ch = self.channel
-        subdir = self.subdir
-        fn = self.fn
-        url = self.url
-
-        if ch is None or subdir is None or fn is None:
-            if url:
-                url_ch = Channel(url)
-                if ch is None:
-                    ch = url_ch
-                if subdir is None:
-                    subdir = url_ch.subdir
-                if fn is None:
-                    fn = url_ch.package_filename
-
-        if subdir is None:
-            plat = self.platform
-            arch = self.arch
-            if plat is not None:
-                plat_name = plat.name if isinstance(plat, Platform) else str(plat)
-                if not arch:
-                    subdir = "noarch"
-                else:
-                    if "x86" in arch:
-                        arch = "64" if "64" in arch else "32"
-                    subdir = f"{plat_name}-{arch}"
-            else:
-                from ..base.context import context
-
-                subdir = context.subdir
-
-        if fn is None:
-            fn = f"{self.name}-{self.version}-{self.build}"
-
-        return ch, subdir, fn
-
     def resolve_package_type(self) -> PackageType | None:
         val = self.package_type
         if val is not None:
@@ -421,7 +371,7 @@ class PackageRecordDC:
         ch_name = getattr(ch, "canonical_name", str(ch)) if ch else ""
         pk: list[Any] = [
             ch_name,
-            self.resolve_subdir(),
+            self.subdir,
             self.name,
             self.version,
             self.build_number,
@@ -430,7 +380,7 @@ class PackageRecordDC:
         from ..base.context import context
 
         if context.separate_format_cache:
-            pk.append(self.resolve_fn())
+            pk.append(self.fn)
         result = tuple(pk)
         object.__setattr__(self, "_pkey_cache", result)
         return result
@@ -453,18 +403,10 @@ class PackageRecordDC:
     def dump(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
         transforms = self.DUMP_TRANSFORMS
-        r_ch, r_subdir, r_fn = self.resolve_url_derived()
         for name, include_default, default in get_dump_specs(self.__class__):
-            if name == "channel":
-                val = r_ch
-            elif name == "subdir":
-                val = r_subdir
-            elif name == "fn":
-                val = r_fn
-            else:
-                val = getattr(self, name, SENTINEL)
-                if val is SENTINEL:
-                    continue
+            val = getattr(self, name, SENTINEL)
+            if val is SENTINEL:
+                continue
 
             if val is None:
                 if not include_default:
@@ -522,9 +464,9 @@ class PackageRecordDC:
         return cls(**data_dict)
 
     def __str__(self) -> str:
-        ch = self.resolve_channel()
+        ch = self.channel
         ch_name = getattr(ch, "canonical_name", "") if ch else ""
-        return f"{ch_name}/{self.resolve_subdir()}::{self.name}=={self.version}={self.build}"
+        return f"{ch_name}/{self.subdir}::{self.name}=={self.version}={self.build}"
 
     def __repr__(self) -> str:
         parts: list[str] = []
@@ -538,19 +480,19 @@ class PackageRecordDC:
         return f"{self.__class__.__name__}({', '.join(parts)})"
 
     def dist_str(self, canonical_name: bool = True) -> str:
-        ch = self.resolve_channel()
+        ch = self.channel
         if ch is None:
             ch_str = ""
         elif canonical_name:
             ch_str = getattr(ch, "canonical_name", str(ch))
         else:
             ch_str = getattr(ch, "name", str(ch))
-        subdir = self.resolve_subdir()
+        subdir = self.subdir
         sub = f"/{subdir}" if subdir else ""
         return f"{ch_str}{sub}::{self.name}-{self.version}-{self.build}"
 
     def dist_fields_dump(self) -> dict[str, Any]:
-        ch = self.resolve_channel()
+        ch = self.channel
         return {
             "base_url": getattr(ch, "base_url", "") if ch else "",
             "build_number": self.build_number,
@@ -558,7 +500,7 @@ class PackageRecordDC:
             "channel": getattr(ch, "name", "") if ch else "",
             "dist_name": self.dist_str().split(":")[-1],
             "name": self.name,
-            "platform": self.resolve_subdir(),
+            "platform": self.subdir,
             "version": self.version,
         }
 
@@ -566,8 +508,8 @@ class PackageRecordDC:
         from .match_spec import MatchSpec
 
         return MatchSpec(
-            channel=self.resolve_channel(),
-            subdir=self.resolve_subdir(),
+            channel=self.channel,
+            subdir=self.subdir,
             name=self.name,
             version=self.version,
             build=self.build,
@@ -605,9 +547,9 @@ class PackageRecordDC:
         return f"{self.name}={self.version}"
 
     def record_id(self) -> str:
-        ch = self.resolve_channel()
+        ch = self.channel
         ch_name = getattr(ch, "name", "") if ch else ""
-        return f"{ch_name}/{self.resolve_subdir()}::{self.name}-{self.version}-{self.build}"
+        return f"{ch_name}/{self.subdir}::{self.name}-{self.version}-{self.build}"
 
     @classmethod
     def feature(cls, feature_name: str) -> PackageRecordDC:
@@ -722,9 +664,9 @@ class SolvedRecordDC(PackageRecordDC):
 class PrefixRecordDC(SolvedRecordDC):
     """Dataclass replacement for PrefixRecord."""
 
-    COERCIONS: ClassVar[dict[str, Callable]] = {
-        **PackageRecordDC.COERCIONS,
-        "paths_data": coerce_paths_data,
+    FIELD_RESOLVERS: ClassVar[dict[str, Callable]] = {
+        **PackageRecordDC.FIELD_RESOLVERS,
+        "paths_data": resolve_paths_data,
     }
 
     package_tarball_full_path: str | None = None
