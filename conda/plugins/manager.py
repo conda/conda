@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, overload
 
 import pluggy
 
-from .. import CondaError, __version__
+from .. import __version__
 from ..auxlib import NULL
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
@@ -499,31 +499,40 @@ class CondaPluginManager(pluggy.PluginManager):
         :param exc_tb: the associated traceback
         """
         try:
-            if not isinstance(exc_val, CondaError):
-                return
-
             handlers = self.get_hook_results("exception_handlers")
             if not handlers:
                 return
 
             exc_mro_names = frozenset(cls.__name__ for cls in type(exc_val).__mro__)
 
-            exc_info = CondaExceptionInfo(
-                exc_type=type(exc_val),
-                exc_value=exc_val,
-                exc_traceback=exc_tb,
-                argv=tuple(sys.argv),
-                conda_version=__version__,
-                return_code=getattr(exc_val, "return_code", 1),
-                active_prefix=context.active_prefix,
-                target_prefix=str(context.target_prefix),
-                channels=tuple(context.channels),
-                subdir=context.subdir,
-                offline=context.offline,
-                dry_run=context.dry_run,
-                quiet=context.quiet,
-                json=context.json,
-            )
+            if isinstance(exc_val, SystemExit):
+                return_code = exc_val.code
+            else:
+                return_code = getattr(exc_val, "return_code", 1)
+
+            try:
+                exc_info = CondaExceptionInfo(
+                    exc_type=type(exc_val),
+                    exc_value=exc_val,
+                    exc_traceback=exc_tb,
+                    argv=tuple(sys.argv),
+                    conda_version=__version__,
+                    return_code=return_code,
+                    active_prefix=context.active_prefix,
+                    target_prefix=str(context.target_prefix),
+                    channels=tuple(context.channels),
+                    subdir=context.subdir,
+                    offline=context.offline,
+                    dry_run=context.dry_run,
+                    quiet=context.quiet,
+                    json=context.json,
+                )
+            except BaseException:
+                exc_info = CondaExceptionInfo(
+                    exc_type=type(exc_val),
+                    exc_value=exc_val,
+                    exc_traceback=exc_tb,
+                )
 
             for handler in handlers:
                 if not (handler.run_for & exc_mro_names):
