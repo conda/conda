@@ -40,7 +40,9 @@ class S3Adapter(BaseAdapter):
         try:
             return self._send_boto3(resp, request)
         except ImportError:
-            stderrlog.info(
+            from ....gateways.streams import stderrlog
+
+            stderrlog(
                 "\nError: boto3 is required for S3 channels. "
                 "Please install with `conda install boto3`\n"
                 "Make sure to run `conda deactivate` if you "

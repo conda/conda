@@ -239,10 +239,10 @@ Exception: {e}
                 )
             else:
                 if context.allow_non_channel_urls:
-                    stderrlog.warning(
-                        "Unable to retrieve repodata (response: %d) for %s",
-                        status_code,
-                        url + "/" + repodata_fn,
+                    from ...gateways.streams import stderrlog
+
+                    stderrlog(
+                        f"Unable to retrieve repodata (response: {status_code}) for {url}/{repodata_fn}"
                     )
                     raise RepodataIsEmpty(
                         Channel(dirname(url)),

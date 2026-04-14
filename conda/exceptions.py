@@ -1539,12 +1539,14 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
     elif context.json:
         if isinstance(exc_val, DryRunExit):
             return
-        logger = getLogger("conda.stdout" if rc else "conda.stderr")
+        from .gateways.streams import stderr, stdout
+
         exc_json = json_dumps(exc_val.dump_map(), sort_keys=True)
-        logger.info(f"{exc_json}\n")
+        (stdout if rc else stderr)(f"{exc_json}\n")
     else:
-        stderrlog = getLogger("conda.stderr")
-        stderrlog.error("\n%r\n", exc_val)
+        from .gateways.streams import stderr
+
+        stderr(f"\n{exc_val!r}\n")
         # An alternative which would allow us not to reload sys with newly setdefaultencoding()
         # is to not use `%r`, e.g.:
         # Still, not being able to use `%r` seems too great a price to pay.
