@@ -542,6 +542,9 @@ class Context(Configuration):
     ####################################################
 
     no_plugins = ParameterLoader(PrimitiveParameter(NO_PLUGINS))
+    no_plugin = ParameterLoader(
+        SequenceParameter(PrimitiveParameter("", element_type=str))
+    )
 
     def __init__(
         self,
