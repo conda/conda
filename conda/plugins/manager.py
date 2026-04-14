@@ -505,9 +505,7 @@ class CondaPluginManager(pluggy.PluginManager):
         if not handlers:
             return
 
-        exc_mro_names = frozenset(
-            cls.__name__ for cls in type(exc_val).__mro__
-        )
+        exc_mro_names = frozenset(cls.__name__ for cls in type(exc_val).__mro__)
 
         exc_info = CondaExceptionInfo(
             exc_type=type(exc_val),
