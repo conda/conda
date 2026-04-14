@@ -15,28 +15,29 @@ Object inheritance:
 
 from __future__ import annotations
 
-from os.path import basename, join
+import enum
+import json  # noqa: TID251
+import sys
+from dataclasses import MISSING, dataclass, field, fields
+from functools import cache
 from pathlib import Path
-
-from boltons.timeutils import dt_to_timestamp, isoparse
+from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
 
 from ..auxlib.entity import (
     BooleanField,
-    ComposableField,
     DictSafeMixin,
     Entity,
     EnumField,
     IntegerField,
     ListField,
-    NumberField,
     StringField,
 )
-from ..base.context import context
-from ..common.compat import isiterable
-from ..exceptions import PathNotFoundError
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
-from .match_spec import MatchSpec
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
 
 
 class LinkTypeField(EnumField):
@@ -50,167 +51,12 @@ class LinkTypeField(EnumField):
         return super().box(instance, instance_type, val)
 
 
-class NoarchField(EnumField):
-    def box(self, instance, instance_type, val):
-        return super().box(instance, instance_type, NoarchType.coerce(val))
-
-
-class TimestampField(NumberField):
-    def __init__(self):
-        super().__init__(default=0, required=False, default_in_dump=False)
-
-    @staticmethod
-    def _make_seconds(val):
-        if val:
-            val = val
-            if val > 253402300799:  # 9999-12-31
-                val /= (
-                    1000  # convert milliseconds to seconds; see conda/conda-build#1988
-                )
-        return val
-
-    @staticmethod
-    def _make_milliseconds(val):
-        if val:
-            if val < 253402300799:  # 9999-12-31
-                val *= 1000  # convert seconds to milliseconds
-            val = val
-        return val
-
-    def box(self, instance, instance_type, val):
-        return self._make_seconds(super().box(instance, instance_type, val))
-
-    def dump(self, instance, instance_type, val):
-        return int(
-            self._make_milliseconds(super().dump(instance, instance_type, val))
-        )  # whether in seconds or milliseconds, type must be int (not float) for backward compat
-
-    def __get__(self, instance, instance_type):
-        try:
-            return super().__get__(instance, instance_type)
-        except AttributeError:
-            try:
-                return int(dt_to_timestamp(isoparse(instance.date)))
-            except (AttributeError, ValueError):
-                return 0
-
-
 class Link(DictSafeMixin, Entity):
     source = StringField()
     type = LinkTypeField(LinkType, required=False)
 
 
 EMPTY_LINK = Link(source="")
-
-
-class _FeaturesField(ListField):
-    def __init__(self, **kwargs):
-        super().__init__(str, **kwargs)
-
-    def box(self, instance, instance_type, val):
-        if isinstance(val, str):
-            val = val.replace(" ", ",").split(",")
-        val = tuple(f for f in (ff.strip() for ff in val) if f)
-        return super().box(instance, instance_type, val)
-
-    def dump(self, instance, instance_type, val):
-        if isiterable(val):
-            return " ".join(val)
-        else:
-            return val or ()  # default value is (), and default_in_dump=False
-
-
-class ChannelField(ComposableField):
-    def __init__(self, aliases=()):
-        super().__init__(Channel, required=False, aliases=aliases)
-
-    def dump(self, instance, instance_type, val):
-        if val:
-            return str(val)
-        else:
-            val = instance.channel  # call __get__
-            return str(val)
-
-    def __get__(self, instance, instance_type):
-        try:
-            return super().__get__(instance, instance_type)
-        except AttributeError:
-            url = instance.url
-            return self.unbox(instance, instance_type, Channel(url))
-
-
-class SubdirField(StringField):
-    def __init__(self):
-        super().__init__(required=False)
-
-    def __get__(self, instance, instance_type):
-        try:
-            return super().__get__(instance, instance_type)
-        except AttributeError:
-            try:
-                url = instance.url
-            except AttributeError:
-                url = None
-            if url:
-                return self.unbox(instance, instance_type, Channel(url).subdir)
-
-            try:
-                platform, arch = instance.platform.name, instance.arch
-            except AttributeError:
-                platform, arch = None, None
-            if platform and not arch:
-                return self.unbox(instance, instance_type, "noarch")
-            elif platform:
-                if "x86" in arch:
-                    arch = "64" if "64" in arch else "32"
-                return self.unbox(instance, instance_type, f"{platform}-{arch}")
-            else:
-                return self.unbox(instance, instance_type, context.subdir)
-
-
-class FilenameField(StringField):
-    def __init__(self, aliases=()):
-        super().__init__(required=False, aliases=aliases)
-
-    def __get__(self, instance, instance_type):
-        try:
-            return super().__get__(instance, instance_type)
-        except AttributeError:
-            try:
-                url = instance.url
-                fn = Channel(url).package_filename
-                if not fn:
-                    raise AttributeError()
-            except AttributeError:
-                fn = f"{instance.name}-{instance.version}-{instance.build}"
-            if not fn:
-                raise ValueError("Filename cannot be empty.")
-            return self.unbox(instance, instance_type, fn)
-
-
-class PackageTypeField(EnumField):
-    def __init__(self):
-        super().__init__(
-            PackageType,
-            required=False,
-            nullable=True,
-            default=None,
-            default_in_dump=False,
-        )
-
-    def __get__(self, instance, instance_type):
-        val = super().__get__(instance, instance_type)
-        if val is None:
-            # look in noarch field
-            noarch_val = instance.noarch
-            if noarch_val:
-                type_map = {
-                    NoarchType.generic: PackageType.NOARCH_GENERIC,
-                    NoarchType.python: PackageType.NOARCH_PYTHON,
-                }
-                val = type_map[NoarchType.coerce(noarch_val)]
-                val = self.unbox(instance, instance_type, val)
-        return val
 
 
 class PathData(Entity):
@@ -226,12 +72,10 @@ class PathData(Entity):
 
     @property
     def path(self):
-        # because I don't have aliases as an option for entity fields yet
         return self._path
 
 
 class PathDataV1(PathData):
-    # TODO: sha256 and size_in_bytes should be required for all PathEnum.hardlink, but not for softlink and directory
     sha256 = StringField(required=False, nullable=True)
     size_in_bytes = IntegerField(required=False, nullable=True)
     inode_paths = ListField(str, required=False, nullable=True)
@@ -240,227 +84,492 @@ class PathDataV1(PathData):
 
 
 class PathsData(Entity):
-    # from info/paths.json
     paths_version = IntegerField()
     paths = ListField(PathDataV1)
 
 
-class PackageRecord(DictSafeMixin, Entity):
-    """Representation of a concrete package archive (tarball or .conda file).
+SENTINEL = object()
 
-    It captures all the relevant information about a given package archive, including its source,
-    in the following attributes.
+TS_BOUNDARY = 253402300799  # 9999-12-31 in epoch seconds
 
-    Note that there are three subclasses, :class:`SolvedRecord`, :class:`PrefixRecord` and
-    :class:`PackageCacheRecord`. These capture the same information, but are augmented with
-    additional information relevant for these sources of packages.
+CACHE_FIELDS = frozenset({"_pkey_cache", "_hash_cache", "_memoized_md5"})
 
-    Further note that :class:`PackageRecord` makes use of its :attr:`_pkey`
-    for comparison and hash generation.
-    This means that for common operations, like comparisons between :class:`PackageRecord` s
-    and reference of :class:`PackageRecord` s in mappings, _different_ objects appear identical.
-    The fields taken into account are marked in the following list of attributes.
-    The subclasses do not add further attributes to the :attr:`_pkey`.
-    """
+FIELDS_EXCLUDED_FROM_DUMP = frozenset({"metadata"})
 
-    name = StringField()
-    """The name of the package.
+FIELDS_WITHOUT_DEFAULT_IN_DUMP = frozenset(
+    {
+        "md5",
+        "legacy_bz2_md5",
+        "legacy_bz2_size",
+        "url",
+        "sha256",
+        "track_features",
+        "features",
+        "noarch",
+        "preferred_env",
+        "python_site_packages_path",
+        "license",
+        "license_family",
+        "package_type",
+        "timestamp",
+        "paths_data",
+    }
+)
 
-    Part of the :attr:`_pkey`.
-    """
+NOARCH_TO_PACKAGE_TYPE: dict[NoarchType, PackageType] = {
+    NoarchType.generic: PackageType.NOARCH_GENERIC,
+    NoarchType.python: PackageType.NOARCH_PYTHON,
+}
 
-    version = StringField()
-    """The version of the package.
+INTERN_FIELDS = frozenset({"name", "version", "build", "subdir"})
 
-    Part of the :attr:`_pkey`.
-    """
 
-    build = StringField(aliases=("build_string",))
-    """The build string of the package.
+@runtime_checkable
+class Dumpable(Protocol):
+    def dump(self) -> dict[str, Any]: ...
 
-    Part of the :attr:`_pkey`.
-    """
 
-    build_number = IntegerField()
-    """The build number of the package.
+@cache
+def get_field_info(cls: type) -> tuple[tuple[str, Any, Any], ...]:
+    """Return (name, default, default_factory) for each public field of *cls*."""
+    info: list[tuple[str, Any, Any]] = []
+    for f in fields(cls):
+        if f.name in CACHE_FIELDS:
+            continue
+        default = f.default if f.default is not MISSING else SENTINEL
+        default_factory = (
+            f.default_factory if f.default_factory is not MISSING else None
+        )
+        info.append((f.name, default, default_factory))
+    return tuple(info)
 
-    Part of the :attr:`_pkey`.
-    """
 
-    # the canonical code abbreviation for PackageRef is `pref`
-    # fields required to uniquely identifying a package
+@cache
+def get_dump_specs(cls: type) -> tuple[tuple[str, bool, Any], ...]:
+    """Return (name, include_default, field_default) per dumpable field."""
+    specs: list[tuple[str, bool, Any]] = []
+    for f in fields(cls):
+        if f.name in CACHE_FIELDS or f.name in FIELDS_EXCLUDED_FROM_DUMP:
+            continue
+        include_default = f.name not in FIELDS_WITHOUT_DEFAULT_IN_DUMP
+        default = f.default if f.default is not MISSING else SENTINEL
+        specs.append((f.name, include_default, default))
+    return tuple(specs)
 
-    channel = ChannelField(aliases=("schannel",))
-    """The channel where the package can be found."""
 
-    subdir = SubdirField()
-    """The subdir, i.e. ``noarch`` or a platform (``linux-64`` or similar).
+@cache
+def get_known_fields(cls: type) -> frozenset[str]:
+    """Return the set of non-cache field names for *cls*."""
+    return frozenset(f.name for f in fields(cls) if f.name not in CACHE_FIELDS)
 
-    Part of the :attr:`_pkey`.
-    """
 
-    fn = FilenameField(aliases=("filename",))
-    """The filename of the package.
+def resolve_channel(val: Any, record: PackageRecord) -> Channel | None:
+    if val is not None:
+        if isinstance(val, Channel):
+            return val
+        return Channel(val)
+    url = record.url
+    if url:
+        return Channel(url)
+    return None
 
-    Only part of the :attr:`_pkey` if :ref:`separate_format_cache <auto-config-reference>`
-    is ``true`` (default: ``false``).
-    """
 
-    md5 = StringField(
-        default=None, required=False, nullable=True, default_in_dump=False
+def resolve_subdir(val: Any, record: PackageRecord) -> str | None:
+    if val is not None:
+        return val
+    url = record.url
+    if url:
+        subdir = Channel(url).subdir
+        if subdir:
+            return subdir
+    plat = record.platform
+    arch = record.arch
+    if plat is not None:
+        plat_name = plat.name if isinstance(plat, Platform) else str(plat)
+        if not arch:
+            return "noarch"
+        if "x86" in arch:
+            arch = "64" if "64" in arch else "32"
+        return f"{plat_name}-{arch}"
+    from ..base.context import context
+
+    return context.subdir
+
+
+def resolve_fn(val: Any, record: PackageRecord) -> str:
+    if val is not None:
+        return val
+    url = record.url
+    if url:
+        fn = Channel(url).package_filename
+        if fn:
+            return fn
+    return f"{record.name}-{record.version}-{record.build}"
+
+
+def resolve_timestamp(val: Any, record: PackageRecord) -> int | float:
+    if val and val > TS_BOUNDARY:
+        return val / 1000
+    return val
+
+
+def resolve_features(val: Any, record: PackageRecord) -> tuple[str, ...]:
+    if isinstance(val, tuple):
+        return val
+    if not val:
+        return ()
+    if isinstance(val, str):
+        val = val.replace(" ", ",").split(",")
+    return tuple(f for f in (ff.strip() for ff in val) if f)
+
+
+def resolve_as_tuple(val: Any, record: PackageRecord) -> tuple:
+    if isinstance(val, tuple):
+        return val
+    if not val:
+        return ()
+    return tuple(val)
+
+
+def resolve_noarch(val: Any, record: PackageRecord) -> NoarchType | None:
+    if val is None or isinstance(val, NoarchType):
+        return val
+    return NoarchType.coerce(val)
+
+
+def resolve_package_type(val: Any, record: PackageRecord) -> PackageType | None:
+    if val is None or isinstance(val, PackageType):
+        return val
+    return PackageType(val)
+
+
+def resolve_platform(val: Any, record: PackageRecord) -> Platform | None:
+    if val is None or isinstance(val, Platform):
+        return val
+    try:
+        return Platform(val)
+    except ValueError:
+        return Platform[val]
+
+
+def resolve_paths_data(val: Any, record: PrefixRecord) -> Any:
+    if isinstance(val, dict):
+        return PathsData(**val)
+    return val
+
+
+def dump_channel(val: Any) -> str:
+    return str(val) if val else ""
+
+
+def dump_timestamp(val: Any) -> int:
+    if not val:
+        return 0
+    if val < TS_BOUNDARY:
+        val *= 1000
+    return int(val)
+
+
+def dump_features(val: Any) -> str | tuple:
+    if isinstance(val, (tuple, list)):
+        return " ".join(val) if val else ()
+    return val or ()
+
+
+def dump_enum(val: Any) -> Any:
+    return val.value if isinstance(val, enum.Enum) else val
+
+
+def dump_nested(val: Any) -> Any:
+    return val.dump() if isinstance(val, Dumpable) else val
+
+
+@dataclass(slots=True, init=False, eq=False, repr=False)
+class PackageRecord:
+    """Representation of a concrete package archive (tarball or .conda file)."""
+
+    ALIASES: ClassVar[dict[str, str]] = {
+        "build_string": "build",
+        "schannel": "channel",
+        "filename": "fn",
+    }
+
+    FIELD_RESOLVERS: ClassVar[dict[str, Callable]] = {
+        "channel": resolve_channel,
+        "subdir": resolve_subdir,
+        "fn": resolve_fn,
+        "timestamp": resolve_timestamp,
+        "track_features": resolve_features,
+        "features": resolve_features,
+        "depends": resolve_as_tuple,
+        "constrains": resolve_as_tuple,
+        "files": resolve_as_tuple,
+        "noarch": resolve_noarch,
+        "package_type": resolve_package_type,
+        "platform": resolve_platform,
+    }
+
+    DUMP_TRANSFORMS: ClassVar[dict[str, Callable]] = {
+        "channel": dump_channel,
+        "timestamp": dump_timestamp,
+        "track_features": dump_features,
+        "features": dump_features,
+        "platform": dump_enum,
+        "noarch": dump_enum,
+        "package_type": dump_enum,
+        "link": dump_nested,
+        "paths_data": dump_nested,
+    }
+
+    name: str = ""
+    version: str = ""
+    build: str = ""
+    build_number: int = 0
+    channel: Channel | None = None
+    subdir: str | None = None
+    fn: str | None = None
+
+    md5: str | None = None
+    legacy_bz2_md5: str | None = None
+    legacy_bz2_size: int | None = None
+    url: str | None = None
+    sha256: str | None = None
+
+    arch: str | None = None
+    platform: Platform | None = None
+
+    depends: tuple[str, ...] = ()
+    constrains: tuple[str, ...] = ()
+    track_features: tuple[str, ...] = ()
+    features: tuple[str, ...] = ()
+
+    noarch: NoarchType | None = None
+    preferred_env: str | None = None
+    python_site_packages_path: str | None = None
+    license: str | None = None
+    license_family: str | None = None
+    package_type: PackageType | None = None
+
+    timestamp: int | float = 0
+    date: str | None = None
+    size: int | None = None
+
+    metadata: set[str] = field(default_factory=set, repr=False)
+
+    _pkey_cache: tuple | None = field(
+        default=None, repr=False, compare=False, init=False
     )
-    """The md5 checksum of the package."""
+    _hash_cache: int | None = field(default=None, repr=False, compare=False, init=False)
 
-    legacy_bz2_md5 = StringField(
-        default=None, required=False, nullable=True, default_in_dump=False
-    )
-    """If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the md5 checksum of that package."""
+    def __init__(self, **kwargs: Any) -> None:
+        setattr_ = object.__setattr__
 
-    legacy_bz2_size = IntegerField(required=False, nullable=True, default_in_dump=False)
-    """If this is a ``.conda`` package and a corresponding ``.tar.bz2`` package exists, this may contain the size of that package."""
+        for alias, canonical in self.ALIASES.items():
+            if alias in kwargs and canonical not in kwargs:
+                kwargs[canonical] = kwargs.pop(alias)
 
-    url = StringField(
-        default=None, required=False, nullable=True, default_in_dump=False
-    )
-    """The download url of the package."""
+        for name, default, default_factory in get_field_info(self.__class__):
+            val = kwargs.get(name, SENTINEL)
+            if val is SENTINEL:
+                if default_factory is not None:
+                    setattr_(self, name, default_factory())
+                else:
+                    setattr_(self, name, default)
+            else:
+                setattr_(self, name, val)
 
-    sha256 = StringField(
-        default=None, required=False, nullable=True, default_in_dump=False
-    )
-    """The sha256 checksum of the package."""
+        for name, resolve in self.FIELD_RESOLVERS.items():
+            val = getattr(self, name, SENTINEL)
+            if val is not SENTINEL:
+                resolved = resolve(val, self)
+                if resolved is not val:
+                    setattr_(self, name, resolved)
+
+        for fname in INTERN_FIELDS:
+            val = getattr(self, fname, None)
+            if isinstance(val, str):
+                setattr_(self, fname, sys.intern(val))
+
+        setattr_(self, "_pkey_cache", None)
+        setattr_(self, "_hash_cache", None)
+
+    def __getitem__(self, item: str) -> Any:
+        try:
+            return getattr(self, item)
+        except AttributeError:
+            raise KeyError(item) from None
+
+    def get(self, item: str, default: Any = None) -> Any:
+        return getattr(self, item, default)
 
     @property
     def channel_name(self) -> str | None:
-        """str: The canonical name of the channel of this package.
+        ch = self.channel
+        if ch is None:
+            return None
+        return getattr(ch, "canonical_name", str(ch))
 
-        Part of the :attr:`_pkey`.
-        """
-        return getattr(self.channel, "canonical_name", None)
+    def effective_package_type(self) -> PackageType | None:
+        val = self.package_type
+        if val is not None:
+            return val
+        noarch_val = self.noarch
+        if noarch_val:
+            noarch_coerced = (
+                noarch_val
+                if isinstance(noarch_val, NoarchType)
+                else NoarchType.coerce(noarch_val)
+            )
+            return NOARCH_TO_PACKAGE_TYPE.get(noarch_coerced)
+        return None
 
     @property
-    def _pkey(self):
-        """tuple: The components of the PackageRecord that are used for comparison and hashing.
-
-        The :attr:`_pkey` is a tuple made up of the following fields of the :class:`PackageRecord`.
-        Two :class:`PackageRecord` s test equal if their respective :attr:`_pkey` s are equal.
-        The hash of the :class:`PackageRecord` (important for dictionary access) is the hash of the :attr:`_pkey`.
-
-        The included fields are:
-
-        * :attr:`channel_name`
-        * :attr:`subdir`
-        * :attr:`name`
-        * :attr:`version`
-        * :attr:`build_number`
-        * :attr:`build`
-        * :attr:`fn` only if :ref:`separate_format_cache <auto-config-reference>` is set to true (default: false)
-        """
-        try:
-            return self.__pkey
-        except AttributeError:
-            __pkey = self.__pkey = [
-                self.channel.canonical_name,
-                self.subdir,
-                self.name,
-                self.version,
-                self.build_number,
-                self.build,
-            ]
-            # NOTE: fn is included to distinguish between .conda and .tar.bz2 packages
-            if context.separate_format_cache:
-                __pkey.append(self.fn)
-            self.__pkey = tuple(__pkey)
-            return self.__pkey
-
-    def __hash__(self):
-        try:
-            return self._hash
-        except AttributeError:
-            self._hash = hash(self._pkey)
-        return self._hash
-
-    def __eq__(self, other):
-        return self._pkey == other._pkey
-
-    def dist_str(self, canonical_name: bool = True) -> str:
-        return "{}{}::{}-{}-{}".format(
-            self.channel.canonical_name if canonical_name else self.channel.name,
-            ("/" + self.subdir) if self.subdir else "",
+    def _pkey(self) -> tuple:
+        cached = self._pkey_cache
+        if cached is not None:
+            return cached
+        ch = self.channel
+        ch_name = getattr(ch, "canonical_name", str(ch)) if ch else ""
+        pk: list[Any] = [
+            ch_name,
+            self.subdir,
             self.name,
             self.version,
+            self.build_number,
             self.build,
-        )
+        ]
+        from ..base.context import context
 
-    def dist_fields_dump(self):
+        if context.separate_format_cache:
+            pk.append(self.fn)
+        result = tuple(pk)
+        object.__setattr__(self, "_pkey_cache", result)
+        return result
+
+    def invalidate_pkey(self) -> None:
+        object.__setattr__(self, "_pkey_cache", None)
+        object.__setattr__(self, "_hash_cache", None)
+
+    def __hash__(self) -> int:
+        cached = self._hash_cache
+        if cached is not None:
+            return cached
+        h = hash(self._pkey)
+        object.__setattr__(self, "_hash_cache", h)
+        return h
+
+    def __eq__(self, other: object) -> bool:
+        if not hasattr(other, "_pkey"):
+            return NotImplemented
+        return self._pkey == other._pkey
+
+    def dump(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        transforms = self.DUMP_TRANSFORMS
+        for name, include_default, default in get_dump_specs(self.__class__):
+            val = getattr(self, name, SENTINEL)
+            if val is SENTINEL:
+                continue
+
+            if val is None:
+                if not include_default:
+                    continue
+                if default is not SENTINEL and default is None:
+                    continue
+            if not include_default:
+                if (
+                    (default is not SENTINEL and val == default)
+                    or val == ()
+                    or val == 0
+                ):
+                    continue
+
+            transform = transforms.get(name)
+            if transform is not None:
+                val = transform(val)
+
+            result[name] = val
+        return result
+
+    @classmethod
+    def from_objects(cls, *objects: Any, **overrides: Any) -> PackageRecord:
+        kwargs: dict[str, Any] = {}
+        known = get_known_fields(cls)
+
+        for obj in objects:
+            if isinstance(obj, dict):
+                src = obj
+            elif isinstance(obj, Dumpable):
+                src = obj.dump()
+            elif hasattr(obj, "__dict__"):
+                src = obj.__dict__
+            elif hasattr(obj, "__slots__"):
+                src = {
+                    s: getattr(obj, s)
+                    for s in obj.__slots__
+                    if hasattr(obj, s) and not s.startswith("_")
+                }
+            else:
+                continue
+            for k, v in src.items():
+                target = cls.ALIASES.get(k, k) if k not in known else k
+                if target in known and target not in kwargs and v is not None:
+                    kwargs[target] = v
+        kwargs.update(overrides)
+        return cls(**kwargs)
+
+    @classmethod
+    def from_json(cls, json_str: str) -> PackageRecord:
+        return cls(**json.loads(json_str))
+
+    @classmethod
+    def load(cls, data_dict: dict[str, Any]) -> PackageRecord:
+        return cls(**data_dict)
+
+    def __str__(self) -> str:
+        ch = self.channel
+        ch_name = getattr(ch, "canonical_name", "") if ch else ""
+        return f"{ch_name}/{self.subdir}::{self.name}=={self.version}={self.build}"
+
+    def __repr__(self) -> str:
+        parts: list[str] = []
+        for f_obj in fields(self.__class__):
+            if f_obj.name in CACHE_FIELDS or f_obj.name == "metadata":
+                continue
+            val = getattr(self, f_obj.name, SENTINEL)
+            if val is SENTINEL or val is None or val == () or val == "":
+                continue
+            parts.append(f"{f_obj.name}={val!r}")
+        return f"{self.__class__.__name__}({', '.join(parts)})"
+
+    def dist_str(self, canonical_name: bool = True) -> str:
+        ch = self.channel
+        if ch is None:
+            ch_str = ""
+        elif canonical_name:
+            ch_str = getattr(ch, "canonical_name", str(ch))
+        else:
+            ch_str = getattr(ch, "name", str(ch))
+        subdir = self.subdir
+        sub = f"/{subdir}" if subdir else ""
+        return f"{ch_str}{sub}::{self.name}-{self.version}-{self.build}"
+
+    def dist_fields_dump(self) -> dict[str, Any]:
+        ch = self.channel
         return {
-            "base_url": self.channel.base_url,
+            "base_url": getattr(ch, "base_url", "") if ch else "",
             "build_number": self.build_number,
             "build_string": self.build,
-            "channel": self.channel.name,
+            "channel": getattr(ch, "name", "") if ch else "",
             "dist_name": self.dist_str().split(":")[-1],
             "name": self.name,
             "platform": self.subdir,
             "version": self.version,
         }
 
-    arch = StringField(required=False, nullable=True)  # so legacy
-    platform = EnumField(Platform, required=False, nullable=True)  # so legacy
-
-    depends = ListField(str, default=())
-    constrains = ListField(str, default=())
-
-    track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
-    features = _FeaturesField(required=False, default=(), default_in_dump=False)
-
-    noarch = NoarchField(
-        NoarchType, required=False, nullable=True, default=None, default_in_dump=False
-    )  # TODO: rename to package_type
-    preferred_env = StringField(
-        required=False, nullable=True, default=None, default_in_dump=False
-    )
-    python_site_packages_path = StringField(
-        default=None, required=False, nullable=True, default_in_dump=False
-    )
-    license = StringField(
-        required=False, nullable=True, default=None, default_in_dump=False
-    )
-    license_family = StringField(
-        required=False, nullable=True, default=None, default_in_dump=False
-    )
-    package_type = PackageTypeField()
-
-    @property
-    def is_unmanageable(self):
-        return self.package_type in PackageType.unmanageable_package_types()
-
-    timestamp = TimestampField()
-
-    @property
-    def combined_depends(self):
+    def to_match_spec(self):
         from .match_spec import MatchSpec
 
-        result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
-        for spec in self.constrains or ():
-            ms = MatchSpec(spec)
-            result[ms.name] = MatchSpec(ms, optional=(ms.name not in result))
-        return tuple(result.values())
-
-    # the canonical code abbreviation for PackageRecord is `prec`, not to be confused with
-    # PackageCacheRecord (`pcrec`) or PrefixRecord (`prefix_rec`)
-    #
-    # important for "choosing" a package (i.e. the solver), listing packages
-    # (like search), and for verifying downloads
-    #
-    # this is the highest level of the record inheritance model that MatchSpec is designed to
-    # work with
-
-    date = StringField(required=False)
-    size = IntegerField(required=False)
-
-    def __str__(self):
-        return f"{self.channel.canonical_name}/{self.subdir}::{self.name}=={self.version}={self.build}"
-
-    def to_match_spec(self):
         return MatchSpec(
             channel=self.channel,
             subdir=self.subdir,
@@ -470,41 +579,45 @@ class PackageRecord(DictSafeMixin, Entity):
         )
 
     def to_simple_match_spec(self):
-        return MatchSpec(
-            name=self.name,
-            version=self.version,
-        )
+        from .match_spec import MatchSpec
+
+        return MatchSpec(name=self.name, version=self.version)
 
     @property
-    def namekey(self):
-        return "global:" + self.name
+    def is_unmanageable(self) -> bool:
+        return self.effective_package_type() in PackageType.unmanageable_package_types()
 
     @property
-    def spec(self):
-        """Return package spec: name=version=build"""
+    def combined_depends(self) -> tuple:
+        from .match_spec import MatchSpec
+
+        result = {ms.name: ms for ms in MatchSpec.merge(self.depends)}
+        for spec in self.constrains or ():
+            ms = MatchSpec(spec)
+            result[ms.name] = MatchSpec(ms, optional=(ms.name not in result))
+        return tuple(result.values())
+
+    @property
+    def namekey(self) -> str:
+        return f"global:{self.name}"
+
+    @property
+    def spec(self) -> str:
         return f"{self.name}={self.version}={self.build}"
 
     @property
-    def spec_no_build(self):
-        """Return package spec without build: name=version"""
+    def spec_no_build(self) -> str:
         return f"{self.name}={self.version}"
 
-    def record_id(self):
-        # WARNING: This is right now only used in link.py _change_report_str(). It is not
-        #          the official record_id / uid until it gets namespace.  Even then, we might
-        #          make the format different.  Probably something like
-        #              channel_name/subdir:namespace:name-version-build_number-build_string
-        return f"{self.channel.name}/{self.subdir}::{self.name}-{self.version}-{self.build}"
-
-    metadata: set[str]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.metadata = set()
+    def record_id(self) -> str:
+        ch = self.channel
+        ch_name = getattr(ch, "name", "") if ch else ""
+        return f"{ch_name}/{self.subdir}::{self.name}-{self.version}-{self.build}"
 
     @classmethod
-    def feature(cls, feature_name) -> PackageRecord:
-        # necessary for the SAT solver to do the right thing with features
+    def feature(cls, feature_name: str) -> PackageRecord:
+        from ..base.context import context
+
         pkg_name = f"{feature_name}@"
         return cls(
             name=pkg_name,
@@ -520,16 +633,13 @@ class PackageRecord(DictSafeMixin, Entity):
 
     @classmethod
     def virtual_package(
-        cls, name: str, version: str | None = None, build_string: str | None = None
+        cls,
+        name: str,
+        version: str | None = None,
+        build_string: str | None = None,
     ) -> PackageRecord:
-        """
-        Create a virtual package record.
+        from ..base.context import context
 
-        :param name: The name of the virtual package.
-        :param version: The version of the virtual package, defaults to "0".
-        :param build_string: The build string of the virtual package, defaults to "0".
-        :return: A PackageRecord representing the virtual package.
-        """
         return cls(
             package_type=PackageType.VIRTUAL_SYSTEM,
             name=name,
@@ -543,121 +653,69 @@ class PackageRecord(DictSafeMixin, Entity):
         )
 
 
-class Md5Field(StringField):
-    def __init__(self):
-        super().__init__(required=False, nullable=True)
-
-    def __get__(self, instance, instance_type):
-        try:
-            return super().__get__(instance, instance_type)
-        except AttributeError as e:
-            try:
-                return instance._calculate_md5sum()
-            except PathNotFoundError:
-                raise e
-
-
+@dataclass(slots=True, init=False, eq=False, repr=False)
 class PackageCacheRecord(PackageRecord):
-    """Representation of a package that has been downloaded or unpacked in the local package cache.
+    """Representation of a package in the local package cache."""
 
-    Specialization of :class:`PackageRecord` that adds information for packages that exist in the
-    local package cache, either as the downloaded package file, or unpacked in its own package dir,
-    or both.
-
-    Note that this class does not add new fields to the :attr:`PackageRecord._pkey` so that a pure
-    :class:`PackageRecord` object that has the same ``_pkey`` fields as a different
-    :class:`PackageCacheRecord` object (or, indeed, a :class:`PrefixRecord` object) will be considered
-    equal and will produce the same hash.
-    """
-
-    package_tarball_full_path = StringField()
-    """Full path to the local package file."""
-
-    extracted_package_dir = StringField()
-    """Full path to the local extracted package."""
-
-    md5 = Md5Field()
-    """The md5 checksum of the package.
-
-    If the package file exists locally, this class can calculate a missing checksum on-the-fly.
-    """
+    package_tarball_full_path: str = ""
+    extracted_package_dir: str = ""
+    _memoized_md5: str | None = field(
+        default=None, repr=False, compare=False, init=False
+    )
 
     @property
-    def is_fetched(self):
-        """bool: Whether the package file exists locally."""
+    def is_fetched(self) -> bool:
         from ..gateways.disk.read import isfile
 
         return isfile(self.package_tarball_full_path)
 
     @property
-    def is_extracted(self):
-        """bool: Whether the package has been extracted locally."""
+    def is_extracted(self) -> bool:
         from ..gateways.disk.read import isdir, isfile
 
         epd = self.extracted_package_dir
-        return isdir(epd) and isfile(join(epd, "info", "index.json"))
+        return isdir(epd) and isfile(str(Path(epd) / "info" / "index.json"))
 
     @property
-    def tarball_basename(self):
-        """str: The basename of the local package file."""
-        return basename(self.package_tarball_full_path)
+    def tarball_basename(self) -> str:
+        return Path(self.package_tarball_full_path).name
 
-    def _calculate_md5sum(self):
-        memoized_md5 = getattr(self, "_memoized_md5", None)
-        if memoized_md5:
-            return memoized_md5
-
-        from os.path import isfile
-
-        if isfile(self.package_tarball_full_path):
+    def calculate_md5sum(self) -> str | None:
+        if self._memoized_md5:
+            return self._memoized_md5
+        if Path(self.package_tarball_full_path).is_file():
             from ..gateways.disk.read import compute_sum
 
             md5sum = compute_sum(self.package_tarball_full_path, "md5")
-            setattr(self, "_memoized_md5", md5sum)
+            object.__setattr__(self, "_memoized_md5", md5sum)
             return md5sum
+        return None
 
 
+@dataclass(slots=True, init=False, eq=False, repr=False)
 class SolvedRecord(PackageRecord):
-    """Representation of a package that has been returned as part of a solver solution.
+    """Representation of a package returned as part of a solver solution."""
 
-    This sits between :class:`PackageRecord` and :class:`PrefixRecord`, simply adding
-    ``requested_spec`` (and ``requested_specs``) so they can be used in lockfiles without
-    requiring the artifact on disk.
-    """
+    ALIASES: ClassVar[dict[str, str]] = {
+        **PackageRecord.ALIASES,
+        "requested_specs": "_requested_specs",
+    }
 
-    requested_spec = StringField(required=False)
-    """
-    The :class:`MatchSpec` that the user requested or ``None``
-    if the package it was installed as a dependency.
-    """
-    _requested_specs = ListField(
-        str, required=False, nullable=True, aliases=("requested_specs",)
-    )
-    """
-    The :class:`MatchSpec` objects that the user requested or ``()``
-    if the package was installed as a dependency.
-    See also `.requested_specs` property.
-    """
+    requested_spec: str | None = None
+    _requested_specs: tuple[str, ...] | None = None
 
     @property
     def requested_specs(self) -> tuple[str, ...]:
-        """
-        This property will use 'requested_spec' as the source for
-        'requested_specs' for old `conda-meta/*.json` files that
-        did not define the plural version.
-        """
-        if specs := self.get("_requested_specs", None):
-            return tuple(specs)
-        if spec := self.get("requested_spec", None):
+        val = self._requested_specs
+        if val:
+            return tuple(val)
+        spec = self.requested_spec
+        if spec:
             return (spec,)
         return ()
 
-    def dump(self):
-        """
-        We need to expose _requested_specs as its public counterpart,
-        and also expose single specs as a plural list for backwards compatibility.
-        """
-        dumped = super().dump()
+    def dump(self) -> dict[str, Any]:
+        dumped = PackageRecord.dump(self)
         if dumped.get("_requested_specs"):
             dumped["requested_specs"] = dumped.pop("_requested_specs")
         elif spec := dumped.get("requested_spec"):
@@ -665,56 +723,24 @@ class SolvedRecord(PackageRecord):
         return dumped
 
 
+@dataclass(slots=True, init=False, eq=False, repr=False)
 class PrefixRecord(SolvedRecord):
-    """Representation of a package that is installed in a local conda environmnet.
+    """Representation of a package installed in a local conda environment."""
 
-    Specialization of :class:`PackageRecord` that adds information for packages that are installed
-    in a local conda environment or prefix.
+    FIELD_RESOLVERS: ClassVar[dict[str, Callable]] = {
+        **PackageRecord.FIELD_RESOLVERS,
+        "paths_data": resolve_paths_data,
+    }
 
-    Note that this class does not add new fields to the :attr:`PackageRecord._pkey` so that a pure
-    :class:`PackageRecord` object that has the same ``_pkey`` fields as a different
-    :class:`PrefixRecord` object (or, indeed, a :class:`PackageCacheRecord` object) will be considered
-    equal and will produce the same hash.
-
-    Objects of this class are generally constructed from metadata in json files inside `$prefix/conda-meta`.
-    """
-
-    package_tarball_full_path = StringField(required=False)
-    """The path to the originating package file, usually in the local cache."""
-
-    extracted_package_dir = StringField(required=False)
-    """The path to the extracted package directory, usually in the local cache."""
-
-    files = ListField(str, default=(), required=False)
-    """The list of all files comprising the package as relative paths from the prefix root."""
-
-    paths_data = ComposableField(
-        PathsData, required=False, nullable=True, default_in_dump=False
-    )
-    """List with additional information about the files, e.g. checksums and link type."""
-
-    link = ComposableField(Link, required=False)
-    """Information about how the package was linked into the prefix."""
-
-    # app = ComposableField(App, required=False)
-
-    # There have been requests in the past to save remote server auth
-    # information with the package.  Open to rethinking that though.
-    auth = StringField(required=False, nullable=True)
-    """Authentication information."""
+    package_tarball_full_path: str | None = None
+    extracted_package_dir: str | None = None
+    files: tuple[str, ...] = ()
+    paths_data: Any = None
+    link: Any = None
+    auth: str | None = None
 
     def package_size(self, prefix_path: Path) -> int:
-        """
-        Compute the installed size of this package within a prefix.
-
-        This sums up the size_in_bytes of all non-softlink paths in paths_data,
-        and stats the files on disk if size_in_bytes is missing and for the
-        package's conda-meta JSON manifest.
-
-        :returns: Total size in bytes of all files installed by this package.
-        """
         total_size = 0
-
         meta_file = (
             prefix_path / "conda-meta" / f"{self.name}-{self.version}-{self.build}.json"
         )
@@ -722,33 +748,16 @@ class PrefixRecord(SolvedRecord):
             total_size += meta_file.stat().st_size
         except OSError:
             pass
-
-        for path_data in self.paths_data.paths:
-            if path_data.path_type in (PathEnum.softlink, PathEnum.directory):
-                continue
-            if getattr(path_data, "size_in_bytes", None) is not None:
-                total_size += path_data.size_in_bytes
-                continue
-
-            file_path = Path(prefix_path) / path_data._path
-            try:
-                total_size += file_path.stat().st_size
-            except OSError:
-                pass
-
+        if self.paths_data is not None:
+            for path_data in self.paths_data.paths:
+                if path_data.path_type in (PathEnum.softlink, PathEnum.directory):
+                    continue
+                if getattr(path_data, "size_in_bytes", None) is not None:
+                    total_size += path_data.size_in_bytes
+                    continue
+                file_path = prefix_path / path_data._path
+                try:
+                    total_size += file_path.stat().st_size
+                except OSError:
+                    pass
         return total_size
-
-    # @classmethod
-    # def load(cls, conda_meta_json_path):
-    #     return cls()
-
-
-import os as _os
-
-if _os.environ.get("CONDA_DATACLASS_RECORDS"):
-    from .records_dc import (
-        PackageCacheRecordDC as PackageCacheRecord,  # noqa: F401
-    )
-    from .records_dc import PackageRecordDC as PackageRecord
-    from .records_dc import PrefixRecordDC as PrefixRecord  # noqa: F401
-    from .records_dc import SolvedRecordDC as SolvedRecord
