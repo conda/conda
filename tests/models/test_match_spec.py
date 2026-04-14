@@ -1514,3 +1514,23 @@ def test_no_triple_equals_roundtrip():
     assert "===" not in str(ms)
     assert str(ms) == "numpy=2"
     assert MatchSpec("numpy=2").version == ms.version
+
+
+@pytest.mark.parametrize(
+    "spec_str,expected_name,expected_version",
+    [
+        ("numpy", "numpy", None),
+        ("numpy>=1.20", "numpy", ">=1.20"),
+        ("numpy 1.20 py39_0", "numpy", "1.20"),
+        ("conda-forge::numpy>=1.20", "numpy", ">=1.20"),
+        ("numpy[version='>=1.20']", "numpy", ">=1.20"),
+    ],
+)
+def test_parse_spec_str_with_precompiled_regex(
+    spec_str: str, expected_name: str, expected_version: str | None
+) -> None:
+    """_parse_spec_str should correctly parse specs using the module-level compiled regexes."""
+    ms = MatchSpec(spec_str)
+    assert ms.name == expected_name
+    if expected_version is not None:
+        assert ms.version is not None

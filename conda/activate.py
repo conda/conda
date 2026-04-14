@@ -60,6 +60,10 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
+_MSYS2_CYGWIN_PREFIX_RE: re.Pattern[str] = re.compile(
+    r"^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*"
+)
+
 
 BUILTIN_COMMANDS = {
     "activate": ActivateHelp(),
@@ -614,7 +618,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
                 # MSYS2 /c/
                 # cygwin /cygdrive/c/
-                if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
+                if _MSYS2_CYGWIN_PREFIX_RE.match(prefix):
                     path = unix_path_to_win(path, prefix)
 
                 if isdir(path):
@@ -846,7 +850,7 @@ class _Activator(metaclass=abc.ABCMeta):
     def _resolve_prefix(self, env_name_or_prefix: str) -> str:
         """Hook for shell-specific activation path validation."""
         # get environment prefix
-        if re.search(r"\\|/", env_name_or_prefix):
+        if "\\" in env_name_or_prefix or "/" in env_name_or_prefix:
             prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, "conda-meta")):
                 raise EnvironmentLocationNotFound(prefix)
