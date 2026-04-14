@@ -516,6 +516,8 @@ class CondaPluginManager(pluggy.PluginManager):
                 conda_version=__version__,
                 return_code=getattr(exc_val, "return_code", 1),
                 active_prefix=context.active_prefix,
+                quiet=context.quiet,
+                json=context.json,
             )
 
             for handler in handlers:

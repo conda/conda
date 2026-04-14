@@ -782,6 +782,8 @@ class CondaExceptionInfo:
     :param return_code: The exit code conda will return for this error.
     :param active_prefix: The currently active conda environment prefix,
                           or ``None`` if no environment is active.
+    :param quiet: Whether conda is running in quiet mode (``--quiet``).
+    :param json: Whether conda is running in JSON output mode (``--json``).
     """
 
     exc_type: type[CondaError]
@@ -791,6 +793,8 @@ class CondaExceptionInfo:
     conda_version: str
     return_code: int
     active_prefix: str | None
+    quiet: bool
+    json: bool
 
 
 @dataclass
