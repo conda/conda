@@ -19,7 +19,7 @@ from logging import (
 from ..common.constants import TRACE
 from ..common.io import _FORMATTER, attach_stderr_handler
 from ..deprecations import deprecated
-from .streams import _TOKEN_URL_PATTERN, _redact_token_urls
+from .streams import _TOKEN_URL_PATTERN, redact_token_urls
 
 log = getLogger(__name__)
 _VERBOSITY_LEVELS = {
@@ -36,7 +36,7 @@ logging.addLevelName(TRACE, "TRACE")
 
 class TokenURLFilter(Filter):
     TOKEN_URL_PATTERN = _TOKEN_URL_PATTERN
-    TOKEN_REPLACE = staticmethod(_redact_token_urls)
+    TOKEN_REPLACE = staticmethod(redact_token_urls)
 
     def filter(self, record):
         """

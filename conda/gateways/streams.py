@@ -18,19 +18,19 @@ _TOKEN_URL_PATTERN = re.compile(
 )
 
 
-def _redact_token_urls(message: str) -> str:
+def redact_token_urls(message: str) -> str:
     """Redact channel tokens in URLs."""
     return _TOKEN_URL_PATTERN.sub(r"\1\2\3/t/<TOKEN>/", message)
 
 
 def stdout(text: str, **kwargs) -> None:
     # helper replacing conda.stdout logger
-    print(_redact_token_urls(text), **kwargs, file=sys.stdout)
+    print(redact_token_urls(text), **kwargs, file=sys.stdout)
 
 
 def stderr(text: str, **kwargs) -> None:
     # helper replacing conda.stderr logger
-    print(_redact_token_urls(text), **kwargs, file=sys.stderr)
+    print(redact_token_urls(text), **kwargs, file=sys.stderr)
 
 
 def stdoutlog(text: str, **kwargs) -> None:

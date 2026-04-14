@@ -26,6 +26,7 @@ from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaExitZero,
     CondaImportError,
@@ -59,7 +60,6 @@ from ..models.prefix_graph import PrefixGraph
 from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
-from .deprecations import deprecated
 from .main_config import set_keys
 
 log = getLogger(__name__)
