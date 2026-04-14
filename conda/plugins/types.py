@@ -28,8 +28,10 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from collections.abc import Callable, Iterable
     from contextlib import AbstractContextManager
+    from types import TracebackType
     from typing import Any, ClassVar, Literal, Protocol, TypeAlias
 
+    from .. import CondaError
     from ..auxlib import _Null
     from ..common.configuration import Parameter
     from ..common.path import PathType
@@ -801,3 +803,73 @@ class CondaPackageExtractor(CondaPlugin):
     name: str
     extensions: list[str]
     extract: PackageExtract
+
+
+@dataclass(frozen=True)
+class CondaExceptionInfo:
+    """
+    Structured exception info passed to exception handler plugin callbacks.
+
+    Frozen to prevent plugins from mutating exception state. Named after
+    CPython's ``sys.exc_info()`` convention; structured args follow the
+    ``threading.ExceptHookArgs`` / ``sys.UnraisableHookArgs`` pattern for
+    forward compatibility.
+
+    .. warning::
+
+       Do not store references to ``exc_value`` or ``exc_traceback`` beyond
+       the lifetime of the callback. This can create reference cycles and
+       prevent garbage collection.
+
+    :param exc_type: The exception class.
+    :param exc_value: The exception instance (always a ``CondaError`` subclass).
+    :param exc_traceback: The traceback object.
+    :param argv: The command-line arguments at the time of error (frozen copy
+                 of ``sys.argv``). Raw tuple preserves argument boundaries.
+    :param conda_version: The conda version string.
+    :param return_code: The exit code conda will return for this error.
+    :param active_prefix: The currently active conda environment prefix,
+                          or ``None`` if no environment is active.
+    """
+
+    exc_type: type[CondaError]
+    exc_value: CondaError
+    exc_traceback: TracebackType
+    argv: tuple[str, ...]
+    conda_version: str
+    return_code: int
+    active_prefix: str | None
+
+
+@dataclass
+class CondaExceptionHandler(CondaPlugin):
+    """
+    Return type to use when defining a conda exception handler plugin hook.
+
+    Exception handlers are purely observational — they cannot suppress,
+    modify, or redirect the exception. Their return value is ignored.
+    This follows the same model as CPython's ``sys.excepthook``.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_exception_handlers`.
+
+    .. warning::
+
+       Do not store references to ``exc_value`` or ``exc_traceback`` beyond
+       the lifetime of the callback. This can create reference cycles and
+       prevent garbage collection.
+
+    :param name: Handler name (e.g., ``missing-package-reporter``).
+    :param hook: Callable invoked with a :class:`CondaExceptionInfo` instance.
+                 Named after CPython's ``excepthook`` convention.
+                 Must not raise; any exception is caught and logged.
+    :param run_for: Set of ``CondaError`` subclass names this handler should
+                    run for. Matches against the full MRO, so registering
+                    for ``"CondaError"`` catches all subclasses, while
+                    ``"PackagesNotFoundError"`` also catches
+                    ``PackagesNotFoundInChannelsError``.
+    """
+
+    name: str
+    hook: Callable[[CondaExceptionInfo], None]
+    run_for: set[str]
