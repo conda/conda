@@ -814,21 +814,26 @@ class CondaSpecs:
         """
         Register exception handler callbacks in conda.
 
-        Exception handlers are invoked when a ``CondaError`` (or subclass) is
-        handled by the ``ExceptionHandler``. They are **purely observational**:
-        they cannot suppress, modify, or redirect the exception. Their return
-        value is ignored. This follows the same model as CPython's
-        ``sys.excepthook``.
+        Exception handlers are invoked when any exception is handled by the
+        ``ExceptionHandler``. They are **purely observational**: they cannot
+        suppress, modify, or redirect the exception. Their return value is
+        ignored. This follows the same model as CPython's ``sys.excepthook``.
 
         Any exception raised by a handler is caught at the ``BaseException``
         level, logged at DEBUG, and swallowed — a buggy plugin can never
         disrupt conda's error reporting path.
 
         Handlers receive a frozen :class:`~conda.plugins.types.CondaExceptionInfo`
-        dataclass with ``exc_type``, ``exc_value``, ``exc_traceback``, ``argv``,
-        ``conda_version``, ``return_code``, ``active_prefix``, ``target_prefix``,
-        ``channels``, ``subdir``, ``offline``, ``dry_run``, ``quiet``, and ``json``
-        fields.
+        dataclass. The exception triple (``exc_type``, ``exc_value``,
+        ``exc_traceback``) is always populated. Conda runtime fields
+        (``argv``, ``conda_version``, ``return_code``, ``active_prefix``,
+        ``target_prefix``, ``channels``, ``subdir``, ``offline``, ``dry_run``,
+        ``quiet``, ``json``) are ``None`` when the runtime isn't initialized.
+
+        ``run_for`` controls which exceptions trigger the handler via
+        MRO matching: ``{"CondaError"}`` catches all conda errors,
+        ``{"BaseException"}`` catches everything, ``{"MemoryError"}`` catches
+        only OOM, etc. See :class:`~conda.plugins.types.CondaExceptionHandler`.
 
         **Example:**
 

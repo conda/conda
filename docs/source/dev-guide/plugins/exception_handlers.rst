@@ -14,6 +14,10 @@ redirect the exception. Their return value is ignored. Any exception
 raised inside a handler is caught and logged at DEBUG level, so a
 buggy plugin can never disrupt conda.
 
+Handlers fire for any exception type — ``CondaError``, ``MemoryError``,
+``KeyboardInterrupt``, ``SystemExit``, etc. The ``run_for`` parameter
+controls which exceptions trigger a given handler.
+
 Tutorial: reporting missing packages to channels
 -------------------------------------------------
 
@@ -74,11 +78,23 @@ Step 1 — write the hook
            run_for={"PackagesNotFoundInChannelsError"},
        )
 
-``run_for`` accepts a set of :class:`~conda.CondaError` subclass names.
-Matching uses the exception's full `MRO`_, so registering for
-``"PackagesNotFoundError"`` would also catch its subclass
-``PackagesNotFoundInChannelsError``. To match *every* ``CondaError``,
-use ``{"CondaError"}``.
+``run_for`` accepts a set of exception class names. Matching uses the
+exception's full `MRO`_, so parent class names automatically match
+subclasses. Common scopes:
+
+- ``{"BaseException"}`` — fires for every exception (widest scope).
+- ``{"Exception"}`` — all standard exceptions (excludes
+  ``KeyboardInterrupt``, ``SystemExit``).
+- ``{"CondaError"}`` — all conda errors and their subclasses.
+- ``{"PackagesNotFoundError"}`` — a specific error and its subclasses
+  (e.g. also catches ``PackagesNotFoundInChannelsError``).
+- ``{"MemoryError"}``, ``{"KeyboardInterrupt"}``, ``{"SystemExit"}``
+  — specific non-conda exceptions.
+- ``{"CondaError", "MemoryError"}`` — combine scopes.
+
+For non-``CondaError`` exceptions, the conda runtime fields on
+:class:`~conda.plugins.types.CondaExceptionInfo` may be ``None`` (see
+below).
 
 .. _MRO: https://docs.python.org/3/glossary.html#term-method-resolution-order
 
@@ -163,7 +179,9 @@ What the handler receives
 --------------------------
 
 Handlers are called with a single frozen
-:class:`~conda.plugins.types.CondaExceptionInfo` dataclass:
+:class:`~conda.plugins.types.CondaExceptionInfo` dataclass.
+
+The exception triple is always populated:
 
 .. list-table::
    :header-rows: 1
@@ -172,12 +190,26 @@ Handlers are called with a single frozen
    * - Field
      - Description
    * - ``exc_type``
-     - The exception class (a :class:`~conda.CondaError` subclass).
+     - The exception class.
    * - ``exc_value``
-     - The exception instance. Access domain attributes like
-       ``exc_value.packages`` or ``exc_value.channel_urls`` here.
+     - The exception instance. For ``CondaError`` subclasses, access
+       domain attributes like ``exc_value.packages`` here.
    * - ``exc_traceback``
      - The traceback object.
+
+The remaining fields describe the conda runtime state. They are
+populated all-or-nothing: either the runtime was available and all
+fields are set, or it wasn't and they're all ``None``. Check
+``conda_version is not None`` to tell the two cases apart.
+``active_prefix`` is the one exception — it can be ``None`` even
+when the runtime is available (meaning no environment is active):
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Field
+     - Description
    * - ``argv``
      - A frozen copy of :data:`sys.argv` at the time of the error.
    * - ``conda_version``
@@ -185,7 +217,8 @@ Handlers are called with a single frozen
    * - ``return_code``
      - The exit code conda will use for this error.
    * - ``active_prefix``
-     - The currently active conda environment prefix, or ``None``.
+     - The currently active conda environment prefix, or ``None`` if no
+       environment is active.
    * - ``target_prefix``
      - The prefix the command was operating on.
    * - ``channels``
@@ -212,6 +245,8 @@ Design notes
 
 - **Observational only** — handlers cannot change conda's behavior.
   This follows CPython's :func:`sys.excepthook` model.
+- **All exception types** — handlers fire for any exception, not just
+  ``CondaError``. Use ``run_for`` to control scope.
 - **Fault-tolerant** — any exception (including ``SystemExit``) raised
   by a handler is caught at the ``BaseException`` level, logged, and
   swallowed.
@@ -220,6 +255,9 @@ Design notes
   automatically match subclasses.
 - **Frozen info object** — ``CondaExceptionInfo`` is a frozen
   dataclass, preventing plugins from mutating shared state.
+- **Optional runtime fields** — conda-specific fields are ``None``
+  when the runtime isn't initialized, following CPython's flat args
+  pattern (``threading.ExceptHookArgs``, ``sys.UnraisableHookArgs``).
 
 API reference
 --------------
