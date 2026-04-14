@@ -7,7 +7,6 @@ Holds functions for output rendering in conda
 from __future__ import annotations
 
 import logging
-import re
 import sys
 from functools import cache
 from typing import TYPE_CHECKING
@@ -44,24 +43,6 @@ def _get_render_func(style: str | None = None) -> Callable:
         render_func = getattr(renderer, "render")
 
     return render_func
-
-
-_TOKEN_URL_PATTERN = re.compile(
-    r"(|https?://)"  # \1  scheme
-    r"(|\s"  # \2  space, or
-    r"|(?:(?:\d{1,3}\.){3}\d{1,3})"  # ipv4, or
-    r"|(?:"  # domain name
-    r"(?:[a-zA-Z0-9-]{1,20}\.){0,10}"  # non-tld
-    r"(?:[a-zA-Z]{2}[a-zA-Z0-9-]{0,18})"  # tld
-    r"))"  # end domain name
-    r"(|:\d{1,5})?"  # \3  port
-    r"/t/[a-z0-9A-Z-]+/"  # token
-)
-
-
-def redact_token_urls(message: str) -> str:
-    """Redact channel tokens in URLs."""
-    return _TOKEN_URL_PATTERN.sub(r"\1\2\3/t/<TOKEN>/", message)
 
 
 def render(data, style: str | None = None, **kwargs) -> None:
