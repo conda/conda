@@ -26,6 +26,7 @@ from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
+from ..deprecations import deprecated
 from ..exceptions import (
     CondaExitZero,
     CondaImportError,
@@ -62,7 +63,13 @@ from .common import check_non_admin
 from .main_config import set_keys
 
 log = getLogger(__name__)
-stderrlog = getLogger("conda.stderr")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stderrlog",
+    getLogger("conda.stderr"),
+    addendum="Use `conda.gateways.streams.stderr` instead.",
+)
 
 
 def reinstall_packages(args, specs: list[str], **kwargs) -> int:

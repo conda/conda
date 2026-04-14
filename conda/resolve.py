@@ -32,6 +32,7 @@ from .common.logic import (
     minimal_unsatisfiable_subset,
 )
 from .common.toposort import toposort
+from .deprecations import deprecated
 from .exceptions import (
     CondaDependencyError,
     InvalidSpec,
@@ -48,7 +49,13 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 log = getLogger(__name__)
-stdoutlog = getLogger("conda.stdoutlog")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stdoutlog",
+    getLogger("conda.stdoutlog"),
+    addendum="Use `conda.gateways.streams.stdoutlog` instead.",
+)
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError
@@ -1649,7 +1656,9 @@ class Resolve:
             common = set.intersection(*psols2)
             diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
-                stdoutlog.info(
+                from .gateways.streams import stdoutlog
+
+                stdoutlog(
                     "\nWarning: {} possible package resolutions "
                     "(only showing differing packages):{}{}".format(
                         ">10" if nsol > 10 else nsol,

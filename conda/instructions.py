@@ -48,7 +48,9 @@ ACTION_CODES = (
 def PRINT_CMD(state, arg):  # pragma: no cover
     if arg.startswith(("Unlinking packages", "Linking packages")):
         return
-    getLogger("conda.stdout.verbose").info(arg)
+    from .gateways.streams import stdoutlog
+
+    stdoutlog(str(arg))
 
 
 def FETCH_CMD(state, package_cache_entry):

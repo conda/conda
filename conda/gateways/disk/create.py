@@ -82,7 +82,13 @@ class TemporaryDirectory:
 
 
 log = getLogger(__name__)
-stdoutlog = getLogger("conda.stdoutlog")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stdoutlog",
+    getLogger("conda.stdoutlog"),
+    addendum="Use `conda.gateways.streams.stdoutlog` instead.",
+)
 
 # in __init__.py to help with circular imports
 mkdir_p = mkdir_p
@@ -245,7 +251,11 @@ def make_menu(prefix, file_path, remove=False):
             root_prefix=context.root_prefix,
         )
     except Exception:
-        stdoutlog.error("menuinst Exception", exc_info=True)
+        from traceback import format_exc
+
+        from ...gateways.streams import stdoutlog
+
+        stdoutlog(f"menuinst Exception\n{format_exc()}")
 
 
 def create_hard_link_or_copy(src, dst):

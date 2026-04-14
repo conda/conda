@@ -6,17 +6,11 @@ import sys
 
 
 def init_loggers():
-    import logging
 
     from ..base.context import context
     from ..gateways.logging import initialize_logging, set_log_level
 
     initialize_logging()
-
-    # silence logging info to avoid interfering with JSON output
-    if context.json:
-        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
-            logging.getLogger(logger).setLevel(logging.CRITICAL + 10)
 
     # set log_level
     set_log_level(context.log_level)

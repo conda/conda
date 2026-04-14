@@ -367,7 +367,8 @@ def describe_all_parameters(context=None, plugins=False) -> str:
 
 
 def print_config_item(key, value):
-    stdout_write = getLogger("conda.stdout").info
+    from ..gateways.streams import stdout as stdout_write
+
     if isinstance(value, (dict,)):
         for k, v in value.items():
             print_config_item(key + "." + k, v)
@@ -426,6 +427,8 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     from ..common.io import timeout
     from ..common.serialize import json, yaml
     from ..core.prefix_data import PrefixData
+    from ..gateways.streams import stderr as stderr_write
+    from ..gateways.streams import stdout as stdout_write
 
     # Override context for --file operations with --show/--describe
     if args.file and (args.show is not None or args.describe is not None):
@@ -433,8 +436,6 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
 
         context = Context(search_path=(args.file,), argparse_args=args)
 
-    stdout_write = getLogger("conda.stdout").info
-    stderr_write = getLogger("conda.stderr").info
     get_key_pairs = []
     json_warnings = []
 
