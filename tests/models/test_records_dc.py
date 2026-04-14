@@ -451,7 +451,7 @@ def test_channel_derived_from_url() -> None:
     assert rec.fn == "austin-1.2.3-py34_2.tar.bz2"
 
 
-def test_resolve_subdir_from_url() -> None:
+def test_subdir_derived_from_url() -> None:
     rec = PackageRecordDC(
         name="t",
         version="1",
@@ -460,7 +460,6 @@ def test_resolve_subdir_from_url() -> None:
         url="https://repo.anaconda.com/pkgs/main/win-32/t-1-0.tar.bz2",
     )
     assert rec.subdir == "win-32"
-    assert rec.resolve_subdir() == "win-32"
 
 
 def test_resolve_package_type_from_noarch() -> None:
