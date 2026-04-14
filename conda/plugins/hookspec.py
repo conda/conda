@@ -826,8 +826,9 @@ class CondaSpecs:
 
         Handlers receive a frozen :class:`~conda.plugins.types.CondaExceptionInfo`
         dataclass with ``exc_type``, ``exc_value``, ``exc_traceback``, ``argv``,
-        ``conda_version``, ``return_code``, ``active_prefix``, ``quiet``, and
-        ``json`` fields.
+        ``conda_version``, ``return_code``, ``active_prefix``, ``target_prefix``,
+        ``channels``, ``subdir``, ``offline``, ``dry_run``, ``quiet``, and ``json``
+        fields.
 
         **Example:**
 

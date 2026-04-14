@@ -516,6 +516,11 @@ class CondaPluginManager(pluggy.PluginManager):
                 conda_version=__version__,
                 return_code=getattr(exc_val, "return_code", 1),
                 active_prefix=context.active_prefix,
+                target_prefix=str(context.target_prefix),
+                channels=tuple(context.channels),
+                subdir=context.subdir,
+                offline=context.offline,
+                dry_run=context.dry_run,
                 quiet=context.quiet,
                 json=context.json,
             )
