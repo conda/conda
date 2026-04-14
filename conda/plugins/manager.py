@@ -502,36 +502,39 @@ class CondaPluginManager(pluggy.PluginManager):
         :param exc_val: the exception instance being handled
         :param exc_tb: the associated traceback
         """
-        if not isinstance(exc_val, CondaError):
-            return
+        try:
+            if not isinstance(exc_val, CondaError):
+                return
 
-        handlers = self.get_hook_results("exception_handlers")
-        if not handlers:
-            return
+            handlers = self.get_hook_results("exception_handlers")
+            if not handlers:
+                return
 
-        exc_mro_names = frozenset(cls.__name__ for cls in type(exc_val).__mro__)
+            exc_mro_names = frozenset(cls.__name__ for cls in type(exc_val).__mro__)
 
-        exc_info = CondaExceptionInfo(
-            exc_type=type(exc_val),
-            exc_value=exc_val,
-            exc_traceback=exc_tb,
-            argv=tuple(sys.argv),
-            conda_version=__version__,
-            return_code=getattr(exc_val, "return_code", 1),
-            active_prefix=context.active_prefix,
-        )
+            exc_info = CondaExceptionInfo(
+                exc_type=type(exc_val),
+                exc_value=exc_val,
+                exc_traceback=exc_tb,
+                argv=tuple(sys.argv),
+                conda_version=__version__,
+                return_code=getattr(exc_val, "return_code", 1),
+                active_prefix=context.active_prefix,
+            )
 
-        for handler in handlers:
-            if not (handler.run_for & exc_mro_names):
-                continue
-            try:
-                handler.hook(exc_info)
-            except BaseException:
-                log.debug(
-                    "Exception handler plugin %r failed",
-                    handler.name,
-                    exc_info=True,
-                )
+            for handler in handlers:
+                if not (handler.run_for & exc_mro_names):
+                    continue
+                try:
+                    handler.hook(exc_info)
+                except BaseException:
+                    log.debug(
+                        "Exception handler plugin %r failed",
+                        handler.name,
+                        exc_info=True,
+                    )
+        except BaseException:
+            log.debug("invoke_exception_handlers failed", exc_info=True)
 
     def disable_external_plugins(self) -> None:
         """
