@@ -840,7 +840,8 @@ class CondaExceptionInfo:
                           or ``None`` if no environment is active (also
                           ``None`` when the runtime is unavailable).
     :param target_prefix: The prefix the command was operating on.
-    :param channels: The configured channels at the time of error.
+    :param channels: The configured channel names at the time of error
+                     (canonical names, e.g. ``defaults``, ``conda-forge``).
     :param subdir: The platform subdirectory (e.g., ``linux-64``, ``osx-arm64``).
     :param offline: Whether conda is running in offline mode (``--offline``).
     :param dry_run: Whether conda is running in dry-run mode (``--dry-run``).

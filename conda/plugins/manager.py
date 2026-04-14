@@ -515,6 +515,8 @@ class CondaPluginManager(pluggy.PluginManager):
                 return_code = getattr(exc_val, "return_code", 1)
 
             try:
+                from ..models.channel import Channel
+
                 exc_info = CondaExceptionInfo(
                     exc_type=type(exc_val),
                     exc_value=exc_val,
@@ -524,7 +526,9 @@ class CondaPluginManager(pluggy.PluginManager):
                     return_code=return_code,
                     active_prefix=context.active_prefix,
                     target_prefix=str(context.target_prefix),
-                    channels=tuple(context.channels),
+                    channels=tuple(
+                        Channel.from_value(c).canonical_name for c in context.channels
+                    ),
                     subdir=context.subdir,
                     offline=context.offline,
                     dry_run=context.dry_run,
@@ -549,6 +553,8 @@ class CondaPluginManager(pluggy.PluginManager):
                         handler.name,
                         exc_info=True,
                     )
+
+            del exc_info, exc_tb
         except BaseException:
             log.debug("invoke_exception_handlers failed", exc_info=True)
 
