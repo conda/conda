@@ -48,11 +48,18 @@ def test_main_subshell_help_exits_cleanly(capsys) -> None:
 def test_main_subshell_no_plugins_flag(monkeypatch) -> None:
     """CONDA_NO_PLUGINS=true should disable external plugins via main_subshell."""
     monkeypatch.setenv("CONDA_NO_PLUGINS", "true")
+    disabled = []
+    monkeypatch.setattr(
+        context.plugin_manager,
+        "disable_external_plugins",
+        lambda: disabled.append(True),
+    )
 
     with pytest.raises(SystemExit):
         main_subshell("--help")
 
     assert context.no_plugins is True
+    assert disabled
 
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test")
