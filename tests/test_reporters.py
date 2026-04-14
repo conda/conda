@@ -30,7 +30,7 @@ def test_render(capsys: CaptureFixture):
     render("test-string")
 
     stdout, stderr = capsys.readouterr()
-    assert stdout == "test-string"
+    assert stdout == "test-string\n"
     assert not stderr
 
     # Test rendering of object with a style
