@@ -487,14 +487,13 @@ class InfoRenderer:
         if self._context.json:
             return {"root_prefix": self._context.root_prefix}
         else:
-            return f"{self._context.root_prefix}\n"
+            return self._context.root_prefix
 
     def _channels_component(self) -> str | dict:
         if self._context.json:
             return {"channels": self._context.channels}
         else:
-            channels_str = "\n".join(self._context.channels)
-            return f"{channels_str}\n"
+            return "\n".join(self._context.channels)
 
     def _detail_component(self) -> dict[str, str]:
         return get_main_info_display(self._info_dict)
@@ -513,7 +512,7 @@ class InfoRenderer:
             f"sys.version: {sys.version[:40]}...",
             f"sys.prefix: {sys.prefix}",
             f"sys.executable: {sys.executable}",
-            "conda location: {}".format(self._info_dict["conda_location"]),
+            f"conda location: {self._info_dict['conda_location']}",
         ]
 
         subcommands = self._context.plugin_manager.get_subcommands()
@@ -537,8 +536,6 @@ class InfoRenderer:
 
         for name, value in sorted(self._info_dict["env_vars"].items()):
             output.append(f"{name}: {value}")
-
-        output.append("")
 
         return "\n".join(output)
 

@@ -60,6 +60,10 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
+_MSYS2_CYGWIN_PREFIX_RE: re.Pattern[str] = re.compile(
+    r"^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*"
+)
+
 
 BUILTIN_COMMANDS = {
     "activate": ActivateHelp(),
@@ -614,7 +618,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
                 # MSYS2 /c/
                 # cygwin /cygdrive/c/
-                if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
+                if _MSYS2_CYGWIN_PREFIX_RE.match(prefix):
                     path = unix_path_to_win(path, prefix)
 
                 if isdir(path):
@@ -846,7 +850,7 @@ class _Activator(metaclass=abc.ABCMeta):
     def _resolve_prefix(self, env_name_or_prefix: str) -> str:
         """Hook for shell-specific activation path validation."""
         # get environment prefix
-        if re.search(r"\\|/", env_name_or_prefix):
+        if "\\" in env_name_or_prefix or "/" in env_name_or_prefix:
             prefix = expand(env_name_or_prefix)
             if not isdir(join(prefix, "conda-meta")):
                 raise EnvironmentLocationNotFound(prefix)
@@ -1026,20 +1030,6 @@ class CmdExeActivator(_Activator):
         return prefix
 
 
-class CmdExeRunActivator(CmdExeActivator):
-    # CmdExeActivator writes an .env file by default; let's force in-memory output here
-    # so that we can embed the activation output directly into our wrapper script.
-    tempfile_extension = None
-
-    unset_var_tmpl = 'SET "%s="'
-    export_var_tmpl = 'SET "%s=%s"'
-    path_var_tmpl = export_var_tmpl
-    set_var_tmpl = export_var_tmpl
-    # If any of these calls to the activation hook scripts fail, we want
-    # to exit the wrapper immediately and abort `conda run` right away.
-    run_script_tmpl = 'CALL "%s"\nIF %%ERRORLEVEL%% NEQ 0 EXIT /b %%ERRORLEVEL%%'
-
-
 class FishActivator(_Activator):
     pathsep_join = '" "'.join
     sep = "/"
@@ -1159,7 +1149,6 @@ activator_map: dict[str, type[_Activator]] = {
     "tcsh": CshActivator,
     "xonsh": XonshActivator,
     "cmd.exe": CmdExeActivator,
-    "cmd.exe.run": CmdExeRunActivator,
     "fish": FishActivator,
     "powershell": PowerShellActivator,
 }
