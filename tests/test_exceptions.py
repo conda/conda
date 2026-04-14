@@ -3,8 +3,12 @@
 import getpass
 import json
 import sys
+import urllib.error
+from urllib.parse import parse_qs, urlparse
 from contextlib import nullcontext
 from unittest.mock import patch
+
+
 
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
@@ -24,6 +28,7 @@ from conda.exceptions import (
     ExceptionHandler,
     KnownPackageClobberError,
     PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
     PathNotFoundError,
     ProxyError,
     SharedLinkPathClobberError,
@@ -31,6 +36,7 @@ from conda.exceptions import (
     UnknownPackageClobberError,
     conda_exception_handler,
 )
+from conda.models.match_spec import MatchSpec
 
 
 def _raise_helper(exception):
@@ -909,3 +915,183 @@ def test_ExceptionHandler_deprecations(
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(ExceptionHandler(), function)()
+
+
+def test_report_missing_packages_fires_get_to_base_channel_url(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """GET is sent to the base channel URL (subdir stripped) with package specs as query params."""
+
+    monkeypatch.setenv("CONDA_OFFLINE", "false")
+    reset_context()
+
+    urlopen_mock = mocker.patch("urllib.request.urlopen")
+
+    exc = PackagesNotFoundInChannelsError(
+        [MatchSpec("numpy>=1.20")],
+        ["https://conda.anaconda.org/conda-forge/linux-64"],
+    )
+    ExceptionHandler()._report_missing_packages(exc)
+
+    urlopen_mock.assert_called_once()
+    url_called = urlopen_mock.call_args[0][0]
+
+    parsed = urlparse(url_called)
+    assert parsed.scheme == "https"
+    assert parsed.netloc == "conda.anaconda.org"
+    assert parsed.path == "/conda-forge/missing"
+
+    qs = parse_qs(parsed.query)
+    assert qs.get("numpy") == [">=1.20"]
+
+
+def test_report_missing_packages_raw_string_spec(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Raw string package specs are passed as name=* in the query."""
+
+    monkeypatch.setenv("CONDA_OFFLINE", "false")
+    reset_context()
+
+    urlopen_mock = mocker.patch("urllib.request.urlopen")
+
+    exc = PackagesNotFoundInChannelsError(
+        ["scipy"],
+        ["https://conda.anaconda.org/conda-forge/linux-64"],
+    )
+    ExceptionHandler()._report_missing_packages(exc)
+
+    urlopen_mock.assert_called_once()
+    url_called = urlopen_mock.call_args[0][0]
+
+    qs = parse_qs(urlparse(url_called).query)
+    assert qs.get("scipy") == ["*"]
+
+
+def test_report_missing_packages_skips_when_offline(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """No GET is attempted when conda is in offline mode."""
+    monkeypatch.setenv("CONDA_OFFLINE", "true")
+    reset_context()
+
+    urlopen_mock = mocker.patch("urllib.request.urlopen")
+
+    exc = PackagesNotFoundInChannelsError(
+        ["numpy"],
+        ["https://conda.anaconda.org/conda-forge/linux-64"],
+    )
+    ExceptionHandler()._report_missing_packages(exc)
+
+    urlopen_mock.assert_not_called()
+
+
+def test_report_missing_packages_swallows_http_error(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """An HTTP error response from the channel does not propagate."""
+    monkeypatch.setenv("CONDA_OFFLINE", "false")
+    reset_context()
+
+    mocker.patch(
+        "urllib.request.urlopen",
+        side_effect=urllib.error.HTTPError(
+            "https://conda.anaconda.org/conda-forge/missing",
+            404,
+            "Not Found",
+            {},
+            None,
+        ),
+    )
+
+    exc = PackagesNotFoundInChannelsError(
+        ["numpy"],
+        ["https://conda.anaconda.org/conda-forge/linux-64"],
+    )
+    # Must not raise regardless of HTTP response code
+    ExceptionHandler()._report_missing_packages(exc)
+
+
+def test_report_missing_packages_deduplicates_channels(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Multiple subdirs of the same channel collapse to a single GET per base URL."""
+    monkeypatch.setenv("CONDA_OFFLINE", "false")
+    reset_context()
+
+    urlopen_mock = mocker.patch("urllib.request.urlopen")
+
+    exc = PackagesNotFoundInChannelsError(
+        ["scipy"],
+        [
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "https://conda.anaconda.org/conda-forge/noarch",  # same base, different subdir
+            "https://repo.anaconda.com/pkgs/main/linux-64",  # different base
+        ],
+    )
+    ExceptionHandler()._report_missing_packages(exc)
+
+    assert urlopen_mock.call_count == 2
+    base_paths = {
+        urlopen_mock.call_args_list[0][0][0].split("?")[0],
+        urlopen_mock.call_args_list[1][0][0].split("?")[0],
+    }
+    assert base_paths == {
+        "https://conda.anaconda.org/conda-forge/missing",
+        "https://repo.anaconda.com/pkgs/main/missing",
+    }
+
+
+def test_report_missing_packages_informs_user(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    """A human-readable message is written to stderr before the requests are sent."""
+    monkeypatch.setenv("CONDA_OFFLINE", "false")
+    reset_context()
+
+    mocker.patch("urllib.request.urlopen")
+
+    exc = PackagesNotFoundInChannelsError(
+        ["numpy"],
+        [
+            "https://conda.anaconda.org/conda-forge/linux-64",
+            "https://repo.anaconda.com/pkgs/main/linux-64",
+        ],
+    )
+    ExceptionHandler()._report_missing_packages(exc)
+
+    _, stderr = capsys.readouterr()
+    assert "Sending missing package report to 2 channel(s)." in stderr
+
+
+def test_handle_exception_hooks_report_for_packages_not_found_in_channels(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """handle_exception() calls _report_missing_packages for PackagesNotFoundInChannelsError
+    but not for other CondaError subclasses."""
+    monkeypatch.setenv("CONDA_OFFLINE", "false")
+    reset_context()
+
+    mocker.patch("urllib.request.urlopen")
+    spy = mocker.spy(ExceptionHandler, "_report_missing_packages")
+
+    # PackagesNotFoundInChannelsError must trigger the report
+    exc_channels = PackagesNotFoundInChannelsError(
+        ["numpy"],
+        ["https://conda.anaconda.org/conda-forge/linux-64"],
+    )
+    ExceptionHandler()(_raise_helper, exc_channels)
+    assert spy.call_count == 1
+
+    # Generic PackagesNotFoundError must NOT trigger the report
+    exc_generic = PackagesNotFoundError(["numpy"])
+    ExceptionHandler()(_raise_helper, exc_generic)
+    assert spy.call_count == 1  # unchanged

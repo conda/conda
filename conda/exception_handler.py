@@ -69,9 +69,12 @@ class ExceptionHandler:
             CondaError,
             CondaMemoryError,
             NoSpaceLeftError,
+            PackagesNotFoundInChannelsError,
         )
 
         if isinstance(exc_val, CondaError):
+            if isinstance(exc_val, PackagesNotFoundInChannelsError):
+                self._report_missing_packages(exc_val)
             if exc_val.reportable:
                 return self.handle_reportable_application_exception(exc_val, exc_tb)
             else:
@@ -104,6 +107,81 @@ class ExceptionHandler:
         from .exceptions import print_conda_exception
 
         print_conda_exception(exc_val, exc_tb)
+
+    def _report_missing_packages(self, exc_val: BaseException) -> None:
+        """Fire-and-forget GET report to each configured channel for missing packages.
+
+        Sends ``GET {base_channel_url}/missing?name=version&...`` for every
+        deduplicated base channel URL found in the exception.  The response
+        code is intentionally ignored.  All failures are silently logged at
+        DEBUG level so this method can never disrupt the normal error path.
+        """
+        import urllib.error
+        import urllib.request
+        from urllib.parse import urlencode
+
+        try:
+            from .base.context import context
+
+            if context.offline:
+                return
+
+            from .models.channel import Channel
+            from .models.match_spec import MatchSpec
+
+            # Build query params from the missing package specs.
+            params: list[tuple[str, str]] = []
+            for pkg in exc_val.packages:
+                if isinstance(pkg, MatchSpec):
+                    name = pkg.name
+                    version = str(pkg.version) if pkg.version is not None else "*"
+                elif hasattr(pkg, "name") and hasattr(pkg, "version"):
+                    # PackageRecord or similar
+                    name = pkg.name
+                    version = str(pkg.version)
+                else:
+                    # Raw string spec — treat the whole string as the name
+                    name = str(pkg)
+                    version = "*"
+                if name:
+                    params.append((name, version))
+
+            if not params:
+                return
+
+            query_string = urlencode(params)
+
+            # Collect deduplicated base channel URLs (strips subdirs like /linux-64).
+            seen: set[str] = set()
+            base_urls: list[str] = []
+            for channel_url in exc_val.channel_urls:
+                base = Channel(channel_url).base_url
+                if base and base not in seen:
+                    seen.add(base)
+                    base_urls.append(base)
+
+            if not base_urls:
+                return
+
+            self.write_out(
+                f"Sending missing package report to {len(base_urls)} channel(s)."
+            )
+
+            for base_url in base_urls:
+                report_url = f"{base_url}/missing?{query_string}"
+                log.debug("Reporting missing packages to: %s", report_url)
+                try:
+                    with urllib.request.urlopen(report_url, timeout=5):
+                        pass
+                except urllib.error.HTTPError:
+                    pass  # response code ignored by design
+                except Exception as e:
+                    log.debug(
+                        "Missing package report failed for %s: %r", base_url, e
+                    )
+
+        except Exception as e:
+            log.debug("_report_missing_packages failed: %r", e)
 
     def handle_unexpected_exception(
         self, exc_val: BaseException, exc_tb: TracebackType
