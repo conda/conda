@@ -1,8 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
+
+if TYPE_CHECKING:
+    from pytest_benchmark.fixture import BenchmarkFixture
 from conda.base.context import context
 from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
@@ -36,50 +43,55 @@ def DPkg(s, **kwargs):
 
 
 @pytest.mark.benchmark
-def test_match_1():
-    for spec, result in (
-        ("numpy 1.7*", True),
-        ("numpy 1.7.1", True),
-        ("numpy 1.7", False),
-        ("numpy 1.5*", False),
-        ("numpy >=1.5", True),
-        ("numpy >=1.5,<2", True),
-        ("numpy >=1.8,<1.9", False),
-        ("numpy >1.5,<2,!=1.7.1", False),
-        ("numpy >1.8,<2|==1.7", False),
-        ("numpy >1.8,<2|>=1.7.1", True),
-        ("numpy >=1.8|1.7*", True),
-        ("numpy ==1.7", False),
-        ("numpy >=1.5,>1.6", True),
-        ("numpy ==1.7.1", True),
-        ("numpy ==1.7.1.0", True),
-        ("numpy==1.7.1.0.0", True),
-        ("numpy >=1,*.7.*", True),
-        ("numpy *.7.*,>=1", True),
-        ("numpy >=1,*.8.*", False),
-        ("numpy >=2,*.7.*", False),
-        ("numpy 1.6*|1.7*", True),
-        ("numpy 1.6*|1.8*", False),
-        ("numpy 1.6.2|1.7*", True),
-        ("numpy 1.6.2|1.7.1", True),
-        ("numpy 1.6.2|1.7.0", False),
-        ("numpy 1.7.1 py27_0", True),
-        ("numpy 1.7.1 py26_0", False),
-        ("numpy >1.7.1a", True),
-        ("python", False),
-    ):
-        m = MatchSpec(spec)
-        assert m.match(DPkg("numpy-1.7.1-py27_0.tar.bz2")) == result
-        assert "name" in m
-        assert m.name == "python" or "version" in m
+def test_match_1(benchmark: BenchmarkFixture):
+    def run():
+        for spec, result in (
+            ("numpy 1.7*", True),
+            ("numpy 1.7.1", True),
+            ("numpy 1.7", False),
+            ("numpy 1.5*", False),
+            ("numpy >=1.5", True),
+            ("numpy >=1.5,<2", True),
+            ("numpy >=1.8,<1.9", False),
+            ("numpy >1.5,<2,!=1.7.1", False),
+            ("numpy >1.8,<2|==1.7", False),
+            ("numpy >1.8,<2|>=1.7.1", True),
+            ("numpy >=1.8|1.7*", True),
+            ("numpy ==1.7", False),
+            ("numpy >=1.5,>1.6", True),
+            ("numpy ==1.7.1", True),
+            ("numpy ==1.7.1.0", True),
+            ("numpy==1.7.1.0.0", True),
+            ("numpy >=1,*.7.*", True),
+            ("numpy *.7.*,>=1", True),
+            ("numpy >=1,*.8.*", False),
+            ("numpy >=2,*.7.*", False),
+            ("numpy 1.6*|1.7*", True),
+            ("numpy 1.6*|1.8*", False),
+            ("numpy 1.6.2|1.7*", True),
+            ("numpy 1.6.2|1.7.1", True),
+            ("numpy 1.6.2|1.7.0", False),
+            ("numpy 1.7.1 py27_0", True),
+            ("numpy 1.7.1 py26_0", False),
+            ("numpy >1.7.1a", True),
+            ("python", False),
+        ):
+            m = MatchSpec(spec)
+            assert m.match(DPkg("numpy-1.7.1-py27_0.tar.bz2")) == result
+            assert "name" in m
+            assert m.name == "python" or "version" in m
 
-    # both version numbers conforming to PEP 440
-    assert not MatchSpec("numpy >=1.0.1").match(DPkg("numpy-1.0.1a-0.tar.bz2"))
-    # both version numbers non-conforming to PEP 440
-    assert not MatchSpec("numpy >=1.0.1.vc11").match(
-        DPkg("numpy-1.0.1a.vc11-0.tar.bz2")
-    )
-    assert MatchSpec("numpy >=1.0.1*.vc11").match(DPkg("numpy-1.0.1a.vc11-0.tar.bz2"))
+        # both version numbers conforming to PEP 440
+        assert not MatchSpec("numpy >=1.0.1").match(DPkg("numpy-1.0.1a-0.tar.bz2"))
+        # both version numbers non-conforming to PEP 440
+        assert not MatchSpec("numpy >=1.0.1.vc11").match(
+            DPkg("numpy-1.0.1a.vc11-0.tar.bz2")
+        )
+        assert MatchSpec("numpy >=1.0.1*.vc11").match(
+            DPkg("numpy-1.0.1a.vc11-0.tar.bz2")
+        )
+
+    benchmark(run)
     # one conforming, other non-conforming to PEP 440
     assert MatchSpec("numpy <1.0.1").match(DPkg("numpy-1.0.1.vc11-0.tar.bz2"))
     assert MatchSpec("numpy <1.0.1").match(DPkg("numpy-1.0.1a.vc11-0.tar.bz2"))
