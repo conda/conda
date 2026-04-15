@@ -88,6 +88,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+BUILTIN_PLUGIN_PREFIX = "conda.plugins."
+
 
 @dataclass
 class _HookImplWrapper:
@@ -141,6 +143,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(APP_NAME, *args, **kwargs)
+        self.plugin_aliases: dict[str, set[str]] = {}
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
@@ -232,8 +235,16 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                if self.register(plugin):
+                plugin_name = self.register(plugin)
+                if plugin_name:
                     count += 1
+                    self.plugin_aliases.setdefault(entry_point.name, set()).add(
+                        plugin_name
+                    )
+                    if dist_name := dist.metadata.get("Name"):
+                        self.plugin_aliases.setdefault(dist_name, set()).add(
+                            plugin_name
+                        )
         return count
 
     def _hookexec(
@@ -471,12 +482,35 @@ class CondaPluginManager(pluggy.PluginManager):
                 hook.action(command)
 
     def disable_external_plugins(self) -> None:
+        """Disable all external (non-built-in) plugins."""
+        self.disable_plugins(
+            name
+            for name, _ in self.list_name_plugin()
+            if not name.startswith(BUILTIN_PLUGIN_PREFIX)
+        )
+
+    def disable_plugins(self, names: Iterable[str]) -> None:
+        """Disable specific plugins by name.
+
+        Accepts canonical names (e.g. ``conda_self.plugin``),
+        distribution names (e.g. ``conda-self``), or entry point names.
+        Raises :class:`PluginError` for built-in plugins and logs a warning
+        for unrecognized names.
         """
-        Disables all currently registered plugins except built-in conda plugins
-        """
-        for name, plugin in self.list_name_plugin():
-            if not name.startswith("conda.plugins.") and not self.is_blocked(name):
-                self.set_blocked(name)
+        for target in names:
+            canonical_names = self.plugin_aliases.get(target, {target})
+            for canonical in canonical_names:
+                if canonical.startswith(BUILTIN_PLUGIN_PREFIX):
+                    raise PluginError(
+                        f"Built-in plugin '{canonical}' cannot be disabled."
+                    )
+                if self.has_plugin(canonical) and not self.is_blocked(canonical):
+                    self.set_blocked(canonical)
+                elif not self.has_plugin(canonical):
+                    log.warning(
+                        "No registered plugin matching '%s' found to disable.",
+                        target,
+                    )
 
     def get_subcommands(self) -> dict[str, CondaSubcommand]:
         return {
