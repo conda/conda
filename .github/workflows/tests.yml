@@ -332,7 +332,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -388,12 +391,59 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
+      - name: Install Bencher CLI
+        uses: bencherdev/bencher@0f8f620172ccd6225d40a7590598eb7b41718af8 # v0.6.2
+
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@db35df748deb45fdef0960669f57d627c1956c30 # v4.13.1
-        with:
-          token: ${{ secrets.CODSPEED_TOKEN }}
-          run: $CONDA/envs/test/bin/python -m pytest --codspeed
-          mode: instrumentation
+        run: >
+          $CONDA/envs/test/bin/python -m pytest
+          -m benchmark
+          --benchmark-json benchmark_results.json
+
+      - name: Track base branch benchmarks with Bencher
+        if: github.event_name == 'push' && env.BENCHER_API_TOKEN != ''
+        env:
+          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+          BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          bencher run \
+          --project "$BENCHER_PROJECT_SLUG" \
+          --token "$BENCHER_API_TOKEN" \
+          --branch "$BRANCH_NAME" \
+          --testbed ubuntu-latest \
+          --threshold-measure latency \
+          --threshold-test t_test \
+          --threshold-max-sample-size 64 \
+          --threshold-upper-boundary 0.99 \
+          --thresholds-reset \
+          --err \
+          --adapter python_pytest \
+          --github-actions "$GH_TOKEN" \
+          --file benchmark_results.json
+
+      - name: Track PR benchmarks with Bencher
+        if: github.event_name == 'pull_request' && env.BENCHER_API_TOKEN != ''
+        env:
+          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+          BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          bencher run \
+          --project "$BENCHER_PROJECT_SLUG" \
+          --token "$BENCHER_API_TOKEN" \
+          --branch "$GITHUB_HEAD_REF" \
+          --start-point "$GITHUB_BASE_REF" \
+          --start-point-hash "$PR_BASE_SHA" \
+          --start-point-clone-thresholds \
+          --start-point-reset \
+          --testbed ubuntu-latest \
+          --err \
+          --adapter python_pytest \
+          --github-actions "$GH_TOKEN" \
+          --file benchmark_results.json
 
   # linux typing
   linux-typing:
