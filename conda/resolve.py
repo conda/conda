@@ -7,7 +7,6 @@ See conda.core.solver.Solver for the high-level API.
 
 from __future__ import annotations
 
-import copy
 import itertools
 from collections import defaultdict, deque
 from functools import cache
@@ -839,7 +838,7 @@ class Resolve:
                 #    broadening check to apply across packages at the explicit level; only
                 #    at the level of deps below that explicit package.
                 seen_specs = set()
-                specs_by_name = copy.deepcopy(specs_by_name_seed)
+                specs_by_name = {k: list(v) for k, v in specs_by_name_seed.items()}
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
