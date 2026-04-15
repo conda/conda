@@ -838,7 +838,7 @@ class Resolve:
                 #    broadening check to apply across packages at the explicit level; only
                 #    at the level of deps below that explicit package.
                 seen_specs = set()
-                specs_by_name = {k: list(v) for k, v in specs_by_name_seed.items()}
+                specs_by_name = {k: v[:] for k, v in specs_by_name_seed.items()}
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
