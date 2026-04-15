@@ -7,10 +7,12 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context
-from conda.cli.main import main_sourced, main_subshell
+from conda.cli.main import main, main_sourced, main_subshell
 from conda.common.compat import on_win
 
 if TYPE_CHECKING:
+    from pytest import CaptureFixture
+
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -126,3 +128,29 @@ def test_main_sourced_unix_shells_no_line_ending_fix(
     output = capsys.readouterr().out
 
     assert any(pattern in output for pattern in expected_patterns)
+
+
+@pytest.mark.parametrize("flag", ["-V", "--version"])
+def test_version_fast_path(flag: str, capsys: CaptureFixture[str]) -> None:
+    """``conda -V`` and ``conda --version`` use the fast path in main()."""
+    from conda import __version__
+
+    rc = main(flag)
+
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == f"conda {__version__}"
+
+
+@pytest.mark.parametrize("flag", ["-V", "--version"])
+def test_version_fast_path_skips_plugins(
+    flag: str, capsys: CaptureFixture[str]
+) -> None:
+    """The fast path must not trigger plugin loading."""
+    from conda.plugins.manager import get_plugin_manager
+
+    get_plugin_manager.cache_clear()
+    try:
+        main(flag)
+        assert get_plugin_manager.cache_info().currsize == 0
+    finally:
+        get_plugin_manager.cache_clear()
