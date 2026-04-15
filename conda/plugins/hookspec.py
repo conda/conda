@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         CondaPrefixDataLoader,
         CondaPreSolve,
         CondaPreTransactionAction,
+        CondaRepodataFilter,
         CondaReporterBackend,
         CondaRequestHeader,
         CondaSetting,
@@ -462,6 +463,48 @@ class CondaSpecs:
                yield plugins.types.CondaPostSolve(
                    name="example-post-solve",
                    action=example_post_solve,
+               )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_repodata_filters(self) -> Iterable[CondaRepodataFilter]:
+        """
+        Register repodata filters that control which package records are
+        included during repodata processing.
+
+        Each filter is called once per package record in
+        ``SubdirData._process_raw_repodata()``. If any registered filter
+        returns ``False`` for a record, that record is excluded. This covers
+        the classic solver and ``conda search``. Solver backends that bypass
+        ``SubdirData`` (e.g. libmamba, rattler) handle filtering in their
+        own code paths.
+
+        Filters receive the package filename and a dict of record metadata
+        (name, version, timestamp, channel, subdir, depends, etc.) and must
+        return ``True`` to keep the record or ``False`` to exclude it.
+
+        An optional ``cache_key`` callable can be provided. Its return value
+        is stored alongside the cached repodata; when the value changes the
+        cache is invalidated and records are reprocessed through all filters.
+
+        **Example:**
+
+        .. code-block:: python
+
+           from conda import plugins
+
+
+           def exclude_pre_releases(fn: str, record: dict) -> bool:
+               version = record.get("version", "")
+               return "dev" not in version and "rc" not in version
+
+
+           @plugins.hookimpl
+           def conda_repodata_filters():
+               yield plugins.types.CondaRepodataFilter(
+                   name="exclude-pre-releases",
+                   filter=exclude_pre_releases,
                )
         """
         yield from ()

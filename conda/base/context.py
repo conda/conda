@@ -298,6 +298,14 @@ class Context(Configuration):
             PrimitiveParameter("", element_type=str), string_delimiter="&"
         )
     )  # TODO: consider a different string delimiter
+    exclude_newer = ParameterLoader(
+        PrimitiveParameter("", element_type=str),
+        aliases=("cooldown",),
+    )
+    exclude_newer_package = ParameterLoader(
+        MapParameter(PrimitiveParameter(None, element_type=(str, bool, NoneType))),
+        aliases=("cooldown_exclude",),
+    )
     disallowed_packages = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
@@ -1325,6 +1333,8 @@ class Context(Configuration):
                 "aggressive_update_packages",
                 "auto_update_conda",
                 "channel_priority",
+                "exclude_newer",
+                "exclude_newer_package",
                 "create_default_packages",
                 "disallowed_packages",
                 "force_reinstall",
@@ -1572,6 +1582,25 @@ class Context(Configuration):
             conda_build=dals(
                 """
                 General configuration parameters for conda-build.
+                """
+            ),
+            exclude_newer=dals(
+                """
+                Exclude packages published more recently than the given
+                threshold. Accepts durations (7d, 3d12h, 1w, P7D),
+                ISO 8601 dates (2026-04-01), RFC 3339 timestamps
+                (2026-04-01T12:00:00Z), or a plain number of seconds.
+                Set to 0 or empty string to disable (the default).
+                """
+            ),
+            exclude_newer_package=dals(
+                """
+                Per-package overrides for the exclude_newer policy. Maps package
+                names to a duration string (e.g. "30d"), a timestamp, or false
+                to exempt the package entirely. For example:
+                  exclude_newer_package:
+                    openssl: false
+                    numpy: 30d
                 """
             ),
             # TODO: This is a bad parameter name. Consider an alternate.

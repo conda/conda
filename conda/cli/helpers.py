@@ -6,20 +6,109 @@ Collection of helper functions to standardize reused CLI arguments.
 
 from __future__ import annotations
 
+import re
+import time
 from argparse import (
     SUPPRESS,
     Action,
+    ArgumentTypeError,
     BooleanOptionalAction,
     _AppendAction,
     _HelpAction,
     _StoreAction,
 )
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+
+_DURATION_UNITS: dict[str, int] = {
+    "w": 604800,
+    "d": 86400,
+    "h": 3600,
+    "m": 60,
+    "s": 1,
+}
+
+_ISO8601_DURATION_RE = re.compile(
+    r"^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$",
+    re.IGNORECASE,
+)
+
+
+def parse_duration_to_seconds(value: str) -> int:
+    """Parse a duration, date, or timestamp into seconds (as a delta from now).
+
+    Accepts:
+    - Compact durations: ``7d``, ``24h``, ``1w``, ``3d12h``
+    - ISO 8601 durations: ``P7D``, ``PT24H``, ``P1DT12H``
+    - Plain integers (interpreted as seconds)
+    - ISO 8601 dates: ``2026-04-01``
+    - RFC 3339 timestamps: ``2026-04-01T12:00:00Z``
+
+    For dates and timestamps, returns ``now - parsed_time`` so the value
+    represents how far in the past the cutoff is.
+
+    Returns 0 for the string ``"0"``.
+
+    Raises :class:`~argparse.ArgumentTypeError` on unrecognised input.
+    """
+    value = value.strip()
+    if not value:
+        raise ArgumentTypeError("duration must not be empty")
+
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    # Try ISO 8601 date / RFC 3339 timestamp
+    # (fromisoformat handles Z suffix only from 3.11+)
+    normalized = value.replace("Z", "+00:00") if value.endswith("Z") else value
+    try:
+        dt = datetime.fromisoformat(normalized)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        delta = int(time.time()) - int(dt.timestamp())
+        if delta < 0:
+            raise ArgumentTypeError(f"timestamp {value!r} is in the future")
+        return delta
+    except ValueError:
+        pass
+
+    # ISO 8601 duration (P7D, PT24H, P1W, P1DT12H, etc.)
+    m = _ISO8601_DURATION_RE.match(value)
+    if m:
+        weeks, days, hours, minutes, secs = (int(g) if g else 0 for g in m.groups())
+        total = weeks * 604800 + days * 86400 + hours * 3600 + minutes * 60 + secs
+        if total == 0:
+            raise ArgumentTypeError(
+                f"invalid duration {value!r}; use e.g. 7d, P7D, 2026-04-01"
+            )
+        return total
+
+    # Compact duration (7d, 3d12h, 1w2d, etc.)
+    pairs = re.findall(r"(\d+)\s*([wdhms])", value, re.IGNORECASE)
+    if not pairs:
+        raise ArgumentTypeError(
+            f"invalid duration {value!r}; use e.g. 7d, P7D, 2026-04-01"
+        )
+
+    consumed = re.sub(r"\d+\s*[wdhms]", "", value, flags=re.IGNORECASE).strip()
+    if consumed:
+        raise ArgumentTypeError(
+            f"invalid duration {value!r}; use e.g. 7d, P7D, 2026-04-01"
+        )
+
+    total = sum(int(n) * _DURATION_UNITS[u.lower()] for n, u in pairs)
+    if total == 0:
+        raise ArgumentTypeError(
+            f"invalid duration {value!r}; use e.g. 7d, P7D, 2026-04-01"
+        )
+    return total
 
 
 class LazyChoicesAction(Action):
@@ -385,6 +474,17 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
         dest="ignore_pinned",
         default=NULL,
         help="Ignore pinned file.",
+    )
+    solver_mode_options.add_argument(
+        "--exclude-newer",
+        type=parse_duration_to_seconds,
+        dest="exclude_newer",
+        default=NULL,
+        metavar="DURATION_OR_DATE",
+        help="Exclude packages published more recently than the given "
+        "duration (e.g. 7d, 3d12h, 1w) or date (e.g. 2026-04-01, "
+        "2026-04-01T12:00:00Z). Supply 0 to disable. "
+        "Per-package overrides can be set via exclude_newer_package in .condarc.",
     )
     return solver_mode_options
 
