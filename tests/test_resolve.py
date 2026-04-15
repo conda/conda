@@ -27,6 +27,7 @@ def test_specs_by_name_copy_is_independent() -> None:
     }
     copy = {k: list(v) for k, v in seed.items()}
 
+    assert copy["numpy"] is not seed["numpy"], "values must be distinct list objects"
     copy["numpy"].append(MatchSpec("numpy<2"))
     assert len(seed["numpy"]) == 1, "seed must not be mutated by changes to the copy"
     assert len(copy["numpy"]) == 2
