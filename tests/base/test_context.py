@@ -956,17 +956,7 @@ def test_context_stack_push_pop_roundtrip() -> None:
     assert stack._stack_idx == initial_idx
 
 
-@pytest.mark.parametrize(
-    "env_var,expected",
-    [
-        ("1", True),
-        ("true", True),
-        ("TRUE", True),
-    ],
-)
-def test_root_writable_reflects_filesystem(
-    tmp_path, monkeypatch, env_var, expected
-) -> None:
+def test_root_writable_reflects_filesystem(tmp_path: Path, monkeypatch) -> None:
     """root_writable should return True when the magic file is accessible."""
     magic = tmp_path / PREFIX_MAGIC_FILE
     magic.parent.mkdir(parents=True, exist_ok=True)
@@ -975,10 +965,10 @@ def test_root_writable_reflects_filesystem(
     monkeypatch.setenv("CONDA_ROOT_PREFIX", str(tmp_path))
     reset_context()
 
-    assert context.root_writable is expected
+    assert context.root_writable is True
 
 
-def test_root_writable_is_memoized(tmp_path, monkeypatch) -> None:
+def test_root_writable_is_memoized(tmp_path: Path, monkeypatch) -> None:
     """root_writable must return the same cached value on repeated access."""
     magic = tmp_path / PREFIX_MAGIC_FILE
     magic.parent.mkdir(parents=True, exist_ok=True)
@@ -990,12 +980,13 @@ def test_root_writable_is_memoized(tmp_path, monkeypatch) -> None:
     first = context.root_writable
     second = context.root_writable
 
-    assert first == second
-    # memoizedproperty stores the value under the attribute name on the instance.
-    assert "root_writable" in context.__dict__
+    assert first is second
+    assert "__root_writable" in context._cache_
 
 
-def test_root_writable_false_when_magic_file_missing(tmp_path, monkeypatch) -> None:
+def test_root_writable_false_when_magic_file_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
     """root_writable should be False when the prefix magic file does not exist."""
     monkeypatch.setenv("CONDA_ROOT_PREFIX", str(tmp_path))
     reset_context()
