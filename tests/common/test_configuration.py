@@ -924,9 +924,9 @@ def test_set_search_path_refreshes_on_new_path(
     channels_b: list[str],
 ) -> None:
     """_set_search_path should re-expand and reload when called with a different path."""
-    condarc1 = tmp_path / "condarc1"
+    condarc1 = tmp_path / "first.yml"
     condarc1.write_text("channels:\n" + "".join(f"  - {c}\n" for c in channels_a))
-    condarc2 = tmp_path / "condarc2"
+    condarc2 = tmp_path / "second.yml"
     condarc2.write_text("channels:\n" + "".join(f"  - {c}\n" for c in channels_b))
 
     cfg = minimal_config_class([str(condarc1)])
