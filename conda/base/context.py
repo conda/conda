@@ -2111,16 +2111,15 @@ class ContextStackObject:
 
 class ContextStack:
     def __init__(self):
-        self._stack = [ContextStackObject() for _ in range(3)]
+        self._stack = [ContextStackObject()]
         self._stack_idx = 0
         self._last_search_path = None
         self._last_argparse_args = None
 
     def push(self, search_path: PathsType, argparse_args: Namespace | None) -> None:
         self._stack_idx += 1
-        old_len = len(self._stack)
-        if self._stack_idx >= old_len:
-            self._stack.extend([ContextStackObject() for _ in range(old_len)])
+        if self._stack_idx >= len(self._stack):
+            self._stack.extend(ContextStackObject() for _ in range(len(self._stack)))
         self._stack[self._stack_idx].set_value(search_path, argparse_args)
         self.apply()
 

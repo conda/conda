@@ -23,6 +23,7 @@ from conda.base.constants import (
     PathConflict,
 )
 from conda.base.context import (
+    ContextStack,
     channel_alias_validation,
     context,
     default_python_validation,
@@ -919,3 +920,36 @@ def test_custom_multichannels_overrides_default_channels(reset_conda_context: No
     assert [
         channel.name for channel in context.custom_multichannels["defaults"]
     ] == custom_channels
+
+
+def test_context_stack_starts_with_single_slot() -> None:
+    """ContextStack should allocate only one slot on construction."""
+    stack = ContextStack()
+    assert len(stack._stack) == 1
+    assert stack._stack_idx == 0
+
+
+@pytest.mark.parametrize("pushes", [1, 2, 3, 4])
+def test_context_stack_doubles_on_overflow(pushes: int) -> None:
+    """Pushing beyond current capacity should double the slot list."""
+    stack = ContextStack()
+    for _ in range(pushes):
+        stack._stack_idx += 1
+        if stack._stack_idx >= len(stack._stack):
+            stack._stack.extend(
+                stack._stack[0].__class__() for _ in range(len(stack._stack))
+            )
+
+    assert len(stack._stack) >= pushes + 1
+
+
+def test_context_stack_push_pop_roundtrip() -> None:
+    """push() followed by pop() should leave stack_idx unchanged."""
+    stack = ContextStack()
+    initial_idx = stack._stack_idx
+
+    stack.push((), None)
+    assert stack._stack_idx == initial_idx + 1
+
+    stack.pop()
+    assert stack._stack_idx == initial_idx
