@@ -903,8 +903,10 @@ def test_unique_sequence_map_error_with_duplicates(
     assert test_obj.test_prop() == ({"backend": "json"},)
     assert log_mock.error.mock_calls == [
         mocker.call(
-            "Configuration: skipping {'backend': 'json'} for \"test_prop\"; "
-            'value "json" already present'
+            'Configuration: skipping %s for "%s"; value "%s" already present',
+            {"backend": "json"},
+            "test_prop",
+            "json",
         )
     ]
 
@@ -924,7 +926,9 @@ def test_unique_sequence_map_error_with_unique_key(
     assert test_obj.test_prop() == ({"backend": "json"},)
     assert log_mock.error.mock_calls == [
         mocker.call(
-            "Configuration: skipping {'value': 'test'} for \"test_prop\"; "
-            'unique key "backend" not present on mapping'
+            'Configuration: skipping %s for "%s"; unique key "%s" not present on mapping',
+            {"value": "test"},
+            "test_prop",
+            "backend",
         )
     ]

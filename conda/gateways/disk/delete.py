@@ -92,12 +92,15 @@ def rmtree(path):
             except CalledProcessError as e:
                 if e.returncode != 5:
                     log.error(
-                        f"Removing folder {name} the fast way failed.  Output was: {out}"
+                        "Removing folder %s the fast way failed.  Output was: %s",
+                        name,
+                        out,
                     )
                     raise
                 else:
                     log.debug(
-                        f"removing dir contents the fast way failed.  Output was: {out}"
+                        "removing dir contents the fast way failed.  Output was: %s",
+                        out,
                     )
     else:
         try:
@@ -126,7 +129,8 @@ def rmtree(path):
                     )
                 except CalledProcessError:
                     log.debug(
-                        f"removing dir contents the fast way failed.  Output was: {out}"
+                        "removing dir contents the fast way failed.  Output was: %s",
+                        out,
                     )
 
             shutil.rmtree(".empty")
@@ -173,17 +177,21 @@ def unlink_or_rename_to_trash(path):
                         )
                     except CalledProcessError:
                         log.debug(
-                            f"renaming file path {path} to trash failed.  Output was: {out}"
+                            "renaming file path %s to trash failed.  Output was: %s",
+                            path,
+                            out,
                         )
 
                 else:
                     log.debug(
-                        f"{trash_script} is missing.  Conda was not installed correctly or has been "
-                        "corrupted.  Please file an issue on the conda github repo."
+                        "%s is missing.  Conda was not installed correctly or has been "
+                        "corrupted.  Please file an issue on the conda github repo.",
+                        trash_script,
                     )
             log.warning(
-                f"Could not remove or rename {path}.  Please remove this file manually (you "
-                "may need to reboot to free file handles)"
+                "Could not remove or rename %s.  Please remove this file manually (you "
+                "may need to reboot to free file handles)",
+                path,
             )
 
 

@@ -146,7 +146,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if response.rc != 0:
         log = getLogger(__name__)
         log.error(
-            f"`conda run {' '.join(args.executable_call)}` failed. (See above for error)"
+            "`conda run %s` failed. (See above for error)",
+            " ".join(args.executable_call),
         )
 
     # remove script
@@ -154,6 +155,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         rm_rf(script)
     else:
         log = getLogger(__name__)
-        log.warning(f"CONDA_TEST_SAVE_TEMPS :: retaining main_run script {script}")
+        log.warning("CONDA_TEST_SAVE_TEMPS :: retaining main_run script %s", script)
 
     return response.rc

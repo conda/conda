@@ -225,7 +225,9 @@ class CondaPluginManager(pluggy.PluginManager):
                     # a traceback; instead we pass exc_info conditionally on
                     # context.verbosity
                     log.warning(
-                        f"Error while loading conda entry point: {entry_point.name} ({err})",
+                        "Error while loading conda entry point: %s (%s)",
+                        entry_point.name,
+                        err,
                         exc_info=err if context.info else None,
                     )
                     continue
@@ -504,8 +506,9 @@ class CondaPluginManager(pluggy.PluginManager):
         reporter_backend = reporter_backends_map.get(name, None)
         if reporter_backend is None:
             log.warning(
-                f'Unable to find reporter backend: "{name}"; '
-                f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
+                'Unable to find reporter backend: "%s"; falling back to using "%s"',
+                name,
+                DEFAULT_CONSOLE_REPORTER_BACKEND,
             )
             return reporter_backends_map.get(DEFAULT_CONSOLE_REPORTER_BACKEND)
         else:

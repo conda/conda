@@ -387,7 +387,7 @@ class ExceptionHandler:
                 if response and response.status_code:
                     self.write_out(f" HTTP {response.status_code}")
         except Exception as e:
-            log.debug(f"{e!r}")
+            log.debug("%r", e)
 
     @deprecated(
         "26.9",

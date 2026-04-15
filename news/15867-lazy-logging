@@ -1,0 +1,6 @@
+### Enhancements
+
+* Replace f-string log calls with `%`-style lazy formatting across the
+  codebase. String interpolation is now deferred until the log record is
+  actually emitted. Enable the ruff `G004` rule to enforce this going
+  forward. (#15867)

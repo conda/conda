@@ -192,7 +192,7 @@ def test_repodata_info_jsondecodeerror(
 
     sd2.load()
 
-    assert any(record[0].startswith("JSONDecodeError") for record in records)
+    assert any("JSONDecodeError" in str(arg) for record in records for arg in record)
 
 
 @pytest.mark.parametrize("repodata_use_zst", [True, False])

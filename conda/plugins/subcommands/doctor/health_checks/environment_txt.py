@@ -41,8 +41,9 @@ def check_envs_txt_file(prefix: str | os.PathLike | Path) -> bool:
                 return True
     except (IsADirectoryError, FileNotFoundError, PermissionError) as err:
         logger.error(
-            f"{envs_txt_file} could not be "
-            f"accessed because of the following error: {err}"
+            "%s could not be accessed because of the following error: %s",
+            envs_txt_file,
+            err,
         )
     return False
 
