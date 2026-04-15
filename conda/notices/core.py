@@ -121,7 +121,7 @@ def notices(func):
             except OSError as exc:
                 # If we encounter any OSError related error, we simply abandon
                 # fetching notices
-                logger.error(f"Unable to open cache file: {str(exc)}")
+                logger.error("Unable to open cache file: %s", exc)
 
             if channel_notice_set is not None:
                 try:

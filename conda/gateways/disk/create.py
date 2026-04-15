@@ -347,7 +347,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         if lexists(dst) and not isdir(dst):
             if not force:
                 maybe_raise(BasicClobberError(src, dst, context), context)
-            log.info(f"file exists, but clobbering for directory: {dst!r}")
+            log.info("file exists, but clobbering for directory: %r", dst)
             rm_rf(dst)
         mkdir_p(dst)
         return
@@ -361,7 +361,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if lexists(dst):
         if not force:
             maybe_raise(BasicClobberError(src, dst, context), context)
-        log.info(f"file exists, but clobbering: {dst!r}")
+        log.info("file exists, but clobbering: %r", dst)
         rm_rf(dst)
 
     if link_type == LinkType.hardlink:

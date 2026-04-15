@@ -71,9 +71,9 @@ def register_env(location: str) -> None:
         os.makedirs(user_environments_txt_directory, exist_ok=True)
     except OSError as exc:
         log.warning(
-            "Unable to register environment. "
-            f"Could not create {user_environments_txt_directory}. "
-            f"Reason: {exc}"
+            "Unable to register environment. Could not create %s. Reason: %s",
+            user_environments_txt_directory,
+            exc,
         )
         return
 
@@ -145,7 +145,7 @@ def list_all_known_prefixes() -> list[str]:
                 # not be readable (if on network file system for example)
                 all_env_paths.update(_clean_environments_txt(environments_txt_file))
             except PermissionError:
-                log.warning(f"Unable to access {environments_txt_file}")
+                log.warning("Unable to access %s", environments_txt_file)
 
     # in case environments.txt files aren't complete, also add all known conda environments in
     # all envs_dirs
