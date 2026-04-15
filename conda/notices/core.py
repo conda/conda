@@ -11,16 +11,13 @@ from typing import TYPE_CHECKING
 
 from ..base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL, NOTICES_FN
 from ..base.context import context
-from ..models.channel import get_channel_objs
-from . import cache, fetch, views
-from .types import ChannelNoticeResultSet
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from ..base.context import Context
     from ..models.channel import Channel, MultiChannel
-    from .types import ChannelNotice, ChannelNoticeResponse
+    from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeResultSet
 
 # Used below in type hints
 ChannelName = str
@@ -44,6 +41,10 @@ def retrieve_notices(
                             (defaults to True).
         silent: Whether to use a spinner when fetching and caching notices.
     """
+    from ..models.channel import get_channel_objs
+    from . import cache, fetch
+    from .types import ChannelNoticeResultSet
+
     channel_name_urls = get_channel_name_and_urls(get_channel_objs(context))
     channel_notice_responses = fetch.get_notice_responses(
         channel_name_urls, silent=silent
@@ -78,6 +79,8 @@ def retrieve_notices(
 
 def display_notices(channel_notice_set: ChannelNoticeResultSet) -> None:
     """Prints the channel notices to std out."""
+    from . import cache, views
+
     views.print_notices(channel_notice_set.channel_notices)
 
     # Updates cache database, marking displayed notices as "viewed"
@@ -132,7 +135,8 @@ def notices(func):
 
                 except Exception:
                     try:
-                        # Remove the notices cache file if we encounter an exception
+                        from . import cache
+
                         cache.clear_cache()
                     except OSError:
                         pass
@@ -215,6 +219,8 @@ def is_channel_notices_cache_expired() -> bool:
     attribute of the file. Anything older than what is specified as
     the NOTICES_DECORATOR_DISPLAY_INTERVAL is considered expired.
     """
+    from . import cache
+
     cache_file = cache.get_notices_cache_file()
 
     cache_file_stat = cache_file.stat()
