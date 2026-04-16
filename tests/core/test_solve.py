@@ -47,6 +47,7 @@ from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
+    from pytest_benchmark.fixture import BenchmarkFixture
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import CondaCLIFixture, TmpChannelFixture, TmpEnvFixture
@@ -56,7 +57,7 @@ pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 @pytest.mark.benchmark
 @pytest.mark.flaky(reruns=5)
-def test_solve_1(tmpdir, request):
+def test_solve_1(benchmark: BenchmarkFixture, tmpdir, request):
     """
     This test is flaky with libmamba. Sometimes it gets a different Python 2.x in the solution:
 
@@ -82,47 +83,49 @@ def test_solve_1(tmpdir, request):
           )
     ```
     """
-    specs = (MatchSpec("numpy"),)
 
-    with get_solver(tmpdir, specs) as solver:
-        final_state = solver.solve_final_state()
-        # print(convert_to_dist_str(final_state))
-        order = add_subdir_to_iter(
-            (
-                "channel-1::openssl-1.0.1c-0",
-                "channel-1::readline-6.2-0",
-                "channel-1::sqlite-3.7.13-0",
-                "channel-1::system-5.8-1",
-                "channel-1::tk-8.5.13-0",
-                "channel-1::zlib-1.2.7-0",
-                "channel-1::python-3.3.2-0",
-                "channel-1::numpy-1.7.1-py33_0",
-            )
-        )
-        assert convert_to_dist_str(final_state) == order
+    def run():
+        specs = (MatchSpec("numpy"),)
 
-    specs_to_add = (MatchSpec("python=2"),)
-    with get_solver(
-        tmpdir,
-        specs_to_add=specs_to_add,
-        prefix_records=final_state,
-        history_specs=specs,
-    ) as solver:
-        final_state = solver.solve_final_state()
-        # print(convert_to_dist_str(final_state))
-        order = add_subdir_to_iter(
-            (
-                "channel-1::openssl-1.0.1c-0",
-                "channel-1::readline-6.2-0",
-                "channel-1::sqlite-3.7.13-0",
-                "channel-1::system-5.8-1",
-                "channel-1::tk-8.5.13-0",
-                "channel-1::zlib-1.2.7-0",
-                "channel-1::python-2.7.5-0",
-                "channel-1::numpy-1.7.1-py27_0",
+        with get_solver(tmpdir, specs) as solver:
+            final_state = solver.solve_final_state()
+            order = add_subdir_to_iter(
+                (
+                    "channel-1::openssl-1.0.1c-0",
+                    "channel-1::readline-6.2-0",
+                    "channel-1::sqlite-3.7.13-0",
+                    "channel-1::system-5.8-1",
+                    "channel-1::tk-8.5.13-0",
+                    "channel-1::zlib-1.2.7-0",
+                    "channel-1::python-3.3.2-0",
+                    "channel-1::numpy-1.7.1-py33_0",
+                )
             )
-        )
-        assert convert_to_dist_str(final_state) == order
+            assert convert_to_dist_str(final_state) == order
+
+        specs_to_add = (MatchSpec("python=2"),)
+        with get_solver(
+            tmpdir,
+            specs_to_add=specs_to_add,
+            prefix_records=final_state,
+            history_specs=specs,
+        ) as solver:
+            final_state = solver.solve_final_state()
+            order = add_subdir_to_iter(
+                (
+                    "channel-1::openssl-1.0.1c-0",
+                    "channel-1::readline-6.2-0",
+                    "channel-1::sqlite-3.7.13-0",
+                    "channel-1::system-5.8-1",
+                    "channel-1::tk-8.5.13-0",
+                    "channel-1::zlib-1.2.7-0",
+                    "channel-1::python-2.7.5-0",
+                    "channel-1::numpy-1.7.1-py27_0",
+                )
+            )
+            assert convert_to_dist_str(final_state) == order
+
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
 
 
 def test_solve_2(tmpdir):

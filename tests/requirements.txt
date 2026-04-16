@@ -1,7 +1,7 @@
 archspec >=0.2.3
 boltons >=23.0.0
 charset-normalizer
-conda-forge::pytest-codspeed >=3.0.0
+conda-forge::pytest-benchmark >=5.1.0
 conda-libmamba-solver >=25.4.0
 conda-package-handling >=2.2.0
 distro >=1.5.0
