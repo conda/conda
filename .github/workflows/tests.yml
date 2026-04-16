@@ -122,6 +122,18 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
+        if: matrix.python-version != '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          condarc-file: .github\condarc-${{ matrix.default-channel }}
+          run-post: false
+          activate-environment: ''
+          auto-activate: true
+          pkgs-dirs: D:\conda_pkgs_dir
+          installation-dir: D:\conda
+
+      - name: Setup Miniconda
+        if: matrix.python-version == '3.14'
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
@@ -129,7 +141,31 @@ jobs:
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
 
+      - name: Install conda-lockfiles and conda from conda-canary in base
+        if: matrix.python-version != '3.14'
+        run: conda install -n base --yes 'conda>=26.3.1' conda-canary/label/dev::conda-lockfiles
+
+      - name: Create test environment from lockfile
+        if: matrix.python-version != '3.14'
+        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes
+
+      # One Miniconda install only. Windows mixes pwsh (no shared bash login profile); put test on PATH.
+      - name: Select conda test environment for later steps
+        if: matrix.python-version != '3.14'
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:CONDA "envs\test"
+          $scripts = Join-Path $prefix "Scripts"
+          $libBin = Join-Path $prefix "Library\bin"
+          # GITHUB_PATH prepends each line; last line ends up leftmost on PATH.
+          Add-Content -Path $env:GITHUB_PATH -Value $libBin
+          Add-Content -Path $env:GITHUB_PATH -Value $scripts
+          Add-Content -Path $env:GITHUB_PATH -Value $prefix
+          Add-Content -Path $env:GITHUB_ENV -Value "CONDA_PREFIX=$prefix"
+          Add-Content -Path $env:GITHUB_ENV -Value "CONDA_DEFAULT_ENV=test"
+
       - name: Conda Install
+        if: matrix.python-version == '3.14'
         run: >
           conda install
           --yes
@@ -262,6 +298,19 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
+        if: matrix.python-version != '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
+          run-post: false
+          activate-environment: ''
+          auto-activate: true
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+          pkgs-dirs: ~/conda_pkgs_dir
+
+      - name: Setup Miniconda
+        if: matrix.python-version == '3.14'
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
@@ -269,7 +318,24 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
+      - name: Install conda-lockfiles and conda from conda-canary in base
+        if: matrix.python-version != '3.14'
+        run: conda install -n base --yes 'conda>=26.3.1' conda-canary/label/dev::conda-lockfiles
+
+      - name: Create test environment from lockfile
+        if: matrix.python-version != '3.14'
+        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes
+
+      # One Miniconda install only. bash -l + ~/.bash_profile: setup-miniconda README IMPORTANT /
+      # restricted-env pattern (source conda.sh, conda activate).
+      - name: Activate conda test environment for later steps
+        if: matrix.python-version != '3.14'
+        run: |
+          echo "source \"${CONDA}/etc/profile.d/conda.sh\"" >> ~/.bash_profile
+          echo "conda activate test" >> ~/.bash_profile
+
       - name: Conda Install
+        if: matrix.python-version == '3.14'
         run: >
           conda install
           --yes
@@ -278,6 +344,10 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           python=${{ matrix.python-version }}
+
+      - name: Conda install Linux-only test dependency (patchelf)
+        if: runner.os == 'Linux' && matrix.python-version != '3.14'
+        run: conda install --yes --file tests/requirements-Linux.txt
 
       - name: Conda Info
         # view test env info (not base)
@@ -538,7 +608,7 @@ jobs:
           --name test
           --yes
           --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-Linux.txt
           --file tests/requirements-ci.txt
           python=${{ matrix.python-version }}
           && conda activate test
@@ -678,6 +748,19 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
+        if: matrix.python-version != '3.14'
+        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+        with:
+          condarc-file: .github/condarc-${{ matrix.default-channel }}
+          run-post: false
+          activate-environment: ''
+          auto-activate: true
+          miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
+          miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+          pkgs-dirs: ~/conda_pkgs_dir
+
+      - name: Setup Miniconda
+        if: matrix.python-version == '3.14'
         uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
@@ -685,7 +768,24 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
+      - name: Install conda-lockfiles and conda from conda-canary in base
+        if: matrix.python-version != '3.14'
+        run: conda install -n base --yes 'conda>=26.3.1' conda-canary/label/dev::conda-lockfiles
+
+      - name: Create test environment from lockfile
+        if: matrix.python-version != '3.14'
+        run: conda create -n test --file tests/conda-lock-python-${{ matrix.python-version }}.yml --yes
+
+      # One Miniconda install only. bash -l + ~/.bash_profile: setup-miniconda README IMPORTANT /
+      # restricted-env pattern (source conda.sh, conda activate).
+      - name: Activate conda test environment for later steps
+        if: matrix.python-version != '3.14'
+        run: |
+          echo "source \"${CONDA}/etc/profile.d/conda.sh\"" >> ~/.bash_profile
+          echo "conda activate test" >> ~/.bash_profile
+
       - name: Conda Install
+        if: matrix.python-version == '3.14'
         run: >
           conda install
           --yes
