@@ -48,7 +48,7 @@ requirements:
     - menuinst >=2
     - packaging >=23.0
     - platformdirs >=3.10.0
-    - pluggy >=1.0.0
+    - pluggy >=1.6.0
     - pycosat >=0.6.3
     - python
     - requests >=2.28.0,<3
