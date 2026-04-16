@@ -6,11 +6,13 @@ from __future__ import annotations
 
 import json
 import uuid
+import warnings
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.context import context
+from conda.cli.main_export import CondaExportWarning
 from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
@@ -660,34 +662,24 @@ def test_export_pip_dependencies_handling(conda_cli, format_name, parser_func):
     ],
 )
 def test_export_with_pip_dependencies_integration(
-    tmp_env,
-    conda_cli,
-    pip_cli: PipCLIFixture,
-    wheelhouse: Path,
+    env_with_small_pip_package,
+    conda_cli: CondaCLIFixture,
     format_name,
     format_flag,
     parser_func,
 ):
-    """Test that conda export properly includes pip dependencies when present.
-
-    Uses our small-python-package as a reliable test package that's proven to work in conda's test suite.
+    """Test that conda export properly includes pip dependencies when present. Including raising a warning
+    message when pip is used to install dependencies.
     """
-    with tmp_env("python=3.10", "pip") as prefix:
-        # Install small-python-package wheel built in test data directory
-        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+    # Export the environment in the specified format
+    export_args = ["export", f"--prefix={env_with_small_pip_package}"] + (
+        [format_flag] if format_flag else []
+    )
 
-        # Install using pip_cli fixture for better error handling
-        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
-        assert pip_code == 0, f"pip install failed: {pip_stderr}"
-
-        # Clear prefix data cache to ensure fresh data
-        PrefixData._cache_.clear()
-
-        # Export the environment in the specified format
-        export_args = ["export", f"--prefix={prefix}"] + (
-            [format_flag] if format_flag else []
-        )
-
+    with pytest.warns(
+        CondaExportWarning,
+        match="The exported environment contains 3rd party Python packages",
+    ):
         stdout, stderr, code = conda_cli(*export_args)
         assert code == 0, f"{format_name} export failed: {stderr}"
 
@@ -718,6 +710,52 @@ def test_export_with_pip_dependencies_integration(
         assert "small-python-package" in pip_packages, (
             f"Expected 'small-python-package' in {format_name} export: {pip_deps}"
         )
+
+
+@pytest.mark.parametrize(
+    "flags,warns",
+    [
+        pytest.param([], True, id="default behavior raises warning"),
+        pytest.param(["--format=json"], True, id="JSON format with `--format` flag"),
+        pytest.param(["--json"], True, id="JSON format with `--json` flag"),
+        pytest.param(
+            ["--file", "environment.yaml"], True, id="warns with `--file` flag alone"
+        ),
+        pytest.param(["--quiet"], False, id="suppress warning with `--quiet`"),
+        pytest.param(
+            ["--json", "--file", "environment.yaml"],
+            False,
+            id="suppress warning with `--json` and `--file`",
+        ),
+    ],
+)
+def test_export_warnings(
+    env_with_small_pip_package: Path,
+    conda_cli: CondaCLIFixture,
+    flags: list[str],
+    warns,
+):
+    """Test that conda export warns under the correct set of cli options when pip dependencies are present."""
+    # Export the environment in the specified format
+    export_args = ["export", f"--prefix={env_with_small_pip_package}"] + flags
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always", category=CondaExportWarning)
+        conda_cli(*export_args)
+        if warns:
+            assert len(w) > 0, f"Expected a warning for flags {flags}"
+        else:
+            assert len(w) == 0, f"Did not expect a warning for flags {flags}"
+
+
+def test_export_non_pip_env_warnings(
+    conda_cli: CondaCLIFixture,
+):
+    """Test that conda does not warn for environments without pip dependencies"""
+    # Export the environment in the specified format
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always", category=CondaExportWarning)
+        conda_cli("export", "--prefix=/does/not/exist")
+        assert len(w) == 0
 
 
 def test_export_override_channels_and_ignore_channels_independence(conda_cli):
