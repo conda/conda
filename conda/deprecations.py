@@ -31,6 +31,9 @@ class DeprecatedError(RuntimeError):
     pass
 
 
+_UNSET = object()
+
+
 # inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
 # CPython's warnings._deprecated
 class DeprecationHandler:
@@ -289,8 +292,9 @@ class DeprecationHandler:
         deprecate_in: str,
         remove_in: str,
         constant: str,
-        value: Any,
+        value: Any = _UNSET,
         *,
+        factory: Callable[[], Any] | None = None,
         addendum: str | None = None,
         stack: int = 0,
         deprecation_type: type[Warning] = DeprecationWarning,
@@ -300,10 +304,26 @@ class DeprecationHandler:
         :param deprecate_in: Version in which code will be marked as deprecated.
         :param remove_in: Version in which code is expected to be removed.
         :param constant:
-        :param value:
+        :param value: The value to return when the deprecated constant is
+            accessed. Mutually exclusive with ``factory``.
+        :param factory: A zero-argument callable invoked the first time the
+            deprecated constant is accessed; the result is cached. Use this to
+            avoid paying registration-time costs (e.g., heavy imports) for a
+            symbol that may never be accessed. Mutually exclusive with ``value``.
         :param addendum: Optional additional messaging. Useful to indicate what to do instead.
         :param stack: Optional stacklevel increment.
         """
+        if (value is _UNSET) == (factory is None):
+            raise TypeError(
+                f"deprecated.constant({constant!r}, ...): pass exactly one of "
+                "`value` or `factory=`."
+            )
+        if factory is not None and not callable(factory):
+            raise TypeError(
+                f"deprecated.constant({constant!r}, factory=...): `factory` "
+                "must be a zero-argument callable."
+            )
+
         # detect calling module
         module, fullname = self._get_module(stack)
         # detect function name and generate message
@@ -329,7 +349,14 @@ class DeprecationHandler:
             deprecations = _ConstantDeprecationRegistry(fullname, fallback)
             module.__getattr__ = deprecations  # type: ignore[method-assign]
 
-        deprecations.register(constant, message, category, stack, value)
+        deprecations.register(
+            constant,
+            message,
+            category,
+            stack,
+            value if factory is None else factory,
+            factory=factory is not None,
+        )
 
     def topic(
         self: Self,
@@ -447,7 +474,7 @@ class _ConstantDeprecationRegistry:
     when registered constants are accessed.
     """
 
-    deprecations: dict[str, tuple[str, type[Warning], int, Any]] = field(
+    deprecations: dict[str, tuple[str, type[Warning], int, Any, bool]] = field(
         default_factory=dict,
         init=False,
         repr=False,
@@ -457,8 +484,13 @@ class _ConstantDeprecationRegistry:
 
     def __call__(self, name: str) -> Any:
         if name in self.deprecations:
-            message, category, stacklevel, value = self.deprecations[name]
+            message, category, stacklevel, value, is_factory = self.deprecations[name]
             warnings.warn(message, category, stacklevel=stacklevel)
+            if is_factory:
+                # invoke the factory once and cache the result so future accesses
+                # return the same object without paying the materialization cost
+                value = value()
+                self.deprecations[name] = (message, category, stacklevel, value, False)
             return value
 
         if self.fallback:
@@ -473,9 +505,11 @@ class _ConstantDeprecationRegistry:
         category: type[Warning],
         stack: int,
         value: Any,
+        *,
+        factory: bool = False,
     ) -> None:
         # stacklevel=2 points from __call__ to user code accessing the constant
-        self.deprecations[constant] = (message, category, 2 + stack, value)
+        self.deprecations[constant] = (message, category, 2 + stack, value, factory)
 
 
 deprecated = DeprecationHandler(__version__)
