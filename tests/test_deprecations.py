@@ -228,6 +228,69 @@ def test_constant_multiple_same_module(module: ModuleType) -> None:
         assert w[2].filename == __file__
 
 
+def test_constant_factory(module: ModuleType) -> None:
+    """``factory=`` defers value materialization until first access."""
+    deprecated = DeprecationHandler("2.0")
+
+    calls = {"count": 0}
+
+    def make_value() -> object:
+        calls["count"] += 1
+        return {"id": "materialized"}
+
+    deprecated.constant("2.0", "3.0", "LAZY_CONST", factory=make_value)
+
+    # registration alone must not call the factory
+    assert calls["count"] == 0
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        first = module.LAZY_CONST
+
+    assert calls["count"] == 1
+    assert first == {"id": "materialized"}
+    assert any(
+        issubclass(w.category, (DeprecationWarning, PendingDeprecationWarning))
+        for w in caught
+    )
+
+    # subsequent accesses must return the cached object and not re-invoke
+    # the factory (but still warn)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        second = module.LAZY_CONST
+        third = module.LAZY_CONST
+
+    assert calls["count"] == 1
+    assert second is first
+    assert third is first
+    assert len(caught) == 2
+
+
+def test_constant_factory_rejects_non_callable() -> None:
+    """``factory=`` with a non-callable must fail fast at registration."""
+    deprecated = DeprecationHandler("2.0")
+
+    with pytest.raises(TypeError, match="zero-argument callable"):
+        deprecated.constant("2.0", "3.0", "BAD_FACTORY", factory=42)
+
+
+def test_constant_requires_value_or_factory() -> None:
+    """Passing neither ``value`` nor ``factory=`` is a TypeError."""
+    deprecated = DeprecationHandler("2.0")
+
+    with pytest.raises(TypeError, match="exactly one of"):
+        deprecated.constant("2.0", "3.0", "NO_VALUE")
+
+
+def test_constant_rejects_value_and_factory_together() -> None:
+    """Passing both ``value`` and ``factory=`` is a TypeError."""
+    deprecated = DeprecationHandler("2.0")
+
+    with pytest.raises(TypeError, match="exactly one of"):
+        deprecated.constant("2.0", "3.0", "BOTH", 42, factory=lambda: 43)
+
+
 @parametrize_dev
 def test_topic(
     deprecated: DeprecationHandler,
