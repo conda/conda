@@ -14,6 +14,7 @@ import fnmatch
 import functools
 import logging
 import os
+import sys
 from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
@@ -23,6 +24,7 @@ from typing import TYPE_CHECKING, overload
 
 import pluggy
 
+from .. import __version__
 from ..auxlib import NULL
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
@@ -50,9 +52,11 @@ from . import (
 from .config import PluginConfig
 from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
+from .types import CondaExceptionInfo
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from types import TracebackType
     from typing import Any, Literal, cast
 
     from pluggy import HookImpl
@@ -67,6 +71,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaExceptionHandler,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPlugin,
@@ -339,6 +344,11 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["exception_handlers"]
+    ) -> list[CondaExceptionHandler]: ...
+
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -469,6 +479,82 @@ class CondaPluginManager(pluggy.PluginManager):
         for hook in self.get_hook_results("post_commands"):
             if command in hook.run_for:
                 hook.action(command)
+
+    def invoke_exception_handlers(
+        self,
+        exc_val: BaseException,
+        exc_tb: TracebackType,
+    ) -> None:
+        """
+        Invokes ``CondaExceptionHandler.hook`` functions registered with
+        ``conda_exception_handlers``.
+
+        Handlers are purely observational (following CPython's ``sys.excepthook``
+        model) and cannot suppress, modify, or redirect the exception. Return
+        values are ignored.
+
+        Any exception raised by a handler is caught at the ``BaseException``
+        level and logged — a buggy plugin raising ``SystemExit`` or
+        ``KeyboardInterrupt`` cannot kill conda's error reporting.
+
+        :param exc_val: the exception instance being handled
+        :param exc_tb: the associated traceback
+        """
+        try:
+            handlers = self.get_hook_results("exception_handlers")
+            if not handlers:
+                return
+
+            exc_mro_names = frozenset(cls.__name__ for cls in type(exc_val).__mro__)
+
+            if isinstance(exc_val, SystemExit):
+                return_code = exc_val.code
+            else:
+                return_code = getattr(exc_val, "return_code", 1)
+
+            try:
+                from ..models.channel import Channel
+
+                exc_info = CondaExceptionInfo(
+                    exc_type=type(exc_val),
+                    exc_value=exc_val,
+                    exc_traceback=exc_tb,
+                    argv=tuple(sys.argv),
+                    conda_version=__version__,
+                    return_code=return_code,
+                    active_prefix=context.active_prefix,
+                    target_prefix=str(context.target_prefix),
+                    channels=tuple(
+                        Channel.from_value(c).canonical_name for c in context.channels
+                    ),
+                    subdir=context.subdir,
+                    offline=context.offline,
+                    dry_run=context.dry_run,
+                    quiet=context.quiet,
+                    json=context.json,
+                )
+            except BaseException:
+                exc_info = CondaExceptionInfo(
+                    exc_type=type(exc_val),
+                    exc_value=exc_val,
+                    exc_traceback=exc_tb,
+                )
+
+            for handler in handlers:
+                if not (handler.run_for & exc_mro_names):
+                    continue
+                try:
+                    handler.hook(exc_info)
+                except BaseException:
+                    log.debug(
+                        "Exception handler plugin %r failed",
+                        handler.name,
+                        exc_info=True,
+                    )
+
+            del exc_info, exc_tb
+        except BaseException:
+            log.debug("invoke_exception_handlers failed", exc_info=True)
 
     def disable_external_plugins(self) -> None:
         """

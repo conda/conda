@@ -70,6 +70,13 @@ class ExceptionHandler:
             NoSpaceLeftError,
         )
 
+        try:
+            from .base.context import context
+
+            context.plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        except BaseException:
+            log.debug("Failed to invoke exception handler plugins", exc_info=True)
+
         if isinstance(exc_val, CondaError):
             if exc_val.reportable:
                 return self.handle_reportable_application_exception(exc_val, exc_tb)
