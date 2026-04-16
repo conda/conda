@@ -953,3 +953,21 @@ def test_context_stack_push_pop_roundtrip() -> None:
 
     stack.pop()
     assert stack._stack_idx == initial_idx
+
+
+def test_category_map_is_class_constant() -> None:
+    """category_map should be the same dict object on class and instance."""
+    assert context.category_map is context.category_map
+
+
+def test_category_map_covers_all_parameters(context_testdata: None) -> None:
+    """Every public context parameter should appear in exactly one category."""
+    parameters = list(context.list_parameters())
+    mapped = [name for names in context.category_map.values() for name in names]
+
+    # anaconda-anon-usage may inject an extra parameter
+    for extra in ("anaconda_anon_usage",):
+        parameters = [p for p in parameters if p != extra]
+        mapped = [m for m in mapped if m != extra]
+
+    assert not set(parameters).difference(mapped)
