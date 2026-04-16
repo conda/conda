@@ -898,16 +898,69 @@ def test_set_search_path_result_is_tuple(tmp_path: Path, minimal_config_class) -
 def test_set_search_path_caches_on_repeat_call(
     tmp_path: Path, minimal_config_class
 ) -> None:
-    """Calling _set_search_path twice with the same args should reuse the cached result."""
+    """Calling _set_search_path twice with the same args should reuse the cached expansion."""
     condarc = tmp_path / "condarc"
     condarc.write_text("channels:\n  - defaults\n")
 
     cfg = minimal_config_class([str(condarc)])
     first = cfg._search_path
 
-    # Second call with identical args — must return the same tuple object (identity).
     cfg._set_search_path([str(condarc)])
     assert cfg._search_path is first
+
+
+def test_set_search_path_cache_hit_reloads_raw_data(
+    tmp_path: Path, minimal_config_class
+) -> None:
+    """A cache hit must still call _set_raw_data so callers that cleared
+    raw_data (e.g. Configuration.__init__ on reset_context()) see condarc
+    contents again."""
+    condarc = tmp_path / "condarc"
+    condarc.write_text("channels:\n  - defaults\n")
+
+    cfg = minimal_config_class([str(condarc)])
+    assert cfg.raw_data, "raw_data should be populated on first load"
+
+    cfg.raw_data = {}
+    cfg._set_search_path([str(condarc)])
+
+    assert cfg.raw_data, "raw_data must be reloaded after a cache hit"
+    assert condarc in cfg.raw_data
+
+
+def test_set_search_path_cache_survives_configuration_init(
+    tmp_path: Path, minimal_config_class
+) -> None:
+    """The cache persists across Configuration.__init__, so back-to-back
+    inits on the same instance (as reset_context() does) can reuse the
+    expanded search path."""
+    condarc = tmp_path / "condarc"
+    condarc.write_text("channels:\n  - defaults\n")
+
+    cfg = minimal_config_class([str(condarc)])
+    cached_before = dict(cfg._search_path_cache)
+
+    cfg.__init__([str(condarc)])
+
+    assert cfg._search_path_cache == cached_before
+    assert cfg.raw_data, "raw_data must be repopulated after re-init"
+
+
+def test_set_search_path_cache_handles_multiple_keys(
+    tmp_path: Path, minimal_config_class
+) -> None:
+    """Context.__init__ calls _set_search_path twice per init with different
+    args (first () from Configuration.__init__, then SEARCH_PATH from
+    Context.__init__). Both distinct keys must be cached independently."""
+    condarc = tmp_path / "condarc"
+    condarc.write_text("channels:\n  - defaults\n")
+
+    cfg = minimal_config_class([])
+    cfg._set_search_path([str(condarc)])
+    cfg._set_search_path([])
+    cfg._set_search_path([str(condarc)])
+
+    assert len(cfg._search_path_cache) == 2
 
 
 @pytest.mark.parametrize(
