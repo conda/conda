@@ -24,121 +24,65 @@ as well as conda's internal implementations of plugins.
 
 """
 
+from __future__ import annotations
+
+import sys
+from typing import TYPE_CHECKING
+
 from ..deprecations import deprecated
-from . import types
 from .hookspec import hookimpl
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 __all__ = ["hookimpl", "types"]
 
-deprecated.constant(
-    "26.3",
-    "26.9",
+
+def _load_types() -> ModuleType:
+    # ``__import__`` avoids recursing through this module's own
+    # ``__getattr__`` via ``_handle_fromlist``.
+    return __import__("conda.plugins.types", fromlist=["types"])
+
+
+def __getattr__(
+    name: str,
+    # Default-arg capture keeps sys.is_finalizing reachable during
+    # interpreter shutdown, when module globals get cleared.
+    _finalizing=sys.is_finalizing,
+) -> object:
+    if _finalizing():
+        raise AttributeError(name)
+    if name == "types":
+        return _load_types()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+# ``deprecated.constant`` installs its own registry as ``__getattr__`` and
+# chains to the one defined above as its fallback, so ``conda.plugins.types``
+# resolves lazily while the 16 deprecated re-exports still warn on access.
+for name in (
     "CondaAuthHandler",
-    types.CondaAuthHandler,
-    addendum="Use `conda.plugins.types.CondaAuthHandler` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaEnvironmentSpecifier",
-    types.CondaEnvironmentSpecifier,
-    addendum="Use `conda.plugins.types.CondaEnvironmentSpecifier` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaHealthCheck",
-    types.CondaHealthCheck,
-    addendum="Use `conda.plugins.types.CondaHealthCheck` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPostCommand",
-    types.CondaPostCommand,
-    addendum="Use `conda.plugins.types.CondaPostCommand` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPostSolve",
-    types.CondaPostSolve,
-    addendum="Use `conda.plugins.types.CondaPostSolve` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPostTransactionAction",
-    types.CondaPostTransactionAction,
-    addendum="Use `conda.plugins.types.CondaPostTransactionAction` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPreCommand",
-    types.CondaPreCommand,
-    addendum="Use `conda.plugins.types.CondaPreCommand` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPrefixDataLoader",
-    types.CondaPrefixDataLoader,
-    addendum="Use `conda.plugins.types.CondaPrefixDataLoader` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPreSolve",
-    types.CondaPreSolve,
-    addendum="Use `conda.plugins.types.CondaPreSolve` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPreTransactionAction",
-    types.CondaPreTransactionAction,
-    addendum="Use `conda.plugins.types.CondaPreTransactionAction` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaReporterBackend",
-    types.CondaReporterBackend,
-    addendum="Use `conda.plugins.types.CondaReporterBackend` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaRequestHeader",
-    types.CondaRequestHeader,
-    addendum="Use `conda.plugins.types.CondaRequestHeader` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaSetting",
-    types.CondaSetting,
-    addendum="Use `conda.plugins.types.CondaSetting` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaSolver",
-    types.CondaSolver,
-    addendum="Use `conda.plugins.types.CondaSolver` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaSubcommand",
-    types.CondaSubcommand,
-    addendum="Use `conda.plugins.types.CondaSubcommand` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaVirtualPackage",
-    types.CondaVirtualPackage,
-    addendum="Use `conda.plugins.types.CondaVirtualPackage` instead.",
-)
+):
+    deprecated.constant(
+        "26.3",
+        "26.9",
+        name,
+        factory=lambda n=name: getattr(_load_types(), n),
+        addendum=f"Use `conda.plugins.types.{name}` instead.",
+    )
+del name
