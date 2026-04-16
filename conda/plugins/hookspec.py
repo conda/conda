@@ -150,6 +150,15 @@ class CondaSpecs:
         """
         Register pre-command functions in conda.
 
+        .. note::
+           Pre-command hooks are best-effort. They are only invoked when the
+           plugin manager has already been loaded by the time a command runs.
+           Fast paths that skip plugin discovery (e.g. ``conda shell.* activate``,
+           or subcommands reached via the lazy subparser) do not fire these
+           hooks. Do not rely on them for correctness; treat them as
+           opportunistic hooks for user-visible side effects (logging,
+           notifications, etc.).
+
         **Example:**
 
         .. code-block:: python
@@ -175,6 +184,15 @@ class CondaSpecs:
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
         """
         Register post-command functions in conda.
+
+        .. note::
+           Post-command hooks are best-effort. They are only invoked when the
+           plugin manager has already been loaded by the time a command runs.
+           Fast paths that skip plugin discovery (e.g. ``conda shell.* activate``,
+           or subcommands reached via the lazy subparser) do not fire these
+           hooks. Do not rely on them for correctness; treat them as
+           opportunistic hooks for user-visible side effects (logging,
+           notifications, etc.).
 
         **Example:**
 
