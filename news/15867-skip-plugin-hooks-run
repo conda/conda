@@ -1,6 +1,10 @@
 ### Enhancements
 
-* Skip plugin pre/post command hooks in `do_call()` when the plugin manager has not been loaded, avoiding unnecessary plugin discovery for commands like `conda run`. (#15867)
+* Skip plugin `pre_commands` / `post_commands` hooks in `do_call()` when the plugin manager has not been loaded
+  yet. With lazy subcommand parser loading (see #15873, #15874), commands such as `conda run` reach `do_call()`
+  without triggering plugin discovery, so touching `context.plugin_manager` would load ~430 modules (~240 ms)
+  for commands that do not use them. Plugin authors should treat pre/post command hooks as best-effort and
+  should not rely on them for correctness; see the note in `conda.plugins.hookspec`. (#15867)
 
 ### Bug fixes
 
