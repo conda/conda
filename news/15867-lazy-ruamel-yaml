@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.common.serialize.yaml.CondaYAMLRepresenter` as pending deprecation (removal in 27.3). The class is still importable via a lazy module-level `__getattr__` but accessing it now emits a `PendingDeprecationWarning`. External consumers should use `conda.common.serialize.yaml.write`/`read` or subclass `ruamel.yaml.representer.RoundTripRepresenter` directly. (#15867)
 
 ### Docs
 

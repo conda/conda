@@ -7,6 +7,9 @@ from __future__ import annotations
 import subprocess
 import sys
 import textwrap
+import warnings
+
+from conda.common.serialize import yaml
 
 
 def test_yaml_module_does_not_eagerly_import_ruamel() -> None:
@@ -66,3 +69,29 @@ def test_yaml_error_accessible() -> None:
     )
     assert result.returncode == 0, f"Probe failed: {result.stderr}"
     assert result.stdout.strip() == "ok"
+
+
+def test_conda_yaml_representer_is_deprecated() -> None:
+    """Accessing the legacy module-level class emits a deprecation warning."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        cls = yaml.CondaYAMLRepresenter
+
+    assert cls is not None
+    assert any(
+        issubclass(w.category, (DeprecationWarning, PendingDeprecationWarning))
+        and "CondaYAMLRepresenter" in str(w.message)
+        for w in caught
+    ), (
+        f"expected deprecation warning, got: {[(w.category, str(w.message)) for w in caught]}"
+    )
+
+
+def test_conda_yaml_representer_stable_identity() -> None:
+    """Repeated accesses return the same class object (cached)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        cls_a = yaml.CondaYAMLRepresenter
+        cls_b = yaml.CondaYAMLRepresenter
+
+    assert cls_a is cls_b
