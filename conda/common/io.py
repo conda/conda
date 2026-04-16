@@ -468,10 +468,11 @@ def timeout(
 
         try:
             ret = func(*args, **kwargs)
-            signal.alarm(0)
             return ret
         except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
             return default_return
+        finally:
+            signal.alarm(0)
 
 
 # use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
