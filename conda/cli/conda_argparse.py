@@ -402,6 +402,20 @@ class _LazyParserMap(dict):
             self._action._ensure_loaded(name)
         self._action._ensure_plugins_loaded()
 
+    def _known_names(self):
+        """Builtin names known without running any configure_parser or plugin discovery.
+
+        The union of already-materialized entries in the underlying dict (stubs and
+        real parsers), pending lazy-loader names, and aliases. Plugin-provided
+        subcommand names are not included here; callers that need them should use
+        ``items()`` / ``values()`` / ``_resolve_all()``.
+        """
+        names = set(super().keys())
+        action = self._action
+        names.update(getattr(action, "_lazy_loaders", ()))
+        names.update(getattr(action, "_lazy_aliases", ()))
+        return names
+
     def __getitem__(self, key):
         self._resolve(key)
         return super().__getitem__(key)
@@ -411,8 +425,22 @@ class _LazyParserMap(dict):
         return super().get(key, default)
 
     def __contains__(self, key):
-        self._resolve(key)
-        return super().__contains__(key)
+        # Cheap path: any known builtin name (stub parser already registered,
+        # pending lazy loader, or alias) answers without importing the
+        # subcommand module or running configure_parser.
+        if super().__contains__(key):
+            return True
+        if not self._ready:
+            return False
+        action = self._action
+        if key in action._lazy_loaders or key in action._lazy_aliases:
+            return True
+        # Unknown builtin: fall back to plugin discovery so plugin subcommand
+        # names resolve. Guarded by _plugins_loaded so this runs at most once.
+        if not action._plugins_loaded:
+            action._ensure_plugins_loaded()
+            return super().__contains__(key)
+        return False
 
     def items(self):
         self._resolve_all()
@@ -423,16 +451,20 @@ class _LazyParserMap(dict):
         return super().values()
 
     def keys(self):
-        self._resolve_all()
-        return super().keys()
+        # Return known builtin names without materializing every subcommand
+        # parser or triggering plugin discovery. argparse internals call this
+        # on the hot path (help formatting, error messages); loading 20+
+        # subcommand modules + all plugins there would defeat lazy loading.
+        # Callers that need plugin subcommand names should use items()/values().
+        if not self._ready:
+            return super().keys()
+        return self._known_names()
 
     def __iter__(self):
-        self._resolve_all()
-        return super().__iter__()
+        return iter(self.keys())
 
     def __len__(self):
-        self._resolve_all()
-        return super().__len__()
+        return len(self.keys())
 
 
 class _LazySubParsersAction(_GreedySubParsersAction):
