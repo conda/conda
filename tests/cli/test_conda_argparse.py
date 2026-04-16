@@ -130,6 +130,44 @@ def test_deprecated_imports(path: str, validate: Callable[[Any], bool]):
         assert validate(getattr(module, attr))
 
 
+def test_lazy_parser_map_cheap_introspection():
+    """keys/__iter__/__contains__ on the lazy parser map must not trigger
+    per-subcommand parser loading or plugin discovery.
+
+    argparse internals call these on the hot path (help formatting, error
+    messages, _check_value). Triggering ``configure_parser`` for every
+    subcommand or loading all plugins there would cancel out the whole point
+    of lazy subcommand loading.
+    """
+    parser = generate_parser()
+    action = parser._subparsers._group_actions[0]
+
+    # Snapshot state before any map-side introspection happens.
+    pending_before = set(action._lazy_loaders)
+    plugins_loaded_before = action._plugins_loaded
+    assert pending_before, "expected some builtin subcommands pending lazy load"
+
+    # keys()/__iter__/__contains__ for a known builtin must not load anything.
+    keys = set(action._name_parser_map.keys())
+    assert pending_before <= keys
+    assert set(iter(action._name_parser_map)) == keys
+    assert "install" in action._name_parser_map
+    assert "create" in action._name_parser_map
+
+    assert set(action._lazy_loaders) == pending_before, (
+        "__contains__/keys/__iter__ must not run configure_parser for builtins"
+    )
+    assert action._plugins_loaded is plugins_loaded_before, (
+        "__contains__/keys/__iter__ must not trigger plugin discovery for builtins"
+    )
+
+    # Unknown name: allowed to discover plugins once (to answer whether the
+    # name is a plugin-provided subcommand), but still must not load any
+    # builtin parsers.
+    assert "this-subcommand-does-not-exist" not in action._name_parser_map
+    assert set(action._lazy_loaders) == pending_before
+
+
 def test_sorted_commands_in_error(capsys):
     p = ArgumentParser()
     sp = p.add_subparsers(
