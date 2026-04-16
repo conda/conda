@@ -1,0 +1,19 @@
+### Enhancements
+
+* Defer heavy imports in `exceptions.py` (`models.channel`, `auxlib.logz`, `common.io`, `common.iterators`, `serialize.json`) to function level so they only load on error paths. (#15867)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
