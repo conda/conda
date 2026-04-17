@@ -656,7 +656,9 @@ def context_aware_monkeypatch(monkeypatch: MonkeyPatch) -> MonkeyPatch:
         for obj, name, _ in monkeypatch._setitem
         if obj is os.environ and name.startswith("CONDA_")
     ]:
-        log.debug(f"monkeypatch cleanup: undo & reset context: {', '.join(conda_vars)}")
+        log.debug(
+            "monkeypatch cleanup: undo & reset context: %s", ", ".join(conda_vars)
+        )
         monkeypatch.undo()
         # reload context without search paths
         reset_context([])
@@ -750,7 +752,7 @@ class HttpTestServerFixture:
 
     def __post_init__(self):
         """Log server startup for debugging."""
-        log.debug(f"HTTP test server started: {self.url}")
+        log.debug("HTTP test server started: %s", self.url)
 
     def get_url(self, path: str = "") -> str:
         """

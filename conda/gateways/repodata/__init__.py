@@ -459,7 +459,8 @@ class RepodataState(UserDict):
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
             log.warning(
-                f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
+                "error parsing `has_` object from `<cache key>%s`",
+                CACHE_STATE_SUFFIX,
                 exc_info=e,
             )
             self.pop(key)
@@ -605,7 +606,9 @@ class RepodataCache:
             self.load(state_only=True, binary=binary)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, json.JSONDecodeError):
-                log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
+                log.warning(
+                    "%s loading %s", e.__class__.__name__, self.cache_path_state
+                )
             self.state.clear()
         return self.state
 

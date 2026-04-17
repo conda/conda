@@ -1,0 +1,5 @@
+### Enhancements
+
+* `context.category_map` is now a `@memoizedproperty`. The large static dict
+  was rebuilt on every access; it is now constructed once and cached for the
+  lifetime of the `Context` instance. (#15867)

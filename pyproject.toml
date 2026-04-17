@@ -221,6 +221,7 @@ select = [
   "E",  # pycodestyle errors
   "F",  # pyflakes
   "FA",  # flake8-future-annotations
+  "G004",  # flake8-logging-format: no f-strings in log calls
   "I",  # isort
   "ISC",  # flake8-implicit-str-concat
   "RUF100",  # Unused noqa directive

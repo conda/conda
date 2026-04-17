@@ -97,6 +97,13 @@ def main(*args, **kwargs):
     args = args or sys.argv[1:]  # drop executable/script
     args = tuple(ensure_text_type(s) for s in args)
 
+    # Fast path: print version without loading the parser or plugin system.
+    if args and args[0] in ("-V", "--version"):
+        from .. import __version__
+
+        print(f"conda {__version__}")
+        return 0
+
     if args and args[0].strip().startswith("shell."):
         main = main_sourced
     else:

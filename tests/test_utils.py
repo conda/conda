@@ -67,7 +67,7 @@ def get_prefix_containing_test_programs(test_programs=()):
     for test_program in test_programs:
         test_program_on_path = which(test_program)
         if not test_program_on_path:
-            log.warning(f"{test_program} not found on PATH")
+            log.warning("%s not found on PATH", test_program)
             return None
         else:
             test_program_in_prefix = []
@@ -88,7 +88,7 @@ def get_prefix_containing_test_programs(test_programs=()):
                     return None
             if len(set(test_program_in_prefix)) != 1:
                 log.warning(
-                    f"test_programs ({test_programs}) not all found in the same prefix"
+                    "test_programs (%s) not all found in the same prefix", test_programs
                 )
                 return None
             return prefixes[test_program_in_prefix[0]]

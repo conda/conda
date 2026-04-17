@@ -398,9 +398,11 @@ def test_notices_does_not_interrupt_command_on_failure(
 
     assert exit_code == 0
 
-    assert mock_logger.call_args == mocker.call(
-        f"Unable to open cache file: {error_message}"
-    )
+    mock_logger.assert_called_once()
+    fmt, exc = mock_logger.call_args.args
+    assert fmt == "Unable to open cache file: %s"
+    assert isinstance(exc, PermissionError)
+    assert str(exc) == error_message
 
 
 def test_notices_cannot_read_cache_files(

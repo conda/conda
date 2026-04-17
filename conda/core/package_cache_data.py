@@ -129,7 +129,9 @@ class PackageCacheData(metaclass=PackageCacheType):
                 except ValidationError as err:
                     # ValidationError: package fields are invalid
                     log.warning(
-                        f"Failed to create package cache record for '{base_name}'. {err}"
+                        "Failed to create package cache record for '%s'. %s",
+                        base_name,
+                        err,
                     )
                     package_cache_record = None
 

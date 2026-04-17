@@ -37,7 +37,9 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
             metadata = json.loads(file.read_text())
         except Exception as exc:
             logger.error(
-                f"Could not load the json file {file} because of the following error: {exc}."
+                "Could not load the json file %s because of the following error: %s.",
+                file,
+                exc,
             )
             continue
 
