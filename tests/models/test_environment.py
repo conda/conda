@@ -21,6 +21,7 @@ from conda.models.environment import (
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
+from conda.plugins.types import EnvironmentSpecBase
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -29,6 +30,63 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
+
+
+class FixedEnvSpec(EnvironmentSpecBase):
+    """Minimal `EnvironmentSpecBase` that returns a pre-built `Environment`."""
+
+    def __init__(self, env: Environment):
+        self._env = env
+
+    def can_handle(self) -> bool:
+        return True
+
+    @property
+    def env(self) -> Environment:
+        return self._env
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        return (self._env.platform,)
+
+    def env_for(self, platform: str) -> Environment:
+        if platform != self._env.platform:
+            raise ValueError(
+                f"Platform {platform!r} not available. "
+                f"Available platforms: {self._env.platform}"
+            )
+        return self._env
+
+
+class MultiPlatformEnvSpec(EnvironmentSpecBase):
+    """`EnvironmentSpecBase` covering multiple platforms, one `Environment` per call."""
+
+    def __init__(self, platforms: tuple[str, ...]):
+        self._platforms = platforms
+
+    def can_handle(self) -> bool:
+        return True
+
+    @property
+    def env(self) -> Environment:
+        return self.env_for(self._platforms[0])
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        return self._platforms
+
+    def env_for(self, platform: str) -> Environment:
+        if platform not in self._platforms:
+            raise ValueError(
+                f"Platform {platform!r} not available. "
+                f"Available platforms: {', '.join(self._platforms)}"
+            )
+        return Environment(
+            prefix="/path",
+            platform=platform,
+            requested_packages=[MatchSpec("numpy")],
+            explicit_packages=[],
+        )
 
 
 def test_create_environment_missing_required_fields():
@@ -307,7 +365,7 @@ def test_from_cli_override_channels_excludes_file_channels(mocker: MockerFixture
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=SimpleNamespace(
-            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+            environment_spec=lambda fpath: FixedEnvSpec(file_env)
         ),
     )
 
@@ -337,7 +395,7 @@ def test_from_cli_channel_order_base_file_cli(mocker: MockerFixture):
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=SimpleNamespace(
-            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+            environment_spec=lambda fpath: FixedEnvSpec(file_env)
         ),
     )
     mocker.patch(
@@ -589,6 +647,50 @@ def test_from_cli_with_specs():
     assert env.explicit_packages == []
 
 
+@pytest.mark.parametrize("file_count", [1, 2])
+def test_from_cli_pre_flight_rejects_incompatible_files(
+    mocker: MockerFixture, file_count: int
+):
+    """Pre-flight pass reports every file that does not cover `context.subdir`."""
+    incompatible_platforms = tuple(
+        p
+        for p in ("linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64")
+        if p != context.subdir
+    )[:2]
+    paths = [f"/tmp/f{i}.yml" for i in range(file_count)]
+    specs_by_path = {fp: MultiPlatformEnvSpec(incompatible_platforms) for fp in paths}
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(
+            environment_spec=lambda fpath: specs_by_path[fpath]
+        ),
+    )
+    with pytest.raises(CondaValueError) as exc_info:
+        Environment.from_cli(SimpleNamespace(name="testenv", packages=[], file=paths))
+    msg = str(exc_info.value)
+    assert f"do not include packages for {context.subdir}" in msg
+    assert "--platform=<subdir>" in msg
+    for fp in paths:
+        assert fp in msg
+
+
+def test_from_cli_accepts_multi_platform_file_covering_current(mocker: MockerFixture):
+    """Multi-platform specs that cover `context.subdir` return only that platform's `Environment`."""
+    spec = MultiPlatformEnvSpec(("linux-64", "osx-arm64", "win-64", context.subdir))
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(environment_spec=lambda fpath: spec),
+    )
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=[],
+            file=["/tmp/multi.lock"],
+        )
+    )
+    assert env.platform == context.subdir
+
+
 def test_from_cli_with_explicit_specs(mocker: MockerFixture):
     # Mock the function that retrieves explicit package records to return
     # a fake value. We'll use this to compare to the expected output.
@@ -634,9 +736,7 @@ def test_from_cli_with_files(mocker: MockerFixture):
         explicit_packages=[],
         config=EnvironmentConfig.from_context(),
     )
-    mock_spec = SimpleNamespace(
-        environment_spec=lambda fpath: SimpleNamespace(env=fake_env)
-    )
+    mock_spec = SimpleNamespace(environment_spec=lambda fpath: FixedEnvSpec(fake_env))
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=mock_spec,
@@ -727,7 +827,7 @@ def test_from_cli_environment_inject_default_packages_override_file(
         platform=context.subdir,
         requested_packages=[MatchSpec("numpy==2.3.1")],
     )
-    mock_spec = type("Spec", (), {"env": fake_env})()
+    mock_spec = FixedEnvSpec(fake_env)
     mock_hook = type("Hook", (), {"environment_spec": lambda self, path: mock_spec})()
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",

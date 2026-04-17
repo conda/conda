@@ -37,6 +37,21 @@ of its abstract methods:
 * ``can_handle`` Determines if the defined plugin can read and operate on the provided file.
 * ``env`` Expresses the provided environment file as a conda environment object.
 
+The base class also provides default-implemented APIs for multi-platform specs.
+Single-platform specs (``environment.yml``, ``requirements.txt``) can ignore them:
+
+* ``available_platforms`` Tuple of platform subdirs this spec covers. Defaults to
+  ``(context.subdir,)``.
+* ``env_for(platform)`` Return the ``Environment`` for a specific platform. Defaults
+  to ``env`` if ``platform == context.subdir``, raises otherwise.
+
+Multi-platform specs (``conda-lock.yml``, ``pixi.lock``) override both to expose the
+full platform set declared in the input file. Callers iterate with:
+
+.. code-block:: python
+
+    envs = (spec.env_for(p) for p in spec.available_platforms)
+
 The class may also define the boolean class variable `detection_supported`. When set to
 ``True``, the plugin will be included in the environment spec type discovery process. Otherwise,
 the plugin will only be able to be used when it is specifically selected. By default, this

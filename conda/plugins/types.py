@@ -630,6 +630,40 @@ class EnvironmentSpecBase(ABC):
         """
         raise NotImplementedError()
 
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        """
+        Platforms this spec can produce an ``Environment`` for.
+
+        Defaults to ``(context.subdir,)``. Multi-platform specs
+        (``conda-lock.yml``, ``pixi.lock``) override to return every
+        platform declared in the input file.
+        """
+        from ..base.context import context
+
+        return (context.subdir,)
+
+    def env_for(self, platform: str) -> Environment:
+        """
+        Return the ``Environment`` for a specific platform.
+
+        Defaults to returning :attr:`env` when ``platform`` matches
+        ``context.subdir``, and raising :class:`ValueError` otherwise.
+        Multi-platform specs override this method to build the
+        ``Environment`` directly from the parsed input file without
+        constructing one per platform.
+
+        To iterate every platform a spec covers::
+
+            envs = (spec.env_for(p) for p in spec.available_platforms)
+        """
+        if platform not in self.available_platforms:
+            raise ValueError(
+                f"Platform {platform!r} not available in this spec. "
+                f"Available platforms: {', '.join(self.available_platforms)}"
+            )
+        return self.env
+
 
 class EnvironmentFormat(enum.Enum):
     """

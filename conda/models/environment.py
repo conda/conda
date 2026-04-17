@@ -540,14 +540,30 @@ class Environment:
 
         envs_from_file = []
         fpath_envs_map = {}
+        file_specs = {}
+        incompatible = []
         for fpath in args.file:
             spec_hook = context.plugin_manager.get_environment_specifier(
                 source=fpath,
                 name=context.environment_specifier,
             )
             spec = spec_hook.environment_spec(fpath)
-            envs_from_file.append(spec.env)
-            fpath_envs_map[fpath] = spec.env
+            file_specs[fpath] = spec
+            if context.subdir not in spec.available_platforms:
+                incompatible.append((fpath, spec.available_platforms))
+        if incompatible:
+            details = "\n".join(
+                f"  {fp!r}: {', '.join(plats)}" for fp, plats in incompatible
+            )
+            raise CondaValueError(
+                f"The following files do not include packages for {context.subdir}:\n"
+                f"{details}\n"
+                f"Select a supported platform with --platform=<subdir>."
+            )
+        for fpath, spec in file_specs.items():
+            env = spec.env_for(context.subdir)
+            envs_from_file.append(env)
+            fpath_envs_map[fpath] = env
 
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any
