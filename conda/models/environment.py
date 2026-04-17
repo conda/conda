@@ -546,8 +546,14 @@ class Environment:
                 name=context.environment_specifier,
             )
             spec = spec_hook.environment_spec(fpath)
-            envs_from_file.append(spec.env)
-            fpath_envs_map[fpath] = spec.env
+            if context.subdir not in spec.available_platforms:
+                raise CondaValueError(
+                    f"{fpath!r} does not include packages for {context.subdir}. "
+                    f"Available platforms: {', '.join(spec.available_platforms)}"
+                )
+            env = spec.env_for(context.subdir)
+            envs_from_file.append(env)
+            fpath_envs_map[fpath] = env
 
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any

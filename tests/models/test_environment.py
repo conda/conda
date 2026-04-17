@@ -21,6 +21,7 @@ from conda.models.environment import (
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
+from conda.plugins.types import EnvironmentSpecBase
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -29,6 +30,32 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
+
+
+class FixedEnvSpec(EnvironmentSpecBase):
+    """Minimal `EnvironmentSpecBase` that returns a pre-built `Environment`."""
+
+    def __init__(self, env: Environment):
+        self._env = env
+
+    def can_handle(self) -> bool:
+        return True
+
+    @property
+    def env(self) -> Environment:
+        return self._env
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        return (self._env.platform,)
+
+    def env_for(self, platform: str) -> Environment:
+        if platform != self._env.platform:
+            raise ValueError(
+                f"Platform {platform!r} not available. "
+                f"Available platforms: {self._env.platform}"
+            )
+        return self._env
 
 
 def test_create_environment_missing_required_fields():
@@ -307,7 +334,7 @@ def test_from_cli_override_channels_excludes_file_channels(mocker: MockerFixture
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=SimpleNamespace(
-            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+            environment_spec=lambda fpath: FixedEnvSpec(file_env)
         ),
     )
 
@@ -337,7 +364,7 @@ def test_from_cli_channel_order_base_file_cli(mocker: MockerFixture):
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=SimpleNamespace(
-            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+            environment_spec=lambda fpath: FixedEnvSpec(file_env)
         ),
     )
     mocker.patch(
@@ -589,6 +616,31 @@ def test_from_cli_with_specs():
     assert env.explicit_packages == []
 
 
+def test_from_cli_rejects_file_without_current_platform(mocker: MockerFixture):
+    """`Environment.from_cli` raises if the spec has no packages for context.subdir."""
+    other_platform = "linux-64" if context.subdir != "linux-64" else "osx-arm64"
+    file_env = Environment(
+        prefix="/path",
+        platform=other_platform,
+        requested_packages=[MatchSpec("numpy")],
+        explicit_packages=[],
+    )
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(
+            environment_spec=lambda fpath: FixedEnvSpec(file_env)
+        ),
+    )
+    with pytest.raises(CondaValueError, match="does not include packages"):
+        Environment.from_cli(
+            SimpleNamespace(
+                name="testenv",
+                packages=[],
+                file=["/some/env.yaml"],
+            )
+        )
+
+
 def test_from_cli_with_explicit_specs(mocker: MockerFixture):
     # Mock the function that retrieves explicit package records to return
     # a fake value. We'll use this to compare to the expected output.
@@ -635,7 +687,7 @@ def test_from_cli_with_files(mocker: MockerFixture):
         config=EnvironmentConfig.from_context(),
     )
     mock_spec = SimpleNamespace(
-        environment_spec=lambda fpath: SimpleNamespace(env=fake_env)
+        environment_spec=lambda fpath: FixedEnvSpec(fake_env)
     )
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
@@ -727,7 +779,7 @@ def test_from_cli_environment_inject_default_packages_override_file(
         platform=context.subdir,
         requested_packages=[MatchSpec("numpy==2.3.1")],
     )
-    mock_spec = type("Spec", (), {"env": fake_env})()
+    mock_spec = FixedEnvSpec(fake_env)
     mock_hook = type("Hook", (), {"environment_spec": lambda self, path: mock_spec})()
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",

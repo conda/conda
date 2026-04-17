@@ -5,6 +5,9 @@
   enabling multi-platform environment specifiers (``conda-lock.yml``,
   ``pixi.lock``) to expose every platform declared in the input file without
   mutating ``context.subdir``. (#15927)
+* ``conda env create`` / ``conda env update`` now validate that the spec file
+  covers the current platform via ``available_platforms`` and hydrate the
+  target ``Environment`` via ``env_for(context.subdir)``. (#15927)
 
 ### Bug fixes
 
