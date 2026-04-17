@@ -59,7 +59,7 @@ class FixedEnvSpec(EnvironmentSpecBase):
 
 
 class MultiPlatformEnvSpec(EnvironmentSpecBase):
-    """`EnvironmentSpecBase` covering multiple platforms, hydrating one at a time."""
+    """`EnvironmentSpecBase` covering multiple platforms, one `Environment` per call."""
 
     def __init__(self, platforms: tuple[str, ...]):
         self._platforms = platforms
@@ -694,7 +694,7 @@ def test_from_cli_pre_flight_rejects_incompatible_files(
 
 
 def test_from_cli_accepts_multi_platform_file_covering_current(mocker: MockerFixture):
-    """Multi-platform specs that cover `context.subdir` hydrate only that platform."""
+    """Multi-platform specs that cover `context.subdir` return only that platform's `Environment`."""
     spec = MultiPlatformEnvSpec(("linux-64", "osx-arm64", "win-64", context.subdir))
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",

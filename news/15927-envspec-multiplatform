@@ -1,18 +1,8 @@
 ### Enhancements
 
-* Add default-implemented ``available_platforms`` and ``env_for(platform)``
-  to :class:`~conda.plugins.types.EnvironmentSpecBase` (**EXPERIMENTAL**),
-  enabling multi-platform environment specifiers (``conda-lock.yml``,
-  ``pixi.lock``) to expose every platform declared in the input file without
-  mutating ``context.subdir``. (#15927)
-* ``conda env create`` / ``conda env update`` now validate that the spec file
-  covers the current platform via ``available_platforms`` and hydrate the
-  target ``Environment`` via ``env_for(context.subdir)``. The error message
-  lists the platforms the file does declare and points at ``--platform=<subdir>``
-  as the resolution. (#15927)
-* :meth:`~conda.models.environment.Environment.from_cli` now pre-flights every
-  ``-f`` / ``--file`` argument before hydrating any of them and reports all
-  files that do not cover the current platform in a single error. (#15927)
+* Add default-implemented `available_platforms` and `env_for(platform)` on `EnvironmentSpecBase` (**EXPERIMENTAL**) for multi-platform environment specifiers (`conda-lock.yml`, `pixi.lock`). (#15927)
+* `conda env create` / `conda env update` check `context.subdir in spec.available_platforms` before calling `spec.env_for(context.subdir)` and raise `CondaValueError` with the platforms the file does cover when the check fails. (#15927)
+* `Environment.from_cli` pre-flights every `-f` / `--file` argument and reports all files that do not cover `context.subdir` in a single error instead of stopping at the first mismatch. (#15927)
 
 ### Bug fixes
 
@@ -24,8 +14,7 @@
 
 ### Docs
 
-* Document ``available_platforms`` and ``env_for`` on
-  ``EnvironmentSpecBase``. (#15927)
+* Document `available_platforms` and `env_for` on `EnvironmentSpecBase`. (#15927)
 
 ### Other
 

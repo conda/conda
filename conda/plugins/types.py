@@ -649,8 +649,9 @@ class EnvironmentSpecBase(ABC):
 
         Defaults to returning :attr:`env` when ``platform`` matches
         ``context.subdir``, and raising :class:`ValueError` otherwise.
-        Multi-platform specs override to hydrate directly from the parsed
-        input file without materialising every platform.
+        Multi-platform specs override this method to build the
+        ``Environment`` directly from the parsed input file without
+        constructing one per platform.
 
         To iterate every platform a spec covers::
 
