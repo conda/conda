@@ -651,6 +651,10 @@ class EnvironmentSpecBase(ABC):
         ``context.subdir``, and raising :class:`ValueError` otherwise.
         Multi-platform specs override to hydrate directly from the parsed
         input file without materialising every platform.
+
+        To iterate every platform a spec covers::
+
+            envs = (spec.env_for(p) for p in spec.available_platforms)
         """
         if platform not in self.available_platforms:
             raise ValueError(
@@ -658,17 +662,6 @@ class EnvironmentSpecBase(ABC):
                 f"Available platforms: {', '.join(self.available_platforms)}"
             )
         return self.env
-
-    @property
-    def multiplatform_envs(self) -> Iterable[Environment]:
-        """
-        Yield one ``Environment`` per platform in :attr:`available_platforms`.
-
-        Defaults to :meth:`env_for` over :attr:`available_platforms`. Inverse
-        of the exporter side's ``multiplatform_export(Iterable[Environment])``.
-        """
-        for platform in self.available_platforms:
-            yield self.env_for(platform)
 
 
 class EnvironmentFormat(enum.Enum):

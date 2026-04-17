@@ -44,12 +44,13 @@ Single-platform specs (``environment.yml``, ``requirements.txt``) can ignore the
   ``(context.subdir,)``.
 * ``env_for(platform)`` Return the ``Environment`` for a specific platform. Defaults
   to ``env`` if ``platform == context.subdir``, raises otherwise.
-* ``multiplatform_envs`` Iterable of ``Environment`` objects, one per platform in
-  ``available_platforms``. Defaults to ``env_for`` over ``available_platforms``.
-  Inverse of the exporter side's ``multiplatform_export``.
 
-Multi-platform specs (``conda-lock.yml``, ``pixi.lock``) typically only need to override
-``available_platforms`` and ``env_for``; ``multiplatform_envs`` follows for free.
+Multi-platform specs (``conda-lock.yml``, ``pixi.lock``) override both to expose the
+full platform set declared in the input file. Callers iterate with:
+
+.. code-block:: python
+
+    envs = (spec.env_for(p) for p in spec.available_platforms)
 
 The class may also define the boolean class variable `detection_supported`. When set to
 ``True``, the plugin will be included in the environment spec type discovery process. Otherwise,

@@ -649,7 +649,7 @@ def test_builtin_specifiers_have_metadata(
 
 
 class SinglePlatformSpec(EnvironmentSpecBase):
-    """Exercises default `multiplatform_envs` / `available_platforms` implementations."""
+    """Exercises default `env_for` / `available_platforms` implementations."""
 
     def can_handle(self) -> bool:
         return True
@@ -660,7 +660,7 @@ class SinglePlatformSpec(EnvironmentSpecBase):
 
 
 class MultiPlatformSpec(EnvironmentSpecBase):
-    """Overrides `available_platforms` + `env_for`; `multiplatform_envs` follows for free."""
+    """Overrides `available_platforms` + `env_for` to expose multiple platforms."""
 
     _PLATFORMS = ("linux-64", "osx-arm64", "win-64")
 
@@ -704,14 +704,6 @@ def test_env_spec_default_env_for_unknown_platform_raises():
         spec.env_for("not-a-real-platform")
 
 
-def test_env_spec_default_multiplatform_envs_yields_env():
-    """Default `multiplatform_envs` yields exactly `self.env`."""
-    spec = SinglePlatformSpec()
-    envs = list(spec.multiplatform_envs)
-    assert len(envs) == 1
-    assert envs[0].platform == spec.env.platform
-
-
 def test_env_spec_override_available_platforms():
     """Subclasses can override `available_platforms` to expose multiple platforms."""
     spec = MultiPlatformSpec()
@@ -726,9 +718,8 @@ def test_env_spec_override_env_for_targets_platform():
         spec.env_for("not-a-real-platform")
 
 
-def test_env_spec_override_multiplatform_envs_yields_per_platform():
-    """`multiplatform_envs` falls out of `available_platforms` + `env_for`."""
+def test_env_spec_iteration_pattern():
+    """Standard iteration pattern: env_for over available_platforms."""
     spec = MultiPlatformSpec()
-    envs = list(spec.multiplatform_envs)
-    assert len(envs) == 3
+    envs = [spec.env_for(p) for p in spec.available_platforms]
     assert tuple(e.platform for e in envs) == ("linux-64", "osx-arm64", "win-64")
