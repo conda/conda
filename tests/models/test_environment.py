@@ -647,31 +647,18 @@ def test_from_cli_with_specs():
     assert env.explicit_packages == []
 
 
-@pytest.mark.parametrize(
-    "files_platforms,expected_in_error",
-    [
-        pytest.param(
-            [("/tmp/a.yml", ("linux-64", "win-64"))],
-            ["/tmp/a.yml"],
-            id="single-incompatible",
-        ),
-        pytest.param(
-            [
-                ("/tmp/a.yml", ("linux-64", "win-64")),
-                ("/tmp/b.lock", ("linux-64", "win-64")),
-            ],
-            ["/tmp/a.yml", "/tmp/b.lock"],
-            id="multiple-incompatible",
-        ),
-    ],
-)
+@pytest.mark.parametrize("file_count", [1, 2])
 def test_from_cli_pre_flight_rejects_incompatible_files(
-    mocker: MockerFixture,
-    files_platforms: list[tuple[str, tuple[str, ...]]],
-    expected_in_error: list[str],
+    mocker: MockerFixture, file_count: int
 ):
     """Pre-flight pass reports every file that does not cover `context.subdir`."""
-    specs_by_path = {fp: MultiPlatformEnvSpec(plats) for fp, plats in files_platforms}
+    incompatible_platforms = tuple(
+        p
+        for p in ("linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64")
+        if p != context.subdir
+    )[:2]
+    paths = [f"/tmp/f{i}.yml" for i in range(file_count)]
+    specs_by_path = {fp: MultiPlatformEnvSpec(incompatible_platforms) for fp in paths}
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=SimpleNamespace(
@@ -679,17 +666,11 @@ def test_from_cli_pre_flight_rejects_incompatible_files(
         ),
     )
     with pytest.raises(CondaValueError) as exc_info:
-        Environment.from_cli(
-            SimpleNamespace(
-                name="testenv",
-                packages=[],
-                file=list(specs_by_path),
-            )
-        )
+        Environment.from_cli(SimpleNamespace(name="testenv", packages=[], file=paths))
     msg = str(exc_info.value)
     assert f"do not include packages for {context.subdir}" in msg
     assert "--platform=<subdir>" in msg
-    for fp in expected_in_error:
+    for fp in paths:
         assert fp in msg
 
 
@@ -755,9 +736,7 @@ def test_from_cli_with_files(mocker: MockerFixture):
         explicit_packages=[],
         config=EnvironmentConfig.from_context(),
     )
-    mock_spec = SimpleNamespace(
-        environment_spec=lambda fpath: FixedEnvSpec(fake_env)
-    )
+    mock_spec = SimpleNamespace(environment_spec=lambda fpath: FixedEnvSpec(fake_env))
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=mock_spec,
