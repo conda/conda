@@ -61,26 +61,26 @@ def test_channel_host_port():
 
 def test_channel_cache():
     Channel._reset_state()
-    assert len(Channel._cache_) == 0
+    assert Channel.from_value.cache_info().currsize == 0
     dc = Channel("defaults")
-    assert len(Channel._cache_) == 1
+    assert Channel.from_value.cache_info().currsize == 1
     dc1 = Channel("defaults")
-    assert len(Channel._cache_) == 1
+    assert Channel.from_value.cache_info().currsize == 1
     dc2 = Channel("defaults")
-    assert len(Channel._cache_) == 1
+    assert Channel.from_value.cache_info().currsize == 1
 
     assert dc1 is dc
     assert dc2 is dc
 
     dc3 = Channel(dc)
-    assert len(Channel._cache_) == 1
+    assert Channel.from_value.cache_info().currsize == 1
     assert dc3 is dc
 
     ccc = Channel("conda-canary")
-    assert len(Channel._cache_) == 2
+    assert Channel.from_value.cache_info().currsize == 2
 
     ccc1 = Channel("conda-canary")
-    assert len(Channel._cache_) == 2
+    assert Channel.from_value.cache_info().currsize == 2
     assert ccc1 is ccc
 
 
@@ -1287,7 +1287,7 @@ def test_multichannel_priority():
 
 
 def test_ppc64le_vs_ppc64():
-    Channel._cache_.clear()
+    Channel.from_value.cache_clear()
 
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
@@ -1302,8 +1302,8 @@ def test_ppc64le_vs_ppc64():
         ppc64le_channel.url(with_credentials=True)
         == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
     )
-    print(Channel._cache_)
-    Channel._cache_.clear()
+    print(Channel.from_value.cache_info())
+    Channel.from_value.cache_clear()
 
     ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
     assert ppc64le_channel.subdir == "linux-ppc64le"
