@@ -119,8 +119,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     spec = spec_hook.environment_spec(args.file)
     if context.subdir not in spec.available_platforms:
         raise CondaValueError(
-            f"{args.file!r} does not include packages for {context.subdir}. "
-            f"Available platforms: {', '.join(spec.available_platforms)}"
+            f"{args.file!r} does not include packages for {context.subdir}.\n"
+            f"Available platforms: {', '.join(spec.available_platforms)}\n"
+            f"Select one with --platform=<subdir>."
         )
     env = spec.env_for(context.subdir)
 

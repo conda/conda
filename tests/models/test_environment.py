@@ -58,6 +58,37 @@ class FixedEnvSpec(EnvironmentSpecBase):
         return self._env
 
 
+class MultiPlatformEnvSpec(EnvironmentSpecBase):
+    """`EnvironmentSpecBase` covering multiple platforms, hydrating one at a time."""
+
+    def __init__(self, platforms: tuple[str, ...]):
+        self._platforms = platforms
+
+    def can_handle(self) -> bool:
+        return True
+
+    @property
+    def env(self) -> Environment:
+        return self.env_for(self._platforms[0])
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        return self._platforms
+
+    def env_for(self, platform: str) -> Environment:
+        if platform not in self._platforms:
+            raise ValueError(
+                f"Platform {platform!r} not available. "
+                f"Available platforms: {', '.join(self._platforms)}"
+            )
+        return Environment(
+            prefix="/path",
+            platform=platform,
+            requested_packages=[MatchSpec("numpy")],
+            explicit_packages=[],
+        )
+
+
 def test_create_environment_missing_required_fields():
     with pytest.raises(CondaValueError):
         Environment(platform=None, prefix="/path/to/env")
@@ -616,29 +647,67 @@ def test_from_cli_with_specs():
     assert env.explicit_packages == []
 
 
-def test_from_cli_rejects_file_without_current_platform(mocker: MockerFixture):
-    """`Environment.from_cli` raises if the spec has no packages for context.subdir."""
-    other_platform = "linux-64" if context.subdir != "linux-64" else "osx-arm64"
-    file_env = Environment(
-        prefix="/path",
-        platform=other_platform,
-        requested_packages=[MatchSpec("numpy")],
-        explicit_packages=[],
-    )
+@pytest.mark.parametrize(
+    "files_platforms,expected_in_error",
+    [
+        pytest.param(
+            [("/tmp/a.yml", ("linux-64", "win-64"))],
+            ["/tmp/a.yml"],
+            id="single-incompatible",
+        ),
+        pytest.param(
+            [
+                ("/tmp/a.yml", ("linux-64", "win-64")),
+                ("/tmp/b.lock", ("linux-64", "win-64")),
+            ],
+            ["/tmp/a.yml", "/tmp/b.lock"],
+            id="multiple-incompatible",
+        ),
+    ],
+)
+def test_from_cli_pre_flight_rejects_incompatible_files(
+    mocker: MockerFixture,
+    files_platforms: list[tuple[str, tuple[str, ...]]],
+    expected_in_error: list[str],
+):
+    """Pre-flight pass reports every file that does not cover `context.subdir`."""
+    specs_by_path = {fp: MultiPlatformEnvSpec(plats) for fp, plats in files_platforms}
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=SimpleNamespace(
-            environment_spec=lambda fpath: FixedEnvSpec(file_env)
+            environment_spec=lambda fpath: specs_by_path[fpath]
         ),
     )
-    with pytest.raises(CondaValueError, match="does not include packages"):
+    with pytest.raises(CondaValueError) as exc_info:
         Environment.from_cli(
             SimpleNamespace(
                 name="testenv",
                 packages=[],
-                file=["/some/env.yaml"],
+                file=list(specs_by_path),
             )
         )
+    msg = str(exc_info.value)
+    assert f"do not include packages for {context.subdir}" in msg
+    assert "--platform=<subdir>" in msg
+    for fp in expected_in_error:
+        assert fp in msg
+
+
+def test_from_cli_accepts_multi_platform_file_covering_current(mocker: MockerFixture):
+    """Multi-platform specs that cover `context.subdir` hydrate only that platform."""
+    spec = MultiPlatformEnvSpec(("linux-64", "osx-arm64", "win-64", context.subdir))
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(environment_spec=lambda fpath: spec),
+    )
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=[],
+            file=["/tmp/multi.lock"],
+        )
+    )
+    assert env.platform == context.subdir
 
 
 def test_from_cli_with_explicit_specs(mocker: MockerFixture):
