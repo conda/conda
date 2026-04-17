@@ -630,6 +630,41 @@ class EnvironmentSpecBase(ABC):
         """
         raise NotImplementedError()
 
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        """
+        Platforms this spec can produce an :class:`~conda.models.environment.Environment` for.
+
+        Defaults to ``(context.subdir,)`` for backward compatibility with
+        single-platform specs (e.g. ``environment.yml``, ``requirements.txt``).
+        Multi-platform specs (e.g. ``conda-lock.yml``, ``pixi.lock``) should
+        override this to expose the full platform set declared in the input
+        file.
+
+        :returns tuple[str, ...]: tuple of platform subdir strings
+            (e.g. ``("linux-64", "osx-arm64")``).
+        """
+        from ..base.context import context
+
+        return (context.subdir,)
+
+    @property
+    def envs(self) -> Iterable[Environment]:
+        """
+        Multi-platform view of the parsed environment spec.
+
+        Defaults to yielding :attr:`env` for backward compatibility with
+        single-platform specs. Multi-platform specs should override this to
+        yield one :class:`~conda.models.environment.Environment` per platform
+        covered by the input file. Symmetric with the exporter side's
+        :attr:`CondaEnvironmentExporter.multiplatform_export` callback, which
+        accepts an :class:`~collections.abc.Iterable` of
+        :class:`~conda.models.environment.Environment` objects.
+
+        :returns Iterable[Environment]: one Environment per platform.
+        """
+        yield self.env
+
 
 class EnvironmentFormat(enum.Enum):
     """

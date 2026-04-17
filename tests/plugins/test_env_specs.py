@@ -646,3 +646,66 @@ def test_builtin_specifiers_have_metadata(
 
     # Verify lockfile classification
     assert specifier.environment_format == expected_environment_format
+
+
+class SinglePlatformSpec(EnvironmentSpecBase):
+    """Exercises default `envs` / `available_platforms` implementations."""
+
+    def can_handle(self) -> bool:
+        return True
+
+    @property
+    def env(self) -> Environment:
+        return Environment(prefix="/somewhere", platform="linux-64")
+
+
+class MultiPlatformSpec(EnvironmentSpecBase):
+    """Overrides `envs` / `available_platforms` to yield one env per platform."""
+
+    _PLATFORMS = ("linux-64", "osx-arm64", "win-64")
+
+    def can_handle(self) -> bool:
+        return True
+
+    @property
+    def env(self) -> Environment:
+        return Environment(prefix="/somewhere", platform=self._PLATFORMS[0])
+
+    @property
+    def available_platforms(self):
+        return self._PLATFORMS
+
+    @property
+    def envs(self):
+        for platform in self._PLATFORMS:
+            yield Environment(prefix="/somewhere", platform=platform)
+
+
+def test_env_spec_default_available_platforms_matches_context_subdir():
+    """Default `available_platforms` returns (context.subdir,)."""
+    from conda.base.context import context
+
+    spec = SinglePlatformSpec()
+    assert spec.available_platforms == (context.subdir,)
+
+
+def test_env_spec_default_envs_yields_env():
+    """Default `envs` yields exactly `self.env`."""
+    spec = SinglePlatformSpec()
+    envs = list(spec.envs)
+    assert len(envs) == 1
+    assert envs[0] is spec.env or envs[0].platform == spec.env.platform
+
+
+def test_env_spec_override_available_platforms():
+    """Subclasses can override `available_platforms` to expose multiple platforms."""
+    spec = MultiPlatformSpec()
+    assert spec.available_platforms == ("linux-64", "osx-arm64", "win-64")
+
+
+def test_env_spec_override_envs_yields_per_platform():
+    """Subclasses can override `envs` to yield one Environment per platform."""
+    spec = MultiPlatformSpec()
+    envs = list(spec.envs)
+    assert len(envs) == 3
+    assert tuple(e.platform for e in envs) == ("linux-64", "osx-arm64", "win-64")
