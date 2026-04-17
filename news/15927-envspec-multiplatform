@@ -1,12 +1,10 @@
 ### Enhancements
 
-* Add ``available_platforms`` and ``envs`` properties to
-  :class:`~conda.plugins.types.EnvironmentSpecBase` (**EXPERIMENTAL**), with
-  default implementations returning ``(context.subdir,)`` and ``self.env``
-  respectively. Multi-platform environment specifiers (e.g. lockfile loaders
-  for ``conda-lock.yml`` and ``pixi.lock``) can override these properties to
-  expose every platform declared in the input file. Symmetric with the
-  exporter side's ``multiplatform_export`` callback. (#15927)
+* Add default-implemented ``available_platforms`` and ``envs`` properties to
+  :class:`~conda.plugins.types.EnvironmentSpecBase` (**EXPERIMENTAL**).
+  Multi-platform specs (``conda-lock.yml``, ``pixi.lock``) can override both
+  to expose every platform in the input file. Inverse of the exporter side's
+  ``multiplatform_export``. (#15927)
 
 ### Bug fixes
 
@@ -18,8 +16,7 @@
 
 ### Docs
 
-* Document the new ``available_platforms`` and ``envs`` properties on
-  :class:`~conda.plugins.types.EnvironmentSpecBase`. (#15927)
+* Document ``available_platforms`` and ``envs`` on ``EnvironmentSpecBase``. (#15927)
 
 ### Other
 

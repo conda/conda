@@ -37,19 +37,16 @@ of its abstract methods:
 * ``can_handle`` Determines if the defined plugin can read and operate on the provided file.
 * ``env`` Expresses the provided environment file as a conda environment object.
 
-In addition, the base class provides two default-implemented properties for multi-platform
-introspection. Single-platform specs (e.g. ``environment.yml``, ``requirements.txt``) need
-not override them:
+The base class also provides two default-implemented properties for multi-platform
+specs. Single-platform specs (``environment.yml``, ``requirements.txt``) can ignore them:
 
-* ``available_platforms`` Tuple of platform subdirs this spec can produce an ``Environment``
-  for. Defaults to ``(context.subdir,)``. Multi-platform specs (e.g. ``conda-lock.yml``,
-  ``pixi.lock``) should override this to expose the full platform set declared in the
-  input file.
+* ``available_platforms`` Tuple of platform subdirs this spec covers. Defaults to
+  ``(context.subdir,)``.
 * ``envs`` Iterable of ``Environment`` objects, one per platform. Defaults to yielding
-  ``self.env``. Multi-platform specs should override this to yield one ``Environment``
-  per platform in ``available_platforms``. Symmetric with the exporter side's
-  :attr:`~conda.plugins.types.CondaEnvironmentExporter.multiplatform_export` callback,
-  which accepts an iterable of ``Environment`` objects.
+  ``self.env``. Inverse of the exporter side's ``multiplatform_export``.
+
+Multi-platform specs (``conda-lock.yml``, ``pixi.lock``) override both to return every
+platform declared in the input file.
 
 The class may also define the boolean class variable `detection_supported`. When set to
 ``True``, the plugin will be included in the environment spec type discovery process. Otherwise,
