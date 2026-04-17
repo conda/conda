@@ -644,7 +644,7 @@ class EnvironmentSpecBase(ABC):
         return (context.subdir,)
 
     @property
-    def envs(self) -> Iterable[Environment]:
+    def multiplatform_envs(self) -> Iterable[Environment]:
         """
         Yield one ``Environment`` per platform in :attr:`available_platforms`.
 

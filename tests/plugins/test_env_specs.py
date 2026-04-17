@@ -649,7 +649,7 @@ def test_builtin_specifiers_have_metadata(
 
 
 class SinglePlatformSpec(EnvironmentSpecBase):
-    """Exercises default `envs` / `available_platforms` implementations."""
+    """Exercises default `multiplatform_envs` / `available_platforms` implementations."""
 
     def can_handle(self) -> bool:
         return True
@@ -660,7 +660,7 @@ class SinglePlatformSpec(EnvironmentSpecBase):
 
 
 class MultiPlatformSpec(EnvironmentSpecBase):
-    """Overrides `envs` / `available_platforms` to yield one env per platform."""
+    """Overrides `multiplatform_envs` / `available_platforms` to yield one env per platform."""
 
     _PLATFORMS = ("linux-64", "osx-arm64", "win-64")
 
@@ -676,7 +676,7 @@ class MultiPlatformSpec(EnvironmentSpecBase):
         return self._PLATFORMS
 
     @property
-    def envs(self):
+    def multiplatform_envs(self):
         for platform in self._PLATFORMS:
             yield Environment(prefix="/somewhere", platform=platform)
 
@@ -689,10 +689,10 @@ def test_env_spec_default_available_platforms_matches_context_subdir():
     assert spec.available_platforms == (context.subdir,)
 
 
-def test_env_spec_default_envs_yields_env():
-    """Default `envs` yields exactly `self.env`."""
+def test_env_spec_default_multiplatform_envs_yields_env():
+    """Default `multiplatform_envs` yields exactly `self.env`."""
     spec = SinglePlatformSpec()
-    envs = list(spec.envs)
+    envs = list(spec.multiplatform_envs)
     assert len(envs) == 1
     assert envs[0] is spec.env or envs[0].platform == spec.env.platform
 
@@ -703,9 +703,9 @@ def test_env_spec_override_available_platforms():
     assert spec.available_platforms == ("linux-64", "osx-arm64", "win-64")
 
 
-def test_env_spec_override_envs_yields_per_platform():
-    """Subclasses can override `envs` to yield one Environment per platform."""
+def test_env_spec_override_multiplatform_envs_yields_per_platform():
+    """Subclasses can override `multiplatform_envs` to yield one Environment per platform."""
     spec = MultiPlatformSpec()
-    envs = list(spec.envs)
+    envs = list(spec.multiplatform_envs)
     assert len(envs) == 3
     assert tuple(e.platform for e in envs) == ("linux-64", "osx-arm64", "win-64")

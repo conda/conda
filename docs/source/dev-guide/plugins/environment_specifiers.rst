@@ -42,8 +42,8 @@ specs. Single-platform specs (``environment.yml``, ``requirements.txt``) can ign
 
 * ``available_platforms`` Tuple of platform subdirs this spec covers. Defaults to
   ``(context.subdir,)``.
-* ``envs`` Iterable of ``Environment`` objects, one per platform. Defaults to yielding
-  ``self.env``. Inverse of the exporter side's ``multiplatform_export``.
+* ``multiplatform_envs`` Iterable of ``Environment`` objects, one per platform. Defaults
+  to yielding ``self.env``. Inverse of the exporter side's ``multiplatform_export``.
 
 Multi-platform specs (``conda-lock.yml``, ``pixi.lock``) override both to return every
 platform declared in the input file.
