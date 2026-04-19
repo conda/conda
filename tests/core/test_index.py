@@ -154,6 +154,34 @@ def test_get_index_platform(platform: str) -> None:
         assert platform_in_record(platform, record), (platform, record.url)
 
 
+def test_channel_mismatch_dist_str_no_double_subdir() -> None:
+    """Test that records from a channel URL with no subdir must not produce a
+    doubled or platform-mismatched subdir in dist_str() after the canonical_name
+    is faked by _supplement_index_dict_with_prefix.
+    """
+    rec = PackageRecord.from_objects(
+        channel="http://localhost:8080/my-channel",  # no subdir in URL
+        subdir="linux-64",
+        name="foo",
+        version="1.0",
+        build="0",
+        build_number=0,
+    )
+    prefix_channel = rec.channel
+    assert isinstance(prefix_channel, Channel)
+    assert prefix_channel.platform is None  # bare URL has no subdir
+    _ = rec._pkey
+    if prefix_channel.platform is None and rec.subdir:
+        prefix_channel._Channel__canonical_name = (
+            f"{prefix_channel.base_url}/{rec.subdir}"
+        )
+    del rec._PackageRecord__pkey
+
+    dist = rec.dist_str()
+    assert dist.count("linux-64") == 1
+    assert dist.endswith("::foo-1.0-0")
+
+
 def test_dist_str_in_index(test_recipes_channel: Path) -> None:
     idx = Index((Channel(str(test_recipes_channel)),), prepend=False)
     assert not dist_str_in_index(idx.data, "test-1.4.0-0")
