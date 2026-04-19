@@ -383,13 +383,15 @@ class PackageRecord(DictSafeMixin, Entity):
         return self._pkey == other._pkey
 
     def dist_str(self, canonical_name: bool = True) -> str:
-        return "{}{}::{}-{}-{}".format(
-            self.channel.canonical_name if canonical_name else self.channel.name,
-            ("/" + self.subdir) if self.subdir else "",
-            self.name,
-            self.version,
-            self.build,
-        )
+        cn = self.channel.canonical_name if canonical_name else self.channel.name
+        # canonical_name may already include the subdir (e.g., when faked in
+        # _supplement_index_dict_with_prefix for channel-mismatch packages);
+        # avoid appending it a second time.
+        if self.subdir and not cn.endswith("/" + self.subdir):
+            subdir_part = "/" + self.subdir
+        else:
+            subdir_part = ""
+        return "{}{}::{}-{}-{}".format(cn, subdir_part, self.name, self.version, self.build)
 
     def dist_fields_dump(self):
         return {
