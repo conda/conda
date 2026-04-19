@@ -171,10 +171,7 @@ def test_channel_mismatch_dist_str_no_double_subdir() -> None:
     assert isinstance(prefix_channel, Channel)
     assert prefix_channel.platform is None  # bare URL has no subdir
     _ = rec._pkey
-    if prefix_channel.platform is None and rec.subdir:
-        prefix_channel._Channel__canonical_name = (
-            f"{prefix_channel.base_url}/{rec.subdir}"
-        )
+    prefix_channel._Channel__canonical_name = prefix_channel.base_url
     del rec._PackageRecord__pkey
 
     dist = rec.dist_str()
