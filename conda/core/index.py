@@ -288,7 +288,10 @@ class Index(UserDict):
         for prefix_record in self.prefix_data.iter_records():
             if prefix_record in self._data:
                 current_record = self._data[prefix_record]
-                if current_record.channel.canonical_name == prefix_record.channel.canonical_name:
+                if (
+                    current_record.channel.canonical_name
+                    == prefix_record.channel.canonical_name
+                ):
                     # The downloaded repodata takes priority, so we do not overwrite.
                     # We do, however, copy the link information so that the solver (i.e. resolve)
                     # knows this package is installed.
