@@ -12,7 +12,7 @@ import pytest
 from conda.base.constants import ChannelPriority
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, PlatformMismatchError
 from conda.models.environment import (
     EXTERNAL_PACKAGES_PYPI_KEY,
     Environment,
@@ -665,10 +665,13 @@ def test_from_cli_pre_flight_rejects_incompatible_files(
             environment_spec=lambda fpath: specs_by_path[fpath]
         ),
     )
-    with pytest.raises(CondaValueError) as exc_info:
+    with pytest.raises(PlatformMismatchError) as exc_info:
         Environment.from_cli(SimpleNamespace(name="testenv", packages=[], file=paths))
     msg = str(exc_info.value)
-    assert f"do not include packages for {context.subdir}" in msg
+    if len(paths) == 1:
+        assert f"does not include packages for {context.subdir}" in msg
+    else:
+        assert f"do not include packages for {context.subdir}" in msg
     assert "--platform=<subdir>" in msg
     for fp in paths:
         assert fp in msg

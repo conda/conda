@@ -1088,6 +1088,41 @@ class CondaValueError(CondaError, ValueError):
         super().__init__(message, *args, **kwargs)
 
 
+class PlatformMismatchError(CondaValueError):
+    """
+    Raised when one or more environment specs do not cover the requested platform.
+
+    The message is derived from a list of ``(source, available_platforms)`` pairs
+    so the wording stays consistent whether the failure comes from a single file
+    (``conda env create``, ``conda env update``) or several
+    (``Environment.from_cli`` with multiple ``-f`` / ``--file`` arguments).
+    """
+
+    def __init__(
+        self,
+        incompatible: Iterable[tuple[str, Iterable[str]]],
+        subdir: str,
+    ):
+        items = [(source, tuple(platforms)) for source, platforms in incompatible]
+        if len(items) == 1:
+            source, platforms = items[0]
+            message = (
+                f"{source!r} does not include packages for {subdir}.\n"
+                f"Available platforms: {', '.join(platforms)}\n"
+                f"Select one with --platform=<subdir>."
+            )
+        else:
+            details = "\n".join(
+                f"  {source!r}: {', '.join(platforms)}" for source, platforms in items
+            )
+            message = (
+                f"The following files do not include packages for {subdir}:\n"
+                f"{details}\n"
+                f"Select a supported platform with --platform=<subdir>."
+            )
+        super().__init__(message)
+
+
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles: Iterable[PackageRecord], **kwargs):
         from .models.records import PackageRecord

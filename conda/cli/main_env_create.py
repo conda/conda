@@ -104,7 +104,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..env.pip_util import get_pip_workdir
-    from ..exceptions import CondaEnvException, CondaValueError, InvalidInstaller
+    from ..exceptions import (
+        CondaEnvException,
+        InvalidInstaller,
+        PlatformMismatchError,
+    )
     from ..gateways.disk.delete import rm_rf
     from .common import validate_file_exists
 
@@ -118,10 +122,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     )
     spec = spec_hook.environment_spec(args.file)
     if context.subdir not in spec.available_platforms:
-        raise CondaValueError(
-            f"{args.file!r} does not include packages for {context.subdir}.\n"
-            f"Available platforms: {', '.join(spec.available_platforms)}\n"
-            f"Select one with --platform=<subdir>."
+        raise PlatformMismatchError(
+            [(args.file, spec.available_platforms)], context.subdir
         )
     env = spec.env_for(context.subdir)
 
