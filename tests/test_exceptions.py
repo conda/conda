@@ -20,11 +20,13 @@ from conda.exceptions import (
     CommandNotFoundError,
     CondaHTTPError,
     CondaKeyError,
+    CondaValueError,
     DirectoryNotFoundError,
     ExceptionHandler,
     KnownPackageClobberError,
     PackagesNotFoundError,
     PathNotFoundError,
+    PlatformMismatchError,
     ProxyError,
     SharedLinkPathClobberError,
     TooManyArgumentsError,
@@ -909,3 +911,37 @@ def test_ExceptionHandler_deprecations(
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(ExceptionHandler(), function)()
+
+
+def test_platform_mismatch_error_is_conda_value_error() -> None:
+    """`PlatformMismatchError` is a `CondaValueError` so existing handlers keep working."""
+    exc = PlatformMismatchError([("env.yml", ("osx-64",))], "linux-64")
+    assert isinstance(exc, CondaValueError)
+
+
+def test_platform_mismatch_error_single_source() -> None:
+    """Single-source message names the file and lists the available platforms."""
+    exc = PlatformMismatchError(
+        [("env.yml", ("osx-64", "osx-arm64"))],
+        "linux-64",
+    )
+    message = str(exc)
+    assert "'env.yml' does not include packages for linux-64" in message
+    assert "Available platforms: osx-64, osx-arm64" in message
+    assert "--platform=<subdir>" in message
+
+
+def test_platform_mismatch_error_multiple_sources() -> None:
+    """Multi-source message lists every file that does not cover the subdir."""
+    exc = PlatformMismatchError(
+        [
+            ("a.yml", ("osx-64",)),
+            ("b.yml", ("win-64", "linux-aarch64")),
+        ],
+        "linux-64",
+    )
+    message = str(exc)
+    assert "do not include packages for linux-64" in message
+    assert "'a.yml': osx-64" in message
+    assert "'b.yml': win-64, linux-aarch64" in message
+    assert "--platform=<subdir>" in message
