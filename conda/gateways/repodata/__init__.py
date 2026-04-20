@@ -26,6 +26,7 @@ from ...base.context import context
 from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
 from ...core.package_cache_data import PackageCacheData
+from ...deprecations import deprecated
 from ...exceptions import (
     CondaDependencyError,
     CondaHTTPError,
@@ -55,7 +56,13 @@ if TYPE_CHECKING:
     from ..connection import Response
 
 log = logging.getLogger(__name__)
-stderrlog = logging.getLogger("conda.stderrlog")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stderrlog",
+    logging.getLogger("conda.stderrlog"),
+    addendum="Use `conda.gateways.streams.stderrlog` instead.",
+)
 
 
 # if alternate formats were unavailable, check again later.
@@ -239,10 +246,10 @@ Exception: {e}
                 )
             else:
                 if context.allow_non_channel_urls:
-                    stderrlog.warning(
-                        "Unable to retrieve repodata (response: %d) for %s",
-                        status_code,
-                        url + "/" + repodata_fn,
+                    from ...gateways.streams import stderrlog
+
+                    stderrlog(
+                        f"Unable to retrieve repodata (response: {status_code}) for {url}/{repodata_fn}"
                     )
                     raise RepodataIsEmpty(
                         Channel(dirname(url)),
@@ -452,7 +459,8 @@ class RepodataState(UserDict):
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
             log.warning(
-                f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
+                "error parsing `has_` object from `<cache key>%s`",
+                CACHE_STATE_SUFFIX,
                 exc_info=e,
             )
             self.pop(key)
@@ -598,7 +606,9 @@ class RepodataCache:
             self.load(state_only=True, binary=binary)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, json.JSONDecodeError):
-                log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
+                log.warning(
+                    "%s loading %s", e.__class__.__name__, self.cache_path_state
+                )
             self.state.clear()
         return self.state
 

@@ -1764,15 +1764,19 @@ def unique_sequence_map(*, unique_key: str):
 
                 if unique_key_value is None:
                     log.error(
-                        f'Configuration: skipping {mapping} for "{func.__name__}"; unique key '
-                        f'"{unique_key}" not present on mapping'
+                        'Configuration: skipping %s for "%s"; unique key "%s" not present on mapping',
+                        mapping,
+                        func.__name__,
+                        unique_key,
                     )
                     continue
 
                 if unique_key_value in new_sequence_mapping:
                     log.error(
-                        f'Configuration: skipping {mapping} for "{func.__name__}"; value '
-                        f'"{unique_key_value}" already present'
+                        'Configuration: skipping %s for "%s"; value "%s" already present',
+                        mapping,
+                        func.__name__,
+                        unique_key_value,
                     )
                     continue
 

@@ -65,7 +65,7 @@ def any_subprocess(args: Sequence[str], prefix, env=None, cwd=None):
             rm_rf(script_caller)
         else:
             log.warning(
-                f"CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {script_caller}"
+                "CONDA_TEST_SAVE_TEMPS :: retaining pip run_script %s", script_caller
             )
     if hasattr(stdout, "decode"):
         stdout = stdout.decode("utf-8", errors="replace")

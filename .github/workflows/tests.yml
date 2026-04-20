@@ -88,7 +88,7 @@ jobs:
             test-group: 3
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
@@ -112,7 +112,7 @@ jobs:
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           # Use faster GNU tar for all runners
           enableCrossOsArchive: true
@@ -187,7 +187,7 @@ jobs:
 
       - name: Upload Test Results
         if: '!cancelled()'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-${{ env.HASH }}
           include-hidden-files: true
@@ -237,7 +237,7 @@ jobs:
           - runs-on: ubuntu-24.04-arm
             python-version: '3.12'
     env:
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.14' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
 
@@ -254,7 +254,7 @@ jobs:
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -316,7 +316,7 @@ jobs:
 
       - name: Upload Test Results
         if: '!cancelled()'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-${{ env.HASH }}
           include-hidden-files: true
@@ -355,7 +355,7 @@ jobs:
           echo "HASH=${STEM}-benchmark" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -376,7 +376,6 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          --file tests/requirements-benchmarks.txt
           python=${{ matrix.python-version }}
 
       - name: Conda Info
@@ -390,7 +389,7 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@1c8ae4843586d3ba879736b7f6b7b0c990757fab # v4.12.1
+        uses: CodSpeedHQ/action@db35df748deb45fdef0960669f57d627c1956c30 # v4.13.1
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: $CONDA/envs/test/bin/python -m pytest --codspeed
@@ -425,7 +424,7 @@ jobs:
           echo "HASH=${STEM}-typing" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -477,7 +476,7 @@ jobs:
 
       - name: Upload Test Results
         if: '!cancelled()'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-${{ env.HASH }}
           include-hidden-files: true
@@ -577,7 +576,7 @@ jobs:
           echo "HASH=${STEM}-memray" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -654,7 +653,7 @@ jobs:
           - test-type: unit
             test-group: 3
     env:
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration' || 'integration' }}
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
@@ -671,7 +670,7 @@ jobs:
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2
@@ -728,7 +727,7 @@ jobs:
 
       - name: Upload Test Results
         if: '!cancelled()'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-${{ env.HASH }}
           include-hidden-files: true
@@ -756,7 +755,7 @@ jobs:
 
       - name: Upload Combined Test Results
         # provides one downloadable archive of all matrix run test results for further analysis
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: test-results-${{ github.sha }}-all
           include-hidden-files: true
@@ -792,100 +791,12 @@ jobs:
         uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5 # v2.9.2
         env:
           GITHUB_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
           TITLE: Tests failed
         with:
-          filename: .github/TEST_FAILURE_REPORT_TEMPLATE.md
+          filename: .github/WORKFLOW_FAILURE_REPORT_TEMPLATE.md
           update_existing: false
-
-  # canary builds
-  build:
-    needs: [analyze]
-    # only build canary build if
-    # - prior steps succeeded,
-    # - this is the main repo, and
-    # - we are on the main, feature, or release branch
-    if: >-
-      !cancelled()
-      && !github.event.repository.fork
-      && (
-        github.ref_name == 'main'
-        || startsWith(github.ref_name, 'feature/')
-        || endsWith(github.ref_name, '.x')
-      )
-    strategy:
-      matrix:
-        include:
-          - runs-on: ubuntu-latest
-            subdir: linux-64
-          - runs-on: ubuntu-24.04-arm
-            subdir: linux-aarch64
-          - runs-on: macos-latest
-            subdir: osx-arm64
-          - runs-on: windows-latest
-            subdir: win-64
-    runs-on: ${{ matrix.runs-on }}
-    steps:
-      # Clean checkout of specific git ref needed for package metadata version
-      # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
-      - name: Checkout Source
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ github.ref }}
-          clean: true
-          fetch-depth: 0
-
-      # Explicitly use Python 3.11 since each of the OSes has a different default Python
-      - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: '3.11'
-
-      - name: Detect Label
-        shell: python
-        run: |
-          import re
-          from pathlib import Path
-          from os import environ
-          from subprocess import check_output
-
-          # unless otherwise specified, commits are uploaded to the dev label
-          # e.g., `main` branch commits
-          envs = {"ANACONDA_ORG_LABEL": "dev"}
-
-          if "${{ github.ref_name }}".startswith("feature/"):
-              # feature branch commits are uploaded to a custom label
-              envs["ANACONDA_ORG_LABEL"] = "${{ github.ref_name }}"
-          elif re.match(r"\d+(\.\d+)+\.x", "${{ github.ref_name }}"):
-              # release branch commits are added to the rc label
-              # see https://github.com/conda/infrastructure/issues/760
-              _, name = "${{ github.repository }}".split("/")
-              envs["ANACONDA_ORG_LABEL"] = f"rc-{name}-${{ github.ref_name }}"
-
-              # if no releases have occurred on this branch yet then `git describe --tag`
-              # will misleadingly produce a version number relative to the last release
-              # and not relative to the current release branch, if this is the case we need
-              # to override the version with a derivative of the branch name
-
-              # override the version if `git describe --tag` does not start with the branch version
-              last_release = check_output(["git", "describe", "--tag"], text=True).strip()
-              prefix = "${{ github.ref_name }}"[:-1]  # without x suffix
-              if not last_release.startswith(prefix):
-                  envs["VERSION_OVERRIDE"] = f"{prefix}0"
-
-          Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
-
-      - name: Create & Upload
-        uses: conda/actions/canary-release@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
-        env:
-          # Run conda-build in isolated activation to properly package conda
-          _CONDA_BUILD_ISOLATED_ACTIVATION: 1
-        with:
-          package-name: ${{ github.event.repository.name }}
-          subdir: ${{ matrix.subdir }}
-          anaconda-org-channel: conda-canary
-          anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
-          anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
 
   # check conda-build imports
   downstream:
@@ -927,7 +838,7 @@ jobs:
           echo "HASH=${STEM}-${{ matrix.default-channel }}-${{ github.job }}" >> $GITHUB_ENV
 
       - name: Cache Conda
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             ~/conda_pkgs_dir/*.tar.bz2

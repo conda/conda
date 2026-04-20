@@ -1,5 +1,36 @@
 [//]: # (current developments)
 
+## 26.3.2 (2026-04-10)
+
+### Bug fixes
+
+* Revert inline environment activation for and subsequent optimizations to `conda run` (#15534, #15672), due to regressions with post-link scripts. (#15896)
+
+### Contributors
+
+* @agriyakhetarpal
+
+
+
+## 26.3.1 (2026-04-03)
+
+### Enhancements
+
+* Record the originating hook for each plugin, enabling `conda info` and diagnostics to show where plugins were registered from. (#15840)
+
+### Deprecations
+
+* No longer search for `conda-*` executables on `PATH` when building the CLI parser. (#15840)
+* Mark `conda.cli.find_commands` as pending deprecation for removal in 27.3. (#15840)
+* Mark `conda.utils.sys_prefix_unfollowed` as pending deprecation for removal in 27.3. (#15840)
+* Mark `conda.exceptions.CommandNotFoundError` as pending deprecation for removal in 27.3. (#15840)
+
+### Contributors
+
+* @kenodegard
+
+
+
 ## 26.3.0 (2026-03-30)
 
 ### Enhancements

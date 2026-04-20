@@ -64,7 +64,7 @@ def test_cmd_exe_basic_integration(
         sh.clear()
 
         PATH0 = sh.get_env_var("PATH", "").split(os.pathsep)
-        log.debug(f"{PATH0=}")
+        log.debug("PATH0=%s", PATH0)
         sh.sendline(f'conda {activate} "{charizard}"')
 
         sh.sendline("chcp")
@@ -73,7 +73,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_SHLVL", "1")
 
         PATH1 = sh.get_env_var("PATH", "").split(os.pathsep)
-        log.debug(f"{PATH1=}")
+        log.debug("PATH1=%s", PATH1)
         sh.sendline('powershell -NoProfile -c "(Get-Command conda).Source"')
         sh.expect_exact(conda_bat)
 
@@ -82,7 +82,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_EXE", escape(sys.executable))
         sh.assert_env_var("CONDA_PREFIX", charizard, True)
         PATH2 = sh.get_env_var("PATH", "").split(os.pathsep)
-        log.debug(f"{PATH2=}")
+        log.debug("PATH2=%s", PATH2)
 
         sh.sendline('powershell -NoProfile -c "(Get-Command conda -All).Source"')
         sh.expect_exact(conda_bat)

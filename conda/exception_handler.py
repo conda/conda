@@ -33,12 +33,11 @@ class ExceptionHandler:
             return self.handle_exception(exc_val, exc_tb)
 
     def write_out(self, *content: str) -> None:
-        from logging import getLogger
-
         from .cli.main import init_loggers
+        from .gateways.streams import stderr
 
         init_loggers()
-        getLogger("conda.stderr").info("\n".join(content))
+        stderr("\n".join(content))
 
     @property
     def http_timeout(self):
@@ -388,7 +387,7 @@ class ExceptionHandler:
                 if response and response.status_code:
                     self.write_out(f" HTTP {response.status_code}")
         except Exception as e:
-            log.debug(f"{e!r}")
+            log.debug("%r", e)
 
     @deprecated(
         "26.9",

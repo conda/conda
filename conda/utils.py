@@ -5,18 +5,16 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 import sys
 from functools import cache, wraps
 from os import environ
-from os.path import basename, dirname, isfile, join
+from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
 from typing import TYPE_CHECKING
 
 from . import CondaError
-from .activate import _build_activator_cls
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
 from .common.compat import isiterable, on_win
 from .common.url import path_to_url
@@ -64,6 +62,7 @@ urlpath = url_path = path_to_url
 
 
 @cache
+@deprecated("26.9", "27.3")
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to
@@ -191,7 +190,14 @@ def wrap_subprocess_call(
         multiline = True
     if on_win:
         comspec = get_comspec()  # fail early with KeyError if undefined
+        if dev_mode:
+            from . import CONDA_PACKAGE_ROOT
 
+            conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
+        else:
+            conda_bat = environ.get(
+                "CONDA_BAT", abspath(join(root_prefix, "condabin", "conda.bat"))
+            )
         with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as fh:
             silencer = "" if debug_wrapper_scripts else "@"
             fh.write(f"{silencer}ECHO OFF\n")
@@ -219,34 +225,7 @@ def wrap_subprocess_call(
             # after all!
             # fh.write("@FOR /F \"tokens=100\" %%F IN ('chcp') DO @SET CONDA_OLD_CHCP=%%F\n")
             # fh.write('@chcp 65001>NUL\n')
-
-            # We pursue activation inline here, which allows us to avoid
-            # spawning a `conda activate` process at wrapper runtime.
-            activator_cls = _build_activator_cls("cmd.exe.run")
-            activator_args = ["activate"]
-            if dev_mode:
-                activator_args.append("--dev")
-            activator_args.append(prefix)
-
-            # Ensure that nested `conda` commands will work
-            # without the shell hook function. This needs to
-            # be on PATH before the activator itself computes
-            # PATH so that nested conda commands work without
-            # the shell hook.
-            condabin_dir = join(root_prefix, "condabin")
-            old_path = environ.get("PATH", "")
-            if condabin_dir not in old_path.split(os.pathsep):
-                environ["PATH"] = f"{condabin_dir}{os.pathsep}{old_path}"
-            try:
-                activator = activator_cls(activator_args)
-                activator._parse_and_set_args()
-                activate_script = activator.activate()
-            finally:
-                environ["PATH"] = old_path
-
-            for line in activate_script.splitlines():
-                fh.write(f"{silencer}{line}\n")
-
+            fh.write(f'{silencer}CALL "{conda_bat}" activate "{prefix}"\n')
             fh.write(f"{silencer}IF %ERRORLEVEL% NEQ 0 EXIT /b %ERRORLEVEL%\n")
             if debug_wrapper_scripts:
                 fh.write("echo *** environment after *** 1>&2\n")
@@ -292,49 +271,32 @@ def wrap_subprocess_call(
         if shell_path is None:
             raise Exception("No compatible shell found!")
 
+        # During tests, we sometimes like to have a temp env with e.g. an old python in it
+        # and have it run tests against the very latest development sources. For that to
+        # work we need extra smarts here, we want it to be instead:
+        if dev_mode:
+            conda_exe = [abspath(join(root_prefix, "bin", "python")), "-m", "conda"]
+            dev_arg = "--dev"
+            dev_args = [dev_arg]
+        else:
+            conda_exe = [
+                environ.get("CONDA_EXE", abspath(join(root_prefix, "bin", "conda")))
+            ]
+            dev_arg = ""
+            dev_args = []
         with Utf8NamedTemporaryFile(mode="w", delete=False) as fh:
-            # If any of these calls to the activation hook scripts fail, we want
-            # to exit the wrapper immediately and abort `conda run` right away.
-            fh.write("set -e\n")
             if dev_mode:
                 from . import CONDA_SOURCE_ROOT
 
-                fh.write(f">&2 export PYTHONPATH={CONDA_SOURCE_ROOT}\n")
+                fh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + "\n")
+            hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment before ***'\n>&2 env\n")
-
-            # We pursue activation inline here, which allows us to avoid
-            # spawning a `conda activate` subprocess at wrapper runtime.
-            # The inline activator sets all necessary environment variables
-            # (CONDA_EXE, PATH, CONDA_PREFIX, etc.) directly.
-            activator_cls = _build_activator_cls("posix")
-            activator_args = ["activate"]
-            if dev_mode:
-                activator_args.append("--dev")
-            activator_args.append(prefix)
-
-            # Ensure that nested `conda` commands will work
-            # without the shell hook function. This needs to
-            # be on PATH before the activator itself computes
-            # PATH so that nested conda commands work without
-            # the shell hook.
-            condabin_dir = join(root_prefix, "condabin")
-            old_path = environ.get("PATH", "")
-            if condabin_dir not in old_path.split(os.pathsep):
-                environ["PATH"] = f"{condabin_dir}{os.pathsep}{old_path}"
-            try:
-                activator = activator_cls(activator_args)
-                activator._parse_and_set_args()
-                activate_code = activator.activate()
-            finally:
-                environ["PATH"] = old_path
-
-            fh.write(activate_code)
-
+                fh.write(f'>&2 echo "$({hook_quoted})"\n')
+            fh.write(f'eval "$({hook_quoted})"\n')
+            fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
-            # Disable exit-on-error for the user's command so we can capture its exit code.
-            fh.write("set +e\n")
             if multiline:
                 # The ' '.join() is pointless since mutliline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
@@ -396,6 +358,11 @@ def get_comspec():
     return environ["COMSPEC"]
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `Path.mkdir(parents=True, exist_ok=True)` instead.",
+)
 def ensure_dir_exists(func):
     """
     Ensures that the directory exists for functions returning

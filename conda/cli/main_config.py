@@ -367,7 +367,8 @@ def describe_all_parameters(context=None, plugins=False) -> str:
 
 
 def print_config_item(key, value):
-    stdout_write = getLogger("conda.stdout").info
+    from ..gateways.streams import stdout as stdout_write
+
     if isinstance(value, (dict,)):
         for k, v in value.items():
             print_config_item(key + "." + k, v)
@@ -426,6 +427,8 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     from ..common.io import timeout
     from ..common.serialize import json, yaml
     from ..core.prefix_data import PrefixData
+    from ..gateways.streams import stderr as stderr_write
+    from ..gateways.streams import stdout as stdout_write
 
     # Override context for --file operations with --show/--describe
     if args.file and (args.show is not None or args.describe is not None):
@@ -433,8 +436,6 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
 
         context = Context(search_path=(args.file,), argparse_args=args)
 
-    stdout_write = getLogger("conda.stdout").info
-    stderr_write = getLogger("conda.stderr").info
     get_key_pairs = []
     json_warnings = []
 
@@ -456,7 +457,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
                 lines.extend(format_dict(reprs))
                 lines.append("")
             stdout_write("\n".join(lines))
-        return
+        return 0
 
     if args.show is not None:
         if args.show:
@@ -527,7 +528,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             stdout_write("\n".join(format_dict(d)))
         context.validate_configuration()
         context.plugins.validate_configuration()
-        return
+        return 0
 
     if args.describe is not None:
         if args.describe:
@@ -581,11 +582,13 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         else:
             if context.json:
                 skip_categories = ("CLI-only", "Hidden and Undocumented")
-                provided_parameters = sorted(
-                    chain.from_iterable(
-                        parameter_names
-                        for category, parameter_names in context.category_map.items()
-                        if category not in skip_categories
+                provided_parameters = tuple(
+                    sorted(
+                        chain.from_iterable(
+                            parameter_names
+                            for category, parameter_names in context.category_map.items()
+                            if category not in skip_categories
+                        )
                     )
                 )
                 stdout_write(
@@ -600,11 +603,11 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             else:
                 stdout_write(describe_all_parameters(context))
                 stdout_write(describe_all_parameters(context.plugins, plugins=True))
-        return
+        return 0
 
     if args.validate:
         context.validate_all()
-        return
+        return 0
 
     if args.system:
         rc_path = sys_rc_path
@@ -637,7 +640,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         with open(rc_path, "w") as fh:
             fh.write(describe_all_parameters(context))
             fh.write(describe_all_parameters(context.plugins, plugins=True))
-        return
+        return 0
 
     rc_config = ConfigurationFile(
         path=rc_path,
@@ -665,7 +668,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     if args.stdin:
         content = timeout(5, sys.stdin.read)
         if not content:
-            return
+            return 0
         try:
             # round trip load required because... we need to round trip
             parsed = yaml.loads(content)
@@ -705,6 +708,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     else:
         for k, v in get_key_pairs:
             print_config_item(k, v)
+    return 0
 
 
 # Deprecated private functions - moved to conda.cli.condarc.ConfigurationFile

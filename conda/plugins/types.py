@@ -16,7 +16,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, overload
 
-from requests.auth import AuthBase
+from requests.auth import AuthBase  # noqa: TID253
 
 from ..auxlib import NULL
 from ..auxlib.type_coercion import maybecall

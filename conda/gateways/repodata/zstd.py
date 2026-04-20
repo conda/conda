@@ -12,12 +12,13 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 import zstandard
-from requests import HTTPError
+from requests import HTTPError  # noqa: TID253
 
 from ...base.constants import REPODATA_FN
 from ...base.context import context
 from ...common.serialize import json
 from ...common.url import mask_anaconda_token
+from ...deprecations import deprecated
 from ..connection.download import disable_ssl_verify_warning
 from ..connection.session import get_session
 from . import (
@@ -214,8 +215,15 @@ class ZstdRepoInterface(RepoInterface):
         self._url = url
         self._repodata_fn = repodata_fn or REPODATA_FN
 
-        self._log = logging.getLogger(__name__)
-        self._stderrlog = logging.getLogger("conda.stderrlog")
+    @property
+    @deprecated("26.9", "27.3")
+    def _log(self):
+        return log
+
+    @property
+    @deprecated("26.9", "27.3")
+    def _stderrlog(self):
+        return logging.getLogger("conda.stderrlog")
 
     def repodata(self, state: dict | RepodataState) -> str | None:
         """

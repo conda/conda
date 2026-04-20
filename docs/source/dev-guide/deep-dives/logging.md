@@ -11,20 +11,13 @@ Other logger names are given as dot separated strings, such that, for example, t
 Python programs are free to use any name for loggers they like, but often the name will bear a relationship to the Python entity that is using it, most commonly there will be a module level logger, which is called `__name__`, i.e. `conda.<pkg>.<module>`, e.g. `conda.gateways.logging`.
 This approach naturally arranges loggers used in a single code base into a hierarchy that follows the package structure.
 
-Conda largely follows this approach, however, it also makes use of some additional loggers.
-
 ```{mermaid}
 :caption: The conda logger hierarchy. Dotted lines represent relations with `propagate = False`.
 
 flowchart LR
     root["&lt;root&gt;"] -.-> conda
     conda --> modules["conda.&lt;pkg&gt;.&lt;module&gt;"]
-    conda -.-> conda.stdout -.-> conda.stdout.verbose
-    conda -.-> conda.stderr
-    conda -.-> conda.stdoutlog
-    conda -.-> conda.stderrlog
     root --> auxlib
-    root --> progress.update & progress.stop
 ```
 
 The full hierarchy of all module level loggers is given below at {ref}`full-module-loggers`.
@@ -37,18 +30,11 @@ The root logger is not used directly as a logging target, but it is used as a bu
 
 The `conda` subhierarchy consists of all loggers whose name starts with `conda.` and it is mostly configured via the `conda` logger itself in {func}`conda.gateways.logging.initialize_logging`.
 
-Additionally, the following five loggers are used for other output.
-These are likely to be replaced and should not be used in new code.
-- `conda.stdout`
-- `conda.stderr`
-- `conda.stdoutlog`
-- `conda.stderrlog`
-- `conda.stdout.verbose`
+Historically, additional loggers were used for user-facing CLI text to stdout/stderr (`conda.stdout`, `conda.stderr`, `conda.stdoutlog`, `conda.stderrlog`, `conda.stdout.verbose`). They are **pending deprecation** (removal in 27.3) and are **no longer configured during normal CLI startup**. For new code, use `logging.getLogger(__name__)`.
 
 ### Other loggers
 
-Three more loggers appear in conda, namely `progress.update`and `progress.stop`, which only appear in `conda.plan.execute_actions`, which in turn is deprecated (c.f. https://github.com/conda/conda/pull/13881); and `auxlib` which likely is a remnant from before the auxlib code was completely
-absorbed into conda, since it only appears to be adorned with {class}`conda.auxlib.NullHandler` in `conda.auxlib.__init__`.
+The `auxlib` logger a remnant from before the auxlib code was completely absorbed into conda.
 
 ## Potential effect on other loggers
 

@@ -487,14 +487,13 @@ class InfoRenderer:
         if self._context.json:
             return {"root_prefix": self._context.root_prefix}
         else:
-            return f"{self._context.root_prefix}\n"
+            return self._context.root_prefix
 
     def _channels_component(self) -> str | dict:
         if self._context.json:
             return {"channels": self._context.channels}
         else:
-            channels_str = "\n".join(self._context.channels)
-            return f"{channels_str}\n"
+            return "\n".join(self._context.channels)
 
     def _detail_component(self) -> dict[str, str]:
         return get_main_info_display(self._info_dict)
@@ -508,17 +507,21 @@ class InfoRenderer:
         return self._info_dict_envs
 
     def _system_component(self) -> str:
-        from .find_commands import find_commands, find_executable
 
         output = [
             f"sys.version: {sys.version[:40]}...",
             f"sys.prefix: {sys.prefix}",
             f"sys.executable: {sys.executable}",
-            "conda location: {}".format(self._info_dict["conda_location"]),
+            f"conda location: {self._info_dict['conda_location']}",
         ]
 
-        for cmd in sorted(set(find_commands() + ("build",))):
-            output.append("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
+        subcommands = self._context.plugin_manager.get_subcommands()
+        conda_build = subcommands.pop("build", None)
+        plugin_name = getattr(getattr(conda_build, "impl", None), "plugin_name", None)
+        output.append(f"conda-build: {plugin_name or '(missing)'}")
+        for name, plugin in sorted(subcommands.items()):
+            plugin_name = getattr(getattr(plugin, "impl", None), "plugin_name", None)
+            output.append(f"conda-{name}: {plugin_name or '(unknown)'}")
 
         site_dirs = self._info_dict["site_dirs"]
         if site_dirs:
@@ -533,8 +536,6 @@ class InfoRenderer:
 
         for name, value in sorted(self._info_dict["env_vars"].items()):
             output.append(f"{name}: {value}")
-
-        output.append("")
 
         return "\n".join(output)
 

@@ -6,17 +6,11 @@ import sys
 
 
 def init_loggers():
-    import logging
 
     from ..base.context import context
     from ..gateways.logging import initialize_logging, set_log_level
 
     initialize_logging()
-
-    # silence logging info to avoid interfering with JSON output
-    if context.json:
-        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
-            logging.getLogger(logger).setLevel(logging.CRITICAL + 10)
 
     # set log_level
     set_log_level(context.log_level)
@@ -45,9 +39,6 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     context.__init__(argparse_args=pre_args)
     if context.no_plugins:
         context.plugin_manager.disable_external_plugins()
-
-    # reinitialize in case any of the entrypoints modified the context
-    context.__init__(argparse_args=pre_args)
 
     parser = generate_parser(add_help=True)
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
@@ -105,6 +96,13 @@ def main(*args, **kwargs):
     # cleanup argv
     args = args or sys.argv[1:]  # drop executable/script
     args = tuple(ensure_text_type(s) for s in args)
+
+    # Fast path: print version without loading the parser or plugin system.
+    if args and args[0] in ("-V", "--version"):
+        from .. import __version__
+
+        print(f"conda {__version__}")
+        return 0
 
     if args and args[0].strip().startswith("shell."):
         main = main_sourced

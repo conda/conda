@@ -8,7 +8,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
-import requests
+import requests  # noqa: TID253
 
 from ..gateways.connection.session import get_session
 from ..reporters import get_spinner
@@ -66,17 +66,17 @@ def get_channel_notice_response(url: str, name: str) -> ChannelNoticeResponse | 
             url, allow_redirects=False, timeout=5
         )  # timeout: connect, read
     except requests.exceptions.Timeout:
-        logger.info(f"Request timed out for channel: {name} url: {url}")
+        logger.info("Request timed out for channel: %s url: %s", name, url)
         return
     except requests.exceptions.RequestException as exc:
-        logger.error(f"Request error <{exc}> for channel: {name} url: {url}")
+        logger.error("Request error <%s> for channel: %s url: %s", exc, name, url)
         return
 
     try:
         if resp.status_code < 300:
             return ChannelNoticeResponse(url, name, json_data=resp.json())
         else:
-            logger.info(f"Received {resp.status_code} when trying to GET {url}")
+            logger.info("Received %s when trying to GET %s", resp.status_code, url)
     except ValueError:
-        logger.info(f"Unable to parse JSON data for {url}")
+        logger.info("Unable to parse JSON data for %s", url)
         return ChannelNoticeResponse(url, name, json_data=None)

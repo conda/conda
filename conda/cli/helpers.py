@@ -543,6 +543,13 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         help="Install shortcuts only for this package name. Can be used several times.",
         dest="shortcuts_only",
     )
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering (i.e. overwriting) of overlapping file paths "
+        "within packages and suppress related warnings.",
+    )
     return package_install_options
 
 
@@ -618,10 +625,26 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
+        action=deprecated.action(
+            "26.9",
+            "27.3",
+            LazyChoicesAction,
+            addendum="Use the `--format` flag instead.",
+        ),
+        choices_func=context.plugin_manager.get_environment_specifiers,
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--format",
+        dest="environment_specifier",
         action=LazyChoicesAction,
         choices_func=context.plugin_manager.get_environment_specifiers,
         default=NULL,
-        help="(EXPERIMENTAL) Specify the environment specifier plugin to use.",
+        help=(
+            "Format for the created environment. If not specified, "
+            "format will be determined by file contents or extension."
+        ),
     )
 
 

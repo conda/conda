@@ -30,7 +30,10 @@ from .common.serialize.json import JSONDecodeError
 from .common.serialize.json import dumps as json_dumps
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
-from .deprecations import DeprecatedError  # noqa: F401
+from .deprecations import (
+    DeprecatedError,  # noqa: F401
+    deprecated,
+)
 from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
 from .models.channel import Channel
 
@@ -297,26 +300,12 @@ class SharedLinkPathClobberError(ClobberError):
 
 
 class CommandNotFoundError(CondaError):
+    @deprecated("26.9", "27.3")
     def __init__(self, command: str):
         activate_commands = {
             "activate",
             "deactivate",
             "run",
-        }
-        conda_commands = {
-            "clean",
-            "config",
-            "create",
-            "--help",  # https://github.com/conda/conda/issues/11585
-            "info",
-            "install",
-            "list",
-            "package",
-            "remove",
-            "search",
-            "uninstall",
-            "update",
-            "upgrade",
         }
         build_commands = {
             "build",
@@ -369,15 +358,10 @@ class CommandNotFoundError(CondaError):
         else:
             from difflib import get_close_matches
 
-            from .cli.find_commands import find_commands
+            from .cli.conda_argparse import find_builtin_commands, generate_parser
 
             message = "No command 'conda %(command)s'."
-            choices = (
-                activate_commands
-                | conda_commands
-                | build_commands
-                | set(find_commands())
-            )
+            choices = find_builtin_commands(generate_parser())
             close = get_close_matches(command, choices)
             if close:
                 message += f"\nDid you mean 'conda {close[0]}'?"
@@ -1555,12 +1539,14 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
     elif context.json:
         if isinstance(exc_val, DryRunExit):
             return
-        logger = getLogger("conda.stdout" if rc else "conda.stderr")
+        from .gateways.streams import stderr, stdout
+
         exc_json = json_dumps(exc_val.dump_map(), sort_keys=True)
-        logger.info(f"{exc_json}\n")
+        (stdout if rc else stderr)(f"{exc_json}\n")
     else:
-        stderrlog = getLogger("conda.stderr")
-        stderrlog.error("\n%r\n", exc_val)
+        from .gateways.streams import stderr
+
+        stderr(f"\n{exc_val!r}\n")
         # An alternative which would allow us not to reload sys with newly setdefaultencoding()
         # is to not use `%r`, e.g.:
         # Still, not being able to use `%r` seems too great a price to pay.

@@ -129,9 +129,9 @@ def test_load_entrypoints_importerror(
 
     assert mocked_warning.call_count == 1
     assert mocked_warning.call_args.args[0] == (
-        "Error while loading conda entry point: importerror "
-        "(No module named 'package_that_does_not_exist')"
+        "Error while loading conda entry point: %s (%s)"
     )
+    assert mocked_warning.call_args.args[1] == "importerror"
 
 
 def test_load_entrypoints_blocked(plugin_manager: CondaPluginManager):

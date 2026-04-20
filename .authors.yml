@@ -1961,7 +1961,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 592
+  num_commits: 597
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2576,7 +2576,7 @@
 - name: Agriya Khetarpal
   email: 74401230+agriyakhetarpal@users.noreply.github.com
   github: agriyakhetarpal
-  num_commits: 39
+  num_commits: 40
   first_commit: 2025-09-14 14:13:47
 - name: Dan Yeaw
   email: dan@yeaw.me
