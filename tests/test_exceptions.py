@@ -919,29 +919,38 @@ def test_platform_mismatch_error_is_conda_value_error() -> None:
     assert isinstance(exc, CondaValueError)
 
 
-def test_platform_mismatch_error_single_source() -> None:
-    """Single-source message names the file and lists the available platforms."""
-    exc = PlatformMismatchError(
-        [("env.yml", ("osx-64", "osx-arm64"))],
-        "linux-64",
-    )
-    message = str(exc)
-    assert "'env.yml' does not include packages for linux-64" in message
-    assert "Available platforms: osx-64, osx-arm64" in message
-    assert "--platform=<subdir>" in message
-
-
-def test_platform_mismatch_error_multiple_sources() -> None:
-    """Multi-source message lists every file that does not cover the subdir."""
-    exc = PlatformMismatchError(
-        [
-            ("a.yml", ("osx-64",)),
-            ("b.yml", ("win-64", "linux-aarch64")),
-        ],
-        "linux-64",
-    )
-    message = str(exc)
-    assert "do not include packages for linux-64" in message
-    assert "'a.yml': osx-64" in message
-    assert "'b.yml': win-64, linux-aarch64" in message
-    assert "--platform=<subdir>" in message
+@pytest.mark.parametrize(
+    "sources,subdir,expected_fragments",
+    [
+        pytest.param(
+            [("env.yml", ("osx-64", "osx-arm64"))],
+            "linux-64",
+            (
+                "'env.yml' does not include packages for linux-64",
+                "Available platforms: osx-64, osx-arm64",
+                "--platform=<subdir>",
+            ),
+            id="single-source",
+        ),
+        pytest.param(
+            [("a.yml", ("osx-64",)), ("b.yml", ("win-64", "linux-aarch64"))],
+            "linux-64",
+            (
+                "do not include packages for linux-64",
+                "'a.yml': osx-64",
+                "'b.yml': win-64, linux-aarch64",
+                "--platform=<subdir>",
+            ),
+            id="multiple-sources",
+        ),
+    ],
+)
+def test_platform_mismatch_error_message(
+    sources: list[tuple[str, tuple[str, ...]]],
+    subdir: str,
+    expected_fragments: tuple[str, ...],
+) -> None:
+    """Error message names every incompatible source and suggests `--platform`."""
+    message = str(PlatformMismatchError(sources, subdir))
+    for fragment in expected_fragments:
+        assert fragment in message

@@ -656,7 +656,9 @@ class SinglePlatformSpec(EnvironmentSpecBase):
 
     @property
     def env(self) -> Environment:
-        return Environment(prefix="/somewhere", platform="linux-64")
+        from conda.base.context import context
+
+        return Environment(prefix="/somewhere", platform=context.subdir)
 
 
 class MultiPlatformSpec(EnvironmentSpecBase):
@@ -681,45 +683,44 @@ class MultiPlatformSpec(EnvironmentSpecBase):
         return Environment(prefix="/somewhere", platform=platform)
 
 
-def test_env_spec_default_available_platforms_matches_context_subdir():
-    """Default `available_platforms` returns (context.subdir,)."""
+@pytest.fixture(
+    params=[
+        pytest.param(SinglePlatformSpec, id="default-single-platform"),
+        pytest.param(MultiPlatformSpec, id="override-multi-platform"),
+    ]
+)
+def spec_and_platforms(request):
     from conda.base.context import context
 
-    spec = SinglePlatformSpec()
-    assert spec.available_platforms == (context.subdir,)
+    expected = {
+        SinglePlatformSpec: (context.subdir,),
+        MultiPlatformSpec: ("linux-64", "osx-arm64", "win-64"),
+    }[request.param]
+    return request.param(), expected
 
 
-def test_env_spec_default_env_for_returns_env():
-    """Default `env_for(context.subdir)` returns `self.env`."""
-    from conda.base.context import context
-
-    spec = SinglePlatformSpec()
-    assert spec.env_for(context.subdir).platform == spec.env.platform
+def test_available_platforms(spec_and_platforms):
+    """`available_platforms` returns every platform the spec covers."""
+    spec, expected = spec_and_platforms
+    assert spec.available_platforms == expected
 
 
-def test_env_spec_default_env_for_unknown_platform_raises():
-    """Default `env_for` raises for platforms outside `available_platforms`."""
-    spec = SinglePlatformSpec()
+def test_env_for_returns_requested_platform(spec_and_platforms):
+    """`env_for(platform)` returns an `Environment` for the requested platform."""
+    spec, expected = spec_and_platforms
+    for platform in expected:
+        assert spec.env_for(platform).platform == platform
+
+
+def test_env_for_unknown_platform_raises(spec_and_platforms):
+    """`env_for` raises for platforms outside `available_platforms`."""
+    spec, _ = spec_and_platforms
     with pytest.raises(ValueError, match="not available"):
         spec.env_for("not-a-real-platform")
 
 
-def test_env_spec_override_available_platforms():
-    """Subclasses can override `available_platforms` to expose multiple platforms."""
-    spec = MultiPlatformSpec()
-    assert spec.available_platforms == ("linux-64", "osx-arm64", "win-64")
-
-
-def test_env_spec_override_env_for_targets_platform():
-    """Overridden `env_for` returns the Environment for the requested platform."""
-    spec = MultiPlatformSpec()
-    assert spec.env_for("osx-arm64").platform == "osx-arm64"
-    with pytest.raises(ValueError, match="not available"):
-        spec.env_for("not-a-real-platform")
-
-
-def test_env_spec_iteration_pattern():
-    """Standard iteration pattern: env_for over available_platforms."""
-    spec = MultiPlatformSpec()
+def test_env_spec_iteration_pattern(spec_and_platforms):
+    """Standard iteration pattern: `env_for` over `available_platforms`."""
+    spec, expected = spec_and_platforms
     envs = [spec.env_for(p) for p in spec.available_platforms]
-    assert tuple(e.platform for e in envs) == ("linux-64", "osx-arm64", "win-64")
+    assert tuple(e.platform for e in envs) == expected
