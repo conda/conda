@@ -5,6 +5,7 @@
 Dumps specified environment package specifications to the screen.
 """
 
+import warnings
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -21,6 +22,10 @@ from ..plugins.environment_exporters.environment_yml import (
     ENVIRONMENT_JSON_FORMAT,
     ENVIRONMENT_YAML_FORMAT,
 )
+
+
+class CondaExportWarning(Warning):
+    pass
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
@@ -139,6 +144,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import env_name
+    from ..common.io import dashlist
+    from ..core.prefix_data import PrefixData
     from ..exceptions import CondaValueError
     from .common import stdout_json
 
@@ -201,6 +208,20 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         channels=context.channels,
     )
 
+    pd = PrefixData(prefix, interoperability=True)
+    pypi_packages = pd.get_python_packages()
+    warning: str | None = None
+    if pypi_packages:
+        warning = (
+            "The exported environment contains 3rd party Python packages.\n\n"
+            f"Your environment contains {len(pypi_packages)} package{'s' if len(pypi_packages) > 1 else ''} "
+            "installed via pip. Conda cannot reliably lock these packages for reproducible "
+            "environments.\n\n"
+            "Detected packages:"
+            f"{dashlist([package.to_simple_match_spec() for package in pypi_packages])}"
+            "\n\nLearn more: https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/pip-interoperability.html"
+        )
+
     # Export using the appropriate method
     envs = [env.extrapolate(platform) for platform in context.export_platforms]
     if environment_exporter.multiplatform_export:
@@ -220,8 +241,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         with open(args.file, "w") as fp:
             fp.write(exported_content)
         if args.json:
-            stdout_json({"success": True, "file": args.file, "format": target_format})
+            stdout_json(
+                {
+                    "success": True,
+                    "file": args.file,
+                    "format": target_format,
+                    "warnings": [warning] if warning else [],
+                }
+            )
+        elif warning and not context.quiet:
+            warnings.warn(warning, CondaExportWarning)
     else:
+        if warning and not context.quiet:
+            warnings.warn(warning, CondaExportWarning)
         print(exported_content, end="")
 
     return 0
