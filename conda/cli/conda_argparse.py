@@ -15,10 +15,16 @@ from argparse import ArgumentParser as ArgumentParserBase
 from importlib import import_module
 from logging import getLogger
 from subprocess import Popen
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
 
 from .. import __version__
 from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
+from ..deprecations import deprecated
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
 from .helpers import (  # noqa: F401
     add_output_and_prompt_options,
@@ -45,85 +51,112 @@ from .helpers import (  # noqa: F401
 log = getLogger(__name__)
 
 
-_DEPRECATED_CONFIGURE_PARSER_EXPORTS: dict[str, str] = {
-    "configure_parser_activate": "conda.cli.main_mock_activate",
-    "configure_parser_clean": "conda.cli.main_clean",
-    "configure_parser_commands": "conda.cli.main_commands",
-    "configure_parser_compare": "conda.cli.main_compare",
-    "configure_parser_config": "conda.cli.main_config",
-    "configure_parser_create": "conda.cli.main_create",
-    "configure_parser_deactivate": "conda.cli.main_mock_deactivate",
-    "configure_parser_env": "conda.cli.main_env",
-    "configure_parser_export": "conda.cli.main_export",
-    "configure_parser_info": "conda.cli.main_info",
-    "configure_parser_init": "conda.cli.main_init",
-    "configure_parser_install": "conda.cli.main_install",
-    "configure_parser_list": "conda.cli.main_list",
-    "configure_parser_notices": "conda.cli.main_notices",
-    "configure_parser_package": "conda.cli.main_package",
-    "configure_parser_remove": "conda.cli.main_remove",
-    "configure_parser_rename": "conda.cli.main_rename",
-    "configure_parser_run": "conda.cli.main_run",
-    "configure_parser_search": "conda.cli.main_search",
-    "configure_parser_update": "conda.cli.main_update",
-}
+# Deprecated ``configure_parser_*`` re-exports.
+#
+# These symbols were moved to their own ``conda.cli.main_*`` modules but kept
+# importable from ``conda.cli.conda_argparse`` for backwards compatibility.
+# Each is registered via ``deprecated.constant(factory=...)`` (introduced in
+# #15925) so the target ``main_*`` module is only imported on first access --
+# which, combined with the lazy subcommand parser map below, is the whole
+# point of A2/A3: ``import conda.cli.conda_argparse`` must not drag in 20+
+# subcommand modules.
+def _configure_parser_factory(module_path: str) -> Callable[[], Any]:
+    """Build a ``factory=`` callable that imports ``module_path`` lazily."""
 
-_DEPRECATED_RC_PATH_EXPORTS = frozenset(
-    {
+    def _factory() -> Any:
+        return import_module(module_path).configure_parser
+
+    return _factory
+
+
+for _name, _module_path in (
+    ("configure_parser_activate", "conda.cli.main_mock_activate"),
+    ("configure_parser_clean", "conda.cli.main_clean"),
+    ("configure_parser_commands", "conda.cli.main_commands"),
+    ("configure_parser_compare", "conda.cli.main_compare"),
+    ("configure_parser_config", "conda.cli.main_config"),
+    ("configure_parser_create", "conda.cli.main_create"),
+    ("configure_parser_deactivate", "conda.cli.main_mock_deactivate"),
+    ("configure_parser_env", "conda.cli.main_env"),
+    ("configure_parser_export", "conda.cli.main_export"),
+    ("configure_parser_info", "conda.cli.main_info"),
+    ("configure_parser_init", "conda.cli.main_init"),
+    ("configure_parser_install", "conda.cli.main_install"),
+    ("configure_parser_list", "conda.cli.main_list"),
+    ("configure_parser_notices", "conda.cli.main_notices"),
+    ("configure_parser_package", "conda.cli.main_package"),
+    ("configure_parser_remove", "conda.cli.main_remove"),
+    ("configure_parser_rename", "conda.cli.main_rename"),
+    ("configure_parser_run", "conda.cli.main_run"),
+    ("configure_parser_search", "conda.cli.main_search"),
+    ("configure_parser_update", "conda.cli.main_update"),
+):
+    deprecated.constant(
+        "26.5",
+        "27.3",
+        _name,
+        factory=_configure_parser_factory(_module_path),
+        addendum=f"Use `from {_module_path} import configure_parser` instead.",
+    )
+del _name, _module_path
+
+
+# Deprecated ``*_rc_path`` re-exports.
+#
+# These moved to ``conda.base.context`` but must stay importable from
+# ``conda.cli.conda_argparse``. Using ``factory=`` here defers the
+# ``conda.base.context`` import (itself on the cold-start path but still
+# avoided when nobody touches these symbols).
+def _user_rc_path() -> str:
+    from ..base.context import user_rc_path
+
+    return user_rc_path
+
+
+def _sys_rc_path() -> str:
+    from ..base.context import sys_rc_path
+
+    return sys_rc_path
+
+
+def _escaped_user_rc_path() -> str:
+    return _user_rc_path().replace("%", "%%")
+
+
+def _escaped_sys_rc_path() -> str:
+    return _sys_rc_path().replace("%", "%%")
+
+
+for _name, _factory, _addendum in (
+    (
         "user_rc_path",
+        _user_rc_path,
+        "Use `from conda.base.context import user_rc_path` instead.",
+    ),
+    (
         "sys_rc_path",
+        _sys_rc_path,
+        "Use `from conda.base.context import sys_rc_path` instead.",
+    ),
+    (
         "escaped_user_rc_path",
+        _escaped_user_rc_path,
+        "Use `from conda.base.context import user_rc_path` and escape locally.",
+    ),
+    (
         "escaped_sys_rc_path",
-    }
-)
-
-
-def __getattr__(name: str):
-    # Lazily register deprecated re-exports using conda's deprecation system.
-    # deprecated.constant() installs a _ConstantDeprecationRegistry as the module's
-    # __getattr__; on first access here we register + return the value silently,
-    # and all subsequent accesses go through the registry and emit the warning.
-    from ..deprecations import deprecated
-
-    if name in _DEPRECATED_CONFIGURE_PARSER_EXPORTS:
-        module_path = _DEPRECATED_CONFIGURE_PARSER_EXPORTS[name]
-        mod = import_module(module_path)
-        val = mod.configure_parser
-        deprecated.constant(
-            "26.5",
-            "27.3",
-            name,
-            val,
-            addendum=f"Use `from {module_path} import configure_parser` instead.",
-        )
-        return val
-
-    if name in _DEPRECATED_RC_PATH_EXPORTS:
-        from ..base.context import sys_rc_path, user_rc_path
-
-        _rc_addenda = {
-            "user_rc_path": "Use `from conda.base.context import user_rc_path` instead.",
-            "sys_rc_path": "Use `from conda.base.context import sys_rc_path` instead.",
-            "escaped_user_rc_path": "Use `from conda.base.context import user_rc_path` and escape locally.",
-            "escaped_sys_rc_path": "Use `from conda.base.context import sys_rc_path` and escape locally.",
-        }
-        _rc_values = {
-            "user_rc_path": user_rc_path,
-            "sys_rc_path": sys_rc_path,
-            "escaped_user_rc_path": user_rc_path.replace("%", "%%"),
-            "escaped_sys_rc_path": sys_rc_path.replace("%", "%%"),
-        }
-        val = _rc_values[name]
-        deprecated.constant(
-            "26.5",
-            "27.3",
-            name,
-            val,
-            addendum=_rc_addenda[name],
-        )
-        return val
-
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+        _escaped_sys_rc_path,
+        "Use `from conda.base.context import sys_rc_path` and escape locally.",
+    ),
+):
+    deprecated.constant(
+        "26.5",
+        "27.3",
+        _name,
+        factory=_factory,
+        addendum=_addendum,
+    )
+del _name, _factory, _addendum
 
 
 _BUILTIN_SUBCOMMANDS: list[tuple[str, str, str, dict]] = [

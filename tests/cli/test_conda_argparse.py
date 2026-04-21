@@ -120,14 +120,16 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
     ],
 )
 def test_deprecated_imports(path: str, validate: Callable[[Any], bool]):
-    """Verify deprecated re-exports still work but emit PendingDeprecationWarning."""
+    """Verify deprecated re-exports still work and emit PendingDeprecationWarning
+    on *every* access (including the first), now that they are registered via
+    ``deprecated.constant(factory=...)`` at module import time."""
     path, attr = path.rsplit(".", 1)
     module = importlib.import_module(path)
-    # First access registers the deprecation without warning (lazy registration).
-    assert hasattr(module, attr)
-    # Second access goes through the _ConstantDeprecationRegistry and warns.
     with pytest.warns(PendingDeprecationWarning):
-        assert validate(getattr(module, attr))
+        value = getattr(module, attr)
+    assert validate(value)
+    with pytest.warns(PendingDeprecationWarning):
+        assert getattr(module, attr) is value
 
 
 def test_lazy_parser_map_cheap_introspection():
