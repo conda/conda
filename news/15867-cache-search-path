@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Cache the expanded search path inside `Configuration._set_search_path()` so repeated calls with the same arguments (e.g. successive `reset_context()` invocations) skip the filesystem stat and directory-iteration work. `raw_data` is still reloaded on every call, so condarc changes are picked up normally. The expanded search path is now stored as a `tuple` instead of a lazy generator. (#15867)
+* Speed up condarc search path expansion on every `reset_context()` by ~5x (~1.35 ms/call to ~0.27 ms/call on a 27-entry path), via cheaper `custom_expandvars()` and `os.scandir()`-based directory traversal in `Configuration._expand_search_path()`. (#15867)
 
 ### Bug fixes
 

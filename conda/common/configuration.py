@@ -16,6 +16,8 @@ Easily extensible to other source formats, e.g. json and ini
 from __future__ import annotations
 
 import copy
+import os
+import stat
 import sys
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -1391,15 +1393,21 @@ def custom_expandvars(
     - $ → $
     - % → %
     """
-    mapping = {**mapping, **kwargs}
+    # Skip the merged mapping when there's nothing to substitute.
+    if "$" not in template and "%" not in template:
+        return template
 
+    # Look up kwargs first (overrides mapping, matching the old
+    # {**mapping, **kwargs} precedence), then mapping. Avoids copying
+    # os.environ on every call.
     def convert(match: Match):
-        return str(
-            mapping.get(
-                match.group("named") or match.group("braced") or match.group("padded"),
-                match.group(),  # fallback to the original string
-            )
-        )
+        name = match.group("named") or match.group("braced") or match.group("padded")
+        if name in kwargs:
+            return str(kwargs[name])
+        try:
+            return str(mapping[name])
+        except KeyError:
+            return match.group()
 
     return _RE_CUSTOM_EXPANDVARS.sub(convert, template)
 
@@ -1432,24 +1440,34 @@ class Configuration(metaclass=ConfigurationType):
         **kwargs,
     ) -> Iterable[Path]:
         for search in search_path:
-            # use custom_expandvars instead of os.path.expandvars so additional variables can be
-            # passed in without mutating os.environ
             if isinstance(search, Path):
                 path = search
             else:
+                # use custom_expandvars instead of os.path.expandvars so additional
+                # variables can be passed in without mutating os.environ
                 template = custom_expandvars(str(search), environ, **kwargs)
                 path = Path(template).expanduser()
 
-            if path.is_file() and (
+            # One stat() per entry; os.scandir() below lets DirEntry.is_file()
+            # reuse d_type bits instead of a fresh stat per child.
+            try:
+                mode = path.stat().st_mode
+            except OSError:
+                continue
+
+            if stat.S_ISREG(mode) and (
                 path.name in CONDARC_FILENAMES or path.suffix in YAML_EXTENSIONS
             ):
                 yield path
-            elif path.is_dir():
-                yield from (
-                    subpath
-                    for subpath in sorted(path.iterdir())
-                    if subpath.is_file() and subpath.suffix in YAML_EXTENSIONS
-                )
+            elif stat.S_ISDIR(mode):
+                try:
+                    with os.scandir(path) as it:
+                        entries = sorted(it, key=lambda entry: entry.name)
+                except OSError:
+                    continue
+                for entry in entries:
+                    if entry.is_file() and Path(entry.name).suffix in YAML_EXTENSIONS:
+                        yield Path(entry.path)
 
     @classmethod
     def _load_search_path(
@@ -1467,20 +1485,8 @@ class Configuration(metaclass=ConfigurationType):
                 )
 
     def _set_search_path(self, search_path: PathsType, **kwargs):
-        # Cache only the filesystem stat/iterdir work done by
-        # `_expand_search_path`. `_set_raw_data` + `_reset_cache` must always
-        # run so `raw_data` is repopulated after `Configuration.__init__`
-        # clears it (e.g. on every `reset_context()`).
-        cache_key = (tuple(search_path), tuple(sorted(kwargs.items())))
-        cache = self.__dict__.setdefault("_search_path_cache", {})
-        expanded = cache.get(cache_key)
-        if expanded is None:
-            expanded = tuple(self._expand_search_path(search_path, **kwargs))
-            cache[cache_key] = expanded
-        self._search_path = expanded
-
+        self._search_path = tuple(self._expand_search_path(search_path, **kwargs))
         self._set_raw_data(dict(self._load_search_path(self._search_path)))
-
         self._reset_cache()
         return self
 
