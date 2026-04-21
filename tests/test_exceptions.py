@@ -20,11 +20,13 @@ from conda.exceptions import (
     CommandNotFoundError,
     CondaHTTPError,
     CondaKeyError,
+    CondaValueError,
     DirectoryNotFoundError,
     ExceptionHandler,
     KnownPackageClobberError,
     PackagesNotFoundError,
     PathNotFoundError,
+    PlatformMismatchError,
     ProxyError,
     SharedLinkPathClobberError,
     TooManyArgumentsError,
@@ -909,3 +911,49 @@ def test_ExceptionHandler_deprecations(
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(ExceptionHandler(), function)()
+
+
+def test_platform_mismatch_error_is_conda_value_error() -> None:
+    """`PlatformMismatchError` is a `CondaValueError` so existing handlers keep working."""
+    exc = PlatformMismatchError([("env.yml", ("osx-64",))], "linux-64")
+    assert isinstance(exc, CondaValueError)
+
+
+@pytest.mark.parametrize(
+    "sources,subdir,expected_fragments",
+    [
+        pytest.param(
+            [("env.yml", ("osx-64", "osx-arm64"))],
+            "linux-64",
+            (
+                "Environment file 'env.yml' does not include packages for linux-64",
+                "Available platforms: osx-64, osx-arm64",
+                "regenerate the environment file with linux-64",
+                "    conda export --file env.yml "
+                "--platform osx-64 --platform osx-arm64 --platform linux-64",
+            ),
+            id="single-source",
+        ),
+        pytest.param(
+            [("a.yml", ("osx-64",)), ("b.yml", ("win-64", "linux-aarch64"))],
+            "linux-64",
+            (
+                "The following environment files do not include packages for linux-64",
+                "'a.yml': osx-64",
+                "'b.yml': win-64, linux-aarch64",
+                "Regenerate each file with linux-64",
+                "--platform linux-64",
+            ),
+            id="multiple-sources",
+        ),
+    ],
+)
+def test_platform_mismatch_error_message(
+    sources: list[tuple[str, tuple[str, ...]]],
+    subdir: str,
+    expected_fragments: tuple[str, ...],
+) -> None:
+    """Error message names every incompatible source and advises regenerating it."""
+    message = str(PlatformMismatchError(sources, subdir))
+    for fragment in expected_fragments:
+        assert fragment in message
