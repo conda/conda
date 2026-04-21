@@ -29,6 +29,7 @@ def print_external_packages(prefix: str, verbose: bool) -> None:
         print(f"{X_MARK} These packages are not installed by conda:\n")
         for package in external_packages:
             print(package.name)
+        print("")
 
 
 @hookimpl
