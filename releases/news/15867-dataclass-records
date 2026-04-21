@@ -1,0 +1,31 @@
+### Enhancements
+
+* Rewrite `PackageRecord`, `PackageCacheRecord`, `SolvedRecord`, and
+  `PrefixRecord` in `conda.models.records` as `@dataclass(slots=True)`
+  classes with the same public API. Per-record instantiation is ~3× faster,
+  `dump()` serialisation is ~5× faster, and memory footprint drops by
+  26–39% depending on string duplication; at 50,000 records that's
+  ~15 MiB saved. (#15867)
+* Unify the old `COERCIONS` / `DERIVED` / `resolve_*` coercion-and-derivation
+  logic under a single `FIELD_RESOLVERS` ClassVar registry on each record
+  class. (#15867)
+
+### Deprecations
+
+* Deprecate the record-specific `auxlib.Entity` field descriptors re-exported
+  from `conda.models.records`: `SubdirField`, `ChannelField`, `FilenameField`,
+  `NoarchField`, `TimestampField`, `PackageTypeField`, `_FeaturesField`, and
+  `Md5Field`. They remain importable one release cycle via a lazy shim;
+  record classes themselves now use plain dataclass fields. (#15867)
+* Deprecate implicit md5 auto-compute on `PackageCacheRecord.md5`. The old
+  `Md5Field` descriptor hashed the tarball on attribute read when the field
+  was unset; the dataclass shim preserves that behaviour for one release
+  cycle with a `DeprecationWarning`. Call
+  `PackageCacheRecord.calculate_md5sum()` explicitly instead. (#15867)
+
+### Other
+
+* `PrefixRecord.extracted_package_dir` now defaults to `""` (matching the
+  original `StringField(required=False)` semantics) rather than `None`,
+  keeping `basename(extracted_package_dir)` callable on unpopulated records.
+  (#15867)
