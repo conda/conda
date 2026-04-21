@@ -1,10 +1,10 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Startup performance benchmarks tracked by CodSpeed.
+"""Startup performance benchmarks.
 
-Measures the cost of conda's startup phases.  Instrumented by CodSpeed in
-CI (CPU instruction counting) and runnable locally with
-``pytest --codspeed tests/cli/test_startup_benchmarks.py``.
+Measures the cost of conda's startup phases. Runs locally with
+``pytest --codspeed tests/cli/test_startup_benchmarks.py`` or
+``pytest -m benchmark tests/cli/test_startup_benchmarks.py``.
 
 Import benchmarks use ``benchmark.pedantic`` with a setup function that
 scrubs cached modules between rounds so each iteration starts from a clean
@@ -30,7 +30,7 @@ from conda.cli.main import main
 if TYPE_CHECKING:
     from typing import TypedDict
 
-    from pytest_codspeed.plugin import BenchmarkFixture
+    from pytest_benchmark.fixture import BenchmarkFixture
 
     class _BudgetSpec(TypedDict):
         code: str
@@ -46,6 +46,7 @@ _TEST_INFRA = frozenset(
         "pluggy",
         "py",
         "pytest",
+        "pytest_benchmark",
         "pytest_codspeed",
         "pytest_cov",
         "pytest_mock",
