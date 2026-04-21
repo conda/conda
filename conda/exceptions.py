@@ -1106,9 +1106,7 @@ class PlatformMismatchError(CondaValueError):
         items = [(source, tuple(platforms)) for source, platforms in incompatible]
         if len(items) == 1:
             source, platforms = items[0]
-            platform_flags = " ".join(
-                f"--platform {p}" for p in (*platforms, subdir)
-            )
+            platform_flags = " ".join(f"--platform {p}" for p in (*platforms, subdir))
             message = (
                 f"Environment file '{source}' does not include packages for {subdir}.\n"
                 f"Available platforms: {', '.join(platforms)}\n"
