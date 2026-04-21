@@ -1106,19 +1106,29 @@ class PlatformMismatchError(CondaValueError):
         items = [(source, tuple(platforms)) for source, platforms in incompatible]
         if len(items) == 1:
             source, platforms = items[0]
+            platform_flags = " ".join(
+                f"--platform {p}" for p in (*platforms, subdir)
+            )
             message = (
-                f"{source!r} does not include packages for {subdir}.\n"
+                f"Environment file '{source}' does not include packages for {subdir}.\n"
                 f"Available platforms: {', '.join(platforms)}\n"
-                f"Select one with --platform=<subdir>."
+                f"\n"
+                f"To install on {subdir}, regenerate the environment file with "
+                f"{subdir} as a configured platform, for example:\n"
+                f"\n"
+                f"    conda export --file {source} {platform_flags}"
             )
         else:
             details = "\n".join(
-                f"  {source!r}: {', '.join(platforms)}" for source, platforms in items
+                f"  '{source}': {', '.join(platforms)}" for source, platforms in items
             )
             message = (
-                f"The following files do not include packages for {subdir}:\n"
+                f"The following environment files do not include packages for "
+                f"{subdir}:\n"
                 f"{details}\n"
-                f"Select a supported platform with --platform=<subdir>."
+                f"\n"
+                f"Regenerate each file with {subdir} as a configured platform "
+                f"(e.g. via `conda export --file <path> --platform {subdir} ...`)."
             )
         super().__init__(message)
 

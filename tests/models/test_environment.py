@@ -669,10 +669,16 @@ def test_from_cli_pre_flight_rejects_incompatible_files(
         Environment.from_cli(SimpleNamespace(name="testenv", packages=[], file=paths))
     msg = str(exc_info.value)
     if len(paths) == 1:
-        assert f"does not include packages for {context.subdir}" in msg
+        assert (
+            f"Environment file '{paths[0]}' does not include packages for "
+            f"{context.subdir}"
+        ) in msg
     else:
-        assert f"do not include packages for {context.subdir}" in msg
-    assert "--platform=<subdir>" in msg
+        assert (
+            f"The following environment files do not include packages for "
+            f"{context.subdir}"
+        ) in msg
+    assert f"--platform {context.subdir}" in msg
     for fp in paths:
         assert fp in msg
 

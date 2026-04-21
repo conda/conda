@@ -926,9 +926,11 @@ def test_platform_mismatch_error_is_conda_value_error() -> None:
             [("env.yml", ("osx-64", "osx-arm64"))],
             "linux-64",
             (
-                "'env.yml' does not include packages for linux-64",
+                "Environment file 'env.yml' does not include packages for linux-64",
                 "Available platforms: osx-64, osx-arm64",
-                "--platform=<subdir>",
+                "regenerate the environment file with linux-64",
+                "    conda export --file env.yml "
+                "--platform osx-64 --platform osx-arm64 --platform linux-64",
             ),
             id="single-source",
         ),
@@ -936,10 +938,11 @@ def test_platform_mismatch_error_is_conda_value_error() -> None:
             [("a.yml", ("osx-64",)), ("b.yml", ("win-64", "linux-aarch64"))],
             "linux-64",
             (
-                "do not include packages for linux-64",
+                "The following environment files do not include packages for linux-64",
                 "'a.yml': osx-64",
                 "'b.yml': win-64, linux-aarch64",
-                "--platform=<subdir>",
+                "Regenerate each file with linux-64",
+                "--platform linux-64",
             ),
             id="multiple-sources",
         ),
@@ -950,7 +953,7 @@ def test_platform_mismatch_error_message(
     subdir: str,
     expected_fragments: tuple[str, ...],
 ) -> None:
-    """Error message names every incompatible source and suggests `--platform`."""
+    """Error message names every incompatible source and advises regenerating it."""
     message = str(PlatformMismatchError(sources, subdir))
     for fragment in expected_fragments:
         assert fragment in message
