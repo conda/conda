@@ -748,14 +748,16 @@ def test_export_warnings(
 
 
 def test_export_non_pip_env_warnings(
+    tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
     """Test that conda does not warn for environments without pip dependencies"""
-    # Export the environment in the specified format
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always", category=CondaExportWarning)
-        conda_cli("export", "--prefix=/does/not/exist")
-        assert len(w) == 0
+    with tmp_env("python") as prefix:
+        PrefixData._cache_.clear()
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always", category=CondaExportWarning)
+            conda_cli("export", f"--prefix={prefix}")
+            assert len(w) == 0
 
 
 def test_export_override_channels_and_ignore_channels_independence(conda_cli):
