@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from conda.plugins.manager import CondaPluginManager
-    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
 
 
 def test_export(conda_cli: CondaCLIFixture) -> None:
