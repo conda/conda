@@ -67,17 +67,8 @@ def test_common_serialize_does_not_pull_in_json() -> None:
 def test_deprecated_symbol_access_warns(module: str, name: str) -> None:
     """Accessing a canonicalized deprecated symbol still emits a warning."""
     mod = importlib.import_module(module)
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
+    with pytest.deprecated_call():
         getattr(mod, name)
-
-    assert any(
-        issubclass(w.category, (DeprecationWarning, PendingDeprecationWarning))
-        for w in caught
-    ), (
-        f"expected a DeprecationWarning or PendingDeprecationWarning when "
-        f"accessing {module}.{name}; got {[w.category.__name__ for w in caught]}"
-    )
 
 
 @pytest.mark.parametrize(
@@ -93,8 +84,7 @@ def test_deprecated_symbol_access_warns(module: str, name: str) -> None:
 def test_deprecated_symbol_identity_is_stable(module: str, name: str) -> None:
     """Repeated access returns the same object (factory cached)."""
     mod = importlib.import_module(module)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+    with pytest.deprecated_call():
         first = getattr(mod, name)
         second = getattr(mod, name)
 
