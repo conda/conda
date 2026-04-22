@@ -292,8 +292,18 @@ jobs:
       - name: Setup Shells
         # for tests/shell, so only necessary for integration tests
         if: matrix.test-type == 'integration'
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt update && sudo apt install ash csh fish tcsh zsh
+          # The default Azure-hosted Ubuntu apt mirror has been hanging
+          # for hours on the integration jobs. Switch to the canonical
+          # archive and let apt retry on transient failures so a single
+          # mirror outage does not block CI.
+          sudo sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends \
+            -o Acquire::Retries=3 ash csh fish tcsh zsh
           # xonsh is installed with conda in step above
           # Initialize all shells
           python -m conda init --all

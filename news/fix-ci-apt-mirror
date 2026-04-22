@@ -1,0 +1,7 @@
+### Other
+
+* Make the Linux integration jobs resilient to Azure-hosted Ubuntu apt
+  mirror outages by switching to the canonical `archive.ubuntu.com`
+  mirror and enabling apt retries (`Acquire::Retries=3`). Also install
+  shells (`ash`, `csh`, `fish`, `tcsh`, `zsh`) non-interactively with
+  `--no-install-recommends` to shrink the download footprint.
