@@ -11,15 +11,11 @@ so the check is immune to test-order bleed-through.
 from __future__ import annotations
 
 import importlib
-import os
 import subprocess
 import sys
 import textwrap
-import warnings
 
 import pytest
-
-_CLEAN_ENV = {k: v for k, v in os.environ.items() if k != "EAGER_IMPORT"}
 
 
 def _sys_modules_after(import_stmt: str) -> set[str]:
@@ -32,7 +28,6 @@ def _sys_modules_after(import_stmt: str) -> set[str]:
     """)
     result = subprocess.run(
         [sys.executable, "-c", script],
-        env=_CLEAN_ENV,
         capture_output=True,
         text=True,
     )
@@ -44,13 +39,13 @@ def _sys_modules_after(import_stmt: str) -> set[str]:
 
 def test_auxlib_logz_does_not_pull_in_serialize_json() -> None:
     """conda.auxlib.logz must not import conda.common.serialize.json eagerly."""
-    loaded = _sys_modules_after("import conda.auxlib.logz  # noqa: F401")
+    loaded = _sys_modules_after("import conda.auxlib.logz")
     assert "conda.common.serialize.json" not in loaded
 
 
 def test_common_serialize_does_not_pull_in_json() -> None:
     """Importing conda.common.serialize must not import .json eagerly."""
-    loaded = _sys_modules_after("import conda.common.serialize  # noqa: F401")
+    loaded = _sys_modules_after("import conda.common.serialize")
     assert "conda.common.serialize.json" not in loaded
 
 
