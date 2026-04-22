@@ -12,6 +12,7 @@ Object inheritance:
 from __future__ import annotations
 
 from copy import copy
+from functools import cache
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -36,6 +37,7 @@ from ..common.url import (
     split_scheme_auth_token,
     urlparse,
 )
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -48,31 +50,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-class ChannelType(type):
-    """
-    This metaclass does basic caching and enables static constructor method usage with a
-    single arg.
-    """
-
-    def __call__(cls, *args, **kwargs):
-        if len(args) == 1 and not kwargs:
-            value = args[0]
-            if isinstance(value, Channel):
-                return value
-            elif value in Channel._cache_:
-                return Channel._cache_[value]
-            else:
-                c = Channel._cache_[value] = Channel.from_value(value)
-                return c
-        elif "channels" in kwargs:
-            # presence of 'channels' kwarg indicates MultiChannel
-            channels = tuple(cls(**_kwargs) for _kwargs in kwargs["channels"])
-            return MultiChannel(kwargs["name"], channels)
-        else:
-            return super().__call__(*args, **kwargs)
-
-
-class Channel(metaclass=ChannelType):
+class Channel:
     """
     Channel:
     scheme <> auth <> location <> token <> channel <> subchannel <> platform <> package_filename
@@ -82,11 +60,20 @@ class Channel(metaclass=ChannelType):
 
     """
 
-    _cache_ = {}
-
     @staticmethod
     def _reset_state() -> None:
-        Channel._cache_ = {}
+        Channel.from_value.cache_clear()
+
+    def __new__(cls, *args, **kwargs):
+        if len(args) == 1 and not kwargs:
+            value = args[0]
+            if isinstance(value, Channel):
+                return value
+            return cls.from_value(value)
+        if "channels" in kwargs:
+            channels = tuple(cls(**_kw) for _kw in kwargs["channels"])
+            return MultiChannel(kwargs["name"], channels)
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -98,6 +85,8 @@ class Channel(metaclass=ChannelType):
         platform: str | None = None,
         package_filename: str | None = None,
     ):
+        if self.__dict__:
+            return
         self.scheme = scheme
         self.auth = auth
         self.location = location
@@ -127,6 +116,7 @@ class Channel(metaclass=ChannelType):
         return _get_channel_for_name(channel_name)
 
     @staticmethod
+    @cache
     def from_value(value: str | None) -> Channel:
         """Construct a new :class:`Channel` from a single value.
 
@@ -425,19 +415,27 @@ class MultiChannel(Channel):
     def __init__(
         self,
         name: str,
-        channels: Iterable[Channel],
+        channels: Iterable[Channel] | None = None,
         platform: str | None = None,
     ):
+        # ``channels`` is optional so the post-``__new__`` ``__init__`` pass
+        # on the single-arg path (e.g. ``Channel("defaults")`` returning a
+        # cached ``MultiChannel`` from ``Channel.from_value``) binds cleanly.
+        # The re-entry guard below short-circuits before anything here runs.
+        if self.__dict__:
+            return
         self.name = name
         self.location = None
 
-        # assume all channels are Channels (not MultiChannels)
-        if platform:
-            channels = (
-                Channel(**{**channel.dump(), "platform": platform})
-                for channel in channels
-            )
-        self._channels = tuple(channels)
+        if channels is None:
+            self._channels = ()
+        else:
+            if platform:
+                channels = (
+                    Channel(**{**channel.dump(), "platform": platform})
+                    for channel in channels
+                )
+            self._channels = tuple(channels)
 
         self.scheme = None
         self.auth = None
@@ -738,3 +736,16 @@ def get_channel_objs(ctx: Context) -> tuple[Channel, ...]:
 
 
 context.register_reset_callaback(Channel._reset_state)
+
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "ChannelType",
+    type(Channel),
+    addendum=(
+        "`Channel` no longer uses a metaclass; single-arg construction and "
+        "`MultiChannel` dispatch moved to `Channel.__new__`. "
+        "Use `type(Channel)` (i.e. the builtin `type`) if you need the metaclass."
+    ),
+)
