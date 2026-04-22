@@ -122,9 +122,9 @@ def test_emscripten_forge(
         "--platform=emscripten-wasm32",
         "--override-channels",
         "-c",
-        "https://repo.mamba.pm/emscripten-forge",
+        "https://repo.prefix.dev/emscripten-forge-4x",
         "-c",
-        "conda-forge",
+        "https://repo.prefix.dev/conda-forge",
         "pyjs",
     ) as prefix:
         assert package_is_installed(prefix, "pyjs")
