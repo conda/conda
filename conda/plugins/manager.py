@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, overload
 
 import pluggy
 
-from ..auxlib import NULL
+from ..auxlib import NULL, dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist, load_file
@@ -1060,6 +1060,7 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return self.get_environment_specifier2_by_name(source=source, name=name)
 
+    # TODO: should this be falling back to the old plugin format?
     def get_environment(
         self,
         source: str,

@@ -736,6 +736,8 @@ class CondaEnvironmentSpecifier2(CondaPlugin):
         requesting it as a cli argument or setting in .condarc. By default, autodetection is enabled.
     :param env: callable that parses the file and returns an Environment object
     :param validate: callable that determines if the plugin can handle a given file based on the file content
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
@@ -744,6 +746,42 @@ class CondaEnvironmentSpecifier2(CondaPlugin):
     aliases: tuple[str, ...] = field(default_factory=tuple)
     default_filenames: tuple[str, ...] = field(default_factory=tuple)
     detection_supported: bool = True
+    description: str | None = field(default=None)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        """
+        Platforms this spec can produce an ``Environment`` for.
+
+        Defaults to ``(context.subdir,)``. Multi-platform specs
+        (``conda-lock.yml``, ``pixi.lock``) override to return every
+        platform declared in the input file.
+        """
+        from ..base.context import context
+
+        return (context.subdir,)
+
+    def env_for(self, platform: str) -> Environment:
+        """
+        Return the ``Environment`` for a specific platform.
+
+        Defaults to returning :attr:`env` when ``platform`` matches
+        ``context.subdir``, and raising :class:`ValueError` otherwise.
+        Multi-platform specs override this method to build the
+        ``Environment`` directly from the parsed input file without
+        constructing one per platform.
+
+        To iterate every platform a spec covers::
+
+            envs = (spec.env_for(p) for p in spec.available_platforms)
+        """
+        if platform not in self.available_platforms:
+            raise ValueError(
+                f"Platform {platform!r} not available in this spec. "
+                f"Available platforms: {', '.join(self.available_platforms)}"
+            )
+        return self.env
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
