@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from collections.abc import Callable, Iterable
     from contextlib import AbstractContextManager
-    from typing import Any, ClassVar, Literal, TypeAlias
+    from typing import Any, ClassVar, Literal, Protocol, TypeAlias
 
     from ..auxlib import _Null
     from ..common.configuration import Parameter
@@ -55,6 +55,20 @@ if TYPE_CHECKING:
     # Callback type for health check fixer confirmation prompts.
     # Raises CondaSystemExit if user declines, or DryRunExit in dry-run mode.
     ConfirmCallback: TypeAlias = Callable[[str], None]
+
+    class CondaPluginWithAliases(Protocol):
+        """
+        Structural type for plugins that expose a canonical :attr:`~CondaPlugin.name`
+        and :attr:`aliases`.
+
+        Used when building lookup mappings that include alternate names (for example
+        environment specifiers, exporters, and settings). Concrete types such as
+        :class:`CondaSetting`, :class:`CondaEnvironmentSpecifier`, and
+        :class:`CondaEnvironmentExporter` satisfy this protocol.
+        """
+
+        name: str
+        aliases: tuple[str, ...]
 
 
 @dataclass

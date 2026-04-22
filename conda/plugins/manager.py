@@ -53,7 +53,7 @@ from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-    from typing import Any, Literal, cast
+    from typing import Any, Literal, TypeVar, cast
 
     from pluggy import HookImpl
     from requests.auth import AuthBase
@@ -69,7 +69,7 @@ if TYPE_CHECKING:
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
         CondaPackageExtractor,
-        CondaPlugin,
+        CondaPluginWithAliases,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -85,6 +85,8 @@ if TYPE_CHECKING:
         CondaSubcommand,
         CondaVirtualPackage,
     )
+
+    P = TypeVar("P", bound=CondaPluginWithAliases)
 
 log = logging.getLogger(__name__)
 
@@ -587,7 +589,7 @@ class CondaPluginManager(pluggy.PluginManager):
         self, *, supports_detection: bool | None = None, with_aliases: bool = True
     ) -> dict[str, CondaEnvironmentSpecifier]:
         """
-         Returns a mapping from environment specifier name to environment specifier.
+        Returns a mapping from environment specifier name to environment specifier.
 
         :param supports_detection: ternary value that returns either everything, only supporting
                                     detection or not supporting detection.
@@ -614,17 +616,15 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"Plugin name conflicts detected in environment specifiers.\n{err}"
             )
 
-    def _get_name_and_alias_mapping(
-        self, plugins: Iterable[CondaPlugin]
-    ) -> dict[str, CondaEnvironmentSpecifier]:
+    def _get_name_and_alias_mapping(self, plugins: Iterable[P]) -> dict[str, P]:
         """
         Get a mapping from plugin names (including aliases) to plugin.
 
-        :param plugins: List of plugins that have a name and aliases attribute.
-        :return: Dict mapping format name to CondaEnvironmentExporter
-        :raises PluginError: If multiple exporters use the same format name or alias
+        :param plugins: Plugins that expose a ``name`` and ``aliases``.
+        :return: Mapping from each canonical name and alias to the corresponding plugin.
+        :raises PluginError: If multiple plugins use the same name or alias.
         """
-        mapping = {}
+        mapping: dict[str, P] = {}
         conflicts = {}  # format_name -> set of plugin names
 
         for plugin in plugins:
