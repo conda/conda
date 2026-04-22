@@ -38,3 +38,13 @@
 #conda-documentation .sd-tab-content {
     min-height: 9rem;
 }
+
+/** Sphinx Design Cards Overrides **/
+.sd-card-body h1,
+.sd-card-body h2,
+.sd-card-body h3,
+.sd-card-body h4,
+.sd-card-body h5,
+.sd-card-body h6 {
+    margin-top: 5px;
+}
