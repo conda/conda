@@ -874,33 +874,29 @@ def test_expand_search_path(tmp_path):
     assert expanded == [symlink], expanded
 
 
-@pytest.fixture
-def minimal_config_class():
+class MinimalConfig(Configuration):
     """Configuration subclass with a single ``channels`` parameter."""
 
-    class MinimalConfig(Configuration):
-        channels = ParameterLoader(SequenceParameter(PrimitiveParameter("")))
-
-    return MinimalConfig
+    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("")))
 
 
-def test_set_search_path_result_is_tuple(tmp_path: Path, minimal_config_class) -> None:
+def test_set_search_path_result_is_tuple(tmp_path: Path) -> None:
     """``_search_path`` is a tuple, not a lazy generator."""
     condarc = tmp_path / "condarc"
     condarc.write_text("channels:\n  - defaults\n")
 
-    cfg = minimal_config_class([str(condarc)])
+    cfg = MinimalConfig([str(condarc)])
 
     assert isinstance(cfg._search_path, tuple)
     assert condarc in cfg._search_path
 
 
-def test_set_search_path_reloads_raw_data(tmp_path: Path, minimal_config_class) -> None:
+def test_set_search_path_reloads_raw_data(tmp_path: Path) -> None:
     """Repeat calls repopulate ``raw_data`` (cleared by ``Configuration.__init__`` on reset)."""
     condarc = tmp_path / "condarc"
     condarc.write_text("channels:\n  - defaults\n")
 
-    cfg = minimal_config_class([str(condarc)])
+    cfg = MinimalConfig([str(condarc)])
     assert cfg.raw_data
 
     cfg.raw_data = {}
@@ -919,7 +915,6 @@ def test_set_search_path_reloads_raw_data(tmp_path: Path, minimal_config_class) 
 )
 def test_set_search_path_refreshes_on_new_path(
     tmp_path: Path,
-    minimal_config_class,
     channels_a: list[str],
     channels_b: list[str],
 ) -> None:
@@ -929,16 +924,16 @@ def test_set_search_path_refreshes_on_new_path(
     condarc2 = tmp_path / "second.yml"
     condarc2.write_text("channels:\n" + "".join(f"  - {c}\n" for c in channels_b))
 
-    cfg = minimal_config_class([str(condarc1)])
+    cfg = MinimalConfig([str(condarc1)])
     assert cfg._search_path == (condarc1,)
 
     cfg._set_search_path([str(condarc2)])
     assert cfg._search_path == (condarc2,)
 
 
-def test_set_search_path_empty_path(minimal_config_class) -> None:
+def test_set_search_path_empty_path() -> None:
     """Empty search path yields an empty tuple."""
-    cfg = minimal_config_class([])
+    cfg = MinimalConfig([])
     assert cfg._search_path == ()
 
 
@@ -970,7 +965,6 @@ def test_set_search_path_empty_path(minimal_config_class) -> None:
 )
 def test_set_search_path_reflects_fs_changes(
     tmp_path: Path,
-    minimal_config_class,
     entry_rel: str,
     initial: tuple[str, ...],
     mutate,
@@ -983,7 +977,7 @@ def test_set_search_path_reflects_fs_changes(
         (tmp_path / name).write_text("channels:\n  - defaults\n")
 
     entry = str(tmp_path / entry_rel)
-    cfg = minimal_config_class([entry])
+    cfg = MinimalConfig([entry])
     assert cfg._search_path == tuple(tmp_path / name for name in initial)
 
     mutate(tmp_path)
