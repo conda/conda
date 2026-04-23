@@ -250,6 +250,31 @@ def test_invoked_via_exception_handler_class(catch_all_plugin, plugin_manager):
     assert catch_all_plugin.calls[0].exc_value is exc
 
 
+def test_invoked_for_unexpected_exception_path(
+    base_exception_plugin, plugin_manager, monkeypatch
+):
+    """
+    Non-CondaError exceptions route to ExceptionHandler.handle_unexpected_exception.
+    The plugin hook fires at the top of handle_exception, before the isinstance
+    chain, so plugins observe those too.
+    """
+    monkeypatch.setattr(
+        ExceptionHandler, "print_unexpected_error_report", lambda self, report: None
+    )
+    handler = ExceptionHandler()
+    exc = RuntimeError("not a conda error")
+    try:
+        raise exc
+    except RuntimeError:
+        _, exc_val, exc_tb = sys.exc_info()
+        handler.handle_exception(exc_val, exc_tb)
+
+    assert len(base_exception_plugin.calls) == 1
+    info = base_exception_plugin.calls[0]
+    assert info.exc_value is exc
+    assert info.exc_type is RuntimeError
+
+
 def test_no_handlers_registered(plugin_manager):
     """Invocation is a no-op when no handlers are registered."""
     try:
