@@ -14,18 +14,12 @@ redirect the exception. Their return value is ignored. Any exception
 raised inside a handler is caught and logged at DEBUG level, so a
 buggy plugin can never disrupt conda.
 
-Handlers fire for any exception type — ``CondaError``, ``MemoryError``,
-``KeyboardInterrupt``, ``SystemExit``, and anything conda would
-otherwise surface through its generic "unexpected error" report (the
-``handle_unexpected_exception`` path, e.g. a bare ``RuntimeError`` or
-``KeyError`` from a plugin). Dispatch happens at the top of
-:meth:`~conda.exception_handler.ExceptionHandler.handle_exception`,
-before conda's own ``isinstance`` chain decides how to report the
-error, so plugins see every exception regardless of how conda
-classifies it.
-
-The ``run_for`` parameter controls which exceptions trigger a given
-handler — see `Choosing a run_for scope`_ below.
+Handlers fire for every exception conda handles: ``CondaError`` and
+its subclasses, ``MemoryError``, ``KeyboardInterrupt``, ``SystemExit``,
+and plain Python exceptions such as ``RuntimeError`` or ``KeyError``
+that conda would otherwise report as an unexpected error. The
+``run_for`` parameter selects which of those trigger a given handler;
+see `Choosing a run_for scope`_ below.
 
 Tutorial: reporting missing packages to channels
 -------------------------------------------------
@@ -100,8 +94,7 @@ below).
 Choosing a ``run_for`` scope
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pick the narrowest scope that captures the exceptions you actually
-care about:
+Pick the narrowest scope that covers the exceptions you care about:
 
 .. list-table::
    :header-rows: 1
@@ -109,38 +102,32 @@ care about:
 
    * - ``run_for``
      - Captures
-     - Typical use case
+     - Typical use
    * - ``{"CondaError"}``
-     - All conda-originated errors and subclasses (missing packages,
-       solver failures, channel errors, etc.).
-     - Plugins that only care about conda's own domain errors
-       (channel demand tracking, solver analytics).
+     - All conda errors and their subclasses (missing packages, solver
+       failures, channel errors).
+     - Plugins focused on conda's own errors — channel demand tracking,
+       solver analytics.
    * - ``{"PackagesNotFoundError"}``
-     - A specific error and its subclasses.
+     - One error class and its subclasses.
      - Narrowly targeted integrations.
    * - ``{"Exception"}``
-     - Every standard exception, **including** non-``CondaError``
-       exceptions that conda would normally classify as "unexpected"
-       (e.g. ``RuntimeError``, ``KeyError``, ``AttributeError``) —
-       **excluding** ``KeyboardInterrupt`` and ``SystemExit``.
-     - **Recommended default for error-tracking / telemetry plugins**
-       (Sentry, Rollbar, internal monitoring) — this is the set of
-       exceptions you want to know about without capturing user
-       cancellations or clean exits.
+     - Every standard exception, including non-``CondaError`` types
+       like ``RuntimeError`` or ``KeyError``. Excludes
+       ``KeyboardInterrupt`` and ``SystemExit``.
+     - Sensible default for error-tracking backends such as Sentry
+       or Rollbar.
    * - ``{"BaseException"}``
-     - Absolutely everything, including ``KeyboardInterrupt`` and
+     - Every exception, including ``KeyboardInterrupt`` and
        ``SystemExit``.
-     - Diagnostic and auditing plugins that must observe every exit
-       path. Use sparingly — most trackers do not want
-       ``KeyboardInterrupt`` events.
+     - Diagnostics or auditing where every exit path matters.
    * - ``{"MemoryError"}``, ``{"KeyboardInterrupt"}``, ``{"SystemExit"}``
-     - Specific non-``CondaError`` exceptions.
-     - Narrowly targeted handlers (e.g. "on OOM, flush a counter").
+     - Specific non-``CondaError`` types.
+     - Narrowly targeted handlers.
    * - ``{"CondaError", "MemoryError"}``
-     - Multiple scopes combined — the handler fires if any class in the
+     - Union of scopes — the handler fires when any class in the
        exception's MRO matches any entry in the set.
-     - Mix-and-match when you need conda errors *plus* a specific
-       non-conda type.
+     - Combining a domain scope with a specific non-conda type.
 
 Step 2 — package and register
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -281,22 +268,23 @@ when the runtime is available (meaning no environment is active):
 
 .. warning::
 
-   Do not store references to ``exc_value`` or ``exc_traceback`` beyond
-   the lifetime of the callback — this can create reference cycles and
-   prevent garbage collection.
+   Handlers run synchronously. ``exc_traceback`` is released as soon as
+   dispatch returns, and keeping references to ``exc_value`` or
+   ``exc_traceback`` can create reference cycles that prevent garbage
+   collection. Capture or serialize any traceback data you need inside
+   the callback — do not hand these objects off to a background thread
+   or deferred queue.
 
 Design notes
 -------------
 
 - **Observational only** — handlers cannot change conda's behavior.
   This follows CPython's :func:`sys.excepthook` model.
-- **All exception types** — handlers fire for any exception, not just
-  ``CondaError``. Dispatch happens at the top of
+- **All exception types** — dispatch happens at the top of
   :meth:`~conda.exception_handler.ExceptionHandler.handle_exception`,
-  before conda decides whether an exception is reportable, application,
-  or "unexpected" — so exceptions that conda would otherwise surface
-  through the generic error report (e.g. ``RuntimeError``,
-  ``KeyError``) are also observed. Use ``run_for`` to control scope.
+  before conda's own error-report dispatch, so handlers see every
+  exception regardless of how conda would classify it. Use
+  ``run_for`` to control scope.
 - **Fault-tolerant** — any exception (including ``SystemExit``) raised
   by a handler is caught at the ``BaseException`` level, logged, and
   swallowed.
