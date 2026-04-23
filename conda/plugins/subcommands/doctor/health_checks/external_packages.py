@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 from typing import TYPE_CHECKING
 
 from .....base.constants import OK_MARK, X_MARK
@@ -38,8 +40,6 @@ def print_external_packages(prefix: str, verbose: bool) -> None:
 
 FORBIDDEN_LIST = {"msgpack", "ruamel-yaml", "pip", "setuptools"}
 
-import subprocess
-
 
 def conda_has_package(name: str) -> bool:
     result = subprocess.run(
@@ -69,9 +69,6 @@ def build_migration_plan(packages):
             external_only.append(name)
 
     return safe, external_only
-
-
-import sys
 
 
 def execute_migration(prefix, args, confirm, safe_packages):
