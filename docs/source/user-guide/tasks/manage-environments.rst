@@ -503,6 +503,8 @@ People sometimes choose this setting to speed up the time their shell takes
 to start up or to keep conda-installed software from automatically
 hiding their other software.
 
+.. _nested-activation:
+
 Nested activation
 -----------------
 
@@ -527,6 +529,40 @@ You may specify a larger number for a deeper level of automatic stacking,
 but this is not recommended since deeper levels of stacking are more likely
 to lead to confusion.
 
+Environment history
+^^^^^^^^^^^^^^^^^^^
+
+Even without ``--stack``, conda keeps track of previously active
+environments. When you activate a new environment, conda replaces the
+current environment in ``PATH`` but remembers which environment was
+active before. Running ``conda deactivate`` returns you to that
+previous environment rather than fully deactivating conda.
+
+For example::
+
+  conda activate base       # CONDA_SHLVL=1, active: base
+  conda activate env1       # CONDA_SHLVL=2, active: env1 (base is remembered)
+  conda activate env2       # CONDA_SHLVL=3, active: env2 (env1 is remembered)
+  conda deactivate          # returns to env1, not base
+  conda deactivate          # returns to base
+  conda deactivate          # fully deactivates conda
+
+This differs from ``--stack`` in that only one environment is on
+``PATH`` at a time. The previous environments are saved only so that
+``conda deactivate`` can restore them.
+
+Conda tracks the depth of this history with the ``CONDA_SHLVL``
+environment variable and stores each previous prefix in
+``CONDA_PREFIX_N`` variables (where N is the level number). If a level
+was activated with ``--stack``, conda also sets ``CONDA_STACKED_N``
+to ``true`` for that level.
+
+To switch directly to a different environment without increasing the
+history depth, use ``conda activate`` on the target environment. Each
+call to ``conda activate`` always adds one level. If you want to fully
+deactivate and start fresh, either call ``conda deactivate`` until
+``CONDA_SHLVL`` reaches 0 or start a new shell.
+
 Environment variable for DLL loading verification
 -------------------------------------------------
 
@@ -544,8 +580,11 @@ Deactivating an environment
 
 To deactivate an environment, type: ``conda deactivate``
 
-Conda removes the path name for the currently active environment from
-your system command.
+If you have activated multiple environments in sequence, ``conda deactivate``
+returns you to the previously active environment (see
+:ref:`environment history <nested-activation>` above). Repeat the command to
+go further back in the history. When ``CONDA_SHLVL`` reaches 0, conda is
+fully deactivated.
 
 .. note::
    To simply return to the default environment, it's better to call ``conda
