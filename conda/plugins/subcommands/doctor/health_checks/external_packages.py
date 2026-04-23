@@ -9,6 +9,7 @@ import sys
 from typing import TYPE_CHECKING
 
 from .....base.constants import OK_MARK, X_MARK
+from .....base.context import context
 from .....cli.install import reinstall_packages
 from .....core.prefix_data import PrefixData
 from .... import hookimpl
@@ -107,6 +108,11 @@ def execute_migration(prefix, args, confirm, safe_packages):
 
 
 def migrate_to_pypi(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
+
+    if prefix == context.root_prefix:
+        print("Cannot migrate packages in the base environment.")
+        return 0
+
     external_packages = find_external_packages(prefix)
 
     if not external_packages:
