@@ -40,4 +40,8 @@ Common uses: **`deprecated(...)`** (functions, methods, classes), **`.argument`*
 - Prefer **clear names** and **small, focused** tests; the body should read as the spec.
 - Keep **docstrings short**; long prose drifts from the code.
 - Avoid **`assert expr, "message"`** — use a **`#` comment** above the line if needed.
-- Prefer **`pytest-mock`**’s **`mocker`** fixture over **`unittest.mock`**.
+- Prefer using **native and installed pytest fixtures**, e.g. **`monkeypatch`**.
+- Prefer to **reuse tests wide fixtures**, and implement local fixtures if useful.
+- Use **`pytest-mock`**’s **`mocker`** fixture instead of **`unittest.mock`**, if needed.
+- Parameterize tests to reduce repetition.
+- Don't use section comments or other dividers to group code.
