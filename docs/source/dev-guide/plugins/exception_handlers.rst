@@ -106,8 +106,8 @@ Pick the narrowest scope that covers the exceptions you care about:
    * - ``{"CondaError"}``
      - All conda errors and their subclasses (missing packages, solver
        failures, channel errors).
-     - Plugins focused on conda's own errors — channel demand tracking,
-       solver analytics.
+     - Plugins focused on conda's own errors (channel demand tracking,
+       solver analytics).
    * - ``{"PackagesNotFoundError"}``
      - One error class and its subclasses.
      - Narrowly targeted integrations.
@@ -125,7 +125,7 @@ Pick the narrowest scope that covers the exceptions you care about:
      - Specific non-``CondaError`` types.
      - Narrowly targeted handlers.
    * - ``{"CondaError", "MemoryError"}``
-     - Union of scopes — the handler fires when any class in the
+     - Union of scopes. The handler fires when any class in the
        exception's MRO matches any entry in the set.
      - Combining a domain scope with a specific non-conda type.
 
@@ -272,7 +272,7 @@ when the runtime is available (meaning no environment is active):
    dispatch returns, and keeping references to ``exc_value`` or
    ``exc_traceback`` can create reference cycles that prevent garbage
    collection. Capture or serialize any traceback data you need inside
-   the callback — do not hand these objects off to a background thread
+   the callback. Do not hand these objects off to a background thread
    or deferred queue.
 
 Design notes
