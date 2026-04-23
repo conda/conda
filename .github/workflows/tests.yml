@@ -122,7 +122,7 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@77236efeba76d591229f44c36f2469426cc33dec # main (post-v3.3.0 perf improvements)
+        uses: conda-incubator/setup-miniconda@bce0bd83659520ccaf4925e604d458d512f7df37 # v4.0.0
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -262,7 +262,7 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@77236efeba76d591229f44c36f2469426cc33dec # main (post-v3.3.0 perf improvements)
+        uses: conda-incubator/setup-miniconda@bce0bd83659520ccaf4925e604d458d512f7df37 # v4.0.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -363,7 +363,7 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@77236efeba76d591229f44c36f2469426cc33dec # main (post-v3.3.0 perf improvements)
+        uses: conda-incubator/setup-miniconda@bce0bd83659520ccaf4925e604d458d512f7df37 # v4.0.0
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
@@ -432,7 +432,7 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@77236efeba76d591229f44c36f2469426cc33dec # main (post-v3.3.0 perf improvements)
+        uses: conda-incubator/setup-miniconda@bce0bd83659520ccaf4925e604d458d512f7df37 # v4.0.0
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
@@ -584,7 +584,7 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@77236efeba76d591229f44c36f2469426cc33dec # main (post-v3.3.0 perf improvements)
+        uses: conda-incubator/setup-miniconda@bce0bd83659520ccaf4925e604d458d512f7df37 # v4.0.0
         with:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
@@ -678,7 +678,7 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@77236efeba76d591229f44c36f2469426cc33dec # main (post-v3.3.0 perf improvements)
+        uses: conda-incubator/setup-miniconda@bce0bd83659520ccaf4925e604d458d512f7df37 # v4.0.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
@@ -846,7 +846,7 @@ jobs:
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@77236efeba76d591229f44c36f2469426cc33dec # main (post-v3.3.0 perf improvements)
+        uses: conda-incubator/setup-miniconda@bce0bd83659520ccaf4925e604d458d512f7df37 # v4.0.0
         with:
           condarc-file: conda/.github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
