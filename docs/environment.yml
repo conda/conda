@@ -29,7 +29,7 @@ dependencies:
   - sphinxcontrib-qthelp==2.0.0
   - sphinxcontrib-serializinghtml==2.0.0
   - tqdm>=4
-  - conda-libmamba-solver>=25.11.0
+  - conda-libmamba-solver>=26.4.0
   - pip>25
   - pip:
       - sphinxcontrib-plantuml==0.31
