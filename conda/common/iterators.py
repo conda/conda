@@ -4,27 +4,42 @@
 
 from __future__ import annotations
 
-import collections
-import itertools
 from typing import TYPE_CHECKING
 
+from ..deprecations import deprecated
+
 if TYPE_CHECKING:
-    from collections.abc import Generator, Sequence
-    from typing import Any
+    from collections.abc import Callable, Iterable
+    from typing import Any, TypeVar
+
+    T = TypeVar("T")
+    K = TypeVar("K")
 
 
-def groupby_to_dict(keyfunc, sequence):
+@deprecated.argument(
+    "26.9",
+    "27.3",
+    "sequence",
+    rename="iterable",
+    addendum="Use `collections.defaultdict` instead.",
+)
+def groupby_to_dict(
+    keyfunc: Callable[[T], K], iterable: Iterable[T]
+) -> dict[K, list[T]]:
     """A `toolz`-style groupby implementation.
 
     Returns a dictionary of { key: [group] } instead of iterators.
     """
-    result = collections.defaultdict(list)
-    for key, group in itertools.groupby(sequence, keyfunc):
+    from collections import defaultdict
+    from itertools import groupby
+
+    result: dict[K, list[T]] = defaultdict(list)
+    for key, group in groupby(iterable, keyfunc):
         result[key].extend(group)
     return dict(result)
 
 
-def unique(sequence: Sequence[Any]) -> Generator[Any, None, None]:
+def unique(iterable: Iterable[T]) -> Iterable[T]:
     """A `toolz` inspired `unique` implementation.
 
     Returns a generator of unique elements in the sequence
@@ -33,7 +48,7 @@ def unique(sequence: Sequence[Any]) -> Generator[Any, None, None]:
     yield from (
         # seen.add always returns None so we will always return element
         seen.add(element) or element
-        for element in sequence
+        for element in iterable
         # only pass along novel elements
         if element not in seen
     )
