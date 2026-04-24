@@ -735,6 +735,81 @@ class CondaEnvironmentSpecifier(CondaPlugin):
 
 
 @dataclass
+class CondaEnvironmentSpecifier2(CondaPlugin):
+    """
+    Return type to use when defining a conda env spec plugin hook (v2).
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers2`.
+
+    :param name: name of the spec (e.g., ``environment_yaml``)
+    :param aliases: user-friendly format aliases (e.g., ("yaml",)). Defaults to an empty list.
+    :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
+    :param detection_supported: boolean that determines if the plugin should be included in the set of available plugins
+        checked during environment_spec plugin detection. If False, the only way to use the plugin will be through explicitly
+        requesting it as a cli argument or setting in .condarc. By default, autodetection is enabled.
+    :param env: callable that parses the file and returns an Environment object
+    :param validate: callable that determines if the plugin can handle a given file based on the file content
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
+    """
+
+    name: str
+    env: Callable[[str], Environment]
+    validate: Callable[[str], bool]
+    aliases: tuple[str, ...] = field(default_factory=tuple)
+    default_filenames: tuple[str, ...] = field(default_factory=tuple)
+    detection_supported: bool = True
+    description: str | None = field(default=None)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        """
+        Platforms this spec can produce an ``Environment`` for.
+
+        Defaults to ``(context.subdir,)``. Multi-platform specs
+        (``conda-lock.yml``, ``pixi.lock``) override to return every
+        platform declared in the input file.
+        """
+        from ..base.context import context
+
+        return (context.subdir,)
+
+    def env_for(self, platform: str) -> Environment:
+        """
+        Return the ``Environment`` for a specific platform.
+
+        Defaults to returning :attr:`env` when ``platform`` matches
+        ``context.subdir``, and raising :class:`ValueError` otherwise.
+        Multi-platform specs override this method to build the
+        ``Environment`` directly from the parsed input file without
+        constructing one per platform.
+
+        To iterate every platform a spec covers::
+
+            envs = (spec.env_for(p) for p in spec.available_platforms)
+        """
+        if platform not in self.available_platforms:
+            raise ValueError(
+                f"Platform {platform!r} not available in this spec. "
+                f"Available platforms: {', '.join(self.available_platforms)}"
+            )
+        return self.env
+
+    def __post_init__(self):
+        super().__post_init__()  # Handle name normalization
+        # Normalize aliases using same pattern as name normalization
+        try:
+            self.aliases = tuple(
+                dict.fromkeys(alias.lower().strip() for alias in self.aliases)
+            )
+        except AttributeError:
+            # AttributeError: alias is not a string
+            raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+
+@dataclass
 class CondaEnvironmentExporter(CondaPlugin):
     """
     **EXPERIMENTAL**
