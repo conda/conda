@@ -29,6 +29,8 @@ class CondaExportWarning(Warning):
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from textwrap import indent
+
     from .helpers import (
         LazyChoicesAction,
         add_parser_json,
@@ -52,18 +54,38 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     example_blocks = ["Examples:"]
     if spec_example:
         example_blocks.append(
-            "  Export an environment spec:\n"
-            f"    conda export --from-history > {spec_example}"
+            indent(
+                dals(
+                    f"""
+                    Export an environment spec:
+                      conda export --from-history > {spec_example}
+                    """
+                ).rstrip(),
+                "  ",
+            )
         )
     if lock_example:
         example_blocks.append(
-            "  Export a lockfile for the same platform:\n"
-            f"    conda export --file {lock_example}"
+            indent(
+                dals(
+                    f"""
+                    Export a lockfile for the same platform:
+                      conda export --file {lock_example}
+                    """
+                ).rstrip(),
+                "  ",
+            )
         )
         example_blocks.append(
-            "  Export a lockfile for multiple platforms:\n"
-            f"    conda export --file {lock_example} "
-            "--platform linux-64 --platform osx-arm64"
+            indent(
+                dals(
+                    f"""
+                    Export a lockfile for multiple platforms:
+                      conda export --file {lock_example} --platform linux-64 --platform osx-arm64
+                    """
+                ).rstrip(),
+                "  ",
+            )
         )
     epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
         exporters, heading="Available formats"

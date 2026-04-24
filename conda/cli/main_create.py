@@ -19,6 +19,8 @@ log = getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from textwrap import indent
+
     from ..auxlib.ish import dals
     from ..base.context import context
     from ..common.constants import NULL
@@ -53,24 +55,52 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     # Compose the Examples block out of static and plugin-driven pieces.
     # We drop conditional blocks whose referenced filename isn't available
     # in the current plugin set, so ``conda create --help`` never prints an
-    # example that won't work as typed.
+    # example that won't work as typed. ``indent`` adds the 2-space outer
+    # margin that ``dals`` (via ``textwrap.dedent``) would otherwise strip.
     example_blocks = [
-        "Examples:\n\n"
-        "  Create from package specs:\n"
-        "    conda create -n myenv python=3.12 numpy",
+        dals(
+            """
+            Examples:
+
+              Create from package specs:
+                conda create -n myenv python=3.12 numpy
+            """
+        ).rstrip()
     ]
     if spec_example:
         example_blocks.append(
-            "  Create from an environment spec (solved at install time):\n"
-            f"    conda create -n myenv --file {spec_example}"
+            indent(
+                dals(
+                    f"""
+                    Create from an environment spec (solved at install time):
+                      conda create -n myenv --file {spec_example}
+                    """
+                ).rstrip(),
+                "  ",
+            )
         )
     if lock_example:
         example_blocks.append(
-            "  Create from a lockfile (no solve, exact reproduction):\n"
-            f"    conda create -n myenv --file {lock_example}"
+            indent(
+                dals(
+                    f"""
+                    Create from a lockfile (no solve, exact reproduction):
+                      conda create -n myenv --file {lock_example}
+                    """
+                ).rstrip(),
+                "  ",
+            )
         )
     example_blocks.append(
-        "  Clone an existing environment:\n    conda create -n env2 --clone env1"
+        indent(
+            dals(
+                """
+                Clone an existing environment:
+                  conda create -n env2 --clone env1
+                """
+            ).rstrip(),
+            "  ",
+        )
     )
     epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
         specifiers, heading="Available input formats"
