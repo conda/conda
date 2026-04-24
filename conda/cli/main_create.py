@@ -22,7 +22,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..auxlib.ish import dals
     from ..base.context import context
     from ..common.constants import NULL
-    from ..plugins.types import EnvironmentFormat
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
@@ -32,15 +31,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     plugin_manager = context.plugin_manager
-    categories = plugin_manager.get_specifier_formats_by_category()
-    spec_example = plugin_manager.example_filename(
-        categories.get(EnvironmentFormat.environment, ())
-    )
-    lock_example = plugin_manager.example_filename(
-        categories.get(EnvironmentFormat.lockfile, ())
-    )
+    specifiers = list(plugin_manager.get_hook_results("environment_specifiers"))
+    spec_example, lock_example = plugin_manager.resolve_format_examples(specifiers)
 
-    summary = "Create a new conda environment from a list of specified packages. "
+    summary = "Create a new conda environment from a list of specified packages."
     description = dals(
         f"""
         {summary}
@@ -56,33 +50,30 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     )
 
-    example_lines = [
-        "Examples:",
-        "",
-        "  Create from package specs:",
+    # Compose the Examples block out of static and plugin-driven pieces.
+    # We drop conditional blocks whose referenced filename isn't available
+    # in the current plugin set, so ``conda create --help`` never prints an
+    # example that won't work as typed.
+    example_blocks = [
+        "Examples:\n\n"
+        "  Create from package specs:\n"
         "    conda create -n myenv python=3.12 numpy",
-        "",
     ]
     if spec_example:
-        example_lines += [
-            "  Create from an environment spec (solved at install time):",
-            f"    conda create -n myenv --file {spec_example}",
-            "",
-        ]
+        example_blocks.append(
+            "  Create from an environment spec (solved at install time):\n"
+            f"    conda create -n myenv --file {spec_example}"
+        )
     if lock_example:
-        example_lines += [
-            "  Create from a lockfile (no solve, exact reproduction):",
-            f"    conda create -n myenv --file {lock_example}",
-            "",
-        ]
-    example_lines += [
-        "  Clone an existing environment:",
-        "    conda create -n env2 --clone env1",
-    ]
-    examples = "\n".join(example_lines)
-
-    epilog = examples + plugin_manager.describe_specifier_formats(
-        heading="Available input formats"
+        example_blocks.append(
+            "  Create from a lockfile (no solve, exact reproduction):\n"
+            f"    conda create -n myenv --file {lock_example}"
+        )
+    example_blocks.append(
+        "  Clone an existing environment:\n    conda create -n env2 --clone env1"
+    )
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
+        specifiers, heading="Available input formats"
     )
     p = sub_parsers.add_parser(
         "create",

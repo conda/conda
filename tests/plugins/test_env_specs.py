@@ -742,7 +742,10 @@ def test_describe_specifier_formats_groups_by_category(
     plugin_manager_with_specifiers,
 ):
     """Specifiers are grouped by category."""
-    rendered = plugin_manager_with_specifiers.describe_specifier_formats()
+    specifiers = list(
+        plugin_manager_with_specifiers.get_hook_results("environment_specifiers")
+    )
+    rendered = plugin_manager_with_specifiers.describe_formats(specifiers)
     assert "Environment specs:" in rendered
     if "Lockfiles:" in rendered:
         assert rendered.index("Environment specs:") < rendered.index("Lockfiles:")
@@ -757,11 +760,14 @@ def test_describe_specifier_formats_includes_registered_lockfile_plugin(
     plugin_manager_with_specifiers.register(plugin)
     request.addfinalizer(lambda: plugin_manager_with_specifiers.unregister(plugin))
 
-    rendered = plugin_manager_with_specifiers.describe_specifier_formats()
+    specifiers = list(
+        plugin_manager_with_specifiers.get_hook_results("environment_specifiers")
+    )
+    rendered = plugin_manager_with_specifiers.describe_formats(specifiers)
     assert "Lockfiles:" in rendered
     assert "- my-lock-v1 (mylock)" in rendered
 
 
 def test_describe_specifier_formats_empty(plugin_manager):
     """Without registered specifiers the description is empty."""
-    assert plugin_manager.describe_specifier_formats() == ""
+    assert plugin_manager.describe_formats([]) == ""

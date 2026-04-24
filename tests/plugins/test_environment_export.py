@@ -360,7 +360,8 @@ def test_describe_exporter_formats_groups_by_category(
     plugin_manager_with_exporters: CondaPluginManager,
 ):
     """Exporters are grouped by category; aliases are rendered in parens."""
-    rendered = plugin_manager_with_exporters.describe_exporter_formats()
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    rendered = plugin_manager_with_exporters.describe_formats(exporters)
 
     assert "Environment specs:" in rendered
     assert "- environment-yaml (yaml, yml, env.yml)" in rendered
@@ -372,28 +373,34 @@ def test_describe_exporter_formats_includes_registered_lockfile_plugin(
     request: pytest.FixtureRequest,
 ):
     """A newly registered lockfile plugin appears under the Lockfiles section."""
-    assert "my-lock-v1" not in plugin_manager_with_exporters.describe_exporter_formats()
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    assert (
+        "my-lock-v1"
+        not in plugin_manager_with_exporters.describe_formats(exporters)
+    )
 
     plugin = DescribeExportersLockfilePlugin()
     plugin_manager_with_exporters.register(plugin)
     request.addfinalizer(lambda: plugin_manager_with_exporters.unregister(plugin))
 
-    rendered = plugin_manager_with_exporters.describe_exporter_formats()
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    rendered = plugin_manager_with_exporters.describe_formats(exporters)
     assert "Lockfiles:" in rendered
     assert "- my-lock-v1 (mylock)" in rendered
 
 
 def test_describe_exporter_formats_empty(plugin_manager):
     """Without registered exporters the description is empty."""
-    assert plugin_manager.describe_exporter_formats() == ""
+    assert plugin_manager.describe_formats([]) == ""
 
 
 def test_describe_exporter_formats_with_heading(
     plugin_manager_with_exporters: CondaPluginManager,
 ):
     """Passing ``heading`` prefixes the body so it can be appended to an epilog."""
-    rendered = plugin_manager_with_exporters.describe_exporter_formats(
-        heading="Available formats"
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    rendered = plugin_manager_with_exporters.describe_formats(
+        exporters, heading="Available formats"
     )
     assert rendered.startswith("\n\nAvailable formats:\n\n")
     assert "Environment specs:" in rendered
@@ -401,7 +408,7 @@ def test_describe_exporter_formats_with_heading(
 
 def test_describe_exporter_formats_with_heading_empty(plugin_manager):
     """``heading`` is dropped when there is no body to render."""
-    assert plugin_manager.describe_exporter_formats(heading="Formats") == ""
+    assert plugin_manager.describe_formats([], heading="Formats") == ""
 
 
 def test_example_filename_returns_first_default(

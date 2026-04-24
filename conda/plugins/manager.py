@@ -857,77 +857,64 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"Format name conflicts detected in environment exporters.\n{err}"
             )
 
-    def describe_exporter_formats(self, heading: str | None = None) -> str:
+    def group_formats_by_category(
+        self,
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+    ) -> dict[EnvironmentFormat, list[CondaEnvironmentExporter | CondaEnvironmentSpecifier]]:
         """
-        Render the registered environment exporter formats for CLI help,
-        grouped by :class:`EnvironmentFormat`.
+        Group plugins by their :class:`EnvironmentFormat` category,
+        preserving registration order within each category.
+
+        Accepts either environment exporters or environment specifiers;
+        callers typically pass the result of
+        :meth:`get_environment_exporters` or ``get_hook_results(
+        "environment_specifiers")``.
+        """
+        groups: dict[
+            EnvironmentFormat,
+            list[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+        ] = {}
+        for plugin in plugins:
+            groups.setdefault(plugin.environment_format, []).append(plugin)
+        return groups
+
+    def describe_formats(
+        self,
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+        heading: str | None = None,
+    ) -> str:
+        """
+        Render the given plugins for CLI help, grouped by
+        :class:`EnvironmentFormat`.
 
         Each format is rendered as ``name (alias1, alias2)`` when aliases
         exist, otherwise as ``name``.
 
+        :param plugins: Environment exporters or specifiers to render.
         :param heading: Optional section heading. When provided and at least
-            one exporter is registered, the returned string is prefixed with
-            two blank lines and ``"{heading}:"`` so it can be appended
-            directly to a parser epilog. When omitted, only the body is
-            returned. Returns an empty string when no exporters are
-            registered.
+            one plugin is present, the returned string is prefixed with two
+            blank lines and ``"{heading}:"`` so it can be appended directly
+            to a parser epilog. When omitted, only the body is returned.
+            Returns an empty string when ``plugins`` is empty.
         """
-        sections = []
-        for fmt, plugins in self.get_exporter_formats_by_category().items():
-            entries = [
-                f"{p.name} ({', '.join(p.aliases)})" if p.aliases else p.name
-                for p in plugins
-            ]
-            sections.append(f"{fmt.label}:{dashlist(entries)}")
+        sections = [
+            f"{fmt.label}:{dashlist(self._format_entries(grouped))}"
+            for fmt, grouped in self.group_formats_by_category(plugins).items()
+        ]
         body = "\n\n".join(sections)
         if body and heading:
             return f"\n\n{heading}:\n\n{body}"
         return body
 
-    def describe_specifier_formats(self, heading: str | None = None) -> str:
-        """
-        Render the registered environment specifier formats for CLI help,
-        grouped by :class:`EnvironmentFormat`. See
-        :meth:`describe_exporter_formats` for the entry format and the
-        ``heading`` argument.
-        """
-        sections = []
-        for fmt, plugins in self.get_specifier_formats_by_category().items():
-            entries = [
-                f"{p.name} ({', '.join(p.aliases)})" if p.aliases else p.name
-                for p in plugins
-            ]
-            sections.append(f"{fmt.label}:{dashlist(entries)}")
-        body = "\n\n".join(sections)
-        if body and heading:
-            return f"\n\n{heading}:\n\n{body}"
-        return body
-
-    def get_exporter_formats_by_category(
-        self,
-    ) -> dict[EnvironmentFormat, list[CondaEnvironmentExporter]]:
-        """
-        Group registered environment exporters by their
-        :class:`EnvironmentFormat` category, preserving registration order
-        within each category.
-        """
-        groups: dict[EnvironmentFormat, list[CondaEnvironmentExporter]] = {}
-        for exporter in self.get_environment_exporters():
-            groups.setdefault(exporter.environment_format, []).append(exporter)
-        return groups
-
-    def get_specifier_formats_by_category(
-        self,
-    ) -> dict[EnvironmentFormat, list[CondaEnvironmentSpecifier]]:
-        """
-        Group registered environment specifiers by their
-        :class:`EnvironmentFormat` category, preserving registration order
-        within each category.
-        """
-        groups: dict[EnvironmentFormat, list[CondaEnvironmentSpecifier]] = {}
-        for spec in self.get_hook_results("environment_specifiers"):
-            groups.setdefault(spec.environment_format, []).append(spec)
-        return groups
+    @staticmethod
+    def _format_entries(
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+    ) -> list[str]:
+        """Render one entry per plugin as ``name`` or ``name (alias, ...)``."""
+        return [
+            f"{p.name} ({', '.join(p.aliases)})" if p.aliases else p.name
+            for p in plugins
+        ]
 
     def example_filename(
         self,
@@ -943,6 +930,28 @@ class CondaPluginManager(pluggy.PluginManager):
             if plugin.default_filenames:
                 return plugin.default_filenames[0]
         return None
+
+    def resolve_format_examples(
+        self,
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+    ) -> tuple[str | None, str | None]:
+        """
+        Return ``(spec_example, lock_example)`` picked from ``plugins``.
+
+        The returned filenames are the first ``default_filenames`` entry
+        found for plugins whose ``environment_format`` is
+        :attr:`EnvironmentFormat.environment` and
+        :attr:`EnvironmentFormat.lockfile` respectively, or ``None`` when
+        no such plugin is registered. Convenience wrapper for CLI parsers
+        that render both example lines in their epilog.
+        """
+        from .types import EnvironmentFormat
+
+        groups = self.group_formats_by_category(plugins)
+        return (
+            self.example_filename(groups.get(EnvironmentFormat.environment, ())),
+            self.example_filename(groups.get(EnvironmentFormat.lockfile, ())),
+        )
 
     def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """
