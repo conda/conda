@@ -20,7 +20,9 @@ log = getLogger(__name__)
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..base.context import context
     from ..common.constants import NULL
+    from ..plugins.types import EnvironmentFormat
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
@@ -29,29 +31,57 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
-    summary = "Create a new conda environment from a list of specified packages. "
+    plugin_manager = context.plugin_manager
+    specifiers = list(plugin_manager.get_hook_results("environment_specifiers"))
+    spec_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.environment, specifiers
+    )
+    lock_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.lockfile, specifiers
+    )
+
+    summary = "Create a new conda environment from a list of specified packages."
     description = dals(
         f"""
         {summary}
+
+        Environments can be created from package specs on the command line,
+        from an input file whose format is detected from its name or
+        contents, or as a clone of an existing environment. See the epilog
+        for the input formats available in your installation.
 
         To use the newly-created environment, use 'conda activate envname'.
         This command requires either the -n NAME or -p PREFIX option unless
         --dry-run or --download-only is specified.
         """
     )
-    epilog = dals(
-        """
-        Examples:
 
-        Create an environment containing the package 'sqlite'::
-
-            conda create -n myenv sqlite
-
-        Create an environment (env2) as a clone of an existing environment (env1)::
-
-            conda create -n env2 --clone path/to/file/env1
-
-        """
+    # Static description blocks use ``dals`` per the house style. The
+    # conditional example sub-blocks below use plain strings with explicit
+    # leading whitespace: ``dals`` would strip any indent smaller than the
+    # longest common prefix, so the "2-space label, 4-space command" shape
+    # we want here (matching the issue #15960 examples) has to be written
+    # literally.
+    example_blocks = [
+        "Examples:\n\n"
+        "  Create from package specs:\n"
+        "    conda create -n myenv python=3.12 numpy",
+    ]
+    if spec_example:
+        example_blocks.append(
+            "  Create from an environment spec (solved at install time):\n"
+            f"    conda create -n myenv --file {spec_example}"
+        )
+    if lock_example:
+        example_blocks.append(
+            "  Create from a lockfile (no solve, exact reproduction):\n"
+            f"    conda create -n myenv --file {lock_example}"
+        )
+    example_blocks.append(
+        "  Clone an existing environment:\n    conda create -n env2 --clone env1"
+    )
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
+        specifiers, heading="Available input formats"
     )
     p = sub_parsers.add_parser(
         "create",

@@ -988,3 +988,24 @@ def test_export_invalid_platform_from_condarc_fails_fast(
         CondaValueError, match=r"Could not find platform\(s\): doesnotexist"
     ):
         conda_cli("export")
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "Export an environment spec:",
+        "conda export --from-history",
+        "Export a lockfile for the same platform:",
+        "Export a lockfile for multiple platforms:",
+        "--platform linux-64 --platform osx-arm64",
+        "Available formats:",
+        "Environment specs:",
+    ],
+)
+def test_export_help_shows_examples_and_available_formats(
+    conda_cli: CondaCLIFixture, line: str
+) -> None:
+    """The rewritten `conda export --help` renders the example sections and a
+    dynamic listing of available formats grouped by category."""
+    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
+    assert line in stdout

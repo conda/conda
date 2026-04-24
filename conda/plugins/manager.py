@@ -84,6 +84,7 @@ if TYPE_CHECKING:
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
+        EnvironmentFormat,
     )
 
     P = TypeVar("P", bound=CondaPluginWithAliases)
@@ -855,6 +856,97 @@ class CondaPluginManager(pluggy.PluginManager):
             raise PluginError(
                 f"Format name conflicts detected in environment exporters.\n{err}"
             )
+
+    def group_formats_by_category(
+        self,
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+    ) -> dict[
+        EnvironmentFormat, list[CondaEnvironmentExporter | CondaEnvironmentSpecifier]
+    ]:
+        """
+        Group plugins by their :class:`EnvironmentFormat` category,
+        preserving registration order within each category.
+
+        Accepts either environment exporters or environment specifiers;
+        callers typically pass the result of
+        :meth:`get_environment_exporters` or ``get_hook_results(
+        "environment_specifiers")``.
+        """
+        groups: dict[
+            EnvironmentFormat,
+            list[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+        ] = {}
+        for plugin in plugins:
+            groups.setdefault(plugin.environment_format, []).append(plugin)
+        return groups
+
+    def describe_formats(
+        self,
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+        heading: str | None = None,
+    ) -> str:
+        """
+        Render the given plugins for CLI help, grouped by
+        :class:`EnvironmentFormat`.
+
+        Each format is rendered as ``name (alias1, alias2)`` when aliases
+        exist, otherwise as ``name``.
+
+        :param plugins: Environment exporters or specifiers to render.
+        :param heading: Optional section heading. When provided and at least
+            one plugin is present, the returned string is prefixed with two
+            blank lines and ``"{heading}:"`` so it can be appended directly
+            to a parser epilog. When omitted, only the body is returned.
+            Returns an empty string when ``plugins`` is empty.
+        """
+        sections = [
+            f"{fmt.label}:{dashlist(self._format_entries(grouped))}"
+            for fmt, grouped in self.group_formats_by_category(plugins).items()
+        ]
+        body = "\n\n".join(sections)
+        if body and heading:
+            return f"\n\n{heading}:\n\n{body}"
+        return body
+
+    @staticmethod
+    def _format_entries(
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+    ) -> list[str]:
+        """Render one entry per plugin as ``name`` or ``name (alias, ...)``."""
+        return [
+            f"{p.name} ({', '.join(p.aliases)})" if p.aliases else p.name
+            for p in plugins
+        ]
+
+    def example_filename(
+        self,
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+    ) -> str | None:
+        """
+        Return the first ``default_filenames`` entry found across ``plugins``.
+
+        Useful for rendering illustrative command examples in CLI help that
+        reflect the plugins installed in the user's environment.
+        """
+        for plugin in plugins:
+            if plugin.default_filenames:
+                return plugin.default_filenames[0]
+        return None
+
+    def example_filename_for(
+        self,
+        environment_format: EnvironmentFormat,
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+    ) -> str | None:
+        """
+        Return the first ``default_filenames`` entry among ``plugins`` whose
+        ``environment_format`` matches the given category.
+
+        Convenience wrapper used by CLI parsers to pick example filenames
+        per :class:`EnvironmentFormat` category when rendering help epilogs.
+        """
+        groups = self.group_formats_by_category(plugins)
+        return self.example_filename(groups.get(environment_format, ()))
 
     def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """

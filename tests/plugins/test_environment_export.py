@@ -344,6 +344,105 @@ def test_get_environment_exporters(plugin_manager_with_exporters: CondaPluginMan
     }
 
 
+class DescribeExportersLockfilePlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="my-lock-v1",
+            aliases=("mylock",),
+            default_filenames=("my.lock",),
+            export=lambda env: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+def test_describe_exporter_formats_groups_by_category(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """Exporters are grouped by category; aliases are rendered in parens."""
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    rendered = plugin_manager_with_exporters.describe_formats(exporters)
+
+    assert "Environment specs:" in rendered
+    assert "- environment-yaml (yaml, yml, env.yml)" in rendered
+    assert rendered.index("Environment specs:") < rendered.index("Lockfiles:")
+
+
+def test_describe_exporter_formats_includes_registered_lockfile_plugin(
+    plugin_manager_with_exporters: CondaPluginManager,
+    request: pytest.FixtureRequest,
+):
+    """A newly registered lockfile plugin appears under the Lockfiles section."""
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    assert "my-lock-v1" not in plugin_manager_with_exporters.describe_formats(exporters)
+
+    plugin = DescribeExportersLockfilePlugin()
+    plugin_manager_with_exporters.register(plugin)
+    request.addfinalizer(lambda: plugin_manager_with_exporters.unregister(plugin))
+
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    rendered = plugin_manager_with_exporters.describe_formats(exporters)
+    assert "Lockfiles:" in rendered
+    assert "- my-lock-v1 (mylock)" in rendered
+
+
+def test_describe_exporter_formats_empty(plugin_manager):
+    """Without registered exporters the description is empty."""
+    assert plugin_manager.describe_formats([]) == ""
+
+
+def test_describe_exporter_formats_with_heading(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """Passing ``heading`` prefixes the body so it can be appended to an epilog."""
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    rendered = plugin_manager_with_exporters.describe_formats(
+        exporters, heading="Available formats"
+    )
+    assert rendered.startswith("\n\nAvailable formats:\n\n")
+    assert "Environment specs:" in rendered
+
+
+def test_describe_exporter_formats_with_heading_empty(plugin_manager):
+    """``heading`` is dropped when there is no body to render."""
+    assert plugin_manager.describe_formats([], heading="Formats") == ""
+
+
+def test_example_filename_returns_first_default(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """``example_filename`` returns the first registered ``default_filenames`` entry."""
+    exporters = plugin_manager_with_exporters.get_environment_exporters()
+    assert plugin_manager_with_exporters.example_filename(exporters) is not None
+
+
+def test_example_filename_skips_plugins_without_default_filenames(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """Plugins without ``default_filenames`` are skipped."""
+    no_filenames = CondaEnvironmentExporter(
+        name="no-filenames",
+        aliases=(),
+        default_filenames=(),
+        export=lambda env: "",
+    )
+    with_filenames = CondaEnvironmentExporter(
+        name="with-filenames",
+        aliases=(),
+        default_filenames=("picked.txt",),
+        export=lambda env: "",
+    )
+    picked = plugin_manager_with_exporters.example_filename(
+        [no_filenames, with_filenames]
+    )
+    assert picked == "picked.txt"
+
+
+def test_example_filename_none_when_empty(plugin_manager):
+    """Returns ``None`` when no plugin declares a default filename."""
+    assert plugin_manager.example_filename([]) is None
+
+
 @pytest.mark.parametrize(
     "filename,expected_format",
     [

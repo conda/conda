@@ -20,6 +20,8 @@ from ..notices import notices
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..base.context import context
+    from ..plugins.types import EnvironmentFormat
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -30,16 +32,27 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
+    plugin_manager = context.plugin_manager
+    specifiers = list(plugin_manager.get_hook_results("environment_specifiers"))
+    spec_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.environment, specifiers
+    )
+    lock_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.lockfile, specifiers
+    )
+
     summary = "Create an environment based on an environment definition file."
     description = dals(
         f"""
         {summary}
 
-        If using an environment.yml file (the default), you can name the
-        environment in the first line of the file with 'name: envname' or
-        you can specify the environment name in the CLI command using the
-        -n/--name argument. The name specified in the CLI will override
-        the name specified in the environment.yml file.
+        The file format is detected from the filename or contents. Which
+        formats are supported depends on the plugins installed in your
+        environment. See the epilog for the list of formats available here.
+
+        If the file declares a name in its contents (for instance as the
+        first line of an environment.yml file), that name is used unless
+        overridden on the CLI with -n/--name.
 
         Unless you are in the directory containing the environment definition
         file, use -f to specify the file path of the environment definition
@@ -47,18 +60,27 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         """
     )
-    epilog = dals(
-        """
-        Examples::
 
-            conda env create
-            conda env create -n envname
-            conda env create folder/envname
-            conda env create -f /path/to/environment.yml
-            conda env create -f /path/to/requirements.txt -n envname
-            conda env create -f /path/to/requirements.txt -p /home/user/envname
-
-        """
+    # See the comment in main_create.py for why these conditional blocks
+    # are plain strings rather than ``dals`` calls.
+    example_blocks = ["Examples:"]
+    if spec_example:
+        example_blocks.append(
+            "  Create from an environment spec (solved at install time):\n"
+            f"    conda env create -f /path/to/{spec_example}"
+        )
+    if lock_example:
+        example_blocks.append(
+            "  Create from a lockfile (no solve, exact reproduction):\n"
+            f"    conda env create -f {lock_example}"
+        )
+    example_blocks.append(
+        "  Use the default file in the current directory:\n"
+        "    conda env create\n"
+        "    conda env create -n envname"
+    )
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
+        specifiers, heading="Available input formats"
     )
 
     p = sub_parsers.add_parser(
@@ -72,7 +94,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "-f",
         "--file",
         action="store",
-        help="Environment definition file (default: environment.yml)",
+        help=(
+            "Environment definition file (default: environment.yml). Standard "
+            "filenames registered by the installed format plugins are "
+            "auto-detected. Custom filenames require --format."
+        ),
         default="environment.yml",
     )
 

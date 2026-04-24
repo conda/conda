@@ -29,19 +29,52 @@ class CondaExportWarning(Warning):
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
+    from ..plugins.types import EnvironmentFormat
+    from .helpers import (
+        LazyChoicesAction,
+        add_parser_json,
+        add_parser_prefix,
+    )
 
-    summary = "Export a given environment"
-    description = summary
-    epilog = dals(
-        """
-        Examples::
+    plugin_manager = context.plugin_manager
+    exporters = list(plugin_manager.get_environment_exporters())
+    spec_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.environment, exporters
+    )
+    lock_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.lockfile, exporters
+    )
 
-            conda export
-            conda export --file FILE_NAME
-            conda export --format yaml
-            conda export --file environment.yaml
+    summary = "Export a conda environment to a file."
+    description = dals(
         """
+        Export a conda environment to a file. The set of supported formats
+        depends on the plugins installed in your environment. Both portable
+        environment specs and reproducible lockfiles may be available. See
+        the epilog for the list of formats available here.
+        """
+    ).rstrip()
+
+    # See the comment in main_create.py for why these conditional blocks
+    # are plain strings rather than ``dals`` calls.
+    example_blocks = ["Examples:"]
+    if spec_example:
+        example_blocks.append(
+            "  Export an environment spec:\n"
+            f"    conda export --from-history > {spec_example}"
+        )
+    if lock_example:
+        example_blocks.append(
+            "  Export a lockfile for the same platform:\n"
+            f"    conda export --file {lock_example}"
+        )
+        example_blocks.append(
+            "  Export a lockfile for multiple platforms:\n"
+            f"    conda export --file {lock_example} "
+            "--platform linux-64 --platform osx-arm64"
+        )
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
+        exporters, heading="Available formats"
     )
 
     p = sub_parsers.add_parser(
@@ -77,7 +110,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--subdir",
         action="append",
         dest="export_platforms",
-        help="Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64)",
+        help=(
+            "Target platform(s)/subdir(s) for export (e.g. linux-64, osx-arm64, "
+            "win-64). For formats that support multi-platform output, repeat "
+            "the flag to produce a single file covering every platform."
+        ),
     )
     p.add_argument(
         "--override-platforms",
@@ -92,9 +129,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=None,
         required=False,
         help=(
-            "File name or path for the exported environment. "
-            "Note: This will silently overwrite any existing file "
-            "of the same name in the current directory."
+            "File name or path for the exported environment. Standard filenames "
+            "registered by the installed format plugins are auto-detected. "
+            "Custom filenames require --format. Existing files are overwritten "
+            "silently."
         ),
     )
 
@@ -106,9 +144,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         choices_func=lambda: sorted(
             context.plugin_manager.get_exporter_format_mapping()
         ),
+        metavar="FORMAT",
         help=(
-            "Format for the exported environment. "
-            "If not specified, format will be determined by file extension or default to YAML."
+            "Override the output format. When omitted, the format is detected "
+            "from --file. See the epilog for the formats available in your "
+            "installation."
         ),
     )
 
