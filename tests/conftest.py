@@ -299,6 +299,7 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             super().__init__(**kwargs)
             self._set_env_vars(app_name)
             self.no_plugins = False
+            self.no_plugin = []
             self.log_level = logging.WARNING
             self.active_prefix = ""
             self.plugin_manager = mocker.MagicMock()

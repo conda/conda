@@ -116,6 +116,14 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
         default=NULL,
         help="Disable all plugins that are not built into conda.",
     )
+    pre_parser.add_argument(
+        "--no-plugin",
+        action="append",
+        default=NULL,
+        metavar="NAME",
+        help="Disable a specific plugin by name. Can be repeated. "
+        "Use --no-plugins to disable all external plugins.",
+    )
 
     return pre_parser
 
