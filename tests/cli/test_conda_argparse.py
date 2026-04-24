@@ -75,9 +75,28 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.add_parser_solver_mode", isfunction),
         ("conda.cli.conda_argparse.add_parser_update_modifiers", isfunction),
         ("conda.cli.conda_argparse.add_parser_verbose", isfunction),
-        # derived from argparse.ArgumentParser
         ("conda.cli.conda_argparse.ArgumentParser", isclass),
         ("conda.cli.conda_argparse.BUILTIN_COMMANDS", lambda x: isinstance(x, set)),
+        ("conda.cli.conda_argparse.configure_parser_plugins", isfunction),
+        ("conda.cli.conda_argparse.do_call", isfunction),
+        ("conda.cli.conda_argparse.ExtendConstAction", isclass),
+        ("conda.cli.conda_argparse.find_builtin_commands", isfunction),
+        ("conda.cli.conda_argparse.generate_parser", isfunction),
+        ("conda.cli.conda_argparse.generate_pre_parser", isfunction),
+        ("conda.cli.conda_argparse.NullCountAction", isclass),
+    ],
+)
+def test_imports(path: str, validate: Callable[[Any], bool]):
+    path, attr = path.rsplit(".", 1)
+    module = importlib.import_module(path)
+    assert hasattr(module, attr)
+    assert validate(getattr(module, attr))
+
+
+@pytest.mark.parametrize(
+    "path,validate",
+    [
+        # configure_parser_* functions moved to their own main_* modules (deprecated in 26.5)
         ("conda.cli.conda_argparse.configure_parser_clean", isfunction),
         ("conda.cli.conda_argparse.configure_parser_compare", isfunction),
         ("conda.cli.conda_argparse.configure_parser_config", isfunction),
@@ -88,29 +107,67 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.configure_parser_list", isfunction),
         ("conda.cli.conda_argparse.configure_parser_notices", isfunction),
         ("conda.cli.conda_argparse.configure_parser_package", isfunction),
-        ("conda.cli.conda_argparse.configure_parser_plugins", isfunction),
         ("conda.cli.conda_argparse.configure_parser_remove", isfunction),
         ("conda.cli.conda_argparse.configure_parser_rename", isfunction),
         ("conda.cli.conda_argparse.configure_parser_run", isfunction),
         ("conda.cli.conda_argparse.configure_parser_search", isfunction),
         ("conda.cli.conda_argparse.configure_parser_update", isfunction),
-        ("conda.cli.conda_argparse.do_call", isfunction),
+        # rc_path variables moved to conda.base.context (deprecated in 26.5)
         ("conda.cli.conda_argparse.escaped_sys_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.escaped_user_rc_path", lambda x: isinstance(x, str)),
-        ("conda.cli.conda_argparse.ExtendConstAction", isclass),
-        ("conda.cli.conda_argparse.find_builtin_commands", isfunction),
-        ("conda.cli.conda_argparse.generate_parser", isfunction),
-        ("conda.cli.conda_argparse.generate_pre_parser", isfunction),
-        ("conda.cli.conda_argparse.NullCountAction", isclass),
         ("conda.cli.conda_argparse.sys_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.user_rc_path", lambda x: isinstance(x, str)),
     ],
 )
-def test_imports(path: str, validate: Callable[[Any], bool]):
+def test_deprecated_imports(path: str, validate: Callable[[Any], bool]):
+    """Verify deprecated re-exports still work and emit PendingDeprecationWarning
+    on *every* access (including the first), now that they are registered via
+    ``deprecated.constant(factory=...)`` at module import time."""
     path, attr = path.rsplit(".", 1)
     module = importlib.import_module(path)
-    assert hasattr(module, attr)
-    assert validate(getattr(module, attr))
+    with pytest.warns(PendingDeprecationWarning):
+        value = getattr(module, attr)
+    assert validate(value)
+    with pytest.warns(PendingDeprecationWarning):
+        assert getattr(module, attr) is value
+
+
+def test_lazy_parser_map_cheap_introspection():
+    """keys/__iter__/__contains__ on the lazy parser map must not trigger
+    per-subcommand parser loading or plugin discovery.
+
+    argparse internals call these on the hot path (help formatting, error
+    messages, _check_value). Triggering ``configure_parser`` for every
+    subcommand or loading all plugins there would cancel out the whole point
+    of lazy subcommand loading.
+    """
+    parser = generate_parser()
+    action = parser._subparsers._group_actions[0]
+
+    # Snapshot state before any map-side introspection happens.
+    pending_before = set(action._lazy_loaders)
+    plugins_loaded_before = action._plugins_loaded
+    assert pending_before, "expected some builtin subcommands pending lazy load"
+
+    # keys()/__iter__/__contains__ for a known builtin must not load anything.
+    keys = set(action._name_parser_map.keys())
+    assert pending_before <= keys
+    assert set(iter(action._name_parser_map)) == keys
+    assert "install" in action._name_parser_map
+    assert "create" in action._name_parser_map
+
+    assert set(action._lazy_loaders) == pending_before, (
+        "__contains__/keys/__iter__ must not run configure_parser for builtins"
+    )
+    assert action._plugins_loaded is plugins_loaded_before, (
+        "__contains__/keys/__iter__ must not trigger plugin discovery for builtins"
+    )
+
+    # Unknown name: allowed to discover plugins once (to answer whether the
+    # name is a plugin-provided subcommand), but still must not load any
+    # builtin parsers.
+    assert "this-subcommand-does-not-exist" not in action._name_parser_map
+    assert set(action._lazy_loaders) == pending_before
 
 
 def test_sorted_commands_in_error(capsys):
