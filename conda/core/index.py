@@ -288,7 +288,10 @@ class Index(UserDict):
         for prefix_record in self.prefix_data.iter_records():
             if prefix_record in self._data:
                 current_record = self._data[prefix_record]
-                if current_record.channel == prefix_record.channel:
+                if (
+                    current_record.channel.canonical_name
+                    == prefix_record.channel.canonical_name
+                ):
                     # The downloaded repodata takes priority, so we do not overwrite.
                     # We do, however, copy the link information so that the solver (i.e. resolve)
                     # knows this package is installed.
@@ -304,7 +307,12 @@ class Index(UserDict):
                     # without the free channel. In this case we need to fake the
                     # channel data for the existing package.
                     prefix_channel = prefix_record.channel
-                    prefix_channel._Channel__canonical_name = prefix_channel.url()
+                    # channel.url() appends the native platform subdir when
+                    # channel.platform is None (bare URL), which corrupts
+                    # canonical_name and causes dist_str() to produce a doubled
+                    # or wrong-platform subdir. base_url never includes a subdir,
+                    # so dist_str() appends it exactly once as intended.
+                    prefix_channel._Channel__canonical_name = prefix_channel.base_url
                     del prefix_record._PackageRecord__pkey
                     self._data[prefix_record] = prefix_record
             else:
@@ -373,12 +381,12 @@ class Index(UserDict):
         prefix_prec = self.prefix_data.get(key.name, None) if self.prefix_data else None
         if prefix_prec and prefix_prec == prec:
             if prec:
-                if prec.channel == prefix_prec.channel:
+                if prec.channel.canonical_name == prefix_prec.channel.canonical_name:
                     link = prefix_prec.get("link") or EMPTY_LINK
                     prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
                 else:
                     prefix_channel = prefix_prec.channel
-                    prefix_channel._Channel__canonical_name = prefix_channel.url()
+                    prefix_channel._Channel__canonical_name = prefix_channel.base_url
                     del prefix_prec._PackageRecord__pkey
                     prec = prefix_prec
             else:
