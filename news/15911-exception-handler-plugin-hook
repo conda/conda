@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `conda_exception_handlers` plugin hook for observational callbacks on any exception conda encounters (filterable per handler via `run_for`). (#15910)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Add tutorial and API reference for the new exception handler plugin hook. (#15910)
+
+### Other
+
+* <news item>
