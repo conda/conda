@@ -19,8 +19,6 @@ log = getLogger(__name__)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from textwrap import indent
-
     from ..auxlib.ish import dals
     from ..base.context import context
     from ..common.constants import NULL
@@ -52,57 +50,38 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     )
 
-    # Compose the Examples block out of static and plugin-driven pieces.
-    # We drop conditional blocks whose referenced filename isn't available
-    # in the current plugin set, so ``conda create --help`` never prints an
-    # example that won't work as typed. ``indent`` adds the 2-space outer
-    # margin that ``dals`` (via ``textwrap.dedent``) would otherwise strip.
-    example_blocks = [
-        dals(
-            """
-            Examples:
+    # Conditional example sub-blocks skipped when the format isn't
+    # available in the current plugin set. Each sub-block is indented to
+    # line up with the surrounding ``dals`` template so the single
+    # dedent strips the same amount from every line.
+    spec_section = (
+        f"""
 
-              Create from package specs:
-                conda create -n myenv python=3.12 numpy
-            """
-        ).rstrip()
-    ]
-    if spec_example:
-        example_blocks.append(
-            indent(
-                dals(
-                    f"""
-                    Create from an environment spec (solved at install time):
-                      conda create -n myenv --file {spec_example}
-                    """
-                ).rstrip(),
-                "  ",
-            )
-        )
-    if lock_example:
-        example_blocks.append(
-            indent(
-                dals(
-                    f"""
-                    Create from a lockfile (no solve, exact reproduction):
-                      conda create -n myenv --file {lock_example}
-                    """
-                ).rstrip(),
-                "  ",
-            )
-        )
-    example_blocks.append(
-        indent(
-            dals(
-                """
-                Clone an existing environment:
-                  conda create -n env2 --clone env1
-                """
-            ).rstrip(),
-            "  ",
-        )
+          Create from an environment spec (solved at install time):
+            conda create -n myenv --file {spec_example}"""
+        if spec_example
+        else ""
     )
-    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
+    lock_section = (
+        f"""
+
+          Create from a lockfile (no solve, exact reproduction):
+            conda create -n myenv --file {lock_example}"""
+        if lock_example
+        else ""
+    )
+    examples = dals(
+        f"""
+        Examples:
+
+          Create from package specs:
+            conda create -n myenv python=3.12 numpy{spec_section}{lock_section}
+
+          Clone an existing environment:
+            conda create -n env2 --clone env1
+        """
+    )
+    epilog = examples + plugin_manager.describe_formats(
         specifiers, heading="Available input formats"
     )
     p = sub_parsers.add_parser(
