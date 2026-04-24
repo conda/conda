@@ -374,10 +374,7 @@ def test_describe_exporter_formats_includes_registered_lockfile_plugin(
 ):
     """A newly registered lockfile plugin appears under the Lockfiles section."""
     exporters = plugin_manager_with_exporters.get_environment_exporters()
-    assert (
-        "my-lock-v1"
-        not in plugin_manager_with_exporters.describe_formats(exporters)
-    )
+    assert "my-lock-v1" not in plugin_manager_with_exporters.describe_formats(exporters)
 
     plugin = DescribeExportersLockfilePlugin()
     plugin_manager_with_exporters.register(plugin)
