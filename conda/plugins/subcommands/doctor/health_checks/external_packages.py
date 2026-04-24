@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import subprocess
-import sys
 from typing import TYPE_CHECKING
 
 from .....base.constants import OK_MARK, X_MARK
@@ -29,6 +28,7 @@ def find_external_packages(prefix: str) -> list[PrefixData]:
 
 
 def print_external_packages(prefix: str, verbose: bool) -> None:
+
     external_packages = find_external_packages(prefix)
     if not external_packages:
         print(f"{OK_MARK} No external packages found.\n")
@@ -37,9 +37,6 @@ def print_external_packages(prefix: str, verbose: bool) -> None:
         for package in external_packages:
             print(package.name)
         print("")
-
-
-FORBIDDEN_LIST = {"msgpack", "ruamel-yaml", "pip", "setuptools"}
 
 
 def conda_has_package(name: str) -> bool:
@@ -58,11 +55,6 @@ def build_migration_plan(packages):
     for pkg in packages:
         name = pkg.name.replace("_", "-")
 
-        # Do not migrate critical packages
-        if name in FORBIDDEN_LIST:
-            print(f"Skipping critical package: {name}")
-            continue
-
         # check if conda can install it
         if conda_has_package(name):
             safe.append(name)
@@ -70,41 +62,6 @@ def build_migration_plan(packages):
             external_only.append(name)
 
     return safe, external_only
-
-
-def execute_migration(prefix, args, confirm, safe_packages):
-    if not safe_packages:
-        print("No safe packages to migrate.")
-        return 0
-
-    print(f"Found {len(safe_packages)} package(s) safe to migrate:")
-    for name in sorted(safe_packages):
-        print(f"  {name}")
-
-    print()
-    confirm("Reinstall these packages with conda?")
-
-    successful_uninstalls = []
-
-    # uninstall ONLY safe packages
-    for name in safe_packages:
-        print(f"Uninstalling {name} with pip...")
-
-        result = subprocess.run(
-            [sys.executable, "-m", "pip", "uninstall", "-y", name], check=False
-        )
-
-        if result.returncode != 0:
-            print(f"Failed to uninstall {name} using `pip`.")
-            continue
-
-        successful_uninstalls.append(name)
-
-    if not successful_uninstalls:
-        print("No packages were successfully uninstalled. Aborting reinstall.")
-        return 0
-
-    return reinstall_packages(args, successful_uninstalls, force_reinstall=True)
 
 
 def migrate_to_pypi(prefix: str, args: Namespace, confirm: ConfirmCallback) -> int:
@@ -119,9 +76,20 @@ def migrate_to_pypi(prefix: str, args: Namespace, confirm: ConfirmCallback) -> i
         print("No external packages found.")
         return 0
 
-    safe, external_only = build_migration_plan(external_packages)
+    safe_packages, external_only = build_migration_plan(external_packages)
 
-    return execute_migration(prefix, args, confirm, safe)
+    if not safe_packages:
+        print("No safe packages to migrate.")
+        return 0
+
+    print(f"Found {len(safe_packages)} package(s) safe to migrate:")
+    for name in sorted(safe_packages):
+        print(f"  {name}")
+
+    print()
+    confirm("Reinstall these packages with conda?")
+
+    return reinstall_packages(args, safe_packages, force_reinstall=True)
 
 
 @hookimpl
