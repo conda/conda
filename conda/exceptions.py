@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.ish import dals
-from .auxlib.logz import stringify
 from .base.constants import (
     COMPATIBLE_SHELLS,
     PREFIX_PINNED_FILE,
@@ -24,10 +23,6 @@ from .base.constants import (
     SafetyChecks,
 )
 from .common.compat import on_win
-from .common.io import dashlist
-from .common.iterators import groupby_to_dict as groupby
-from .common.serialize.json import JSONDecodeError
-from .common.serialize.json import dumps as json_dumps
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
 from .deprecations import (
@@ -35,7 +30,6 @@ from .deprecations import (
     deprecated,
 )
 from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
-from .models.channel import Channel
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -46,6 +40,7 @@ if TYPE_CHECKING:
 
     from conda.base.context import Context
     from conda.common.path import PathType
+    from conda.models.channel import Channel
     from conda.models.match_spec import MatchSpec
     from conda.models.records import PackageRecord
     from conda.plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
@@ -302,6 +297,8 @@ class SharedLinkPathClobberError(ClobberError):
 class CommandNotFoundError(CondaError):
     @deprecated("26.9", "27.3")
     def __init__(self, command: str):
+        from .common.io import dashlist
+
         activate_commands = {
             "activate",
             "deactivate",
@@ -533,6 +530,10 @@ class UnavailableInvalidChannel(ChannelError):
         status_code: str | int,
         response: requests.models.Response | None = None,
     ):
+        from .auxlib.logz import stringify
+        from .common.serialize.json import JSONDecodeError
+        from .models.channel import Channel
+
         # parse channel
         channel = Channel(channel)
         channel_name = channel.name
@@ -653,6 +654,9 @@ class CondaHTTPError(CondaError):
         response: requests.Response | None = None,
         caused_by: Any = None,
     ):
+        from .auxlib.logz import stringify
+        from .common.serialize.json import JSONDecodeError
+
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
@@ -723,6 +727,8 @@ class PackagesNotFoundError(CondaError):
         packages: Iterable[MatchSpec | PackageRecord | str],
         channel_urls: Iterable[str] = (),
     ):
+        from .common.io import dashlist
+
         self.packages = tuple(packages)
         self.channel_urls = tuple(channel_urls)
 
@@ -796,6 +802,8 @@ class PackageNotInstalledError(PackagesNotFoundError):
         prefix: PathType,
         package_name: str | Iterable[MatchSpec | PackageRecord | str],
     ):
+        from .common.io import dashlist
+
         if isinstance(package_name, str):
             message = dals(
                 """
@@ -927,6 +935,7 @@ class UnsatisfiableError(CondaError):
         chains: bool = True,
         strict: bool = False,
     ):
+        from .common.io import dashlist
         from .models.match_spec import MatchSpec
 
         messages = {
@@ -1055,6 +1064,8 @@ class SpecsConfigurationConflictError(CondaError):
         pinned_specs: Iterable[MatchSpec],
         prefix: PathType,
     ):
+        from .common.io import dashlist
+
         message = dals(
             """
         Requested specs conflict with configured specs.
@@ -1133,6 +1144,7 @@ class PlatformMismatchError(CondaValueError):
 
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles: Iterable[PackageRecord], **kwargs):
+        from .common.io import dashlist
         from .models.records import PackageRecord
 
         packages_with_cycles = tuple(
@@ -1237,12 +1249,16 @@ class NotWritableError(CondaError, OSError):
 
 class NoWritableEnvsDirError(CondaError):
     def __init__(self, envs_dirs: Iterable[PathType], **kwargs):
+        from .common.io import dashlist
+
         message = f"No writeable envs directories configured.{dashlist(envs_dirs)}"
         super().__init__(message, envs_dirs=envs_dirs, **kwargs)
 
 
 class NoWritablePkgsDirError(CondaError):
     def __init__(self, pkgs_dirs: Iterable[PathType], **kwargs):
+        from .common.io import dashlist
+
         message = f"No writeable pkgs directories configured.{dashlist(pkgs_dirs)}"
         super().__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
@@ -1442,6 +1458,8 @@ def format_env_spec_available_plugins(
     indent: int = 4,
     cmd_suggestion: bool = True,
 ):
+    from .common.io import dashlist
+
     msg = (
         "\nPlease add to your prior command: --env-spec <format>\n"
         if cmd_suggestion
@@ -1501,6 +1519,8 @@ class EnvironmentExporterNotDetected(CondaError):
         *args,
         **kwargs,
     ):
+        from .common.io import dashlist
+
         self.filename = filename
         supported_filenames: list[str] = []
         available_formats: list[str] = []
@@ -1533,6 +1553,8 @@ class SpecNotFoundInPackageCache(CondaError):
 
 
 def maybe_raise(error: BaseException, context: Context):
+    from .common.iterators import groupby_to_dict as groupby
+
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
         clobber_errors = groups.get(True, ())
@@ -1575,6 +1597,7 @@ def maybe_raise(error: BaseException, context: Context):
 
 def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = None):
     from .base.context import context
+    from .common.serialize.json import dumps as json_dumps
 
     rc = getattr(exc_val, "return_code", None)
     if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
@@ -1622,6 +1645,8 @@ class OfflineError(CondaError, RuntimeError):
 
 class CondaUpdatePackageError(CondaError):
     def __init__(self, spec: str | list[str]):
+        from .common.io import dashlist
+
         spec_format = dashlist(spec, 4) if isinstance(spec, list) else spec
         msg = (
             f"`conda update` only supports name-only spec, but received: {spec_format}\n"
