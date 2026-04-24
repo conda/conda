@@ -19,6 +19,8 @@ from ..notices import notices
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from textwrap import indent
+
     from ..auxlib.ish import dals
     from ..base.context import context
     from .helpers import (
@@ -58,18 +60,39 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     example_blocks = ["Examples:"]
     if spec_example:
         example_blocks.append(
-            "  Create from an environment spec (solved at install time):\n"
-            f"    conda env create -f /path/to/{spec_example}"
+            indent(
+                dals(
+                    f"""
+                    Create from an environment spec (solved at install time):
+                      conda env create -f /path/to/{spec_example}
+                    """
+                ).rstrip(),
+                "  ",
+            )
         )
     if lock_example:
         example_blocks.append(
-            "  Create from a lockfile (no solve, exact reproduction):\n"
-            f"    conda env create -f {lock_example}"
+            indent(
+                dals(
+                    f"""
+                    Create from a lockfile (no solve, exact reproduction):
+                      conda env create -f {lock_example}
+                    """
+                ).rstrip(),
+                "  ",
+            )
         )
     example_blocks.append(
-        "  Use the default file in the current directory:\n"
-        "    conda env create\n"
-        "    conda env create -n envname"
+        indent(
+            dals(
+                """
+                Use the default file in the current directory:
+                  conda env create
+                  conda env create -n envname
+                """
+            ).rstrip(),
+            "  ",
+        )
     )
     epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
         specifiers, heading="Available input formats"
