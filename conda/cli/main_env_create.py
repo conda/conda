@@ -55,32 +55,25 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     )
 
-    spec_section = (
-        f"""
-
-          Create from an environment spec (solved at install time):
-            conda env create -f /path/to/{spec_example}"""
-        if spec_example
-        else ""
+    # See the comment in main_create.py for why these conditional blocks
+    # are plain strings rather than ``dals`` calls.
+    example_blocks = ["Examples:"]
+    if spec_example:
+        example_blocks.append(
+            "  Create from an environment spec (solved at install time):\n"
+            f"    conda env create -f /path/to/{spec_example}"
+        )
+    if lock_example:
+        example_blocks.append(
+            "  Create from a lockfile (no solve, exact reproduction):\n"
+            f"    conda env create -f {lock_example}"
+        )
+    example_blocks.append(
+        "  Use the default file in the current directory:\n"
+        "    conda env create\n"
+        "    conda env create -n envname"
     )
-    lock_section = (
-        f"""
-
-          Create from a lockfile (no solve, exact reproduction):
-            conda env create -f {lock_example}"""
-        if lock_example
-        else ""
-    )
-    examples = dals(
-        f"""
-        Examples:{spec_section}{lock_section}
-
-          Use the default file in the current directory:
-            conda env create
-            conda env create -n envname
-        """
-    )
-    epilog = examples + plugin_manager.describe_formats(
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
         specifiers, heading="Available input formats"
     )
 

@@ -49,31 +49,25 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     ).rstrip()
 
-    spec_section = (
-        f"""
-
-          Export an environment spec:
-            conda export --from-history > {spec_example}"""
-        if spec_example
-        else ""
-    )
-    lock_section = (
-        f"""
-
-          Export a lockfile for the same platform:
-            conda export --file {lock_example}
-
-          Export a lockfile for multiple platforms:
-            conda export --file {lock_example} --platform linux-64 --platform osx-arm64"""
-        if lock_example
-        else ""
-    )
-    examples = dals(
-        f"""
-        Examples:{spec_section}{lock_section}
-        """
-    )
-    epilog = examples + plugin_manager.describe_formats(
+    # See the comment in main_create.py for why these conditional blocks
+    # are plain strings rather than ``dals`` calls.
+    example_blocks = ["Examples:"]
+    if spec_example:
+        example_blocks.append(
+            "  Export an environment spec:\n"
+            f"    conda export --from-history > {spec_example}"
+        )
+    if lock_example:
+        example_blocks.append(
+            "  Export a lockfile for the same platform:\n"
+            f"    conda export --file {lock_example}"
+        )
+        example_blocks.append(
+            "  Export a lockfile for multiple platforms:\n"
+            f"    conda export --file {lock_example} "
+            "--platform linux-64 --platform osx-arm64"
+        )
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
         exporters, heading="Available formats"
     )
 
