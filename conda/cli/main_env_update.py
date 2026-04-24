@@ -82,7 +82,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
     from ..env.installers.base import get_installer
-    from ..exceptions import CondaEnvException, InvalidInstaller
+    from ..exceptions import (
+        CondaEnvException,
+        InvalidInstaller,
+        PlatformMismatchError,
+    )
     from .common import validate_file_exists
 
     # validate incoming arguments
@@ -94,7 +98,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         name=context.environment_specifier,
     )
     spec = spec_hook.environment_spec(args.file)
-    env = spec.env
+    if context.subdir not in spec.available_platforms:
+        raise PlatformMismatchError(
+            [(args.file, spec.available_platforms)], context.subdir
+        )
+    env = spec.env_for(context.subdir)
 
     if not (args.name or args.prefix):
         if not env.name:

@@ -15,7 +15,7 @@ from ..base.context import context, validate_channels
 from ..common.constants import NULL
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
-from ..exceptions import CondaValueError
+from ..exceptions import CondaValueError, PlatformMismatchError
 from ..history import History
 from ..misc import get_package_records_from_explicit
 from .match_spec import MatchSpec
@@ -540,14 +540,23 @@ class Environment:
 
         envs_from_file = []
         fpath_envs_map = {}
+        file_specs = {}
+        incompatible = []
         for fpath in args.file:
             spec_hook = context.plugin_manager.get_environment_specifier(
                 source=fpath,
                 name=context.environment_specifier,
             )
             spec = spec_hook.environment_spec(fpath)
-            envs_from_file.append(spec.env)
-            fpath_envs_map[fpath] = spec.env
+            file_specs[fpath] = spec
+            if context.subdir not in spec.available_platforms:
+                incompatible.append((fpath, spec.available_platforms))
+        if incompatible:
+            raise PlatformMismatchError(incompatible, context.subdir)
+        for fpath, spec in file_specs.items():
+            env = spec.env_for(context.subdir)
+            envs_from_file.append(env)
+            fpath_envs_map[fpath] = env
 
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any

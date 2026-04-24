@@ -874,6 +874,121 @@ def test_expand_search_path(tmp_path):
     assert expanded == [symlink], expanded
 
 
+class MinimalConfig(Configuration):
+    """Configuration subclass with a single ``channels`` parameter."""
+
+    channels = ParameterLoader(SequenceParameter(PrimitiveParameter("")))
+
+
+def test_set_search_path_result_is_tuple(tmp_path: Path) -> None:
+    """``_search_path`` is a tuple, not a lazy generator."""
+    condarc = tmp_path / "condarc"
+    condarc.write_text("channels:\n  - defaults\n")
+
+    cfg = MinimalConfig([str(condarc)])
+
+    assert isinstance(cfg._search_path, tuple)
+    assert condarc in cfg._search_path
+
+
+def test_set_search_path_reloads_raw_data(tmp_path: Path) -> None:
+    """Repeat calls repopulate ``raw_data`` (cleared by ``Configuration.__init__`` on reset)."""
+    condarc = tmp_path / "condarc"
+    condarc.write_text("channels:\n  - defaults\n")
+
+    cfg = MinimalConfig([str(condarc)])
+    assert cfg.raw_data
+
+    cfg.raw_data = {}
+    cfg._set_search_path([str(condarc)])
+
+    assert cfg.raw_data
+    assert condarc in cfg.raw_data
+
+
+@pytest.mark.parametrize(
+    "channels_a,channels_b",
+    [
+        (["defaults"], ["conda-forge"]),
+        (["conda-forge", "defaults"], ["defaults"]),
+    ],
+)
+def test_set_search_path_refreshes_on_new_path(
+    tmp_path: Path,
+    channels_a: list[str],
+    channels_b: list[str],
+) -> None:
+    """A different search path re-expands and reloads."""
+    condarc1 = tmp_path / "first.yml"
+    condarc1.write_text("channels:\n" + "".join(f"  - {c}\n" for c in channels_a))
+    condarc2 = tmp_path / "second.yml"
+    condarc2.write_text("channels:\n" + "".join(f"  - {c}\n" for c in channels_b))
+
+    cfg = MinimalConfig([str(condarc1)])
+    assert cfg._search_path == (condarc1,)
+
+    cfg._set_search_path([str(condarc2)])
+    assert cfg._search_path == (condarc2,)
+
+
+def test_set_search_path_empty_path() -> None:
+    """Empty search path yields an empty tuple."""
+    cfg = MinimalConfig([])
+    assert cfg._search_path == ()
+
+
+@pytest.mark.parametrize(
+    "entry_rel, initial, mutate, final_rel",
+    [
+        pytest.param(
+            "condarc",
+            (),
+            lambda d: (d / "condarc").write_text("channels:\n  - defaults\n"),
+            ("condarc",),
+            id="file-created",
+        ),
+        pytest.param(
+            ".",
+            (),
+            lambda d: (d / "extra.yml").write_text("channels:\n  - defaults\n"),
+            ("extra.yml",),
+            id="dir-child-added",
+        ),
+        pytest.param(
+            "condarc",
+            ("condarc",),
+            lambda d: (d / "condarc").unlink(),
+            (),
+            id="file-removed",
+        ),
+    ],
+)
+def test_set_search_path_reflects_fs_changes(
+    tmp_path: Path,
+    entry_rel: str,
+    initial: tuple[str, ...],
+    mutate,
+    final_rel: tuple[str, ...],
+) -> None:
+    """Repeat calls re-examine the filesystem: condarcs added, removed, or
+    dropped into a watched directory after the first expansion show up on
+    the next call."""
+    for name in initial:
+        (tmp_path / name).write_text("channels:\n  - defaults\n")
+
+    entry = str(tmp_path / entry_rel)
+    cfg = MinimalConfig([entry])
+    assert cfg._search_path == tuple(tmp_path / name for name in initial)
+
+    mutate(tmp_path)
+    cfg._set_search_path([entry])
+
+    expected = tuple(tmp_path / name for name in final_rel)
+    assert cfg._search_path == expected
+    for path in expected:
+        assert path in cfg.raw_data
+
+
 @pytest.fixture
 def unique_sequence_map_test_class():
     """

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from collections.abc import Callable, Iterable
     from contextlib import AbstractContextManager
-    from typing import Any, ClassVar, Literal, TypeAlias
+    from typing import Any, ClassVar, Literal, Protocol, TypeAlias
 
     from ..auxlib import _Null
     from ..common.configuration import Parameter
@@ -55,6 +55,20 @@ if TYPE_CHECKING:
     # Callback type for health check fixer confirmation prompts.
     # Raises CondaSystemExit if user declines, or DryRunExit in dry-run mode.
     ConfirmCallback: TypeAlias = Callable[[str], None]
+
+    class CondaPluginWithAliases(Protocol):
+        """
+        Structural type for plugins that expose a canonical :attr:`~CondaPlugin.name`
+        and :attr:`aliases`.
+
+        Used when building lookup mappings that include alternate names (for example
+        environment specifiers, exporters, and settings). Concrete types such as
+        :class:`CondaSetting`, :class:`CondaEnvironmentSpecifier`, and
+        :class:`CondaEnvironmentExporter` satisfy this protocol.
+        """
+
+        name: str
+        aliases: tuple[str, ...]
 
 
 @dataclass
@@ -629,6 +643,40 @@ class EnvironmentSpecBase(ABC):
         :returns Environment: the conda environment represented by the file.
         """
         raise NotImplementedError()
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        """
+        Platforms this spec can produce an ``Environment`` for.
+
+        Defaults to ``(context.subdir,)``. Multi-platform specs
+        (``conda-lock.yml``, ``pixi.lock``) override to return every
+        platform declared in the input file.
+        """
+        from ..base.context import context
+
+        return (context.subdir,)
+
+    def env_for(self, platform: str) -> Environment:
+        """
+        Return the ``Environment`` for a specific platform.
+
+        Defaults to returning :attr:`env` when ``platform`` matches
+        ``context.subdir``, and raising :class:`ValueError` otherwise.
+        Multi-platform specs override this method to build the
+        ``Environment`` directly from the parsed input file without
+        constructing one per platform.
+
+        To iterate every platform a spec covers::
+
+            envs = (spec.env_for(p) for p in spec.available_platforms)
+        """
+        if platform not in self.available_platforms:
+            raise ValueError(
+                f"Platform {platform!r} not available in this spec. "
+                f"Available platforms: {', '.join(self.available_platforms)}"
+            )
+        return self.env
 
 
 class EnvironmentFormat(enum.Enum):

@@ -1,0 +1,24 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Make `conda.notices.cache.clear_cache()` robust against transient Windows
+  file locks. It now rewinds `notices.cache`'s mtime instead of deleting the
+  file (which could silently fail with `PermissionError`), and ignores
+  `OSError` when removing per-channel response caches. This fixes flaky
+  behavior of `tests/cli/test_main_notices.py::test_notices_shown_after_previous_command_error`
+  on Windows. (#15796, #15817, #15839)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
