@@ -29,7 +29,6 @@ class CondaExportWarning(Warning):
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..plugins.types import EnvironmentFormat
     from .helpers import (
         LazyChoicesAction,
         add_parser_json,
@@ -37,13 +36,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     plugin_manager = context.plugin_manager
-    categories = plugin_manager.get_exporter_formats_by_category()
-    spec_example = plugin_manager.example_filename(
-        categories.get(EnvironmentFormat.environment, ())
-    )
-    lock_example = plugin_manager.example_filename(
-        categories.get(EnvironmentFormat.lockfile, ())
-    )
+    exporters = list(plugin_manager.get_environment_exporters())
+    spec_example, lock_example = plugin_manager.resolve_format_examples(exporters)
 
     summary = "Export a conda environment to a file."
     description = dals(
@@ -55,26 +49,24 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     ).rstrip()
 
-    example_lines = ["Examples:", ""]
+    example_blocks = ["Examples:"]
     if spec_example:
-        example_lines += [
-            "  Export an environment spec:",
-            f"    conda export --from-history > {spec_example}",
-            "",
-        ]
+        example_blocks.append(
+            "  Export an environment spec:\n"
+            f"    conda export --from-history > {spec_example}"
+        )
     if lock_example:
-        example_lines += [
-            "  Export a lockfile for the same platform:",
-            f"    conda export --file {lock_example}",
-            "",
-            "  Export a lockfile for multiple platforms:",
-            f"    conda export --file {lock_example} --platform linux-64 --platform osx-arm64",
-            "",
-        ]
-    examples = "\n".join(example_lines).rstrip()
-
-    epilog = examples + plugin_manager.describe_exporter_formats(
-        heading="Available formats"
+        example_blocks.append(
+            "  Export a lockfile for the same platform:\n"
+            f"    conda export --file {lock_example}"
+        )
+        example_blocks.append(
+            "  Export a lockfile for multiple platforms:\n"
+            f"    conda export --file {lock_example} "
+            "--platform linux-64 --platform osx-arm64"
+        )
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
+        exporters, heading="Available formats"
     )
 
     p = sub_parsers.add_parser(

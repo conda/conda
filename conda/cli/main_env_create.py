@@ -21,7 +21,6 @@ from ..notices import notices
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..base.context import context
-    from ..plugins.types import EnvironmentFormat
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -33,13 +32,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     plugin_manager = context.plugin_manager
-    categories = plugin_manager.get_specifier_formats_by_category()
-    spec_example = plugin_manager.example_filename(
-        categories.get(EnvironmentFormat.environment, ())
-    )
-    lock_example = plugin_manager.example_filename(
-        categories.get(EnvironmentFormat.lockfile, ())
-    )
+    specifiers = list(plugin_manager.get_hook_results("environment_specifiers"))
+    spec_example, lock_example = plugin_manager.resolve_format_examples(specifiers)
 
     summary = "Create an environment based on an environment definition file."
     description = dals(
@@ -61,28 +55,24 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     )
 
-    example_lines = ["Examples:", ""]
+    example_blocks = ["Examples:"]
     if spec_example:
-        example_lines += [
-            "  Create from an environment spec (solved at install time):",
-            f"    conda env create -f /path/to/{spec_example}",
-            "",
-        ]
+        example_blocks.append(
+            "  Create from an environment spec (solved at install time):\n"
+            f"    conda env create -f /path/to/{spec_example}"
+        )
     if lock_example:
-        example_lines += [
-            "  Create from a lockfile (no solve, exact reproduction):",
-            f"    conda env create -f {lock_example}",
-            "",
-        ]
-    example_lines += [
-        "  Use the default file in the current directory:",
-        "    conda env create",
-        "    conda env create -n envname",
-    ]
-    examples = "\n".join(example_lines)
-
-    epilog = examples + plugin_manager.describe_specifier_formats(
-        heading="Available input formats"
+        example_blocks.append(
+            "  Create from a lockfile (no solve, exact reproduction):\n"
+            f"    conda env create -f {lock_example}"
+        )
+    example_blocks.append(
+        "  Use the default file in the current directory:\n"
+        "    conda env create\n"
+        "    conda env create -n envname"
+    )
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
+        specifiers, heading="Available input formats"
     )
 
     p = sub_parsers.add_parser(
