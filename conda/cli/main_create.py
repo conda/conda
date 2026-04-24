@@ -22,6 +22,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..auxlib.ish import dals
     from ..base.context import context
     from ..common.constants import NULL
+    from ..plugins.types import EnvironmentFormat
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
@@ -32,7 +33,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     plugin_manager = context.plugin_manager
     specifiers = list(plugin_manager.get_hook_results("environment_specifiers"))
-    spec_example, lock_example = plugin_manager.resolve_format_examples(specifiers)
+    spec_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.environment, specifiers
+    )
+    lock_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.lockfile, specifiers
+    )
 
     summary = "Create a new conda environment from a list of specified packages."
     description = dals(

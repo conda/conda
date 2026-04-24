@@ -29,6 +29,7 @@ class CondaExportWarning(Warning):
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..plugins.types import EnvironmentFormat
     from .helpers import (
         LazyChoicesAction,
         add_parser_json,
@@ -37,7 +38,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     plugin_manager = context.plugin_manager
     exporters = list(plugin_manager.get_environment_exporters())
-    spec_example, lock_example = plugin_manager.resolve_format_examples(exporters)
+    spec_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.environment, exporters
+    )
+    lock_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.lockfile, exporters
+    )
 
     summary = "Export a conda environment to a file."
     description = dals(

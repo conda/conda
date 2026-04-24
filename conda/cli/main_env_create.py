@@ -21,6 +21,7 @@ from ..notices import notices
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..base.context import context
+    from ..plugins.types import EnvironmentFormat
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -33,7 +34,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     plugin_manager = context.plugin_manager
     specifiers = list(plugin_manager.get_hook_results("environment_specifiers"))
-    spec_example, lock_example = plugin_manager.resolve_format_examples(specifiers)
+    spec_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.environment, specifiers
+    )
+    lock_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.lockfile, specifiers
+    )
 
     summary = "Create an environment based on an environment definition file."
     description = dals(
