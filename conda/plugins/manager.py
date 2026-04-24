@@ -84,6 +84,7 @@ if TYPE_CHECKING:
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
+        EnvironmentFormat,
     )
 
     P = TypeVar("P", bound=CondaPluginWithAliases)
@@ -855,6 +856,93 @@ class CondaPluginManager(pluggy.PluginManager):
             raise PluginError(
                 f"Format name conflicts detected in environment exporters.\n{err}"
             )
+
+    def describe_exporter_formats(self, heading: str | None = None) -> str:
+        """
+        Render the registered environment exporter formats for CLI help,
+        grouped by :class:`EnvironmentFormat`.
+
+        Each format is rendered as ``name (alias1, alias2)`` when aliases
+        exist, otherwise as ``name``.
+
+        :param heading: Optional section heading. When provided and at least
+            one exporter is registered, the returned string is prefixed with
+            two blank lines and ``"{heading}:"`` so it can be appended
+            directly to a parser epilog. When omitted, only the body is
+            returned. Returns an empty string when no exporters are
+            registered.
+        """
+        sections = []
+        for fmt, plugins in self.get_exporter_formats_by_category().items():
+            entries = [
+                f"{p.name} ({', '.join(p.aliases)})" if p.aliases else p.name
+                for p in plugins
+            ]
+            sections.append(f"{fmt.label}:{dashlist(entries)}")
+        body = "\n\n".join(sections)
+        if body and heading:
+            return f"\n\n{heading}:\n\n{body}"
+        return body
+
+    def describe_specifier_formats(self, heading: str | None = None) -> str:
+        """
+        Render the registered environment specifier formats for CLI help,
+        grouped by :class:`EnvironmentFormat`. See
+        :meth:`describe_exporter_formats` for the entry format and the
+        ``heading`` argument.
+        """
+        sections = []
+        for fmt, plugins in self.get_specifier_formats_by_category().items():
+            entries = [
+                f"{p.name} ({', '.join(p.aliases)})" if p.aliases else p.name
+                for p in plugins
+            ]
+            sections.append(f"{fmt.label}:{dashlist(entries)}")
+        body = "\n\n".join(sections)
+        if body and heading:
+            return f"\n\n{heading}:\n\n{body}"
+        return body
+
+    def get_exporter_formats_by_category(
+        self,
+    ) -> dict[EnvironmentFormat, list[CondaEnvironmentExporter]]:
+        """
+        Group registered environment exporters by their
+        :class:`EnvironmentFormat` category, preserving registration order
+        within each category.
+        """
+        groups: dict[EnvironmentFormat, list[CondaEnvironmentExporter]] = {}
+        for exporter in self.get_environment_exporters():
+            groups.setdefault(exporter.environment_format, []).append(exporter)
+        return groups
+
+    def get_specifier_formats_by_category(
+        self,
+    ) -> dict[EnvironmentFormat, list[CondaEnvironmentSpecifier]]:
+        """
+        Group registered environment specifiers by their
+        :class:`EnvironmentFormat` category, preserving registration order
+        within each category.
+        """
+        groups: dict[EnvironmentFormat, list[CondaEnvironmentSpecifier]] = {}
+        for spec in self.get_hook_results("environment_specifiers"):
+            groups.setdefault(spec.environment_format, []).append(spec)
+        return groups
+
+    def example_filename(
+        self,
+        plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+    ) -> str | None:
+        """
+        Return the first ``default_filenames`` entry found across ``plugins``.
+
+        Useful for rendering illustrative command examples in CLI help that
+        reflect the plugins installed in the user's environment.
+        """
+        for plugin in plugins:
+            if plugin.default_filenames:
+                return plugin.default_filenames[0]
+        return None
 
     def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """

@@ -110,10 +110,13 @@ def add_parser_create_install_update(p, prefix_required=False):
         "--file",
         default=[],
         action="append",
-        help="Read environment or package specs from the given file. Supports "
-        "YAML, requirements.txt, explicit, and other formats via env specifier "
-        "plugins. Repeated file specs of some type can be passed "
-        "(e.g. --file=file1 --file=file2).",
+        help=(
+            "Read environment or package specs from a file. The format is "
+            "detected from the filename or contents. Which formats are "
+            "supported depends on the installed plugins (see the epilog for "
+            "the list available here). Custom filenames require --format. "
+            "May be repeated (e.g. --file=file1 --file=file2)."
+        ),
     )
     add_parser_environment_specifier(p)
     p.add_argument(
@@ -641,9 +644,11 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
         action=LazyChoicesAction,
         choices_func=context.plugin_manager.get_environment_specifiers,
         default=NULL,
+        metavar="FORMAT",
         help=(
-            "Format for the created environment. If not specified, "
-            "format will be determined by file contents or extension."
+            "Override auto-detection of the input file's format. See "
+            "`conda export --help` for the formats available in your "
+            "installation. Aliases are interchangeable with canonical names."
         ),
     )
 
