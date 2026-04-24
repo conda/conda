@@ -692,6 +692,13 @@ class EnvironmentFormat(enum.Enum):
     def __str__(self) -> str:
         return self.value
 
+    @property
+    def label(self) -> str:
+        return {
+            EnvironmentFormat.lockfile: "Lockfiles",
+            EnvironmentFormat.environment: "Environment specs",
+        }[self]
+
 
 @dataclass
 class CondaEnvironmentSpecifier(CondaPlugin):

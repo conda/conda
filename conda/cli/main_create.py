@@ -20,7 +20,9 @@ log = getLogger(__name__)
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..base.context import context
     from ..common.constants import NULL
+    from ..plugins.types import EnvironmentFormat
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
@@ -29,29 +31,58 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
+    plugin_manager = context.plugin_manager
+    categories = plugin_manager.get_specifier_formats_by_category()
+    spec_example = plugin_manager.example_filename(
+        categories.get(EnvironmentFormat.environment, ())
+    )
+    lock_example = plugin_manager.example_filename(
+        categories.get(EnvironmentFormat.lockfile, ())
+    )
+
     summary = "Create a new conda environment from a list of specified packages. "
     description = dals(
         f"""
         {summary}
+
+        Environments can be created from package specs on the command line,
+        from an input file whose format is detected from its name or
+        contents, or as a clone of an existing environment. See the epilog
+        for the input formats available in your installation.
 
         To use the newly-created environment, use 'conda activate envname'.
         This command requires either the -n NAME or -p PREFIX option unless
         --dry-run or --download-only is specified.
         """
     )
-    epilog = dals(
-        """
-        Examples:
 
-        Create an environment containing the package 'sqlite'::
+    example_lines = [
+        "Examples:",
+        "",
+        "  Create from package specs:",
+        "    conda create -n myenv python=3.12 numpy",
+        "",
+    ]
+    if spec_example:
+        example_lines += [
+            "  Create from an environment spec (solved at install time):",
+            f"    conda create -n myenv --file {spec_example}",
+            "",
+        ]
+    if lock_example:
+        example_lines += [
+            "  Create from a lockfile (no solve, exact reproduction):",
+            f"    conda create -n myenv --file {lock_example}",
+            "",
+        ]
+    example_lines += [
+        "  Clone an existing environment:",
+        "    conda create -n env2 --clone env1",
+    ]
+    examples = "\n".join(example_lines)
 
-            conda create -n myenv sqlite
-
-        Create an environment (env2) as a clone of an existing environment (env1)::
-
-            conda create -n env2 --clone path/to/file/env1
-
-        """
+    epilog = examples + plugin_manager.describe_specifier_formats(
+        heading="Available input formats"
     )
     p = sub_parsers.add_parser(
         "create",
