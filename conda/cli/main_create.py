@@ -50,38 +50,31 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     )
 
-    # Conditional example sub-blocks skipped when the format isn't
-    # available in the current plugin set. Each sub-block is indented to
-    # line up with the surrounding ``dals`` template so the single
-    # dedent strips the same amount from every line.
-    spec_section = (
-        f"""
-
-          Create from an environment spec (solved at install time):
-            conda create -n myenv --file {spec_example}"""
-        if spec_example
-        else ""
+    # Static description blocks use ``dals`` per the house style. The
+    # conditional example sub-blocks below use plain strings with explicit
+    # leading whitespace: ``dals`` would strip any indent smaller than the
+    # longest common prefix, so the "2-space label, 4-space command" shape
+    # we want here (matching the issue #15960 examples) has to be written
+    # literally.
+    example_blocks = [
+        "Examples:\n\n"
+        "  Create from package specs:\n"
+        "    conda create -n myenv python=3.12 numpy",
+    ]
+    if spec_example:
+        example_blocks.append(
+            "  Create from an environment spec (solved at install time):\n"
+            f"    conda create -n myenv --file {spec_example}"
+        )
+    if lock_example:
+        example_blocks.append(
+            "  Create from a lockfile (no solve, exact reproduction):\n"
+            f"    conda create -n myenv --file {lock_example}"
+        )
+    example_blocks.append(
+        "  Clone an existing environment:\n    conda create -n env2 --clone env1"
     )
-    lock_section = (
-        f"""
-
-          Create from a lockfile (no solve, exact reproduction):
-            conda create -n myenv --file {lock_example}"""
-        if lock_example
-        else ""
-    )
-    examples = dals(
-        f"""
-        Examples:
-
-          Create from package specs:
-            conda create -n myenv python=3.12 numpy{spec_section}{lock_section}
-
-          Clone an existing environment:
-            conda create -n env2 --clone env1
-        """
-    )
-    epilog = examples + plugin_manager.describe_formats(
+    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
         specifiers, heading="Available input formats"
     )
     p = sub_parsers.add_parser(
