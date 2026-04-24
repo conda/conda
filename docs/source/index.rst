@@ -184,6 +184,7 @@ making your own contributions.
    :titlesonly:
 
    user-guide/index
+   features
    configuration
    commands/index
    release-notes
