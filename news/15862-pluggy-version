@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Require `pluggy >=1.6.0` to ensure the `HookImpl.wrapper` attribute is available; older versions caused an `AttributeError` at runtime in the plugin manager. (#15862)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
