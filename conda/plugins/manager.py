@@ -933,27 +933,20 @@ class CondaPluginManager(pluggy.PluginManager):
                 return plugin.default_filenames[0]
         return None
 
-    def resolve_format_examples(
+    def example_filename_for(
         self,
+        environment_format: EnvironmentFormat,
         plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
-    ) -> tuple[str | None, str | None]:
+    ) -> str | None:
         """
-        Return ``(spec_example, lock_example)`` picked from ``plugins``.
+        Return the first ``default_filenames`` entry among ``plugins`` whose
+        ``environment_format`` matches the given category.
 
-        The returned filenames are the first ``default_filenames`` entry
-        found for plugins whose ``environment_format`` is
-        :attr:`EnvironmentFormat.environment` and
-        :attr:`EnvironmentFormat.lockfile` respectively, or ``None`` when
-        no such plugin is registered. Convenience wrapper for CLI parsers
-        that render both example lines in their epilog.
+        Convenience wrapper used by CLI parsers to pick example filenames
+        per :class:`EnvironmentFormat` category when rendering help epilogs.
         """
-        from .types import EnvironmentFormat
-
         groups = self.group_formats_by_category(plugins)
-        return (
-            self.example_filename(groups.get(EnvironmentFormat.environment, ())),
-            self.example_filename(groups.get(EnvironmentFormat.lockfile, ())),
-        )
+        return self.example_filename(groups.get(environment_format, ()))
 
     def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """
