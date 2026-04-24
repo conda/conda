@@ -860,7 +860,9 @@ class CondaPluginManager(pluggy.PluginManager):
     def group_formats_by_category(
         self,
         plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
-    ) -> dict[EnvironmentFormat, list[CondaEnvironmentExporter | CondaEnvironmentSpecifier]]:
+    ) -> dict[
+        EnvironmentFormat, list[CondaEnvironmentExporter | CondaEnvironmentSpecifier]
+    ]:
         """
         Group plugins by their :class:`EnvironmentFormat` category,
         preserving registration order within each category.
