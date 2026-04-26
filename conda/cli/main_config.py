@@ -460,10 +460,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             for source, plugins in plugin_raw.items():
                 lines.append(f"==> {source} <==")
                 formatted = {
-                    "plugins": {
-                        name: meta._raw_value
-                        for name, meta in plugins.items()
-                    }
+                    "plugins": {name: meta._raw_value for name, meta in plugins.items()}
                 }
                 lines.extend(format_dict(formatted))
                 lines.append("")
