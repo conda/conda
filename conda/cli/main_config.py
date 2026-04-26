@@ -452,9 +452,20 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             )
         else:
             lines = []
+            plugin_raw = context.plugins.raw_data
             for source, reprs in context.collect_all().items():
                 lines.append(f"==> {source} <==")
                 lines.extend(format_dict(reprs))
+                lines.append("")
+            for source, plugins in plugin_raw.items():
+                lines.append(f"==> {source} <==")
+                formatted = {
+                    "plugins": {
+                        name: meta._raw_value
+                        for name, meta in plugins.items()
+                    }
+                }
+                lines.extend(format_dict(formatted))
                 lines.append("")
             stdout_write("\n".join(lines))
         return 0
