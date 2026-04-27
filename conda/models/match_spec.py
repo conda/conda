@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 import warnings
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import reduce
 from itertools import chain
@@ -25,7 +25,7 @@ from ..base.context import context
 from ..common.compat import isiterable
 from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict as groupby
-from ..common.path import expand, is_package_file, strip_pkg_extension, url_to_path
+from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
@@ -43,6 +43,38 @@ if TYPE_CHECKING:
     from .records import PackageRecord
 
 log = getLogger(__name__)
+
+_BRACKETS_RE: re.Pattern[str] = re.compile(r".*(?:(\[.*\]))")
+_BRACKETS_KV_RE: re.Pattern[str] = re.compile(
+    r"""
+    ([a-zA-Z0-9_-]+?)       # key
+    =                        # separator
+    (["\']?)                 # optional opening quote
+    ([^\'"]*?)               # value
+    (\2)                     # matching closing quote
+    (?:[,\ ]|$)              # delimiter or end
+    """,
+    re.VERBOSE,
+)
+_PARENS_RE: re.Pattern[str] = re.compile(r".*(?:(\(.*\)))")
+_NAME_VERSION_RE: re.Pattern[str] = re.compile(
+    r"""
+    ([^\ =<>!~]+)?          # package name
+    ([><!=~\ ].+)?          # version constraint
+    """,
+    re.VERBOSE,
+)
+_VERSION_BUILD_RE: re.Pattern[str] = re.compile(
+    r"""
+    ((?:.+?)[^><!,|]?)      # version (non-greedy, not ending in operator)
+    (?:
+        (?<![=!|,<>~])      # not preceded by an operator
+        (?:[\ =])           # space or equals separator
+        ([^-=,|<>~]+?)      # build string
+    )?$
+    """,
+    re.VERBOSE,
+)
 
 
 class MatchSpecType(type):
@@ -613,9 +645,7 @@ def _parse_version_plus_build(v_plus_b):
         >>> _parse_version_plus_build("* *")
         ('*', '*')
     """
-    parts = re.search(
-        r"((?:.+?)[^><!,|]?)(?:(?<![=!|,<>~])(?:[ =])([^-=,|<>~]+?))?$", v_plus_b
-    )
+    parts = _VERSION_BUILD_RE.search(v_plus_b)
     if parts:
         version, build = parts.groups()
         build = build and build.strip()
@@ -726,7 +756,7 @@ def _parse_spec_str(spec_str):
 
 
     # Step 2. done if spec_str is a tarball
-    if is_package_file(spec_str):
+    if context.plugin_manager.has_package_extension(spec_str):
         # treat as a normal url
         if not is_url(spec_str):
             spec_str = unquote(path_to_url(expand(spec_str)))
@@ -760,14 +790,12 @@ def _parse_spec_str(spec_str):
 
     # Step 3. strip off brackets portion
     brackets = {}
-    m3 = re.match(r".*(?:(\[.*\]))", spec_str)
+    m3 = _BRACKETS_RE.match(spec_str)
     if m3:
         brackets_str = m3.groups()[0]
         spec_str = spec_str.replace(brackets_str, "")
         brackets_str = brackets_str[1:-1]
-        m3b = re.finditer(
-            r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', brackets_str
-        )
+        m3b = _BRACKETS_KV_RE.finditer(brackets_str)
         for match in m3b:
             key, _, value, _ = match.groups()
             if not key or not value:
@@ -779,15 +807,13 @@ def _parse_spec_str(spec_str):
             brackets[key] = value
 
     # Step 4. strip off parens portion
-    m4 = re.match(r".*(?:(\(.*\)))", spec_str)
+    m4 = _PARENS_RE.match(spec_str)
     parens = {}
     if m4:
         parens_str = m4.groups()[0]
         spec_str = spec_str.replace(parens_str, "")
         parens_str = parens_str[1:-1]
-        m4b = re.finditer(
-            r'([a-zA-Z0-9_-]+?)=(["\']?)([^\'"]*?)(\2)(?:[, ]|$)', parens_str
-        )
+        m4b = _BRACKETS_KV_RE.finditer(parens_str)
         for match in m4b:
             key, _, value, _ = match.groups()
             parens[key] = value
@@ -818,7 +844,7 @@ def _parse_spec_str(spec_str):
         subdir = brackets.pop("subdir")
 
     # Step 6. strip off package name from remaining version + build
-    m3 = re.match(r"([^ =<>!~]+)?([><!=~ ].+)?", spec_str)
+    m3 = _NAME_VERSION_RE.match(spec_str)
     if m3:
         name, spec_str = m3.groups()
         if name is None:
@@ -896,7 +922,8 @@ class MatchInterface(metaclass=ABCMeta):
     def raw_value(self):
         return self._raw_value
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def exact_value(self):
         """If the match value is an exact specification, returns the value.
         Otherwise returns None.

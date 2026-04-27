@@ -1,0 +1,19 @@
+### Enhancements
+
+* Improve initialization time by using stdlib `json` instead of `requests.compat.json` in `conda.common.serialize.json`, avoiding many transitive imports. (#15838)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

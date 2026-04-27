@@ -1,17 +1,26 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
-from conda.cli.find_commands import find_commands, find_executable
 from conda.common.compat import on_win
+
+with pytest.deprecated_call():
+    from conda.cli.find_commands import find_commands, find_executable
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
 
 
 @pytest.fixture
-def faux_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Path:
+def faux_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Iterator[Path]:
     if not on_win:
         # make a read-only location, none of these should show up in the tests
         permission = tmp_path / "permission"
@@ -69,19 +78,39 @@ def faux_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Path:
     find_commands.cache_clear()
 
 
-def test_find_executable(faux_path: Path):
-    assert (faux_path / "bin" / "conda-bin").samefile(find_executable("conda-bin"))
-    if on_win:
-        assert (faux_path / "bat" / "conda-bat.bat").samefile(
-            find_executable("conda-bat")
-        )
-        assert (faux_path / "exe" / "conda-exe.exe").samefile(
-            find_executable("conda-exe")
-        )
+@pytest.mark.parametrize(
+    "executable,path",
+    [
+        ("conda-bin", "bin/conda-bin"),
+        pytest.param(
+            "conda-bat",
+            "bat/conda-bat.bat",
+            marks=pytest.mark.skipif(not on_win, reason="Windows-specific test"),
+        ),
+        pytest.param(
+            "conda-exe",
+            "exe/conda-exe.exe",
+            marks=pytest.mark.skipif(not on_win, reason="Windows-specific test"),
+        ),
+    ],
+)
+def test_find_executable(faux_path: Path, executable: str, path: str):
+    with pytest.deprecated_call():
+        assert (faux_path / path).samefile(find_executable(executable))
 
 
-def test_find_commands(faux_path: Path):
-    if on_win:
-        assert {"bin", "bat", "exe"}.issubset(find_commands())
-    else:
-        assert {"bin"}.issubset(find_commands())
+@pytest.mark.parametrize(
+    "subset",
+    [
+        pytest.param(
+            {"bin", "bat", "exe"},
+            marks=pytest.mark.skipif(not on_win, reason="Windows-specific test"),
+        ),
+        pytest.param(
+            {"bin"}, marks=pytest.mark.skipif(on_win, reason="Windows-specific test")
+        ),
+    ],
+)
+def test_find_commands(faux_path: Path, subset: set[str]):
+    with pytest.deprecated_call():
+        assert subset.issubset(find_commands())

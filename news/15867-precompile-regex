@@ -1,0 +1,6 @@
+### Enhancements
+
+* Hot-path regexes in `conda/models/match_spec.py` and `conda/activate.py` are
+  now compiled once at module load time instead of on every call.
+  Removes repeated `re.compile()` overhead from the `MatchSpec` parser and the
+  shell activation path resolver. (#15867)

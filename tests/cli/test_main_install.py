@@ -10,7 +10,7 @@ import pytest
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError, PackagesNotFoundError
+from conda.exceptions import CondaValueError, DryRunExit, PackagesNotFoundError
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
 
@@ -131,7 +131,13 @@ def test_build_version_shows_as_changed(
         return
 
     with tmp_env("python=3.11", "numpy") as prefix:
-        out, err, _ = conda_cli("install", f"--prefix={prefix}", "python=3.12", "--yes")
+        out, _, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "python=3.12",
+            "--dry-run",
+            raises=DryRunExit,
+        )
         assert "The following packages will be UPDATED" in out
         assert "The following packages will be REVISED" in out
         assert "The following packages will be DOWNGRADED" not in out
@@ -150,3 +156,34 @@ def test_too_many_arguments(
             "--yes",
         )
     assert "too many arguments" in excinfo.value.message
+
+
+def test_install_revision_revert(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    """
+    Test ``conda install --revision=N`` reverts the environment to revision N.
+    Uses only test-recipes packages (dependency, dependent) to avoid network.
+    Regression: https://github.com/conda/conda/issues/6718
+    """
+    with tmp_env("dependency=1.0") as prefix:
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert not package_is_installed(prefix, "dependent")
+
+        conda_cli("install", f"--prefix={prefix}", "dependency=2.0", "--yes")  # rev 1
+        assert package_is_installed(prefix, "dependency=2.0")
+        assert not package_is_installed(prefix, "dependent")
+
+        conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")  # rev 2
+        assert package_is_installed(prefix, "dependency=2.0")
+        assert package_is_installed(prefix, "dependent=2.0")
+
+        conda_cli("install", f"--prefix={prefix}", "--rev=1", "--yes")
+        assert package_is_installed(prefix, "dependency=2.0")
+        assert not package_is_installed(prefix, "dependent")
+
+        conda_cli("install", f"--prefix={prefix}", "--rev=0", "--yes")
+        assert package_is_installed(prefix, "dependency=1.0")
+        assert not package_is_installed(prefix, "dependent")

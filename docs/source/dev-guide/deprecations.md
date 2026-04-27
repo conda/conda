@@ -195,6 +195,36 @@ del Bar
 Constants deprecation relies on the module's `__getattr__` introduced in [PEP-562](https://peps.python.org/pep-0562/).
 :::
 
+### Deferred constants
+
+When the value of a deprecated constant is expensive to materialize (for example, a class whose definition requires a heavy import), pass a zero-argument callable to the `factory=` keyword instead of passing `value` positionally. The factory is only invoked the first time the deprecated symbol is accessed; the result is cached for subsequent accesses, so identity is preserved:
+
+```{code-block} python
+:caption: Example file, `foo.py`.
+from conda.deprecations import deprecated
+
+
+def _make_heavy():
+    import some_heavy_dependency
+    return some_heavy_dependency.Thing
+
+
+deprecated.constant(
+    "23.9",
+    "24.3",
+    "HEAVY_THING",
+    factory=_make_heavy,
+    addendum="Use `lightweight_alternative` instead.",
+)
+```
+
+```{code-block} pycon
+:caption: Example invocation.
+>>> import foo  # some_heavy_dependency is NOT imported
+>>> foo.HEAVY_THING  # some_heavy_dependency is imported now, and only now
+<stdin>:1: PendingDeprecationWarning: foo.HEAVY_THING is pending deprecation and will be removed in 24.3. Use `lightweight_alternative` instead.
+```
+
 ## Modules
 
 Entire modules can be also be deprecated:

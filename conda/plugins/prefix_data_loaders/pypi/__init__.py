@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import re
 import sys
 import traceback
 from logging import getLogger
@@ -17,6 +16,7 @@ from ....common.path import (
     get_python_site_packages_short_path,
     win_path_ok,
 )
+from ....core.prefix_data import get_conda_anchor_files_and_records
 from ....gateways.disk.delete import rm_rf
 from ....models.prefix_graph import PrefixGraph
 from ... import hookimpl
@@ -28,6 +28,12 @@ if TYPE_CHECKING:
     from ....models.records import PrefixRecord
 
 log = getLogger(__name__)
+
+
+def resolved_short_path(short_path: str, prefix_path: Path) -> str:
+    """Return short_path with any symlinks resolved."""
+    resolved_path = (prefix_path / short_path).resolve()
+    return resolved_path.relative_to(prefix_path.resolve()).as_posix()
 
 
 def load_site_packages(
@@ -51,23 +57,44 @@ def load_site_packages(
 
     prefix_path = Path(prefix)
 
-    site_packages_dir = get_python_site_packages_short_path(python_pkg_record.version)
+    site_packages_dir = python_pkg_record.python_site_packages_path
+    if site_packages_dir is None:
+        site_packages_dir = get_python_site_packages_short_path(
+            python_pkg_record.version
+        )
     site_packages_path = prefix_path / win_path_ok(site_packages_dir)
 
-    if not site_packages_path.is_dir():
+    # The site-packages directory may include a symlink
+    # for example if lib/python3.XY is a symlink to lib/python3.XYt
+    resolved_site_packages_path = site_packages_path.resolve()
+    resolved_site_packages_dir = resolved_site_packages_path.relative_to(
+        prefix_path.resolve()
+    ).as_posix()
+
+    if not resolved_site_packages_path.is_dir():
         return {}
 
     # Get anchor files for corresponding conda (handled) python packages
     prefix_graph = PrefixGraph(records.values())
     python_records = prefix_graph.all_descendants(python_pkg_record)
     conda_python_packages = get_conda_anchor_files_and_records(
-        site_packages_dir, python_records
+        resolved_site_packages_dir, python_records
     )
+
+    if resolved_site_packages_dir != site_packages_dir:
+        # The short site-packages directory is a symlink to another path.
+        # It is possible that conda installed files through the symlink.
+        # Find those files and resolve them for comparison.
+        symlinked_conda_python_packages = get_conda_anchor_files_and_records(
+            site_packages_dir, python_records
+        )
+        for anchor_file, pkg in symlinked_conda_python_packages.items():
+            conda_python_packages[resolved_short_path(anchor_file, prefix_path)] = pkg
 
     # Get all anchor files and compare against conda anchor files to find clobbered conda
     # packages and python packages installed via other means (not handled by conda)
     sp_anchor_files = get_site_packages_anchor_files(
-        site_packages_path, site_packages_dir
+        resolved_site_packages_path, resolved_site_packages_dir
     )
     conda_anchor_files = set(conda_python_packages)
     clobbered_conda_anchor_files = conda_anchor_files - sp_anchor_files
@@ -125,34 +152,6 @@ def load_site_packages(
         new_packages[python_record.name] = python_record
 
     return new_packages
-
-
-def get_conda_anchor_files_and_records(site_packages_short_path, python_records):
-    """Return the anchor files for the conda records of python packages."""
-    anchor_file_endings = (".egg-info/PKG-INFO", ".dist-info/RECORD", ".egg-info")
-    conda_python_packages = {}
-
-    matcher = re.compile(
-        r"^{}/[^/]+(?:{})$".format(
-            re.escape(site_packages_short_path),
-            r"|".join(re.escape(fn) for fn in anchor_file_endings),
-        )
-    ).match
-
-    for prefix_record in python_records:
-        anchor_paths = tuple(fpath for fpath in prefix_record.files if matcher(fpath))
-        if len(anchor_paths) > 1:
-            anchor_path = sorted(anchor_paths, key=len)[0]
-            log.info(
-                "Package %s has multiple python anchor files.\n  Using %s",
-                prefix_record.record_id(),
-                anchor_path,
-            )
-            conda_python_packages[anchor_path] = prefix_record
-        elif anchor_paths:
-            conda_python_packages[anchor_paths[0]] = prefix_record
-
-    return conda_python_packages
 
 
 @hookimpl(tryfirst=True)

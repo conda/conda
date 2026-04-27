@@ -1,0 +1,6 @@
+### Enhancements
+
+* `Resolve._get_reduced_index()` no longer uses `copy.deepcopy()` to snapshot
+  `specs_by_name`. A dict comprehension with slice copies (`v[:]`) is sufficient
+  because `MatchSpec` objects are immutable. Removes the `import copy` from
+  `resolve.py`. (#15867)

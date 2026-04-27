@@ -100,18 +100,41 @@ use the ``--no-default-packages`` flag:
 Creating an environment from an environment.yml file
 ====================================================
 
-Use the terminal for the following steps:
+Before you start, you need to use a text editor to create an environment file that
+looks like the following:
+
+.. code:: yaml
+
+   # environment.yml
+   name: myenv
+   channels:
+     - conda-forge
+   dependencies:
+     - python
+     - numpy
+
+The file above defines an environment named, "myenv" that uses ``conda-forge`` as its
+channel and adds the dependencies ``python`` and ``numpy``.
+
+Now that the ``environment.yml`` has been created, you can use the terminal for
+the following steps:
 
 #. Create the environment from the ``environment.yml`` file:
 
    .. code::
 
-      conda env create -f environment.yml
+      conda create --file environment.yml
 
    The first line of the ``yml`` file sets the new environment's
    name. For details see :ref:`Creating an environment file manually
    <create-env-file-manually>`.
 
+   .. hint::
+
+      Creating environments from YAML files was previously done with
+      ``conda env create --file <file>``. This still works but is not the preferred
+      way of creating environments. This older invocation will be kept around to
+      ensure backwards compatibility with existing scripts and automations.
 
 #. Activate the new environment: ``conda activate myenv``
 
@@ -363,6 +386,12 @@ Use the terminal for the following steps:
    existing environment::
 
      conda install --name myenv --file spec-file.txt
+
+   The ``--file`` option also supports YAML and other
+   formats via environment specifier plugins. For ``conda install``
+   (and ``conda update``), only the package list is used; any name
+   or prefix in the file is ignored. Packages are installed into
+   the target environment (-n/-p or the current environment).
 
    Conda does not check architecture or dependencies when installing
    from a spec file. To ensure that the packages work correctly,

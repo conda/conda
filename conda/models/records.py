@@ -16,6 +16,7 @@ Object inheritance:
 from __future__ import annotations
 
 from os.path import basename, join
+from pathlib import Path
 
 from boltons.timeutils import dt_to_timestamp, isoparse
 
@@ -32,7 +33,6 @@ from ..auxlib.entity import (
 )
 from ..base.context import context
 from ..common.compat import isiterable
-from ..deprecations import deprecated
 from ..exceptions import PathNotFoundError
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
@@ -242,7 +242,7 @@ class PathDataV1(PathData):
 class PathsData(Entity):
     # from info/paths.json
     paths_version = IntegerField()
-    paths = ListField(PathData)
+    paths = ListField(PathDataV1)
 
 
 class PackageRecord(DictSafeMixin, Entity):
@@ -336,11 +336,6 @@ class PackageRecord(DictSafeMixin, Entity):
         Part of the :attr:`_pkey`.
         """
         return getattr(self.channel, "canonical_name", None)
-
-    @property
-    @deprecated("25.9", "26.3", addendum="Use .channel_name instead")
-    def schannel(self):
-        return self.channel_name
 
     @property
     def _pkey(self):
@@ -626,12 +621,48 @@ class SolvedRecord(PackageRecord):
     """Representation of a package that has been returned as part of a solver solution.
 
     This sits between :class:`PackageRecord` and :class:`PrefixRecord`, simply adding
-    ``requested_spec`` so it can be used in lockfiles without requiring the artifact on
-    disk.
+    ``requested_spec`` (and ``requested_specs``) so they can be used in lockfiles without
+    requiring the artifact on disk.
     """
 
     requested_spec = StringField(required=False)
-    """The :class:`MatchSpec` that the user requested or ``None`` if the package it was installed as a dependency."""
+    """
+    The :class:`MatchSpec` that the user requested or ``None``
+    if the package it was installed as a dependency.
+    """
+    _requested_specs = ListField(
+        str, required=False, nullable=True, aliases=("requested_specs",)
+    )
+    """
+    The :class:`MatchSpec` objects that the user requested or ``()``
+    if the package was installed as a dependency.
+    See also `.requested_specs` property.
+    """
+
+    @property
+    def requested_specs(self) -> tuple[str, ...]:
+        """
+        This property will use 'requested_spec' as the source for
+        'requested_specs' for old `conda-meta/*.json` files that
+        did not define the plural version.
+        """
+        if specs := self.get("_requested_specs", None):
+            return tuple(specs)
+        if spec := self.get("requested_spec", None):
+            return (spec,)
+        return ()
+
+    def dump(self):
+        """
+        We need to expose _requested_specs as its public counterpart,
+        and also expose single specs as a plural list for backwards compatibility.
+        """
+        dumped = super().dump()
+        if dumped.get("_requested_specs"):
+            dumped["requested_specs"] = dumped.pop("_requested_specs")
+        elif spec := dumped.get("requested_spec"):
+            dumped["requested_specs"] = [spec]
+        return dumped
 
 
 class PrefixRecord(SolvedRecord):
@@ -671,6 +702,41 @@ class PrefixRecord(SolvedRecord):
     # information with the package.  Open to rethinking that though.
     auth = StringField(required=False, nullable=True)
     """Authentication information."""
+
+    def package_size(self, prefix_path: Path) -> int:
+        """
+        Compute the installed size of this package within a prefix.
+
+        This sums up the size_in_bytes of all non-softlink paths in paths_data,
+        and stats the files on disk if size_in_bytes is missing and for the
+        package's conda-meta JSON manifest.
+
+        :returns: Total size in bytes of all files installed by this package.
+        """
+        total_size = 0
+
+        meta_file = (
+            prefix_path / "conda-meta" / f"{self.name}-{self.version}-{self.build}.json"
+        )
+        try:
+            total_size += meta_file.stat().st_size
+        except OSError:
+            pass
+
+        for path_data in self.paths_data.paths:
+            if path_data.path_type in (PathEnum.softlink, PathEnum.directory):
+                continue
+            if getattr(path_data, "size_in_bytes", None) is not None:
+                total_size += path_data.size_in_bytes
+                continue
+
+            file_path = Path(prefix_path) / path_data._path
+            try:
+                total_size += file_path.stat().st_size
+            except OSError:
+                pass
+
+        return total_size
 
     # @classmethod
     # def load(cls, conda_meta_json_path):

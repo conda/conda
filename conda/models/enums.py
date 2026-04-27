@@ -114,8 +114,8 @@ class PathEnum(Enum):
 
 
 deprecated.constant(
-    deprecate_in="26.3",
-    remove_in="26.9",
+    deprecate_in="26.9",
+    remove_in="27.3",
     constant="PathType",
     value=PathEnum,
     addendum="Use `conda.models.enums.PathEnum` instead.",

@@ -10,9 +10,13 @@ register all plugins during conda's startup process.
 
 from __future__ import annotations
 
+import fnmatch
 import functools
 import logging
 import os
+from collections.abc import Iterable, Mapping
+from contextlib import suppress
+from dataclasses import dataclass
 from importlib.metadata import distributions
 from inspect import getmodule, isclass
 from typing import TYPE_CHECKING, overload
@@ -20,19 +24,22 @@ from typing import TYPE_CHECKING, overload
 import pluggy
 
 from ..auxlib import NULL
-from ..auxlib.ish import dals
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
+from ..common.iterators import groupby_to_dict
 from ..exceptions import (
+    AmbiguousEnvironmentSpecPlugin,
     CondaValueError,
     EnvironmentExporterNotDetected,
     EnvironmentSpecPluginNotDetected,
+    EnvironmentSpecPluginSelectionError,
     PluginError,
 )
 from . import (
     environment_exporters,
     environment_specifiers,
+    package_extractors,
     post_solves,
     prefix_data_loaders,
     reporter_backends,
@@ -45,11 +52,13 @@ from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
-    from typing import Literal
+    from collections.abc import Callable, Sequence
+    from typing import Any, Literal, TypeVar, cast
 
+    from pluggy import HookImpl
     from requests.auth import AuthBase
 
+    from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
@@ -59,6 +68,8 @@ if TYPE_CHECKING:
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaHealthCheck,
+        CondaPackageExtractor,
+        CondaPluginWithAliases,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -75,7 +86,45 @@ if TYPE_CHECKING:
         CondaVirtualPackage,
     )
 
+    P = TypeVar("P", bound=CondaPluginWithAliases)
+
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class _HookImplWrapper:
+    impl: HookImpl
+
+    def function(self, *args):
+        result = self.impl.function(*args)
+        if self.impl.hookwrapper or self.impl.wrapper:
+            # hookwrappers/wrappers do not return plugins, return as is
+            return result
+        elif self._isiterable(result):
+            # return a generator of the wrapped plugins
+            if TYPE_CHECKING:
+                result = cast("Iterable[Any]", result)
+            return (self._set_impl(item, self.impl) for item in result)
+        else:
+            # return the wrapped plugin
+            return self._set_impl(result, self.impl)
+
+    def __getattr__(self, name):
+        # delegate to the wrapped impl
+        return getattr(self.impl, name)
+
+    @staticmethod
+    def _isiterable(obj):
+        # check if the result is iterable and not a string, bytes, bytearray, or mapping
+        return isinstance(obj, Iterable) and not isinstance(
+            obj, (str, bytes, bytearray, Mapping)
+        )
+
+    @staticmethod
+    def _set_impl(result, impl):
+        with suppress(AttributeError, TypeError):
+            setattr(result, "impl", impl)
+        return result
 
 
 class CondaPluginManager(pluggy.PluginManager):
@@ -127,7 +176,10 @@ class CondaPluginManager(pluggy.PluginManager):
         try:
             # register plugin but ignore ValueError since that means
             # the plugin has already been registered
-            return super().register(plugin, name=name)
+            plugin_name = super().register(plugin, name=name)
+            with suppress(AttributeError, TypeError):
+                setattr(plugin, "plugin_name", plugin_name)
+            return plugin_name
         except ValueError:
             return None
         except Exception as err:
@@ -175,7 +227,9 @@ class CondaPluginManager(pluggy.PluginManager):
                     # a traceback; instead we pass exc_info conditionally on
                     # context.verbosity
                     log.warning(
-                        f"Error while loading conda entry point: {entry_point.name} ({err})",
+                        "Error while loading conda entry point: %s (%s)",
+                        entry_point.name,
+                        err,
                         exc_info=err if context.info else None,
                     )
                     continue
@@ -183,6 +237,20 @@ class CondaPluginManager(pluggy.PluginManager):
                 if self.register(plugin):
                     count += 1
         return count
+
+    def _hookexec(
+        self,
+        hook_name: str,
+        methods: Sequence[HookImpl],
+        kwargs: Mapping[str, object],
+        firstresult: bool,
+    ) -> object | list[object]:
+        wrapped_methods = [_HookImplWrapper(method) for method in methods]
+        if TYPE_CHECKING:
+            methods = cast("Sequence[HookImpl]", wrapped_methods)
+        else:
+            methods = wrapped_methods
+        return super()._hookexec(hook_name, methods, kwargs, firstresult)
 
     @overload
     def get_hook_results(
@@ -265,6 +333,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
+        self, name: Literal["package_extractors"]
+    ) -> list[CondaPackageExtractor]: ...
+
+    @overload
+    def get_hook_results(
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
 
@@ -278,10 +351,6 @@ class CondaPluginManager(pluggy.PluginManager):
         if hook is None:
             raise PluginError(f"Could not find requested `{name}` plugins")
 
-        # hook() returns a generator of all plugins for a given specname,
-        # unfortunately this generator does not offer any information about which
-        # package/module the plugin is defined in, this makes reporting errors in
-        # a meaningful way to users difficult
         plugins = [plugin for plugins in hook(**kwargs) for plugin in plugins]
 
         # Validate plugin names since plugins may not properly inherit from CondaPlugin
@@ -293,22 +362,31 @@ class CondaPluginManager(pluggy.PluginManager):
             or plugin.name != plugin.name.lower().strip()
         ]
         if invalid:
+            plugin_names = (
+                f"{repr(plugin)} ({plugin.impl.plugin_name})" for plugin in invalid
+            )
             raise PluginError(
                 f"Invalid plugin names found for `{name}`:\n"
-                f"{dashlist(map(repr, invalid))}\n"
+                f"{dashlist(plugin_names)}\n"
                 f"\n"
                 f"Please report this issue to the plugin author(s)."
             )
 
         # Check for conflicts since no two plugins can have the same name
-        seen = set()
         conflicts = [
-            plugin for plugin in plugins if plugin.name in seen or seen.add(plugin.name)
+            plugin
+            for plugins in groupby_to_dict(lambda plugin: plugin.name, plugins).values()
+            if len(plugins) > 1
+            for plugin in plugins
         ]
         if conflicts:
+            plugin_names = (
+                f"{plugin.__class__.__name__}(name={plugin.name}) (source: {plugin.impl.plugin_name})"
+                for plugin in conflicts
+            )
             raise PluginError(
                 f"Conflicting plugins found for `{name}`:\n"
-                f"{dashlist(map(repr, conflicts))}\n"
+                f"{dashlist(plugin_names)}\n"
                 f"\n"
                 f"Multiple conda plugins are registered via the `{specname}` hook. "
                 f"Please make sure that you don't have any incompatible plugins installed."
@@ -430,8 +508,9 @@ class CondaPluginManager(pluggy.PluginManager):
         reporter_backend = reporter_backends_map.get(name, None)
         if reporter_backend is None:
             log.warning(
-                f'Unable to find reporter backend: "{name}"; '
-                f'falling back to using "{DEFAULT_CONSOLE_REPORTER_BACKEND}"'
+                'Unable to find reporter backend: "%s"; falling back to using "%s"',
+                name,
+                DEFAULT_CONSOLE_REPORTER_BACKEND,
             )
             return reporter_backends_map.get(DEFAULT_CONSOLE_REPORTER_BACKEND)
         else:
@@ -506,13 +585,71 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         return PluginConfig(data)
 
-    def get_environment_specifiers(self) -> dict[str, CondaEnvironmentSpecifier]:
+    def get_environment_specifiers(
+        self, *, supports_detection: bool | None = None, with_aliases: bool = True
+    ) -> dict[str, CondaEnvironmentSpecifier]:
         """
         Returns a mapping from environment specifier name to environment specifier.
+
+        :param supports_detection: ternary value that returns either everything, only supporting
+                                    detection or not supporting detection.
+        :param with_aliases: whether to include aliased values of environment specifiers.
         """
-        return {
-            hook.name: hook for hook in self.get_hook_results("environment_specifiers")
-        }
+        if supports_detection is None:
+            env_spec_hooks = [
+                h for h in self.get_hook_results("environment_specifiers")
+            ]
+        else:
+            env_spec_hooks = [
+                h
+                for h in self.get_hook_results("environment_specifiers")
+                if h.environment_spec.detection_supported == supports_detection
+            ]
+
+        if not with_aliases:
+            return {hook.name: hook for hook in env_spec_hooks}
+
+        try:
+            return self._get_name_and_alias_mapping(env_spec_hooks)
+        except PluginError as err:
+            raise PluginError(
+                f"Plugin name conflicts detected in environment specifiers.\n{err}"
+            )
+
+    def _get_name_and_alias_mapping(self, plugins: Iterable[P]) -> dict[str, P]:
+        """
+        Get a mapping from plugin names (including aliases) to plugin.
+
+        :param plugins: Plugins that expose a ``name`` and ``aliases``.
+        :return: Mapping from each canonical name and alias to the corresponding plugin.
+        :raises PluginError: If multiple plugins use the same name or alias.
+        """
+        mapping: dict[str, P] = {}
+        conflicts = {}  # format_name -> set of plugin names
+
+        for plugin in plugins:
+            for format_name in (plugin.name, *plugin.aliases):
+                if format_name in mapping:
+                    if format_name not in conflicts:
+                        conflicts[format_name] = {mapping[format_name].name}
+                    conflicts[format_name].add(plugin.name)
+                else:
+                    mapping[format_name] = plugin
+
+        if conflicts:
+            conflict_details = []
+            for format_name, plugin_names in sorted(conflicts.items()):
+                plugins_str = ", ".join(sorted(plugin_names))
+                conflict_details.append(
+                    f"'{format_name}' name or alias used by plugins: {plugins_str}"
+                )
+
+            raise PluginError(
+                f"Multiple plugins cannot use the same name or alias:"
+                f"{dashlist(conflict_details)}\n"
+            )
+
+        return mapping
 
     def get_environment_specifier_by_name(
         self,
@@ -529,13 +666,17 @@ class CondaPluginManager(pluggy.PluginManager):
         """
         name = name.lower().strip()
         plugins = self.get_environment_specifiers()
+
         try:
             plugin = plugins[name]
         except KeyError:
-            raise CondaValueError(
-                f"You have chosen an unrecognized environment"
-                f" specifier type ({name}). Choose one of: "
-                f"{dashlist(plugins)}"
+            raise EnvironmentSpecPluginSelectionError(
+                msg=(
+                    f"You have chosen an unrecognized environment "
+                    f"specifier type ({name}). Please choose one "
+                    "of the available formats."
+                ),
+                plugin_specs=self.get_hook_results("environment_specifiers"),
             )
         else:
             # Try to load the plugin and check if it can handle the environment spec
@@ -543,14 +684,14 @@ class CondaPluginManager(pluggy.PluginManager):
                 if plugin.environment_spec(source).can_handle():
                     return plugin
             except Exception as e:
-                raise PluginError(
-                    dals(
-                        f"""
-                        An error occured when handling '{source}' with plugin '{name}'.
-
-                        {type(e).__name__}: {e}
-                        """
-                    )
+                raise EnvironmentSpecPluginSelectionError(
+                    msg=(
+                        f"Could not parse '{source}' as '{name}'. Check "
+                        "that the file contents match the expected format. "
+                        f"Errors reported from '{name}':\n\n"
+                        f"    ->  {type(e).__name__}: {str(e)}\n"
+                    ),
+                    plugin_specs=self.get_hook_results("environment_specifiers"),
                 )
             else:
                 # If the plugin was not able to handle the environment spec, raise an error
@@ -558,8 +699,78 @@ class CondaPluginManager(pluggy.PluginManager):
                     f"Requested plugin '{name}' is unable to handle environment spec '{source}'"
                 )
 
+    def _detect_filename_env_spec(
+        self,
+        source: str,
+        basename: str,
+        hooks: dict[str, CondaEnvironmentSpecifier],
+    ) -> list[CondaEnvironmentSpecifier]:
+        """Detect environment specifier by filename pattern matching.
+
+        :param basename: basename of the source file
+        :param hooks: mapping of environment specifier plugins
+        :returns: list of matching plugins, or None if no filename matches
+        """
+        found = [
+            hook
+            for hook_name, hook in hooks.items()
+            if hook.default_filenames
+            and any(
+                fnmatch.fnmatch(basename, pattern) for pattern in hook.default_filenames
+            )
+        ]
+
+        if len(found) > 1:
+            raise AmbiguousEnvironmentSpecPlugin(
+                msg=f"File '{source}' matches the default filename pattern for multiple formats.",
+                plugins=found,
+            )
+
+        if len(found) == 1:
+            try:
+                if found[0].environment_spec(source).can_handle():
+                    return found
+            except Exception as e:
+                raise PluginError(
+                    f"Failed to parse environment specification from file: {e}"
+                ) from e
+
+        return found
+
+    @staticmethod
+    def _detect_content_env_spec(
+        source: str,
+        hooks: dict[str, CondaEnvironmentSpecifier],
+    ) -> list[CondaEnvironmentSpecifier]:
+        """Detect environment specifier by content-based autodetection.
+
+        :param source: full path to the environment spec file or source
+        :param hooks: mapping of environment specifier plugins
+        :returns: tuple of (found plugins, autodetect disabled plugin names)
+        """
+        found = []
+
+        for hook_name, hook in hooks.items():
+            log.debug("EnvironmentSpec hook: checking %s", hook_name)
+            try:
+                if hook.environment_spec(source).can_handle():
+                    log.debug(
+                        "EnvironmentSpec hook: %s can be %s",
+                        source,
+                        hook_name,
+                    )
+                    found.append(hook)
+            except Exception:
+                pass
+
+        return found
+
     def detect_environment_specifier(self, source: str) -> CondaEnvironmentSpecifier:
         """Detect the environment specifier plugin for a given spec source
+
+        Uses two-phase detection:
+        1. Filename-based filtering using fnmatch patterns
+        2. Fallback to content-based autodetection (can_handle())
 
         Raises PluginError if more than one environment_spec plugin is found to be able to handle the file.
         Raises EnvironmentSpecPluginNotDetected if no plugins were found.
@@ -567,74 +778,44 @@ class CondaPluginManager(pluggy.PluginManager):
         :param source: full path to the environment spec file or source
         :returns: an environment specifier plugin that can handle the provided file
         """
-        hooks = self.get_environment_specifiers()
-        found = []
-        autodetect_disabled_plugins = []
-        for hook_name, hook in hooks.items():
-            if hook.environment_spec.detection_supported:
-                log.debug("EnvironmentSpec hook: checking %s", hook_name)
-                try:
-                    if hook.environment_spec(source).can_handle():
-                        log.debug(
-                            "EnvironmentSpec hook: %s can be %s",
-                            source,
-                            hook_name,
-                        )
-                        found.append(hook)
-                    else:
-                        log.debug(
-                            "EnvironmentSpec hook: %s can NOT be handled by %s",
-                            source,
-                            hook_name,
-                        )
-                except Exception as e:
-                    log.error(
-                        "EnvironmentSpec hook: an error occurred when handling '%s' with plugin '%s'. %s",
-                        source,
-                        hook_name,
-                        e,
-                    )
-                    log.debug("%r", e, exc_info=e)
-            else:
-                log.debug(
-                    "EnvironmentSpec hook: %s can NOT be handled by %s",
-                    source,
-                    hook_name,
-                )
-                autodetect_disabled_plugins.append(hook_name)
+        hooks = self.get_environment_specifiers(
+            supports_detection=True, with_aliases=False
+        )
+        basename = os.path.basename(source)
 
-        if not found:
-            # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
-            # FUTURE: Remove this final try at using the environment.yml to read the environment
-            # file. This should be removed in "26.9" when the deprecations warning for
-            # environment.yml's that are not compliant with cep-0024 are removed.
-            try:
-                return self.get_environment_specifier_by_name(
-                    source=source, name="environment.yml"
+        # Filename detection
+        found = self._detect_filename_env_spec(source, basename, hooks)
+
+        if len(found) == 0:
+            # Filename matching didn't find anything; try content based detection
+            found = self._detect_content_env_spec(source, hooks)
+
+            if len(found) > 1:
+                raise AmbiguousEnvironmentSpecPlugin(
+                    msg=f"File '{source}' can be handled by multiple formats.",
+                    plugins=found,
                 )
-            except (PluginError, CondaValueError) as exc:
-                # raise error if no plugins found that can read the environment file
-                raise EnvironmentSpecPluginNotDetected(
-                    name=source,
-                    plugin_names=hooks,
-                    autodetect_disabled_plugins=autodetect_disabled_plugins,
-                ) from exc
-        elif len(found) == 1:
-            # return the plugin if only one is found
+
+        if len(found) == 1:
             return found[0]
-        else:
-            # raise an error if there is more than one plugin found
-            raise PluginError(
-                dals(
-                    f"""
-                    Too many plugins found that can handle the environment file '{source}':
 
-                    {", ".join([hook.name for hook in found])}
-
-                    Please make sure that you don't have any overlapping plugins installed.
-                """
-                )
+        # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
+        # FUTURE: Remove this final try at using the environment.yml to read the environment
+        # file. This should be removed in "26.9" when the deprecations warning for
+        # environment.yml's that are not compliant with cep-0024 are removed.
+        try:
+            return self.get_environment_specifier_by_name(
+                source=source, name="environment.yml"
             )
+        except (
+            PluginError,
+            CondaValueError,
+            EnvironmentSpecPluginSelectionError,
+        ) as exc:
+            # raise error if no plugins found that can read the environment file
+            raise EnvironmentSpecPluginNotDetected(
+                plugin_specs=self.get_hook_results("environment_specifiers")
+            ) from exc
 
     def get_environment_specifier(
         self,
@@ -668,37 +849,18 @@ class CondaPluginManager(pluggy.PluginManager):
         :return: Dict mapping format name to CondaEnvironmentExporter
         :raises PluginError: If multiple exporters use the same format name or alias
         """
-        mapping = {}
-        conflicts = {}  # format_name -> set of plugin names
-
-        for plugin in self.get_environment_exporters():
-            for format_name in (plugin.name, *plugin.aliases):
-                if format_name in mapping:
-                    if format_name not in conflicts:
-                        conflicts[format_name] = {mapping[format_name].name}
-                    conflicts[format_name].add(plugin.name)
-                else:
-                    mapping[format_name] = plugin
-
-        if conflicts:
-            conflict_details = []
-            for format_name, plugin_names in sorted(conflicts.items()):
-                plugins_str = ", ".join(sorted(plugin_names))
-                conflict_details.append(
-                    f"'{format_name}' used by plugins: {plugins_str}"
-                )
-
+        try:
+            return self._get_name_and_alias_mapping(self.get_environment_exporters())
+        except PluginError as err:
             raise PluginError(
-                f"Format name conflicts detected in environment exporters:"
-                f"{dashlist(conflict_details)}\n"
-                f"Multiple plugins cannot use the same format name or alias."
+                f"Format name conflicts detected in environment exporters.\n{err}"
             )
-
-        return mapping
 
     def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """
-        Detect an environment exporter based on exact filename matching against default_filenames.
+        Detect an environment exporter based on filename matching against default_filenames.
+
+        Uses fnmatch pattern matching for flexible filename patterns (e.g., *.conda-lock.yml).
 
         :param filename: Filename to find an exporter for (basename is used for detection)
         :return: CondaEnvironmentExporter that supports the filename
@@ -710,8 +872,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
         matches = []
         for exporter_config in self.get_environment_exporters():
-            # Check if basename exactly matches any of the default filenames
-            if basename in exporter_config.default_filenames:
+            # Check if basename matches any of the default filename patterns
+            if any(
+                fnmatch.fnmatch(basename, pattern)
+                for pattern in exporter_config.default_filenames
+            ):
                 matches.append(exporter_config)
 
         if not matches:
@@ -761,7 +926,7 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[Action]:
         """Get the plugin-defined pre-transaction actions.
 
-        :param transaction_context: Mapping between target prefixes and PrefixActions
+        :param transaction_context: Mapping between target prefixes and PrefixActionGroup
             instances
         :param target_prefix: Target prefix for the action
         :param unlink_precs: Package records to be unlinked
@@ -796,7 +961,7 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> list[Action]:
         """Get the plugin-defined post-transaction actions.
 
-        :param transaction_context: Mapping between target prefixes and PrefixActions
+        :param transaction_context: Mapping between target prefixes and PrefixActionGroup
             instances
         :param target_prefix: Target prefix for the action
         :param unlink_precs: Package records to be unlinked
@@ -819,6 +984,75 @@ class CondaPluginManager(pluggy.PluginManager):
             for hook in self.get_hook_results("post_transaction_actions")
         ]
 
+    def get_package_extractors(self) -> dict[str, CondaPackageExtractor]:
+        """
+        Return a mapping from file extension to package extractor plugin.
+
+        Extensions are lowercased for case-insensitive matching.
+
+        :return: Dictionary mapping lowercased extensions (e.g., ``".conda"``) to their
+            :class:`~conda.plugins.types.CondaPackageExtractor` plugins.
+        """
+        return {
+            extension.lower(): hook
+            for hook in self.get_hook_results("package_extractors")
+            for extension in hook.extensions
+        }
+
+    def get_package_extractor(
+        self,
+        source_full_path: PathType,
+    ) -> CondaPackageExtractor:
+        """
+        Get the package extractor plugin for a given package path.
+
+        Searches through registered package extractor plugins to find one that
+        handles the file extension of the provided package path.
+
+        :param source_full_path: Full path to the package archive file.
+        :return: The matching :class:`~conda.plugins.types.CondaPackageExtractor` plugin.
+        :raises PluginError: If no registered extractor handles the file extension.
+        """
+        source_str = os.fspath(source_full_path).lower()
+        for extension, extractor in self.get_package_extractors().items():
+            if source_str.endswith(extension):
+                return extractor
+
+        raise PluginError(
+            f"No registered 'package_extractors' plugin found for package: {source_full_path}"
+        )
+
+    def extract_package(
+        self,
+        source_full_path: PathType,
+        destination_directory: PathType,
+    ) -> None:
+        """
+        Extract a package archive to a destination directory.
+
+        Finds the appropriate extractor plugin based on the file extension
+        and extracts the package.
+
+        :param source_full_path: Full path to the package archive file.
+        :param destination_directory: Directory to extract the package contents to.
+        :raises PluginError: If no registered extractor handles the file extension.
+        """
+        extractor = self.get_package_extractor(source_full_path)
+        extractor.extract(source_full_path, destination_directory)
+
+    def has_package_extension(self, path: PathType) -> str | None:
+        """
+        Check if a path has a supported package file extension.
+
+        :param path: Path to check.
+        :return: The matched extension (lowercased) if found, None otherwise.
+        """
+        path_str = os.fspath(path).lower()
+        for ext in self.get_package_extractors():
+            if path_str.endswith(ext):
+                return ext
+        return None
+
 
 @functools.cache
 def get_plugin_manager() -> CondaPluginManager:
@@ -835,6 +1069,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *health_checks.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
+        *package_extractors.plugins,
         *prefix_data_loaders.plugins,
         *environment_specifiers.plugins,
         *environment_exporters.plugins,

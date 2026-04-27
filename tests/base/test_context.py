@@ -8,7 +8,6 @@ from argparse import Namespace
 from contextlib import nullcontext
 from itertools import chain
 from os.path import abspath, join
-from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest import mock
@@ -24,13 +23,13 @@ from conda.base.constants import (
     PathConflict,
 )
 from conda.base.context import (
+    ContextStack,
     channel_alias_validation,
     context,
     default_python_validation,
     env_name,
     reset_context,
     validate_channels,
-    validate_prefix_name,
 )
 from conda.common.configuration import (
     DefaultValueRawParameter,
@@ -40,12 +39,7 @@ from conda.common.configuration import (
 from conda.common.path import expand, win_path_backout
 from conda.common.serialize import yaml
 from conda.common.url import join_url, path_to_url
-from conda.exceptions import (
-    ChannelDenied,
-    ChannelNotAllowed,
-    CondaValueError,
-    EnvironmentNameNotFound,
-)
+from conda.exceptions import ChannelDenied, ChannelNotAllowed
 from conda.gateways.disk.permissions import make_read_only
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -53,11 +47,15 @@ from conda.utils import on_win
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
 
     from pytest import MonkeyPatch
 
-    from conda.testing import PathFactoryFixture
-    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        PathFactoryFixture,
+        TmpEnvFixture,
+    )
 
 
 def test_migrated_custom_channels(context_testdata: None):
@@ -555,6 +553,37 @@ def test_channel_settings(context_testdata: None):
     )
 
 
+@pytest.mark.parametrize(
+    "sys_platform, machine, expected_subdir",
+    [
+        ("linux", "x86_64", "linux-64"),
+        ("linux", "aarch64", "linux-aarch64"),
+        ("linux", "ppc64le", "linux-ppc64le"),
+        ("linux", "s390x", "linux-s390x"),
+        ("linux", "riscv64", "linux-riscv64"),
+        ("darwin", "x86_64", "osx-64"),
+        ("darwin", "arm64", "osx-arm64"),
+        ("win32", "AMD64", "win-64"),
+        ("win32", "ARM64", "win-arm64"),
+    ],
+)
+def test_native_subdir(
+    monkeypatch: MonkeyPatch,
+    sys_platform: str,
+    machine: str,
+    expected_subdir: str,
+) -> None:
+    """platform.machine() returns uppercase on Windows (e.g. ARM64, AMD64);
+    ensure _native_subdir normalizes to the correct subdir string."""
+    monkeypatch.setattr("conda.base.context.platform.machine", lambda: machine)
+    monkeypatch.setattr("conda.base.context.sys.platform", sys_platform)
+    context._native_subdir.cache_clear()
+    try:
+        assert context._native_subdir() == expected_subdir
+    finally:
+        context._native_subdir.cache_clear()
+
+
 def test_subdirs(monkeypatch: MonkeyPatch) -> None:
     assert context.subdirs == (context.subdir, "noarch")
 
@@ -571,67 +600,6 @@ def test_local_build_root_default_rc():
         assert context.local_build_root == join(context.root_prefix, "conda-bld")
     else:
         assert context.local_build_root == expand("~/conda-bld")
-
-
-if on_win:
-    VALIDATE_PREFIX_NAME_BASE_DIR = Path("C:\\Users\\name\\prefix_dir\\")
-else:
-    VALIDATE_PREFIX_NAME_BASE_DIR = Path("/home/user/prefix_dir/")
-
-VALIDATE_PREFIX_ENV_NAME = "env-name"
-
-VALIDATE_PREFIX_TEST_CASES = (
-    # First scenario which triggers an Environment not found error
-    (
-        VALIDATE_PREFIX_ENV_NAME,
-        False,
-        (
-            VALIDATE_PREFIX_NAME_BASE_DIR,
-            EnvironmentNameNotFound(VALIDATE_PREFIX_ENV_NAME),
-        ),
-        VALIDATE_PREFIX_NAME_BASE_DIR.joinpath(VALIDATE_PREFIX_ENV_NAME),
-    ),
-    # Passing in not allowed characters as the prefix name
-    (
-        "not/allow#characters:in-path",
-        False,
-        (None, None),
-        CondaValueError("Invalid environment name"),
-    ),
-    # Passing in not allowed characters as the prefix name
-    (
-        "base",
-        False,
-        (None, None),
-        CondaValueError("Use of 'base' as environment name is not allowed here."),
-    ),
-)
-
-
-@pytest.mark.parametrize(
-    "prefix,allow_base,mock_return_values,expected", VALIDATE_PREFIX_TEST_CASES
-)
-def test_validate_prefix_name(prefix, allow_base, mock_return_values, expected):
-    ctx = mock.MagicMock()
-
-    with (
-        mock.patch("conda.gateways.disk.create.first_writable_envs_dir") as mock_one,
-        mock.patch("conda.base.context.locate_prefix_by_name") as mock_two,
-    ):
-        mock_one.side_effect = [mock_return_values[0]]
-        mock_two.side_effect = [mock_return_values[1]]
-
-        if isinstance(expected, CondaValueError):
-            with pytest.raises(CondaValueError) as exc, pytest.deprecated_call():
-                validate_prefix_name(prefix, ctx, allow_base=allow_base)
-
-            # We fuzzy match the error message here. Doing this exactly is not important
-            assert str(expected) in str(exc)
-
-        else:
-            with pytest.deprecated_call():
-                actual = validate_prefix_name(prefix, ctx, allow_base=allow_base)
-            assert actual == str(expected)
 
 
 @pytest.mark.parametrize(
@@ -952,3 +920,54 @@ def test_custom_multichannels_overrides_default_channels(reset_conda_context: No
     assert [
         channel.name for channel in context.custom_multichannels["defaults"]
     ] == custom_channels
+
+
+def test_context_stack_starts_with_single_slot() -> None:
+    """ContextStack should allocate only one slot on construction."""
+    stack = ContextStack()
+    assert len(stack._stack) == 1
+    assert stack._stack_idx == 0
+
+
+@pytest.mark.parametrize("pushes", [1, 2, 3, 4])
+def test_context_stack_doubles_on_overflow(pushes: int) -> None:
+    """Pushing beyond current capacity should double the slot list."""
+    stack = ContextStack()
+    for _ in range(pushes):
+        stack._stack_idx += 1
+        if stack._stack_idx >= len(stack._stack):
+            stack._stack.extend(
+                stack._stack[0].__class__() for _ in range(len(stack._stack))
+            )
+
+    assert len(stack._stack) >= pushes + 1
+
+
+def test_context_stack_push_pop_roundtrip() -> None:
+    """push() followed by pop() should leave stack_idx unchanged."""
+    stack = ContextStack()
+    initial_idx = stack._stack_idx
+
+    stack.push((), None)
+    assert stack._stack_idx == initial_idx + 1
+
+    stack.pop()
+    assert stack._stack_idx == initial_idx
+
+
+def test_category_map_is_class_constant() -> None:
+    """category_map should be the same dict object on class and instance."""
+    assert context.category_map is context.category_map
+
+
+def test_category_map_covers_all_parameters(context_testdata: None) -> None:
+    """Every public context parameter should appear in exactly one category."""
+    parameters = list(context.list_parameters())
+    mapped = [name for names in context.category_map.values() for name in names]
+
+    # anaconda-anon-usage may inject an extra parameter
+    for extra in ("anaconda_anon_usage",):
+        parameters = [p for p in parameters if p != extra]
+        mapped = [m for m in mapped if m != extra]
+
+    assert not set(parameters).difference(mapped)

@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 import re
 import sys
-from argparse import SUPPRESS, _StoreTrueAction
+from argparse import SUPPRESS
 from functools import cached_property
 from logging import getLogger
 from os.path import exists, expanduser, isfile, join
@@ -18,7 +18,7 @@ from tempfile import gettempdir
 from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
-from ..deprecations import deprecated
+from ..exceptions import ArgumentError
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -71,27 +71,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         help="List all known conda environments. Combine with `--json` to obtain more details.",
     )
     p.add_argument(
-        "-l",
-        "--license",
-        action=deprecated.action("25.9", "26.3", _StoreTrueAction),
-        help=SUPPRESS,
-    )
-    p.add_argument(
         "-s",
         "--system",
         action="store_true",
         help="List environment variables.",
     )
     p.add_argument(
-        "--root",
-        action=deprecated.action(
-            "25.9",
-            "26.3",
-            _StoreTrueAction,
-            addendum="Use `--base` instead.",
-        ),
-        help=SUPPRESS,
-        dest="base",
+        "--size",
+        action="store_true",
+        help="Show conda-managed disk usage for each environment (excludes untracked files created after installation).",
     )
     p.add_argument(
         "--unsafe-channels",
@@ -420,8 +408,9 @@ class InfoRenderer:
     Provides a ``render`` method for rendering ``InfoComponents``
     """
 
-    def __init__(self, context):
+    def __init__(self, context: Context, show_size: bool = False):
         self._context = context
+        self._show_size = show_size
         self._component_style_map = {
             "base": None,
             "channels": None,
@@ -445,7 +434,7 @@ class InfoRenderer:
         return list_all_known_prefixes()
 
     @cached_property
-    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None]]:
+    def _info_dict_envs_details(self) -> dict[str, dict[str, str | bool | None | int]]:
         from ..core.prefix_data import PrefixData
 
         result = {}
@@ -468,6 +457,8 @@ class InfoRenderer:
                 "frozen": prefix_data.is_frozen(),
                 "writable": prefix_data.is_writable,
             }
+            if self._show_size:
+                result[prefix]["size"] = prefix_data.size()
         return result
 
     def render(self, components: Iterable[InfoComponents]):
@@ -487,20 +478,22 @@ class InfoRenderer:
             data = data_func()
 
             if data:
-                render(data, style=style)
+                kwargs = {}
+                if component == "envs" and self._show_size:
+                    kwargs["show_size"] = True
+                render(data, style=style, **kwargs)
 
     def _base_component(self) -> str | dict:
         if self._context.json:
             return {"root_prefix": self._context.root_prefix}
         else:
-            return f"{self._context.root_prefix}\n"
+            return self._context.root_prefix
 
     def _channels_component(self) -> str | dict:
         if self._context.json:
             return {"channels": self._context.channels}
         else:
-            channels_str = "\n".join(self._context.channels)
-            return f"{channels_str}\n"
+            return "\n".join(self._context.channels)
 
     def _detail_component(self) -> dict[str, str]:
         return get_main_info_display(self._info_dict)
@@ -514,17 +507,21 @@ class InfoRenderer:
         return self._info_dict_envs
 
     def _system_component(self) -> str:
-        from .find_commands import find_commands, find_executable
 
         output = [
             f"sys.version: {sys.version[:40]}...",
             f"sys.prefix: {sys.prefix}",
             f"sys.executable: {sys.executable}",
-            "conda location: {}".format(self._info_dict["conda_location"]),
+            f"conda location: {self._info_dict['conda_location']}",
         ]
 
-        for cmd in sorted(set(find_commands() + ("build",))):
-            output.append("conda-{}: {}".format(cmd, find_executable("conda-" + cmd)))
+        subcommands = self._context.plugin_manager.get_subcommands()
+        conda_build = subcommands.pop("build", None)
+        plugin_name = getattr(getattr(conda_build, "impl", None), "plugin_name", None)
+        output.append(f"conda-build: {plugin_name or '(missing)'}")
+        for name, plugin in sorted(subcommands.items()):
+            plugin_name = getattr(getattr(plugin, "impl", None), "plugin_name", None)
+            output.append(f"conda-{name}: {plugin_name or '(unknown)'}")
 
         site_dirs = self._info_dict["site_dirs"]
         if site_dirs:
@@ -540,21 +537,10 @@ class InfoRenderer:
         for name, value in sorted(self._info_dict["env_vars"].items()):
             output.append(f"{name}: {value}")
 
-        output.append("")
-
         return "\n".join(output)
 
     def _json_all_component(self) -> dict[str, Any]:
         return self._info_dict
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.cli.main_info.iter_info_components` instead.",
-)
-def get_info_components(args: Namespace, context: Context) -> set[InfoComponents]:
-    return set(iter_info_components(args, context))
 
 
 def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComponents]:
@@ -604,8 +590,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     from ..base.context import context
 
+    if args.size and not args.envs:
+        raise ArgumentError("--size can only be used with --envs")
+
     components = iter_info_components(args, context)
-    renderer = InfoRenderer(context)
+    show_size = getattr(args, "size", False)
+    renderer = InfoRenderer(context, show_size=show_size)
     renderer.render(components)
 
     return 0

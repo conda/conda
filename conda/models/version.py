@@ -564,7 +564,9 @@ class VersionSpec(BaseSpec, metaclass=SingleStrArgCachingType):
                     log.warning(
                         "Using .* with relational operator is superfluous and deprecated "
                         "and will be removed in a future version of conda. Your spec was "
-                        f"{vo_str}, but conda is ignoring the .* and treating it as {vo_str[:-2]}"
+                        "%s, but conda is ignoring the .* and treating it as %s",
+                        vo_str,
+                        vo_str[:-2],
                     )
                     vo_str = vo_str[:-2]
             try:

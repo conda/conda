@@ -25,7 +25,7 @@ from ..base.constants import (
     NOTICES_DECORATOR_DISPLAY_INTERVAL,
 )
 from ..common.serialize import json
-from ..utils import ensure_dir_exists
+from ..exceptions import CondaError
 from .types import ChannelNoticeResponse
 
 if TYPE_CHECKING:
@@ -77,12 +77,19 @@ def is_notice_response_cache_expired(
     )
 
 
-@ensure_dir_exists
 def get_notices_cache_dir() -> Path:
     """Returns the location of the notices cache directory as a Path object"""
-    cache_dir = user_cache_dir(APP_NAME, appauthor=APP_NAME)
-
-    return Path(cache_dir).joinpath(NOTICES_CACHE_SUBDIR)
+    cache_dir = Path(user_cache_dir(APP_NAME, appauthor=APP_NAME))
+    cache_subdir = cache_dir / NOTICES_CACHE_SUBDIR
+    try:
+        cache_subdir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise CondaError(
+            "Error encountered while attempting to create cache directory.\n"
+            f"  Directory: {cache_subdir}\n"
+            f"  Exception: {exc}"
+        )
+    return cache_subdir
 
 
 def get_notices_cache_file() -> Path:
@@ -169,10 +176,36 @@ def get_viewed_channel_notice_ids(
 
 def clear_cache() -> None:
     """
-    Removes all files in notices cache
+    Invalidate the notices cache so notices will be retrieved and displayed
+    on the next command invocation.
+
+    For the ``notices.cache`` file we rewind its mtime into the past instead
+    of removing it. On Windows the file can be transiently locked (e.g. by
+    antivirus or lingering file handles), in which case ``unlink()`` raises
+    ``PermissionError`` and the cache would otherwise remain with a recent
+    ``touch()``-ed mtime, suppressing notices on subsequent runs.
+
+    Per-channel cached response files are still removed when possible, but
+    any ``OSError`` raised while unlinking them is ignored for the same
+    reason.
     """
     cache_dir = Path(get_notices_cache_dir())
+    notices_cache = cache_dir / NOTICES_CACHE_FN
 
     for cache_file in cache_dir.iterdir():
-        if cache_file.is_file():
-            cache_file.unlink()
+        if not cache_file.is_file():
+            continue
+        if cache_file == notices_cache:
+            try:
+                with open(cache_file, "w") as fp:
+                    fp.write("")
+                stat = cache_file.stat()
+                past_mtime = stat.st_mtime - NOTICES_DECORATOR_DISPLAY_INTERVAL
+                os.utime(cache_file, (stat.st_atime, past_mtime))
+            except OSError:
+                pass
+        else:
+            try:
+                cache_file.unlink()
+            except OSError:
+                pass

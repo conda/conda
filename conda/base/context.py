@@ -41,6 +41,7 @@ from ..common.configuration import (
     PrimitiveParameter,
     SequenceParameter,
     ValidationError,
+    YamlRawParameter,
 )
 from ..common.constants import TRACE
 from ..common.iterators import groupby_to_dict, unique
@@ -66,7 +67,6 @@ from .constants import (
     KNOWN_SUBDIRS,
     NO_PLUGINS,
     PREFIX_MAGIC_FILE,
-    PREFIX_NAME_DISALLOWED_CHARS,
     REPODATA_FN,
     RESERVED_ENV_NAMES,
     ROOT_ENV_NAME,
@@ -83,9 +83,8 @@ from .constants import (
 if TYPE_CHECKING:
     from argparse import Namespace
     from collections.abc import Iterable, Iterator
-    from typing import Any, Literal
+    from typing import Any, ClassVar, Literal
 
-    from ..common.configuration import Parameter, RawParameter
     from ..common.path import PathsType, PathType
     from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
@@ -258,11 +257,6 @@ class Context(Configuration):
     prefix_data_interoperability = ParameterLoader(
         PrimitiveParameter(False), aliases=("pip_interop_enabled",)
     )
-
-    @property
-    @deprecated("25.9", "26.3", addendum="Use 'Context.prefix_data_interoperability'.")
-    def pip_interop_enabled(self):
-        return self.prefix_data_interoperability
 
     # multithreading in various places
     _default_threads = ParameterLoader(
@@ -672,7 +666,7 @@ class Context(Configuration):
 
     @property
     def arch_name(self) -> str:
-        m = platform.machine()
+        m = platform.machine().lower()
         if m in non_x86_machines:
             return m
         else:
@@ -727,7 +721,7 @@ class Context(Configuration):
 
     @cache
     def _native_subdir(self) -> str:
-        m = platform.machine()
+        m = platform.machine().lower()
         if m in non_x86_machines:
             return f"{self.platform}-{m}"
         elif self.platform == "zos":
@@ -860,16 +854,6 @@ class Context(Configuration):
         return abspath(sys.prefix)
 
     @property
-    @deprecated(
-        "23.9",
-        "26.3",
-        addendum="Please use `conda.base.context.context.conda_exe_vars_dict` instead",
-    )
-    def conda_exe(self) -> PathType:
-        exe = "conda.exe" if on_win else "conda"
-        return join(self.conda_prefix, BIN_DIRECTORY, exe)
-
-    @property
     def av_data_dir(self) -> PathType:
         """Where critical artifact verification data (e.g., various public keys) can be found."""
         # TODO (AV): Find ways to make this user configurable?
@@ -964,14 +948,22 @@ class Context(Configuration):
         else:
             default_channels = list(self._default_channels)
 
+        # Ensure that when "defaults" is present in custom multichannels, it overrides
+        # the built-in `default_channels` list (which combines channels like "main" and
+        # "r" into a single "defaults" multichannel).
+        if self._custom_multichannels.get(DEFAULTS_CHANNEL_NAME) is not None:
+            default_channel_dict = {}
+        else:
+            default_channel_dict = {DEFAULTS_CHANNEL_NAME: default_channels}
+
         return {
             name: tuple(
                 Channel.make_simple_channel(self.channel_alias, url) for url in urls
             )
             for name, urls in {
                 # order matters
-                DEFAULTS_CHANNEL_NAME: default_channels,  # default_channels is a legacy keyword
                 **self._custom_multichannels,  # custom_multichannels.defaults overrides default_channels
+                **default_channel_dict,  # default_channels is a legacy keyword
                 "local": self.conda_build_local_urls,  # always last, local is a reserved name and cannot be overridden
             }.items()
         }
@@ -1219,15 +1211,6 @@ class Context(Configuration):
         return self._console
 
     @property
-    @deprecated(
-        "25.9",
-        "26.3",
-        addendum="Please use `conda.base.context.context.auto_activate` instead",
-    )
-    def auto_activate_base(self) -> bool:
-        return self.auto_activate
-
-    @property
     def default_activation_env(self) -> str:
         return self._default_activation_env or ROOT_ENV_NAME
 
@@ -1235,10 +1218,13 @@ class Context(Configuration):
     def create_default_packages(self) -> tuple[str, ...]:
         """Returns a list of `create_default_packages`, removing any explicit packages."""
         from ..common.io import dashlist
-        from ..common.path import is_package_file
 
         grouped_packages = groupby_to_dict(
-            lambda x: "explicit" if is_package_file(x) else "spec",
+            lambda x: (
+                "explicit"
+                if context.plugin_manager.has_package_extension(x)
+                else "spec"
+            ),
             sequence=self._create_default_packages,
         )
 
@@ -1293,144 +1279,142 @@ class Context(Configuration):
         """Returns a dict of environment related settings"""
         return {key: getattr(self, key) for key in self.environment_context_keys}
 
-    @property
-    def category_map(self) -> dict[str, tuple[str, ...]]:
-        return {
-            "Channel Configuration": (
-                "channels",
-                "channel_alias",
-                "channel_settings",
-                "default_channels",
-                "override_channels_enabled",
-                "allowlist_channels",
-                "denylist_channels",
-                "custom_channels",
-                "custom_multichannels",
-                "migrated_channel_aliases",
-                "migrated_custom_channels",
-                "add_anaconda_token",
-                "allow_non_channel_urls",
-                "repodata_fns",
-                "use_only_tar_bz2",
-                "repodata_threads",
-                "fetch_threads",
-                "experimental",
-                "no_lock",
-                "repodata_use_zst",
-            ),
-            "Basic Conda Configuration": (  # TODO: Is there a better category name here?
-                "envs_dirs",
-                "pkgs_dirs",
-                "default_threads",
-            ),
-            "Network Configuration": (
-                "client_ssl_cert",
-                "client_ssl_cert_key",
-                "local_repodata_ttl",
-                "offline",
-                "proxy_servers",
-                "remote_connect_timeout_secs",
-                "remote_max_retries",
-                "remote_backoff_factor",
-                "remote_read_timeout_secs",
-                "ssl_verify",
-            ),
-            "Solver Configuration": (
-                "aggressive_update_packages",
-                "auto_update_conda",
-                "channel_priority",
-                "create_default_packages",
-                "disallowed_packages",
-                "force_reinstall",
-                "pinned_packages",
-                "prefix_data_interoperability",
-                "track_features",
-                "solver",
-            ),
-            "Package Linking and Install-time Configuration": (
-                "allow_softlinks",
-                "always_copy",
-                "always_softlink",
-                "path_conflict",
-                "rollback_enabled",
-                "safety_checks",
-                "extra_safety_checks",
-                "signing_metadata_url_base",
-                "shortcuts",
-                "shortcuts_only",
-                "non_admin_enabled",
-                "separate_format_cache",
-                "verify_threads",
-                "execute_threads",
-            ),
-            "Conda-build Configuration": (
-                "bld_path",
-                "croot",
-                "anaconda_upload",
-                "conda_build",
-            ),
-            "Output, Prompt, and Flow Control Configuration": (
-                "always_yes",
-                "auto_activate",
-                "default_activation_env",
-                "auto_stack",
-                "changeps1",
-                "env_prompt",
-                "json",
-                "console",
-                "notify_outdated_conda",
-                "quiet",
-                "report_errors",
-                "show_channel_urls",
-                "list_fields",
-                "verbosity",
-                "unsatisfiable_hints",
-                "unsatisfiable_hints_check_depth",
-                "number_channel_notices",
-                "envvars_force_uppercase",
-                "export_platforms",
-                "override_virtual_packages",
-            ),
-            "CLI-only": (
-                "deps_modifier",
-                "update_modifier",
-                "force",
-                "force_remove",
-                "clobber",
-                "dry_run",
-                "download_only",
-                "ignore_pinned",
-                "use_index_cache",
-                "use_local",
-            ),
-            "Hidden and Undocumented": (
-                "allow_cycles",  # allow cyclical dependencies, or raise
-                "allow_conda_downgrades",
-                "add_pip_as_python_dependency",
-                "debug",
-                "trace",
-                "dev",
-                "default_python",
-                "enable_private_envs",
-                "error_upload_url",  # TODO: Remove after deprecation ended
-                "force_32bit",
-                "root_prefix",
-                "sat_solver",
-                "solver_ignore_timestamps",
-                "subdir",
-                "subdirs",
-                # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies
-                # I don't think this documentation is correct any longer.
-                "target_prefix_override",
-                # used to override prefix rewriting, for e.g. building docker containers or RPMs
-                "register_envs",
-                # whether to add the newly created prefix to ~/.conda/environments.txt
-                "protect_frozen_envs",
-                # prevent modifications to envs marked with conda-meta/frozen
-            ),
-            "Plugin Configuration": ("no_plugins",),
-            "Experimental": ("environment_specifier",),
-        }
+    category_map: ClassVar[dict[str, tuple[str, ...]]] = {
+        "Channel Configuration": (
+            "channels",
+            "channel_alias",
+            "channel_settings",
+            "default_channels",
+            "override_channels_enabled",
+            "allowlist_channels",
+            "denylist_channels",
+            "custom_channels",
+            "custom_multichannels",
+            "migrated_channel_aliases",
+            "migrated_custom_channels",
+            "add_anaconda_token",
+            "allow_non_channel_urls",
+            "repodata_fns",
+            "use_only_tar_bz2",
+            "repodata_threads",
+            "fetch_threads",
+            "experimental",
+            "no_lock",
+            "repodata_use_zst",
+        ),
+        "Basic Conda Configuration": (  # TODO: Is there a better category name here?
+            "envs_dirs",
+            "pkgs_dirs",
+            "default_threads",
+        ),
+        "Network Configuration": (
+            "client_ssl_cert",
+            "client_ssl_cert_key",
+            "local_repodata_ttl",
+            "offline",
+            "proxy_servers",
+            "remote_connect_timeout_secs",
+            "remote_max_retries",
+            "remote_backoff_factor",
+            "remote_read_timeout_secs",
+            "ssl_verify",
+        ),
+        "Solver Configuration": (
+            "aggressive_update_packages",
+            "auto_update_conda",
+            "channel_priority",
+            "create_default_packages",
+            "disallowed_packages",
+            "force_reinstall",
+            "pinned_packages",
+            "prefix_data_interoperability",
+            "track_features",
+            "solver",
+        ),
+        "Package Linking and Install-time Configuration": (
+            "allow_softlinks",
+            "always_copy",
+            "always_softlink",
+            "path_conflict",
+            "rollback_enabled",
+            "safety_checks",
+            "extra_safety_checks",
+            "signing_metadata_url_base",
+            "shortcuts",
+            "shortcuts_only",
+            "non_admin_enabled",
+            "separate_format_cache",
+            "verify_threads",
+            "execute_threads",
+        ),
+        "Conda-build Configuration": (
+            "bld_path",
+            "croot",
+            "anaconda_upload",
+            "conda_build",
+        ),
+        "Output, Prompt, and Flow Control Configuration": (
+            "always_yes",
+            "auto_activate",
+            "default_activation_env",
+            "auto_stack",
+            "changeps1",
+            "env_prompt",
+            "json",
+            "console",
+            "notify_outdated_conda",
+            "quiet",
+            "report_errors",
+            "show_channel_urls",
+            "list_fields",
+            "verbosity",
+            "unsatisfiable_hints",
+            "unsatisfiable_hints_check_depth",
+            "number_channel_notices",
+            "envvars_force_uppercase",
+            "export_platforms",
+            "override_virtual_packages",
+        ),
+        "CLI-only": (
+            "deps_modifier",
+            "update_modifier",
+            "force",
+            "force_remove",
+            "clobber",
+            "dry_run",
+            "download_only",
+            "ignore_pinned",
+            "use_index_cache",
+            "use_local",
+        ),
+        "Hidden and Undocumented": (
+            "allow_cycles",  # allow cyclical dependencies, or raise
+            "allow_conda_downgrades",
+            "add_pip_as_python_dependency",
+            "debug",
+            "trace",
+            "dev",
+            "default_python",
+            "enable_private_envs",
+            "error_upload_url",  # TODO: Remove after deprecation ended
+            "force_32bit",
+            "root_prefix",
+            "sat_solver",
+            "solver_ignore_timestamps",
+            "subdir",
+            "subdirs",
+            # https://conda.io/docs/config.html#disable-updating-of-dependencies-update-dependencies
+            # I don't think this documentation is correct any longer.
+            "target_prefix_override",
+            # used to override prefix rewriting, for e.g. building docker containers or RPMs
+            "register_envs",
+            # whether to add the newly created prefix to ~/.conda/environments.txt
+            "protect_frozen_envs",
+            # prevent modifications to envs marked with conda-meta/frozen
+        ),
+        "Plugin Configuration": ("no_plugins",),
+        "Experimental": ("environment_specifier",),
+    }
 
     def get_descriptions(self) -> dict[str, str]:
         return self.description_map
@@ -2064,6 +2048,7 @@ def reset_context(
 
     PluginConfig.remove_all_plugin_settings()
 
+    YamlRawParameter.cache_clear()
     context.__init__(search_path, argparse_args)
     context.__dict__.pop("_Context__conda_build", None)
     from ..models.channel import Channel
@@ -2124,16 +2109,15 @@ class ContextStackObject:
 
 class ContextStack:
     def __init__(self):
-        self._stack = [ContextStackObject() for _ in range(3)]
+        self._stack = [ContextStackObject()]
         self._stack_idx = 0
         self._last_search_path = None
         self._last_argparse_args = None
 
     def push(self, search_path: PathsType, argparse_args: Namespace | None) -> None:
         self._stack_idx += 1
-        old_len = len(self._stack)
-        if self._stack_idx >= old_len:
-            self._stack.extend([ContextStackObject() for _ in range(old_len)])
+        if self._stack_idx >= len(self._stack):
+            self._stack.extend(ContextStackObject() for _ in range(len(self._stack)))
         self._stack[self._stack_idx].set_value(search_path, argparse_args)
         self.apply()
 
@@ -2279,45 +2263,6 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
     )
 
 
-@deprecated(
-    "25.9", "26.3", addendum="Use PrefixData.validate_name() + PrefixData.from_name()"
-)
-def validate_prefix_name(
-    prefix_name: str, ctx: Context, allow_base: bool = True
-) -> PathType:
-    """Run various validations to make sure prefix_name is valid"""
-    from ..exceptions import CondaValueError
-
-    if PREFIX_NAME_DISALLOWED_CHARS.intersection(prefix_name):
-        raise CondaValueError(
-            dals(
-                f"""
-                Invalid environment name: {prefix_name!r}
-                Characters not allowed: {PREFIX_NAME_DISALLOWED_CHARS}
-                If you are specifying a path to an environment, the `-p`
-                flag should be used instead.
-                """
-            )
-        )
-
-    if prefix_name in RESERVED_ENV_NAMES:
-        if allow_base:
-            return ctx.root_prefix
-        else:
-            raise CondaValueError(
-                "Use of 'base' as environment name is not allowed here."
-            )
-
-    else:
-        from ..exceptions import EnvironmentNameNotFound
-        from ..gateways.disk.create import first_writable_envs_dir
-
-        try:
-            return locate_prefix_by_name(prefix_name)
-        except EnvironmentNameNotFound:
-            return join(first_writable_envs_dir(), prefix_name)
-
-
 def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> PathType:
     """Get the prefix to operate in.  The prefix may not yet exist.
 
@@ -2356,54 +2301,6 @@ def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> Path
         from ..core.prefix_data import PrefixData
 
         return str(PrefixData.from_name(prefix_name).prefix_path)
-
-
-@deprecated(
-    "25.9", "26.3", addendum="Use conda.gateways.disk.create.first_writable_envs_dir"
-)
-def _first_writable_envs_dir() -> PathType:
-    from conda.gateways.disk.create import first_writable_envs_dir
-
-    return first_writable_envs_dir()
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.base.context.context.plugins.raw_data` instead.",
-)
-def get_plugin_config_data(
-    data: dict[Path, dict[str, RawParameter]],
-) -> dict[Path, dict[str, RawParameter]]:
-    from ..plugins.config import PluginConfig
-
-    return PluginConfig(data).raw_data
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.plugins.config.PluginConfig.add_plugin_setting` instead.",
-)
-def add_plugin_setting(
-    name: str,
-    parameter: Parameter,
-    aliases: tuple[str, ...] = (),
-) -> None:
-    from ..plugins.config import PluginConfig
-
-    return PluginConfig.add_plugin_setting(name, parameter, aliases)
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.plugins.config.PluginConfig.remove_all_plugin_settings` instead.",
-)
-def remove_all_plugin_settings() -> None:
-    from ..plugins.config import PluginConfig
-
-    return PluginConfig.remove_all_plugin_settings()
 
 
 try:

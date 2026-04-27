@@ -29,15 +29,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .conda_argparse import find_builtin_commands
-    from .find_commands import find_commands
 
     print(
-        *sorted(
-            {
-                *find_builtin_commands(parser),
-                *find_commands(True),
-            }
-        ),
+        *sorted(find_builtin_commands(parser)),
         sep="\n",
         end="",
     )

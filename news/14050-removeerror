@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Don't raise `RemoveError` if a missing conda dependency is not being installed
+  or uninstalled by the current transaction; can happen when a conda dependency
+  was installed with pip. (#14050)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

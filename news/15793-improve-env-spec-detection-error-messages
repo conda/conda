@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Provide better error messages for when an environment file is not detected. (#15718 via #15793)
+* Provide better error messages for when too many plugins can read an environment files. (#15718 via #15793)

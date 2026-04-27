@@ -38,7 +38,6 @@ from ..common.path import (
     get_python_site_packages_short_path,
 )
 from ..common.signals import signal_handler
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaSystemExit,
     DisallowedPackageError,
@@ -150,8 +149,11 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
     )
 
 
-def match_specs_to_dists(packages_info_to_link, specs):
-    matched_specs = [None for _ in range(len(packages_info_to_link))]
+def match_specs_to_dists(packages_info_to_link, specs) -> tuple[list[MatchSpec], ...]:
+    """
+    Find which specs belong to each package to link
+    """
+    matched_specs = [[] for _ in range(len(packages_info_to_link))]
     for spec in specs or ():
         spec = MatchSpec(spec)
         idx = next(
@@ -163,7 +165,7 @@ def match_specs_to_dists(packages_info_to_link, specs):
             None,
         )
         if idx is not None:
-            matched_specs[idx] = spec
+            matched_specs[idx].append(spec)
     return tuple(matched_specs)
 
 
@@ -183,13 +185,8 @@ class ActionGroup(NamedTuple):
     target_prefix: str
 
 
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="PrefixActions will be renamed to PrefixActionGroup in 26.3.",
-)
 @dataclass
-class PrefixActions:
+class PrefixActionGroup:
     """A container for groups of actions carried out during an UnlinkLinkTransaction.
 
     :param remove_menu_action_groups: Actions which remove menu items
@@ -220,19 +217,6 @@ class PrefixActions:
     def __iter__(self) -> Generator[Iterable[ActionGroup], None, None]:
         for field in fields(self):
             yield getattr(self, field.name)
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixActions instead.")
-class PrefixActionGroup(NamedTuple):
-    remove_menu_action_groups: Iterable[ActionGroup]
-    unlink_action_groups: Iterable[ActionGroup]
-    unregister_action_groups: Iterable[ActionGroup]
-    link_action_groups: Iterable[ActionGroup]
-    register_action_groups: Iterable[ActionGroup]
-    compile_action_groups: Iterable[ActionGroup]
-    make_menu_action_groups: Iterable[ActionGroup]
-    entry_point_action_groups: Iterable[ActionGroup]
-    prefix_record_groups: Iterable[ActionGroup]
 
 
 class ChangeReport(NamedTuple):
@@ -385,8 +369,8 @@ class UnlinkLinkTransaction:
             raise RuntimeError("Cannot run .execute() with dry-run enabled.")
 
         try:
-            # innermost dict.values() is an iterable of PrefixActions
-            # instances; zip() is an iterable of each PrefixActions
+            # innermost dict.values() is an iterable of PrefixActionGroup
+            # instances; zip() is an iterable of each PrefixActionGroup
             self._execute(
                 tuple(chain(*chain(*zip(*self.prefix_action_groups.values()))))
             )
@@ -505,14 +489,14 @@ class UnlinkLinkTransaction:
         compile_action_groups = []
         make_menu_action_groups = []
         record_axns = []
-        for pkg_info, lt, spec in zip(
+        for pkg_info, lt, specs in zip(
             packages_info_to_link, link_types, matchspecs_for_link_dists
         ):
             link_ag = ActionGroup(
                 "link",
                 pkg_info,
                 cls._make_link_actions(
-                    transaction_context, pkg_info, target_prefix, lt, spec
+                    transaction_context, pkg_info, target_prefix, lt, specs
                 ),
                 target_prefix,
             )
@@ -526,7 +510,7 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -541,7 +525,7 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -570,7 +554,7 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
                     all_link_path_actions,
                 )
             )
@@ -615,7 +599,7 @@ class UnlinkLinkTransaction:
             neutered_specs,
         )
 
-        return PrefixActions(
+        return PrefixActionGroup(
             remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,
@@ -799,7 +783,6 @@ class UnlinkLinkTransaction:
             # means we're not unlinking then linking a new package, so look up current conda record
             conda_final_prefix = context.conda_prefix
             pd = PrefixData(conda_final_prefix)
-            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = ()
             pkg_names_being_unlnkd = ()
             conda_linked_depends = next(
@@ -813,7 +796,6 @@ class UnlinkLinkTransaction:
         else:
             conda_final_prefix = conda_final_setup.target_prefix
             pd = PrefixData(conda_final_prefix)
-            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = tuple(
                 prec.name for prec in conda_final_setup.link_precs or ()
             )
@@ -826,8 +808,7 @@ class UnlinkLinkTransaction:
             for conda_dependency in conda_linked_depends:
                 dep_name = MatchSpec(conda_dependency).name
                 if dep_name not in pkg_names_being_lnkd and (
-                    dep_name not in pkg_names_already_lnkd
-                    or dep_name in pkg_names_being_unlnkd
+                    dep_name in pkg_names_being_unlnkd
                 ):
                     yield RemoveError(
                         f"'{dep_name}' is a dependency of conda and cannot be removed from\n"
@@ -969,8 +950,9 @@ class UnlinkLinkTransaction:
                     # parallel block 2:
                     composite_ag = []
                     if install_side:
-                        composite_ag.extend(record_actions)
                         # consolidate compile actions into one big'un for better efficiency
+                        # note: compile must run before record so that we capture pyc_file
+                        # sizes in the manifest.
                         individual_actions = [
                             axn for ag in compile_actions for axn in ag.actions
                         ]
@@ -986,6 +968,7 @@ class UnlinkLinkTransaction:
                                     composite.target_prefix,
                                 )
                             )
+                        composite_ag.extend(record_actions)
                     # functions return None unless there was an exception
                     for exc in self.execute_executor.map(
                         UnlinkLinkTransaction._execute_actions, composite_ag
@@ -1188,7 +1171,7 @@ class UnlinkLinkTransaction:
         )
         if linking_new_python:
             python_record = linking_new_python.repodata_record
-            log.debug(f"found in current transaction python: {python_record}")
+            log.debug("found in current transaction python: %s", python_record)
             return version_and_sp(python_record)
         python_record = PrefixData(target_prefix).get("python", None)
         if python_record:
@@ -1202,7 +1185,7 @@ class UnlinkLinkTransaction:
             )
             if unlinking_python is None:
                 # python is already linked and not being unlinked
-                log.debug(f"found in current prefix, python: {python_record}")
+                log.debug("found in current prefix, python: %s", python_record)
                 return version_and_sp(python_record)
         # no python in the finished environment
         log.debug("no python version found in prefix")
@@ -1690,7 +1673,7 @@ def run_script(
                 rm_rf(script_caller)
             else:
                 log.warning(
-                    f"CONDA_TEST_SAVE_TEMPS :: retaining run_script {script_caller}"
+                    "CONDA_TEST_SAVE_TEMPS :: retaining run_script %s", script_caller
                 )
 
 

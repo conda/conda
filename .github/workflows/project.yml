@@ -1,9 +1,6 @@
 name: Add to Project
 
 on:
-  issues:
-    types:
-      - opened
   pull_request_target:
     types:
       - opened
@@ -11,11 +8,10 @@ on:
 jobs:
   add_to_project:
     if: '!github.event.repository.fork'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       - uses: actions/add-to-project@244f685bbc3b7adfa8466e08b698b5577571133e # v1.0.2
         with:
-          # issues are added to the Planning project
           # PRs are added to the Review project
-          project-url: https://github.com/orgs/conda/projects/${{ github.event_name == 'issues' && 2 || 16 }}
+          project-url: https://github.com/orgs/conda/projects/16
           github-token: ${{ secrets.PROJECT_TOKEN }}

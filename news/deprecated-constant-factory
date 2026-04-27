@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `factory=` kwarg to `conda.deprecations.deprecated.constant` as a mutually-exclusive alternative to positional `value`. When given, the callable is invoked (and the result cached) only on first access of the deprecated symbol. Enables deprecating symbols whose materialization would otherwise force heavy imports at registration time, without giving up the canonical `deprecated.constant` API.
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Document `factory=` kwarg on `deprecated.constant` in the deprecations dev-guide.
+
+### Other
+
+* <news item>
