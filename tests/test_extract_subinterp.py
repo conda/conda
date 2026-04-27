@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Test how well subinterpreters work for package extraction.
 """
@@ -31,7 +33,9 @@ TARBZ2_PACKAGES = 10
 
 @pytest.mark.parametrize("Executor", [ThreadPoolExecutor, InterpreterPoolExecutor])
 @pytest.mark.parametrize("threads", [1, 2, 3, 6, 12])
-@pytest.mark.parametrize("format", [(".tar.bz2", ".conda"), (".conda",)])
+@pytest.mark.parametrize(
+    "format", [(".tar.bz2", ".conda"), (".conda",)], ids=("both", ".conda")
+)
 @pytest.mark.benchmark(min_rounds=1)
 def test_subinterpreter(
     tmp_path,
@@ -61,4 +65,5 @@ def test_subinterpreter(
                     print("Extracted", futures[future])
                 except Exception as e:
                     print("Error", futures[future], e)
+
     benchmark(run)
