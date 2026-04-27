@@ -1537,29 +1537,68 @@ def test_no_triple_equals_roundtrip():
 
 def test_conditional_specs():
     # should not be present
-    assert MatchSpec("python").get("condition") is None
+    assert MatchSpec("python").get("when") is None
 
     # This is the normal syntax
-    input_spec = "python; if __win"
+    input_spec = "python[when=__win]"
     ms = MatchSpec(input_spec)
-    assert ms.get("condition") == "__win"
+    assert ms.get("when") == "__win"
     assert str(ms) == input_spec
 
     # This is the normal syntax, with version and build string
-    ms = MatchSpec("python 2.* *cpython*; if __win")
-    assert ms.get("condition") == "__win"
-    assert str(ms) == "python=2[build=*cpython*]; if __win"
+    ms = MatchSpec("python 2.* *cpython*[when=__win]")
+    assert ms.get("when") == "__win"
+    assert str(ms) == "python=2[build=*cpython*,when=__win]"
 
     # This is the normal syntax, with version in brackets
-    ms = MatchSpec("python[version=2]; if __win")
-    assert ms.get("condition") == "__win"
-    assert str(ms) == "python==2; if __win"
+    ms = MatchSpec("python[version=2,when=__win]")
+    assert ms.get("when") == "__win"
+    assert str(ms) == "python==2[when=__win]"
 
-    # test space normalization
-    assert str(MatchSpec("python ;  if  __win")) == "python; if __win"
+    # test space and quotes normalization
+    assert (
+        str(MatchSpec("python [when=__win]"))
+        == str(MatchSpec("python [when='__win']"))
+        == str(MatchSpec('python [when="__win"]'))
+        == "python[when=__win]"
+    )
 
-    # test greediness; this is not a valid condition but we need to make sure
-    # one of the conditions does not end up in the actual match spec
-    nested = MatchSpec("python; if __win; if __unix")
-    assert str(nested) == "python; if __win; if __unix"
-    assert nested.get("condition") == "__win; if __unix"
+
+def test_extra_specs():
+    # should not be present
+    assert MatchSpec("python").get("extras") is None
+
+    # This is the string syntax
+    input_spec = "python[extras=group1]"
+    ms = MatchSpec(input_spec)
+    # It should always store groups as lists internally
+    assert ms.get("extras") == ["group1"]
+    # but serialize to string when there's only one item
+    assert str(ms) == input_spec
+
+    # This is the list syntax
+    # FIXME: Parser breaks with nested square brackers
+    input_spec = "python[extras=[group1,group2]]"
+    ms = MatchSpec(input_spec)
+    assert ms.get("extras") == ["group1", "group2"]
+    assert str(ms) == input_spec
+
+
+def test_flags_specs():
+    # should not be present
+    assert MatchSpec("python").get("flags") is None
+
+    # This is the string syntax
+    input_spec = "python[flags=cpu]"
+    ms = MatchSpec(input_spec)
+    # It should always store groups as lists internally
+    assert ms.get("flags") == ["gpu"]
+    # but serialize to string when there's only one item
+    assert str(ms) == input_spec
+
+    # This is the list syntax
+    # FIXME: Parser breaks with nested square brackers
+    input_spec = "python[flags=[cpu,blas:*]]"
+    ms = MatchSpec(input_spec)
+    assert ms.get("flags") == ["cpu", "blas:*"]
+    assert str(ms) == input_spec

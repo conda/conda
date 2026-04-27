@@ -42,7 +42,6 @@ if TYPE_CHECKING:
 
     from .records import PackageRecord
 
-RE_CONDITIONAL = re.compile(r"(.*?)\s*;\s*if\s+(.*)\s*")
 log = getLogger(__name__)
 
 
@@ -180,7 +179,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "name",
         "version",
         "build",
-        "build_number",
+        "build_number",  # int
         "track_features",
         "features",
         "url",
@@ -189,7 +188,9 @@ class MatchSpec(metaclass=MatchSpecType):
         "license",
         "license_family",
         "fn",
-        "condition",
+        "when",
+        "extras",  # str | list[str]
+        "flags",  # str | list[str]
     )
     FIELD_NAMES_SET = frozenset(FIELD_NAMES)
     _MATCHER_CACHE = {}
@@ -276,7 +277,7 @@ class MatchSpec(metaclass=MatchSpecType):
 
             rec = PackageRecord.from_objects(rec)
         for field_name, v in self._match_components.items():
-            if field_name == "condition":
+            if field_name == "when":
                 # Conditions do not apply to check whether a record
                 # matches a given match spec.
                 continue
@@ -379,7 +380,7 @@ class MatchSpec(metaclass=MatchSpecType):
             else:
                 brackets.append(f"build={build}")
 
-        _skip = {"channel", "subdir", "name", "version", "build", "condition"}
+        _skip = {"channel", "subdir", "name", "version", "build"}
         if "url" in self._match_components and "fn" in self._match_components:
             _skip.add("fn")
         for key in self.FIELD_NAMES:
@@ -395,9 +396,6 @@ class MatchSpec(metaclass=MatchSpecType):
 
         if brackets:
             builder.append("[{}]".format(",".join(brackets)))
-
-        if condition := self._match_components.get("condition"):
-            builder.append(f"; if {condition}")
 
         return "".join(builder)
 
@@ -726,13 +724,6 @@ def _parse_spec_str(spec_str):
         spec_str, _ = spec_str[:ndx], spec_str[ndx:]
         spec_str.strip()
 
-    # Step 1.b save '; if ...' conditions
-    # NOTE: Conditional specs are experimental and subject to changes in syntax
-    if condition := RE_CONDITIONAL.match(spec_str):
-        spec_str = condition.group(1)
-        condition = condition.group(2)
-    else:
-        condition = None
 
     # Step 2. done if spec_str is a tarball
     if is_package_file(spec_str):
@@ -869,8 +860,6 @@ def _parse_spec_str(spec_str):
         components["version"] = version
     if build is not None:
         components["build"] = build
-    if condition is not None:
-        components["condition"] = condition
 
     # anything in brackets will now strictly override key as set in other area of spec str
     # EXCEPT FOR: name
@@ -1227,4 +1216,6 @@ _implementors = {
     "features": FeatureMatch,
     "license": CaseInsensitiveStrMatch,
     "license_family": CaseInsensitiveStrMatch,
+    "flags": GlobStrMatch,  # FIXME: Must accept lists too
+    "extras": CaseInsensitiveStrMatch, # FIXME: Must accept lists too
 }
