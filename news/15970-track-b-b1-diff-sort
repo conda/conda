@@ -1,0 +1,19 @@
+### Enhancements
+
+* Replace the quadratic position-scan in `diff_for_unlink_link_precs()` with a dict-keyed sort. Makes `conda install` and `conda update --all` against long-lived environments dramatically faster (~780× on a synthetic 50,000-record prefix). (#15970)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
