@@ -182,8 +182,19 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # let's call the subcommand the old-fashioned way via the assigned func..
         module_name, func_name = args.func.rsplit(".", 1)
         # func_name should always be 'execute'
-        module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
+
+        # When the ``ng`` experimental flag is active, route ``create`` and
+        # ``install`` through the next-generation backend instead of the
+        # classic implementation.  All other commands fall back to the
+        # classic path unchanged.
+        _ng_commands = {"create", "install"}
+        if "ng" in context.experimental and command in _ng_commands:
+            ng_module_name = f"conda._ng.cli.main_{command}"
+            log.debug("experimental=ng: routing %r to %s", command, ng_module_name)
+            module = import_module(ng_module_name)
+        else:
+            module = import_module(module_name)
 
         context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)
