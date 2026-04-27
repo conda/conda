@@ -1552,17 +1552,24 @@ def test_extra_specs():
     # This is the string syntax
     input_spec = "python[extras=group1]"
     ms = MatchSpec(input_spec)
+    assert ms.name == "python"
     # It should always store groups as lists internally
     assert ms.get("extras") == ["group1"]
-    # but serialize to string when there's only one item
-    assert str(ms) == input_spec
+    assert str(ms) == "python[extras=['group1']]"
 
     # This is the list syntax
-    # FIXME: Parser breaks with nested square brackers
+    input_spec = "python[extras=[group1]]"
+    ms = MatchSpec(input_spec)
+    assert ms.name == "python"
+    assert ms.get("extras") == ["group1"]
+    assert str(ms) == "python[extras=['group1']]"
+
+    # This is the list syntax
     input_spec = "python[extras=[group1,group2]]"
     ms = MatchSpec(input_spec)
+    assert ms.name == "python"
     assert ms.get("extras") == ["group1", "group2"]
-    assert str(ms) == input_spec
+    assert str(ms) == "python[extras=['group1', 'group2']]"
 
 
 def test_flags_specs():
@@ -1573,16 +1580,17 @@ def test_flags_specs():
     input_spec = "python[flags=cpu]"
     ms = MatchSpec(input_spec)
     # It should always store groups as lists internally
-    assert ms.get("flags") == ["gpu"]
+    assert ms.get("flags") == ["cpu"]
     # but serialize to string when there's only one item
-    assert str(ms) == input_spec
+    assert str(ms) == "python[flags=['cpu']]"
 
     # This is the list syntax
     # FIXME: Parser breaks with nested square brackers
     input_spec = "python[flags=[cpu,blas:*]]"
     ms = MatchSpec(input_spec)
     assert ms.get("flags") == ["cpu", "blas:*"]
-    assert str(ms) == input_spec
+    # they get sorted too
+    assert str(ms) == "python[flags=['blas:*', 'cpu']]"
 
 
 @pytest.mark.parametrize(

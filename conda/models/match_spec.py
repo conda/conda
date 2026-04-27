@@ -26,6 +26,7 @@ from ..common.compat import isiterable
 from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
+from ..common.serialize import yaml
 from ..common.url import is_url, path_to_url, unquote
 from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
@@ -44,18 +45,35 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-_BRACKETS_RE: re.Pattern[str] = re.compile(r".*(?:(\[.*\]))")
+# Matches the whole square brackets section
+_BRACKETS_RE: re.Pattern[str] = re.compile(r".*?(?:(\[.*\]))")
+# Matches all the key-value pairs within the square brackets section
 _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
     r"""
-    ([a-zA-Z0-9_-]+?)       # key
-    =                        # separator
-    (["\']?)                 # optional opening quote
-    ([^\'"]*?)               # value
-    (\2)                     # matching closing quote
-    (?:[,\ ]|$)              # delimiter or end
+    (?P<key>[a-zA-Z0-9_-]+?)        # key
+    \s*=\s*                         # separator, with or without surrounding spaces
+    (?:                             # the value can be a:
+                                    # 1. maybe-quoted string
+        (?P<quote_s>["']?)            # optional opening quote
+        (?P<value>[^\'"\[\]]*?)       # value
+        (?P=quote_s)                  # matching closing quote
+        |                           # 2. a list of maybe-quoted strings
+        \[\s*                         # opening square bracket, with maybe spaces
+        (?P<value_list>
+            (                           # the value is represented by
+                (?P<quote_b>["']?)        # optional opening quote
+                (?P<value_b>[^\'"]*?)     # value
+                (?P=quote_b)              # matching closing quote
+                (?:[,\ ]?)                # delimiter
+            )+                          # ... one or more times
+        )
+        \s*\]                         # matching closing square bracket closes the list
+    )
+    (?:[,\ ]|$)               # delimiter or end
     """,
     re.VERBOSE,
 )
+# Matches the legacy parentheses section, which is parsed but omitted
 _PARENS_RE: re.Pattern[str] = re.compile(r".*(?:(\(.*\)))")
 _NAME_VERSION_RE: re.Pattern[str] = re.compile(
     r"""
@@ -421,7 +439,10 @@ class MatchSpec(metaclass=MatchSpecType):
                     # skip url in canonical str if channel already included
                     continue
                 value = str(self._match_components[key])
-                if any(s in value for s in ", ="):
+                print("JAIME", value)
+                if value.startswith("[") and key in ("extras", "flags"):
+                    brackets.append(f"{key}={value}")
+                elif any(s in value for s in ", ="):
                     brackets.append(f"{key}='{value}'")
                 else:
                     brackets.append(f"{key}={value}")
@@ -754,7 +775,6 @@ def _parse_spec_str(spec_str):
         spec_str, _ = spec_str[:ndx], spec_str[ndx:]
         spec_str.strip()
 
-
     # Step 2. done if spec_str is a tarball
     if context.plugin_manager.has_package_extension(spec_str):
         # treat as a normal url
@@ -791,19 +811,33 @@ def _parse_spec_str(spec_str):
     # Step 3. strip off brackets portion
     brackets = {}
     m3 = _BRACKETS_RE.match(spec_str)
+
     if m3:
         brackets_str = m3.groups()[0]
         spec_str = spec_str.replace(brackets_str, "")
         brackets_str = brackets_str[1:-1]
         m3b = _BRACKETS_KV_RE.finditer(brackets_str)
+        print(m3b or "NA")
         for match in m3b:
-            key, _, value, _ = match.groups()
-            if not key or not value:
+            groups = match.groupdict()
+            key = groups["key"]
+            value = groups["value"]
+            if not (key and (value or groups["value_list"])):
                 raise InvalidMatchSpec(
-                    original_spec_str, "key-value mismatch in brackets"
+                    original_spec_str,
+                    "key-value mismatch in brackets; a key or a value is missing'",
                 )
             if key == "version" and value:
-                value = _sanitize_version_str(value, match.groupdict().get("build"))
+                value = _sanitize_version_str(value, groups.get("build"))
+            if value_list := groups["value_list"]:
+                if key not in ("flags", "extras"):
+                    raise InvalidMatchSpec(
+                        original_spec_str, "Only 'flags' and 'extras' allow lists."
+                    )
+                value = tuple(yaml.loads(f"[{value_list}]"))
+            elif key in ("flags", "extras") and value:
+                value = (value,)
+            print(value)
             brackets[key] = value
 
     # Step 4. strip off parens portion
@@ -815,8 +849,8 @@ def _parse_spec_str(spec_str):
         parens_str = parens_str[1:-1]
         m4b = _BRACKETS_KV_RE.finditer(parens_str)
         for match in m4b:
-            key, _, value, _ = match.groups()
-            parens[key] = value
+            groups = match.groupdict()
+            parens[groups["key"]] = groups["value"]
         if "optional" in parens_str:
             parens["optional"] = True
 
@@ -1175,6 +1209,44 @@ class FeatureMatch(MatchInterface):
         return self._raw_value
 
 
+class ListOfStrMatch(MatchInterface):
+    __slots__ = ("_raw_value",)
+
+    def __init__(self, value):
+        super().__init__(self._convert(value))
+
+    def _convert(self, value):
+        if not value:
+            return []
+        elif isinstance(value, str):
+            return [
+                f
+                for f in (ff.strip() for ff in value.replace(" ", ",").split(","))
+                if f
+            ]
+        else:
+            return [f for f in (ff.strip() for ff in value) if f]
+
+    def match(self, other):
+        other = self._convert(other)
+        return self._raw_value == other
+
+    def __repr__(self):
+        return "[{}]".format(", ".join(f"'{k}'" for k in sorted(self._raw_value)))
+
+    __str__ = __repr__
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self._raw_value == other._raw_value
+
+    def __hash__(self):
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value
+
+
 class ChannelMatch(GlobStrMatch):
     def __init__(self, value):
         self._re_match = None
@@ -1243,6 +1315,6 @@ _implementors = {
     "features": FeatureMatch,
     "license": CaseInsensitiveStrMatch,
     "license_family": CaseInsensitiveStrMatch,
-    "flags": GlobStrMatch,  # FIXME: Must accept lists too
-    "extras": CaseInsensitiveStrMatch, # FIXME: Must accept lists too
+    "flags": ListOfStrMatch,
+    "extras": ListOfStrMatch,  # FIXME: Must accept globs too
 }
