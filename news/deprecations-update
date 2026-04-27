@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Define private symbols, modules (i.e. starts-with-underscore `_`) as not
+  requiring deprecation. Library users should avoid these symbols. See
+  [deprecations.md](https://github.com/conda/conda/blob/main/docs/source/dev-guide/deprecations.md).
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
