@@ -618,7 +618,11 @@ class PrefixReplaceLinkAction(LinkPathAction):
         if not self._verified:
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
-        self.prefix_path_data.sha256_in_prefix = compute_sum(source_path, "sha256")
+        # Only compute the digest used by ``conda doctor`` when the user has
+        # opted in to the extra safety checks gated on this field. See #15972.
+        self.prefix_path_data.sha256_in_prefix = (
+            compute_sum(source_path, "sha256") if context.extra_safety_checks else None
+        )
         log.log(TRACE, "linking %s => %s", source_path, self.target_full_path)
         create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True
