@@ -439,7 +439,6 @@ class MatchSpec(metaclass=MatchSpecType):
                     # skip url in canonical str if channel already included
                     continue
                 value = str(self._match_components[key])
-                print("JAIME", value)
                 if value.startswith("[") and key in ("extras", "flags"):
                     brackets.append(f"{key}={value}")
                 elif any(s in value for s in ", ="):
@@ -811,13 +810,11 @@ def _parse_spec_str(spec_str):
     # Step 3. strip off brackets portion
     brackets = {}
     m3 = _BRACKETS_RE.match(spec_str)
-
     if m3:
         brackets_str = m3.groups()[0]
         spec_str = spec_str.replace(brackets_str, "")
         brackets_str = brackets_str[1:-1]
         m3b = _BRACKETS_KV_RE.finditer(brackets_str)
-        print(m3b or "NA")
         for match in m3b:
             groups = match.groupdict()
             key = groups["key"]
@@ -837,7 +834,6 @@ def _parse_spec_str(spec_str):
                 value = tuple(yaml.loads(f"[{value_list}]"))
             elif key in ("flags", "extras") and value:
                 value = (value,)
-            print(value)
             brackets[key] = value
 
     # Step 4. strip off parens portion
@@ -1210,6 +1206,8 @@ class FeatureMatch(MatchInterface):
 
 
 class ListOfStrMatch(MatchInterface):
+    # FIXME: This is a quick copy of FeatureMatch
+    # Needs globbing too, or a globbing subclass
     __slots__ = ("_raw_value",)
 
     def __init__(self, value):
@@ -1315,6 +1313,6 @@ _implementors = {
     "features": FeatureMatch,
     "license": CaseInsensitiveStrMatch,
     "license_family": CaseInsensitiveStrMatch,
-    "flags": ListOfStrMatch,
-    "extras": ListOfStrMatch,  # FIXME: Must accept globs too
+    "flags": ListOfStrMatch,  # FIXME: Must accept globs too
+    "extras": ListOfStrMatch,
 }

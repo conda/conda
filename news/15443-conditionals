@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add experimental support for conditional `MatchSpec` expressions (introduced in [CEP PR#111](https://github.com/conda/ceps/pull/111)). (#15443)
+* Add support for conditional dependencies, optional dependency groups, and variant flags in `MatchSpec` expressions (introduced in [CEP PR#111](https://github.com/conda/ceps/pull/111)). (#15443)
 
 ### Bug fixes
 
