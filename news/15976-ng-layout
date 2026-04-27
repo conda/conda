@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `conda._ng` package layout, `python -m conda.ng` entry point, and `experimental: [ng]` flag to route `install` and `create` through the next-generation backend. (#15976)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
