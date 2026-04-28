@@ -20,6 +20,7 @@ from conda.common.configuration import (
     PrimitiveParameter,
 )
 from conda.core.package_cache_data import PackageCacheData
+from conda.core.prefix_data import PrefixData
 from conda.gateways.connection.session import CondaSession, get_session
 from conda.plugins import environment_exporters, solvers
 from conda.plugins.config import PluginConfig
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from conda.models.environment import Environment
+    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
@@ -314,3 +316,27 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             }
 
     return MockContext, app_name
+
+
+@pytest.fixture
+def env_with_small_pip_package(
+    tmp_env: TmpEnvFixture,
+    wheelhouse: Path,
+    pip_cli: PipCLIFixture,
+) -> Path:
+    """Create a temporary environment with a small pip package installed.
+
+    Uses our small-python-package as a reliable test package that's proven to work in conda's test suite.
+    """
+    with tmp_env("python=3.10", "pip") as prefix:
+        # Install small-python-package wheel built in test data directory
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+
+        # Install using pip_cli fixture for better error handling
+        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
+
+        # Clear prefix data cache to ensure fresh data
+        PrefixData._cache_.clear()
+
+        return prefix

@@ -1171,7 +1171,7 @@ class UnlinkLinkTransaction:
         )
         if linking_new_python:
             python_record = linking_new_python.repodata_record
-            log.debug(f"found in current transaction python: {python_record}")
+            log.debug("found in current transaction python: %s", python_record)
             return version_and_sp(python_record)
         python_record = PrefixData(target_prefix).get("python", None)
         if python_record:
@@ -1185,7 +1185,7 @@ class UnlinkLinkTransaction:
             )
             if unlinking_python is None:
                 # python is already linked and not being unlinked
-                log.debug(f"found in current prefix, python: {python_record}")
+                log.debug("found in current prefix, python: %s", python_record)
                 return version_and_sp(python_record)
         # no python in the finished environment
         log.debug("no python version found in prefix")
@@ -1673,7 +1673,7 @@ def run_script(
                 rm_rf(script_caller)
             else:
                 log.warning(
-                    f"CONDA_TEST_SAVE_TEMPS :: retaining run_script {script_caller}"
+                    "CONDA_TEST_SAVE_TEMPS :: retaining run_script %s", script_caller
                 )
 
 

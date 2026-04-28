@@ -104,7 +104,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.env import print_result
     from ..env.installers.base import get_installer
     from ..env.pip_util import get_pip_workdir
-    from ..exceptions import CondaEnvException, InvalidInstaller
+    from ..exceptions import (
+        CondaEnvException,
+        InvalidInstaller,
+        PlatformMismatchError,
+    )
     from ..gateways.disk.delete import rm_rf
     from .common import validate_file_exists
 
@@ -117,7 +121,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         name=context.environment_specifier,
     )
     spec = spec_hook.environment_spec(args.file)
-    env = spec.env
+    if context.subdir not in spec.available_platforms:
+        raise PlatformMismatchError(
+            [(args.file, spec.available_platforms)], context.subdir
+        )
+    env = spec.env_for(context.subdir)
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254

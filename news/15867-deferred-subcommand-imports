@@ -1,0 +1,19 @@
+### Enhancements
+
+* Defer heavy imports in `notices/core.py` and `cli/main_env.py` to reduce the module cost of loading individual subcommand modules. (#15867)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

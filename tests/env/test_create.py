@@ -445,7 +445,7 @@ def test_create_env_from_file_with_mismatched_extension_via_env_spec(
     spec_name: str,
     content: str,
 ):
-    """When --env-spec is provided, content is validated, not filename."""
+    """When --format is provided, content is validated, not filename."""
     tmp_file = path_factory(suffix=".foobar")
     tmp_file.write_text(Path(content).read_text())
 
@@ -454,7 +454,7 @@ def test_create_env_from_file_with_mismatched_extension_via_env_spec(
         "env",
         "create",
         f"--prefix={prefix}",
-        f"--environment-specifier={spec_name}",
+        f"--format={spec_name}",
         "--file",
         str(tmp_file),
     )
@@ -501,7 +501,7 @@ def test_export_and_recreate_environment(
             "env",
             "create",
             f"--prefix={recreate_prefix}",
-            f"--env-spec={target_format}",
+            f"--format={target_format}",
             f"--file={env_file_path}",
             "--dry-run",
         )

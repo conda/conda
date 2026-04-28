@@ -10,7 +10,7 @@ import pytest
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError, PackagesNotFoundError
+from conda.exceptions import CondaValueError, DryRunExit, PackagesNotFoundError
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
 
@@ -131,7 +131,13 @@ def test_build_version_shows_as_changed(
         return
 
     with tmp_env("python=3.11", "numpy") as prefix:
-        out, err, _ = conda_cli("install", f"--prefix={prefix}", "python=3.12", "--yes")
+        out, _, _ = conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "python=3.12",
+            "--dry-run",
+            raises=DryRunExit,
+        )
         assert "The following packages will be UPDATED" in out
         assert "The following packages will be REVISED" in out
         assert "The following packages will be DOWNGRADED" not in out

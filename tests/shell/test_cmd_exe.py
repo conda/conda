@@ -64,7 +64,7 @@ def test_cmd_exe_basic_integration(
         sh.clear()
 
         PATH0 = sh.get_env_var("PATH", "").split(os.pathsep)
-        log.debug(f"{PATH0=}")
+        log.debug("PATH0=%s", PATH0)
         sh.sendline(f'conda {activate} "{charizard}"')
 
         sh.sendline("chcp")
@@ -73,7 +73,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_SHLVL", "1")
 
         PATH1 = sh.get_env_var("PATH", "").split(os.pathsep)
-        log.debug(f"{PATH1=}")
+        log.debug("PATH1=%s", PATH1)
         sh.sendline('powershell -NoProfile -c "(Get-Command conda).Source"')
         sh.expect_exact(conda_bat)
 
@@ -82,7 +82,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("CONDA_EXE", escape(sys.executable))
         sh.assert_env_var("CONDA_PREFIX", charizard, True)
         PATH2 = sh.get_env_var("PATH", "").split(os.pathsep)
-        log.debug(f"{PATH2=}")
+        log.debug("PATH2=%s", PATH2)
 
         sh.sendline('powershell -NoProfile -c "(Get-Command conda -All).Source"')
         sh.expect_exact(conda_bat)
@@ -140,6 +140,15 @@ def test_cmd_exe_activate_error(shell: Shell) -> None:
 
         sh.sendline("conda activate -h blah blah")
         sh.expect("usage: conda activate")
+        sh.assert_env_var("errorlevel", "0", True)
+
+
+@PARAMETRIZE_CMD_EXE
+def test_cmd_exe_deactivate_help(shell: Shell) -> None:
+    with shell.interactive() as sh:
+        sh.sendline("conda deactivate -h")
+        sh.expect("usage: conda deactivate")
+        sh.assert_env_var("errorlevel", "0", True)
 
 
 @PARAMETRIZE_CMD_EXE

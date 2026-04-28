@@ -7,7 +7,6 @@ See conda.core.solver.Solver for the high-level API.
 
 from __future__ import annotations
 
-import copy
 import itertools
 from collections import defaultdict, deque
 from functools import cache
@@ -32,6 +31,7 @@ from .common.logic import (
     minimal_unsatisfiable_subset,
 )
 from .common.toposort import toposort
+from .deprecations import deprecated
 from .exceptions import (
     CondaDependencyError,
     InvalidSpec,
@@ -48,7 +48,13 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
 log = getLogger(__name__)
-stdoutlog = getLogger("conda.stdoutlog")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stdoutlog",
+    getLogger("conda.stdoutlog"),
+    addendum="Use `conda.gateways.streams.stdoutlog` instead.",
+)
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError
@@ -832,7 +838,7 @@ class Resolve:
                 #    broadening check to apply across packages at the explicit level; only
                 #    at the level of deps below that explicit package.
                 seen_specs = set()
-                specs_by_name = copy.deepcopy(specs_by_name_seed)
+                specs_by_name = {k: v[:] for k, v in specs_by_name_seed.items()}
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
@@ -1649,7 +1655,9 @@ class Resolve:
             common = set.intersection(*psols2)
             diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
-                stdoutlog.info(
+                from .gateways.streams import stdoutlog
+
+                stdoutlog(
                     "\nWarning: {} possible package resolutions "
                     "(only showing differing packages):{}{}".format(
                         ">10" if nsol > 10 else nsol,

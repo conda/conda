@@ -34,6 +34,7 @@ from ..types import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from typing import Any
 
     from ...common.path import PathType
 
@@ -185,28 +186,26 @@ class ConsoleReporterRenderer(ReporterRendererBase):
     Default implementation for console reporting in conda
     """
 
+    def render(self, data: Any, **kwargs) -> str:
+        text = super().render(data, **kwargs)
+        # trailing newline
+        return text if text.endswith("\n") else f"{text}\n"
+
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
-        table_parts = [""]
+        table_parts = []
         longest_header = max(map(len, data.keys()))
 
         for header, value in data.items():
             table_parts.append(f" {header:>{longest_header}} : {value}")
 
-        table_parts.append("\n")
-
-        return "\n".join(table_parts)
+        # leading and trailing newlines
+        return "\n" + "\n".join(table_parts) + "\n\n"
 
     @staticmethod
-    def envs_list(
-        prefixes: Iterable[PathType | PrefixData], output=True, **kwargs
-    ) -> str:
-        if not output:
-            return ""
-
+    def envs_list(prefixes: Iterable[PathType | PrefixData], **kwargs) -> str:
         show_size = kwargs.get("show_size", False)
 
         output = [
-            "",
             "# conda environments:",
             "#",
             "# * -> active",
@@ -232,9 +231,8 @@ class ConsoleReporterRenderer(ReporterRendererBase):
                 env_prefix = PrefixData(env_prefix)
             output.append(disp_env(env_prefix))
 
-        output.append("\n")
-
-        return "\n".join(output)
+        # leading and trailing newlines
+        return "\n" + "\n".join(output) + "\n\n"
 
     def progress_bar(
         self,

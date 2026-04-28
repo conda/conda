@@ -81,8 +81,9 @@ def rename(source_path, destination_path, force=False):
                     stdout, stderr = p.communicate()
                 else:
                     log.debug(
-                        f"{rename_script} is missing.  Conda was not installed correctly or has been "
-                        "corrupted.  Please file an issue on the conda github repo."
+                        "%s is missing.  Conda was not installed correctly or has been "
+                        "corrupted.  Please file an issue on the conda github repo.",
+                        rename_script,
                     )
             elif e.errno in (EINVAL, EXDEV, EPERM):
                 # https://github.com/conda/conda/issues/6811

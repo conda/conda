@@ -624,28 +624,25 @@ class PrefixData(metaclass=PrefixDataType):
         return self.__prefix_records or self.load() or self.__prefix_records
 
     def _load_single_record(self, prefix_record_json_path: PathType) -> None:
-        with open(prefix_record_json_path) as fh:
-            try:
-                data = json.load(fh)
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                # UnicodeDecodeError: catch horribly corrupt files
-                # json.JSONDecodeError: catch bad json format files
-                raise CorruptedEnvironmentError(
-                    self.prefix_path, prefix_record_json_path
-                )
+        try:
+            data = json.loads(Path(prefix_record_json_path).read_bytes())
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            # UnicodeDecodeError: catch horribly corrupt files
+            # json.JSONDecodeError: catch bad json format files
+            raise CorruptedEnvironmentError(self.prefix_path, prefix_record_json_path)
 
-            # check that prefix record json filename conforms to name-version-build
-            # apparently implemented as part of #2638 to resolve #2599
-            name, version, build = basename(prefix_record_json_path)[:-5].rsplit("-", 2)
-            if (name, version, build) != (data["name"], data["version"], data["build"]):
-                log.warning(
-                    "Ignoring malformed prefix record at: %s", prefix_record_json_path
-                )
-                # TODO: consider just deleting here this record file in the future
-                return
-            # TODO: consider, at least in memory, storing prefix_record_json_path as part
-            #       of PrefixRecord
-            self.__prefix_records[name] = data
+        # check that prefix record json filename conforms to name-version-build
+        # apparently implemented as part of #2638 to resolve #2599
+        name, version, build = basename(prefix_record_json_path)[:-5].rsplit("-", 2)
+        if (name, version, build) != (data["name"], data["version"], data["build"]):
+            log.warning(
+                "Ignoring malformed prefix record at: %s", prefix_record_json_path
+            )
+            # TODO: consider just deleting here this record file in the future
+            return
+        # TODO: consider, at least in memory, storing prefix_record_json_path as part
+        #       of PrefixRecord
+        self.__prefix_records[name] = data
 
     # endregion
     # region State and environment variables

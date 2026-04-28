@@ -87,7 +87,7 @@ class ArgumentError(CondaError):
 
 
 class Help(CondaError):
-    pass
+    return_code = 0
 
 
 class ActivateHelp(Help):
@@ -1088,6 +1088,49 @@ class CondaValueError(CondaError, ValueError):
         super().__init__(message, *args, **kwargs)
 
 
+class PlatformMismatchError(CondaValueError):
+    """
+    Raised when one or more environment specs do not cover the requested platform.
+
+    The message is derived from a list of ``(source, available_platforms)`` pairs
+    so the wording stays consistent whether the failure comes from a single file
+    (``conda env create``, ``conda env update``) or several
+    (``Environment.from_cli`` with multiple ``-f`` / ``--file`` arguments).
+    """
+
+    def __init__(
+        self,
+        incompatible: Iterable[tuple[str, Iterable[str]]],
+        subdir: str,
+    ):
+        items = [(source, tuple(platforms)) for source, platforms in incompatible]
+        if len(items) == 1:
+            source, platforms = items[0]
+            platform_flags = " ".join(f"--platform {p}" for p in (*platforms, subdir))
+            message = (
+                f"Environment file '{source}' does not include packages for {subdir}.\n"
+                f"Available platforms: {', '.join(platforms)}\n"
+                f"\n"
+                f"To install on {subdir}, regenerate the environment file with "
+                f"{subdir} as a configured platform, for example:\n"
+                f"\n"
+                f"    conda export --file {source} {platform_flags}"
+            )
+        else:
+            details = "\n".join(
+                f"  '{source}': {', '.join(platforms)}" for source, platforms in items
+            )
+            message = (
+                f"The following environment files do not include packages for "
+                f"{subdir}:\n"
+                f"{details}\n"
+                f"\n"
+                f"Regenerate each file with {subdir} as a configured platform "
+                f"(e.g. via `conda export --file <path> --platform {subdir} ...`)."
+            )
+        super().__init__(message)
+
+
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles: Iterable[PackageRecord], **kwargs):
         from .models.records import PackageRecord
@@ -1539,12 +1582,14 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
     elif context.json:
         if isinstance(exc_val, DryRunExit):
             return
-        logger = getLogger("conda.stdout" if rc else "conda.stderr")
+        from .gateways.streams import stderr, stdout
+
         exc_json = json_dumps(exc_val.dump_map(), sort_keys=True)
-        logger.info(f"{exc_json}\n")
+        (stdout if rc else stderr)(f"{exc_json}\n")
     else:
-        stderrlog = getLogger("conda.stderr")
-        stderrlog.error("\n%r\n", exc_val)
+        from .gateways.streams import stderr
+
+        stderr(f"\n{exc_val!r}\n")
         # An alternative which would allow us not to reload sys with newly setdefaultencoding()
         # is to not use `%r`, e.g.:
         # Still, not being able to use `%r` seems too great a price to pay.

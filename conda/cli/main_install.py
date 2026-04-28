@@ -93,9 +93,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     add_parser_frozen_env(p)
 
-    solver_mode_options, package_install_options, _ = add_parser_create_install_update(
-        p
-    )
+    solver_mode_options, _, _ = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
@@ -107,13 +105,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "reinstalled, even if that package already exists in the environment.",
     )
     add_parser_update_modifiers(solver_mode_options)
-    package_install_options.add_argument(
-        "--clobber",
-        action="store_true",
-        default=NULL,
-        help="Allow clobbering (i.e. overwriting) of overlapping file paths "
-        "within packages and suppress related warnings.",
-    )
     p.add_argument(
         "--dev",
         action=NullCountAction,

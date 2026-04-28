@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add startup performance benchmarks (`tests/cli/test_startup_benchmarks.py`) to the CodSpeed benchmark suite, covering import cost, context initialization, parser generation, and module-count guardrails. (#15838)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

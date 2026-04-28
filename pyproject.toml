@@ -27,14 +27,14 @@ dependencies = [
   "boltons >=23.0.0",
   "charset-normalizer",
   # Disabled due to conda-libmamba-solver not being available on PyPI
-  # "conda-libmamba-solver >=25.4.0",
+  # "conda-libmamba-solver >=26.4.0",
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
   "frozendict >=2.4.2",
   "menuinst >=2",
   "packaging >=23.0",
   "platformdirs >=3.10.0",
-  "pluggy >=1.0.0",
+  "pluggy >=1.6.0",
   "pycosat >=0.6.3",
   "requests >=2.28.0,<3",
   "ruamel.yaml >=0.11.14,<0.19",
@@ -214,34 +214,48 @@ ignore = [
 pydocstyle = {convention = "pep257"}
 # see https://docs.astral.sh/ruff/rules/
 select = [
+  # Enable ANN locally for type hints linting
+  # "ANN", # flake8-annotations
   "B012",  # bugbear
   "D1",  # pydocstyle
   "E",  # pycodestyle errors
   "F",  # pyflakes
   "FA",  # flake8-future-annotations
+  "G004",  # flake8-logging-format: no f-strings in log calls
   "I",  # isort
   "ISC",  # flake8-implicit-str-concat
   "RUF100",  # Unused noqa directive
   "S101",  # forbid assert
   "T10",  # flake8-debugger
   "TC",  # flake8-type-checking
-  "TID251",  # flake8-tidy-imports
+  "TID251",  # flake8-tidy-imports: banned-api
+  "TID253",  # flake8-tidy-imports: banned-module-level-imports
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "conda/testing/*" = [
+  "ANN",  # flake8-annotations
   "S101",  # forbid assert
 ]
 "docs/*" = [
+  "ANN",  # flake8-annotations
   "D1",  # pydocstyle
 ]
 "tests/*" = [
+  "ANN",  # flake8-annotations
   "D1",  # pydocstyle
   "S101",  # forbid assert
   "TID251",  # flake8-tidy-imports
+  "TID253",  # flake8-tidy-imports: tests may import requests directly
 ]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Prevent accidental module-level imports of heavy packages on the startup path.
+# Files that legitimately import these packages (e.g. conda/gateways/) should
+# suppress the warning with # noqa: TID253 on the relevant import lines.
+banned-module-level-imports = ["requests"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "json".msg = "Use `conda.common.serialize.json` instead."

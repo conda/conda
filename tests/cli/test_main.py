@@ -6,10 +6,13 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.cli.main import main_sourced
+from conda.base.context import context
+from conda.cli.main import main, main_sourced, main_subshell
 from conda.common.compat import on_win
 
 if TYPE_CHECKING:
+    from pytest import CaptureFixture
+
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -32,6 +35,33 @@ def test_ensure_no_command_provided_returns_help(
     captured = capsys.readouterr()
 
     assert "error: the following arguments are required: COMMAND" in captured.err
+
+
+def test_main_subshell_help_exits_cleanly(capsys) -> None:
+    """main_subshell("--help") should exit with SystemExit and print usage."""
+    with pytest.raises(SystemExit) as exc_info:
+        main_subshell("--help")
+
+    assert exc_info.value.code == 0
+    out = capsys.readouterr().out
+    assert "usage" in out.lower()
+
+
+def test_main_subshell_no_plugins_flag(monkeypatch) -> None:
+    """CONDA_NO_PLUGINS=true should disable external plugins via main_subshell."""
+    monkeypatch.setenv("CONDA_NO_PLUGINS", "true")
+    disabled = []
+    monkeypatch.setattr(
+        context.plugin_manager,
+        "disable_external_plugins",
+        lambda: disabled.append(True),
+    )
+
+    with pytest.raises(SystemExit):
+        main_subshell("--help")
+
+    assert context.no_plugins is True
+    assert disabled
 
 
 @pytest.mark.skipif(not on_win, reason="Windows-specific test")
@@ -98,3 +128,29 @@ def test_main_sourced_unix_shells_no_line_ending_fix(
     output = capsys.readouterr().out
 
     assert any(pattern in output for pattern in expected_patterns)
+
+
+@pytest.mark.parametrize("flag", ["-V", "--version"])
+def test_version_fast_path(flag: str, capsys: CaptureFixture[str]) -> None:
+    """``conda -V`` and ``conda --version`` use the fast path in main()."""
+    from conda import __version__
+
+    rc = main(flag)
+
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == f"conda {__version__}"
+
+
+@pytest.mark.parametrize("flag", ["-V", "--version"])
+def test_version_fast_path_skips_plugins(
+    flag: str, capsys: CaptureFixture[str]
+) -> None:
+    """The fast path must not trigger plugin loading."""
+    from conda.plugins.manager import get_plugin_manager
+
+    get_plugin_manager.cache_clear()
+    try:
+        main(flag)
+        assert get_plugin_manager.cache_info().currsize == 0
+    finally:
+        get_plugin_manager.cache_clear()

@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `--clobber` flag to `conda create`, matching existing support in `conda install` and `conda update`. (#15584 via #15801)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
