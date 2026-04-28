@@ -140,6 +140,15 @@ def test_cmd_exe_activate_error(shell: Shell) -> None:
 
         sh.sendline("conda activate -h blah blah")
         sh.expect("usage: conda activate")
+        sh.assert_env_var("errorlevel", "0", True)
+
+
+@PARAMETRIZE_CMD_EXE
+def test_cmd_exe_deactivate_help(shell: Shell) -> None:
+    with shell.interactive() as sh:
+        sh.sendline("conda deactivate -h")
+        sh.expect("usage: conda deactivate")
+        sh.assert_env_var("errorlevel", "0", True)
 
 
 @PARAMETRIZE_CMD_EXE
