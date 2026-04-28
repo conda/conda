@@ -29,7 +29,7 @@ This is especially useful for scenarios where you are looking to boost speed for
 To get started using it, install this plugin into your base environment:
 
 ```bash
-conda install --name base conda-forge::conda-lockfiles
+conda install --name base conda-lockfiles
 ```
 
 Please see the [conda-lockfiles documentation](https://conda-incubator.github.io/conda-lockfiles/) for more information
