@@ -18,8 +18,8 @@ from conda.common.io import (
     captured,
     force_color,
     no_color,
-    should_use_animations,
     should_use_color,
+    term_dumb,
 )
 
 
@@ -141,6 +141,24 @@ def test_thread_limited_executor_handles_thread_limit(
 # ---------------------------------------------------------------------------
 
 
+class TestTermDumb:
+    def test_term_dumb_when_term_is_dumb(self, monkeypatch):
+        monkeypatch.setenv("TERM", "dumb")
+        assert term_dumb() is True
+
+    def test_term_dumb_when_term_is_unknown(self, monkeypatch):
+        monkeypatch.setenv("TERM", "unknown")
+        assert term_dumb() is True
+
+    def test_term_dumb_false_without_dumb_term(self, monkeypatch):
+        monkeypatch.delenv("TERM", raising=False)
+        assert term_dumb() is False
+
+    def test_term_dumb_false_with_normal_term(self, monkeypatch):
+        monkeypatch.setenv("TERM", "xterm-256color")
+        assert term_dumb() is False
+
+
 class TestNoColor:
     def test_no_color_when_env_var_set(self, monkeypatch):
         monkeypatch.setenv("NO_COLOR", "")
@@ -203,28 +221,3 @@ class TestShouldUseColor:
         monkeypatch.delenv("FORCE_COLOR", raising=False)
         with patch("conda.common.io.is_tty", return_value=False):
             assert should_use_color() is False
-
-
-class TestShouldUseAnimations:
-    def test_no_color_disables_animations(self, monkeypatch):
-        monkeypatch.setenv("NO_COLOR", "1")
-        assert should_use_animations() is False
-
-    def test_term_dumb_disables_animations(self, monkeypatch):
-        monkeypatch.delenv("NO_COLOR", raising=False)
-        monkeypatch.setenv("TERM", "dumb")
-        assert should_use_animations() is False
-
-    def test_force_color_alone_does_not_enable_animations(self, monkeypatch):
-        """FORCE_COLOR enables colour markup but animations require a real TTY."""
-        monkeypatch.delenv("NO_COLOR", raising=False)
-        monkeypatch.delenv("TERM", raising=False)
-        monkeypatch.setenv("FORCE_COLOR", "1")
-        with patch("conda.common.io.is_tty", return_value=False):
-            assert should_use_animations() is False
-
-    def test_tty_enables_animations(self, monkeypatch):
-        monkeypatch.delenv("NO_COLOR", raising=False)
-        monkeypatch.delenv("TERM", raising=False)
-        with patch("conda.common.io.is_tty", return_value=True):
-            assert should_use_animations() is True

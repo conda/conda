@@ -50,15 +50,29 @@ def is_tty() -> bool:
     )
 
 
+def term_dumb() -> bool:
+    """
+    Return True when the terminal is known to be incapable of ANSI escape codes.
+
+    ``TERM=dumb`` (and ``TERM=unknown``) signals that the terminal cannot
+    handle *any* escape sequences — not just colour.  This suppresses all
+    animations (spinners, progress bars) as well as colour output.
+    """
+    return os.environ.get("TERM") in ("dumb", "unknown")
+
+
 def no_color() -> bool:
     """
-    Return True when color output should be suppressed.
+    Return True when *color* output should be suppressed.
 
     Respects the ``NO_COLOR`` standard (https://no-color.org/): color is
-    suppressed when the ``NO_COLOR`` environment variable is set to any value,
-    or when ``TERM=dumb``.
+    suppressed when the ``NO_COLOR`` environment variable is set to any value.
+    Non-color ANSI formatting (bold, underline, etc.) may still be used.
+
+    Note: ``TERM=dumb`` also implies no color, but it additionally disables
+    *all* escape codes — use :func:`term_dumb` to check that condition.
     """
-    return "NO_COLOR" in os.environ or os.environ.get("TERM") == "dumb"
+    return "NO_COLOR" in os.environ or term_dumb()
 
 
 def force_color() -> bool:
@@ -77,7 +91,7 @@ def should_use_color() -> bool:
 
     The precedence order (highest to lowest) is:
 
-    1. ``NO_COLOR`` set or ``TERM=dumb`` → no color.
+    1. ``NO_COLOR`` set or ``TERM=dumb``/``TERM=unknown`` → no color.
     2. ``FORCE_COLOR`` set → color even in non-TTY.
     3. stdout is a TTY → color.
     4. Otherwise → no color.
@@ -86,18 +100,6 @@ def should_use_color() -> bool:
         return False
     if force_color():
         return True
-    return is_tty()
-
-
-def should_use_animations() -> bool:
-    """
-    Determine whether animated output (spinners, progress bars) should be shown.
-
-    Animations are suppressed when color is disabled (``NO_COLOR``, ``TERM=dumb``)
-    or when stdout is not a TTY, even if ``FORCE_COLOR`` is set.
-    """
-    if no_color():
-        return False
     return is_tty()
 
 

@@ -23,8 +23,12 @@ def test_console_reporter_renderer(mocker):
     """
     # Pretend we are in a TTY so that progress_bar returns TQDMProgressBar
     mocker.patch(
-        "conda.plugins.reporter_backends.console.should_use_animations",
+        "conda.plugins.reporter_backends.console.is_tty",
         return_value=True,
+    )
+    mocker.patch(
+        "conda.plugins.reporter_backends.console.term_dumb",
+        return_value=False,
     )
 
     test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
@@ -249,8 +253,11 @@ class TestProgressBarOutputMode:
 
     def test_quiet_context_returns_quiet_bar(self, mocker):
         mocker.patch(
-            "conda.plugins.reporter_backends.console.should_use_animations",
+            "conda.plugins.reporter_backends.console.is_tty",
             return_value=True,
+        )
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
         )
         mocker.patch("conda.plugins.reporter_backends.console.context").quiet = True
         renderer = ConsoleReporterRenderer()
@@ -259,8 +266,24 @@ class TestProgressBarOutputMode:
 
     def test_non_tty_returns_quiet_bar(self, mocker):
         mocker.patch(
-            "conda.plugins.reporter_backends.console.should_use_animations",
+            "conda.plugins.reporter_backends.console.is_tty",
             return_value=False,
+        )
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
+        )
+        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
+        renderer = ConsoleReporterRenderer()
+        bar = renderer.progress_bar("test")
+        assert isinstance(bar, QuietProgressBar)
+
+    def test_term_dumb_returns_quiet_bar(self, mocker):
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.is_tty",
+            return_value=True,
+        )
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.term_dumb", return_value=True
         )
         mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
         renderer = ConsoleReporterRenderer()
@@ -269,8 +292,11 @@ class TestProgressBarOutputMode:
 
     def test_tty_returns_tqdm_bar(self, mocker):
         mocker.patch(
-            "conda.plugins.reporter_backends.console.should_use_animations",
+            "conda.plugins.reporter_backends.console.is_tty",
             return_value=True,
+        )
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
         )
         mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
         renderer = ConsoleReporterRenderer()
@@ -283,8 +309,11 @@ class TestSpinnerOutputMode:
 
     def test_quiet_context_returns_quiet_spinner(self, mocker):
         mocker.patch(
-            "conda.plugins.reporter_backends.console.should_use_animations",
+            "conda.plugins.reporter_backends.console.is_tty",
             return_value=True,
+        )
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
         )
         mocker.patch("conda.plugins.reporter_backends.console.context").quiet = True
         renderer = ConsoleReporterRenderer()
@@ -293,8 +322,24 @@ class TestSpinnerOutputMode:
 
     def test_non_tty_returns_quiet_spinner(self, mocker):
         mocker.patch(
-            "conda.plugins.reporter_backends.console.should_use_animations",
+            "conda.plugins.reporter_backends.console.is_tty",
             return_value=False,
+        )
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
+        )
+        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
+        renderer = ConsoleReporterRenderer()
+        spinner = renderer.spinner("test")
+        assert isinstance(spinner, QuietSpinner)
+
+    def test_term_dumb_returns_quiet_spinner(self, mocker):
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.is_tty",
+            return_value=True,
+        )
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.term_dumb", return_value=True
         )
         mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
         renderer = ConsoleReporterRenderer()
@@ -303,8 +348,11 @@ class TestSpinnerOutputMode:
 
     def test_tty_returns_animated_spinner(self, mocker):
         mocker.patch(
-            "conda.plugins.reporter_backends.console.should_use_animations",
+            "conda.plugins.reporter_backends.console.is_tty",
             return_value=True,
+        )
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
         )
         mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
         renderer = ConsoleReporterRenderer()

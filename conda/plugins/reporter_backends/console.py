@@ -19,7 +19,7 @@ from ...base.constants import (
     DEFAULT_CONSOLE_REPORTER_BACKEND,
 )
 from ...base.context import context
-from ...common.io import should_use_animations, swallow_broken_pipe
+from ...common.io import is_tty, swallow_broken_pipe, term_dumb
 from ...common.path import paths_equal
 from ...core.prefix_data import PrefixData
 from ...exceptions import CondaError
@@ -244,11 +244,10 @@ class ConsoleReporterRenderer(ReporterRendererBase):
 
         Animations are suppressed when:
         * ``context.quiet`` is set,
-        * the output is not a TTY (e.g. piped to a file),
-        * ``NO_COLOR`` is set, or
-        * ``TERM=dumb`` is set.
+        * the output is not a TTY (e.g. piped to a file), or
+        * ``TERM=dumb`` or ``TERM=unknown`` is set.
         """
-        if context.quiet or not should_use_animations():
+        if context.quiet or not is_tty() or term_dumb():
             return QuietProgressBar(description, **kwargs)
         else:
             return TQDMProgressBar(description, **kwargs)
@@ -260,7 +259,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         Animations are suppressed under the same conditions as
         :meth:`progress_bar`.
         """
-        if context.quiet or not should_use_animations():
+        if context.quiet or not is_tty() or term_dumb():
             return QuietSpinner(message, fail_message)
         else:
             return Spinner(message, fail_message)
