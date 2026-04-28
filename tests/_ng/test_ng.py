@@ -112,13 +112,13 @@ class TestDoCallNgRouting:
         assert "ng" in context.experimental
 
         ng_execute = MagicMock(return_value=0)
+        pm = MagicMock()
+        pm.invoke_pre_commands = MagicMock()
+        pm.invoke_post_commands = MagicMock()
         with (
             patch("conda._ng.cli.main_install.execute", ng_execute),
-            patch("conda.cli.conda_argparse.context.plugin_manager") as pm,
+            patch("conda.plugins.manager.get_plugin_manager", return_value=pm),
         ):
-            pm.invoke_pre_commands = MagicMock()
-            pm.invoke_post_commands = MagicMock()
-
             from conda.cli.conda_argparse import do_call, generate_parser
 
             parser = generate_parser()
@@ -134,13 +134,13 @@ class TestDoCallNgRouting:
         assert "ng" in context.experimental
 
         ng_execute = MagicMock(return_value=0)
+        pm = MagicMock()
+        pm.invoke_pre_commands = MagicMock()
+        pm.invoke_post_commands = MagicMock()
         with (
             patch("conda._ng.cli.main_create.execute", ng_execute),
-            patch("conda.cli.conda_argparse.context.plugin_manager") as pm,
+            patch("conda.plugins.manager.get_plugin_manager", return_value=pm),
         ):
-            pm.invoke_pre_commands = MagicMock()
-            pm.invoke_post_commands = MagicMock()
-
             from conda.cli.conda_argparse import do_call, generate_parser
 
             parser = generate_parser()
@@ -156,13 +156,13 @@ class TestDoCallNgRouting:
         assert "ng" not in context.experimental
 
         classic_execute = MagicMock(return_value=0)
+        pm = MagicMock()
+        pm.invoke_pre_commands = MagicMock()
+        pm.invoke_post_commands = MagicMock()
         with (
             patch("conda.cli.main_install.execute", classic_execute),
-            patch("conda.cli.conda_argparse.context.plugin_manager") as pm,
+            patch("conda.plugins.manager.get_plugin_manager", return_value=pm),
         ):
-            pm.invoke_pre_commands = MagicMock()
-            pm.invoke_post_commands = MagicMock()
-
             from conda.cli.conda_argparse import do_call, generate_parser
 
             parser = generate_parser()
@@ -178,13 +178,13 @@ class TestDoCallNgRouting:
         assert "ng" in context.experimental
 
         classic_execute = MagicMock(return_value=0)
+        pm = MagicMock()
+        pm.invoke_pre_commands = MagicMock()
+        pm.invoke_post_commands = MagicMock()
         with (
             patch("conda.cli.main_search.execute", classic_execute),
-            patch("conda.cli.conda_argparse.context.plugin_manager") as pm,
+            patch("conda.plugins.manager.get_plugin_manager", return_value=pm),
         ):
-            pm.invoke_pre_commands = MagicMock()
-            pm.invoke_post_commands = MagicMock()
-
             from conda.cli.conda_argparse import do_call, generate_parser
 
             parser = generate_parser()
