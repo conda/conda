@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     "27.3",
     "sequence",
     rename="iterable",
-    addendum="Use `collections.defaultdict` instead.",
 )
 def groupby_to_dict(
     keyfunc: Callable[[T], K], iterable: Iterable[T]
@@ -39,6 +38,12 @@ def groupby_to_dict(
     return dict(result)
 
 
+@deprecated.argument(
+    "26.9",
+    "27.3",
+    "sequence",
+    rename="iterable",
+)
 def unique(iterable: Iterable[T]) -> Iterable[T]:
     """A `toolz` inspired `unique` implementation.
 
