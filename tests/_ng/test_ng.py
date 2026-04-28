@@ -65,13 +65,16 @@ class TestNgShim:
 
     def test_ng_module_callable_as_main(self):
         """conda.ng.main() must delegate to conda.cli.main.main."""
+        import sys
+
+        _cli_main_module = sys.modules["conda.cli.main"]
         called_with = []
 
         def fake_main(*args, **kwargs):
             called_with.append((args, kwargs))
             return 0
 
-        with patch("conda.cli.main.main", fake_main):
+        with patch.object(_cli_main_module, "main", fake_main):
             from conda.ng import main as ng_main
 
             result = ng_main()
@@ -81,6 +84,9 @@ class TestNgShim:
 
     def test_python_m_conda_ng_sets_ng_flag_on_context(self):
         """python -m conda.ng ensures context.experimental contains 'ng'."""
+        import sys
+
+        _cli_main_module = sys.modules["conda.cli.main"]
         reset_context()
 
         def fake_main(*args, **kwargs):
@@ -91,7 +97,7 @@ class TestNgShim:
             )
             return 0
 
-        with patch("conda.cli.main.main", fake_main):
+        with patch.object(_cli_main_module, "main", fake_main):
             from conda.ng import main as ng_main
 
             ng_main()
