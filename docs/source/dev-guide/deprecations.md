@@ -2,7 +2,7 @@
 
 # Deprecations
 
-Conda abides by the Deprecation Schedule defined in [CEP-9][cep9].
+Conda abides by the Deprecation Schedule defined in [CEP 9][cep9].
 
 ## What must be deprecated
 
@@ -15,9 +15,9 @@ deprecation.[^1]
     discretion of the conda maintainers.
 
 A private symbol is any symbol that starts with a single `_` character; any
-symbol that is inside a module that starts with a single `_` character; or any
-symbol that is not in a module's `__all__` list if it has such a list. This
-includes underscore-prefixed symbols in class instances.
+symbol inside a module that starts with a single `_` character; or any symbol
+not in a module's `__all__` list if it has such a list. This includes
+underscore-prefixed symbols in class instances.
 
 Imported symbols (`import <package>` statements) are considered private.
 
@@ -27,7 +27,12 @@ Type checkers should be able to check these rules.
 
 Use conda's public API. If you need a private symbol, pin your conda dependency
 to that specific conda release `conda==26.9.0`, and file an issue so we can
-provide a suitable public API.
+consider exposing a suitable public API.
+
+As a review, if any part of the import path starts with a single `_` (`from
+conda._private.NiftyClass`) then it is private. Most other symbols are public
+when imported from their point of definition, unless a module has an `__all__`
+omitting that symbol.
 
 ### Re-exporting a private symbol to the public API
 
