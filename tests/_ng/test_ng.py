@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 from argparse import Namespace
 from unittest.mock import MagicMock, patch
 
@@ -18,46 +17,54 @@ from conda.base.context import context, reset_context
 class TestNgShim:
     """Tests for the conda.ng module-level entry-point shim."""
 
-    def test_inject_ng_experimental_adds_ng_when_absent(self, monkeypatch):
-        """_inject_ng_experimental sets CONDA_EXPERIMENTAL=ng when unset."""
-        monkeypatch.delenv("CONDA_EXPERIMENTAL", raising=False)
+    def test_inject_ng_experimental_adds_ng_when_absent(self):
+        """_inject_ng_experimental sets context.experimental to include 'ng' when absent."""
+        reset_context()
+        assert "ng" not in context.experimental
 
         from conda.ng import _inject_ng_experimental
 
-        _inject_ng_experimental()
+        with _inject_ng_experimental():
+            assert "ng" in context.experimental
 
-        assert "ng" in os.environ["CONDA_EXPERIMENTAL"].split(",")
+        # context is restored on exit
+        assert "ng" not in context.experimental
 
-    def test_inject_ng_experimental_preserves_existing_values(self, monkeypatch):
+    def test_inject_ng_experimental_preserves_existing_values(self):
         """_inject_ng_experimental keeps pre-existing experimental values."""
-        monkeypatch.setenv("CONDA_EXPERIMENTAL", "some_other_flag")
+        context.__init__(argparse_args=Namespace(experimental=["some_other_flag"]))
+        assert "some_other_flag" in context.experimental
 
         from conda.ng import _inject_ng_experimental
 
-        _inject_ng_experimental()
-        values = os.environ["CONDA_EXPERIMENTAL"].split(",")
-        assert "ng" in values
-        assert "some_other_flag" in values
+        with _inject_ng_experimental():
+            assert "ng" in context.experimental
+            assert "some_other_flag" in context.experimental
 
-    def test_inject_ng_experimental_idempotent(self, monkeypatch):
-        """Calling _inject_ng_experimental twice must not duplicate 'ng'."""
-        monkeypatch.delenv("CONDA_EXPERIMENTAL", raising=False)
+        # "ng" is gone, "some_other_flag" is restored
+        assert "ng" not in context.experimental
+        assert "some_other_flag" in context.experimental
+
+        reset_context()
+
+    def test_inject_ng_experimental_idempotent(self):
+        """Entering _inject_ng_experimental twice must not duplicate 'ng'."""
+        reset_context()
 
         from conda.ng import _inject_ng_experimental
 
-        _inject_ng_experimental()
-        _inject_ng_experimental()
-        values = os.environ["CONDA_EXPERIMENTAL"].split(",")
-        assert values.count("ng") == 1
+        with _inject_ng_experimental():
+            with _inject_ng_experimental():
+                assert context.experimental.count("ng") == 1
+
+        reset_context()
 
     def test_ng_module_is_importable(self):
         """conda.ng must be importable without side-effects."""
         import conda.ng  # noqa: F401 — should not raise
 
-    def test_ng_module_callable_as_main(self, monkeypatch):
+    def test_ng_module_callable_as_main(self):
         """conda.ng.main() must delegate to conda.cli.main.main."""
-        monkeypatch.delenv("CONDA_EXPERIMENTAL", raising=False)
-
         called_with = []
 
         def fake_main(*args, **kwargs):
@@ -72,15 +79,13 @@ class TestNgShim:
         assert result == 0
         assert called_with, "conda.cli.main.main was not called"
 
-    def test_python_m_conda_ng_sets_ng_flag_on_context(self, monkeypatch):
+    def test_python_m_conda_ng_sets_ng_flag_on_context(self):
         """python -m conda.ng ensures context.experimental contains 'ng'."""
-        monkeypatch.delenv("CONDA_EXPERIMENTAL", raising=False)
+        reset_context()
 
         def fake_main(*args, **kwargs):
-            # After the shim injects the env var, reset_context() is called
-            # inside the real main(); here we simulate that and verify the
-            # context object sees the 'ng' flag.
-            reset_context()
+            # The shim has already injected "ng" into context before delegating
+            # to main(); verify the context object sees the 'ng' flag.
             assert "ng" in context.experimental, (
                 "context.experimental did not contain 'ng' after shim injection"
             )
@@ -90,6 +95,11 @@ class TestNgShim:
             from conda.ng import main as ng_main
 
             ng_main()
+
+        # After main() returns the context manager restores the original state
+        assert "ng" not in context.experimental
+
+        reset_context()
 
 
 # ---------------------------------------------------------------------------
@@ -105,10 +115,9 @@ class TestDoCallNgRouting:
         func = f"conda.cli.main_{command}.execute"
         return Namespace(func=func, cmd=command)
 
-    def test_install_routes_to_ng_when_flag_set(self, monkeypatch):
+    def test_install_routes_to_ng_when_flag_set(self):
         """do_call routes 'install' to conda._ng.cli.main_install when ng is active."""
-        monkeypatch.setenv("CONDA_EXPERIMENTAL", "ng")
-        reset_context()
+        context.__init__(argparse_args=Namespace(experimental=["ng"]))
         assert "ng" in context.experimental
 
         ng_execute = MagicMock(return_value=0)
@@ -126,11 +135,11 @@ class TestDoCallNgRouting:
             do_call(args, parser)
 
         ng_execute.assert_called_once()
-
-    def test_create_routes_to_ng_when_flag_set(self, monkeypatch):
-        """do_call routes 'create' to conda._ng.cli.main_create when ng is active."""
-        monkeypatch.setenv("CONDA_EXPERIMENTAL", "ng")
         reset_context()
+
+    def test_create_routes_to_ng_when_flag_set(self):
+        """do_call routes 'create' to conda._ng.cli.main_create when ng is active."""
+        context.__init__(argparse_args=Namespace(experimental=["ng"]))
         assert "ng" in context.experimental
 
         ng_execute = MagicMock(return_value=0)
@@ -148,10 +157,10 @@ class TestDoCallNgRouting:
             do_call(args, parser)
 
         ng_execute.assert_called_once()
+        reset_context()
 
-    def test_install_uses_classic_without_ng_flag(self, monkeypatch):
+    def test_install_uses_classic_without_ng_flag(self):
         """do_call routes 'install' to the classic module when ng flag is absent."""
-        monkeypatch.delenv("CONDA_EXPERIMENTAL", raising=False)
         reset_context()
         assert "ng" not in context.experimental
 
@@ -171,10 +180,9 @@ class TestDoCallNgRouting:
 
         classic_execute.assert_called_once()
 
-    def test_non_routed_command_unaffected_by_ng_flag(self, monkeypatch):
+    def test_non_routed_command_unaffected_by_ng_flag(self):
         """do_call does NOT redirect 'search' even when ng is active."""
-        monkeypatch.setenv("CONDA_EXPERIMENTAL", "ng")
-        reset_context()
+        context.__init__(argparse_args=Namespace(experimental=["ng"]))
         assert "ng" in context.experimental
 
         classic_execute = MagicMock(return_value=0)
@@ -192,6 +200,7 @@ class TestDoCallNgRouting:
             do_call(args, parser)
 
         classic_execute.assert_called_once()
+        reset_context()
 
 
 # ---------------------------------------------------------------------------

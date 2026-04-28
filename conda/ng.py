@@ -16,37 +16,61 @@ This is equivalent to::
 
 How it works
 ------------
-The shim injects ``ng`` into the ``CONDA_EXPERIMENTAL`` environment variable
-(preserving any values already present) before handing control to the
-standard ``conda.cli.main:main`` entry point.  All argument parsing,
-plugin loading, and dispatch logic therefore runs exactly as it would for a
-normal ``conda`` invocation — the only difference is that the ``ng`` flag is
-guaranteed to be active.
+The shim injects ``ng`` into the ``experimental`` context setting (preserving
+any values already present) by reinitialising the context object directly,
+before handing control to the standard ``conda.cli.main:main`` entry point.
+All argument parsing, plugin loading, and dispatch logic therefore runs exactly
+as it would for a normal ``conda`` invocation — the only difference is that
+the ``ng`` flag is guaranteed to be active.
 """
 
 from __future__ import annotations
 
-import os
 import sys
+from argparse import Namespace
+from contextlib import contextmanager
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
-def _inject_ng_experimental() -> None:
+@contextmanager
+def _inject_ng_experimental() -> Generator[None, None, None]:
     """
-    Ensure ``ng`` is present in ``CONDA_EXPERIMENTAL`` before we start.
+    Context manager that ensures ``ng`` is present in ``context.experimental``.
+
+    On entry the context is reinitialised with ``ng`` merged into any
+    pre-existing experimental values.  On exit the context is restored to its
+    original state.
     """
-    current = os.environ.get("CONDA_EXPERIMENTAL", "")
-    values = [v.strip() for v in current.split(",") if v.strip()]
-    if "ng" not in values:
-        values.append("ng")
-    os.environ["CONDA_EXPERIMENTAL"] = ",".join(values)
+    from conda.base.context import context
+
+    # Capture the current experimental values so we can restore them later.
+    original_experimental = list(context.experimental)
+
+    # Build the new list, preserving existing values and adding "ng" if absent.
+    new_experimental = list(original_experimental)
+    if "ng" not in new_experimental:
+        new_experimental.append("ng")
+
+    # Reinitialise the context with "ng" injected via argparse_args so that
+    # os.environ is left untouched.
+    context.__init__(argparse_args=Namespace(experimental=new_experimental))
+
+    try:
+        yield
+    finally:
+        # Restore the context to its original state.
+        context.__init__(argparse_args=Namespace(experimental=original_experimental))
 
 
 def main() -> int:
     """Shim entry point: inject the ng flag and delegate to conda.cli.main."""
-    _inject_ng_experimental()
     from conda.cli.main import main as _main
 
-    return _main()
+    with _inject_ng_experimental():
+        return _main()
 
 
 if __name__ == "__main__":
