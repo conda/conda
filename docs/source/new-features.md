@@ -1,4 +1,4 @@
-# Latest Features
+# New Features
 
 Highlights of the most recent improvements to `conda`, organized by release.
 For the full list of changes, see the {doc}`release-notes`.
