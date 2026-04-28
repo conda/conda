@@ -858,6 +858,163 @@ def test_from_cli_environment_inject_default_packages_override_file(
     assert env.explicit_packages == []
 
 
+@pytest.mark.parametrize(
+    "target,expected_virtual",
+    [
+        ("linux-64", "__glibc"),
+        ("osx-arm64", "__osx"),
+        ("win-64", "__win"),
+    ],
+)
+def test_extrapolate_uses_target_subdir(
+    monkeypatch: pytest.MonkeyPatch, target: str, expected_virtual: str
+):
+    """Regression test for conda/conda#15919.
+
+    ``Environment.extrapolate`` must override ``context.subdir`` for the
+    duration of the solve so that the virtual_packages plugins emit virtual
+    packages for the *target* platform (e.g. ``__glibc`` on ``linux-*``)
+    rather than the host's. Otherwise cross-platform solves fail when a
+    requested spec transitively depends on a target-only virtual package.
+    """
+    original_subdir = context.subdir
+    if target == original_subdir:
+        pytest.skip("target equals host; extrapolate short-circuits")
+
+    captured: list[dict] = []
+
+    class RecordingSolver:
+        def __init__(self, **kwargs):
+            captured.append(
+                {
+                    "init_subdir": context.subdir,
+                    "kwargs_subdirs": kwargs.get("subdirs"),
+                }
+            )
+
+        def solve_final_state(self):
+            captured[-1]["solve_subdir"] = context.subdir
+            captured[-1]["virtual_pkg_names"] = {
+                rec.name for rec in context.plugin_manager.get_virtual_package_records()
+            }
+            return []
+
+    monkeypatch.setattr(
+        Environment,
+        "from_history",
+        staticmethod(lambda prefix: [MatchSpec("python=3.13")]),
+    )
+    monkeypatch.setattr(
+        context.plugin_manager,
+        "get_cached_solver_backend",
+        lambda: RecordingSolver,
+    )
+
+    env = Environment(
+        prefix="/fake/prefix",
+        platform=original_subdir,
+        config=EnvironmentConfig.from_context(),
+    )
+
+    result = env.extrapolate(target)
+
+    assert result.platform == target
+    assert captured, "Solver was not invoked"
+    for record in captured:
+        assert record["init_subdir"] == target
+        assert record["solve_subdir"] == target
+        assert record["kwargs_subdirs"] == (target, "noarch")
+
+    assert context.subdir == original_subdir
+
+    assert expected_virtual in captured[-1]["virtual_pkg_names"], (
+        f"Expected {expected_virtual} to be available when extrapolating to "
+        f"{target}, got: {captured[-1]['virtual_pkg_names']}"
+    )
+
+
+@pytest.mark.parametrize("target", ["linux-64", "osx-arm64", "win-64"])
+def test_extrapolate_restores_subdir_on_solver_error(
+    monkeypatch: pytest.MonkeyPatch, target: str
+):
+    """``context.subdir`` must be restored even when the solver raises.
+
+    Companion to ``test_extrapolate_uses_target_subdir``; covers the
+    exception-safety of the temporary subdir override.
+    """
+    original_subdir = context.subdir
+    if target == original_subdir:
+        pytest.skip("target equals host; extrapolate short-circuits")
+
+    class FailingSolver:
+        def __init__(self, **kwargs):
+            pass
+
+        def solve_final_state(self):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        Environment,
+        "from_history",
+        staticmethod(lambda prefix: [MatchSpec("python=3.13")]),
+    )
+    monkeypatch.setattr(
+        context.plugin_manager,
+        "get_cached_solver_backend",
+        lambda: FailingSolver,
+    )
+
+    env = Environment(
+        prefix="/fake/prefix",
+        platform=original_subdir,
+        config=EnvironmentConfig.from_context(),
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        env.extrapolate(target)
+
+    assert context.subdir == original_subdir
+
+
+_CROSS_PLATFORM_OVERRIDES = {
+    "linux-64": {"CONDA_OVERRIDE_GLIBC": "2.28"},
+    "osx-arm64": {"CONDA_OVERRIDE_OSX": "11.0"},
+    "win-64": {},
+}
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.parametrize("target", list(_CROSS_PLATFORM_OVERRIDES))
+def test_extrapolate_python_pinned(
+    tmp_env: TmpEnvFixture, monkeypatch: pytest.MonkeyPatch, target: str
+):
+    """End-to-end regression test for conda/conda#15919.
+
+    Reproduces the original failure: extrapolating an environment with
+    ``python=3.13`` pinned must produce a solvable package set for the
+    target platform.
+
+    Cross-platform virtual package versions (e.g. ``__glibc``, ``__osx``)
+    cannot be introspected from a foreign host, so ``CONDA_OVERRIDE_*``
+    is the supported way to drive the solve. Without the fix, the solve
+    fails earlier with ``nothing provides __glibc`` because the linux
+    plugin never runs (``context.subdir`` stays on the host platform).
+    """
+    if target == context.subdir:
+        pytest.skip("target equals host; extrapolate short-circuits")
+    for var, value in _CROSS_PLATFORM_OVERRIDES[target].items():
+        monkeypatch.setenv(var, value)
+    with tmp_env("python=3.13") as prefix:
+        env = Environment.from_prefix(prefix, None, context.subdir)
+        extrapolated = env.extrapolate(target)
+        assert extrapolated.platform == target
+        names = {pkg.name for pkg in extrapolated.explicit_packages}
+        assert "python" in names, (
+            f"python missing from extrapolated env for {target}: {names}"
+        )
+
+
 def test_extrapolate(tmp_env: TmpEnvFixture):
     package_name = "zlib"
     package_version = "1.2.12"

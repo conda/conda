@@ -1126,19 +1126,23 @@ class Context(Configuration):
 
     @contextmanager
     def _override(self, key: str, value: Any) -> Iterator[None]:
-        """
-        TODO: This might be broken in some ways. Unsure what happens if the `old`
-        value is a property and gets set to a new value. Or if the new value
-        overrides the validation logic on the underlying ParameterLoader instance.
+        """Temporarily override an attribute on the context.
 
-        Investigate and implement in a safer way.
+        Uses ``__dict__`` directly because ``ParameterLoader`` (and other
+        non-data descriptors used by the context) have no ``__set__``: a
+        plain ``setattr`` would shadow the descriptor permanently in
+        ``__dict__`` and ``reset_context()`` could not restore it.
         """
-        old = getattr(self, key)
-        setattr(self, key, value)
+        sentinel = object()
+        previous = self.__dict__.get(key, sentinel)
+        self.__dict__[key] = value
         try:
             yield
         finally:
-            setattr(self, key, old)
+            if previous is sentinel:
+                self.__dict__.pop(key, None)
+            else:
+                self.__dict__[key] = previous
 
     @memoizedproperty
     def requests_version(self) -> str:
