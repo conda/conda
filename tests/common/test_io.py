@@ -7,6 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
+from unittest.mock import patch
 
 import pytest
 
@@ -15,6 +16,10 @@ from conda.common.io import (
     ThreadLimitedThreadPoolExecutor,
     attach_stderr_handler,
     captured,
+    force_color,
+    no_color,
+    should_use_animations,
+    should_use_color,
 )
 
 
@@ -123,9 +128,103 @@ def test_thread_limited_executor_handles_thread_limit(
             side_effect=[None, None, None, RuntimeError],
         )
 
-    with thread_class() as executor:
-        if should_fail:
-            with pytest.raises(RuntimeError):
+        with thread_class() as executor:
+            if should_fail:
+                with pytest.raises(RuntimeError):
+                    _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
+            else:
                 _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
-        else:
-            _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
+
+
+# ---------------------------------------------------------------------------
+# Output-mode helpers (NO_COLOR, FORCE_COLOR, TERM=dumb)
+# ---------------------------------------------------------------------------
+
+
+class TestNoColor:
+    def test_no_color_when_env_var_set(self, monkeypatch):
+        monkeypatch.setenv("NO_COLOR", "")
+        assert no_color() is True
+
+    def test_no_color_when_env_var_set_with_value(self, monkeypatch):
+        monkeypatch.setenv("NO_COLOR", "1")
+        assert no_color() is True
+
+    def test_no_color_when_term_dumb(self, monkeypatch):
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.setenv("TERM", "dumb")
+        assert no_color() is True
+
+    def test_no_color_false_without_env_vars(self, monkeypatch):
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.delenv("TERM", raising=False)
+        assert no_color() is False
+
+    def test_no_color_false_with_non_dumb_term(self, monkeypatch):
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.setenv("TERM", "xterm-256color")
+        assert no_color() is False
+
+
+class TestForceColor:
+    def test_force_color_when_env_var_set(self, monkeypatch):
+        monkeypatch.setenv("FORCE_COLOR", "1")
+        assert force_color() is True
+
+    def test_force_color_when_env_var_set_empty(self, monkeypatch):
+        monkeypatch.setenv("FORCE_COLOR", "")
+        assert force_color() is True
+
+    def test_force_color_false_without_env_var(self, monkeypatch):
+        monkeypatch.delenv("FORCE_COLOR", raising=False)
+        assert force_color() is False
+
+
+class TestShouldUseColor:
+    def test_no_color_takes_precedence_over_force_color(self, monkeypatch):
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.setenv("FORCE_COLOR", "1")
+        assert should_use_color() is False
+
+    def test_force_color_enables_color_in_non_tty(self, monkeypatch):
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.setenv("FORCE_COLOR", "1")
+        with patch("conda.common.io.is_tty", return_value=False):
+            assert should_use_color() is True
+
+    def test_tty_enables_color(self, monkeypatch):
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.delenv("FORCE_COLOR", raising=False)
+        with patch("conda.common.io.is_tty", return_value=True):
+            assert should_use_color() is True
+
+    def test_non_tty_disables_color(self, monkeypatch):
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.delenv("FORCE_COLOR", raising=False)
+        with patch("conda.common.io.is_tty", return_value=False):
+            assert should_use_color() is False
+
+
+class TestShouldUseAnimations:
+    def test_no_color_disables_animations(self, monkeypatch):
+        monkeypatch.setenv("NO_COLOR", "1")
+        assert should_use_animations() is False
+
+    def test_term_dumb_disables_animations(self, monkeypatch):
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.setenv("TERM", "dumb")
+        assert should_use_animations() is False
+
+    def test_force_color_alone_does_not_enable_animations(self, monkeypatch):
+        """FORCE_COLOR enables colour markup but animations require a real TTY."""
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.delenv("TERM", raising=False)
+        monkeypatch.setenv("FORCE_COLOR", "1")
+        with patch("conda.common.io.is_tty", return_value=False):
+            assert should_use_animations() is False
+
+    def test_tty_enables_animations(self, monkeypatch):
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.delenv("TERM", raising=False)
+        with patch("conda.common.io.is_tty", return_value=True):
+            assert should_use_animations() is True

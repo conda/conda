@@ -19,7 +19,7 @@ from ...base.constants import (
     DEFAULT_CONSOLE_REPORTER_BACKEND,
 )
 from ...base.context import context
-from ...common.io import swallow_broken_pipe
+from ...common.io import should_use_animations, swallow_broken_pipe
 from ...common.path import paths_equal
 from ...core.prefix_data import PrefixData
 from ...exceptions import CondaError
@@ -240,18 +240,27 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         **kwargs,
     ) -> ProgressBarBase:
         """
-        Determines whether to return a TQDMProgressBar or QuietProgressBar
+        Determines whether to return a TQDMProgressBar or QuietProgressBar.
+
+        Animations are suppressed when:
+        * ``context.quiet`` is set,
+        * the output is not a TTY (e.g. piped to a file),
+        * ``NO_COLOR`` is set, or
+        * ``TERM=dumb`` is set.
         """
-        if context.quiet:
+        if context.quiet or not should_use_animations():
             return QuietProgressBar(description, **kwargs)
         else:
             return TQDMProgressBar(description, **kwargs)
 
     def spinner(self, message: str, fail_message: str = "failed\n") -> SpinnerBase:
         """
-        Determines whether to return a Spinner or QuietSpinner
+        Determines whether to return a Spinner or QuietSpinner.
+
+        Animations are suppressed under the same conditions as
+        :meth:`progress_bar`.
         """
-        if context.quiet:
+        if context.quiet or not should_use_animations():
             return QuietSpinner(message, fail_message)
         else:
             return Spinner(message, fail_message)

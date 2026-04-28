@@ -40,6 +40,67 @@ log = getLogger(__name__)
 IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
+def is_tty() -> bool:
+    """Return True if both stdin and stdout are connected to a TTY."""
+    return (
+        hasattr(sys.stdout, "isatty")
+        and sys.stdout.isatty()
+        and hasattr(sys.stdin, "isatty")
+        and sys.stdin.isatty()
+    )
+
+
+def no_color() -> bool:
+    """
+    Return True when color output should be suppressed.
+
+    Respects the ``NO_COLOR`` standard (https://no-color.org/): color is
+    suppressed when the ``NO_COLOR`` environment variable is set to any value,
+    or when ``TERM=dumb``.
+    """
+    return "NO_COLOR" in os.environ or os.environ.get("TERM") == "dumb"
+
+
+def force_color() -> bool:
+    """
+    Return True when color output should be forced even in non-TTY contexts.
+
+    Respects the ``FORCE_COLOR`` environment variable (used by many CI
+    systems and tools such as pytest).
+    """
+    return "FORCE_COLOR" in os.environ
+
+
+def should_use_color() -> bool:
+    """
+    Determine whether ANSI color output should be produced.
+
+    The precedence order (highest to lowest) is:
+
+    1. ``NO_COLOR`` set or ``TERM=dumb`` → no color.
+    2. ``FORCE_COLOR`` set → color even in non-TTY.
+    3. stdout is a TTY → color.
+    4. Otherwise → no color.
+    """
+    if no_color():
+        return False
+    if force_color():
+        return True
+    return is_tty()
+
+
+def should_use_animations() -> bool:
+    """
+    Determine whether animated output (spinners, progress bars) should be shown.
+
+    Animations are suppressed when color is disabled (``NO_COLOR``, ``TERM=dumb``)
+    or when stdout is not a TTY, even if ``FORCE_COLOR`` is set.
+    """
+    if no_color():
+        return False
+    return is_tty()
+
+
 class DeltaSecondsFormatter(Formatter):
     """
     Logging formatter with additional attributes for run time logging.

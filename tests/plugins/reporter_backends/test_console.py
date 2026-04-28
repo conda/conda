@@ -10,16 +10,23 @@ import pytest
 from conda.exceptions import CondaError
 from conda.plugins.reporter_backends.console import (
     ConsoleReporterRenderer,
+    QuietProgressBar,
     QuietSpinner,
     Spinner,
     TQDMProgressBar,
 )
 
 
-def test_console_reporter_renderer():
+def test_console_reporter_renderer(mocker):
     """
     Tests the ``ConsoleReporterRenderer`` class
     """
+    # Pretend we are in a TTY so that progress_bar returns TQDMProgressBar
+    mocker.patch(
+        "conda.plugins.reporter_backends.console.should_use_animations",
+        return_value=True,
+    )
+
     test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
     test_str = "a string value"
     expected_table_str = (
@@ -230,3 +237,76 @@ def test_prompt_error_reading_stdin(mocker):
 
     with pytest.raises(CondaError):
         reporter.prompt()
+
+
+# ---------------------------------------------------------------------------
+# Output-mode behaviour tests
+# ---------------------------------------------------------------------------
+
+
+class TestProgressBarOutputMode:
+    """Verify progress_bar() respects output-mode helpers."""
+
+    def test_quiet_context_returns_quiet_bar(self, mocker):
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.should_use_animations",
+            return_value=True,
+        )
+        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = True
+        renderer = ConsoleReporterRenderer()
+        bar = renderer.progress_bar("test")
+        assert isinstance(bar, QuietProgressBar)
+
+    def test_non_tty_returns_quiet_bar(self, mocker):
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.should_use_animations",
+            return_value=False,
+        )
+        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
+        renderer = ConsoleReporterRenderer()
+        bar = renderer.progress_bar("test")
+        assert isinstance(bar, QuietProgressBar)
+
+    def test_tty_returns_tqdm_bar(self, mocker):
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.should_use_animations",
+            return_value=True,
+        )
+        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
+        renderer = ConsoleReporterRenderer()
+        bar = renderer.progress_bar("test")
+        assert isinstance(bar, TQDMProgressBar)
+
+
+class TestSpinnerOutputMode:
+    """Verify spinner() respects output-mode helpers."""
+
+    def test_quiet_context_returns_quiet_spinner(self, mocker):
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.should_use_animations",
+            return_value=True,
+        )
+        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = True
+        renderer = ConsoleReporterRenderer()
+        spinner = renderer.spinner("test")
+        assert isinstance(spinner, QuietSpinner)
+
+    def test_non_tty_returns_quiet_spinner(self, mocker):
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.should_use_animations",
+            return_value=False,
+        )
+        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
+        renderer = ConsoleReporterRenderer()
+        spinner = renderer.spinner("test")
+        assert isinstance(spinner, QuietSpinner)
+
+    def test_tty_returns_animated_spinner(self, mocker):
+        mocker.patch(
+            "conda.plugins.reporter_backends.console.should_use_animations",
+            return_value=True,
+        )
+        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
+        renderer = ConsoleReporterRenderer()
+        spinner = renderer.spinner("test")
+        assert isinstance(spinner, Spinner)
