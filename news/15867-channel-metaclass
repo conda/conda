@@ -1,0 +1,10 @@
+### Enhancements
+
+* Drop the `ChannelType` metaclass from `conda.models.channel.Channel`. Single-argument
+  `Channel(value)` construction and `MultiChannel` dispatch have moved to `Channel.__new__`,
+  and the per-value cache is now `@functools.cache` on `Channel.from_value`. (#15867)
+
+### Deprecations
+
+* Deprecate `conda.models.channel.ChannelType`. `Channel` is now a regular class;
+  use the builtin `type(Channel)` if you need to inspect the metaclass. (#15867)
