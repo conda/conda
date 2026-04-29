@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 # Copyright (C) 2022 Anaconda, Inc
 # Copyright (C) 2023 conda
 # SPDX-License-Identifier: BSD-3-Clause
@@ -43,7 +45,7 @@ ShardDict = TypedDict(
 )
 
 
-class RepodataInfoDict(TypedDict):  # noqa: F811
+class RepodataInfoDict(TypedDict):
     base_url: str  # where packages are stored
     shards_base_url: str  # where shards are stored
     subdir: str

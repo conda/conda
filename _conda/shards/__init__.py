@@ -5,10 +5,13 @@ from .core import (
     ShardBase,
     ShardLike,
     Shards,
-    batch_retrieve_from_cache,
-    batch_retrieve_from_network,
     fetch_channels,
     fetch_shards_index,
+)
+from .sync import (
+    ShardFetch,
+    batch_retrieve_from_cache,
+    batch_retrieve_from_network,
 )
 
 __all__ = [
@@ -17,6 +20,7 @@ __all__ = [
     "ShardBase",
     "ShardLike",
     "Shards",
+    "ShardFetch",
     "fetch_shards_index",
     "fetch_channels",
     "batch_retrieve_from_cache",

@@ -14,9 +14,7 @@ import hashlib
 import logging
 import tempfile
 import time
-from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
-from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
 import msgpack
@@ -30,6 +28,9 @@ from conda.base.context import context, reset_context
 from conda.models.channel import Channel, all_channel_urls
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Iterator
+    from pathlib import Path
+
     from _conda.shards_typing import ShardDict, ShardsIndexDict
 
 # Test channel names

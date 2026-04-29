@@ -51,7 +51,6 @@ from __future__ import annotations
 
 import logging
 import queue
-import sys
 import threading
 from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -67,17 +66,23 @@ import conda.gateways.repodata
 from _conda.shards.core import (
     ZSTD_MAX_SHARD_SIZE,
     Shards,
-    batch_retrieve_from_cache,
-    batch_retrieve_from_network,
     fetch_channels,
     shard_mentioned_packages,
 )
 from _conda.shards.misc import (
-    _install_shards_cache,
     _shards_connections,
     combine_batches_until_none,
     exception_to_queue,
     filter_redundant_packages,
+)
+from _conda.shards.sync import (
+    Node,
+    NodeId,
+    ShardFetch,
+    batch_retrieve_from_cache,
+    batch_retrieve_from_network,
+    neighbors,
+    outgoing,
 )
 from conda.base.context import context
 
@@ -91,40 +96,17 @@ if TYPE_CHECKING:
     from queue import SimpleQueue as Queue
     from typing import Literal, TypeVar
 
-    from conda_libmamba_solver.shards_cache import ShardCache
-    from conda_libmamba_solver.shards_typing import ShardDict
-
     from conda.models.channel import Channel
 
-    from .shards import ShardBase
+    from .cache import ShardCache
+    from .core import ShardBase
+    from .typing import ShardDict
 
 # Waiting for worker threads to shutdown cleanly, or raise error.
 THREAD_WAIT_TIMEOUT = 5  # seconds
 REACHABLE_PIPELINED_MAX_TIMEOUTS = (
     10  # number of times we can timeout waiting for shards
 )
-
-
-@dataclass(order=True)
-class Node:
-    distance: int = sys.maxsize
-    package: str = ""
-    channel: str = ""
-    visited: bool = False
-    shard_url: str = ""
-
-    def to_id(self) -> NodeId:
-        return NodeId(self.package, self.channel, self.shard_url)
-
-
-@dataclass(order=True, eq=True, frozen=True)
-class NodeId:
-    package: str
-    channel: str
-    shard_url: str = ""
-
-    def __hash__(self):
-        return hash((self.package, self.channel, self.shard_url))
 
 
 def _nodes_from_packages(
@@ -153,6 +135,8 @@ class RepodataSubset:
         self.nodes = {}
         self.shardlikes = list(shardlikes)
         self._use_only_tar_bz2 = context.use_only_tar_bz2
+        # ShardFetch objects, created with cache during traversal
+        self.fetchers: dict[ShardBase, ShardFetch] = {}
 
     @classmethod
     def has_strategy(cls, strategy: str) -> bool:
@@ -160,51 +144,6 @@ class RepodataSubset:
         Return True if this class provides the named shard traversal strategy.
         """
         return hasattr(cls, f"reachable_{strategy}")
-
-    def neighbors(self, node: Node) -> Iterator[Node]:
-        """
-        Retrieve all unvisited neighbors of a node
-
-        Neighbors in the context are dependencies of a package
-        """
-        discovered = set()
-
-        for shardlike in self.shardlikes:
-            if node.package not in shardlike:
-                continue
-
-            # check that we don't fetch the same shard twice...
-            shard = shardlike.fetch_shard(
-                node.package
-            )  # XXX this is the only place that in-memory (repodata.json) shards are found for the first time
-
-            shard = filter_redundant_packages(shard, self._use_only_tar_bz2)
-            shardlike.visit_shard(node.package, shard)
-
-            for package in shard_mentioned_packages(shard):
-                node_id = NodeId(package, shardlike.url)
-
-                if node_id not in self.nodes:
-                    self.nodes[node_id] = Node(
-                        node.distance + 1, package, shardlike.url
-                    )
-                    yield self.nodes[node_id]
-
-                    if package not in discovered:
-                        # now this is per package name, not per (name, channel) tuple
-                        discovered.add(package)
-
-    def outgoing(self, node: Node):
-        """
-        All nodes that can be reached by this node, plus cost.
-        """
-        # If we set a greater cost for sharded repodata than the repodata that
-        # is already in memory and tracked nodes as (channel, package) tuples,
-        # we might be able to find more shards-to-fetch-in-parallel more
-        # quickly. On the other hand our goal is that the big channels will all
-        # be sharded.
-        for n in self.neighbors(node):
-            yield n, 1
 
     def reachable(self, root_packages, *, strategy=DEFAULT_STRATEGY) -> None:
         """
@@ -224,7 +163,15 @@ class RepodataSubset:
         Update associated `self.shardlikes` to contain enough data to build a
         repodata subset.
         """
-        with _install_shards_cache(self.shardlikes):
+        # Create a ShardCache and ShardFetch objects for all shardlikes
+        # ShardFetch owns the cache instance for the entire traversal
+        from .cache import ShardCache
+
+        with ShardCache(Path(conda.gateways.repodata.create_cache_dir())) as cache:
+            # Create a ShardFetch for each shardlike, all sharing the same cache
+            for shardlike in self.shardlikes:
+                self.fetchers[shardlike] = ShardFetch(shardlike, cache=cache)
+
             return self._reachable_bfs(root_packages)
 
     def _reachable_bfs(self, root_packages):
@@ -251,7 +198,7 @@ class RepodataSubset:
                     continue  # we should never add visited nodes to node_queue
                 node.visited = True
 
-                for next_node, _ in self.outgoing(node):
+                for next_node, _ in outgoing(self, node):
                     if not next_node.visited:
                         node_queue.append(next_node)
 
@@ -667,3 +614,9 @@ def offline_nofetch_thread(
 
 
 # endregion
+
+# Bind neighbors and outgoing as methods on RepodataSubset
+# These are defined in sync.py as standalone functions with self as first parameter
+# to avoid circular imports at module level
+RepodataSubset.neighbors = neighbors
+RepodataSubset.outgoing = outgoing
