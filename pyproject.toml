@@ -92,7 +92,7 @@ sort = "Miss"
 relative_files = true
 
 [tool.hatch.build]
-include = ["conda"]
+include = ["conda", "_conda"]
 
 [tool.hatch.build.hooks.vcs]
 version-file = "conda/_version.py"
