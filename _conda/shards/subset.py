@@ -66,7 +66,7 @@ import msgpack
 import zstandard
 
 import conda.gateways.repodata
-from _conda.shards import (
+from _conda.shards.core import (
     ZSTD_MAX_SHARD_SIZE,
     Shards,
     _shards_connections,
