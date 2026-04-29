@@ -16,4 +16,4 @@
 
 ### Other
 
-* Add `conda-pypi >=0.8.0` as a dependency. (#15987)
+* Require `conda-pypi >=0.8.0` in the conda recipe. (#15987)
