@@ -20,6 +20,8 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
+from conda.plugins import hookimpl
+from conda.plugins.types import CondaEnvironmentExporter, EnvironmentFormat
 
 from .. import PYTHON_SPEC
 
@@ -998,8 +1000,6 @@ def test_export_invalid_platform_from_condarc_fails_fast(
         "Export an environment spec:",
         "conda export --from-history",
         "Export a lockfile for the same platform:",
-        "Export a lockfile for multiple platforms:",
-        "--platform linux-64 --platform osx-arm64",
         "Available formats:",
         "Environment specs:",
     ],
@@ -1011,3 +1011,49 @@ def test_export_help_shows_examples_and_available_formats(
     dynamic listing of available formats grouped by category."""
     stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
     assert line in stdout
+
+
+def test_export_help_uses_environment_yml_for_spec_example(
+    conda_cli: CondaCLIFixture,
+) -> None:
+    """The spec example filename is pinned to ``environment.yml`` regardless
+    of plugin sort order (see ``example_filename_for(prefer_filenames=...)``)."""
+    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
+    assert "conda export --from-history > environment.yml" in stdout
+    assert "conda export --from-history > environment.json" not in stdout
+
+
+def test_export_help_omits_multiplatform_example_without_capable_plugin(
+    conda_cli: CondaCLIFixture,
+) -> None:
+    """Without a multi-platform-capable lockfile plugin (built-in ``explicit``
+    is single-platform only), the multi-platform example block is suppressed."""
+    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
+    assert "Export a lockfile for multiple platforms:" not in stdout
+    assert "--platform linux-64 --platform osx-arm64" not in stdout
+
+
+class MultiPlatformLockfilePlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="test-multi-lock",
+            aliases=(),
+            default_filenames=("test-multi.lock",),
+            multiplatform_export=lambda envs: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+def test_export_help_renders_multiplatform_example_with_capable_plugin(
+    conda_cli: CondaCLIFixture,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Multi-platform example renders with a multi-platform-capable lockfile plugin."""
+    plugin = MultiPlatformLockfilePlugin()
+    context.plugin_manager.register(plugin)
+    request.addfinalizer(lambda: context.plugin_manager.unregister(plugin))
+
+    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
+    assert "Export a lockfile for multiple platforms:" in stdout
+    assert "test-multi.lock --platform linux-64 --platform osx-arm64" in stdout

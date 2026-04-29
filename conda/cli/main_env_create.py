@@ -35,10 +35,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     plugin_manager = context.plugin_manager
     specifiers = list(plugin_manager.get_hook_results("environment_specifiers"))
     spec_example = plugin_manager.example_filename_for(
-        EnvironmentFormat.environment, specifiers
+        EnvironmentFormat.environment,
+        specifiers,
+        prefer_filenames=("environment.yml", "environment.yaml"),
     )
     lock_example = plugin_manager.example_filename_for(
-        EnvironmentFormat.lockfile, specifiers
+        EnvironmentFormat.lockfile,
+        specifiers,
+        prefer_filenames=("conda-lock.yml", "pixi.lock"),
     )
 
     summary = "Create an environment based on an environment definition file."

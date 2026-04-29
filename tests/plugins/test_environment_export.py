@@ -443,6 +443,109 @@ def test_example_filename_none_when_empty(plugin_manager):
     assert plugin_manager.example_filename([]) is None
 
 
+def test_example_filename_for_prefer_filenames_hits(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """``prefer_filenames`` pins the rendered example regardless of plugin order."""
+    exporters = list(plugin_manager_with_exporters.get_environment_exporters())
+    assert (
+        plugin_manager_with_exporters.example_filename_for(
+            EnvironmentFormat.environment,
+            exporters,
+            prefer_filenames=("environment.yml", "environment.yaml"),
+        )
+        == "environment.yml"
+    )
+
+
+def test_example_filename_for_prefer_filenames_falls_back(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """``prefer_filenames`` falls back to the first ``default_filenames`` entry on miss."""
+    exporters = list(plugin_manager_with_exporters.get_environment_exporters())
+    fallback = plugin_manager_with_exporters.example_filename_for(
+        EnvironmentFormat.environment,
+        exporters,
+        prefer_filenames=("does-not-exist.txt",),
+    )
+    # Falls back to whatever ``example_filename`` would return for the same
+    # category, i.e. the first default_filenames entry across candidates.
+    assert fallback in {"environment.yaml", "environment.yml", "environment.json"}
+
+
+def test_example_filename_for_require_multiplatform_filters(
+    plugin_manager_with_exporters: CondaPluginManager,
+    request: pytest.FixtureRequest,
+):
+    """``require_multiplatform=True`` skips exporters without ``multiplatform_export``."""
+
+    class SinglePlatformLockfilePlugin:
+        @hookimpl
+        def conda_environment_exporters(self):
+            yield CondaEnvironmentExporter(
+                name="single-platform-lock",
+                aliases=(),
+                default_filenames=("single.lock",),
+                export=lambda env: "",
+                environment_format=EnvironmentFormat.lockfile,
+            )
+
+    class MultiPlatformLockfilePlugin:
+        @hookimpl
+        def conda_environment_exporters(self):
+            yield CondaEnvironmentExporter(
+                name="multi-platform-lock",
+                aliases=(),
+                default_filenames=("multi.lock",),
+                multiplatform_export=lambda envs: "",
+                environment_format=EnvironmentFormat.lockfile,
+            )
+
+    single_plugin = SinglePlatformLockfilePlugin()
+    multi_plugin = MultiPlatformLockfilePlugin()
+    plugin_manager_with_exporters.register(single_plugin)
+    plugin_manager_with_exporters.register(multi_plugin)
+    request.addfinalizer(
+        lambda: plugin_manager_with_exporters.unregister(single_plugin)
+    )
+    request.addfinalizer(
+        lambda: plugin_manager_with_exporters.unregister(multi_plugin)
+    )
+
+    exporters = list(plugin_manager_with_exporters.get_environment_exporters())
+
+    # Without the filter, any lockfile filename is fair game.
+    any_lock = plugin_manager_with_exporters.example_filename_for(
+        EnvironmentFormat.lockfile, exporters
+    )
+    assert any_lock in {"explicit.txt", "single.lock", "multi.lock"}
+
+    # With the filter, only the multi-platform plugin's filename can win.
+    multiplatform_lock = plugin_manager_with_exporters.example_filename_for(
+        EnvironmentFormat.lockfile,
+        exporters,
+        require_multiplatform=True,
+    )
+    assert multiplatform_lock == "multi.lock"
+
+
+def test_example_filename_for_require_multiplatform_returns_none(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    """When no candidate supports multi-platform output the helper returns ``None``."""
+    exporters = list(plugin_manager_with_exporters.get_environment_exporters())
+    # Only ``explicit`` is registered as a lockfile by default and it's
+    # single-platform, so requiring multi-platform support yields nothing.
+    assert (
+        plugin_manager_with_exporters.example_filename_for(
+            EnvironmentFormat.lockfile,
+            exporters,
+            require_multiplatform=True,
+        )
+        is None
+    )
+
+
 @pytest.mark.parametrize(
     "filename,expected_format",
     [

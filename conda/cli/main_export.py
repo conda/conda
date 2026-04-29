@@ -39,10 +39,20 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     plugin_manager = context.plugin_manager
     exporters = list(plugin_manager.get_environment_exporters())
     spec_example = plugin_manager.example_filename_for(
-        EnvironmentFormat.environment, exporters
+        EnvironmentFormat.environment,
+        exporters,
+        prefer_filenames=("environment.yml", "environment.yaml"),
     )
     lock_example = plugin_manager.example_filename_for(
-        EnvironmentFormat.lockfile, exporters
+        EnvironmentFormat.lockfile,
+        exporters,
+        prefer_filenames=("conda-lock.yml", "pixi.lock"),
+    )
+    multiplatform_lock_example = plugin_manager.example_filename_for(
+        EnvironmentFormat.lockfile,
+        exporters,
+        prefer_filenames=("conda-lock.yml", "pixi.lock"),
+        require_multiplatform=True,
     )
 
     summary = "Export a conda environment to a file."
@@ -68,9 +78,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
             "  Export a lockfile for the same platform:\n"
             f"    conda export --file {lock_example}"
         )
+    if multiplatform_lock_example:
         example_blocks.append(
             "  Export a lockfile for multiple platforms:\n"
-            f"    conda export --file {lock_example} "
+            f"    conda export --file {multiplatform_lock_example} "
             "--platform linux-64 --platform osx-arm64"
         )
     epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(

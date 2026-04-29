@@ -937,16 +937,43 @@ class CondaPluginManager(pluggy.PluginManager):
         self,
         environment_format: EnvironmentFormat,
         plugins: Iterable[CondaEnvironmentExporter | CondaEnvironmentSpecifier],
+        *,
+        prefer_filenames: tuple[str, ...] = (),
+        require_multiplatform: bool = False,
     ) -> str | None:
         """
-        Return the first ``default_filenames`` entry among ``plugins`` whose
+        Return an example ``default_filenames`` entry among ``plugins`` whose
         ``environment_format`` matches the given category.
 
         Convenience wrapper used by CLI parsers to pick example filenames
         per :class:`EnvironmentFormat` category when rendering help epilogs.
+
+        :param prefer_filenames: Optional ordered tuple of filenames to prefer
+            when present in any candidate plugin's ``default_filenames``.
+            Lets callers pin a deterministic display name (e.g.
+            ``("environment.yml", "environment.yaml")``) regardless of the
+            order :meth:`get_hook_results` returns plugins in. Falls back to
+            the first non-empty ``default_filenames`` entry if none of the
+            preferred names match.
+        :param require_multiplatform: When ``True``, only consider exporter
+            plugins that have a ``multiplatform_export`` callable set.
+            Useful for rendering examples that require multi-platform
+            output support.
         """
-        groups = self.group_formats_by_category(plugins)
-        return self.example_filename(groups.get(environment_format, ()))
+        candidates = list(
+            self.group_formats_by_category(plugins).get(environment_format, ())
+        )
+        if require_multiplatform:
+            candidates = [
+                plugin
+                for plugin in candidates
+                if getattr(plugin, "multiplatform_export", None)
+            ]
+        for preferred in prefer_filenames:
+            for plugin in candidates:
+                if preferred in plugin.default_filenames:
+                    return preferred
+        return self.example_filename(candidates)
 
     def detect_environment_exporter(self, filename: str) -> CondaEnvironmentExporter:
         """
