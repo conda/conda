@@ -41,9 +41,19 @@ Common uses: **`deprecated(...)`** (functions, methods, classes), **`.argument`*
 - Prefer **clear names** and **small, focused** tests; the body should read as the spec.
 - Keep **docstrings short**; long prose drifts from the code.
 - Avoid **`assert expr, "message"`** — use a **`#` comment** above the line if needed.
-- Prefer using **native and installed pytest fixtures**, e.g. **`monkeypatch`**.
-- Prefer to **reuse tests wide fixtures**, and implement local fixtures if useful.
-- Use **`pytest-mock`**’s **`mocker`** fixture instead of **`unittest.mock`**, if needed.
+- Prefer **native and installed pytest fixtures** (e.g. **`monkeypatch`** for **`setenv`**, **`chdir`**, etc.). **Reuse shared conda fixtures** before adding bespoke setup—see **Finding fixtures** below.
+- Use **`pytest-mock`**’s **`mocker`** instead of **`unittest.mock`** when you need mocks or patches (automatic teardown and idiomatic pytest usage).
+- **`mocker.spy`** is worth knowing for **call observation** or when swapping behavior is unnecessary—it often fits before **`mocker.patch`** or **`monkeypatch.setattr`**. **`monkeypatch`** is still the right tool for **`setenv`**, **`chdir`**, and similar—not attribute mocks.
 - Parameterize tests to reduce repetition.
 - Don't use section comments or other dividers to group code.
 - Don't use test classes to group tests; single functions are preferred.
+
+### Finding fixtures
+
+Do **not** maintain a name-by-name table here (it goes stale). Discover fixtures from code:
+
+- **`tests/conftest.py`** — registers **`pytest_plugins`** (e.g. **`conda.testing.fixtures`**, **`conda.testing.gateways.fixtures`**, **`conda.testing.notices.fixtures`**, **`tests.fixtures_package_server`**) and defines more fixtures in this file.
+- **`conda/testing/fixtures.py`**, **`conda/testing/gateways/fixtures.py`**, **`conda/testing/notices/fixtures.py`** — main shared implementations; search for **`@pytest.fixture`** to list names and behavior.
+- **Elsewhere** — additional fixtures may live in **subtree `conftest.py` files** or test modules; prefer reusing a shared fixture from **`conda.testing.*`** or **`tests/conftest.py`** when one fits.
+
+The **Writing tests** chapter under **`docs/source/dev-guide/writing-tests/`** has more context (e.g. **`pytest_plugins`** and the HTTP test server).
