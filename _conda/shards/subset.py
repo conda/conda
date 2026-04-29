@@ -1,5 +1,4 @@
-# Copyright (C) 2022 Anaconda, Inc
-# Copyright (C) 2023 conda
+# Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
 Sharded repodata subsets.
@@ -63,15 +62,11 @@ from pathlib import Path
 from queue import SimpleQueue
 from typing import TYPE_CHECKING
 
-import conda.gateways.repodata
 import msgpack
 import zstandard
-from conda.base.context import context
 
-from conda_libmamba_solver import shards_cache
-from conda_libmamba_solver.shards_cache import AnnotatedRawShard
-
-from .shards import (
+import conda.gateways.repodata
+from _conda.shards import (
     ZSTD_MAX_SHARD_SIZE,
     Shards,
     _shards_connections,
@@ -80,6 +75,10 @@ from .shards import (
     fetch_channels,
     shard_mentioned_packages,
 )
+from conda.base.context import context
+
+from . import cache as shards_cache
+from .cache import AnnotatedRawShard
 
 log = logging.getLogger(__name__)
 
@@ -88,16 +87,18 @@ if TYPE_CHECKING:
     from queue import SimpleQueue as Queue
     from typing import Literal, TypeVar
 
-    from conda.models.channel import Channel
-
     from conda_libmamba_solver.shards_cache import ShardCache
     from conda_libmamba_solver.shards_typing import ShardDict
+
+    from conda.models.channel import Channel
 
     from .shards import ShardBase
 
 # Waiting for worker threads to shutdown cleanly, or raise error.
 THREAD_WAIT_TIMEOUT = 5  # seconds
-REACHABLE_PIPELINED_MAX_TIMEOUTS = 10  # number of times we can timeout waiting for shards
+REACHABLE_PIPELINED_MAX_TIMEOUTS = (
+    10  # number of times we can timeout waiting for shards
+)
 
 
 @dataclass(order=True)
@@ -131,7 +132,9 @@ def _nodes_from_packages(
     for package in root_packages:
         for shardlike in shardlikes:
             if package in shardlike:
-                node = Node(0, package, shardlike.url, shard_url=shardlike.shard_url(package))
+                node = Node(
+                    0, package, shardlike.url, shard_url=shardlike.shard_url(package)
+                )
                 node_id = node.to_id()
                 yield node_id, node
 
@@ -169,7 +172,9 @@ def _install_shards_cache(shardlikes):
     Add shards_cache to shardlikes for duration of traversal, then remove and
     close.
     """
-    with shards_cache.ShardCache(Path(conda.gateways.repodata.create_cache_dir())) as cache:
+    with shards_cache.ShardCache(
+        Path(conda.gateways.repodata.create_cache_dir())
+    ) as cache:
         for shardlike in shardlikes:
             if isinstance(shardlike, Shards):
                 shardlike.shards_cache = cache
@@ -221,7 +226,9 @@ class RepodataSubset:
                 node_id = NodeId(package, shardlike.url)
 
                 if node_id not in self.nodes:
-                    self.nodes[node_id] = Node(node.distance + 1, package, shardlike.url)
+                    self.nodes[node_id] = Node(
+                        node.distance + 1, package, shardlike.url
+                    )
                     yield self.nodes[node_id]
 
                     if package not in discovered:
@@ -308,7 +315,9 @@ class RepodataSubset:
 
         # Ignore cache on shards object, use our own. Necessary if there are no
         # sharded channels.
-        with shards_cache.ShardCache(Path(conda.gateways.repodata.create_cache_dir())) as cache:
+        with shards_cache.ShardCache(
+            Path(conda.gateways.repodata.create_cache_dir())
+        ) as cache:
             return self._reachable_pipelined(
                 root_packages, network_worker=network_worker, cache=cache
             )
@@ -333,7 +342,9 @@ class RepodataSubset:
         """
 
         cache_in_queue: SimpleQueue[list[NodeId] | None] = SimpleQueue()
-        shard_out_queue: SimpleQueue[list[tuple[NodeId, ShardDict]] | Exception] = SimpleQueue()
+        shard_out_queue: SimpleQueue[list[tuple[NodeId, ShardDict]] | Exception] = (
+            SimpleQueue()
+        )
         cache_miss_queue: SimpleQueue[list[NodeId] | None] = SimpleQueue()
 
         cache_thread = threading.Thread(
@@ -352,7 +363,11 @@ class RepodataSubset:
             cache_thread.start()
             network_thread.start()
             self._pipelined_traversal(
-                root_packages, cache_in_queue, shard_out_queue, cache_thread, network_thread
+                root_packages,
+                cache_in_queue,
+                shard_out_queue,
+                cache_thread,
+                network_thread,
             )
         finally:
             cache_in_queue.put(None)
@@ -407,7 +422,9 @@ class RepodataSubset:
             nonlocal timeouts
             timeouts += 1
             log.debug("Shard timeout %s", timeouts)
-            log.debug("in_flight: %s...", sorted(str(node_id) for node_id in in_flight)[:10])
+            log.debug(
+                "in_flight: %s...", sorted(str(node_id) for node_id in in_flight)[:10]
+            )
             log.debug("nodes: %d", len(self.nodes))
             log.debug("cache_thread.is_alive(): %s", cache_thread.is_alive())
             log.debug("network_thread.is_alive(): %s", network_thread.is_alive())
@@ -429,7 +446,9 @@ class RepodataSubset:
 
             try:
                 new_shards = shard_out_queue.get(timeout=1)
-                if isinstance(new_shards, BaseException):  # error propagated from worker thread
+                if isinstance(
+                    new_shards, BaseException
+                ):  # error propagated from worker thread
                     raise new_shards
 
             except queue.Empty:
@@ -449,9 +468,13 @@ class RepodataSubset:
                 shardlike = shardlikes_by_url[node_id.channel]
                 shardlike.visit_shard(node_id.package, shard)
 
-                pending.update(self.visit_node(parent_node, shard_mentioned_packages(shard)))
+                pending.update(
+                    self.visit_node(parent_node, shard_mentioned_packages(shard))
+                )
 
-    def visit_node(self, parent_node: Node, mentioned_packages: Iterable[str]) -> Iterable[NodeId]:
+    def visit_node(
+        self, parent_node: Node, mentioned_packages: Iterable[str]
+    ) -> Iterable[NodeId]:
         """Broadcast mentioned packages across channels. yield pending NodeId's."""
         # NOTE we have visit for Nodes which is used in the graph traversal
         # algorithm, and a separate visit for ShardBase which means "include
@@ -459,7 +482,9 @@ class RepodataSubset:
         for package in mentioned_packages:
             for shardlike in self.shardlikes:
                 if package in shardlike:
-                    new_node_id = NodeId(package, shardlike.url, shardlike.shard_url(package))
+                    new_node_id = NodeId(
+                        package, shardlike.url, shardlike.shard_url(package)
+                    )
                     if new_node_id not in self.nodes:
                         new_node = Node(
                             distance=parent_node.distance + 1,
@@ -597,7 +622,9 @@ def cache_fetch_thread(
     """
     with cache.copy() as cache:
         for node_ids in combine_batches_until_none(in_queue):
-            cached = cache.retrieve_multiple([node_id.shard_url for node_id in node_ids])
+            cached = cache.retrieve_multiple(
+                [node_id.shard_url for node_id in node_ids]
+            )
 
             # should we add this into retrieve_multiple?
             found: list[tuple[NodeId, ShardDict]] = []
@@ -682,7 +709,10 @@ def network_fetch_thread(
         # Future in here as well.
         in_queue.put([future])  # type: ignore
 
-    with ThreadPoolExecutor(max_workers=_shards_connections()) as executor, cache.copy() as cache:
+    with (
+        ThreadPoolExecutor(max_workers=_shards_connections()) as executor,
+        cache.copy() as cache,
+    ):
         for node_ids_and_results in combine_batches_until_none(in_queue):
             for node_id_or_result in node_ids_and_results:
                 if isinstance(node_id_or_result, Future):

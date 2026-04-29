@@ -1,5 +1,4 @@
-# Copyright (C) 2022 Anaconda, Inc
-# Copyright (C) 2023 conda
+# Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
 Cache suitable for shards, not allowed to change because they are named
@@ -19,12 +18,14 @@ import zstandard
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from .shards_typing import ShardDict
+    from .typing import ShardDict
 
 log = logging.getLogger(__name__)
 
 SHARD_CACHE_NAME = "repodata_shards.db"
-ZSTD_MAX_SHARD_SIZE = 2**20 * 16  # maximum size necessary when compresed data has no size header
+ZSTD_MAX_SHARD_SIZE = (
+    2**20 * 16
+)  # maximum size necessary when compresed data has no size header
 
 
 @dataclass
@@ -115,7 +116,9 @@ class ShardCache:
             # only retry on SQLITE_NOTADB. Other errors e.g. busy, locked, would
             # propagate.
             has_errorcode = hasattr(e, "sqlite_errorcode")
-            if retry and ((not has_errorcode) or (e.sqlite_errorcode == sqlite3.SQLITE_NOTADB)):
+            if retry and (
+                (not has_errorcode) or (e.sqlite_errorcode == sqlite3.SQLITE_NOTADB)
+            ):
                 log.warning("%s '%s'; remove and retry.", dburi, e)
                 try:
                     self.remove_cache()
@@ -147,7 +150,9 @@ class ShardCache:
             row = c.execute("SELECT shard FROM shards WHERE url = ?", (url,)).fetchone()
             return (
                 msgpack.loads(
-                    zstandard.decompress(row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE)
+                    zstandard.decompress(
+                        row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE
+                    )
                 )
                 if row
                 else None
@@ -194,4 +199,6 @@ class ShardCache:
             (self.base / SHARD_CACHE_NAME).unlink()
         except OSError:
             # possibly workable on Windows
-            (self.base / SHARD_CACHE_NAME).rename(self.base / f"{SHARD_CACHE_NAME}.conda_trash")
+            (self.base / SHARD_CACHE_NAME).rename(
+                self.base / f"{SHARD_CACHE_NAME}.conda_trash"
+            )
