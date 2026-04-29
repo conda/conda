@@ -16,11 +16,11 @@ Bootstrap and set up an environment for **development and testing** from the rep
 
 ## Changelog (`news/`)
 
-- Add **one file per change** under **`news/`** at the repo root. Use **`news/TEMPLATE`**. Do **not** edit **`CHANGELOG.md`** directly; releases fold in `news/` fragments.
+- Add **one file per significant change** under **`news/`** at the repo root. Use a copy of **`news/TEMPLATE`** as the template. Do **not** edit **`CHANGELOG.md`** directly; releases fold in `news/` fragments.
 - **Filenames:** Prefer the **issue** number (not the PR number), plus a short slug, e.g. `14157-remove-conda-utils-unix-path-to-win`.
 - **Tone:** Read **`CHANGELOG.md`** for section headings, bullet style, and deprecation/removal wording.
 - **Sections:** Enhancements, Bug fixes, Deprecations, Docs, Other. Put **removals with Deprecations**, not under Other. One snippet may span multiple sections when one PR covers several kinds of changes.
-- **Bullets:** End each bullet with a GitHub reference in parentheses. Prefer an issue when there is one, e.g. `(#12345)`, `(#12345 via #12346)`. Use **imperative mood** (Add, Fix, Mark, Remove), matching recent entries.
+- **Bullets:** End each bullet with a GitHub reference in parentheses. Prefer an issue when there is one, e.g. `(#12345)`, `(#12345 via #12346)`. When "via" is used, the syntax is `#issue-number via #pr-number`. Several issues/PRs can be mentioned in the same parentheses; use commas to separate them. Use **imperative mood** (Add, Fix, Mark, Remove), matching recent entries.
 - **Deprecations / removals:** Follow existing Deprecations bullets in **`CHANGELOG.md`** (symbol paths, “pending deprecation”, target removal version, replacement when applicable).
 
 ## Deprecation policy
@@ -45,3 +45,4 @@ Common uses: **`deprecated(...)`** (functions, methods, classes), **`.argument`*
 - Use **`pytest-mock`**’s **`mocker`** fixture instead of **`unittest.mock`**, if needed.
 - Parameterize tests to reduce repetition.
 - Don't use section comments or other dividers to group code.
+- Don't use test classes to group tests; single functions are preferred.
