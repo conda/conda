@@ -49,14 +49,12 @@ for url in channel_data:
 
 from __future__ import annotations
 
-import functools
 import logging
 import queue
 import sys
 import threading
 from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor
-from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from pathlib import Path
 from queue import SimpleQueue
@@ -69,11 +67,17 @@ import conda.gateways.repodata
 from _conda.shards.core import (
     ZSTD_MAX_SHARD_SIZE,
     Shards,
-    _shards_connections,
     batch_retrieve_from_cache,
     batch_retrieve_from_network,
     fetch_channels,
     shard_mentioned_packages,
+)
+from _conda.shards.misc import (
+    _install_shards_cache,
+    _shards_connections,
+    combine_batches_until_none,
+    exception_to_queue,
+    filter_redundant_packages,
 )
 from conda.base.context import context
 
@@ -137,51 +141,6 @@ def _nodes_from_packages(
                 )
                 node_id = node.to_id()
                 yield node_id, node
-
-
-def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> ShardDict:
-    """
-    Given repodata or a single shard, remove any .tar.bz2 packages that have a
-    .conda counterpart.
-
-    Return a shallow copy if use_only_tar_bz2==False, else unmodified input.
-    """
-    if use_only_tar_bz2:
-        return repodata
-
-    _tar_bz2 = ".tar.bz2"
-    _conda = ".conda"
-    _len_tar_bz2 = len(_tar_bz2)
-
-    legacy_packages = repodata.get("packages", {})
-    conda_packages = repodata.get("packages.conda", {})
-
-    return {
-        **repodata,
-        "packages": {
-            k: v
-            for k, v in legacy_packages.items()
-            if f"{k[:-_len_tar_bz2]}{_conda}" not in conda_packages
-        },
-    }
-
-
-@contextmanager
-def _install_shards_cache(shardlikes):
-    """
-    Add shards_cache to shardlikes for duration of traversal, then remove and
-    close.
-    """
-    with shards_cache.ShardCache(
-        Path(conda.gateways.repodata.create_cache_dir())
-    ) as cache:
-        for shardlike in shardlikes:
-            if isinstance(shardlike, Shards):
-                shardlike.shards_cache = cache
-        yield cache
-        for shardlike in shardlikes:
-            if isinstance(shardlike, Shards):
-                shardlike.shards_cache = None
 
 
 @dataclass
@@ -552,52 +511,6 @@ def build_repodata_subset(
 
 if TYPE_CHECKING:
     _T = TypeVar("_T")
-
-
-def combine_batches_until_none(
-    in_queue: Queue[Sequence[_T] | None],
-) -> Iterator[Sequence[_T]]:
-    """
-    Combine lists from in_queue until we see None. Yield combined lists.
-    """
-    running = True
-    while running:
-        try:
-            # Add timeout to prevent indefinite blocking if producer thread fails
-            batch = in_queue.get(timeout=5)
-            if batch is None:
-                break
-        except queue.Empty:
-            # If we timeout, continue waiting - producer might still send data
-            continue
-
-        node_ids = list(batch)
-        with suppress(queue.Empty):
-            while True:  # loop exits with break or queue.Empty exception
-                batch = in_queue.get_nowait()
-                if batch is None:
-                    # do the work but then quit
-                    running = False
-                    break
-                else:
-                    node_ids.extend(batch)
-        yield node_ids
-
-
-def exception_to_queue(func):
-    """
-    Decorator to send unhandled exceptions to the second argument out_queue.
-    """
-
-    @functools.wraps(func)
-    def wrapper(in_queue, out_queue, *args, **kwargs):
-        try:
-            return func(in_queue, out_queue, *args, **kwargs)
-        except BaseException as e:  # includes KeyboardInterrupt
-            in_queue.put(None)  # tell worker that we're done
-            out_queue.put(e)  # tell caller that we received an exception
-
-    return wrapper
 
 
 @exception_to_queue

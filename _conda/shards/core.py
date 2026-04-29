@@ -9,16 +9,13 @@ from __future__ import annotations
 
 import abc
 import concurrent.futures
-import functools
 import json  # noqa
 import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING
-from urllib.parse import urljoin, urlparse, urlunparse, uses_relative
 
 import msgpack
 import zstandard
-from libmambapy.bindings import specs
 
 import conda.exceptions
 import conda.gateways.repodata
@@ -32,6 +29,13 @@ from conda.gateways.repodata import (
 from conda.models.channel import Channel
 
 from . import cache as shards_cache
+from .misc import (
+    _is_http_error_most_400_codes,
+    _safe_urljoin_with_slash,
+    _shards_connections,
+    ensure_hex_hash,
+    spec_to_package_name,
+)
 
 log = logging.getLogger(__name__)
 
@@ -44,100 +48,12 @@ if TYPE_CHECKING:
 
     from conda.gateways.repodata import RepodataCache
 
-    from .shards_typing import PackageRecordDict, ShardDict
+    from .shards_typing import ShardDict
 
 SHARDS_CONNECTIONS_DEFAULT = 10
 ZSTD_MAX_SHARD_SIZE = (
     2**20 * 16
 )  # maximum size necessary when compressed data has no size header
-
-# Schemes that urljoin handles correctly (registered in urllib.parse.uses_relative)
-_URLJOIN_SAFE_SCHEMES = frozenset(uses_relative)
-
-
-def _safe_urljoin_with_slash(base_url: str, relative_url: str = "") -> str:
-    """
-    Join base_url with relative_url, ensuring proper handling of all URL schemes.
-
-    Python's urllib.parse.urljoin only handles schemes registered in
-    ``urllib.parse.uses_relative``. For unregistered schemes like ``s3://``,
-    it returns just ``"."`` instead of the resolved URL. This function falls
-    back to a scheme-swap workaround for those cases.
-
-    The result always ends with "/" to enable proper string concatenation with filenames.
-
-    See: https://github.com/conda/conda-libmamba-solver/issues/866
-    """
-    parsed = urlparse(base_url)
-
-    # For schemes that urljoin handles correctly, use the standard behavior
-    if parsed.scheme in _URLJOIN_SAFE_SCHEMES:
-        # Standard urljoin behavior: join with relative_url, then "." for trailing slash
-        result = urljoin(urljoin(base_url, relative_url), ".")
-        return result
-
-    # For unregistered schemes (e.g. s3://), urljoin drops the host.
-    # Work around that by temporarily swapping in https://, then restoring
-    # the original scheme on the result.
-    relative_parsed = urlparse(relative_url)
-    if not relative_parsed.scheme and parsed.scheme:
-        https_base_url = urlunparse(parsed._replace(scheme="https"))
-        joined_https = urljoin(urljoin(https_base_url, relative_url), ".")
-        result = urlunparse(urlparse(joined_https)._replace(scheme=parsed.scheme))
-    else:
-        result = urljoin(urljoin(base_url, relative_url), ".")
-
-    # Ensure trailing slash for proper concatenation
-    if not result.endswith("/"):
-        result += "/"
-
-    return result
-
-
-# For reference, the largest shard "conda-forge/linux-64/vim" is 2608283 bytes
-# or < 2**19*5 decompressed (486155 bytes compressed); the index is 575219 bytes
-# decompressed (514039 bytes compressed) and is mostly uncompressible hash data.
-
-
-def _shards_connections() -> int:
-    """
-    If context.repodata_threads is not set, find the size of the connection pool
-    in a typical https:// session. This should significantly reduce dropped
-    connections. We match requests' default 10.
-
-    Is this shared between all sessions? Or do we get a different pool for a
-    different get_session(url)?
-
-    Other adapters (file://, s3://) used in conda would have different
-    concurrency behavior;  we are not prepared to have separate threadpools per
-    connection type.
-    """
-    if context.repodata_threads is not None:
-        return context.repodata_threads
-    return SHARDS_CONNECTIONS_DEFAULT
-
-
-def ensure_hex_hash(record: PackageRecordDict):
-    """
-    Convert bytes checksums to hex; leave unchanged if already str.
-    """
-    for hash_type in "sha256", "md5":
-        if hash_value := record.get(hash_type):
-            if not isinstance(hash_value, str):
-                record[hash_type] = bytes(hash_value).hex()
-    return record
-
-
-@functools.cache
-def spec_to_package_name(spec: str) -> str:
-    """
-    Given a dependency spec, return the package name.
-    """
-    # Note: hope for no MatchSpec-without-name in repodata, although it is
-    # possible in the MatchSpec grammar.
-    parsed_spec = specs.MatchSpec.parse(spec)
-    name = str(parsed_spec.name)
-    return name
 
 
 def shard_mentioned_packages(shard: ShardDict) -> Iterable[str]:
@@ -602,15 +518,6 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 
 # Like conda.gateways.repodata.jlap.fetch. If this returns True, then we mark
 # shards as not supported; otherwise, we will check again next time.
-def _is_http_error_most_400_codes(status_code: str | int) -> bool:
-    """
-    Determine whether the `HTTPError` is an HTTP 400 error code (except for 416).
-    """
-    return (
-        isinstance(status_code, int) and 400 <= status_code < 500 and status_code != 416
-    )
-
-
 def fetch_shards_index(
     sd: SubdirData, cache: shards_cache.ShardCache | None
 ) -> Shards | None:
