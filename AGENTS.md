@@ -8,6 +8,7 @@ Bootstrap and set up an environment for **development and testing** from the rep
 
 - **Unix / macOS:** `. ./dev/start`
 - **Windows:** `.\dev\start.bat`
+- **Dev Container:** Open the repo with **[Dev Containers](https://containers.dev/)** using **`.devcontainer/`** (e.g. VS Code). That gives a reproducible setup and avoids host **conda** / user configuration skewing tests (channel priority, etc.).
 
 ## Code style
 
