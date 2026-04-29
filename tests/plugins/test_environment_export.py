@@ -508,9 +508,7 @@ def test_example_filename_for_require_multiplatform_filters(
     request.addfinalizer(
         lambda: plugin_manager_with_exporters.unregister(single_plugin)
     )
-    request.addfinalizer(
-        lambda: plugin_manager_with_exporters.unregister(multi_plugin)
-    )
+    request.addfinalizer(lambda: plugin_manager_with_exporters.unregister(multi_plugin))
 
     exporters = list(plugin_manager_with_exporters.get_environment_exporters())
 
