@@ -867,7 +867,9 @@ def test_from_cli_environment_inject_default_packages_override_file(
     ],
 )
 def test_extrapolate_uses_target_subdir(
-    monkeypatch: pytest.MonkeyPatch, target: str, expected_virtual: str
+    mocker: MockerFixture,
+    target: str,
+    expected_virtual: str,
 ):
     """Regression test for conda/conda#15919.
 
@@ -899,15 +901,13 @@ def test_extrapolate_uses_target_subdir(
             }
             return []
 
-    monkeypatch.setattr(
-        Environment,
-        "from_history",
-        staticmethod(lambda prefix: [MatchSpec("python=3.13")]),
+    mocker.patch(
+        "conda.models.environment.Environment.from_history",
+        return_value=[MatchSpec("python=3.13")],
     )
-    monkeypatch.setattr(
-        context.plugin_manager,
-        "get_cached_solver_backend",
-        lambda: RecordingSolver,
+    mocker.patch(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        return_value=RecordingSolver,
     )
 
     env = Environment(
@@ -935,7 +935,8 @@ def test_extrapolate_uses_target_subdir(
 
 @pytest.mark.parametrize("target", ["linux-64", "osx-arm64", "win-64"])
 def test_extrapolate_restores_subdir_on_solver_error(
-    monkeypatch: pytest.MonkeyPatch, target: str
+    mocker: MockerFixture,
+    target: str,
 ):
     """``context.subdir`` must be restored even when the solver raises.
 
@@ -953,15 +954,13 @@ def test_extrapolate_restores_subdir_on_solver_error(
         def solve_final_state(self):
             raise RuntimeError("boom")
 
-    monkeypatch.setattr(
-        Environment,
-        "from_history",
-        staticmethod(lambda prefix: [MatchSpec("python=3.13")]),
+    mocker.patch(
+        "conda.models.environment.Environment.from_history",
+        return_value=[MatchSpec("python=3.13")],
     )
-    monkeypatch.setattr(
-        context.plugin_manager,
-        "get_cached_solver_backend",
-        lambda: FailingSolver,
+    mocker.patch(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        return_value=FailingSolver,
     )
 
     env = Environment(
@@ -976,18 +975,21 @@ def test_extrapolate_restores_subdir_on_solver_error(
     assert context.subdir == original_subdir
 
 
-_CROSS_PLATFORM_OVERRIDES = {
-    "linux-64": {"CONDA_OVERRIDE_GLIBC": "2.28"},
-    "osx-arm64": {"CONDA_OVERRIDE_OSX": "11.0"},
-    "win-64": {},
-}
-
-
 @pytest.mark.integration
 @pytest.mark.slow
-@pytest.mark.parametrize("target", list(_CROSS_PLATFORM_OVERRIDES))
+@pytest.mark.parametrize(
+    "target,envvars",
+    [
+        ("linux-64", {"CONDA_OVERRIDE_GLIBC": "2.28"}),
+        ("osx-arm64", {"CONDA_OVERRIDE_OSX": "11.0"}),
+        ("win-64", {}),
+    ],
+)
 def test_extrapolate_python_pinned(
-    tmp_env: TmpEnvFixture, monkeypatch: pytest.MonkeyPatch, target: str
+    tmp_env: TmpEnvFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    target: str,
+    envvars: dict[str, str],
 ):
     """End-to-end regression test for conda/conda#15919.
 
@@ -1003,7 +1005,7 @@ def test_extrapolate_python_pinned(
     """
     if target == context.subdir:
         pytest.skip("target equals host; extrapolate short-circuits")
-    for var, value in _CROSS_PLATFORM_OVERRIDES[target].items():
+    for var, value in envvars.items():
         monkeypatch.setenv(var, value)
     with tmp_env("python=3.13") as prefix:
         env = Environment.from_prefix(prefix, None, context.subdir)
