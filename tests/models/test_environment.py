@@ -919,7 +919,7 @@ def test_extrapolate_uses_target_subdir(
     result = env.extrapolate(target)
 
     assert result.platform == target
-    assert captured, "Solver was not invoked"
+    assert len(captured) == 1, "Solver was not invoked"
     for record in captured:
         assert record["init_subdir"] == target
         assert record["solve_subdir"] == target
