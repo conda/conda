@@ -976,44 +976,68 @@ def test_extrapolate_restores_subdir_on_solver_error(
 
 
 @pytest.mark.integration
-@pytest.mark.slow
 @pytest.mark.parametrize(
-    "target,envvars",
+    "target",
     [
-        ("linux-64", {"CONDA_OVERRIDE_GLIBC": "2.28"}),
-        ("osx-arm64", {"CONDA_OVERRIDE_OSX": "11.0"}),
-        ("win-64", {}),
+        "linux-fake",
+        "osx-fake",
+        "win-fake",
     ],
 )
-def test_extrapolate_python_pinned(
+def test_extrapolate_virtualdep_package(
     tmp_env: TmpEnvFixture,
+    test_recipes_channel: Path,
     monkeypatch: pytest.MonkeyPatch,
     target: str,
-    envvars: dict[str, str],
 ):
     """End-to-end regression test for conda/conda#15919.
 
-    Reproduces the original failure: extrapolating an environment with
-    ``python=3.13`` pinned must produce a solvable package set for the
-    target platform.
+    Uses a mock package (``virtualdep-package``) in the local
+    ``test-recipes`` channel that declares a target-specific virtual
+    dependency per fake subdir: ``__glibc`` on ``linux-fake``,
+    ``__osx`` on ``osx-fake``, ``__win`` on ``win-fake``.
 
-    Cross-platform virtual package versions (e.g. ``__glibc``, ``__osx``)
-    cannot be introspected from a foreign host, so ``CONDA_OVERRIDE_*``
-    is the supported way to drive the solve. Without the fix, the solve
-    fails earlier with ``nothing provides __glibc`` because the linux
-    plugin never runs (``context.subdir`` stays on the host platform).
+    Extrapolating from the host's fake subdir to another fake subdir
+    re-solves against the target's variant, which transitively requires
+    the target-platform virtual package. Without the fix,
+    ``context.subdir`` stays on the host during the solve and the
+    target's virtual_packages plugin never runs, so the solver fails
+    with ``nothing provides __glibc`` / ``__osx`` / ``__win``. With the
+    fix, ``context._subdir`` is overridden for the duration of the
+    solve and the target's virtual packages are emitted.
+
+    Uses ``__<name>`` with no version constraint so the test doesn't
+    depend on ``CONDA_OVERRIDE_*`` (the ``__glibc==0=0`` fallback in
+    ``linux.py`` is enough to satisfy the no-version dep). The
+    version-pinned case where an override is still required is
+    documented as a known follow-up on the PR.
     """
-    if target == context.subdir:
-        pytest.skip("target equals host; extrapolate short-circuits")
-    for var, value in envvars.items():
-        monkeypatch.setenv(var, value)
-    with tmp_env("python=3.13") as prefix:
+    host_fake = f"{context.subdir.split('-')[0]}-fake"
+    if target == host_fake:
+        pytest.skip("target equals host's fake subdir; extrapolate short-circuits")
+
+    # Pretend we're running on the host's fake subdir so the initial
+    # env solves against the local channel instead of the real host
+    # subdir (which has no repodata entry in test-recipes). Patch both
+    # ``conda.base.context.KNOWN_SUBDIRS`` (read by the ``known_subdirs``
+    # property; ``from .constants import KNOWN_SUBDIRS`` creates a local
+    # binding that ignores constants-level patches) and
+    # ``conda.models.environment.PLATFORMS`` so both the solver's
+    # unknown-subdir check and ``Environment``'s platform validation
+    # accept the fake subdirs.
+    monkeypatch.setattr("conda.base.context.KNOWN_SUBDIRS", (host_fake, target))
+    monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", (host_fake, target))
+    monkeypatch.setattr("conda.models.environment.PLATFORMS", (host_fake, target))
+    monkeypatch.setenv("CONDA_SUBDIR", host_fake)
+    reset_context()
+
+    with tmp_env("virtualdep-package") as prefix:
         env = Environment.from_prefix(prefix, None, context.subdir)
         extrapolated = env.extrapolate(target)
         assert extrapolated.platform == target
         names = {pkg.name for pkg in extrapolated.explicit_packages}
-        assert "python" in names, (
-            f"python missing from extrapolated env for {target}: {names}"
+        assert "virtualdep-package" in names, (
+            f"virtualdep-package missing from extrapolated env for {target}: {names}"
         )
 
 
