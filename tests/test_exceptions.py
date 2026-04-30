@@ -555,7 +555,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
         (
             "",
             "CondaHTTPError: HTTP 403 CONNECTION FAILED for url <https://download.url/path/to/something.tar.gz>",
-            "Elapsed: 1.26",
+            "Elapsed: 00:01.260000",
             "",
             detail,
             "",
