@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Avoid a `TypeError` in `CondaHTTPError` and `UnavailableInvalidChannel` when the response body may contain a non-string `detail` field. (#15999)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
