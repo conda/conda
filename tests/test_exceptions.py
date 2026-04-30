@@ -4,6 +4,7 @@ import getpass
 import json
 import sys
 from contextlib import nullcontext
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -528,7 +529,9 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     response = MockResponse({"detail": detail})
 
     elapsed_time = 1.26
-    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
+    exc = CondaHTTPError(
+        msg, url, status_code, reason, timedelta(seconds=elapsed_time), response
+    )
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
@@ -559,6 +562,43 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
             "",
         )
     )
+
+
+def test_http_error_rfc_9457_non_string_detail(
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture
+) -> None:
+    """
+    CondaHTTPError shouldn't crash when 'detail' is a non-string, for example,
+    when receiving a list of validation errors as returned by FastAPI.
+    """
+    msg = ""
+    url = "https://example.com/channel/linux-64/repodata.json"
+    status_code = "422"
+    reason = "Unprocessable Content"
+    # FastAPI returns 'detail' as a list of validation error objects, not a string
+    detail = [{"loc": ["path", "filename"], "msg": "value is not a valid enum member"}]
+
+    class MockResponse:
+        def __init__(self, json_data):
+            self.json_data = json_data
+            self.headers = {}
+
+        def json(self):
+            return self.json_data
+
+    response = MockResponse({"detail": detail})
+    exc = CondaHTTPError(
+        msg, url, status_code, reason, timedelta(seconds=0.1), response
+    )
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
+
+    assert not stdout
+    assert str(detail) in stderr
 
 
 def test_CommandNotFoundError_simple(
