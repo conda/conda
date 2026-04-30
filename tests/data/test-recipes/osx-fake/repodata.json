@@ -28,6 +28,20 @@
       "subdir": "osx-fake",
       "timestamp": 1703010657387,
       "version": "1.0"
+    },
+    "virtualdep-package-2.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "__osx >=11.0"
+      ],
+      "md5": "4f5c4d9fd7725400a8a6fa6405d27e82",
+      "name": "virtualdep-package",
+      "sha256": "fc50c5d4181e14f98ab19779d1b9d6e388e19218caad313644ca4d84e1ec896f",
+      "size": 2959,
+      "subdir": "osx-fake",
+      "timestamp": 1703010619981,
+      "version": "2.0"
     }
   },
   "packages.conda": {},

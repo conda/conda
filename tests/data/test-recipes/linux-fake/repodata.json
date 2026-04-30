@@ -28,6 +28,20 @@
       "subdir": "linux-fake",
       "timestamp": 1703010619981,
       "version": "1.0"
+    },
+    "virtualdep-package-2.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "__glibc >=2.28"
+      ],
+      "md5": "3f69753db8c8bd081fa67947e10ac8c9",
+      "name": "virtualdep-package",
+      "sha256": "665155970b7a4481d99897cdbdc48faa110beb2b6aacb4fb3df3df1c11743b6d",
+      "size": 2969,
+      "subdir": "linux-fake",
+      "timestamp": 1703010619981,
+      "version": "2.0"
     }
   },
   "packages.conda": {},

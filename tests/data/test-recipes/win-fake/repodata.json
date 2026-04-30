@@ -28,6 +28,20 @@
       "subdir": "win-fake",
       "timestamp": 1703010608204,
       "version": "1.0"
+    },
+    "virtualdep-package-2.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "__win"
+      ],
+      "md5": "e83a2ea1ab3ff3773710dd71a800c4a2",
+      "name": "virtualdep-package",
+      "sha256": "30b1bfe3c7c18b7cca70558cb46914f396c97ad43e8b190a1cd0babbb27dba82",
+      "size": 2957,
+      "subdir": "win-fake",
+      "timestamp": 1703010608204,
+      "version": "2.0"
     }
   },
   "packages.conda": {},

@@ -975,42 +975,75 @@ def test_extrapolate_restores_subdir_on_solver_error(
     assert context.subdir == original_subdir
 
 
+# Overrides used by the version-pinned case of
+# ``test_extrapolate_virtualdep_package``. Both are set unconditionally
+# so the test behaves deterministically regardless of the CI runner's
+# actual glibc / macOS version: the target override is required by the
+# extrapolate step, and the host override is required by the initial
+# ``tmp_env`` install when the host runs on an older kernel / OS than
+# the constraint. Windows has no versioned virtual package, so it
+# doesn't participate in the ``version="2.0"`` cases below.
+_VERSIONED_OVERRIDES = {
+    "CONDA_OVERRIDE_GLIBC": "2.28",
+    "CONDA_OVERRIDE_OSX": "11.0",
+}
+
+
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    "target",
+    "target,version,envvars",
     [
-        "linux-fake",
-        "osx-fake",
-        "win-fake",
+        # Failure mode 1: target-platform virtual package not emitted
+        # at all during extrapolation. Fixed by this PR via the
+        # ``context._override("_subdir", target)`` wrapper around the
+        # solve. No version constraint on the virtual dep, so the
+        # ``==0=0`` fallback emitted by the target's virtual_packages
+        # plugin is sufficient to satisfy it. No overrides needed.
+        pytest.param("linux-fake", "1.0", {}, id="linux-fake-unversioned"),
+        pytest.param("osx-fake", "1.0", {}, id="osx-fake-unversioned"),
+        pytest.param("win-fake", "1.0", {}, id="win-fake-unversioned"),
+        # Failure mode 2 (documented known follow-up): the target's
+        # virtual package plugin falls back to emitting ``==0=0`` when
+        # it can't introspect a foreign target. A versioned dep like
+        # ``__glibc >=2.28`` doesn't satisfy that, so ``CONDA_OVERRIDE_*``
+        # is still required. These cases verify that the override path
+        # works once this PR's subdir-override lands; they do NOT assert
+        # the second-order fix (introspecting the target) which is
+        # tracked separately.
+        pytest.param(
+            "linux-fake", "2.0", _VERSIONED_OVERRIDES, id="linux-fake-versioned"
+        ),
+        pytest.param("osx-fake", "2.0", _VERSIONED_OVERRIDES, id="osx-fake-versioned"),
     ],
 )
 def test_extrapolate_virtualdep_package(
     tmp_env: TmpEnvFixture,
     test_recipes_channel: Path,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
     target: str,
+    version: str,
+    envvars: dict[str, str],
 ):
     """End-to-end regression test for conda/conda#15919.
 
     Uses a mock package (``virtualdep-package``) in the local
     ``test-recipes`` channel that declares a target-specific virtual
-    dependency per fake subdir: ``__glibc`` on ``linux-fake``,
-    ``__osx`` on ``osx-fake``, ``__win`` on ``win-fake``.
+    dependency per fake subdir. Two variants exist:
 
-    Extrapolating from the host's fake subdir to another fake subdir
-    re-solves against the target's variant, which transitively requires
-    the target-platform virtual package. Without the fix,
-    ``context.subdir`` stays on the host during the solve and the
-    target's virtual_packages plugin never runs, so the solver fails
-    with ``nothing provides __glibc`` / ``__osx`` / ``__win``. With the
-    fix, ``context._subdir`` is overridden for the duration of the
-    solve and the target's virtual packages are emitted.
-
-    Uses ``__<name>`` with no version constraint so the test doesn't
-    depend on ``CONDA_OVERRIDE_*`` (the ``__glibc==0=0`` fallback in
-    ``linux.py`` is enough to satisfy the no-version dep). The
-    version-pinned case where an override is still required is
-    documented as a known follow-up on the PR.
+    * ``v1.0`` declares an unversioned virtual dep (``__glibc``,
+      ``__osx``, ``__win``). Exercises the fix in this PR: without
+      ``context._subdir`` being overridden for the extrapolate solve,
+      the target's virtual_packages plugin never runs and the solver
+      fails with ``nothing provides __glibc`` / ``__osx`` / ``__win``.
+    * ``v2.0`` declares a versioned virtual dep (``__glibc >=2.28``,
+      ``__osx >=11.0``). Still hits the same root failure mode without
+      the fix, but the ``==0=0`` fallback doesn't satisfy the version
+      constraint either, so ``CONDA_OVERRIDE_*`` is required. Those
+      cases confirm the override path keeps working and document what
+      users on versioned pins (e.g. ``python=3.13`` requiring
+      ``__glibc>=2.17``) need to do until the target-introspection
+      follow-up lands.
     """
     host_fake = f"{context.subdir.split('-')[0]}-fake"
     if target == host_fake:
@@ -1025,13 +1058,15 @@ def test_extrapolate_virtualdep_package(
     # ``conda.models.environment.PLATFORMS`` so both the solver's
     # unknown-subdir check and ``Environment``'s platform validation
     # accept the fake subdirs.
-    monkeypatch.setattr("conda.base.context.KNOWN_SUBDIRS", (host_fake, target))
-    monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", (host_fake, target))
-    monkeypatch.setattr("conda.models.environment.PLATFORMS", (host_fake, target))
+    mocker.patch("conda.base.context.KNOWN_SUBDIRS", (host_fake, target))
+    mocker.patch("conda.base.constants.KNOWN_SUBDIRS", (host_fake, target))
+    mocker.patch("conda.models.environment.PLATFORMS", (host_fake, target))
     monkeypatch.setenv("CONDA_SUBDIR", host_fake)
+    for var, value in envvars.items():
+        monkeypatch.setenv(var, value)
     reset_context()
 
-    with tmp_env("virtualdep-package") as prefix:
+    with tmp_env(f"virtualdep-package={version}") as prefix:
         env = Environment.from_prefix(prefix, None, context.subdir)
         extrapolated = env.extrapolate(target)
         assert extrapolated.platform == target
