@@ -569,7 +569,12 @@ class UnavailableInvalidChannel(ChannelError):
             message = body.get("message") or message
             # if RFC 9457 'detail' is present, it is preferred over 'message'
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail") or message
+            # RFC 9457 defines 'detail' as a string, but servers such as FastAPI
+            # may return it as a structured object (e.g. a list of validation
+            # errors); stringify in that case rather than crashing on concatenation
+            detail = body.get("detail")
+            if detail is not None:
+                message = detail if isinstance(detail, str) else str(detail)
 
         # standardize arguments
         status_code = status_code or "000"
@@ -663,7 +668,12 @@ class CondaHTTPError(CondaError):
             message = body.get("message") or message
             # if RFC 9457 'detail' is present, it is preferred over 'message'
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail") or message
+            # RFC 9457 defines 'detail' as a string, but servers such as FastAPI
+            # may return it as a structured object (e.g. a list of validation
+            # errors); stringify in that case rather than crashing on concatenation
+            detail = body.get("detail")
+            if detail is not None:
+                message = detail if isinstance(detail, str) else str(detail)
 
         # standardize arguments
         url = maybe_unquote(url)
