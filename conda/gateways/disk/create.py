@@ -255,7 +255,7 @@ def make_menu(prefix, file_path, remove=False):
 
         from ...gateways.streams import stdoutlog
 
-        stdoutlog(f"menuinst Exception\n{format_exc()}")
+        stdoutlog(f"menuinst Exception for {file_path}:\n{format_exc()}")
 
 
 def create_hard_link_or_copy(src, dst):
