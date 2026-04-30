@@ -585,6 +585,9 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
 
     # The parallel version may reorder channels, does this matter?
 
+    # XXX update conda's cache API to work better, especially when we have to lock
+    # clean up this code path?
+
     non_sharded_channels = []
 
     with concurrent.futures.ThreadPoolExecutor(

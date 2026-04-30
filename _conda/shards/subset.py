@@ -127,7 +127,7 @@ def _nodes_from_packages(
 
 @dataclass
 class RepodataSubset:
-    nodes: dict[NodeId, Node]
+    nodes: dict[NodeId, Node]  # XXX make private
     shardlikes: Sequence[ShardBase]
     DEFAULT_STRATEGY = "pipelined"
 
@@ -445,6 +445,10 @@ def build_repodata_subset(
         None if there are no shards available, or a mapping of channel URL's to
         ShardBase objects where build_repodata() returns the computed subset..
     """
+    # XXX should we have the solver, or the code that calls the solver know
+    # about these steps instead of doing it all here; would make it easier to
+    # use shards "when there are no real shards" or not, depending on
+    # preference.
     channel_data = fetch_channels(channels)
     if channel_data is not None:
         subset = RepodataSubset((*channel_data.values(),))

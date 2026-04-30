@@ -21,6 +21,7 @@ from _conda.shards.core import (
 from _conda.shards.subset import (
     RepodataSubset,
     build_repodata_subset,
+    filter_redundant_packages,
 )
 from conda.base.context import context, reset_context
 from conda.models.channel import Channel
@@ -130,9 +131,7 @@ def test_build_repodata_subset_local_server(
     root_packages = ["foo"]
 
     expected_repodata = ensure_hex_hash(FAKE_REPODATA)
-    expected_repodata = build_repodata_subset.filter_redundant_packages(
-        expected_repodata
-    )  # type: ignore
+    expected_repodata = filter_redundant_packages(expected_repodata)  # type: ignore
 
     channel_data = build_repodata_subset(
         root_packages, {channel.url() or "": channel}, algorithm=algorithm

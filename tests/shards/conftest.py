@@ -212,7 +212,7 @@ class ShardFactory:
         :param finish_request_action: Optional callable after each request.
         :return: The URL of the http server serving the shards.
         """
-        from tests import http_test_server
+        from . import http_server as http_test_server
 
         shards_repository = self.root / dir_name / "sharded_repo"
         shards_repository.mkdir(parents=True, exist_ok=True)
@@ -239,12 +239,11 @@ class ShardFactory:
         index_data = zstandard.compress(msgpack.dumps(index))  # type: ignore
         (noarch / "repodata_shards.msgpack.zst").write_bytes(index_data)
 
-        def handler(request):
+        def handler(request, base_path):
             try:
-                response = http_test_server.request_handler(request, shards_repository)
+                http_test_server.request_handler(request, base_path)
                 if finish_request_action:
                     finish_request_action(request)
-                return response
             except Exception:
                 if finish_request_action:
                     finish_request_action(request)
