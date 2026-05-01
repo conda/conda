@@ -14,7 +14,7 @@ Bootstrap and set up an environment for **development and testing** from the rep
 
 ## Code style
 
-- Org-wide Python style policies (imports, docstrings, typing, etc.) are summarized in the **[Conda Style Guide](https://github.com/conda/infrastructure/blob/main/infrastructure/STYLEGUIDE.md)** (`conda/infrastructure` on GitHub).
+- Org-wide Python style policies (imports, docstrings, typing, etc.) are summarized in the **[Conda Style Guide](https://github.com/conda/infrastructure/blob/main/STYLEGUIDE.md)** (`conda/infrastructure` on GitHub).
 - **This repo** configures formatting and lint with **[Ruff](https://docs.astral.sh/ruff/)** in **`pyproject.toml`** and **`.pre-commit-config.yaml`** (`ruff format`, `ruff check`). Hooks are **[prek](https://prek.j178.dev/)**-compatible (drop-in for **[pre-commit](https://pre-commit.com/)**); assume **prek** / **pre-commit** is already set up locally—this document does not cover installing or enabling hooks. CI enforces the same checks if a change bypasses hooks.
 
 ## Changelog (`news/`)
@@ -42,7 +42,9 @@ Common uses: **`deprecated(...)`** (functions, methods, classes), **`.argument`*
 
 - Prefer **clear names** and **small, focused** tests; the body should read as the spec.
 - Keep **docstrings short**; long prose drifts from the code.
-- Avoid **`assert expr, "message"`** — use a **`#` comment** above the line if needed.
+- Avoid **`assert expr, "message"`** when the message only repeats static explanation—use a **`#` comment** above the line if a reader needs a hint.
+- **Exit codes / subprocess output:** Bare **`assert rc == 0`** (or similar) is often too terse for CI; include **stderr** in the message (e.g. **`assert rc == 0, f"conda {subcommand} failed ({rc}): {stderr}"`**, or the same shape for **`pip install`** / **`python`** subprocess probes) so failures stay actionable.
+- **Keep failure messages compact:** Prefer **one line** for **`assert … , msg`** — squash the message as much as you can (e.g. **`stderr` alone**, or a short label plus **`stderr`**). **Multiline** custom messages are hard to scan; reserve them for rare cases where a single line truly cannot carry enough signal.
 - Prefer **native and installed pytest fixtures** (e.g. **`monkeypatch`** for **`setenv`**, **`chdir`**, etc.). **Reuse shared conda fixtures** before adding bespoke setup—see **Finding fixtures** below.
 - Use **`pytest-mock`**’s **`mocker`** instead of **`unittest.mock`** when you need mocks or patches (automatic teardown and idiomatic pytest usage).
 - **`mocker.spy`** is worth knowing for **call observation** or when swapping behavior is unnecessary—it often fits before **`mocker.patch`** or **`monkeypatch.setattr`**. **`monkeypatch`** is still the right tool for **`setenv`**, **`chdir`**, and similar—not attribute mocks.

@@ -64,8 +64,8 @@ def test_conda_pip_interop_dependency_satisfied_by_pip(
     with tmp_env(PYTHON_SPEC, "pip") as prefix:
         assert package_is_installed(prefix, PYTHON_SPEC)
         assert package_is_installed(prefix, "pip")
-        stdout, stderr, code = pip_cli("install", "itsdangerous", prefix=prefix)
-        assert code == 0, f"pip install failed: {stderr}"
+        stdout, stderr, rc = pip_cli("install", "itsdangerous", prefix=prefix)
+        assert rc == 0, f"pip install failed ({rc}): {stderr}"
 
         PrefixData._cache_.clear()
         output, error, _ = conda_cli("list", f"--prefix={prefix}")

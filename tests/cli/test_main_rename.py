@@ -81,8 +81,8 @@ def test_rename_by_name_success(
     env_one: str,
     env_rename: str,
 ):
-    out, err, rc = conda_cli("rename", "--name", env_one, env_rename)
-    assert not rc
+    _, stderr, rc = conda_cli("rename", "--name", env_one, env_rename)
+    assert rc == 0, f"conda rename failed ({rc}): {stderr}"
     assert locate_prefix_by_name(env_rename)
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(env_one)
