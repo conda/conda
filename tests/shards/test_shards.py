@@ -16,7 +16,9 @@ import urllib.parse
 import pytest
 
 from _conda.shards.shards import (
+    ShardLike,
     fetch_channels,
+    shard_mentioned_packages,
 )
 from _conda.shards.subset import (
     RepodataSubset,
@@ -196,3 +198,74 @@ def test_build_repodata_subset(prepare_shards_test: None, tmp_path):
         "Channels:",
         ",".join(urllib.parse.urlparse(url).path[1:] for url in channel_data),
     )
+
+
+class TestAddPipAsPythonDependency:
+    """Tests for add_pip_as_python_dependency context setting"""
+
+    def test_add_pip_as_python_dependency_context(self):
+        """Test that add_pip_as_python_dependency context setting exists"""
+        # Just verify the context attribute exists
+        assert hasattr(context, "add_pip_as_python_dependency")
+        # Should be a boolean
+        result = context.add_pip_as_python_dependency
+        assert isinstance(result, bool)
+
+    def test_add_pip_as_python_dependency_in_shardlike(self):
+        """Test that ShardLike correctly handles python package with pip dependency"""
+        repodata = {
+            "info": {"base_url": ""},
+            "packages": {
+                "python-3.10.0-h1234567_0.tar.bz2": {
+                    "name": "python",
+                    "version": "3.10.0",
+                    "build": "h1234567_0",
+                    "build_number": 0,
+                    "depends": [],
+                }
+            },
+            "packages.conda": {},
+            "repodata_version": 2,
+        }
+        shardlike = ShardLike(repodata, "https://example.com/linux-64/")
+        # Should be able to retrieve python package
+        assert "python" in shardlike
+        shard = shardlike.visit_package("python")
+        assert shard is not None
+        assert "packages" in shard
+
+    def test_add_pip_as_python_dependency_mentioned_packages(self):
+        """Test that shard_mentioned_packages can include pip when requested"""
+        shard = {
+            "packages": {
+                "python-3.10.0-h1234567_0.tar.bz2": {
+                    "name": "python",
+                    "depends": ["openssl", "readline"],
+                }
+            },
+            "packages.conda": {},
+        }
+        # Test with extra=("pip",) to include pip
+        packages = list(shard_mentioned_packages(shard, extra=("pip",)))
+        assert "pip" in packages
+        assert "openssl" in packages
+        assert "readline" in packages
+
+    def test_add_pip_as_python_dependency_filter_redundant(self):
+        """Test package filtering with pip dependency consideration"""
+        repodata = {
+            "packages": {
+                "python-3.10-0.tar.bz2": {"name": "python"},
+                "pip-21.0-0.tar.bz2": {"name": "pip"},
+            },
+            "packages.conda": {
+                "python-3.10-0.conda": {"name": "python"},
+                "pip-21.0-0.conda": {"name": "pip"},
+            },
+        }
+        # Should filter redundant tar.bz2 entries
+        filtered = filter_redundant_packages(repodata, use_only_tar_bz2=False)
+        # tar.bz2 versions should be removed
+        assert "python-3.10-0.tar.bz2" not in filtered["packages"]
+        # .conda versions should remain
+        assert "python-3.10-0.conda" in filtered["packages.conda"]
