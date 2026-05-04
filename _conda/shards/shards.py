@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 
     from conda.gateways.repodata import RepodataCache
 
-    from .typing import PackageRecordDict, RepodataDict, ShardDict, ShardsIndexDict
+    from .typing import RepodataDict, ShardDict, ShardsIndexDict
 
 ZSTD_MAX_SHARD_SIZE = (
     2**20 * 16
@@ -86,7 +86,7 @@ class ShardBase(abc.ABC):
     Abstract base class for shard-like objects.
 
     Defines the common interface for both sharded repodata (Shards)
-    and traditional repodata presented as shards (ShardLike).
+    and monolithic repodata presented as shards (ShardLike).
     """
 
     url: str
@@ -144,20 +144,6 @@ class ShardBase(abc.ABC):
         """
         self.visited[package] = shard
 
-    @abc.abstractmethod
-    def fetch_shard(self, package: str) -> ShardDict:
-        """
-        Fetch an individual shard for the given package.
-        """
-        ...
-
-    @abc.abstractmethod
-    def fetch_shards(self, packages: Iterable[str]) -> dict[str, ShardDict]:
-        """
-        Fetch multiple shards in one go.
-        """
-        ...
-
     def build_repodata(self) -> RepodataDict:
         """
         Return monolithic repodata including all visited shards.
@@ -213,7 +199,8 @@ class ShardLike(ShardBase):
             base_url = self.repodata_no_packages["info"]["base_url"]
             if not isinstance(base_url, str):
                 log.warning(
-                    f'repodata["info"]["base_url"] was not a str, got {type(base_url)}'
+                    'repodata["info"]["base_url"] was not str(), got %s',
+                    type(base_url),
                 )
                 raise TypeError()
             self._base_url = base_url
@@ -247,29 +234,9 @@ class ShardLike(ShardBase):
         """
         Return a shard that is already in memory and mark as visited.
         """
-        shard = self.fetch_shard(package)
-        assert shard is not None
-        return shard
-
-    def fetch_shard(self, package: str) -> ShardDict:
-        """
-        "Fetch" an individual shard.
-
-        Update self.visited with all not-None packages.
-
-        Raise KeyError if package is not in the index.
-        """
         shard = self.shards[package]
-        self.visited[package] = shard
+        self.visited[package] = self.shards[package]
         return shard
-
-    def fetch_shards(self, packages: Iterable[str]) -> dict[str, ShardDict]:
-        """
-        Fetch multiple shards in one go.
-
-        Update self.visited with all not-None packages.
-        """
-        return {package: self.fetch_shard(package) for package in packages}
 
 
 def _shards_base_url(url, shards_base_url) -> str:
@@ -525,6 +492,7 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 # Like conda.gateways.repodata.jlap.fetch. If this returns True, then we mark
 # shards as not supported; otherwise, we will check again next time.
 
+
 def fetch_shards_index(
     sd: SubdirData, cache_obj: cache.ShardCache | None
 ) -> Shards | None:
@@ -674,7 +642,7 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
         url_to_channel: not modified, must already be expanded to subdirs.
 
     Attempt to fetch the sharded index first and then fall back to retrieving a
-    traditional `repodata.json` file.
+    monolithic `repodata.json` file.
 
     Returns:
         A dict mapping channel URLs to `Shard` or `ShardLike` objects. None if
@@ -683,8 +651,6 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
     """
     # copy incoming dict to retain order:
     channel_data: dict[str, ShardBase | None] = {url: None for url in url_to_channel}
-
-    # The parallel version may reorder channels, does this matter?
 
     non_sharded_channels = []
 
