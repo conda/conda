@@ -21,6 +21,8 @@ from conda.exceptions import (
     EnvironmentExporterNotDetected,
 )
 
+from .. import PYTHON_SPEC
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -752,7 +754,7 @@ def test_export_non_pip_env_warnings(
     conda_cli: CondaCLIFixture,
 ):
     """Test that conda does not warn for environments without pip dependencies"""
-    with tmp_env("python") as prefix:
+    with tmp_env(PYTHON_SPEC) as prefix:
         PrefixData._cache_.clear()
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always", category=CondaExportWarning)
@@ -846,7 +848,7 @@ def test_export_explicit_format_validation_errors(
 ):
     """Test that explicit format properly errors on invalid environments."""
     # Create an environment with conda packages and pip dependencies
-    with tmp_env("python=3.10", "pip") as prefix:
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
         # Install a pip package to create external packages
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)

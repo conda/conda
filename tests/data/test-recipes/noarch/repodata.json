@@ -320,6 +320,38 @@
     }
   },
   "packages.conda": {
+    "buildstring-1.0-versioned_1.conda": {
+      "build": "versioned_1",
+      "build_number": 0,
+      "depends": [
+        "versioned 1.*"
+      ],
+      "license": "BSD-3-Clause",
+      "md5": "774e0c717175956098d10394754989f2",
+      "name": "buildstring",
+      "noarch": "generic",
+      "sha256": "1e1c9b120afbb59310a32478383666f5ab7316d1f26d8becada7c32e7046abe8",
+      "size": 3942,
+      "subdir": "noarch",
+      "timestamp": 1777585786624,
+      "version": "1.0"
+    },
+    "buildstring-1.0-versioned_2.conda": {
+      "build": "versioned_2",
+      "build_number": 0,
+      "depends": [
+        "versioned 2.*"
+      ],
+      "license": "BSD-3-Clause",
+      "md5": "0a87cfc6013a10badb6f618c7e574e6f",
+      "name": "buildstring",
+      "noarch": "generic",
+      "sha256": "415fa4862f1fa8a3beff20b233fd18448377d1c22264d99b900348943a540615",
+      "size": 3936,
+      "subdir": "noarch",
+      "timestamp": 1777585785524,
+      "version": "1.0"
+    },
     "post_link_run_in_env_package-1.0.0-0.conda": {
       "build": "0",
       "build_number": 0,

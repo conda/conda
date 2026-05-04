@@ -11,6 +11,7 @@ Overview of package artifacts and their intended purpose.
 | `another_dependent` | `1.0`<br>`2.0` | `noarch` |  |
 | `arch-package` | `1.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` |  |
 | `b_post_link_package` | `1.0.0` | `noarch` |  |
+| `buildstring` | `1.0` | `noarch` | [#buildstring](#buildstring) |
 | `c_post_link_package` | `1.0.0` | `noarch` |  |
 | `d_post_link_package` | `1.0.0` | `noarch` |  |
 | `dependency` | `1.0`<br>`2.0` | `noarch` |  |
@@ -29,6 +30,9 @@ Overview of package artifacts and their intended purpose.
 | `small-executable` | `1.0.0` | `noarch` |  |
 | `track_feature` | `1.0`<br>`2.0` | `noarch` |  |
 | `versioned` | `1.0`<br>`2.0` | `noarch` | [#versioned](#versioned) |
+
+## buildstring
+A build string package to test package revisions
 
 ## versioned
 A versioned package to test package upgrades
