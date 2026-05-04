@@ -1,4 +1,5 @@
-# Copyright (C) 2012 Anaconda, Inc
+# Copyright (C) 2022 Anaconda, Inc
+# Copyright (C) 2023 conda
 # SPDX-License-Identifier: BSD-3-Clause
 """
 Models for sharded repodata, and to make monolithic repodata look like sharded
@@ -9,16 +10,17 @@ from __future__ import annotations
 
 import abc
 import concurrent.futures
-import json  # noqa
+import functools
+import json
 import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING
-
-import msgpack
-import zstandard
+from urllib.parse import urljoin, urlparse, urlunparse, uses_relative
 
 import conda.exceptions
 import conda.gateways.repodata
+import msgpack
+import zstandard
 from conda.base.context import context
 from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import get_session
@@ -27,15 +29,9 @@ from conda.gateways.repodata import (
     conda_http_errors,
 )
 from conda.models.channel import Channel
+from libmambapy.bindings import specs
 
-from . import cache as shards_cache
-from .misc import (
-    _is_http_error_most_400_codes,
-    _safe_urljoin_with_slash,
-    _shards_connections,
-    ensure_hex_hash,
-    spec_to_package_name,
-)
+from . import shards_cache
 
 log = logging.getLogger(__name__)
 
@@ -43,22 +39,113 @@ log = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from collections.abc import Iterable, KeysView
 
+    from conda.gateways.repodata import RepodataCache
     from requests import Response
 
-    from conda.gateways.repodata import RepodataCache
+    from conda_libmamba_solver.shards_typing import RepodataDict, ShardsIndexDict
 
-    from .typing import RepodataDict, ShardDict, ShardsIndexDict
+    from .shards_typing import PackageRecordDict, ShardDict
 
 SHARDS_CONNECTIONS_DEFAULT = 10
 ZSTD_MAX_SHARD_SIZE = (
     2**20 * 16
 )  # maximum size necessary when compressed data has no size header
 
+# Schemes that urljoin handles correctly (registered in urllib.parse.uses_relative)
+_URLJOIN_SAFE_SCHEMES = frozenset(uses_relative)
 
-def shard_mentioned_packages(shard: ShardDict) -> Iterable[str]:
+
+def _safe_urljoin_with_slash(base_url: str, relative_url: str = "") -> str:
+    """
+    Join base_url with relative_url, ensuring proper handling of all URL schemes.
+
+    Python's urllib.parse.urljoin only handles schemes registered in
+    ``urllib.parse.uses_relative``. For unregistered schemes like ``s3://``,
+    it returns just ``"."`` instead of the resolved URL. This function falls
+    back to a scheme-swap workaround for those cases.
+
+    The result always ends with "/" to enable proper string concatenation with filenames.
+
+    See: https://github.com/conda/conda-libmamba-solver/issues/866
+    """
+    parsed = urlparse(base_url)
+
+    # For schemes that urljoin handles correctly, use the standard behavior
+    if parsed.scheme in _URLJOIN_SAFE_SCHEMES:
+        # Standard urljoin behavior: join with relative_url, then "." for trailing slash
+        result = urljoin(urljoin(base_url, relative_url), ".")
+        return result
+
+    # For unregistered schemes (e.g. s3://), urljoin drops the host.
+    # Work around that by temporarily swapping in https://, then restoring
+    # the original scheme on the result.
+    relative_parsed = urlparse(relative_url)
+    if not relative_parsed.scheme and parsed.scheme:
+        https_base_url = urlunparse(parsed._replace(scheme="https"))
+        joined_https = urljoin(urljoin(https_base_url, relative_url), ".")
+        result = urlunparse(urlparse(joined_https)._replace(scheme=parsed.scheme))
+    else:
+        result = urljoin(urljoin(base_url, relative_url), ".")
+
+    # Ensure trailing slash for proper concatenation
+    if not result.endswith("/"):
+        result += "/"
+
+    return result
+
+
+# For reference, the largest shard "conda-forge/linux-64/vim" is 2608283 bytes
+# or < 2**19*5 decompressed (486155 bytes compressed); the index is 575219 bytes
+# decompressed (514039 bytes compressed) and is mostly uncompressible hash data.
+
+
+def _shards_connections() -> int:
+    """
+    If context.repodata_threads is not set, find the size of the connection pool
+    in a typical https:// session. This should significantly reduce dropped
+    connections. We match requests' default 10.
+
+    Is this shared between all sessions? Or do we get a different pool for a
+    different get_session(url)?
+
+    Other adapters (file://, s3://) used in conda would have different
+    concurrency behavior;  we are not prepared to have separate threadpools per
+    connection type.
+    """
+    if context.repodata_threads is not None:
+        return context.repodata_threads
+    return SHARDS_CONNECTIONS_DEFAULT
+
+
+def ensure_hex_hash(record: PackageRecordDict):
+    """
+    Convert bytes checksums to hex; leave unchanged if already str.
+    """
+    for hash_type in "sha256", "md5":
+        if hash_value := record.get(hash_type):
+            if not isinstance(hash_value, str):
+                record[hash_type] = bytes(hash_value).hex()
+    return record
+
+
+@functools.cache
+def spec_to_package_name(spec: str) -> str:
+    """
+    Given a dependency spec, return the package name.
+    """
+    # Note: hope for no MatchSpec-without-name in repodata, although it is
+    # possible in the MatchSpec grammar.
+    parsed_spec = specs.MatchSpec.parse(spec)
+    name = str(parsed_spec.name)
+    return name
+
+
+def shard_mentioned_packages(
+    shard: ShardDict, extra: Iterable[str] = ()
+) -> Iterable[str]:
     """
     Return all dependency names mentioned in a shard, not including the shard's
-    own package name.
+    own package name. Additional names can be injected via ``extra``.
     """
     unique_specs = set()
     for package in (*shard["packages"].values(), *shard["packages.conda"].values()):
@@ -71,6 +158,7 @@ def shard_mentioned_packages(shard: ShardDict) -> Iterable[str]:
             unique_specs.add(spec)
             name = spec_to_package_name(spec)
             yield name  # not much improvement from only yielding unique names
+    yield from extra
 
 
 class ShardBase(abc.ABC):
@@ -136,6 +224,20 @@ class ShardBase(abc.ABC):
         """
         self.visited[package] = shard
 
+    @abc.abstractmethod
+    def fetch_shard(self, package: str) -> ShardDict:
+        """
+        Fetch an individual shard for the given package.
+        """
+        ...
+
+    @abc.abstractmethod
+    def fetch_shards(self, packages: Iterable[str]) -> dict[str, ShardDict]:
+        """
+        Fetch multiple shards in one go.
+        """
+        ...
+
     def build_repodata(self) -> RepodataDict:
         """
         Return monolithic repodata including all visited shards.
@@ -191,8 +293,7 @@ class ShardLike(ShardBase):
             base_url = self.repodata_no_packages["info"]["base_url"]
             if not isinstance(base_url, str):
                 log.warning(
-                    'repodata["info"]["base_url"] was not a str, got %s',
-                    type(base_url),
+                    f'repodata["info"]["base_url"] was not a str, got {type(base_url)}'
                 )
                 raise TypeError()
             self._base_url = base_url
@@ -226,9 +327,29 @@ class ShardLike(ShardBase):
         """
         Return a shard that is already in memory and mark as visited.
         """
+        shard = self.fetch_shard(package)
+        assert shard is not None
+        return shard
+
+    def fetch_shard(self, package: str) -> ShardDict:
+        """
+        "Fetch" an individual shard.
+
+        Update self.visited with all not-None packages.
+
+        Raise KeyError if package is not in the index.
+        """
         shard = self.shards[package]
         self.visited[package] = shard
         return shard
+
+    def fetch_shards(self, packages: Iterable[str]) -> dict[str, ShardDict]:
+        """
+        Fetch multiple shards in one go.
+
+        Update self.visited with all not-None packages.
+        """
+        return {package: self.fetch_shard(package) for package in packages}
 
 
 def _shards_base_url(url, shards_base_url) -> str:
@@ -330,14 +451,21 @@ class Shards(ShardBase):
         shard = self.visited[package]
         return shard
 
-    def _fetch_shards_impl(self, packages: Iterable[str]) -> dict[str, ShardDict]:
+    def fetch_shard(self, package: str) -> ShardDict:
         """
-        Internal implementation for fetching shards from network/cache.
+        Fetch an individual shard for the given package.
 
-        This method is called by sync.ShardFetch.fetch_shards() to perform the
-        actual I/O operations (network fetch, decompression, cache management).
+        Default implementation calls fetch_shards() with a single package.
+        Subclasses may override for more efficient single-fetch operations.
 
+        Raise KeyError if package is not in the index.
+        """
+        return self.fetch_shards([package])[package]
+
+    def fetch_shards(self, packages: Iterable[str]) -> dict[str, ShardDict]:
+        """
         Return mapping of *package names* to Shard for given packages.
+
         If a shard is already in self.visited, it is not fetched again.
         """
         results = {}
@@ -476,6 +604,15 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 
 # Like conda.gateways.repodata.jlap.fetch. If this returns True, then we mark
 # shards as not supported; otherwise, we will check again next time.
+def _is_http_error_most_400_codes(status_code: str | int) -> bool:
+    """
+    Determine whether the `HTTPError` is an HTTP 400 error code (except for 416).
+    """
+    return (
+        isinstance(status_code, int) and 400 <= status_code < 500 and status_code != 416
+    )
+
+
 def fetch_shards_index(
     sd: SubdirData, cache: shards_cache.ShardCache | None
 ) -> Shards | None:
@@ -567,6 +704,58 @@ def fetch_shards_index(
     return None
 
 
+def batch_retrieve_from_cache(sharded: list[Shards], packages: list[str]):
+    """
+    Given a list of Shards objects and a list of package names, fetch all URLs
+    from a shared local cache, and update Shards with those per-package shards.
+    Return the remaining URLs that must be fetched from the network.
+    """
+    sharded = [shardlike for shardlike in sharded if isinstance(shardlike, Shards)]
+
+    wanted = []
+    # XXX update batch_retrieve_from_cache to work with (Shards, package name)
+    # tuples instead of broadcasting across shards itself.
+    for shard in sharded:
+        for package_name in packages:
+            if package_name in shard:  # and not package_name in shard.visited
+                wanted.append((shard, package_name, shard.shard_url(package_name)))
+
+    log.debug("%d shards to fetch", len(wanted))
+
+    if not sharded:
+        log.debug("No sharded channels found.")
+        return wanted
+
+    shared_shard_cache = sharded[0].shards_cache
+    from_cache = shared_shard_cache.retrieve_multiple(
+        [shard_url for *_, shard_url in wanted]
+    )
+
+    # add fetched Shard objects to Shards objects visited dict
+    for shard, package, shard_url in wanted:
+        if from_cache_shard := from_cache.get(shard_url):
+            shard.visit_shard(package, from_cache_shard)
+
+    return wanted
+
+
+def batch_retrieve_from_network(wanted: list[tuple[Shards, str, str]]):
+    """
+    Given a list of (Shards, package name, shard URL) tuples, group by Shards and call fetch_shards
+    with a list of all URLs for that Shard.
+    """
+    shard_packages: dict[Shards, list[str]] = defaultdict(list)
+    for shard, package, _ in wanted:
+        shard_packages[shard].append(package)
+
+    # XXX it might be better to pull networking and Session() out of Shards(),
+    # so that we can e.g. use the same session for a Channel(); typically a
+    # noarch+arch pair of subdirs.
+    # Could we share a ThreadPoolExecutor and see better session utilization?
+    for shard, packages in shard_packages.items():
+        shard.fetch_shards(packages)
+
+
 def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] | None:
     """
     Args:
@@ -584,9 +773,6 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
     channel_data: dict[str, ShardBase | None] = {url: None for url in url_to_channel}
 
     # The parallel version may reorder channels, does this matter?
-
-    # XXX update conda's cache API to work better, especially when we have to lock
-    # clean up this code path?
 
     non_sharded_channels = []
 
