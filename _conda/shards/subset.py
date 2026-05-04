@@ -72,7 +72,6 @@ from conda.base.context import context
 from . import cache
 from .cache import AnnotatedRawShard
 from .misc import (
-    _install_shards_cache,
     _shards_connections,
     combine_batches_until_none,
     exception_to_queue,
@@ -240,10 +239,12 @@ class RepodataSubset:
         Update associated `self.shardlikes` to contain enough data to build a
         repodata subset.
         """
-        with _install_shards_cache(self.shardlikes):
-            return self._reachable_bfs(root_packages)
+        with cache.ShardCache(
+            Path(conda.gateways.repodata.create_cache_dir())
+        ) as shard_cache:
+            return self._reachable_bfs(root_packages, shard_cache)
 
-    def _reachable_bfs(self, root_packages):
+    def _reachable_bfs(self, root_packages, shard_cache: cache.ShardCache):
         """
         Inner reachable_bfs() implementation.
         """
@@ -257,7 +258,7 @@ class RepodataSubset:
             if to_retrieve:
                 # Fetch from cache and network, getting ShardFetch objects for network fetches
                 needs_network = batch_retrieve_from_cache(
-                    self.shardlikes, sorted(to_retrieve)
+                    self.shardlikes, sorted(to_retrieve), shard_cache
                 )
                 if needs_network:
                     batch_retrieve_from_network(needs_network)

@@ -71,17 +71,24 @@ class ShardFetch:
     This allows batching and coordinating shard retrieval across multiple channels.
     """
 
-    def __init__(self, shardbase: ShardBase, package: str):
+    def __init__(
+        self,
+        shardbase: ShardBase,
+        package: str,
+        shard_cache: cache.ShardCache | None = None,
+    ):
         """
         Initialize a ShardFetch wrapper.
 
         Args:
             shardbase: The ShardBase (Shards or ShardLike) instance
             package: The package name to fetch
+            shard_cache: Optional cache to use for storage (required for Shards)
         """
         self.shardbase = shardbase
         self.package = package
         self.url = shardbase.shard_url(package)
+        self.shard_cache = shard_cache
         self._shard: ShardDict | None = None
         self._fetched = False
 
@@ -158,9 +165,9 @@ class ShardFetch:
         """
         Process a single fetched shard result.
         """
-        # Fail early if no cache to store the result.
-        if shards.shards_cache is None:
-            raise ValueError("shards.shards_cache is None")
+        # Cache must be provided for Shards instances
+        if self.shard_cache is None:
+            raise ValueError("shard_cache is required for fetching from Shards")
 
         with conda_http_errors(url, package):
             fetch_result = future.result()
@@ -171,7 +178,7 @@ class ShardFetch:
                 fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
             )
         )
-        shards.shards_cache.insert(fetch_result)
+        self.shard_cache.insert(fetch_result)
 
     def get_if_loaded(self) -> ShardDict | None:
         """
@@ -411,13 +418,11 @@ class Shards(ShardBase):
     """
 
     _shards_base_url: str
-    shards_cache: cache.ShardCache | None
 
     def __init__(
         self,
         shards_index: ShardsIndexDict,
         url: str,
-        cache_obj: cache.ShardCache | None = None,
     ):
         """
         Args:
@@ -427,7 +432,6 @@ class Shards(ShardBase):
         """
         self.shards_index = shards_index
         self.url = url
-        self.shards_cache = cache_obj
 
         # https://github.com/conda/conda-index/pull/209 ensures that sharded
         # repodata will always include base_url, even if it is an empty string;
@@ -572,9 +576,7 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 # shards as not supported; otherwise, we will check again next time.
 
 
-def fetch_shards_index(
-    sd: SubdirData, cache_obj: cache.ShardCache | None
-) -> Shards | None:
+def fetch_shards_index(sd: SubdirData) -> Shards | None:
     """
     Check a SubdirData's URL for shards.
 
@@ -657,14 +659,14 @@ def fetch_shards_index(
             shards_index: ShardsIndexDict = msgpack.loads(
                 zstandard.decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
             )  # type: ignore
-            shards = Shards(shards_index, shards_index_url, cache_obj)
+            shards = Shards(shards_index, shards_index_url)
             return shards
 
     return None
 
 
 def batch_retrieve_from_cache(
-    shardlikes: Sequence[ShardBase], packages: list[str]
+    shardlikes: Sequence[ShardBase], packages: list[str], shard_cache: cache.ShardCache
 ) -> list[ShardFetch]:
     """
     Given a list of ShardBase objects and a list of package names, fetch all URLs
@@ -690,13 +692,10 @@ def batch_retrieve_from_cache(
         for shardlike in shardlikes:
             for package_name in packages:
                 if package_name in shardlike:
-                    result.append(ShardFetch(shardlike, package_name))
+                    result.append(ShardFetch(shardlike, package_name, shard_cache))
         return result
 
-    shared_shard_cache = sharded[0].shards_cache
-    from_cache = shared_shard_cache.retrieve_multiple(
-        [shard_url for *_, shard_url in wanted]
-    )
+    from_cache = shard_cache.retrieve_multiple([shard_url for *_, shard_url in wanted])
 
     # add fetched Shard objects to Shards objects visited dict
     needs_network = []
@@ -704,7 +703,7 @@ def batch_retrieve_from_cache(
         if from_cache_shard := from_cache.get(shard_url):
             shardlike.visit_shard(package, from_cache_shard)
         else:
-            needs_network.append(ShardFetch(shardlike, package))
+            needs_network.append(ShardFetch(shardlike, package, shard_cache))
 
     return needs_network
 
@@ -741,7 +740,7 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
     ) as executor:
         futures = {
             executor.submit(
-                fetch_shards_index, SubdirData(Channel(channel_url)), None
+                fetch_shards_index, SubdirData(Channel(channel_url))
             ): channel_url
             for (channel_url, _) in url_to_channel.items()
         }

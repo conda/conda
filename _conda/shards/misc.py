@@ -14,23 +14,19 @@ from __future__ import annotations
 
 import functools
 import queue
-from contextlib import contextmanager, suppress
-from pathlib import Path
+from contextlib import suppress
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse, urlunparse, uses_relative
 
 from libmambapy.bindings import specs
 
-import conda.gateways.repodata
-from _conda.shards.cache import ShardCache
 from conda.base.context import context
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence
+    from collections.abc import Iterator, Sequence
     from queue import SimpleQueue as Queue
     from typing import TypeVar
 
-    from _conda.shards.shards import Shards
     from _conda.shards.typing import PackageRecordDict, ShardDict
 
     _T = TypeVar("_T")
@@ -202,19 +198,3 @@ def exception_to_queue(func):
             out_queue.put(e)  # tell caller that we received an exception
 
     return wrapper
-
-
-@contextmanager
-def _install_shards_cache(shardlikes: Iterable[Shards]):
-    """
-    Add cache to shardlikes for duration of traversal, then remove and close.
-    """
-    with ShardCache(Path(conda.gateways.repodata.create_cache_dir())) as cache:
-        for shardlike in shardlikes:
-            # Only Shards objects (not ShardLike) have this attribute
-            if hasattr(shardlike, "shards_cache"):
-                shardlike.shards_cache = cache
-        yield cache
-        for shardlike in shardlikes:
-            if hasattr(shardlike, "shards_cache"):
-                shardlike.shards_cache = None
