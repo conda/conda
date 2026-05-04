@@ -623,6 +623,11 @@ def exception_to_queue(func):
 
 
 class QueueCache:
+    """
+    Implement insert() interface of .cache.ShardCache() as a queue, instead of
+    giving network thread direct access to the database.
+    """
+
     def __init__(self, queue):
         self.queue: Queue = queue
 
