@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import sys
 from argparse import (
@@ -182,8 +183,28 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # let's call the subcommand the old-fashioned way via the assigned func..
         module_name, func_name = args.func.rsplit(".", 1)
         # func_name should always be 'execute'
-        module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
+
+        # Dynamic preview routing: for each enabled preview label, check whether a
+        # corresponding module exists under conda._preview.<pkg>.cli and use it instead.
+        # This means adding e.g. conda/_preview/env_setup/cli/main_update.py is sufficient
+        # to intercept `conda update` — no code change needed here.
+        # Only built-in conda.cli.* modules are eligible for redirection; plugin
+        # subcommands are handled by the branch above and are never affected.
+        module = None
+        for _label in context.preview:
+            _pkg = _label.replace("-", "_")
+            _candidate = module_name.replace(
+                "conda.cli", f"conda._preview.{_pkg}.cli", 1
+            )
+            if (
+                _candidate != module_name
+                and importlib.util.find_spec(_candidate) is not None
+            ):
+                module = import_module(_candidate)
+                break
+        if module is None:
+            module = import_module(module_name)
 
         context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)
