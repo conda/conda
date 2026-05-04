@@ -21,9 +21,7 @@ import msgpack
 import pytest
 import zstandard
 
-from _conda.shards import cache as shards_cache
-from _conda.shards import core as shards
-from _conda.shards import subset as shards_subset
+from _conda.shards import cache, shards, subset
 from conda.base.context import context, reset_context
 from conda.models.channel import Channel, all_channel_urls
 
@@ -31,7 +29,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
     from pathlib import Path
 
-    from _conda.shards_typing import ShardDict, ShardsIndexDict
+    from _conda.shards.typing import ShardDict, ShardsIndexDict
 
 # Test channel names
 CONDA_FORGE_WITH_SHARDS = "conda-forge"
@@ -261,8 +259,8 @@ class MockCache(NamedTuple):
     """Contain all the elements needed by mock_cache fixture."""
 
     num_shards: int
-    shards: list[shards_cache.AnnotatedRawShard]
-    cache: shards_cache.ShardCache
+    shards: list[cache.AnnotatedRawShard]
+    cache_obj: cache.ShardCache
 
 
 @pytest.fixture
@@ -271,7 +269,7 @@ def prepare_shards_test(monkeypatch: pytest.MonkeyPatch):
     Reset token to avoid being logged in. Enable shards.
     """
     logging.basicConfig(level=logging.INFO)
-    for module in (shards, shards_cache, shards_subset):
+    for module in (shards, cache, subset):
         module.log.setLevel(logging.DEBUG)
 
     monkeypatch.setenv("CONDA_TOKEN", "")
@@ -287,31 +285,33 @@ def mock_cache(tmp_path: Path) -> Iterator[MockCache]:
     Set up a mock shard cache that will be used by multiple benchmark tests.
     """
     num_fake_shards = 64
-    with shards_cache.ShardCache(tmp_path) as cache:
+    with cache.ShardCache(tmp_path) as cache_instance:
         fake_shards = []
 
         compressor = zstandard.ZstdCompressor(level=1)
         for i in range(num_fake_shards):
             fake_shard = {f"foo{i}": "bar"}
-            annotated_shard = shards_cache.AnnotatedRawShard(
+            annotated_shard = cache.AnnotatedRawShard(
                 f"https://foo{i}",
                 f"foo{i}",
                 compressor.compress(msgpack.dumps(fake_shard)),  # type: ignore
             )
-            cache.insert(annotated_shard)
+            cache_instance.insert(annotated_shard)
             fake_shards.append(annotated_shard)
 
-        yield MockCache(num_shards=num_fake_shards, shards=fake_shards, cache=cache)
+        yield MockCache(
+            num_shards=num_fake_shards, shards=fake_shards, cache_obj=cache_instance
+        )
 
 
 @pytest.fixture
 def shard_cache_with_data(
     mock_cache: MockCache,
-) -> tuple[shards_cache.ShardCache, list[shards_cache.AnnotatedRawShard]]:
+) -> tuple[cache.ShardCache, list[cache.AnnotatedRawShard]]:
     """
     ShardCache with some data already inserted.
     """
-    return mock_cache.cache, mock_cache.shards
+    return mock_cache.cache_obj, mock_cache.shards
 
 
 @pytest.fixture(scope="session")

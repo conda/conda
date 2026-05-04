@@ -26,14 +26,14 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from _conda.shards.core import shard_mentioned_packages
-from _conda.shards.misc import filter_redundant_packages
+from .misc import filter_redundant_packages
+from .shards import shard_mentioned_packages
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
 
     from .cache import ShardCache
-    from .core import ShardBase, Shards
+    from .shards import ShardBase, Shards
     from .subset import RepodataSubset
     from .typing import ShardDict
 

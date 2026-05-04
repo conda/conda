@@ -15,7 +15,7 @@ import urllib.parse
 
 import pytest
 
-from _conda.shards.core import (
+from _conda.shards.shards import (
     fetch_channels,
 )
 from _conda.shards.subset import (

@@ -11,16 +11,18 @@ from __future__ import annotations
 import abc
 import concurrent.futures
 import functools
-import json
+import json  # noqa
 import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse, urlunparse, uses_relative
 
-import conda.exceptions
-import conda.gateways.repodata
 import msgpack
 import zstandard
+from libmambapy.bindings import specs
+
+import conda.exceptions
+import conda.gateways.repodata
 from conda.base.context import context
 from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import get_session
@@ -29,9 +31,8 @@ from conda.gateways.repodata import (
     conda_http_errors,
 )
 from conda.models.channel import Channel
-from libmambapy.bindings import specs
 
-from . import shards_cache
+from . import cache
 
 log = logging.getLogger(__name__)
 
@@ -39,12 +40,11 @@ log = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from collections.abc import Iterable, KeysView
 
-    from conda.gateways.repodata import RepodataCache
     from requests import Response
 
-    from conda_libmamba_solver.shards_typing import RepodataDict, ShardsIndexDict
+    from conda.gateways.repodata import RepodataCache
 
-    from .shards_typing import PackageRecordDict, ShardDict
+    from .typing import PackageRecordDict, RepodataDict, ShardDict, ShardsIndexDict
 
 SHARDS_CONNECTIONS_DEFAULT = 10
 ZSTD_MAX_SHARD_SIZE = (
@@ -369,13 +369,13 @@ class Shards(ShardBase):
     """
 
     _shards_base_url: str
-    shards_cache: shards_cache.ShardCache | None
+    shards_cache: cache.ShardCache | None
 
     def __init__(
         self,
         shards_index: ShardsIndexDict,
         url: str,
-        cache: shards_cache.ShardCache | None = None,
+        cache_obj: cache.ShardCache | None = None,
     ):
         """
         Args:
@@ -385,7 +385,7 @@ class Shards(ShardBase):
         """
         self.shards_index = shards_index
         self.url = url
-        self.shards_cache = cache
+        self.shards_cache = cache_obj
 
         # https://github.com/conda/conda-index/pull/209 ensures that sharded
         # repodata will always include base_url, even if it is an empty string;
@@ -479,7 +479,7 @@ class Shards(ShardBase):
             response.raise_for_status()
             data = response.content
 
-            return shards_cache.AnnotatedRawShard(
+            return cache.AnnotatedRawShard(
                 url=url, package=package_to_fetch, compressed_shard=data
             )
 
@@ -614,7 +614,7 @@ def _is_http_error_most_400_codes(status_code: str | int) -> bool:
 
 
 def fetch_shards_index(
-    sd: SubdirData, cache: shards_cache.ShardCache | None
+    sd: SubdirData, cache_obj: cache.ShardCache | None
 ) -> Shards | None:
     """
     Check a SubdirData's URL for shards.
@@ -698,7 +698,7 @@ def fetch_shards_index(
             shards_index: ShardsIndexDict = msgpack.loads(
                 zstandard.decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
             )  # type: ignore
-            shards = Shards(shards_index, shards_index_url, cache)
+            shards = Shards(shards_index, shards_index_url, cache_obj)
             return shards
 
     return None

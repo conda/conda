@@ -36,7 +36,7 @@ The following constructs several repodata (`noarch` and `linux-64`) from a
 single channel name and a list of root packages:
 
 ``` from conda.models.channel import Channel from
-conda_libmamba_solver.shards_subset import build_repodata_subset
+_conda.shards_subset import build_repodata_subset
 
 channel = Channel("conda-forge-sharded/linux-64") channel_data =
 build_repodata_subset(["python", "pandas"], [channel.url()]) repodata = {}
@@ -63,14 +63,14 @@ from pathlib import Path
 from queue import SimpleQueue
 from typing import TYPE_CHECKING
 
-import conda.gateways.repodata
 import msgpack
 import zstandard
+
+import conda.gateways.repodata
 from conda.base.context import context
 
-from conda_libmamba_solver import shards_cache
-from conda_libmamba_solver.shards_cache import AnnotatedRawShard
-
+from . import cache
+from .cache import AnnotatedRawShard
 from .shards import (
     ZSTD_MAX_SHARD_SIZE,
     Shards,
@@ -90,10 +90,9 @@ if TYPE_CHECKING:
 
     from conda.models.channel import Channel
 
-    from conda_libmamba_solver.shards_cache import ShardCache
-    from conda_libmamba_solver.shards_typing import ShardDict
-
+    from .cache import ShardCache
     from .shards import ShardBase
+    from .typing import ShardDict
 
 # Waiting for worker threads to shutdown cleanly, or raise error.
 THREAD_WAIT_TIMEOUT = 5  # seconds
@@ -171,16 +170,16 @@ def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> Sh
 @contextmanager
 def _install_shards_cache(shardlikes):
     """
-    Add shards_cache to shardlikes for duration of traversal, then remove and
+    Add cache to shardlikes for duration of traversal, then remove and
     close.
     """
-    with shards_cache.ShardCache(
+    with cache.ShardCache(
         Path(conda.gateways.repodata.create_cache_dir())
-    ) as cache:
+    ) as cache_instance:
         for shardlike in shardlikes:
             if isinstance(shardlike, Shards):
-                shardlike.shards_cache = cache
-        yield cache
+                shardlike.shards_cache = cache_instance
+        yield cache_instance
         for shardlike in shardlikes:
             if isinstance(shardlike, Shards):
                 shardlike.shards_cache = None
@@ -324,11 +323,11 @@ class RepodataSubset:
 
         # Ignore cache on shards object, use our own. Necessary if there are no
         # sharded channels.
-        with shards_cache.ShardCache(
+        with cache.ShardCache(
             Path(conda.gateways.repodata.create_cache_dir())
-        ) as cache:
+        ) as cache_instance:
             return self._reachable_pipelined(
-                root_packages, network_worker=network_worker, cache=cache
+                root_packages, network_worker=network_worker, cache=cache_instance
             )
 
     def _reachable_pipelined(
@@ -338,12 +337,12 @@ class RepodataSubset:
             [
                 Queue[Sequence[NodeId] | None],
                 Queue[list[tuple[NodeId, ShardDict] | Exception]],
-                ShardCache,
+                cache.ShardCache,
                 Sequence[ShardBase],
             ],
             None,
         ],
-        cache: shards_cache.ShardCache,
+        cache: cache.ShardCache,
     ):
         """
         Set up queues and threads for shard traversal with a configurable

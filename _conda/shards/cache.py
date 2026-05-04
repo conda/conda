@@ -19,7 +19,7 @@ import zstandard
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from .shards_typing import ShardDict
+    from .typing import ShardDict
 
 log = logging.getLogger(__name__)
 

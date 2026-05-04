@@ -29,9 +29,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence, TypeVar
     from queue import SimpleQueue as Queue
 
-    from _conda.shards_typing import PackageRecordDict, ShardDict
-
-    from _conda.shards.core import Shards
+    from _conda.shards.shards import Shards
+    from _conda.shards.typing import PackageRecordDict, ShardDict
 
     _T = TypeVar("_T")
 
@@ -207,7 +206,7 @@ def exception_to_queue(func):
 @contextmanager
 def _install_shards_cache(shardlikes: Iterable[Shards]):
     """
-    Add shards_cache to shardlikes for duration of traversal, then remove and close.
+    Add cache to shardlikes for duration of traversal, then remove and close.
     """
     with ShardCache(Path(conda.gateways.repodata.create_cache_dir())) as cache:
         for shardlike in shardlikes:
