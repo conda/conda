@@ -129,7 +129,7 @@ class LazyAction(Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         valid_choices = self.choices
-        if valid_choices and values not in valid_choices:
+        if valid_choices is not None and values not in valid_choices:
             choices_string = ", ".join(f"'{val}'" for val in valid_choices)
             # Use the same format as argparse for consistency
             option_display = "/".join(self.option_strings)
