@@ -3,7 +3,7 @@
 """Collection of enums used throughout conda."""
 
 import sys
-from enum import Enum, EnumMeta
+from enum import Enum
 from platform import machine
 
 from ..auxlib.ish import dals
@@ -82,16 +82,7 @@ class LinkType(Enum):
         return self.name
 
 
-class _PathEnumMeta(EnumMeta):
-    """Metaclass so ``PathEnum.basic_types`` works as a class-level property."""
-
-    @property
-    def basic_types(self):
-        # ``self`` is the enum class (e.g. ``PathEnum``); subscript avoids metaclass typing noise.
-        return (self["hardlink"], self["softlink"], self["directory"])
-
-
-class PathEnum(Enum, metaclass=_PathEnumMeta):
+class PathEnum(Enum):
     """
     Refers to if the file in question is hard linked or soft linked. Originally designed to be used
     in paths.json
@@ -116,6 +107,12 @@ class PathEnum(Enum, metaclass=_PathEnumMeta):
     def __json__(self):
         return self.name
 
+
+setattr(
+    PathEnum,
+    "basic_types",
+    (PathEnum.hardlink, PathEnum.softlink, PathEnum.directory),
+)
 
 deprecated.constant(
     deprecate_in="26.9",
