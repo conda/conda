@@ -80,7 +80,7 @@ def test_build_repodata_subset_pipelined(
     with _timer("RepodataSubset.reachable_pipelined()", assert_quick):
         subset = RepodataSubset((*channel_data.values(),))
         subset.reachable_pipelined(root_packages)
-        print(f"{len(subset.nodes)} (channel, package) nodes discovered")
+        print(f"{len(subset._nodes)} (channel, package) nodes discovered")
 
     print(
         "Channels:",

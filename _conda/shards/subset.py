@@ -145,14 +145,21 @@ def _nodes_from_packages(
                 yield node_id, node
 
 
-@dataclass
 class RepodataSubset:
-    nodes: dict[NodeId, Node]
+    """
+    Build a subset of repodata by traversing all packages that are dependencies
+    and transitive dependencies of a root set of packages.
+    """
+
     shardlikes: Sequence[ShardBase]
     DEFAULT_STRATEGY = "pipelined"
 
+    _nodes: dict[NodeId, Node]
+    _use_only_tar_bz2: bool
+    _add_pip_as_python_dependency: bool
+
     def __init__(self, shardlikes: Iterable[ShardBase]):
-        self.nodes = {}
+        self._nodes = {}
         self.shardlikes = list(shardlikes)
         self._use_only_tar_bz2 = context.use_only_tar_bz2
         self._add_pip_as_python_dependency = context.add_pip_as_python_dependency
@@ -164,7 +171,7 @@ class RepodataSubset:
         """
         return hasattr(cls, f"reachable_{strategy}")
 
-    def neighbors(self, node: Node) -> Iterator[Node]:
+    def _neighbors(self, node: Node) -> Iterator[Node]:
         """
         Retrieve all unvisited neighbors of a node.
 
@@ -199,17 +206,17 @@ class RepodataSubset:
             for package in shard_mentioned_packages(shard, extra=extra):
                 node_id = NodeId(package, shardlike.url)
 
-                if node_id not in self.nodes:
-                    self.nodes[node_id] = Node(
+                if node_id not in self._nodes:
+                    self._nodes[node_id] = Node(
                         node.distance + 1, package, shardlike.url
                     )
-                    yield self.nodes[node_id]
+                    yield self._nodes[node_id]
 
                     if package not in discovered:
                         # now this is per package name, not per (name, channel) tuple
                         discovered.add(package)
 
-    def outgoing(self, node: Node):
+    def _outgoing(self, node: Node):
         """
         All nodes that can be reached by this node, plus cost.
         """
@@ -218,7 +225,7 @@ class RepodataSubset:
         # we might be able to find more shards-to-fetch-in-parallel more
         # quickly. On the other hand our goal is that the big channels will all
         # be sharded.
-        for n in self.neighbors(node):
+        for n in self._neighbors(node):
             yield n, 1
 
     def reachable(self, root_packages, *, strategy=DEFAULT_STRATEGY) -> None:
@@ -248,9 +255,9 @@ class RepodataSubset:
         """
         Inner reachable_bfs() implementation.
         """
-        self.nodes = dict(_nodes_from_packages(root_packages, self.shardlikes))
+        self._nodes = dict(_nodes_from_packages(root_packages, self.shardlikes))
 
-        node_queue = deque(self.nodes.values())
+        node_queue = deque(self._nodes.values())
 
         while node_queue:
             # Batch fetch all nodes at current level
@@ -271,7 +278,7 @@ class RepodataSubset:
                     continue  # we should never add visited nodes to node_queue
                 node.visited = True
 
-                for next_node, _ in self.outgoing(node):
+                for next_node, _ in self._outgoing(node):
                     if not next_node.visited:
                         node_queue.append(next_node)
 
@@ -375,7 +382,7 @@ class RepodataSubset:
         in_flight: set[NodeId] = set()
         timeouts = 0
 
-        self.nodes = {}
+        self._nodes = {}
 
         # create start condition
         parent_node = Node(0)
@@ -409,7 +416,7 @@ class RepodataSubset:
             log.debug(
                 "in_flight: %s...", sorted(str(node_id) for node_id in in_flight)[:10]
             )
-            log.debug("nodes: %d", len(self.nodes))
+            log.debug("nodes: %d", len(self._nodes))
             log.debug("cache_thread.is_alive(): %s", cache_thread.is_alive())
             log.debug("network_thread.is_alive(): %s", network_thread.is_alive())
             log.debug("shard_out_queue.qsize(): %s", shard_out_queue.qsize())
@@ -448,7 +455,7 @@ class RepodataSubset:
                 shard = filter_redundant_packages(shard, self._use_only_tar_bz2)
 
                 # add shard to appropriate ShardLike
-                parent_node = self.nodes[node_id]
+                parent_node = self._nodes[node_id]
                 shardlike = shardlikes_by_url[node_id.channel]
                 shardlike.visit_shard(node_id.package, shard)
 
@@ -478,14 +485,14 @@ class RepodataSubset:
                     new_node_id = NodeId(
                         package, shardlike.url, shardlike.shard_url(package)
                     )
-                    if new_node_id not in self.nodes:
+                    if new_node_id not in self._nodes:
                         new_node = Node(
                             distance=parent_node.distance + 1,
                             package=new_node_id.package,
                             channel=new_node_id.channel,
                             shard_url=new_node_id.shard_url,
                         )
-                        self.nodes[new_node_id] = new_node
+                        self._nodes[new_node_id] = new_node
                         yield new_node_id
 
         parent_node.visited = True
@@ -507,7 +514,7 @@ class RepodataSubset:
             if shardlike.shard_loaded(node_id.package):  # for monolithic repodata
                 shards_have.append((node_id, shardlike.visit_package(node_id.package)))
             else:
-                if self.nodes[node_id].visited:  # pragma: no cover
+                if self._nodes[node_id].visited:  # pragma: no cover
                     log.debug("Skip visited, should not be reached")
                     continue
                 shards_need.append(node_id)
@@ -536,7 +543,7 @@ def build_repodata_subset(
     if channel_data is not None:
         subset = RepodataSubset((*channel_data.values(),))
         subset.reachable(root_packages, strategy=algorithm)
-        log.debug("%d (channel, package) nodes discovered", len(subset.nodes))
+        log.debug("%d (channel, package) nodes discovered", len(subset._nodes))
 
     return channel_data
 
