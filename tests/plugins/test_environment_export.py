@@ -28,6 +28,7 @@ from conda.plugins.environment_exporters.environment_yml import (
 )
 from conda.plugins.environment_exporters.explicit import EXPLICIT_FORMAT
 from conda.plugins.environment_exporters.requirements_txt import REQUIREMENTS_FORMAT
+from conda.plugins.formats import FormatSummary
 from conda.plugins.types import CondaEnvironmentExporter, EnvironmentFormat
 
 from ..conftest import Exporters
@@ -361,7 +362,7 @@ def test_describe_exporter_formats_groups_by_category(
 ):
     """Exporters are grouped by category; aliases are rendered in parens."""
     exporters = plugin_manager_with_exporters.get_environment_exporters()
-    rendered = plugin_manager_with_exporters.describe_formats(exporters)
+    rendered = FormatSummary(exporters).describe()
 
     assert "Environment specs:" in rendered
     assert "- environment-yaml (yaml, yml, env.yml)" in rendered
@@ -374,21 +375,21 @@ def test_describe_exporter_formats_includes_registered_lockfile_plugin(
 ):
     """A newly registered lockfile plugin appears under the Lockfiles section."""
     exporters = plugin_manager_with_exporters.get_environment_exporters()
-    assert "my-lock-v1" not in plugin_manager_with_exporters.describe_formats(exporters)
+    assert "my-lock-v1" not in FormatSummary(exporters).describe()
 
     plugin = DescribeExportersLockfilePlugin()
     plugin_manager_with_exporters.register(plugin)
     request.addfinalizer(lambda: plugin_manager_with_exporters.unregister(plugin))
 
     exporters = plugin_manager_with_exporters.get_environment_exporters()
-    rendered = plugin_manager_with_exporters.describe_formats(exporters)
+    rendered = FormatSummary(exporters).describe()
     assert "Lockfiles:" in rendered
     assert "- my-lock-v1 (mylock)" in rendered
 
 
-def test_describe_exporter_formats_empty(plugin_manager):
+def test_describe_exporter_formats_empty():
     """Without registered exporters the description is empty."""
-    assert plugin_manager.describe_formats([]) == ""
+    assert FormatSummary([]).describe() == ""
 
 
 def test_describe_exporter_formats_with_heading(
@@ -396,30 +397,18 @@ def test_describe_exporter_formats_with_heading(
 ):
     """Passing ``heading`` prefixes the body so it can be appended to an epilog."""
     exporters = plugin_manager_with_exporters.get_environment_exporters()
-    rendered = plugin_manager_with_exporters.describe_formats(
-        exporters, heading="Available formats"
-    )
-    assert rendered.startswith("\n\nAvailable formats:\n\n")
+    rendered = FormatSummary(exporters).describe(heading="Available formats")
+    assert rendered.startswith("Available formats:\n\n")
     assert "Environment specs:" in rendered
 
 
-def test_describe_exporter_formats_with_heading_empty(plugin_manager):
+def test_describe_exporter_formats_with_heading_empty():
     """``heading`` is dropped when there is no body to render."""
-    assert plugin_manager.describe_formats([], heading="Formats") == ""
+    assert FormatSummary([]).describe(heading="Formats") == ""
 
 
-def test_example_filename_returns_first_default(
-    plugin_manager_with_exporters: CondaPluginManager,
-):
-    """``example_filename`` returns the first registered ``default_filenames`` entry."""
-    exporters = plugin_manager_with_exporters.get_environment_exporters()
-    assert plugin_manager_with_exporters.example_filename(exporters) is not None
-
-
-def test_example_filename_skips_plugins_without_default_filenames(
-    plugin_manager_with_exporters: CondaPluginManager,
-):
-    """Plugins without ``default_filenames`` are skipped."""
+def test_example_filename_for_fallback_skips_empty_default_filenames():
+    """Plugins without ``default_filenames`` are skipped in the fallback path."""
     no_filenames = CondaEnvironmentExporter(
         name="no-filenames",
         aliases=(),
@@ -432,15 +421,14 @@ def test_example_filename_skips_plugins_without_default_filenames(
         default_filenames=("picked.txt",),
         export=lambda env: "",
     )
-    picked = plugin_manager_with_exporters.example_filename(
-        [no_filenames, with_filenames]
-    )
+    formats = FormatSummary([no_filenames, with_filenames])
+    picked = formats.example_filename(EnvironmentFormat.environment)
     assert picked == "picked.txt"
 
 
-def test_example_filename_none_when_empty(plugin_manager):
-    """Returns ``None`` when no plugin declares a default filename."""
-    assert plugin_manager.example_filename([]) is None
+def test_example_filename_for_empty_plugins():
+    """Returns ``None`` when no plugins are provided."""
+    assert FormatSummary([]).example_filename(EnvironmentFormat.environment) is None
 
 
 def test_example_filename_for_prefer_filenames_hits(
@@ -448,10 +436,10 @@ def test_example_filename_for_prefer_filenames_hits(
 ):
     """``prefer_filenames`` pins the rendered example regardless of plugin order."""
     exporters = list(plugin_manager_with_exporters.get_environment_exporters())
+    formats = FormatSummary(exporters)
     assert (
-        plugin_manager_with_exporters.example_filename_for(
+        formats.example_filename(
             EnvironmentFormat.environment,
-            exporters,
             prefer_filenames=("environment.yml", "environment.yaml"),
         )
         == "environment.yml"
@@ -463,13 +451,13 @@ def test_example_filename_for_prefer_filenames_falls_back(
 ):
     """``prefer_filenames`` falls back to the first ``default_filenames`` entry on miss."""
     exporters = list(plugin_manager_with_exporters.get_environment_exporters())
-    fallback = plugin_manager_with_exporters.example_filename_for(
+    formats = FormatSummary(exporters)
+    fallback = formats.example_filename(
         EnvironmentFormat.environment,
-        exporters,
         prefer_filenames=("does-not-exist.txt",),
     )
-    # Falls back to whatever ``example_filename`` would return for the same
-    # category, i.e. the first default_filenames entry across candidates.
+    # Falls back to the first default_filenames entry across candidates
+    # in the matching category.
     assert fallback in {"environment.yaml", "environment.yml", "environment.json"}
 
 
@@ -511,17 +499,15 @@ def test_example_filename_for_require_multiplatform_filters(
     request.addfinalizer(lambda: plugin_manager_with_exporters.unregister(multi_plugin))
 
     exporters = list(plugin_manager_with_exporters.get_environment_exporters())
+    formats = FormatSummary(exporters)
 
     # Without the filter, any lockfile filename is fair game.
-    any_lock = plugin_manager_with_exporters.example_filename_for(
-        EnvironmentFormat.lockfile, exporters
-    )
+    any_lock = formats.example_filename(EnvironmentFormat.lockfile)
     assert any_lock in {"explicit.txt", "single.lock", "multi.lock"}
 
     # With the filter, only the multi-platform plugin's filename can win.
-    multiplatform_lock = plugin_manager_with_exporters.example_filename_for(
+    multiplatform_lock = formats.example_filename(
         EnvironmentFormat.lockfile,
-        exporters,
         require_multiplatform=True,
     )
     assert multiplatform_lock == "multi.lock"
@@ -532,12 +518,12 @@ def test_example_filename_for_require_multiplatform_returns_none(
 ):
     """When no candidate supports multi-platform output the helper returns ``None``."""
     exporters = list(plugin_manager_with_exporters.get_environment_exporters())
+    formats = FormatSummary(exporters)
     # Only ``explicit`` is registered as a lockfile by default and it's
     # single-platform, so requiring multi-platform support yields nothing.
     assert (
-        plugin_manager_with_exporters.example_filename_for(
+        formats.example_filename(
             EnvironmentFormat.lockfile,
-            exporters,
             require_multiplatform=True,
         )
         is None

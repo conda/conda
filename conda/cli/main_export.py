@@ -29,6 +29,7 @@ class CondaExportWarning(Warning):
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from ..plugins.formats import FormatSummary
     from ..plugins.types import EnvironmentFormat
     from .helpers import (
         LazyChoicesAction,
@@ -36,21 +37,17 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_prefix,
     )
 
-    plugin_manager = context.plugin_manager
-    exporters = list(plugin_manager.get_environment_exporters())
-    spec_example = plugin_manager.example_filename_for(
+    formats = FormatSummary(context.plugin_manager.get_environment_exporters())
+    spec_example = formats.example_filename(
         EnvironmentFormat.environment,
-        exporters,
         prefer_filenames=("environment.yml", "environment.yaml"),
     )
-    lock_example = plugin_manager.example_filename_for(
+    lock_example = formats.example_filename(
         EnvironmentFormat.lockfile,
-        exporters,
         prefer_filenames=("conda-lock.yml", "pixi.lock"),
     )
-    multiplatform_lock_example = plugin_manager.example_filename_for(
+    multiplatform_lock_example = formats.example_filename(
         EnvironmentFormat.lockfile,
-        exporters,
         prefer_filenames=("conda-lock.yml", "pixi.lock"),
         require_multiplatform=True,
     )
@@ -84,9 +81,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
             f"    conda export --file {multiplatform_lock_example} "
             "--platform linux-64 --platform osx-arm64"
         )
-    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
-        exporters, heading="Available formats"
-    )
+    if formats:
+        example_blocks.append(formats.describe(heading="Available formats"))
+    epilog = "\n\n".join(example_blocks)
 
     p = sub_parsers.add_parser(
         "export",

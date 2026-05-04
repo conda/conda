@@ -21,6 +21,7 @@ from ..notices import notices
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..base.context import context
+    from ..plugins.formats import FormatSummary
     from ..plugins.types import EnvironmentFormat
     from .helpers import (
         add_output_and_prompt_options,
@@ -32,16 +33,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
-    plugin_manager = context.plugin_manager
-    specifiers = list(plugin_manager.get_hook_results("environment_specifiers"))
-    spec_example = plugin_manager.example_filename_for(
+    formats = FormatSummary(
+        context.plugin_manager.get_hook_results("environment_specifiers")
+    )
+    spec_example = formats.example_filename(
         EnvironmentFormat.environment,
-        specifiers,
         prefer_filenames=("environment.yml", "environment.yaml"),
     )
-    lock_example = plugin_manager.example_filename_for(
+    lock_example = formats.example_filename(
         EnvironmentFormat.lockfile,
-        specifiers,
         prefer_filenames=("conda-lock.yml", "pixi.lock"),
     )
 
@@ -83,9 +83,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "    conda env create\n"
         "    conda env create -n envname"
     )
-    epilog = "\n\n".join(example_blocks) + plugin_manager.describe_formats(
-        specifiers, heading="Available input formats"
-    )
+    if formats:
+        example_blocks.append(formats.describe(heading="Available input formats"))
+    epilog = "\n\n".join(example_blocks)
 
     p = sub_parsers.add_parser(
         "create",
