@@ -1,4 +1,5 @@
-# Copyright (C) 2012 Anaconda, Inc
+# Copyright (C) 2022 Anaconda, Inc
+# Copyright (C) 2023 conda
 # SPDX-License-Identifier: BSD-3-Clause
 """
 Models for sharded repodata, and to make monolithic repodata look like sharded
@@ -31,7 +32,7 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 
-from . import cache as shards_cache
+from . import cache
 
 log = logging.getLogger(__name__)
 
@@ -39,12 +40,11 @@ log = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from collections.abc import Iterable, KeysView
 
-    from conda_libmamba_solver.shards_typing import RepodataDict, ShardsIndexDict
     from requests import Response
 
     from conda.gateways.repodata import RepodataCache
 
-    from .shards_typing import PackageRecordDict, ShardDict
+    from .typing import PackageRecordDict, RepodataDict, ShardDict, ShardsIndexDict
 
 SHARDS_CONNECTIONS_DEFAULT = 10
 ZSTD_MAX_SHARD_SIZE = (
@@ -140,10 +140,12 @@ def spec_to_package_name(spec: str) -> str:
     return name
 
 
-def shard_mentioned_packages(shard: ShardDict) -> Iterable[str]:
+def shard_mentioned_packages(
+    shard: ShardDict, extra: Iterable[str] = ()
+) -> Iterable[str]:
     """
     Return all dependency names mentioned in a shard, not including the shard's
-    own package name.
+    own package name. Additional names can be injected via ``extra``.
     """
     unique_specs = set()
     for package in (*shard["packages"].values(), *shard["packages.conda"].values()):
@@ -156,6 +158,7 @@ def shard_mentioned_packages(shard: ShardDict) -> Iterable[str]:
             unique_specs.add(spec)
             name = spec_to_package_name(spec)
             yield name  # not much improvement from only yielding unique names
+    yield from extra
 
 
 class ShardBase(abc.ABC):
@@ -290,8 +293,7 @@ class ShardLike(ShardBase):
             base_url = self.repodata_no_packages["info"]["base_url"]
             if not isinstance(base_url, str):
                 log.warning(
-                    'repodata["info"]["base_url"] was not a str, got %s',
-                    type(base_url),
+                    f'repodata["info"]["base_url"] was not a str, got {type(base_url)}'
                 )
                 raise TypeError()
             self._base_url = base_url
@@ -367,13 +369,13 @@ class Shards(ShardBase):
     """
 
     _shards_base_url: str
-    shards_cache: shards_cache.ShardCache | None
+    shards_cache: cache.ShardCache | None
 
     def __init__(
         self,
         shards_index: ShardsIndexDict,
         url: str,
-        cache: shards_cache.ShardCache | None = None,
+        cache_obj: cache.ShardCache | None = None,
     ):
         """
         Args:
@@ -383,7 +385,7 @@ class Shards(ShardBase):
         """
         self.shards_index = shards_index
         self.url = url
-        self.shards_cache = cache
+        self.shards_cache = cache_obj
 
         # https://github.com/conda/conda-index/pull/209 ensures that sharded
         # repodata will always include base_url, even if it is an empty string;
@@ -477,7 +479,7 @@ class Shards(ShardBase):
             response.raise_for_status()
             data = response.content
 
-            return shards_cache.AnnotatedRawShard(
+            return cache.AnnotatedRawShard(
                 url=url, package=package_to_fetch, compressed_shard=data
             )
 
@@ -612,7 +614,7 @@ def _is_http_error_most_400_codes(status_code: str | int) -> bool:
 
 
 def fetch_shards_index(
-    sd: SubdirData, cache: shards_cache.ShardCache | None
+    sd: SubdirData, cache_obj: cache.ShardCache | None
 ) -> Shards | None:
     """
     Check a SubdirData's URL for shards.
@@ -696,7 +698,7 @@ def fetch_shards_index(
             shards_index: ShardsIndexDict = msgpack.loads(
                 zstandard.decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
             )  # type: ignore
-            shards = Shards(shards_index, shards_index_url, cache)
+            shards = Shards(shards_index, shards_index_url, cache_obj)
             return shards
 
     return None

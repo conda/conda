@@ -1,4 +1,5 @@
-# Copyright (C) 2012 Anaconda, Inc
+# Copyright (C) 2022 Anaconda, Inc
+# Copyright (C) 2023 conda
 # SPDX-License-Identifier: BSD-3-Clause
 """
 Cache suitable for shards, not allowed to change because they are named
@@ -50,9 +51,15 @@ def connect(dburi="cache.db"):
 
     dburi: uri-style sqlite database filename; accepts certain ?= parameters.
     """
-    conn = sqlite3.connect(dburi, uri=True)
+    conn = sqlite3.connect(dburi, uri=True, timeout=30.0)
     conn.row_factory = sqlite3.Row
     with conn as c:
+        try:
+            mode = c.execute("PRAGMA journal_mode = WAL").fetchone()[0]
+        except sqlite3.DatabaseError:
+            mode = None
+        if mode and mode.lower().startswith("wal"):
+            c.execute("PRAGMA synchronous = NORMAL")
         c.execute("PRAGMA foreign_keys = ON")
     return conn
 

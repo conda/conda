@@ -1,4 +1,5 @@
-# Copyright (C) 2012 Anaconda, Inc
+# Copyright (C) 2022 Anaconda, Inc
+# Copyright (C) 2023 conda
 # SPDX-License-Identifier: BSD-3-Clause
 """
 Sharded repodata subsets.
@@ -35,7 +36,7 @@ The following constructs several repodata (`noarch` and `linux-64`) from a
 single channel name and a list of root packages:
 
 ``` from conda.models.channel import Channel from
-conda_libmamba_solver.shards_subset import build_repodata_subset
+_conda.shards_subset import build_repodata_subset
 
 channel = Channel("conda-forge-sharded/linux-64") channel_data =
 build_repodata_subset(["python", "pandas"], [channel.url()]) repodata = {}
@@ -66,7 +67,11 @@ import msgpack
 import zstandard
 
 import conda.gateways.repodata
-from _conda.shards.core import (
+from conda.base.context import context
+
+from . import cache
+from .cache import AnnotatedRawShard
+from .shards import (
     ZSTD_MAX_SHARD_SIZE,
     Shards,
     _shards_connections,
@@ -75,10 +80,6 @@ from _conda.shards.core import (
     fetch_channels,
     shard_mentioned_packages,
 )
-from conda.base.context import context
-
-from . import cache as shards_cache
-from .cache import AnnotatedRawShard
 
 log = logging.getLogger(__name__)
 
@@ -87,18 +88,18 @@ if TYPE_CHECKING:
     from queue import SimpleQueue as Queue
     from typing import Literal, TypeVar
 
-    from conda_libmamba_solver.shards_cache import ShardCache
-    from conda_libmamba_solver.shards_typing import ShardDict
-
     from conda.models.channel import Channel
 
+    from .cache import ShardCache
     from .shards import ShardBase
+    from .typing import ShardDict
 
 # Waiting for worker threads to shutdown cleanly, or raise error.
 THREAD_WAIT_TIMEOUT = 5  # seconds
 REACHABLE_PIPELINED_MAX_TIMEOUTS = (
     10  # number of times we can timeout waiting for shards
 )
+QUEUE_TIMEOUT = 1
 
 
 @dataclass(order=True)
@@ -169,16 +170,16 @@ def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> Sh
 @contextmanager
 def _install_shards_cache(shardlikes):
     """
-    Add shards_cache to shardlikes for duration of traversal, then remove and
+    Add cache to shardlikes for duration of traversal, then remove and
     close.
     """
-    with shards_cache.ShardCache(
+    with cache.ShardCache(
         Path(conda.gateways.repodata.create_cache_dir())
-    ) as cache:
+    ) as cache_instance:
         for shardlike in shardlikes:
             if isinstance(shardlike, Shards):
-                shardlike.shards_cache = cache
-        yield cache
+                shardlike.shards_cache = cache_instance
+        yield cache_instance
         for shardlike in shardlikes:
             if isinstance(shardlike, Shards):
                 shardlike.shards_cache = None
@@ -194,6 +195,7 @@ class RepodataSubset:
         self.nodes = {}
         self.shardlikes = list(shardlikes)
         self._use_only_tar_bz2 = context.use_only_tar_bz2
+        self._add_pip_as_python_dependency = context.add_pip_as_python_dependency
 
     @classmethod
     def has_strategy(cls, strategy: str) -> bool:
@@ -222,7 +224,13 @@ class RepodataSubset:
             shard = filter_redundant_packages(shard, self._use_only_tar_bz2)
             shardlike.visit_shard(node.package, shard)
 
-            for package in shard_mentioned_packages(shard):
+            # ensure solver has "pip" record if add_pip_as_python_dependency:
+            extra = (
+                ("pip",)
+                if self._add_pip_as_python_dependency and node.package == "python"
+                else ()
+            )
+            for package in shard_mentioned_packages(shard, extra=extra):
                 node_id = NodeId(package, shardlike.url)
 
                 if node_id not in self.nodes:
@@ -315,11 +323,11 @@ class RepodataSubset:
 
         # Ignore cache on shards object, use our own. Necessary if there are no
         # sharded channels.
-        with shards_cache.ShardCache(
+        with cache.ShardCache(
             Path(conda.gateways.repodata.create_cache_dir())
-        ) as cache:
+        ) as cache_instance:
             return self._reachable_pipelined(
-                root_packages, network_worker=network_worker, cache=cache
+                root_packages, network_worker=network_worker, cache=cache_instance
             )
 
     def _reachable_pipelined(
@@ -329,12 +337,12 @@ class RepodataSubset:
             [
                 Queue[Sequence[NodeId] | None],
                 Queue[list[tuple[NodeId, ShardDict] | Exception]],
-                ShardCache,
+                cache.ShardCache,
                 Sequence[ShardBase],
             ],
             None,
         ],
-        cache: shards_cache.ShardCache,
+        cache: cache.ShardCache,
     ):
         """
         Set up queues and threads for shard traversal with a configurable
@@ -355,7 +363,12 @@ class RepodataSubset:
 
         network_thread = threading.Thread(
             target=network_worker,
-            args=(cache_miss_queue, shard_out_queue, cache, self.shardlikes),
+            args=(
+                cache_miss_queue,
+                shard_out_queue,
+                QueueCache(cache_in_queue),
+                self.shardlikes,
+            ),
             daemon=True,
         )
 
@@ -445,7 +458,7 @@ class RepodataSubset:
                 break
 
             try:
-                new_shards = shard_out_queue.get(timeout=1)
+                new_shards = shard_out_queue.get(timeout=QUEUE_TIMEOUT)
                 if isinstance(
                     new_shards, BaseException
                 ):  # error propagated from worker thread
@@ -468,8 +481,17 @@ class RepodataSubset:
                 shardlike = shardlikes_by_url[node_id.channel]
                 shardlike.visit_shard(node_id.package, shard)
 
+                # ensure solver has "pip" record if add_pip_as_python_dependency:
+                extra = (
+                    ("pip",)
+                    if self._add_pip_as_python_dependency
+                    and parent_node.package == "python"
+                    else ()
+                )
                 pending.update(
-                    self.visit_node(parent_node, shard_mentioned_packages(shard))
+                    self.visit_node(
+                        parent_node, shard_mentioned_packages(shard, extra=extra)
+                    )
                 )
 
     def visit_node(
@@ -564,7 +586,7 @@ def combine_batches_until_none(
     while running:
         try:
             # Add timeout to prevent indefinite blocking if producer thread fails
-            batch = in_queue.get(timeout=5)
+            batch = in_queue.get(timeout=QUEUE_TIMEOUT)
             if batch is None:
                 break
         except queue.Empty:
@@ -600,6 +622,28 @@ def exception_to_queue(func):
     return wrapper
 
 
+class QueueCache:
+    """
+    Implement insert() interface of .cache.ShardCache() as a queue, instead of
+    giving network thread direct access to the database.
+    """
+
+    def __init__(self, queue):
+        self.queue: Queue = queue
+
+    def insert(self, shard: AnnotatedRawShard):
+        self.queue.put([shard])
+
+    def copy(self):
+        return self  # used for threadsafety in ShardCache; not needed here
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return
+
+
 @exception_to_queue
 def cache_fetch_thread(
     in_queue: Queue[Sequence[NodeId] | None],
@@ -621,7 +665,14 @@ def cache_fetch_thread(
         cache: used to retrieve shards.
     """
     with cache.copy() as cache:
-        for node_ids in combine_batches_until_none(in_queue):
+        for batch in combine_batches_until_none(in_queue):
+            node_ids = []
+            for item in batch:
+                if isinstance(item, AnnotatedRawShard):
+                    # opens transaction; could do insertmany here or transaction scoped to loop
+                    cache.insert(item)
+                else:
+                    node_ids.append(item)
             cached = cache.retrieve_multiple(
                 [node_id.shard_url for node_id in node_ids]
             )
