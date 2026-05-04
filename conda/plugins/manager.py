@@ -554,6 +554,8 @@ class CondaPluginManager(pluggy.PluginManager):
                         exc_info=True,
                     )
 
+            # Break reference cycles between traceback and frame locals promptly
+            # (same reason CPython warns against storing exc_value/exc_traceback).
             del exc_info, exc_tb
         except BaseException:
             log.debug("invoke_exception_handlers failed", exc_info=True)
