@@ -6,8 +6,6 @@ Interface to sharded repodata code.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from _conda.shards.subset import RepodataSubset, build_repodata_subset
 
 # Define a minimal high-level API for shards

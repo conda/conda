@@ -11,8 +11,9 @@ import http.server
 import queue
 import socket
 import threading
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from http.server import BaseHTTPRequestHandler
