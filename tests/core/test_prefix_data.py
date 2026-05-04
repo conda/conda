@@ -24,6 +24,8 @@ from conda.models.records import PrefixRecord
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
 
+from .. import PYTHON_SPEC
+
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
@@ -560,7 +562,7 @@ def test_get_packages_behavior_with_interoperability(
 ):
     """Test that package extraction behaves correctly with interoperability settings."""
     # Create environment with conda packages and pip
-    packages = ["python=3.10", "pip", "ca-certificates"]
+    packages = [PYTHON_SPEC, "pip", "ca-certificates"]
     with tmp_env(*packages) as prefix:
         # Install small-python-package wheel for testing pip interoperability
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"

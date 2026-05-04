@@ -14,6 +14,8 @@ from conda.exceptions import CondaValueError, DryRunExit, PackagesNotFoundError
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
 
+from .. import PYTHON_SPEC
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -59,11 +61,11 @@ def test_conda_pip_interop_dependency_satisfied_by_pip(
     monkeypatch.setenv("CONDA_PREFIX_DATA_INTEROPERABILITY", "true")
     reset_context()
     assert context.prefix_data_interoperability
-    with tmp_env("python=3.10", "pip") as prefix:
-        assert package_is_installed(prefix, "python=3.10")
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
+        assert package_is_installed(prefix, PYTHON_SPEC)
         assert package_is_installed(prefix, "pip")
-        stdout, stderr, code = pip_cli("install", "itsdangerous", prefix=prefix)
-        assert code == 0, f"pip install failed: {stderr}"
+        stdout, stderr, rc = pip_cli("install", "itsdangerous", prefix=prefix)
+        assert rc == 0, f"pip install failed ({rc}): {stderr}"
 
         PrefixData._cache_.clear()
         output, error, _ = conda_cli("list", f"--prefix={prefix}")
@@ -120,21 +122,21 @@ def test_build_version_shows_as_changed(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
+    test_recipes_channel: Path,
 ):
     """
-    Test to make sure the changes in build version show up as "REVISED" in install plan.
-    To check this, start with an environment that has python and one other python package.
-    Then, the test should install another version python into the environment, forcing the
-    build variant of the other python package to be "REVISED".
+    ``REVISED`` lines appear when the solver swaps same-version packages that differ only by
+    build string. Use ``buildstring`` from ``tests/data/test-recipes`` (pins ``versioned``)
+    instead of ``numpy`` + Python upgrades so results do not depend on Anaconda defaults.
     """
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
 
-    with tmp_env("python=3.11", "numpy") as prefix:
+    with tmp_env("versioned=1.0", "buildstring") as prefix:
         out, _, _ = conda_cli(
             "install",
             f"--prefix={prefix}",
-            "python=3.12",
+            "versioned=2.0",
             "--dry-run",
             raises=DryRunExit,
         )

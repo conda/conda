@@ -23,6 +23,8 @@ from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
 from conda.plugins.types import EnvironmentSpecBase
 
+from .. import PYTHON_SPEC
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -561,8 +563,7 @@ def test_from_prefix_behavior_with_pip_interoperability(
 ):
     """Test that extrapolating an env from a prefix behaves correctly with conda and pip packages."""
     # Create environment with conda packages and pip
-    packages = ["python=3.13", "pip"]
-    with tmp_env(*packages) as prefix:
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
         # Install small-python-package wheel for testing pip interoperability
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli(
@@ -581,7 +582,7 @@ def test_from_prefix_behavior_with_pip_interoperability(
         # that are not common for all platforms.
         expected_conda_explicit_names = [
             "python",
-            "python_abi",
+            # "python_abi",  # Python>=3.12 only
             "pip",
             "tk",
             "bzip2",
@@ -621,8 +622,8 @@ def test_from_cli_empty():
 def test_from_cli_empty_with_default_packages(
     monkeypatch: MonkeyPatch,
 ):
-    # Setup the default packages. Expect this to inject python==3.13
-    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "python==3.13")
+    # Setup the default packages.
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", PYTHON_SPEC)
     reset_context()
 
     env = Environment.from_cli(
@@ -630,7 +631,7 @@ def test_from_cli_empty_with_default_packages(
         add_default_packages=True,
     )
     assert env.config == EnvironmentConfig.from_context()
-    assert env.requested_packages == [MatchSpec("python==3.13")]
+    assert env.requested_packages == [MatchSpec(PYTHON_SPEC)]
 
 
 def test_from_cli_with_specs():
