@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 # Copyright (C) 2022 Anaconda, Inc
 # Copyright (C) 2023 conda
 # SPDX-License-Identifier: BSD-3-Clause
@@ -165,9 +167,13 @@ class RepodataSubset:
 
     def neighbors(self, node: Node) -> Iterator[Node]:
         """
-        Retrieve all unvisited neighbors of a node
+        Retrieve all unvisited neighbors of a node.
 
-        Neighbors in the context are dependencies of a package
+        Neighbors in the context are dependencies of a package.
+
+        NOTE: This method assumes that the required shards have already been
+        retrieved from the network via batch_retrieve_from_network() before
+        neighbors() is called. It uses visit_package() to access already-loaded shards.
         """
         discovered = set()
 
@@ -175,12 +181,14 @@ class RepodataSubset:
             if node.package not in shardlike:
                 continue
 
-            # check that we don't fetch the same shard twice...
-            shard = shardlike.fetch_shard(
-                node.package
-            )  # XXX this is the only place that in-memory (repodata.json) shards are found for the first time
+            # Get the shard that should already be loaded in memory.
+            # For Shards, this assumes fetch_shards() was called before neighbors()
+            # is called. For ShardLike, visit_package() returns the shard immediately.
+            shard = shardlike.visit_package(node.package)
 
             shard = filter_redundant_packages(shard, self._use_only_tar_bz2)
+            # Store the filtered shard so we'll see it when we call
+            # build_repodata()
             shardlike.visit_shard(node.package, shard)
 
             # ensure solver has "pip" record if add_pip_as_python_dependency:
@@ -242,16 +250,19 @@ class RepodataSubset:
         self.nodes = dict(_nodes_from_packages(root_packages, self.shardlikes))
 
         node_queue = deque(self.nodes.values())
-        sharded = [s for s in self.shardlikes if isinstance(s, Shards)]
 
         while node_queue:
             # Batch fetch all nodes at current level
             to_retrieve = {node.package for node in node_queue if not node.visited}
             if to_retrieve:
-                not_in_cache = batch_retrieve_from_cache(sharded, sorted(to_retrieve))
-                batch_retrieve_from_network(not_in_cache)
+                # Fetch from cache and network, getting ShardFetch objects for network fetches
+                needs_network = batch_retrieve_from_cache(
+                    self.shardlikes, sorted(to_retrieve)
+                )
+                if needs_network:
+                    batch_retrieve_from_network(needs_network)
 
-            # Process one level
+            # Process one level - shards are now guaranteed to be loaded
             level_size = len(node_queue)
             for _ in range(level_size):
                 node = node_queue.popleft()
