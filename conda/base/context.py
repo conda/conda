@@ -484,6 +484,7 @@ class Context(Configuration):
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
+    preview = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
     envvars_force_uppercase = ParameterLoader(PrimitiveParameter(True))
@@ -1090,6 +1091,10 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
+    def preview_enabled(self, value: str) -> bool:
+        """Return True if the given preview feature label is enabled by the user."""
+        return value in self.preview
+
     @property
     def override_virtual_packages(self) -> dict[str, str | None]:
         """Remove any dunders in the virtual_package name keys"""
@@ -1306,6 +1311,7 @@ class Context(Configuration):
             "envs_dirs",
             "pkgs_dirs",
             "default_threads",
+            "preview",
         ),
         "Network Configuration": (
             "client_ssl_cert",
@@ -2006,6 +2012,11 @@ class Context(Configuration):
             experimental=dals(
                 """
                 List of experimental features to enable.
+                """
+            ),
+            preview=dals(
+                """
+                List of preview features to opt into.
                 """
             ),
             no_lock=dals(
