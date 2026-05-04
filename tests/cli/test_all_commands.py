@@ -7,6 +7,7 @@ circumstance.
 
 from __future__ import annotations
 
+import re
 import warnings
 from argparse import ArgumentParser
 from typing import TYPE_CHECKING
@@ -181,3 +182,20 @@ def test_env_spec_no_warning_when_not_used(mocker: MockerFixture) -> None:
         warnings.simplefilter("error", FutureWarning)
         # --format stores into the same dest; should not raise
         parser.parse_args(["--format", _FAKE_SPECIFIER])
+
+
+@pytest.mark.parametrize(
+    ("command"),
+    ("activate", "deactivate"),
+)
+def test_activate_help_commands_exit_0_rc(
+    conda_cli: CondaCLIFixture,
+    command: str,
+):
+    """Ensure that conda returns a 0 error code when cli --help is called"""
+    with pytest.raises(SystemExit):
+        out, err, rc = conda_cli(command, "-h")
+        assert rc == 0
+        assert f"usage: conda {command}" in out
+        assert not re.search(r"\berror\b", out, re.IGNORECASE)
+        assert not re.search(r"\berror\b", err, re.IGNORECASE)
