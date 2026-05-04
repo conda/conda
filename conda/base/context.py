@@ -1311,6 +1311,7 @@ class Context(Configuration):
             "envs_dirs",
             "pkgs_dirs",
             "default_threads",
+            "preview",
         ),
         "Network Configuration": (
             "client_ssl_cert",
@@ -1418,7 +1419,7 @@ class Context(Configuration):
             # prevent modifications to envs marked with conda-meta/frozen
         ),
         "Plugin Configuration": ("no_plugins",),
-        "Experimental": ("environment_specifier", "preview"),
+        "Experimental": ("environment_specifier",),
     }
 
     def get_descriptions(self) -> dict[str, str]:
