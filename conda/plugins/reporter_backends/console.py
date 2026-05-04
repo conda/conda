@@ -234,6 +234,11 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         # leading and trailing newlines
         return "\n" + "\n".join(output) + "\n\n"
 
+    @property
+    def animations_disabled(self) -> bool:
+        """True when progress bars/spinners should be suppressed."""
+        return context.quiet or not is_tty() or term_dumb()
+
     def progress_bar(
         self,
         description: str,
@@ -247,7 +252,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         * the output is not a TTY (e.g. piped to a file), or
         * ``TERM=dumb`` or ``TERM=unknown`` is set.
         """
-        if context.quiet or not is_tty() or term_dumb():
+        if self.animations_disabled:
             return QuietProgressBar(description, **kwargs)
         else:
             return TQDMProgressBar(description, **kwargs)
@@ -259,7 +264,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         Animations are suppressed under the same conditions as
         :meth:`progress_bar`.
         """
-        if context.quiet or not is_tty() or term_dumb():
+        if self.animations_disabled:
             return QuietSpinner(message, fail_message)
         else:
             return Spinner(message, fail_message)

@@ -52,11 +52,11 @@ def is_tty() -> bool:
 
 def term_dumb() -> bool:
     """
-    Return True when the terminal is known to be incapable of ANSI escape codes.
+    Return True when ``TERM`` indicates a non-capable terminal.
 
-    ``TERM=dumb`` (and ``TERM=unknown``) signals that the terminal cannot
-    handle *any* escape sequences — not just colour.  This suppresses all
-    animations (spinners, progress bars) as well as colour output.
+    ``TERM=dumb`` is the widely-followed terminfo convention for terminals
+    that cannot render any ANSI escape sequences (color, bold, animations).
+    ``TERM=unknown`` is treated the same way as a defensive fallback.
     """
     return os.environ.get("TERM") in ("dumb", "unknown")
 

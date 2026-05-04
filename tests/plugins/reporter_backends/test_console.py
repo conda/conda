@@ -17,18 +17,14 @@ from conda.plugins.reporter_backends.console import (
 )
 
 
-def test_console_reporter_renderer(mocker):
+def test_console_reporter_renderer(monkeypatch):
     """
     Tests the ``ConsoleReporterRenderer`` class
     """
     # Pretend we are in a TTY so that progress_bar returns TQDMProgressBar
-    mocker.patch(
-        "conda.plugins.reporter_backends.console.is_tty",
-        return_value=True,
-    )
-    mocker.patch(
-        "conda.plugins.reporter_backends.console.term_dumb",
-        return_value=False,
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: False
     )
 
     test_data = {"one": "value_one", "two": "value_two", "three": "value_three"}
@@ -241,11 +237,6 @@ def test_prompt_error_reading_stdin(mocker):
 
     with pytest.raises(CondaError):
         reporter.prompt()
-
-
-# ---------------------------------------------------------------------------
-# Output-mode behaviour tests
-# ---------------------------------------------------------------------------
 
 
 class TestProgressBarOutputMode:
