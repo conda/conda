@@ -26,8 +26,9 @@ from _conda.shards.cache import ShardCache
 from conda.base.context import context
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence, TypeVar
+    from collections.abc import Iterable, Iterator, Sequence
     from queue import SimpleQueue as Queue
+    from typing import TypeVar
 
     from _conda.shards.shards import Shards
     from _conda.shards.typing import PackageRecordDict, ShardDict
