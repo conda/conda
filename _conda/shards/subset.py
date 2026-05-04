@@ -76,6 +76,7 @@ from .misc import (
     combine_batches_until_none,
     exception_to_queue,
     filter_redundant_packages,
+    spec_to_package_name,
 )
 from .shards import (
     ZSTD_MAX_SHARD_SIZE,
@@ -157,12 +158,18 @@ class RepodataSubset:
     _nodes: dict[NodeId, Node]
     _use_only_tar_bz2: bool
     _add_pip_as_python_dependency: bool
+    _spec_to_package_name: Callable[[str], str]
 
-    def __init__(self, shardlikes: Iterable[ShardBase]):
+    def __init__(
+        self,
+        shardlikes: Iterable[ShardBase],
+        spec_to_package_name: Callable[[str], str] = spec_to_package_name,
+    ):
         self._nodes = {}
         self.shardlikes = list(shardlikes)
         self._use_only_tar_bz2 = context.use_only_tar_bz2
         self._add_pip_as_python_dependency = context.add_pip_as_python_dependency
+        self._spec_to_package_name = spec_to_package_name
 
     @classmethod
     def has_strategy(cls, strategy: str) -> bool:
@@ -203,7 +210,9 @@ class RepodataSubset:
                 if self._add_pip_as_python_dependency and node.package == "python"
                 else ()
             )
-            for package in shard_mentioned_packages(shard, extra=extra):
+            for package in shard_mentioned_packages(
+                shard, extra=extra, spec_to_package_name=self._spec_to_package_name
+            ):
                 node_id = NodeId(package, shardlike.url)
 
                 if node_id not in self._nodes:
@@ -468,7 +477,12 @@ class RepodataSubset:
                 )
                 pending.update(
                     self.visit_node(
-                        parent_node, shard_mentioned_packages(shard, extra=extra)
+                        parent_node,
+                        shard_mentioned_packages(
+                            shard,
+                            extra=extra,
+                            spec_to_package_name=self._spec_to_package_name,
+                        ),
                     )
                 )
 
@@ -526,6 +540,7 @@ def build_repodata_subset(
     root_packages: Iterable[str],
     channels: dict[str, Channel],
     algorithm: Literal["bfs", "pipelined"] = RepodataSubset.DEFAULT_STRATEGY,
+    spec_to_package_name_func: Callable[[str], str] = spec_to_package_name,
 ) -> dict[str, ShardBase] | None:
     """
     Retrieve all necessary information to build a repodata subset.
@@ -534,6 +549,7 @@ def build_repodata_subset(
         root_packages: iterable of installed and requested package names
         channels: Channel objects; dict form preferred.
         algorithm: desired traversal algorithm
+        spec_to_package_name_func: callable to convert package specs to names
 
     Return:
         None if there are no shards available, or a mapping of channel URL's to
@@ -541,7 +557,9 @@ def build_repodata_subset(
     """
     channel_data = fetch_channels(channels)
     if channel_data is not None:
-        subset = RepodataSubset((*channel_data.values(),))
+        subset = RepodataSubset(
+            (*channel_data.values(),), spec_to_package_name=spec_to_package_name_func
+        )
         subset.reachable(root_packages, strategy=algorithm)
         log.debug("%d (channel, package) nodes discovered", len(subset._nodes))
 

@@ -223,7 +223,9 @@ class ShardFetch:
 
 
 def shard_mentioned_packages(
-    shard: ShardDict, extra: Iterable[str] = ()
+    shard: ShardDict,
+    extra: Iterable[str] = (),
+    spec_to_package_name=spec_to_package_name,
 ) -> Iterable[str]:
     """
     Return all dependency names mentioned in a shard, not including the shard's
