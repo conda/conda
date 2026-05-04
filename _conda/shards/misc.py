@@ -215,3 +215,6 @@ def _install_shards_cache(shardlikes: Iterable[Shards]):
             if hasattr(shardlike, "shards_cache"):
                 shardlike.shards_cache = cache
         yield cache
+        for shardlike in shardlikes:
+            if hasattr(shardlike, "shards_cache"):
+                shardlike.shards_cache = None
