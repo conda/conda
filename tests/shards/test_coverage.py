@@ -1,7 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Comprehensive tests for 100% coverage of conda shards modules.
+Fast, mostly AI-generated tests to help reach 100% coverage of conda shards
+modules.
 
 Tests focus on uncovered code paths in:
 - misc.py: URL handling, threading, exception handling
@@ -363,22 +364,43 @@ class TestShardsModule:
         finally:
             cache.close()
 
-    def test_shard_fetch_with_shardlike(self, tmp_path):
-        """Test ShardFetch with ShardLike instance"""
-        repodata = {
-            "info": {"base_url": ""},
-            "packages": {"pkg-1.0-0.tar.bz2": {"name": "pkg", "version": "1.0"}},
-            "packages.conda": {},
-        }
-        shardlike = ShardLike(repodata, "http://test.com")  # type: ignore
+    @pytest.mark.parametrize("sharded", (True, False), ids=("sharded", "not sharded"))
+    def test_shard_fetch_with_shardlike(self, tmp_path, sharded):
+        """Test ShardFetch with ShardLike instance (not sharded) or Shards (sharded)"""
+        if sharded:
+            shardlike = Shards(
+                {"info": {"base_url": ""}, "shards": {"pkg": b"1234"}},
+                "http://example.com",
+            )
+        else:
+            repodata = {
+                "info": {"base_url": ""},
+                "packages": {"pkg-1.0-0.tar.bz2": {"name": "pkg", "version": "1.0"}},
+                "packages.conda": {},
+            }
+            shardlike = ShardLike(repodata, "http://example.com.com")  # type: ignore
         cache = ShardCache(tmp_path)
+
+        class FakeShardFetch(ShardFetch):
+            fetch_called = False
+
+            def _fetch_shards_impl(self, packages):
+                FakeShardFetch.fetch_called = True
+                return {"pkg": "a nice shard"}
+
         try:
-            fetch = ShardFetch(shardlike, "pkg", shard_cache=cache)
+            fetch = FakeShardFetch(shardlike, "pkg", shard_cache=cache)
             # For ShardLike, fetch should return immediately
+            shard = fetch.fetch()
+            assert shard is not None
+
+            # Run "already fetched" branch
             shard = fetch.fetch()
             assert shard is not None
         finally:
             cache.close()
+
+        assert FakeShardFetch.fetch_called == sharded
 
     def test_shards_base_url_construction(self):
         """Test _shards_base_url constructs URLs correctly"""
@@ -965,45 +987,3 @@ class TestShardLikeRepr:
         shardlike = ShardLike(repodata, "http://test.example.com")  # type: ignore
         repr_str = repr(shardlike)
         assert "http://test.example.com" in repr_str
-
-
-class TestShardFetchGetIfLoaded:
-    """Test ShardFetch.get_if_loaded method"""
-
-    def test_shardfetch_get_if_loaded_not_fetched(self, tmp_path):
-        """Test ShardFetch.get_if_loaded returns shard if already loaded"""
-        repodata = {
-            "info": {"base_url": ""},
-            "packages": {"pkg-1.0-0.tar.bz2": {"name": "pkg"}},
-            "packages.conda": {},
-        }
-        shardlike = ShardLike(repodata, "http://test.com")  # type: ignore
-        cache = ShardCache(tmp_path)
-        try:
-            fetch = ShardFetch(shardlike, "pkg", shard_cache=cache)
-            # For ShardLike, shard_loaded should return True immediately
-            result = fetch.get_if_loaded()
-            # Should return the shard since it's already loaded
-            assert isinstance(result, dict)
-            assert "packages" in result
-        finally:
-            cache.close()
-
-    def test_shardfetch_get_if_loaded_already_fetched(self, tmp_path):
-        """Test ShardFetch.get_if_loaded returns cached result if fetched"""
-        repodata = {
-            "info": {"base_url": ""},
-            "packages": {"pkg-1.0-0.tar.bz2": {"name": "pkg"}},
-            "packages.conda": {},
-        }
-        shardlike = ShardLike(repodata, "http://test.com")  # type: ignore
-        cache = ShardCache(tmp_path)
-        try:
-            fetch = ShardFetch(shardlike, "pkg", shard_cache=cache)
-            # Fetch first
-            result1 = fetch.fetch()
-            # Then get_if_loaded should return same result
-            result2 = fetch.get_if_loaded()
-            assert result1 == result2
-        finally:
-            cache.close()

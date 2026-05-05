@@ -28,6 +28,7 @@ from conda_libmamba_solver.index import (
 )
 from requests import Request, Response
 
+import conda.gateways.repodata
 from _conda.shards import cache as shards_cache
 from _conda.shards import shards
 from _conda.shards import subset as shards_subset
@@ -507,6 +508,7 @@ def test_shard_mentioned_packages_2():
     )  # type: ignore
 
 
+@pytest.mark.integration
 def test_fetch_shards_channels(prepare_shards_test: None):
     """
     Test all channels fetch as Shards or ShardLike, depending on availability.
@@ -884,6 +886,7 @@ def test_ensure_hex_hash_in_record():
         assert updated["md5"] == md5_hash.hexdigest()  # type: ignore
 
 
+@pytest.mark.integration
 def test_batch_retrieve_from_cache(
     prepare_shards_test: None, empty_shards_cache: shards_cache.ShardCache
 ):
@@ -1107,6 +1110,31 @@ def test_repodata_shards_sends_etag(monkeypatch, tmp_path):
         _repodata_shards(channel.url(), repo_cache)
 
     assert mock_session.headers == {"If-None-Match": "etag"}
+
+
+def test_repodata_shards_offline(monkeypatch, tmp_path):
+    monkeypatch.setattr(context, "offline", True)
+
+    class FakePath:
+        def __init__(self, exists):
+            self._exists = exists
+
+        def exists(self):
+            return self._exists
+
+        def read_bytes(self):
+            return b"cached"
+
+    class FakeCache:
+        def __init__(self, cache_path_shards):
+            self.cache_path_shards = cache_path_shards
+
+    # In offline mode, return cached data if available, even if expired.
+    assert _repodata_shards("https://channel", FakeCache(FakePath(True))) == b"cached"  # type: ignore
+
+    # In offline mode, raise RepodataIsEmpty if cache data is not available.
+    with pytest.raises(conda.gateways.repodata.RepodataIsEmpty):
+        _repodata_shards("https://channel", FakeCache(FakePath(False)))  # type: ignore
 
 
 @pytest.mark.parametrize(

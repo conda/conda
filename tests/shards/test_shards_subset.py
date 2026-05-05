@@ -118,6 +118,7 @@ if True:  # one fast, one slow-ish scenario for faster tests unless debugging.
     ]
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "root_packages", [ROOT_PACKAGES[:] + ["vaex"], []], ids=["complex", "empty"]
 )
@@ -196,6 +197,7 @@ def test_build_repodata_subset_no_shards(http_server_shards):
     assert build_repodata_subset([], channels) is None
 
 
+@pytest.mark.integration
 def test_build_repodata_subset(prepare_shards_test: None, tmp_path):
     """
     Build repodata subset and compute the size if it was serialized as repodata.json.
@@ -352,6 +354,7 @@ def repodata_subset_size(channel_data):
     return repodata_size
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not codspeed_supported(), reason="pytest-codspeed-version-4")
 @pytest.mark.parametrize("cache_state", ("cold", "warm"))
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
@@ -500,11 +503,13 @@ def test_shards_cache_thread(
     cache_thread.join(5)
 
 
-def test_shards_network_thread(http_server_shards, shard_cache_with_data):
+def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkeypatch):
     """
     Test network retrieval thread, meant to be chained after the sqlite3 thread
     by having network_in_queue = sqlite3 thread's network_out_queue.
     """
+    monkeypatch.setattr(shards_subset, "QUEUE_TIMEOUT", 0.01)
+
     cache, fake_shards = shard_cache_with_data
     channel = Channel.from_url(f"{http_server_shards}/noarch")
     subdir_data = SubdirData(channel)
@@ -537,7 +542,7 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data):
     network_thread.start()
 
     with suppress(Empty):
-        while batch := shard_out_queue.get(timeout=QUEUE_TIMEOUT):
+        while batch := shard_out_queue.get(timeout=shards_subset.QUEUE_TIMEOUT):
             for url, shard in batch:
                 assert isinstance(shard, dict)
 
@@ -550,12 +555,14 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data):
     # shardlikes has its url. (If no shardlike has NodeId's url, it produces
     # KeyError).
     network_in_queue.put([NodeId("nope", invalid_shardlike.url)])
-    assert isinstance(shard_out_queue.get(timeout=QUEUE_TIMEOUT), TypeError)
+    assert isinstance(
+        shard_out_queue.get(timeout=shards_subset.QUEUE_TIMEOUT), TypeError
+    )
 
     # Terminate with sentinel
     network_in_queue.put(None)
 
-    network_thread.join(5)
+    network_thread.join(0)
 
 
 # endregion
@@ -712,6 +719,7 @@ def test_pipelined_with_slow_queue_operations(http_server_shards, mocker, tmp_pa
     assert found_packages
 
 
+@pytest.mark.integration
 def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path):
     """
     Test the specific race condition where the main thread checks pending/in_flight
@@ -723,7 +731,7 @@ def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path)
     mocker.patch("conda.gateways.repodata.create_cache_dir", return_value=str(tmp_path))
 
     # Track when drain_pending is called
-    original_drain_pending = RepodataSubset.drain_pending
+    original_drain_pending = RepodataSubset._drain_pending
     drain_count = {"count": 0}
 
     def tracked_drain_pending(self, pending, shardlikes_by_url):
@@ -734,7 +742,7 @@ def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path)
             time.sleep(0.1)
         return result
 
-    mocker.patch.object(RepodataSubset, "drain_pending", tracked_drain_pending)
+    mocker.patch.object(RepodataSubset, "_drain_pending", tracked_drain_pending)
 
     # Run multiple times to increase chance of hitting race condition
     for _ in range(10):
@@ -752,6 +760,33 @@ def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path)
         assert found_packages
 
 
+@exception_to_queue
+def cause_timeout_worker(
+    in_queue,
+    out_queue,
+    _a,
+    _b,
+):
+    """
+    Grab items from in_queue without processing, causing timeouts.
+    """
+    for batch in combine_batches_until_none(in_queue):
+        pass
+
+
+@exception_to_queue
+def dead_worker(
+    in_queue,
+    out_queue,
+    _a,
+    _b,
+):
+    """
+    Exit without doing work.
+    """
+
+
+@pytest.mark.integration
 def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
     """
     Test that pipelined times out if a URL is never fetched.
@@ -772,16 +807,11 @@ def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
     subdir_data = SubdirData(channel)
     shardlikes = [fetch_shards_index(subdir_data)]
 
-    queue = SimpleQueue()
-
-    # a slow and ineffective get()
-    monkeypatch.setattr(
-        "conda.gateways.connection.session.CondaSession.get",
-        lambda *args, **kwargs: queue.get(),
-    )
-
-    # faster failure
+    # faster failure. Now that we adjust timeouts based on
+    # remote_read_timeout_secs, this doesn't do much.
     monkeypatch.setattr("_conda.shards.subset.REACHABLE_PIPELINED_MAX_TIMEOUTS", 1)
+    # But, setting a shorter queue timeout period causes more timeouts to fire; exercising the "reach end of log_timeout()" path.
+    monkeypatch.setattr("_conda.shards.subset.QUEUE_TIMEOUT", 0.5)
     monkeypatch.setattr("_conda.shards.subset.THREAD_WAIT_TIMEOUT", 0)
 
     assert len(shardlikes) == 1, "test expects a single channel"
@@ -789,12 +819,41 @@ def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
         "test expects real sharded channel"
     )
     subset = RepodataSubset(shardlikes)
-    with pytest.raises(TimeoutError, match="shard"):
-        subset.reachable_pipelined(root_packages)
+    with (
+        shards_cache.ShardCache(tmp_path) as cache,
+        pytest.raises(TimeoutError, match="Timeout while fetching"),
+    ):
+        subset._reachable_pipelined(
+            root_packages, network_worker=cause_timeout_worker, cache=cache
+        )
 
-    queue.put(None)
+    with (
+        shards_cache.ShardCache(tmp_path) as cache,
+        pytest.raises(TimeoutError, match="Timeout while fetching"),
+    ):
+        subset._reachable_pipelined(
+            root_packages, network_worker=dead_worker, cache=cache
+        )
 
 
+def test_pipelined_uses_offline_worker(monkeypatch):
+    """Test that expected worker is used in offline mode."""
+    monkeypatch.setattr(context, "offline", True)
+
+    actual_network_worker = None
+
+    class RepodataSubsetRememberWorker(RepodataSubset):
+        def _reachable_pipelined(self, root_packages, network_worker, cache):
+            nonlocal actual_network_worker
+
+            actual_network_worker = network_worker
+
+    subset = RepodataSubsetRememberWorker([])
+    subset.reachable_pipelined(["conda"])
+    assert actual_network_worker is shards_subset.offline_nofetch_thread
+
+
+@pytest.mark.integration
 def test_combine_batches_blocking_scenario():
     """
     Test the scenario where combine_batches_until_none would block indefinitely

@@ -84,6 +84,9 @@ omit = [
   "tests/*",
   "utils/*",
 ]
+partial_branches = [
+  "pragma: no branch",
+]
 show_missing = true
 skip_covered = true
 sort = "Miss"

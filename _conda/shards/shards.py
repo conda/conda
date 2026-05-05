@@ -180,16 +180,6 @@ class ShardFetch:
         )
         self.shard_cache.insert(fetch_result)
 
-    def get_if_loaded(self) -> ShardDict | None:
-        """
-        Return the shard if it's already loaded in memory, None otherwise.
-        """
-        if self._fetched:
-            return self._shard
-        if self.shardbase.shard_loaded(self.package):
-            return self.shardbase.visit_package(self.package)
-        return None
-
     @staticmethod
     def fetch_batch(shard_fetches: Iterable[ShardFetch]) -> None:
         """

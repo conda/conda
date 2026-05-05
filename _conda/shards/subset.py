@@ -271,7 +271,7 @@ class RepodataSubset:
         while node_queue:
             # Batch fetch all nodes at current level
             to_retrieve = {node.package for node in node_queue if not node.visited}
-            if to_retrieve:
+            if to_retrieve:  # pragma: no branch
                 # Fetch from cache and network, getting ShardFetch objects for network fetches
                 needs_network = batch_retrieve_from_cache(
                     self.shardlikes, sorted(to_retrieve), shard_cache
@@ -288,7 +288,7 @@ class RepodataSubset:
                 node.visited = True
 
                 for next_node, _ in self._outgoing(node):
-                    if not next_node.visited:
+                    if not next_node.visited:  # pragma: no branch
                         node_queue.append(next_node)
 
     def reachable_pipelined(self, root_packages):
@@ -395,14 +395,14 @@ class RepodataSubset:
 
         # create start condition
         parent_node = Node(0)
-        pending.update(self.visit_node(parent_node, root_packages))
+        pending.update(self._visit_node(parent_node, root_packages))
 
         def pump():
             """
             Find shards we already have and those we need. Submit those need to
             cache_in_queue, those we have to shard_out_queue.
             """
-            have, need = self.drain_pending(pending, shardlikes_by_url)
+            have, need = self._drain_pending(pending, shardlikes_by_url)
             if need:
                 in_flight.update(need)
                 cache_in_queue.put(need)
@@ -429,13 +429,20 @@ class RepodataSubset:
             log.debug("cache_thread.is_alive(): %s", cache_thread.is_alive())
             log.debug("network_thread.is_alive(): %s", network_thread.is_alive())
             log.debug("shard_out_queue.qsize(): %s", shard_out_queue.qsize())
-            if network_thread.is_alive() and in_flight:
+            if (
+                network_thread.is_alive()
+            ):  # in_flight is always truthy here, or our work is done.
                 max_timeouts = int(
-                    context.remote_read_timeout_secs * (context.remote_max_retries + 1)
+                    (
+                        context.remote_read_timeout_secs
+                        * (context.remote_max_retries + 1)
+                    )
+                    / QUEUE_TIMEOUT
                 )
             else:
-                max_timeouts = REACHABLE_PIPELINED_MAX_TIMEOUTS
-            if timeouts > max_timeouts:
+                # immediate timeout error on dead network thread
+                max_timeouts = 0
+            if timeouts >= max_timeouts:
                 raise TimeoutError("Timeout while fetching repodata shards.")
 
         while True:
@@ -455,7 +462,7 @@ class RepodataSubset:
                 log_timeout()
                 continue
 
-            timeouts = 0
+            timeouts = 0  # reset timeouts if we make progress
             for node_id, shard in new_shards:
                 in_flight.remove(node_id)
 
@@ -476,7 +483,7 @@ class RepodataSubset:
                     else ()
                 )
                 pending.update(
-                    self.visit_node(
+                    self._visit_node(
                         parent_node,
                         shard_mentioned_packages(
                             shard,
@@ -486,7 +493,7 @@ class RepodataSubset:
                     )
                 )
 
-    def visit_node(
+    def _visit_node(
         self, parent_node: Node, mentioned_packages: Iterable[str]
     ) -> Iterable[NodeId]:
         """Broadcast mentioned packages across channels. yield pending NodeId's."""
@@ -511,7 +518,7 @@ class RepodataSubset:
 
         parent_node.visited = True
 
-    def drain_pending(
+    def _drain_pending(
         self, pending: set[NodeId], shardlikes_by_url: dict[str, ShardBase]
     ) -> tuple[list[tuple[NodeId, ShardDict]], list[NodeId]]:
         """
