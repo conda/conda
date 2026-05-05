@@ -34,7 +34,7 @@ from conda.models.channel import Channel, all_channel_urls
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
 
-    from _conda.shards.typing import ShardDict, ShardsIndexDict
+    from _conda.shards.typing import RepodataDict, ShardDict, ShardsIndexDict
 
 # Test channel names
 CONDA_FORGE_WITH_SHARDS = "conda-forge"
@@ -69,7 +69,7 @@ ROOT_PACKAGES = [
 ]
 
 # Fake repodata for testing shards
-FAKE_REPODATA: ShardDict = {
+FAKE_REPODATA: RepodataDict = {
     "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
     "packages": {
         "foo.tar.bz2": {

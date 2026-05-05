@@ -772,7 +772,8 @@ class TestCacheErrorRecovery:
                 cache.conn = None
                 cache.remove_cache()
                 # Verify rename was called as fallback
-                assert mock_rename.called or cache.conn is None
+                assert mock_rename.called
+                assert cache.conn is None
 
 
 class TestSubsetModuleAdditional:
