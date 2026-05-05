@@ -30,6 +30,7 @@ Returns ``(graph, spec_matches)`` in the same shape the pure-Python
 loop produces. Returns ``None`` for any error so conda's fallback
 keeps operating correctly; the fast path is strictly additive.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -52,7 +53,7 @@ def is_available() -> bool:
     return _rattler is not None
 
 
-def _to_rattler_record(rec) -> "Any | None":
+def _to_rattler_record(rec) -> Any | None:
     cached = getattr(rec, _RATTLER_VIEW_ATTR, None)
     if cached is not None:
         return cached
@@ -75,7 +76,7 @@ def _to_rattler_record(rec) -> "Any | None":
     return cached
 
 
-def _noarch_value(rec) -> "str | None":
+def _noarch_value(rec) -> str | None:
     noarch = getattr(rec, "noarch", None)
     if noarch is None:
         if getattr(rec, "subdir", None) == "noarch":
@@ -90,9 +91,9 @@ def _noarch_value(rec) -> "str | None":
 
 
 def try_build_graph(
-    records: "tuple[PrefixRecord, ...]",
-    specs: "set[MatchSpec]",
-) -> "tuple[dict, dict] | None":
+    records: tuple[PrefixRecord, ...],
+    specs: set[MatchSpec],
+) -> tuple[dict, dict] | None:
     """Attempt the rattler-backed build. Returns (graph, spec_matches)
     or ``None`` if the caller should use the pure-Python fallback.
     """
