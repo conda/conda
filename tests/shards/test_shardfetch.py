@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Tests for "ShardFetch". This code is part of the "bfs" algorithm, which helps to
 provide an important baseline and comparison but is not executed during the

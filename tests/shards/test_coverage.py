@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 Fast, mostly AI-generated tests to help reach 100% coverage of conda shards
 modules.
@@ -362,22 +364,39 @@ class TestShardsModule:
         finally:
             cache.close()
 
-    def test_shard_fetch_with_shardlike(self, tmp_path):
-        """Test ShardFetch with ShardLike instance"""
-        repodata = {
-            "info": {"base_url": ""},
-            "packages": {"pkg-1.0-0.tar.bz2": {"name": "pkg", "version": "1.0"}},
-            "packages.conda": {},
-        }
-        shardlike = ShardLike(repodata, "http://test.com")  # type: ignore
+    @pytest.mark.parametrize("sharded", (True, False))
+    def test_shard_fetch_with_shardlike(self, tmp_path, sharded):
+        """Test ShardFetch with ShardLike instance (not sharded) or Shards (sharded)"""
+        if not sharded:
+            repodata = {
+                "info": {"base_url": ""},
+                "packages": {"pkg-1.0-0.tar.bz2": {"name": "pkg", "version": "1.0"}},
+                "packages.conda": {},
+            }
+            shardlike = ShardLike(repodata, "http://example.com.com")  # type: ignore
+        else:
+            shardlike = Shards(
+                {"info": {"base_url": ""}, "shards": {"pkg": b"1234"}},
+                "http://example.com",
+            )
         cache = ShardCache(tmp_path)
+
+        class FakeShardFetch(ShardFetch):
+            fetch_called = False
+
+            def _fetch_shards_impl(self, packages):
+                FakeShardFetch.fetch_called = True
+                return {}
+
         try:
-            fetch = ShardFetch(shardlike, "pkg", shard_cache=cache)
+            fetch = FakeShardFetch(shardlike, "pkg", shard_cache=cache)
             # For ShardLike, fetch should return immediately
             shard = fetch.fetch()
             assert shard is not None
         finally:
             cache.close()
+
+        assert FakeShardFetch.fetch_called == sharded
 
     def test_shards_base_url_construction(self):
         """Test _shards_base_url constructs URLs correctly"""
