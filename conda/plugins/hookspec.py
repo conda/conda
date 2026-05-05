@@ -823,6 +823,10 @@ class CondaSpecs:
         level, logged at DEBUG, and swallowed -- a buggy plugin can never
         disrupt conda's error reporting path.
 
+        Observers run synchronously on the error path. They **must return
+        promptly**. Network I/O, large file operations, or any potentially
+        blocking call should be deferred to a daemon thread or subprocess.
+
         Observers receive a frozen :class:`~conda.plugins.types.CondaExceptionEvent`
         dataclass. The exception triple (``exc_type``, ``exc_value``,
         ``exc_traceback``) is always populated. Conda runtime fields

@@ -509,6 +509,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
             exc_mro_names = frozenset(cls.__name__ for cls in type(exc_val).__mro__)
 
+            if all(
+                observer.watch_for.isdisjoint(exc_mro_names) for observer in observers
+            ):
+                return
+
             if isinstance(exc_val, SystemExit):
                 return_code = exc_val.code
             else:
@@ -543,7 +548,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 )
 
             for observer in observers:
-                if not (observer.watch_for & exc_mro_names):
+                if observer.watch_for.isdisjoint(exc_mro_names):
                     continue
                 try:
                     observer.hook(event)
