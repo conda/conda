@@ -118,6 +118,7 @@ if True:  # one fast, one slow-ish scenario for faster tests unless debugging.
     ]
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "root_packages", [ROOT_PACKAGES[:] + ["vaex"], []], ids=["complex", "empty"]
 )
@@ -196,6 +197,7 @@ def test_build_repodata_subset_no_shards(http_server_shards):
     assert build_repodata_subset([], channels) is None
 
 
+@pytest.mark.integration
 def test_build_repodata_subset(prepare_shards_test: None, tmp_path):
     """
     Build repodata subset and compute the size if it was serialized as repodata.json.
@@ -352,6 +354,7 @@ def repodata_subset_size(channel_data):
     return repodata_size
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not codspeed_supported(), reason="pytest-codspeed-version-4")
 @pytest.mark.parametrize("cache_state", ("cold", "warm"))
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
@@ -500,11 +503,13 @@ def test_shards_cache_thread(
     cache_thread.join(5)
 
 
-def test_shards_network_thread(http_server_shards, shard_cache_with_data):
+def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkeypatch):
     """
     Test network retrieval thread, meant to be chained after the sqlite3 thread
     by having network_in_queue = sqlite3 thread's network_out_queue.
     """
+    monkeypatch.setattr(shards_subset, "QUEUE_TIMEOUT", 0.01)
+
     cache, fake_shards = shard_cache_with_data
     channel = Channel.from_url(f"{http_server_shards}/noarch")
     subdir_data = SubdirData(channel)
@@ -537,7 +542,7 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data):
     network_thread.start()
 
     with suppress(Empty):
-        while batch := shard_out_queue.get(timeout=QUEUE_TIMEOUT):
+        while batch := shard_out_queue.get(timeout=shards_subset.QUEUE_TIMEOUT):
             for url, shard in batch:
                 assert isinstance(shard, dict)
 
@@ -550,12 +555,14 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data):
     # shardlikes has its url. (If no shardlike has NodeId's url, it produces
     # KeyError).
     network_in_queue.put([NodeId("nope", invalid_shardlike.url)])
-    assert isinstance(shard_out_queue.get(timeout=QUEUE_TIMEOUT), TypeError)
+    assert isinstance(
+        shard_out_queue.get(timeout=shards_subset.QUEUE_TIMEOUT), TypeError
+    )
 
     # Terminate with sentinel
     network_in_queue.put(None)
 
-    network_thread.join(5)
+    network_thread.join(0)
 
 
 # endregion
@@ -712,6 +719,7 @@ def test_pipelined_with_slow_queue_operations(http_server_shards, mocker, tmp_pa
     assert found_packages
 
 
+@pytest.mark.integration
 def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path):
     """
     Test the specific race condition where the main thread checks pending/in_flight
@@ -778,6 +786,7 @@ def dead_worker(
     """
 
 
+@pytest.mark.integration
 def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
     """
     Test that pipelined times out if a URL is never fetched.
@@ -844,6 +853,7 @@ def test_pipelined_uses_offline_worker(monkeypatch):
     assert actual_network_worker is shards_subset.offline_nofetch_thread
 
 
+@pytest.mark.integration
 def test_combine_batches_blocking_scenario():
     """
     Test the scenario where combine_batches_until_none would block indefinitely

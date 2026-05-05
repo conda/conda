@@ -508,6 +508,7 @@ def test_shard_mentioned_packages_2():
     )  # type: ignore
 
 
+@pytest.mark.integration
 def test_fetch_shards_channels(prepare_shards_test: None):
     """
     Test all channels fetch as Shards or ShardLike, depending on availability.
@@ -885,6 +886,7 @@ def test_ensure_hex_hash_in_record():
         assert updated["md5"] == md5_hash.hexdigest()  # type: ignore
 
 
+@pytest.mark.integration
 def test_batch_retrieve_from_cache(
     prepare_shards_test: None, empty_shards_cache: shards_cache.ShardCache
 ):
