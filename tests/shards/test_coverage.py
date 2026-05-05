@@ -1,7 +1,6 @@
-# Copyright (C) 2012 Anaconda, Inc
-# SPDX-License-Identifier: BSD-3-Clause
 """
-Comprehensive tests for 100% coverage of conda shards modules.
+Fast, mostly AI-generated tests to help reach 100% coverage of conda shards
+modules.
 
 Tests focus on uncovered code paths in:
 - misc.py: URL handling, threading, exception handling
