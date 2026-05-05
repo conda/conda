@@ -1187,6 +1187,18 @@ def test_repodata_shards_offline(monkeypatch, tmp_path):
         ("s3://bucket-name/linux-64", ".", "s3://bucket-name/"),
         ("file:///path/to/channel/linux-64", "", "file:///path/to/channel/"),
         ("ftp://ftp.example.com/pub/linux-64", "", "ftp://ftp.example.com/pub/"),
+        # requires final "append /" check, second URL is absolute overriding first URL.
+        (
+            "s3://bucket-name/linux-64",
+            "s3://bucket-name/noslash",
+            "s3://bucket-name/noslash/",
+        ),
+        # requires final "append /" check, second URL also ends with /
+        (
+            "s3://bucket-name/linux-64",
+            "s3://bucket-name/slash/",
+            "s3://bucket-name/slash/",
+        ),
     ],
 )
 def test_safe_urljoin_with_slash(base_url, relative_url, expected):
