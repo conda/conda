@@ -11,24 +11,24 @@ from conda import CondaError, plugins
 from conda import __version__ as CONDA_VERSION
 from conda.exception_handler import ExceptionHandler
 from conda.exceptions import PackagesNotFoundError
-from conda.plugins.types import CondaExceptionHandler
+from conda.plugins.types import CondaExceptionObserver
 
 if TYPE_CHECKING:
-    from conda.plugins.types import CondaExceptionInfo
+    from conda.plugins.types import CondaExceptionEvent
 
 
 class CatchAllPlugin:
     """Records every CondaError it sees."""
 
     def __init__(self):
-        self.calls: list[CondaExceptionInfo] = []
+        self.calls: list[CondaExceptionEvent] = []
 
     @plugins.hookimpl
-    def conda_exception_handlers(self):
-        yield CondaExceptionHandler(
+    def conda_exception_observers(self):
+        yield CondaExceptionObserver(
             name="catch-all",
             hook=self.calls.append,
-            run_for={"CondaError"},
+            watch_for={"CondaError"},
         )
 
 
@@ -36,14 +36,14 @@ class BaseExceptionPlugin:
     """Records every exception regardless of type."""
 
     def __init__(self):
-        self.calls: list[CondaExceptionInfo] = []
+        self.calls: list[CondaExceptionEvent] = []
 
     @plugins.hookimpl
-    def conda_exception_handlers(self):
-        yield CondaExceptionHandler(
+    def conda_exception_observers(self):
+        yield CondaExceptionObserver(
             name="base-exception",
             hook=self.calls.append,
-            run_for={"BaseException"},
+            watch_for={"BaseException"},
         )
 
 
@@ -51,14 +51,14 @@ class PackagesOnlyPlugin:
     """Only fires for PackagesNotFoundError (and subclasses via MRO)."""
 
     def __init__(self):
-        self.calls: list[CondaExceptionInfo] = []
+        self.calls: list[CondaExceptionEvent] = []
 
     @plugins.hookimpl
-    def conda_exception_handlers(self):
-        yield CondaExceptionHandler(
+    def conda_exception_observers(self):
+        yield CondaExceptionObserver(
             name="packages-only",
             hook=self.calls.append,
-            run_for={"PackagesNotFoundError"},
+            watch_for={"PackagesNotFoundError"},
         )
 
 
@@ -68,15 +68,15 @@ class ExplodingPlugin:
     raised = False
 
     @plugins.hookimpl
-    def conda_exception_handlers(self):
-        def _boom(exc_info: CondaExceptionInfo) -> None:
+    def conda_exception_observers(self):
+        def _boom(exc_info: CondaExceptionEvent) -> None:
             ExplodingPlugin.raised = True
             raise RuntimeError("plugin bug")
 
-        yield CondaExceptionHandler(
+        yield CondaExceptionObserver(
             name="exploding",
             hook=_boom,
-            run_for={"CondaError"},
+            watch_for={"CondaError"},
         )
 
 
@@ -84,14 +84,14 @@ class SystemExitPlugin:
     """Raises SystemExit inside its hook."""
 
     @plugins.hookimpl
-    def conda_exception_handlers(self):
-        def _exit(exc_info: CondaExceptionInfo) -> None:
+    def conda_exception_observers(self):
+        def _exit(exc_info: CondaExceptionEvent) -> None:
             raise SystemExit(42)
 
-        yield CondaExceptionHandler(
+        yield CondaExceptionObserver(
             name="system-exit",
             hook=_exit,
-            run_for={"CondaError"},
+            watch_for={"CondaError"},
         )
 
 
@@ -132,13 +132,13 @@ def system_exit_plugin(plugin_manager):
 
 
 def test_catch_all_receives_conda_error(catch_all_plugin, plugin_manager):
-    """A handler registered for CondaError is invoked for any CondaError."""
+    """An observer registered for CondaError is invoked for any CondaError."""
     exc = CondaError("boom")
     try:
         raise exc
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     assert len(catch_all_plugin.calls) == 1
     info = catch_all_plugin.calls[0]
@@ -157,7 +157,7 @@ def test_catch_all_receives_active_prefix(catch_all_plugin, plugin_manager):
         raise exc
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     from conda.base.context import context
 
@@ -165,74 +165,74 @@ def test_catch_all_receives_active_prefix(catch_all_plugin, plugin_manager):
     assert info.active_prefix == context.active_prefix
 
 
-def test_run_for_filters_by_class_name(
+def test_watch_for_filters_by_class_name(
     catch_all_plugin, packages_only_plugin, plugin_manager
 ):
-    """A handler with run_for={'PackagesNotFoundError'} does not fire for plain CondaError."""
+    """An observer with watch_for={'PackagesNotFoundError'} does not fire for plain CondaError."""
     try:
         raise CondaError("generic")
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     assert len(catch_all_plugin.calls) == 1
     assert len(packages_only_plugin.calls) == 0
 
 
-def test_run_for_matches_subclasses_via_mro(packages_only_plugin, plugin_manager):
-    """run_for matches against the full MRO, so PackagesNotFoundError catches subclasses."""
+def test_watch_for_matches_subclasses_via_mro(packages_only_plugin, plugin_manager):
+    """watch_for matches against the full MRO, so PackagesNotFoundError catches subclasses."""
     exc = PackagesNotFoundError(["numpy"])
     try:
         raise exc
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     assert len(packages_only_plugin.calls) == 1
     assert packages_only_plugin.calls[0].exc_value is exc
 
 
 def test_non_conda_error_not_matched_by_conda_handler(catch_all_plugin, plugin_manager):
-    """A ValueError is dispatched but not matched by a handler with run_for={'CondaError'}."""
+    """A ValueError is dispatched but not matched by an observer with watch_for={'CondaError'}."""
     try:
         raise ValueError("not a conda error")
     except ValueError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     assert len(catch_all_plugin.calls) == 0
 
 
-def test_handler_exception_swallowed(
+def test_observer_exception_swallowed(
     exploding_plugin, catch_all_plugin, plugin_manager
 ):
-    """A handler that raises does not break the invocation of subsequent handlers."""
+    """An observer that raises does not break the invocation of subsequent observers."""
     try:
         raise CondaError("test")
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     assert ExplodingPlugin.raised
     assert len(catch_all_plugin.calls) == 1
 
 
-def test_system_exit_in_handler_swallowed(system_exit_plugin, plugin_manager):
-    """A handler raising SystemExit cannot kill conda's error path."""
+def test_system_exit_in_observer_swallowed(system_exit_plugin, plugin_manager):
+    """An observer raising SystemExit cannot kill conda's error path."""
     try:
         raise CondaError("test")
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
 
-def test_exception_info_is_frozen(catch_all_plugin, plugin_manager):
-    """CondaExceptionInfo is a frozen dataclass -- attributes cannot be mutated."""
+def test_exception_event_is_frozen(catch_all_plugin, plugin_manager):
+    """CondaExceptionEvent is a frozen dataclass -- attributes cannot be mutated."""
     try:
         raise CondaError("test")
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     info = catch_all_plugin.calls[0]
     with pytest.raises(AttributeError):
@@ -240,7 +240,7 @@ def test_exception_info_is_frozen(catch_all_plugin, plugin_manager):
 
 
 def test_invoked_via_exception_handler_class(catch_all_plugin, plugin_manager):
-    """ExceptionHandler.handle_exception invokes exception handler plugins."""
+    """ExceptionHandler.handle_exception invokes exception observer plugins."""
     handler = ExceptionHandler()
     exc = CondaError("integration test")
     try:
@@ -278,13 +278,13 @@ def test_invoked_for_unexpected_exception_path(
     assert info.exc_type is RuntimeError
 
 
-def test_no_handlers_registered(plugin_manager):
-    """Invocation is a no-op when no handlers are registered."""
+def test_no_observers_registered(plugin_manager):
+    """Invocation is a no-op when no observers are registered."""
     try:
         raise CondaError("test")
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
 
 @pytest.mark.parametrize(
@@ -303,12 +303,12 @@ def test_base_exception_plugin_dispatches_exception_types(
     exc,
     return_code,
 ):
-    """A handler with run_for={'BaseException'} fires for any exception type."""
+    """An observer with watch_for={'BaseException'} fires for any exception type."""
     try:
         raise exc
     except BaseException:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     assert len(base_exception_plugin.calls) == 1
     info = base_exception_plugin.calls[0]
@@ -317,19 +317,19 @@ def test_base_exception_plugin_dispatches_exception_types(
     assert info.return_code == return_code
 
 
-def test_conda_error_not_matched_by_memory_error_handler(plugin_manager):
-    """A handler with run_for={'MemoryError'} does not fire for CondaError."""
+def test_conda_error_not_matched_by_memory_error_observer(plugin_manager):
+    """An observer with watch_for={'MemoryError'} does not fire for CondaError."""
 
     class MemoryErrorPlugin:
         def __init__(self):
-            self.calls: list[CondaExceptionInfo] = []
+            self.calls: list[CondaExceptionEvent] = []
 
         @plugins.hookimpl
-        def conda_exception_handlers(self):
-            yield CondaExceptionHandler(
+        def conda_exception_observers(self):
+            yield CondaExceptionObserver(
                 name="memory-only",
                 hook=self.calls.append,
-                run_for={"MemoryError"},
+                watch_for={"MemoryError"},
             )
 
     p = MemoryErrorPlugin()
@@ -339,24 +339,24 @@ def test_conda_error_not_matched_by_memory_error_handler(plugin_manager):
         raise CondaError("test")
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     assert len(p.calls) == 0
 
 
-def test_combined_run_for_scopes(plugin_manager):
-    """A handler with run_for={'CondaError', 'MemoryError'} fires for both types."""
+def test_combined_watch_for_scopes(plugin_manager):
+    """An observer with watch_for={'CondaError', 'MemoryError'} fires for both types."""
 
     class CombinedPlugin:
         def __init__(self):
-            self.calls: list[CondaExceptionInfo] = []
+            self.calls: list[CondaExceptionEvent] = []
 
         @plugins.hookimpl
-        def conda_exception_handlers(self):
-            yield CondaExceptionHandler(
+        def conda_exception_observers(self):
+            yield CondaExceptionObserver(
                 name="combined",
                 hook=self.calls.append,
-                run_for={"CondaError", "MemoryError"},
+                watch_for={"CondaError", "MemoryError"},
             )
 
     p = CombinedPlugin()
@@ -366,13 +366,13 @@ def test_combined_run_for_scopes(plugin_manager):
         raise CondaError("test")
     except CondaError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     try:
         raise MemoryError()
     except MemoryError:
         _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+        plugin_manager.invoke_exception_observers(exc_val, exc_tb)
 
     assert len(p.calls) == 2
     assert p.calls[0].exc_type is CondaError

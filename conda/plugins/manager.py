@@ -52,7 +52,7 @@ from . import (
 from .config import PluginConfig
 from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
-from .types import CondaExceptionInfo
+from .types import CondaExceptionEvent
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -71,7 +71,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
-        CondaExceptionHandler,
+        CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPluginWithAliases,
@@ -348,8 +348,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
-        self, name: Literal["exception_handlers"]
-    ) -> list[CondaExceptionHandler]: ...
+        self, name: Literal["exception_observers"]
+    ) -> list[CondaExceptionObserver]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -482,29 +482,29 @@ class CondaPluginManager(pluggy.PluginManager):
             if command in hook.run_for:
                 hook.action(command)
 
-    def invoke_exception_handlers(
+    def invoke_exception_observers(
         self,
         exc_val: BaseException,
         exc_tb: TracebackType,
     ) -> None:
         """
-        Invokes ``CondaExceptionHandler.hook`` functions registered with
-        ``conda_exception_handlers``.
+        Invokes ``CondaExceptionObserver.hook`` functions registered with
+        ``conda_exception_observers``.
 
-        Handlers are purely observational (following CPython's ``sys.excepthook``
+        Observers are purely observational (following CPython's ``sys.excepthook``
         model) and cannot suppress, modify, or redirect the exception. Return
         values are ignored.
 
-        Any exception raised by a handler is caught at the ``BaseException``
-        level and logged — a buggy plugin raising ``SystemExit`` or
+        Any exception raised by an observer is caught at the ``BaseException``
+        level and logged -- a buggy plugin raising ``SystemExit`` or
         ``KeyboardInterrupt`` cannot kill conda's error reporting.
 
         :param exc_val: the exception instance being handled
         :param exc_tb: the associated traceback
         """
         try:
-            handlers = self.get_hook_results("exception_handlers")
-            if not handlers:
+            observers = self.get_hook_results("exception_observers")
+            if not observers:
                 return
 
             exc_mro_names = frozenset(cls.__name__ for cls in type(exc_val).__mro__)
@@ -517,7 +517,7 @@ class CondaPluginManager(pluggy.PluginManager):
             try:
                 from ..models.channel import Channel
 
-                exc_info = CondaExceptionInfo(
+                event = CondaExceptionEvent(
                     exc_type=type(exc_val),
                     exc_value=exc_val,
                     exc_traceback=exc_tb,
@@ -536,29 +536,29 @@ class CondaPluginManager(pluggy.PluginManager):
                     json=context.json,
                 )
             except BaseException:
-                exc_info = CondaExceptionInfo(
+                event = CondaExceptionEvent(
                     exc_type=type(exc_val),
                     exc_value=exc_val,
                     exc_traceback=exc_tb,
                 )
 
-            for handler in handlers:
-                if not (handler.run_for & exc_mro_names):
+            for observer in observers:
+                if not (observer.watch_for & exc_mro_names):
                     continue
                 try:
-                    handler.hook(exc_info)
+                    observer.hook(event)
                 except BaseException:
                     log.debug(
-                        "Exception handler plugin %r failed",
-                        handler.name,
+                        "Exception observer plugin %r failed",
+                        observer.name,
                         exc_info=True,
                     )
 
             # Break reference cycles between traceback and frame locals promptly
             # (same reason CPython warns against storing exc_value/exc_traceback).
-            del exc_info, exc_tb
+            del event, exc_tb
         except BaseException:
-            log.debug("invoke_exception_handlers failed", exc_info=True)
+            log.debug("invoke_exception_observers failed", exc_info=True)
 
     def disable_external_plugins(self) -> None:
         """

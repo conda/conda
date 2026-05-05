@@ -73,9 +73,9 @@ class ExceptionHandler:
         try:
             from .base.context import context
 
-            context.plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
+            context.plugin_manager.invoke_exception_observers(exc_val, exc_tb)
         except BaseException:
-            log.debug("Failed to invoke exception handler plugins", exc_info=True)
+            log.debug("Failed to invoke exception observer plugins", exc_info=True)
 
         if isinstance(exc_val, CondaError):
             if exc_val.reportable:

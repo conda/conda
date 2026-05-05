@@ -805,14 +805,13 @@ class CondaPackageExtractor(CondaPlugin):
 
 
 @dataclass(frozen=True)
-class CondaExceptionInfo:
+class CondaExceptionEvent:
     """
-    Structured exception info passed to exception handler plugin callbacks.
+    Structured exception event passed to exception observer plugin callbacks.
 
-    Frozen to prevent plugins from mutating exception state. Named after
-    CPython's ``sys.exc_info()`` convention; structured args follow the
-    ``threading.ExceptHookArgs`` / ``sys.UnraisableHookArgs`` pattern for
-    forward compatibility.
+    Frozen to prevent plugins from mutating exception state. Structured args
+    follow the ``threading.ExceptHookArgs`` / ``sys.UnraisableHookArgs``
+    pattern for forward compatibility.
 
     The exception triple (``exc_type``, ``exc_value``, ``exc_traceback``) is
     always populated. The remaining fields describe the conda runtime state
@@ -866,16 +865,16 @@ class CondaExceptionInfo:
 
 
 @dataclass
-class CondaExceptionHandler(CondaPlugin):
+class CondaExceptionObserver(CondaPlugin):
     """
-    Return type to use when defining a conda exception handler plugin hook.
+    Return type to use when defining a conda exception observer plugin hook.
 
-    Exception handlers are purely observational — they cannot suppress,
-    modify, or redirect the exception. Their return value is ignored.
-    This follows the same model as CPython's ``sys.excepthook``.
+    Exception observers are purely observational, modelled after CPython's
+    ``sys.excepthook``. They cannot suppress, modify, or redirect the
+    exception. Their return value is ignored.
 
     For details on how this is used, see
-    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_exception_handlers`.
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_exception_observers`.
 
     .. warning::
 
@@ -883,27 +882,26 @@ class CondaExceptionHandler(CondaPlugin):
        the lifetime of the callback. This can create reference cycles and
        prevent garbage collection.
 
-    :param name: Handler name (e.g., ``missing-package-reporter``).
-    :param hook: Callable invoked with a :class:`CondaExceptionInfo` instance.
-                 Named after CPython's ``excepthook`` convention.
+    :param name: Observer name (e.g., ``missing-package-reporter``).
+    :param hook: Callable invoked with a :class:`CondaExceptionEvent` instance.
                  Must not raise; any exception is caught and logged.
-    :param run_for: Set of exception class names this handler should run for.
-                    Matches against the full MRO. Examples:
+    :param watch_for: Set of exception class names this observer watches for.
+                      Matches against the full MRO. Examples:
 
-                    - ``{"BaseException"}`` — fires for every exception.
-                    - ``{"Exception"}`` — all standard exceptions (excludes
-                      ``KeyboardInterrupt``, ``SystemExit``).
-                    - ``{"CondaError"}`` — all conda errors and subclasses.
-                    - ``{"PackagesNotFoundError"}`` — a specific error and
-                      its subclasses (e.g. ``PackagesNotFoundInChannelsError``).
-                    - ``{"MemoryError"}``, ``{"KeyboardInterrupt"}``,
-                      ``{"SystemExit"}`` — specific non-conda exceptions.
-                    - ``{"CondaError", "MemoryError"}`` — combine scopes.
+                      - ``{"BaseException"}`` — fires for every exception.
+                      - ``{"Exception"}`` — all standard exceptions (excludes
+                        ``KeyboardInterrupt``, ``SystemExit``).
+                      - ``{"CondaError"}`` — all conda errors and subclasses.
+                      - ``{"PackagesNotFoundError"}`` — a specific error and
+                        its subclasses (e.g. ``PackagesNotFoundInChannelsError``).
+                      - ``{"MemoryError"}``, ``{"KeyboardInterrupt"}``,
+                        ``{"SystemExit"}`` — specific non-conda exceptions.
+                      - ``{"CondaError", "MemoryError"}`` — combine scopes.
 
-                    For non-``CondaError`` exceptions the conda-specific fields
-                    on :class:`CondaExceptionInfo` may be ``None``.
+                      For non-``CondaError`` exceptions the conda-specific fields
+                      on :class:`CondaExceptionEvent` may be ``None``.
     """
 
     name: str
-    hook: Callable[[CondaExceptionInfo], None]
-    run_for: set[str]
+    hook: Callable[[CondaExceptionEvent], None]
+    watch_for: set[str]

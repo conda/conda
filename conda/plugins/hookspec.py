@@ -24,7 +24,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
-        CondaExceptionHandler,
+        CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPostCommand,
@@ -810,30 +810,30 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
-    def conda_exception_handlers(self) -> Iterable[CondaExceptionHandler]:
+    def conda_exception_observers(self) -> Iterable[CondaExceptionObserver]:
         """
-        Register exception handler callbacks in conda.
+        Register exception observer callbacks in conda.
 
-        Exception handlers are invoked when any exception is handled by the
+        Exception observers are invoked when any exception is handled by the
         ``ExceptionHandler``. They are **purely observational**: they cannot
         suppress, modify, or redirect the exception. Their return value is
         ignored. This follows the same model as CPython's ``sys.excepthook``.
 
-        Any exception raised by a handler is caught at the ``BaseException``
-        level, logged at DEBUG, and swallowed — a buggy plugin can never
+        Any exception raised by an observer is caught at the ``BaseException``
+        level, logged at DEBUG, and swallowed -- a buggy plugin can never
         disrupt conda's error reporting path.
 
-        Handlers receive a frozen :class:`~conda.plugins.types.CondaExceptionInfo`
+        Observers receive a frozen :class:`~conda.plugins.types.CondaExceptionEvent`
         dataclass. The exception triple (``exc_type``, ``exc_value``,
         ``exc_traceback``) is always populated. Conda runtime fields
         (``argv``, ``conda_version``, ``return_code``, ``active_prefix``,
         ``target_prefix``, ``channels``, ``subdir``, ``offline``, ``dry_run``,
         ``quiet``, ``json``) are ``None`` when the runtime isn't initialized.
 
-        ``run_for`` controls which exceptions trigger the handler via
+        ``watch_for`` controls which exceptions trigger the observer via
         MRO matching: ``{"CondaError"}`` catches all conda errors,
         ``{"BaseException"}`` catches everything, ``{"MemoryError"}`` catches
-        only OOM, etc. See :class:`~conda.plugins.types.CondaExceptionHandler`.
+        only OOM, etc. See :class:`~conda.plugins.types.CondaExceptionObserver`.
 
         **Example:**
 
@@ -842,19 +842,19 @@ class CondaSpecs:
             from conda import plugins
 
 
-            def report_missing(exc_info):
-                print(f"Missing packages: {exc_info.exc_value.packages}")
-                print(f"Command was: {' '.join(exc_info.argv)}")
+            def report_missing(event):
+                print(f"Missing packages: {event.exc_value.packages}")
+                print(f"Command was: {' '.join(event.argv)}")
 
 
             @plugins.hookimpl
-            def conda_exception_handlers():
-                yield plugins.types.CondaExceptionHandler(
+            def conda_exception_observers():
+                yield plugins.types.CondaExceptionObserver(
                     name="missing-package-reporter",
                     hook=report_missing,
-                    run_for={"PackagesNotFoundInChannelsError"},
+                    watch_for={"PackagesNotFoundInChannelsError"},
                 )
 
-        :return: An iterable of :class:`~conda.plugins.types.CondaExceptionHandler` entries.
+        :return: An iterable of :class:`~conda.plugins.types.CondaExceptionObserver` entries.
         """
         yield from ()
