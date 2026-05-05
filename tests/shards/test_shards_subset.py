@@ -827,6 +827,23 @@ def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
         )
 
 
+def test_pipelined_uses_offline_worker(monkeypatch):
+    """Test that expected worker is used in offline mode."""
+    monkeypatch.setattr(context, "offline", True)
+
+    actual_network_worker = None
+
+    class RepodataSubsetRememberWorker(RepodataSubset):
+        def _reachable_pipelined(self, root_packages, network_worker, cache):
+            nonlocal actual_network_worker
+
+            actual_network_worker = network_worker
+
+    subset = RepodataSubsetRememberWorker([])
+    subset.reachable_pipelined(["conda"])
+    assert actual_network_worker is shards_subset.offline_nofetch_thread
+
+
 def test_combine_batches_blocking_scenario():
     """
     Test the scenario where combine_batches_until_none would block indefinitely

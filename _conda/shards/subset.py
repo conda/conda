@@ -271,7 +271,7 @@ class RepodataSubset:
         while node_queue:
             # Batch fetch all nodes at current level
             to_retrieve = {node.package for node in node_queue if not node.visited}
-            if to_retrieve:
+            if to_retrieve:  # pragma: no branch
                 # Fetch from cache and network, getting ShardFetch objects for network fetches
                 needs_network = batch_retrieve_from_cache(
                     self.shardlikes, sorted(to_retrieve), shard_cache
@@ -288,7 +288,7 @@ class RepodataSubset:
                 node.visited = True
 
                 for next_node, _ in self._outgoing(node):
-                    if not next_node.visited:
+                    if not next_node.visited:  # pragma: no branch
                         node_queue.append(next_node)
 
     def reachable_pipelined(self, root_packages):
