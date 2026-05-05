@@ -73,6 +73,7 @@ exclude_lines = [
 omit = [
   "*/site-packages/*",
   '*\site-packages\*',
+  "_conda/shards/typing.py",
   "conda/_vendor.py",
   "conda/console.py",
   "conda/cli/activate.py",
