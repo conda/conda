@@ -734,7 +734,7 @@ def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path)
             time.sleep(0.1)
         return result
 
-    mocker.patch.object(RepodataSubset, "drain_pending", tracked_drain_pending)
+    mocker.patch.object(RepodataSubset, "_drain_pending", tracked_drain_pending)
 
     # Run multiple times to increase chance of hitting race condition
     for _ in range(10):
