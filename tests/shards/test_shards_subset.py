@@ -723,7 +723,7 @@ def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path)
     mocker.patch("conda.gateways.repodata.create_cache_dir", return_value=str(tmp_path))
 
     # Track when drain_pending is called
-    original_drain_pending = RepodataSubset.drain_pending
+    original_drain_pending = RepodataSubset._drain_pending
     drain_count = {"count": 0}
 
     def tracked_drain_pending(self, pending, shardlikes_by_url):
@@ -752,6 +752,32 @@ def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path)
         assert found_packages
 
 
+@exception_to_queue
+def cause_timeout_worker(
+    in_queue,
+    out_queue,
+    _a,
+    _b,
+):
+    """
+    Grab items from in_queue without processing, causing timeouts.
+    """
+    for batch in combine_batches_until_none(in_queue):
+        pass
+
+
+@exception_to_queue
+def dead_worker(
+    in_queue,
+    out_queue,
+    _a,
+    _b,
+):
+    """
+    Exit without doing work.
+    """
+
+
 def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
     """
     Test that pipelined times out if a URL is never fetched.
@@ -772,16 +798,11 @@ def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
     subdir_data = SubdirData(channel)
     shardlikes = [fetch_shards_index(subdir_data)]
 
-    queue = SimpleQueue()
-
-    # a slow and ineffective get()
-    monkeypatch.setattr(
-        "conda.gateways.connection.session.CondaSession.get",
-        lambda *args, **kwargs: queue.get(),
-    )
-
-    # faster failure
+    # faster failure. Now that we adjust timeouts based on
+    # remote_read_timeout_secs, this doesn't do much.
     monkeypatch.setattr("_conda.shards.subset.REACHABLE_PIPELINED_MAX_TIMEOUTS", 1)
+    # But, setting a shorter queue timeout period causes more timeouts to fire; exercising the "reach end of log_timeout()" path.
+    monkeypatch.setattr("_conda.shards.subset.QUEUE_TIMEOUT", 0.5)
     monkeypatch.setattr("_conda.shards.subset.THREAD_WAIT_TIMEOUT", 0)
 
     assert len(shardlikes) == 1, "test expects a single channel"
@@ -789,10 +810,21 @@ def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
         "test expects real sharded channel"
     )
     subset = RepodataSubset(shardlikes)
-    with pytest.raises(TimeoutError, match="shard"):
-        subset.reachable_pipelined(root_packages)
+    with (
+        shards_cache.ShardCache(tmp_path) as cache,
+        pytest.raises(TimeoutError, match="Timeout while fetching"),
+    ):
+        subset._reachable_pipelined(
+            root_packages, network_worker=cause_timeout_worker, cache=cache
+        )
 
-    queue.put(None)
+    with (
+        shards_cache.ShardCache(tmp_path) as cache,
+        pytest.raises(TimeoutError, match="Timeout while fetching"),
+    ):
+        subset._reachable_pipelined(
+            root_packages, network_worker=dead_worker, cache=cache
+        )
 
 
 def test_combine_batches_blocking_scenario():
