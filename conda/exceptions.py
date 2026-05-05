@@ -524,6 +524,29 @@ class ChannelDenied(ChannelNotAllowed):
     warning = "Channel included in denylist"
 
 
+def _extract_http_response_detail(body: dict) -> str | None:
+    """Extract the 'detail' field from an HTTP response JSON body.
+
+    If a RFC 9457 'detail' field is present, it is preferred over 'message'.
+    RFC 9457 requires 'detail' to be a string and scopes it to responses
+    with Content-Type: application/problem+json.
+
+    However, we read 'detail' from any JSON body without checking the
+    content type. Other frameworks independently use 'detail' in their own
+    schema. FastAPI, for example, sets 'detail' to a list of structured
+    validation error objects in plain application/json 422 responses.
+    Those are not RFC 9457 responses, but the field name collision means
+    we may receive a non-string here. We can stringify in that case.
+
+    See https://datatracker.ietf.org/doc/html/rfc9457#section-3.1.4
+    See https://github.com/conda-incubator/pytest-conda-solvers/pull/20
+    """
+    detail = body.get("detail")
+    if detail is None:
+        return None
+    return detail if isinstance(detail, str) else str(detail)
+
+
 class UnavailableInvalidChannel(ChannelError):
     status_code: str | int
 
@@ -567,20 +590,8 @@ class UnavailableInvalidChannel(ChannelError):
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
-            # If a RFC 9457 'detail' field is present, it is preferred over 'message'.
-            # RFC 9457 requires 'detail' to be a string and scopes it to responses
-            # with Content-Type: application/problem+json.
-            # However, we read 'detail' from any JSON body without checking the
-            # content type. Other frameworks independently use 'detail' in their own
-            # schema. FastAPI, for example, sets 'detail' to a list of structured
-            # validation error objects in plain application/json 422 responses.
-            # Those are not RFC 9457 responses, but the field name collision means
-            # we may receive a non-string here. We can stringify in that case.
-            # See https://datatracker.ietf.org/doc/html/rfc9457#section-3.1.4
-            # See https://github.com/conda-incubator/pytest-conda-solvers/pull/20
-            detail = body.get("detail")
-            if detail is not None:
-                message = detail if isinstance(detail, str) else str(detail)
+            if (detail := _extract_http_response_detail(body)) is not None:
+                message = detail
 
         # standardize arguments
         status_code = status_code or "000"
@@ -672,20 +683,8 @@ class CondaHTTPError(CondaError):
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
-            # If a RFC 9457 'detail' field is present, it is preferred over 'message'.
-            # RFC 9457 requires 'detail' to be a string and scopes it to responses
-            # with Content-Type: application/problem+json.
-            # However, we read 'detail' from any JSON body without checking the
-            # content type. Other frameworks independently use 'detail' in their own
-            # schema. FastAPI, for example, sets 'detail' to a list of structured
-            # validation error objects in plain application/json 422 responses.
-            # Those are not RFC 9457 responses, but the field name collision means
-            # we may receive a non-string here. We can stringify in that case.
-            # See https://datatracker.ietf.org/doc/html/rfc9457#section-3.1.4
-            # See https://github.com/conda-incubator/pytest-conda-solvers/pull/20
-            detail = body.get("detail")
-            if detail is not None:
-                message = detail if isinstance(detail, str) else str(detail)
+            if (detail := _extract_http_response_detail(body)) is not None:
+                message = detail
 
         # standardize arguments
         url = maybe_unquote(url)
