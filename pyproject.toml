@@ -70,9 +70,6 @@ exclude_lines = [
   '\s*\.\.\.$',
   "if TYPE_CHECKING:",  # ignoring type checking imports
 ]
-partial_branches = [
-  "pragma: no branch"
-]
 omit = [
   "*/site-packages/*",
   '*\site-packages\*',
@@ -86,6 +83,9 @@ omit = [
   "conda/gateways/connection/adapters/s3.py",
   "tests/*",
   "utils/*",
+]
+partial_branches = [
+  "pragma: no branch",
 ]
 show_missing = true
 skip_covered = true

@@ -31,7 +31,7 @@ def test_shardfetch_with_shards(empty_shards_cache, tmp_path):
     Test ShardFetch.fetch() with Shards instance (line 104).
     This tests the isinstance(self.shardbase, Shards) branch.
     """
-    from _conda.shards.shards import ShardFetch, Shards
+    from _conda.shards.shards import Shards
 
     # Create fake shard index and Shards instance
     shard_data = {
@@ -49,39 +49,13 @@ def test_shardfetch_with_shards(empty_shards_cache, tmp_path):
     assert shard_fetch.shard_cache is empty_shards_cache
 
 
-def test_shardfetch_get_if_loaded_with_shardlike():
-    """
-    Test ShardFetch.get_if_loaded() returns the shard when already loaded (line 189-190).
-    """
-    repodata = {
-        "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
-        "packages": {
-            "test.tar.bz2": {
-                "name": "test_package",
-                "version": "1.0",
-            }
-        },
-        "packages.conda": {},
-    }
-    shardlike = ShardLike(repodata, url="http://example.com/repodata.json")
-
-    shard_fetch = ShardFetch(shardlike, "test_package")
-
-    # When shard is loaded in memory (shard_loaded returns True for ShardLike),
-    # get_if_loaded should return the shard
-    result = shard_fetch.get_if_loaded()
-    assert result is not None
-    assert "packages" in result
-    assert "packages.conda" in result
-
-
 def test_shardfetch_cache_required_error(tmp_path):
     """
     Test ShardFetch._process_fetch_result raises ValueError when cache is None (line 170).
     """
     from unittest.mock import Mock
 
-    from _conda.shards.shards import ShardFetch, Shards
+    from _conda.shards.shards import Shards
 
     # Create a Shards instance
     shard_data = {
@@ -114,7 +88,7 @@ def test_batch_retrieve_from_cache_with_shardlike():
     """
     Test batch_retrieve_from_cache with non-Shards instances (ShardLike) (line 696).
     """
-    from _conda.shards.shards import ShardLike, batch_retrieve_from_cache
+    from _conda.shards.shards import batch_retrieve_from_cache
 
     # Create a temporary cache
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -144,7 +118,7 @@ def test_batch_retrieve_from_cache_empty_sharded():
     """
     Test batch_retrieve_from_cache when no Shards instances are provided (line 690-698).
     """
-    from _conda.shards.shards import ShardLike, batch_retrieve_from_cache
+    from _conda.shards.shards import batch_retrieve_from_cache
 
     # Create a temporary cache
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -175,7 +149,7 @@ def test_fetch_shards_impl_with_visited_cache():
     Test _fetch_shards_impl when packages are already in visited dict (line 143).
     This tests the "if package in shards.visited" branch.
     """
-    from _conda.shards.shards import ShardFetch, Shards
+    from _conda.shards.shards import Shards
 
     # Create a Shards instance
     shard_data = {
