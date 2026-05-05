@@ -132,30 +132,10 @@ Pick the narrowest scope that covers the exceptions you care about:
 Step 2 — package and register
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Conda discovers plugins via `entry points`_. Add one to your
-``pyproject.toml``:
-
-.. code-block:: toml
-   :caption: pyproject.toml
-
-   [build-system]
-   requires = ["setuptools", "setuptools-scm"]
-   build-backend = "setuptools.build_meta"
-
-   [project]
-   name = "conda-missing-reporter"
-   version = "0.1.0"
-   description = "Report missing packages to channel maintainers"
-   requires-python = ">=3.10"
-   dependencies = ["conda"]
-
-   [project.entry-points."conda"]
-   conda-missing-reporter = "conda_missing_reporter.plugin"
-
-Install the package (``pip install -e .``) and the hook is active
-the next time conda runs.
-
-.. _entry points: https://packaging.python.org/en/latest/specifications/entry-points/
+Package the hook as a standard conda plugin using entry points. See
+the :doc:`Plugins Quick start </dev-guide/plugins/index>` for a full
+walkthrough of ``pyproject.toml`` setup, entry-point configuration,
+and installation.
 
 Step 3 — test it
 ^^^^^^^^^^^^^^^^^

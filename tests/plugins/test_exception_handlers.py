@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import CondaError, plugins
+from conda import __version__ as CONDA_VERSION
 from conda.exception_handler import ExceptionHandler
 from conda.exceptions import PackagesNotFoundError
 from conda.plugins.types import CondaExceptionHandler
@@ -145,7 +146,7 @@ def test_catch_all_receives_conda_error(catch_all_plugin, plugin_manager):
     assert info.exc_type is CondaError
     assert info.exc_traceback is not None
     assert isinstance(info.argv, tuple)
-    assert isinstance(info.conda_version, str)
+    assert info.conda_version == CONDA_VERSION
     assert info.return_code == 1
 
 
@@ -158,8 +159,10 @@ def test_catch_all_receives_active_prefix(catch_all_plugin, plugin_manager):
         _, exc_val, exc_tb = sys.exc_info()
         plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
 
+    from conda.base.context import context
+
     info = catch_all_plugin.calls[0]
-    assert isinstance(info.active_prefix, (str, type(None)))
+    assert info.active_prefix == context.active_prefix
 
 
 def test_run_for_filters_by_class_name(
@@ -284,80 +287,34 @@ def test_no_handlers_registered(plugin_manager):
         plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
 
 
-def test_base_exception_plugin_receives_value_error(
-    base_exception_plugin, plugin_manager
+@pytest.mark.parametrize(
+    "exc,return_code",
+    [
+        (ValueError("oops"), 1),
+        (MemoryError(), 1),
+        (KeyboardInterrupt(), 1),
+        (SystemExit(2), 2),
+        (SystemExit(42), 42),
+    ],
+)
+def test_base_exception_plugin_dispatches_exception_types(
+    base_exception_plugin,
+    plugin_manager,
+    exc,
+    return_code,
 ):
     """A handler with run_for={'BaseException'} fires for any exception type."""
-    exc = ValueError("oops")
     try:
         raise exc
-    except ValueError:
+    except BaseException:
         _, exc_val, exc_tb = sys.exc_info()
         plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
 
     assert len(base_exception_plugin.calls) == 1
     info = base_exception_plugin.calls[0]
     assert info.exc_value is exc
-    assert info.exc_type is ValueError
-
-
-def test_memory_error_dispatched(base_exception_plugin, plugin_manager):
-    """MemoryError is dispatched to handlers registered for BaseException."""
-    exc = MemoryError()
-    try:
-        raise exc
-    except MemoryError:
-        _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
-
-    assert len(base_exception_plugin.calls) == 1
-    info = base_exception_plugin.calls[0]
-    assert info.exc_value is exc
-    assert info.exc_type is MemoryError
-
-
-def test_keyboard_interrupt_dispatched(base_exception_plugin, plugin_manager):
-    """KeyboardInterrupt is dispatched to handlers registered for BaseException."""
-    exc = KeyboardInterrupt()
-    try:
-        raise exc
-    except KeyboardInterrupt:
-        _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
-
-    assert len(base_exception_plugin.calls) == 1
-    info = base_exception_plugin.calls[0]
-    assert info.exc_value is exc
-    assert info.exc_type is KeyboardInterrupt
-
-
-def test_system_exit_dispatched(base_exception_plugin, plugin_manager):
-    """SystemExit is dispatched to handlers registered for BaseException."""
-    exc = SystemExit(2)
-    try:
-        raise exc
-    except SystemExit:
-        _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
-
-    assert len(base_exception_plugin.calls) == 1
-    info = base_exception_plugin.calls[0]
-    assert info.exc_value is exc
-    assert info.exc_type is SystemExit
-    assert info.return_code == 2
-
-
-def test_system_exit_return_code_from_code_attr(base_exception_plugin, plugin_manager):
-    """SystemExit.code is used as the return_code."""
-    exc = SystemExit(42)
-    try:
-        raise exc
-    except SystemExit:
-        _, exc_val, exc_tb = sys.exc_info()
-        plugin_manager.invoke_exception_handlers(exc_val, exc_tb)
-
-    info = base_exception_plugin.calls[0]
-    assert info.return_code == 42
+    assert info.exc_type is type(exc)
+    assert info.return_code == return_code
 
 
 def test_conda_error_not_matched_by_memory_error_handler(plugin_manager):
