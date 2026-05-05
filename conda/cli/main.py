@@ -49,13 +49,13 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
 
     # Call register(context) for each enabled preview feature (imports are lazy/deferred).
     # Unrecognized labels are silently skipped so typos don't crash the CLI.
-    for _preview_label in context.preview:
-        _preview_pkg = _preview_label.replace("-", "_")
+    for label in context.preview:
+        package = label.replace("-", "_")
         try:
-            _preview_mod = import_module(f"conda._preview.{_preview_pkg}")
-            _preview_mod.register(context)
+            mod = import_module(f"conda._preview.{package}")
         except ModuleNotFoundError:
-            pass
+            continue
+        mod.register(context)
 
     # used with main_pip.py
     if post_parse_hook:

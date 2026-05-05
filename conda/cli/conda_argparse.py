@@ -192,16 +192,16 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # Only built-in conda.cli.* modules are eligible for redirection; plugin
         # subcommands are handled by the branch above and are never affected.
         module = None
-        for _label in context.preview:
-            _pkg = _label.replace("-", "_")
-            _candidate = module_name.replace(
-                "conda.cli", f"conda._preview.{_pkg}.cli", 1
+        for label in context.preview:
+            package = label.replace("-", "_")
+            candidate = module_name.replace(
+                "conda.cli", f"conda._preview.{package}.cli", 1
             )
             if (
-                _candidate != module_name
-                and importlib.util.find_spec(_candidate) is not None
+                candidate != module_name
+                and importlib.util.find_spec(candidate) is not None
             ):
-                module = import_module(_candidate)
+                module = import_module(candidate)
                 break
         if module is None:
             module = import_module(module_name)
