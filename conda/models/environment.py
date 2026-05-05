@@ -638,7 +638,8 @@ class Environment:
 
     def extrapolate(self, platform: str) -> Environment:
         """
-        Given the current environment, extrapolate the environment for the given platform.
+        Given the current environment, solve for a comparable environment on a
+        different platform.
         """
         if platform == self.platform:
             return self
