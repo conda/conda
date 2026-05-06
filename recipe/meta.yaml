@@ -56,14 +56,13 @@ requirements:
     - tqdm >=4
     - truststore >=0.8.0           # [py>=310]
     - zstandard >=0.15
-    # Plugins to bundle with conda
     - conda-libmamba-solver >=26.4.0
-    - conda-pypi >=0.8.0
   run_constrained:
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed
     - conda-content-trust >=0.3.0
     - conda-env >=2.6
+    - conda-pypi >=0.8.0
 
 test:
   imports:

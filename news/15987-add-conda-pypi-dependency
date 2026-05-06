@@ -16,4 +16,4 @@
 
 ### Other
 
-* Require `conda-pypi >=0.8.0` in the conda recipe. (#15987)
+* Add `conda-pypi >=0.8.0` to `run_constrained` in the conda recipe. (#15987)
