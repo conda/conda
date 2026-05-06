@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add `conda_external_installers` plugin hook for handling external package managers (e.g., pip/pypi, npm) in `environment.yml` files. (#14157)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.env.installers.pip` module as pending deprecation; use the `conda_external_installers` plugin hook instead (removal in 27.3). (#14157)
+* Mark `conda.env.pip_util` module as pending deprecation; use `conda.env.installers.base.get_workdir` and the `conda_external_installers` plugin hook instead (removal in 27.3). (#14157)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -381,8 +381,7 @@ def install(args, parser, command="install"):
 
     if env.external_packages and not context.dry_run and not context.download_only:
         from .. import CondaError
-        from ..env.installers.base import get_installer
-        from ..env.pip_util import get_pip_workdir
+        from ..env.installers.base import get_installer, get_workdir
 
         external_envs = [
             (fpath, file_env)
@@ -393,13 +392,10 @@ def install(args, parser, command="install"):
             for installer_type, pkg_specs in file_env.external_packages.items():
                 try:
                     installer = get_installer(installer_type)
-                    if installer_type == "pip":
-                        workdir = get_pip_workdir(fpath)
-                        installer.install(
-                            prefix, list(pkg_specs), args, file_env, workdir=workdir
-                        )
-                    else:
-                        installer.install(prefix, list(pkg_specs), args, file_env)
+                    workdir = get_workdir(fpath)
+                    installer.install(
+                        prefix, list(pkg_specs), args, file_env, workdir=workdir
+                    )
                 except InvalidInstaller:
                     raise CondaError(
                         f"Unable to install package for {installer_type} from environment file {fpath}. "

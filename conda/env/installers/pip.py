@@ -7,8 +7,15 @@ import os.path as op
 from logging import getLogger
 
 from ...auxlib.compat import Utf8NamedTemporaryFile
+from ...deprecations import deprecated
 from ...env.pip_util import get_pip_installed_packages, get_pip_workdir, pip_subprocess
 from ...reporters import get_spinner
+
+deprecated.module(
+    "26.9",
+    "27.3",
+    addendum="Use the conda_external_installers plugin hook instead.",
+)
 
 log = getLogger(__name__)
 

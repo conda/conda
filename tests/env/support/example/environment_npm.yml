@@ -1,0 +1,5 @@
+name: test
+dependencies:
+  - nodejs
+  - npm:
+    - is-odd

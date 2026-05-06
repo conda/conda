@@ -1,9 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import warnings
+
 import pytest
 
-from conda.env.pip_util import get_pip_installed_packages
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", PendingDeprecationWarning)
+    from conda.env.pip_util import get_pip_installed_packages
 
 pip_output_attrs = """
 Collecting attrs

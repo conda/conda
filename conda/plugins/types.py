@@ -801,3 +801,35 @@ class CondaPackageExtractor(CondaPlugin):
     name: str
     extensions: list[str]
     extract: PackageExtract
+
+
+@dataclass
+class CondaExternalInstaller(CondaPlugin):
+    """
+    **EXPERIMENTAL**
+
+    Return type to use when defining a conda external installer plugin hook.
+
+    External installers handle the installation of non-conda packages listed
+    in environment specification files (e.g., the ``pip:`` section in
+    ``environment.yml``). Each installer registers a name that corresponds to
+    the key used in the environment file's ``external_packages`` dict entries.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_external_installers`.
+
+    :param name: Primary installer name matching the environment file key
+                 (e.g., ``pypi`` for a PyPI installer).
+    :param aliases: Additional names that resolve to this installer
+                    (e.g., ``["pip"]`` for backwards compatibility).
+    :param install: Callable that installs the packages. Signature:
+                    ``install(prefix: str, specs: list[str], args: Namespace, env) -> list[str] | None``
+                    where ``prefix`` is the target environment path, ``specs`` is
+                    the list of package specifications, ``args`` is the CLI namespace,
+                    and ``env`` is the environment object. Returns a list of installed
+                    packages or None.
+    """
+
+    name: str
+    install: Callable
+    aliases: tuple[str, ...] = ()

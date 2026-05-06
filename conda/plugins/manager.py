@@ -67,6 +67,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaExternalInstaller,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPluginWithAliases,
@@ -340,6 +341,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["external_installers"]
+    ) -> list[CondaExternalInstaller]: ...
 
     def get_hook_results(self, name, **kwargs):
         """
@@ -1051,6 +1057,19 @@ class CondaPluginManager(pluggy.PluginManager):
         for ext in self.get_package_extractors():
             if path_str.endswith(ext):
                 return ext
+        return None
+
+    def get_external_installer(self, name: str):
+        """
+        Get a registered external installer plugin by name or alias.
+
+        :param name: The installer name or alias (e.g., "pypi" or "pip").
+        :return: The matching CondaExternalInstaller plugin, or None if not found.
+        """
+        name = name.lower().strip()
+        for hook in self.get_hook_results("external_installers"):
+            if hook.name == name or name in hook.aliases:
+                return hook
         return None
 
 

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 from pathlib import Path
@@ -508,3 +509,145 @@ def test_export_and_recreate_environment(
         assert rc == 0, (
             f"conda env create --dry-run failed ({target_format=}): {stderr}"
         )
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(
+    not importlib.util.find_spec("conda_pypi"),
+    reason="conda-pypi not installed",
+)
+@pytest.mark.parametrize(
+    "env_file,expected_packages",
+    [
+        ("example/environment_external_installer.yml", ["six"]),
+        ("example/environment_external_installer_multi.yml", ["six", "colorama"]),
+        ("example/environment_external_installer_pinned.yml", ["six=1.16.0"]),
+    ],
+)
+def test_create_external_installer(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    env_file: str,
+    expected_packages: list[str],
+):
+    """The conda_external_installers plugin hook installs pip: deps via conda-pypi."""
+    prefix = path_factory()
+
+    _, stderr, rc = conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file(env_file),
+    )
+    assert rc == 0, f"conda env create failed: {stderr}"
+    assert prefix.exists()
+    assert package_is_installed(prefix, "python")
+    for pkg in expected_packages:
+        assert package_is_installed(prefix, pkg)
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(
+    not importlib.util.find_spec("conda_pypi"),
+    reason="conda-pypi not installed",
+)
+def test_update_external_installer(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """conda env update adds pip: deps to an existing env via the plugin."""
+    prefix = path_factory()
+
+    _, stderr, rc = conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("example/environment_pinned.yml"),
+    )
+    assert rc == 0, f"conda env create failed: {stderr}"
+    assert not package_is_installed(prefix, "six")
+
+    _, stderr, rc = conda_cli(
+        "env",
+        "update",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("example/environment_external_installer.yml"),
+    )
+    assert rc == 0, f"conda env update failed: {stderr}"
+    assert package_is_installed(prefix, "six")
+
+
+@pytest.mark.integration
+def test_create_unknown_installer_type_errors(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """Unknown installer key (e.g., npm:) raises a helpful error."""
+    from conda import CondaError
+
+    prefix = path_factory()
+
+    with pytest.raises(CondaError, match="Unable to install package for npm"):
+        conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            support_file("example/environment_unknown_installer.yml"),
+        )
+
+
+@pytest.fixture
+def npm_installer_plugin():
+    """Register a real npm external installer plugin into the live plugin manager."""
+    from conda import plugins as conda_plugins
+    from conda.base.context import context
+    from conda.plugins.types import CondaExternalInstaller
+
+    def npm_install(prefix, specs, args, *_, **kwargs):
+        npm_bin = Path(prefix) / ("Scripts" if on_win else "bin") / "npm"
+        result = subprocess.run(
+            [str(npm_bin), "install", *specs],
+            cwd=prefix,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"npm install failed ({result.returncode}): {result.stderr}"
+            )
+        return list(specs)
+
+    class NpmInstallerPlugin:
+        @conda_plugins.hookimpl
+        def conda_external_installers(self):
+            yield CondaExternalInstaller(name="npm", install=npm_install)
+
+    plugin = NpmInstallerPlugin()
+    context.plugin_manager.register(plugin)
+    yield
+    context.plugin_manager.unregister(plugin)
+
+
+@pytest.mark.integration
+def test_create_npm_installer(
+    npm_installer_plugin,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """A real npm external installer plugin can install packages from environment.yml."""
+    prefix = path_factory()
+
+    _, stderr, rc = conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        "--file",
+        support_file("example/environment_npm.yml"),
+    )
+    assert rc == 0, f"conda env create failed: {stderr}"
+    assert package_is_installed(prefix, "nodejs")
+    assert (prefix / "node_modules" / "is-odd").exists()
