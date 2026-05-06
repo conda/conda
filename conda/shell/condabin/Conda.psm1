@@ -65,13 +65,12 @@ function Enter-CondaEnvironment {
 
         [Parameter(Position=0)][string]$Name,
 
-        [Parameter(Mandatory=$false)]
-        [switch]$Help = $False
+        [Parameter(Mandatory=$false)][switch]$Help = $False
     );
 
     begin {
         # Includes if the user provides the flags -h/-help
-        If ($Help) {
+        If ($Help -or  ($Name -contains "--help")) {
             & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --help;
         } else {
             If ($Stack) {
@@ -81,9 +80,7 @@ function Enter-CondaEnvironment {
             }
 
             Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
-            if (!($Name -contains "--help")) {
-                Invoke-Expression -Command $activateCommand;
-            }
+            Invoke-Expression -Command $activateCommand;
         }
     }
 
@@ -106,28 +103,24 @@ function Enter-CondaEnvironment {
 function Exit-CondaEnvironment {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$false)]
-        [switch]$Help = $False,
+        [Parameter(Mandatory=$false)][switch]$Help = $False,
 
         [Parameter(Position=0)][string]$Arg
     );
 
     begin {
         # Includes if the user provides the flags -h/-help
-        If ($Help) {
+        If ($Help -or  ($Name -contains "--help")) {
             & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate --help;
         } else {
             $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate $Arg | Out-String);
-
-            if (!($Arg -contains "--help")) {
-                # If deactivate returns an empty string, we have nothing more to do,
-                # so return early.
-                if ($deactivateCommand.Trim().Length -eq 0) {
-                    return;
-                }
-                Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand";
-                Invoke-Expression -Command $deactivateCommand;
+            # If deactivate returns an empty string, we have nothing more to do,
+            # so return early.
+            if ($deactivateCommand.Trim().Length -eq 0) {
+                return;
             }
+            Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand";
+            Invoke-Expression -Command $deactivateCommand;
         }
     }
     process {}

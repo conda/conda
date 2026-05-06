@@ -157,7 +157,7 @@ def test_powershell_activate_help(shell: Shell) -> None:
         sh.expect("0")
         sh.assert_env_var("CONDA_SHLVL", "0")
         # Check --help flag
-        sh.sendline("Ender-CondaEnvironment --help")
+        sh.sendline("Enter-CondaEnvironment --help")
         sh.sendline("$LASTEXITCODE")
         sh.expect("0")
         sh.assert_env_var("CONDA_SHLVL", "0")
