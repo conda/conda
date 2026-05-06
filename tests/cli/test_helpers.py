@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import stat
+import threading
 from argparse import ArgumentParser, Namespace
 
 import pytest
@@ -395,8 +397,6 @@ def test_conda_file_type_nonexistent():
 @pytest.mark.skipif(on_win, reason="os.mkfifo is not available on Windows")
 def test_conda_file_type_fifo(tmp_path):
     """A pipe path is replaced by a regular temporary file with the same content."""
-    import threading
-
     fifo_path = tmp_path / "myfifo"
     os.mkfifo(str(fifo_path))
 
@@ -412,10 +412,8 @@ def test_conda_file_type_fifo(tmp_path):
     result = conda_file_type(str(fifo_path))
     t.join()
 
-    import stat as _stat
-
     assert result != str(fifo_path)
-    assert _stat.S_ISREG(os.stat(result).st_mode)
+    assert stat.S_ISREG(os.stat(result).st_mode)
     with open(result, "rb") as fh:
         assert fh.read() == content
 
@@ -423,8 +421,6 @@ def test_conda_file_type_fifo(tmp_path):
 @pytest.mark.skipif(on_win, reason="os.mkfifo is not available on Windows")
 def test_conda_file_type_via_argparse(tmp_path):
     """conda_file_type works correctly as an argparse type= callable."""
-    import threading
-
     fifo_path = tmp_path / "myfifo"
     os.mkfifo(str(fifo_path))
 
