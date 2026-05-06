@@ -5,11 +5,13 @@
 from __future__ import annotations
 
 import argparse
+import os
 from argparse import ArgumentParser, Namespace
 
 import pytest
 
-from conda.cli.helpers import LazyChoicesAction
+from conda.cli.helpers import LazyChoicesAction, conda_file_type
+from conda.common.compat import on_win
 
 
 @pytest.fixture
@@ -369,3 +371,93 @@ def test_conda_export_format_integration(export_format_choices):
     assert "environment-json" in help_text
     assert "environment-yaml" in help_text
     assert "explicit" in help_text
+
+
+# ---------------------------------------------------------------------------
+# Tests for conda_file_type
+# ---------------------------------------------------------------------------
+
+
+def test_conda_file_type_regular_file(tmp_path):
+    """Regular file paths are returned unchanged."""
+    regular = tmp_path / "spec.txt"
+    regular.write_text("python\n")
+    assert conda_file_type(str(regular)) == str(regular)
+
+
+def test_conda_file_type_url():
+    """URL strings are passed through unchanged."""
+    url = "https://example.com/env.yml"
+    assert conda_file_type(url) == url
+
+
+def test_conda_file_type_nonexistent():
+    """Non-existent paths are passed through unchanged."""
+    path = "/tmp/this_does_not_exist_12345.txt"
+    assert conda_file_type(path) == path
+
+
+@pytest.mark.skipif(on_win, reason="os.mkfifo is not available on Windows")
+def test_conda_file_type_fifo(tmp_path):
+    """A pipe path is replaced by a regular temporary file with the same content."""
+    import threading
+
+    fifo_path = tmp_path / "myfifo"
+    os.mkfifo(str(fifo_path))
+
+    content = b"python=3.12\nnumpy\n"
+
+    def writer():
+        with open(str(fifo_path), "wb") as fh:
+            fh.write(content)
+
+    t = threading.Thread(target=writer)
+    t.start()
+
+    result = conda_file_type(str(fifo_path))
+    t.join()
+
+    import stat as _stat
+
+    assert result != str(fifo_path)
+    assert _stat.S_ISREG(os.stat(result).st_mode)
+    with open(result, "rb") as fh:
+        assert fh.read() == content
+
+
+@pytest.mark.skipif(on_win, reason="os.mkfifo is not available on Windows")
+def test_conda_file_type_via_argparse(tmp_path):
+    """conda_file_type works correctly as an argparse type= callable."""
+    import threading
+
+    fifo_path = tmp_path / "myfifo"
+    os.mkfifo(str(fifo_path))
+
+    content = b"scipy\n"
+
+    def writer():
+        with open(str(fifo_path), "wb") as fh:
+            fh.write(content)
+
+    t = threading.Thread(target=writer)
+    t.start()
+
+    parser = ArgumentParser()
+    parser.add_argument("--file", action="append", default=[], type=conda_file_type)
+    args = parser.parse_args(["--file", str(fifo_path)])
+    t.join()
+
+    assert len(args.file) == 1
+    buffered = args.file[0]
+    assert buffered != str(fifo_path)
+    with open(buffered, "rb") as fh:
+        assert fh.read() == content
+
+
+@pytest.mark.skipif(not on_win, reason="Windows-specific behaviour")
+def test_conda_file_type_win_passthrough(tmp_path):
+    """On Windows all paths are returned unchanged."""
+    regular = tmp_path / "spec.txt"
+    regular.write_text("python\n")
+    assert conda_file_type(str(regular)) == str(regular)
+    assert conda_file_type("/dev/fd/63") == "/dev/fd/63"

@@ -6,6 +6,10 @@ Collection of helper functions to standardize reused CLI arguments.
 
 from __future__ import annotations
 
+import atexit
+import os
+import stat
+import tempfile
 from argparse import (
     SUPPRESS,
     Action,
@@ -16,10 +20,57 @@ from argparse import (
 )
 from typing import TYPE_CHECKING
 
+from ..common.compat import on_win
 from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
+
+
+def conda_file_type(path: str) -> str:
+    """Argparse ``type`` callable for ``--file`` arguments.
+
+    Normalizes file paths in a cross-platform compatible way. URLs are
+    returned unchanged. On POSIX, if the path refers to a pipe or socket,
+    the contents are copied into a temporary regular file and that path is
+    returned instead, ensuring the file can be read multiple times. On
+    Windows, the path is always returned unchanged.
+    """
+    # URLs are passed through as-is; existence/validity checks happen later.
+    if "://" in path:
+        return path
+
+    # Pipe/socket normalization is only applicable on POSIX.
+    if on_win:
+        return path
+
+    try:
+        mode = os.stat(path).st_mode
+    except OSError:
+        # Non-existent or inaccessible paths are passed through; the normal
+        # validate_file_exists() call will raise a user-friendly error.
+        return path
+
+    if stat.S_ISFIFO(mode) or stat.S_ISSOCK(mode):
+        # Copy the pipe/socket contents into a regular temporary file so the
+        # path can be opened and read multiple times.
+        try:
+            with open(path, "rb") as pipe_fh:
+                content = pipe_fh.read()
+            tmp = tempfile.NamedTemporaryFile(
+                prefix="conda_pipe_",
+                suffix=".txt",
+                delete=False,
+            )
+            tmp.write(content)
+            tmp.flush()
+            tmp.close()
+            atexit.register(os.unlink, tmp.name)
+            return tmp.name
+        except OSError:
+            pass
+
+    return path
 
 
 class LazyChoicesAction(Action):
@@ -110,6 +161,7 @@ def add_parser_create_install_update(p, prefix_required=False):
         "--file",
         default=[],
         action="append",
+        type=conda_file_type,
         help="Read environment or package specs from the given file. Supports "
         "YAML, requirements.txt, explicit, and other formats via env specifier "
         "plugins. Repeated file specs of some type can be passed "
