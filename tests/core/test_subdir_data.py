@@ -96,6 +96,13 @@ def test_get_index_no_platform_with_offline_cache(
     # only works if CONDA_PLATFORM exists in tests/data/conda_format_repo
     # (test will not pass on newer platforms with default CONDA_PLATFORM =
     # 'osx-arm64' etc.)
+
+    # Undo env vars from the loops above so we can fetch repodata online.
+    monkeypatch.delenv("CONDA_OFFLINE")
+    monkeypatch.delenv("CONDA_REPODATA_TIMEOUT_SECS")
+    monkeypatch.delenv("CONDA_PLATFORM")
+    reset_context()
+
     online_channels = context.channels or ["defaults"]
 
     # Warm the repodata cache while still online so offline reads work
