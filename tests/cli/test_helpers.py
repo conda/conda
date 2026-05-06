@@ -373,11 +373,6 @@ def test_conda_export_format_integration(export_format_choices):
     assert "explicit" in help_text
 
 
-# ---------------------------------------------------------------------------
-# Tests for conda_file_type
-# ---------------------------------------------------------------------------
-
-
 def test_conda_file_type_regular_file(tmp_path):
     """Regular file paths are returned unchanged."""
     regular = tmp_path / "spec.txt"
