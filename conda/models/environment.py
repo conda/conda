@@ -671,18 +671,11 @@ class Environment:
                     # Check if solver supports build_repodata_subset parameter
                     sig = inspect.signature(solver_backend.__init__)
                     if "build_repodata_subset" in sig.parameters:
-                        solver_kwargs["build_repodata_subset"] = conda_build_repodata_subset
+                        solver_kwargs["build_repodata_subset"] = (
+                            conda_build_repodata_subset
+                        )
 
                     solver = solver_backend(**solver_kwargs)
-
-                    solver = solver_backend(
-                        prefix="/env/does/not/exist",
-                        channels=self.config.channels,
-                        subdirs=(platform, "noarch"),
-                        specs_to_add=requested_packages,
-                        repodata_fn=repodata_fn,
-                        command="create",
-                    )
                     explicit_packages = solver.solve_final_state()
         return Environment(
             prefix=self.prefix,
