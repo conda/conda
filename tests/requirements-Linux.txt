@@ -1,2 +1,0 @@
-conda-forge::xonsh
-patchelf
