@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-import pytest_codspeed
 from requests.exceptions import HTTPError
 
 import conda.gateways.repodata
@@ -308,18 +307,6 @@ class TestAddPipAsPythonDependency:
         assert "python-3.10-0.conda" in filtered["packages.conda"]
 
 
-def codspeed_supported():
-    """
-    TODO: temporary measure to skip these tests if we do not have pytest-codspeed >=4
-    """
-    try:
-        major, minor, bug = pytest_codspeed.__version__.split(".")
-        return int(major) >= 4
-    except (ValueError, AttributeError):
-        # If this fails, it means we want to skip this test
-        return False
-
-
 def clean_cache(conda_cli: CondaCLIFixture):
     """
     Clean cache and assert it completed without error except on Windows
@@ -355,7 +342,6 @@ def repodata_subset_size(channel_data):
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(not codspeed_supported(), reason="pytest-codspeed-version-4")
 @pytest.mark.parametrize("cache_state", ("cold", "warm"))
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
 @pytest.mark.parametrize(
