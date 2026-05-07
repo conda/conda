@@ -242,7 +242,24 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             )
 
         solver_backend = context.plugin_manager.get_cached_solver_backend()
-        solver = solver_backend(prefix, channel_urls, subdirs, specs_to_remove=specs)
+        
+        # Prepare solver kwargs
+        import inspect
+        from ..gateways.shards import build_repodata_subset as conda_build_repodata_subset
+        
+        solver_kwargs = {
+            "prefix": prefix,
+            "channels": channel_urls,
+            "subdirs": subdirs,
+            "specs_to_remove": specs,
+        }
+        
+        # Check if solver supports build_repodata_subset parameter
+        sig = inspect.signature(solver_backend.__init__)
+        if "build_repodata_subset" in sig.parameters:
+            solver_kwargs["build_repodata_subset"] = conda_build_repodata_subset
+        
+        solver = solver_backend(**solver_kwargs)
 
         try:
             txn = solver.solve_for_transaction()
