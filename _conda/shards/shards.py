@@ -301,6 +301,8 @@ class ShardBase(abc.ABC):
     def build_repodata(self) -> RepodataDict:
         """
         Return monolithic repodata including all visited shards.
+
+        Prefer package_records() over this method.
         """
         repodata: RepodataDict = {
             **self.repodata_no_packages,
@@ -313,6 +315,15 @@ class ShardBase(abc.ABC):
             for package_group in ("packages", "packages.conda"):
                 repodata[package_group].update(shard[package_group])
         return repodata
+
+    def package_records(self) -> Iterable[tuple[str, dict]]:
+        """
+        Yield (filename, record) tuples for all packages in visited shards.
+        """
+        repodata = self.build_repodata()
+        for package_group in ("packages", "packages.conda"):
+            for filename, record in repodata.get(package_group, {}).items():
+                yield filename, record
 
 
 class ShardLike(ShardBase):
