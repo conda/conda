@@ -322,8 +322,7 @@ class ShardBase(abc.ABC):
         """
         repodata = self.build_repodata()
         for package_group in ("packages", "packages.conda"):
-            for filename, record in repodata.get(package_group, {}).items():
-                yield filename, record
+            yield from repodata.get(package_group, {}).items()
 
 
 class ShardLike(ShardBase):
