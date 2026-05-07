@@ -1544,6 +1544,10 @@ def test_conditional_specs():
         == "python[when=__win]"
     )
 
+    # More complex when spec with its own version specifier
+    for when in ("python<3.10", "python<=3.11", "python[version='<=3.11']"):
+        assert MatchSpec(MatchSpec(f"tomli[when={when}]").get("when")) == MatchSpec(when)
+
 
 def test_extra_specs():
     # should not be present
@@ -1557,20 +1561,32 @@ def test_extra_specs():
     assert ms.get("extras") == ["group1"]
     assert str(ms) == "python[extras=['group1']]"
 
-    # This is the list syntax
+    # This is the list syntax, single item
     input_spec = "python[extras=[group1]]"
     ms = MatchSpec(input_spec)
     assert ms.name == "python"
     assert ms.get("extras") == ["group1"]
     assert str(ms) == "python[extras=['group1']]"
 
-    # This is the list syntax
-    input_spec = "python[extras=[group1,group2]]"
-    ms = MatchSpec(input_spec)
-    assert ms.name == "python"
-    assert ms.get("extras") == ["group1", "group2"]
-    assert str(ms) == "python[extras=['group1', 'group2']]"
+    # This is the list syntax, with all types of delimiters and quoting
+    for value in (
+        "a,b",
+        "a, b",
+        "a ,b",
+        "a , b",
+        "a  , b ",
+        "a, 'b'",
+        "'a' , 'b'",
+    ):
+        input_spec = f"python[extras=[{value}]]"
+        ms = MatchSpec(input_spec)
+        assert ms.name == "python"
+        assert ms.get("extras") == ["a", "b"]
+        assert str(ms) == "python[extras=['a', 'b']]"
 
+    # Inner lists MUST have commas
+    assert MatchSpec("package[extras=[a b]]").get("extras") == ["a b"]
+        
 
 def test_flags_specs():
     # should not be present
