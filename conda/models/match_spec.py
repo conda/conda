@@ -46,28 +46,28 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 # Matches the whole square brackets section
-_BRACKETS_RE: re.Pattern[str] = re.compile(r".*?(?:(\[.*\]))")
+_BRACKETS_RE: re.Pattern[str] = re.compile(r".*?(\[.*\])")
 # Matches all the key-value pairs within the square brackets section
 _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
     r"""
     (?P<key>[a-zA-Z0-9_-]+?)        # key
-    \s*=\s*                         # separator, with or without surrounding spaces
+    \ *=\ *                         # separator, with or without surrounding spaces
     (?:                             # the value can be a:
                                     # 1. maybe-quoted string
         (?P<quote_s>["']?)            # optional opening quote
-        (?P<value>[^\'"\[\]]*?)       # value
+        (?P<value>[^"'\[\]]*?)        # value
         (?P=quote_s)                  # matching closing quote
         |                           # 2. a list of maybe-quoted strings
-        \[\s*                         # opening square bracket, with maybe spaces
+        \[ *                         # opening square bracket, with maybe spaces
         (?P<value_list>
-            (                           # the value is represented by
+            (?:                         # the value is represented by
                 (?P<quote_b>["']?)        # optional opening quote
-                (?P<value_b>[^\'"]*?)     # value
+                (?P<value_b>[^"']*?)      # value
                 (?P=quote_b)              # matching closing quote
-                (?:[,\ ]?)                # delimiter
+                (?:\ *[,\ ]\ *)?          # optional delimiter: spaces and/or comma
             )+                          # ... one or more times
         )
-        \s*\]                         # matching closing square bracket closes the list
+        \ *\]                         # matching closing square bracket closes the list
     )
     (?:[,\ ]|$)               # delimiter or end
     """,
