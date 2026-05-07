@@ -1,8 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (C) 2022 Anaconda, Inc
-# Copyright (C) 2023 conda
-# SPDX-License-Identifier: BSD-3-Clause
 """
 Models for sharded repodata, and to make monolithic repodata look like sharded
 repodata.
