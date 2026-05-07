@@ -652,8 +652,11 @@ class Environment:
             with repodata_manager as repodata_fn:
                 # Prepare solver kwargs
                 import inspect
-                from ..gateways.shards import build_repodata_subset as conda_build_repodata_subset
-                
+
+                from ..gateways.shards import (
+                    build_repodata_subset as conda_build_repodata_subset,
+                )
+
                 solver_kwargs = {
                     "prefix": "/env/does/not/exist",
                     "channels": self.config.channels,
@@ -662,12 +665,12 @@ class Environment:
                     "repodata_fn": repodata_fn,
                     "command": "create",
                 }
-                
+
                 # Check if solver supports build_repodata_subset parameter
                 sig = inspect.signature(solver_backend.__init__)
                 if "build_repodata_subset" in sig.parameters:
                     solver_kwargs["build_repodata_subset"] = conda_build_repodata_subset
-                
+
                 solver = solver_backend(**solver_kwargs)
                 explicit_packages = solver.solve_final_state()
         return Environment(

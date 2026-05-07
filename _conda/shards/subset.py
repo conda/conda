@@ -552,15 +552,19 @@ def build_repodata_subset(
     """
     Retrieve all necessary information to build a repodata subset.
 
+    This function implements the conda.gateways.shards.BuildRepodataSubset protocol,
+    allowing it to be passed to solvers that support sharded repodata optimization.
+
     Params:
         root_packages: iterable of installed and requested package names
         channels: Channel objects; dict form preferred.
-        algorithm: desired traversal algorithm
-        spec_to_package_name_func: callable to convert package specs to names
+        algorithm: desired traversal algorithm ("bfs" or "pipelined")
+        spec_to_package_name_func: callable to convert package specs to names.
+                                   Defaults to the standard spec_to_package_name.
 
     Return:
         None if there are no shards available, or a mapping of channel URL's to
-        ShardBase objects where build_repodata() returns the computed subset..
+        ShardBase objects where build_repodata() returns the computed subset.
     """
     channel_data = fetch_channels(channels)
     if channel_data is not None:

@@ -1,8 +1,10 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """Minimum set of interfaces required to describe shards code to clients (solvers)"""
-import typing
 
-from collections.abc import Callable, Iterable
-from typing import Iterator, Literal
+import typing
+from collections.abc import Callable, Iterable, Iterator
+from typing import Literal
 
 
 class Shards(typing.Protocol):
