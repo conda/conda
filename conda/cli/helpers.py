@@ -622,6 +622,12 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     from ..base.context import context
     from ..common.constants import NULL
 
+    def choices_func():
+        return (
+            context.plugin_manager.get_environment_specifiers()
+            | context.plugin_manager.get_environment_specifiers2()
+        )
+
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
@@ -639,7 +645,7 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
         "--format",
         dest="environment_specifier",
         action=LazyChoicesAction,
-        choices_func=context.plugin_manager.get_environment_specifiers,
+        choices_func=choices_func,
         default=NULL,
         help=(
             "Format for the created environment. If not specified, "

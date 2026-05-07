@@ -717,6 +717,65 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
+    def conda_environment_specifiers2(self) -> Iterable[CondaEnvironmentSpecifier]:
+        """
+        Register new conda env spec type
+
+        The example below defines a type of conda env file called "random". It
+        can parse a file with the file extension `.random`. This plugin will ignore
+        whatever is in the input environment file and produce an environment with a
+        random name and with random packages.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import json
+            import random
+            from pathlib import Path
+            from subprocess import run
+            from conda import plugins
+            from conda.env.env import Environment
+
+            packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
+
+
+            def validate(data: str):
+                # Return early if no filename was provided
+                if filename is None:
+                    return False
+
+                # Extract the file extension (e.g., '.txt' or '' if no extension)
+                file_ext = os.path.splitext(filename)[1]
+
+                # Check if the file has a supported extension and exists
+                return any(
+                    spec_ext == file_ext and os.path.exists(filename)
+                    for spec_ext in RandomSpec.extensions
+                )
+
+
+            def env(data: str):
+                return Environment(
+                    name="".join(random.choice("0123456789abcdef") for i in range(6)),
+                    dependencies=[random.choice(packages) for i in range(6)],
+                )
+
+
+            @plugins.hookimpl
+            def conda_environment_specifiers():
+                yield plugins.CondaEnvSpec(
+                    name="random",
+                    detection_supported=True,
+                    validate=validate,
+                    env=env,
+                    aliases=("rnd",),
+                    default_filenames=("*.random",),
+                )
+        """
+        yield from ()
+
+    @_hookspec
     def conda_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
         """
         Register new conda environment exporter

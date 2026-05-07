@@ -24,6 +24,7 @@ from ..common.io import swallow_broken_pipe
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
+    CondaError,
     EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
     InvalidSpec,
@@ -298,11 +299,14 @@ def validate_environment_files_consistency(files: list[str]) -> None:
     if not files or len(files) <= 1:
         return  # Nothing to validate if there are 0 or 1 files
 
+    def get_env_spec_plugin_name(f):
+        try:
+            return context.plugin_manager.get_environment_specifier2(f).name
+        except CondaError:
+            return context.plugin_manager.get_environment_specifier(f).name
+
     # Get types for all files using the plugin manager
-    file_types = {
-        file: context.plugin_manager.get_environment_specifier(file).name
-        for file in files
-    }
+    file_types = {file: get_env_spec_plugin_name(file) for file in files}
     # If there's more than one unique type, raise an error
     if len(set(file_types.values())) > 1:
         raise EnvironmentFileTypeMismatchError(file_types)
