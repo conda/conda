@@ -1,7 +1,7 @@
 """Minimum set of interfaces required to describe shards code to clients (solvers)"""
 import typing
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import Iterator, Literal
 
 
@@ -29,6 +29,7 @@ class BuildRepodataSubset(typing.Protocol):
         root_packages: Iterable[str],
         channels: dict[str, typing.Any],
         algorithm: Literal["bfs", "pipelined"] = "bfs",
+        spec_to_package_name_func: Callable[[str], str] | None = None,
     ) -> dict[str, Shards] | None:
         """
         Retrieve a minimal subset of repodata based on root packages.
@@ -37,6 +38,8 @@ class BuildRepodataSubset(typing.Protocol):
             root_packages: Iterable of installed and requested package names
             channels: Dictionary mapping channel URLs to Channel objects
             algorithm: Traversal algorithm to use ("bfs" or "pipelined")
+            spec_to_package_name_func: Optional callable to convert package specs to names.
+                                      Defaults to the standard spec_to_package_name function.
 
         Returns:
             A dictionary mapping channel URLs to Shards objects containing
