@@ -51,7 +51,7 @@ class Solver:
                 The set of package specs to remove from the prefix.
 
         """
-        solver_backend = solver_backend_shards
+        solver_backend = solver_backend_shards()
         self._internal = solver_backend(
             prefix, channels, subdirs, specs_to_add, specs_to_remove
         )
