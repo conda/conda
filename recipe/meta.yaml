@@ -57,7 +57,7 @@ requirements:
     - truststore >=0.8.0           # [py>=310]
     - zstandard >=0.15
     # Plugins to bundle with conda
-    - conda-libmamba-solver >=26.4.0
+    - conda-libmamba-solver >=26.4.1
     - conda-pypi >=0.8.0
     - conda-lockfiles >=0.2.0
     - conda-spawn >=0.1.0
