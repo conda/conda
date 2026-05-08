@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `conda_exception_observers` plugin hook for observational callbacks on any exception conda encounters (filterable per observer via `run_for`). (#15910)
+* Add `conda_exception_observers` plugin hook for observational callbacks on any exception conda encounters (filterable per observer via `watch_for`). (#15910)
 
 ### Bug fixes
 
