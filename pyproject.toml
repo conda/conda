@@ -32,6 +32,7 @@ dependencies = [
   "distro >=1.5.0",
   "frozendict >=2.4.2",
   "menuinst >=2",
+  "msgpack >=1.1.1",
   "packaging >=23.0",
   "platformdirs >=3.10.0",
   "pluggy >=1.6.0",

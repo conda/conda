@@ -328,14 +328,29 @@ def install(args, parser, command="install"):
     ):
         with repodata_fn as repodata:
             solver_backend = context.plugin_manager.get_cached_solver_backend()
-            solver = solver_backend(
-                prefix,
-                env.config.channels,
-                context.subdirs,
-                specs_to_add=env.requested_packages,
-                repodata_fn=repodata,
-                command=args.cmd,
+
+            # Prepare solver kwargs
+            import inspect
+
+            from conda.gateways.shards import (
+                build_repodata_subset as conda_build_repodata_subset,
             )
+
+            solver_kwargs = {
+                "prefix": prefix,
+                "channels": env.config.channels,
+                "subdirs": context.subdirs,
+                "specs_to_add": env.requested_packages,
+                "repodata_fn": repodata,
+                "command": args.cmd,
+            }
+
+            # Check if solver supports build_repodata_subset parameter
+            sig = inspect.signature(solver_backend.__init__)
+            if "build_repodata_subset" in sig.parameters:
+                solver_kwargs["build_repodata_subset"] = conda_build_repodata_subset
+
+            solver = solver_backend(**solver_kwargs)
             try:
                 unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,

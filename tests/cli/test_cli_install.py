@@ -11,7 +11,6 @@ from conda.base.context import context, reset_context
 from conda.cli.install import reinstall_packages
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import DryRunExit, EnvironmentIsFrozenError, UnsatisfiableError
-from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -49,6 +48,7 @@ def test_pre_link_message(
 
 @pytest.mark.integration
 def test_find_conflicts_called_once(
+    test_recipes_channel: Path,
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
     path_factory: PathFactoryFixture,
@@ -57,54 +57,31 @@ def test_find_conflicts_called_once(
     if context.solver in ("libmamba", "rattler"):
         pytest.skip(f"conda-{context.solver}-solver handle conflicts differently")
 
-    bad_deps = {
-        "python": {
-            (
-                (
-                    MatchSpec("statistics"),
-                    MatchSpec("python[version='>=2.7,<2.8.0a0']"),
-                ),
-                "python=3",
-            )
-        }
-    }
+    # Side effect only needs to be UnsatisfiableError; dependency structure is irrelevant.
     mocked_find_conflicts = mocker.patch(
         "conda.resolve.Resolve.find_conflicts",
-        side_effect=UnsatisfiableError(bad_deps, strict=True),
+        side_effect=UnsatisfiableError([], strict=True),
     )
-    channels = (
-        "--repodata-fn",
-        "current_repodata.json",
-        "--override-channels",
-        "-c",
-        "defaults",
-    )
-    with tmp_env("python=3.9", *channels) as prefix:
+    with tmp_env("versioned=2.0") as prefix:
         with pytest.raises(UnsatisfiableError):
-            # Statistics is a py27 only package allowing us a simple unsatisfiable case
-            conda_cli("install", f"--prefix={prefix}", "statistics", "--yes", *channels)
+            conda_cli("install", f"--prefix={prefix}", "unsatisfiable")
         assert mocked_find_conflicts.call_count == 1
 
         with pytest.raises(UnsatisfiableError):
             conda_cli(
                 "install",
                 f"--prefix={prefix}",
-                "statistics",
+                "unsatisfiable",
                 "--freeze-installed",
-                "--yes",
-                *channels,
             )
         assert mocked_find_conflicts.call_count == 2
 
     with pytest.raises(UnsatisfiableError):
-        # statistics seems to be available on 3.10 though
         conda_cli(
             "create",
             f"--prefix={path_factory()}",
-            "statistics",
-            "python=3.9",
-            "--yes",
-            *channels,
+            "versioned=1.0",
+            "unsatisfiable",
         )
     assert mocked_find_conflicts.call_count == 3
 

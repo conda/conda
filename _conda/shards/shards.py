@@ -1,8 +1,5 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (C) 2022 Anaconda, Inc
-# Copyright (C) 2023 conda
-# SPDX-License-Identifier: BSD-3-Clause
 """
 Models for sharded repodata, and to make monolithic repodata look like sharded
 repodata.
@@ -301,6 +298,8 @@ class ShardBase(abc.ABC):
     def build_repodata(self) -> RepodataDict:
         """
         Return monolithic repodata including all visited shards.
+
+        Prefer package_records() over this method.
         """
         repodata: RepodataDict = {
             **self.repodata_no_packages,
@@ -313,6 +312,14 @@ class ShardBase(abc.ABC):
             for package_group in ("packages", "packages.conda"):
                 repodata[package_group].update(shard[package_group])
         return repodata
+
+    def package_records(self) -> Iterable[tuple[str, dict]]:
+        """
+        Yield (filename, record) tuples for all packages in visited shards.
+        """
+        repodata = self.build_repodata()
+        for package_group in ("packages", "packages.conda"):
+            yield from repodata.get(package_group, {}).items()
 
 
 class ShardLike(ShardBase):

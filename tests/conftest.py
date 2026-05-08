@@ -30,7 +30,7 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from conda.plugins.types import CondaEnvironmentExporter
 from conda.testing import http_test_server
 
-from . import TEST_RECIPES_CHANNEL
+from . import PYTHON_SPEC, TEST_RECIPES_CHANNEL
 
 if TYPE_CHECKING:
     import http.server
@@ -56,14 +56,6 @@ def pytest_report_header(config: pytest.Config):
     expected = Path(__file__).parent.parent / "conda" / "__init__.py"
     assert expected.samefile(conda.__file__)
     return f"conda.__file__: {conda.__file__}"
-
-
-@pytest.fixture
-def tmp_env_python_spec() -> str:
-    """
-    Used to create a temporary enviroment with a bounded Python version.
-    """
-    return "python=3.13"
 
 
 @pytest.fixture
@@ -328,7 +320,7 @@ def env_with_small_pip_package(
 
     Uses our small-python-package as a reliable test package that's proven to work in conda's test suite.
     """
-    with tmp_env("python=3.10", "pip") as prefix:
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
         # Install small-python-package wheel built in test data directory
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
 
