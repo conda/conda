@@ -12,8 +12,9 @@ from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
 from ...common.iterators import unique
+from ...core.solve import solver_backend_shards
 from ...env.env import EnvironmentYaml
-from ...exceptions import CondaValueError, UnsatisfiableError
+from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
 
 if TYPE_CHECKING:
@@ -45,28 +46,8 @@ def _solve(
     channels = tuple(unique(Channel(url) for url in _channel_priority_map))
     subdirs = tuple(unique(basename(url) for url in _channel_priority_map))
 
-    solver_backend = context.plugin_manager.get_cached_solver_backend()
-    if solver_backend is None:
-        raise CondaValueError("No solver backend found")
-
-    # Prepare solver kwargs
-    import inspect
-
-    from ...gateways.shards import build_repodata_subset as conda_build_repodata_subset
-
-    solver_kwargs = {
-        "prefix": prefix,
-        "channels": channels,
-        "subdirs": subdirs,
-        "specs_to_add": specs,
-    }
-
-    # Check if solver supports build_repodata_subset parameter
-    sig = inspect.signature(solver_backend.__init__)
-    if "build_repodata_subset" in sig.parameters:
-        solver_kwargs["build_repodata_subset"] = conda_build_repodata_subset
-
-    solver = solver_backend(**solver_kwargs)
+    solver_backend = solver_backend_shards()
+    solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
     return solver
 
 

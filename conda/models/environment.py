@@ -15,6 +15,7 @@ from ..base.context import context, validate_channels
 from ..common.constants import NULL
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
+from ..core.solve import solver_backend_shards
 from ..exceptions import CondaValueError, PlatformMismatchError
 from ..history import History
 from ..misc import get_package_records_from_explicit
@@ -646,36 +647,20 @@ class Environment:
 
         from ..cli.install import Repodatas
 
-        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver_backend = solver_backend_shards()
         requested_packages = self.from_history(self.prefix)
 
         with context._override("_subdir", platform):
             for repodata_manager in Repodatas(self.config.repodata_fns, {}):
                 with repodata_manager as repodata_fn:
-                    # Prepare solver kwargs
-                    import inspect
-
-                    from ..gateways.shards import (
-                        build_repodata_subset as conda_build_repodata_subset,
+                    solver = solver_backend(
+                        prefix="/env/does/not/exist",
+                        channels=self.config.channels,
+                        subdirs=(platform, "noarch"),
+                        specs_to_add=requested_packages,
+                        repodata_fn=repodata_fn,
+                        command="create",
                     )
-
-                    solver_kwargs = {
-                        "prefix": "/env/does/not/exist",
-                        "channels": self.config.channels,
-                        "subdirs": (platform, "noarch"),
-                        "specs_to_add": requested_packages,
-                        "repodata_fn": repodata_fn,
-                        "command": "create",
-                    }
-
-                    # Check if solver supports build_repodata_subset parameter
-                    sig = inspect.signature(solver_backend.__init__)
-                    if "build_repodata_subset" in sig.parameters:
-                        solver_kwargs["build_repodata_subset"] = (
-                            conda_build_repodata_subset
-                        )
-
-                    solver = solver_backend(**solver_kwargs)
                     explicit_packages = solver.solve_final_state()
         return Environment(
             prefix=self.prefix,
