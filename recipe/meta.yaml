@@ -61,7 +61,6 @@ requirements:
     - conda-pypi >=0.8.0
     - conda-lockfiles >=0.2.0
     - conda-self >=0.2.0
-    - conda-spawn >=0.1.0
   run_constrained:
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed
@@ -96,7 +95,6 @@ test:
     # plugin subcommands
     - conda doctor --help
     - conda pypi --help
-    - conda spawn --help
     - conda self --help
 
 about:
