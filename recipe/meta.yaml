@@ -60,6 +60,7 @@ requirements:
     - conda-libmamba-solver >=26.4.1
     - conda-pypi >=0.8.0
     - conda-lockfiles >=0.2.0
+    - conda-self >=0.2.0
     - conda-spawn >=0.1.0
   run_constrained:
     - conda-build >=25.9
@@ -96,6 +97,7 @@ test:
     - conda doctor --help
     - conda pypi --help
     - conda spawn --help
+    - conda self --help
 
 about:
   home: https://conda.org
