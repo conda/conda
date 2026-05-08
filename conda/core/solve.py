@@ -1462,21 +1462,9 @@ def diff_for_unlink_link_precs(
         for prec in noarch_python_precs:
             _add_to_unlink_and_link(prec)
 
-    unlink_precs = tuple(
-        reversed(sorted(unlink_precs, key=_prec_order_key(previous_records)))
+    unlink_precs_tuple = (
+        rec for rec in reversed(previous_records) if rec in unlink_precs
     )
-    link_precs = tuple(sorted(link_precs, key=_prec_order_key(final_precs)))
-    return unlink_precs, link_precs
+    link_precs_tuple = (rec for rec in final_precs if rec in link_precs)
 
-
-def _prec_order_key(ordered_records: Sequence[PackageRecord]):
-    """Return a sort key that preserves the order of ``ordered_records``.
-
-    The obvious ``key=lambda x: ordered_records.index(x)`` is O(k) per
-    call (scans ``ordered_records`` linearly). When called from
-    ``sorted()`` that's O(k * n log n) per sort. For a 50k prefix with
-    2k unlink or link items, each sort was ~4M position scans.
-    Precomputing a dict lookup collapses that to O(n log n) total.
-    """
-    position = {rec: i for i, rec in enumerate(ordered_records)}
-    return position.__getitem__
+    return unlink_precs_tuple, link_precs_tuple
