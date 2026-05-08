@@ -8,11 +8,17 @@ Adapted from conda-libmamba-solver/tests
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import http.server
 import logging
+import queue
+import socket
 import tempfile
+import threading
 import time
 from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
 import msgpack
@@ -25,9 +31,8 @@ from conda.models.channel import Channel, all_channel_urls
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
-    from pathlib import Path
 
-    from _conda.shards.typing import ShardDict, ShardsIndexDict
+    from _conda.shards.typing import RepodataDict, ShardDict, ShardsIndexDict
 
 # Test channel names
 CONDA_FORGE_WITH_SHARDS = "conda-forge"
@@ -62,7 +67,7 @@ ROOT_PACKAGES = [
 ]
 
 # Fake repodata for testing shards
-FAKE_REPODATA: ShardDict = {
+FAKE_REPODATA: RepodataDict = {
     "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
     "packages": {
         "foo.tar.bz2": {
@@ -181,21 +186,90 @@ FAKE_SHARD = shard_for_name(FAKE_REPODATA, "foo")
 FAKE_SHARD_2 = shard_for_name(FAKE_REPODATA, "bar")
 
 
+def _run_test_server(
+    directory: str, finish_request_action: Callable | None = None
+) -> http.server.ThreadingHTTPServer:
+    """
+    Run a test server on a random port serving files from a directory.
+
+    Adapted from conda-libmamba-solver/tests/http_test_server.py
+
+    :param directory: The directory to serve files from
+    :param finish_request_action: Optional callable after each request
+    :return: The running ThreadingHTTPServer instance
+    """
+
+    class DualStackServer(http.server.ThreadingHTTPServer):
+        daemon_threads = False  # Per-request threads
+        allow_reuse_address = True  # Good for tests
+        request_queue_size = 64  # Should be more than test packages
+
+        def server_bind(self):
+            # Suppress exception when protocol is IPv4
+            with contextlib.suppress(Exception):
+                self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            return super().server_bind()
+
+        def finish_request(self, request, client_address):
+            if finish_request_action:
+                finish_request_action()
+            self.RequestHandlerClass(request, client_address, self, directory=directory)
+
+    def start_server(q: queue.Queue):
+        try:
+            with DualStackServer(
+                ("127.0.0.1", 0), http.server.SimpleHTTPRequestHandler
+            ) as httpd:
+                q.put(httpd)
+                try:
+                    httpd.serve_forever()
+                except KeyboardInterrupt:
+                    pass
+        except Exception as exc:
+            q.put(exc)
+
+    started: queue.Queue = queue.Queue()
+    threading.Thread(target=start_server, args=(started,), daemon=True).start()
+
+    result = started.get(timeout=1)
+    if isinstance(result, Exception):
+        raise result
+    return result
+
+
 class ShardFactory:
     """
     Create http server shards in a temporary directory. Use this
     class in the context of tests to generate multiple shard servers
     that can be cleaned up after use.
+
+    Adapted from conda-libmamba-solver/tests/test_shards.py
+
+    Example:
+
+    ```
+    # create shard factory with its root in a temporary directory
+    shard_factory = ShardFactory(tmp_path_factory.mktemp("sharded_repo"))
+
+    # create an http server serving the testing data
+    url = shard_factory.http_server_shards("http_server_shards")
+
+    # make a request to the server
+    # ... use the url ...
+
+    # shutdown all servers created by this factory
+    shard_factory.clean_up_http_servers()
+    ```
     """
 
-    def __init__(self, root: Path = tempfile.gettempdir()):
-        self.root = root
+    def __init__(self, root: Path | str = tempfile.gettempdir()):
+        self.root = Path(root)
         self._http_servers = []
 
     def clean_up_http_servers(self):
         """Shutdown all the servers created by this factory."""
-        for http in self._http_servers:
-            http.shutdown()
+        for httpd in self._http_servers:
+            httpd.shutdown()
         self._http_servers = []
 
     def http_server_shards(
@@ -208,8 +282,6 @@ class ShardFactory:
         :param finish_request_action: Optional callable after each request.
         :return: The URL of the http server serving the shards.
         """
-        from . import http_server as http_test_server
-
         shards_repository = self.root / dir_name / "sharded_repo"
         shards_repository.mkdir(parents=True, exist_ok=True)
         noarch = shards_repository / "noarch"
@@ -223,34 +295,47 @@ class ShardFactory:
         bar_shard_digest = hashlib.sha256(bar_shard).digest()
         (noarch / f"{bar_shard_digest.hex()}.msgpack.zst").write_bytes(bar_shard)
 
+        # Create fake malformed shards to test error handling
+        malformed = {"follows_schema": False}
+        bad_schema = zstandard.compress(msgpack.dumps(malformed))  # type: ignore
+        malformed_digest = hashlib.sha256(bad_schema).digest()
+        (noarch / f"{malformed_digest.hex()}.msgpack.zst").write_bytes(bad_schema)
+
+        not_zstd = b"not zstd"
+        (noarch / f"{hashlib.sha256(not_zstd).digest().hex()}.msgpack.zst").write_bytes(
+            not_zstd
+        )
+
+        not_msgpack = zstandard.compress(b"not msgpack")
+        (
+            noarch / f"{hashlib.sha256(not_msgpack).digest().hex()}.msgpack.zst"
+        ).write_bytes(not_msgpack)
+
         # Create fake repodata_shards.msgpack.zst index
-        index: ShardsIndexDict = {
+        fake_shards: ShardsIndexDict = {
             "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
             "version": 1,
             "shards": {
-                "foo": bytes.fromhex(foo_shard_digest.hex()),
-                "bar": bytes.fromhex(bar_shard_digest.hex()),
+                "foo": foo_shard_digest,
+                "bar": bar_shard_digest,
+                "wrong_package_name": foo_shard_digest,
+                "fake_package": b"",
+                "malformed": malformed_digest,
+                "not_zstd": hashlib.sha256(not_zstd).digest(),
+                "not_msgpack": hashlib.sha256(not_msgpack).digest(),
             },
         }
-        index_data = zstandard.compress(msgpack.dumps(index))  # type: ignore
+        index_data = zstandard.compress(msgpack.dumps(fake_shards))  # type: ignore
         (noarch / "repodata_shards.msgpack.zst").write_bytes(index_data)
 
-        def handler(request, base_path):
-            try:
-                http_test_server.request_handler(request, base_path)
-                if finish_request_action:
-                    finish_request_action(request)
-            except Exception:
-                if finish_request_action:
-                    finish_request_action(request)
-                raise
-
-        server = http_test_server.run_server(
-            handler, "127.0.0.1", base_path=str(shards_repository)
+        httpd = _run_test_server(
+            str(shards_repository), finish_request_action=finish_request_action
         )
-        self._http_servers.append(server)
+        self._http_servers.append(httpd)
 
-        return f"http://{server.server_name}:{server.server_port}"
+        host, port = httpd.socket.getsockname()[:2]
+        url_host = f"[{host}]" if ":" in host else host
+        return f"http://{url_host}:{port}/"
 
 
 class MockCache(NamedTuple):

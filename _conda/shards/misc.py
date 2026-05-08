@@ -14,22 +14,19 @@ from __future__ import annotations
 
 import functools
 import queue
-from contextlib import contextmanager, suppress
-from pathlib import Path
+from contextlib import suppress
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse, urlunparse, uses_relative
 
 from libmambapy.bindings import specs
 
-import conda.gateways.repodata
-from _conda.shards.cache import ShardCache
 from conda.base.context import context
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, Sequence, TypeVar
+    from collections.abc import Iterator, Sequence
     from queue import SimpleQueue as Queue
+    from typing import TypeVar
 
-    from _conda.shards.shards import Shards
     from _conda.shards.typing import PackageRecordDict, ShardDict
 
     _T = TypeVar("_T")
@@ -73,23 +70,34 @@ def _safe_urljoin_with_slash(base_url: str, relative_url: str = "") -> str:
     See: https://github.com/conda/conda-libmamba-solver/issues/866
     """
     parsed = urlparse(base_url)
+    relative_parsed = urlparse(relative_url)
 
     # For schemes that urljoin handles correctly, use the standard behavior
     if parsed.scheme in _URLJOIN_SAFE_SCHEMES:
-        # Standard urljoin behavior: join with relative_url, then "." for trailing slash
-        result = urljoin(urljoin(base_url, relative_url), ".")
-        return result
-
-    # For unregistered schemes (e.g. s3://), urljoin drops the host.
-    # Work around that by temporarily swapping in https://, then restoring
-    # the original scheme on the result.
-    relative_parsed = urlparse(relative_url)
-    if not relative_parsed.scheme and parsed.scheme:
-        https_base_url = urlunparse(parsed._replace(scheme="https"))
-        joined_https = urljoin(urljoin(https_base_url, relative_url), ".")
-        result = urlunparse(urlparse(joined_https)._replace(scheme=parsed.scheme))
+        # Standard urljoin behavior: join with relative_url
+        # If relative_url is absolute (has a scheme), it will override base_url entirely
+        # Otherwise, treat last segment as filename and strip it with "."
+        if relative_parsed.scheme:
+            # Absolute URL: use as-is (the trailing slash will be added at the end)
+            result = relative_url
+        else:
+            # Relative URL: join and normalize to directory by appending "."
+            result = urljoin(urljoin(base_url, relative_url), ".")
     else:
-        result = urljoin(urljoin(base_url, relative_url), ".")
+        # For unregistered schemes (e.g. s3://), urljoin drops the host.
+        # Work around that by temporarily swapping in https://, then restoring
+        # the original scheme on the result.
+        if relative_parsed.scheme:
+            # Absolute URL with same scheme: override base_url
+            result = relative_url
+        elif not relative_parsed.scheme and parsed.scheme:
+            # Relative URL: use scheme-swap workaround
+            https_base_url = urlunparse(parsed._replace(scheme="https"))
+            joined_https = urljoin(urljoin(https_base_url, relative_url), ".")
+            result = urlunparse(urlparse(joined_https)._replace(scheme=parsed.scheme))
+        else:
+            # Fallback for edge cases
+            result = urljoin(urljoin(base_url, relative_url), ".")
 
     # Ensure trailing slash for proper concatenation
     if not result.endswith("/"):
@@ -201,16 +209,3 @@ def exception_to_queue(func):
             out_queue.put(e)  # tell caller that we received an exception
 
     return wrapper
-
-
-@contextmanager
-def _install_shards_cache(shardlikes: Iterable[Shards]):
-    """
-    Add cache to shardlikes for duration of traversal, then remove and close.
-    """
-    with ShardCache(Path(conda.gateways.repodata.create_cache_dir())) as cache:
-        for shardlike in shardlikes:
-            # Only Shards objects (not ShardLike) have this attribute
-            if hasattr(shardlike, "shards_cache"):
-                shardlike.shards_cache = cache
-        yield cache

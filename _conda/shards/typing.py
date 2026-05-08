@@ -27,7 +27,7 @@ class PackageRecordDict(TypedDict):
     build_number: int
     sha256: NotRequired[str | bytes]
     md5: NotRequired[str | bytes]
-    depends: list[str]
+    depends: NotRequired[list[str]]
     constrains: NotRequired[list[str]]
     noarch: NotRequired[str]
 

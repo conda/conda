@@ -33,9 +33,9 @@ class AnnotatedRawShard:
     def __init__(self, url: str, package: str, compressed_shard: bytes):
         # prevent easy mistake of swapping url, package
         if "://" not in url:
-            raise ValueError("url must contain ://")
+            raise ValueError("url must contain '://'")
         if "://" in package:
-            raise ValueError("package must not contain ://")
+            raise ValueError("package must not contain '://'")
 
         self.url = url
         self.package = package  # remove this field to avoid confusion?
