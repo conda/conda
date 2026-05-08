@@ -55,20 +55,20 @@
  * Applied via :class-card: conda-feature-card conda-feature-{stable|beta}
  * in the markdown source.
  */
- 
+
  .conda-feature-card {
     border-left-width: 3px !important;
     margin-bottom: 1.5rem;
   }
-   
+
   .conda-feature-card.conda-feature-stable {
     border-left-color: #1D9E75 !important; /* conda green */
   }
-   
+
   .conda-feature-card.conda-feature-beta {
     border-left-color: #BA7517 !important; /* amber for beta */
   }
-   
+
   /* Pull the card up to sit right under its H2 heading,
    * so feature title + card body read as one visual unit.
    */
@@ -76,17 +76,17 @@
   h2 + p + .conda-feature-card {
     margin-top: 0.5rem;
   }
-   
+
   /* ---- Conda-branded version badge ----
    */
-   
+
   .bdg-conda-version,
   span.sd-badge.conda-version {
     background-color: #E1F5EE !important;
     color: #0F6E56 !important;
     border: 1px solid #1D9E75 !important;
   }
-   
+
   /* Optional dark mode handling for the version badge */
   html[data-theme="dark"] .bdg-conda-version,
   html[data-theme="dark"] span.sd-badge.conda-version {
@@ -100,14 +100,14 @@
  * vertical breathing room above, so the page feels like distinct
  * feature sections rather than a continuous scroll.
  */
- 
+
 main h2 {
     font-size: 2rem;
     margin-top: 3rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--pst-color-border, #dee2e6);
   }
-   
+
   /* The very first H2 on the page doesn't need the giant top margin */
   main h2:first-of-type {
     margin-top: 2rem;
