@@ -831,17 +831,21 @@ def _parse_spec_str(spec_str):
             key = groups["key"]
             value = groups["value"] or groups["value_list"]
             if not (key and value):
-                raise InvalidMatchSpec(
-                    original_spec_str,
-                    "key-value mismatch in brackets; a key or a value is missing'",
+                raise InvalidSpec(
+                    "key-value mismatch in brackets; a key or a value is missing",
                 )
             if key == "version":
                 value = _sanitize_version_str(value, groups.get("build"))
             elif key in ("flags", "extras"):
                 value = tuple(yaml.loads(f"[{value.strip('[]')}]"))
             elif key == "when":
+                when_spec = MatchSpec(value)
+                if when_spec.get("when"):
+                    raise InvalidSpec(
+                        "'when' specs cannot include inner 'when' fields",
+                    )
                 # Q: Canonicalize or not?
-                value = str(MatchSpec(value))
+                value = str(when_spec)
             brackets[key] = value
         if not brackets:
             # No key-value pairs found but there was a outer square brackets match?

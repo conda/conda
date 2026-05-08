@@ -1567,6 +1567,15 @@ def test_conditional_specs():
 
         assert str(parsed_when_ms) == str(MatchSpec(when.strip("'")))
 
+    # These MUST raise
+    for spec in (
+        "python[when='package[when='__unix']']",  # nested when
+        "python[when='package[build=]']",  # malformed when spec
+        "python[when='package[build]']",  # malformed when spec
+    ):
+        with pytest.raises(InvalidMatchSpec):
+            MatchSpec(spec)
+
 
 def test_extra_specs():
     # should not be present
