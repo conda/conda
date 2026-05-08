@@ -1,0 +1,7 @@
+name: test
+dependencies:
+  - python
+  - pip
+  - pip:
+    - six
+    - colorama

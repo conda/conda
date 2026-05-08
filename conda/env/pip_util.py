@@ -13,11 +13,15 @@ from logging import getLogger
 
 from ..base.context import context
 from ..common.compat import on_win
+from ..deprecations import deprecated
 from ..exceptions import CondaEnvException
-from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..gateways.subprocess import any_subprocess
 
 log = getLogger(__name__)
+
+deprecated.module(
+    "26.9", "27.3", addendum="Use conda_external_installers plugin hook instead."
+)
 
 
 def get_pip_workdir(file_path: str | None) -> str | None:
@@ -27,16 +31,9 @@ def get_pip_workdir(file_path: str | None) -> str | None:
 
     Returns None for URLs or when no usable path is provided.
     """
-    if not file_path:
-        return None
-    url_scheme = file_path.split("://", 1)[0]
-    if url_scheme in CONDA_SESSION_SCHEMES:
-        return None
-    try:
-        workdir = os.path.dirname(os.path.abspath(file_path))
-        return workdir if os.access(workdir, os.W_OK) else None
-    except (AttributeError, TypeError):
-        return None
+    from .installers.base import get_workdir
+
+    return get_workdir(file_path)
 
 
 def pip_subprocess(args, prefix, cwd):

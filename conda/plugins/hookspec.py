@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaExternalInstaller,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPostCommand,
@@ -805,5 +806,42 @@ class CondaSpecs:
                 )
 
         :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_external_installers(self) -> Iterable[CondaExternalInstaller]:
+        """
+        **EXPERIMENTAL**
+
+        Register external installers for non-conda package types.
+
+        External installers handle the installation of packages listed under
+        dict keys in the ``dependencies`` section of environment files (e.g., the
+        ``pip:`` section in ``environment.yml``). Plugins can override the built-in
+        installers or provide new ones.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def install_pip_packages(prefix, specs, args, *_, **kwargs):
+                # Custom pip installation logic that converts wheels to conda packages
+                from my_plugin import convert_and_install
+
+                return convert_and_install(prefix, specs)
+
+
+            @plugins.hookimpl
+            def conda_external_installers():
+                yield plugins.types.CondaExternalInstaller(
+                    name="pip",
+                    install=install_pip_packages,
+                )
+
+        :return: An iterable of :class:`~conda.plugins.types.CondaExternalInstaller` entries.
         """
         yield from ()

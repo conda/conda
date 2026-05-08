@@ -81,7 +81,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context, determine_target_prefix
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
-    from ..env.installers.base import get_installer
+    from ..env.installers.base import get_installer, get_workdir
     from ..exceptions import (
         CondaEnvException,
         InvalidInstaller,
@@ -178,7 +178,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # install all other external packages
     for installer_type, specs in env.external_packages.items():
         installer = installers[installer_type]
-        result[installer_type] = installer.install(prefix, specs, args, env)
+        workdir = get_workdir(args.file)
+        result[installer_type] = installer.install(
+            prefix, specs, args, env, workdir=workdir
+        )
 
     if env.variables:
         prefix_data.set_environment_env_vars(env.variables)

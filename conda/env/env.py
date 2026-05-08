@@ -429,9 +429,11 @@ class EnvironmentYaml:
         """Convert the ``Environment`` into a ``model.Environment`` object"""
         config = EnvironmentConfig(channels=tuple(self.channels))
 
-        external_packages = {}
-        if pip_dependencies := self.dependencies.get("pip"):
-            external_packages["pip"] = pip_dependencies
+        external_packages = {
+            key: specs
+            for key, specs in self.dependencies.items()
+            if key != "conda" and specs
+        }
 
         requested_packages = [
             MatchSpec(spec) for spec in self.dependencies.get("conda", [])

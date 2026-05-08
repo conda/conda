@@ -1,0 +1,6 @@
+name: test
+dependencies:
+  - python
+  - pip
+  - pip:
+    - six==1.16.0

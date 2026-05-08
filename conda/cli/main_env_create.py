@@ -102,8 +102,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..common.serialize import json
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
-    from ..env.installers.base import get_installer
-    from ..env.pip_util import get_pip_workdir
+    from ..env.installers.base import get_installer, get_workdir
     from ..exceptions import (
         CondaEnvException,
         InvalidInstaller,
@@ -190,15 +189,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         for installer_type, pkg_specs in env.external_packages.items():
             try:
                 installer = get_installer(installer_type)
-                if installer_type == "pip":
-                    workdir = get_pip_workdir(args.file)
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env, workdir=workdir
-                    )
-                else:
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env
-                    )
+                workdir = get_workdir(args.file)
+                result[installer_type] = installer.install(
+                    prefix, pkg_specs, args, env, workdir=workdir
+                )
             except InvalidInstaller:
                 raise CondaError(
                     dals(
