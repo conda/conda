@@ -1622,6 +1622,7 @@ def test_extra_specs():
     with pytest.raises(InvalidMatchSpec, match=r"did you mean `extras=\[a,b\]`"):
         MatchSpec("package[a,b]")
 
+
 def test_flags_specs():
     # should not be present
     assert MatchSpec("python").get("flags") is None
