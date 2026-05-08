@@ -9,14 +9,19 @@ from conda.common.compat import on_win
 from conda.exceptions import InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
+from conda.models.match_spec import (
+    _BRACKETS_KV_RE,
+    ChannelMatch,
+    MatchSpec,
+    _parse_spec_str,
+)
 from conda.models.records import PackageRecord
 from conda.models.version import VersionSpec
 
 blas_value = "accelerate" if context.subdir == "osx-64" else "openblas"
 
 
-def m(string):
+def m(string) -> str:
     return str(MatchSpec(string))
 
 
@@ -1545,8 +1550,15 @@ def test_conditional_specs():
     )
 
     # More complex when spec with its own version specifier
-    for when in ("python<3.10", "python<=3.11", "python[version='<=3.11']"):
-        assert MatchSpec(MatchSpec(f"tomli[when={when}]").get("when")) == MatchSpec(when)
+    for when in (
+        "python<3.10",
+        "'python>=3.9,<=3.11'",  # this MUST be quoted; otherwise the comma is interpreted as a separator
+        "python[version='<=3.11']",
+    ):
+        inp = MatchSpec(f"tomli[when={when}]")
+        parsed_when_ms = MatchSpec(inp.get("when"))
+
+        assert str(parsed_when_ms) == str(MatchSpec(when.strip("'")))
 
 
 def test_extra_specs():
@@ -1586,7 +1598,7 @@ def test_extra_specs():
 
     # Inner lists MUST have commas
     assert MatchSpec("package[extras=[a b]]").get("extras") == ["a b"]
-        
+
 
 def test_flags_specs():
     # should not be present
@@ -1627,3 +1639,16 @@ def test_parse_spec_str_with_precompiled_regex(
     assert ms.name == expected_name
     if expected_version is not None:
         assert ms.version is not None
+
+
+@pytest.mark.timeout(1)
+def test_kv_regex_does_not_hang_on_channel_urls():
+    """
+    A previous attempt at _BRACKETS_KV_RE used quotes and comma
+    tracking for inner lists, meant to match inputs like `flags=[a, "b"]`.
+    However, this made unrelated inputs hang! Too much backtracking perhaps?
+
+    Adding a test here to avoid regressions in case someone is tempted to
+    polish the regex to avoid YAML parsing.
+    """
+    _BRACKETS_KV_RE.findall("channel=https://repo.anaconda.com/free")

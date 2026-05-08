@@ -53,21 +53,22 @@ _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
     (?P<key>[a-zA-Z0-9_-]+?)        # key
     \ *=\ *                         # separator, with or without surrounding spaces
     (?:                             # the value can be a:
-                                    # 1. maybe-quoted string
-        (?P<quote_s>["']?)            # optional opening quote
-        (?P<value>[^"'\[\]]*?)        # value
-        (?P=quote_s)                  # matching closing quote
-        |                           # 2. a list of maybe-quoted strings
-        \[ *                         # opening square bracket, with maybe spaces
-        (?P<value_list>
-            (?:                         # the value is represented by
-                (?P<quote_b>["']?)        # optional opening quote
-                (?P<value_b>[^"']*?)      # value
-                (?P=quote_b)              # matching closing quote
-                (?:\ *[,\ ]\ *)?          # optional delimiter: spaces and/or comma
-            )+                          # ... one or more times
-        )
-        \ *\]                         # matching closing square bracket closes the list
+                                      # 1. a list of maybe-quoted strings (key={extras,flags})
+                                      #    this has to be matched first so we can capture
+                                      #    comma-separated lists fully (e.g. flags=[a, b])
+                                      #    without being caught by 'when' specs like
+                                      #    `python[version='>=3,<4']`
+        \[ *                            # opening square bracket, with maybe spaces
+        (?P<value_list>[^\[\]]*?)         # inner value; will be parsed as YAML, this is enough.
+                                          # a previous attempt had a more sophisticated regex
+                                          # with quote and comma tracking, but it hang with input:
+                                          # 'channel=https://repo.anaconda.com/pkgs/free'
+        \ *\]                           # matching closing square bracket closes the list
+        |                             # 2. maybe-quoted string
+        (?P<quote_s>["']?)              # optional opening quote
+        (?P<value>.*?)                  # non-greedy value; will be post-processed later
+                                        # depending on the key type
+        (?P=quote_s)                    # matching closing quote
     )
     (?:[,\ ]|$)               # delimiter or end
     """,
@@ -238,7 +239,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "license",
         "license_family",
         "fn",
-        "when",
+        "when",  # MatchSpec str
         "extras",  # str | list[str]
         "flags",  # str | list[str]
     )
@@ -814,26 +815,23 @@ def _parse_spec_str(spec_str):
         brackets_str = m3.groups()[0]
         spec_str = spec_str.replace(brackets_str, "")
         brackets_str = brackets_str[1:-1]
-        m3b = _BRACKETS_KV_RE.finditer(brackets_str)
+        m3b = list(_BRACKETS_KV_RE.finditer(brackets_str))
         for match in m3b:
             groups = match.groupdict()
             key = groups["key"]
-            value = groups["value"]
-            if not (key and (value or groups["value_list"])):
+            value = groups["value"] or groups["value_list"]
+            if not (key and value):
                 raise InvalidMatchSpec(
                     original_spec_str,
                     "key-value mismatch in brackets; a key or a value is missing'",
                 )
-            if key == "version" and value:
+            if key == "version":
                 value = _sanitize_version_str(value, groups.get("build"))
-            if value_list := groups["value_list"]:
-                if key not in ("flags", "extras"):
-                    raise InvalidMatchSpec(
-                        original_spec_str, "Only 'flags' and 'extras' allow lists."
-                    )
-                value = tuple(yaml.loads(f"[{value_list}]"))
-            elif key in ("flags", "extras") and value:
-                value = (value,)
+            elif key in ("flags", "extras"):
+                value = tuple(yaml.loads(f"[{value.strip('[]')}]"))
+            elif key == "when":
+                # Q: Canonicalize or not?
+                value = str(MatchSpec(value))
             brackets[key] = value
 
     # Step 4. strip off parens portion
