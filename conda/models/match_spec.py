@@ -198,6 +198,11 @@ class MatchSpec(metaclass=MatchSpecType):
       - If the string contains an asterisk (`*`), it is transformed from a glob to a regex.
       - Otherwise, an exact match to the string is sought.
 
+    Some fields (`extras`, `flags`) allow list of strings. They must be passed with Python
+    syntax for lists. Quotes are optional like in YAML.
+
+    The `when` field expects a string that can be parsed as a `MatchSpec`. This inner spec
+    cannot contain another `when` field.
 
     Examples:
         >>> str(MatchSpec(name='foo', build='py2*', channel='conda-forge'))
@@ -212,6 +217,10 @@ class MatchSpec(metaclass=MatchSpecType):
         "conda-forge/linux-64::foo[version='>=1.0']"
         >>> str(MatchSpec('*/linux-64::foo>=1.0'))
         "foo[subdir=linux-64,version='>=1.0']"
+        >>> str(MatchSpec('package[extras=[a,b]]'))
+        "package[extras=['a', 'b']]"
+        >>> str(MatchSpec('package[when=__unix]'))
+        "package[when='__unix']"
 
     To fully-specify a package with a full, exact spec, the fields
       - channel
