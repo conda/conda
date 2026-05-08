@@ -52,9 +52,28 @@ class Solver:
 
         """
         solver_backend = context.plugin_manager.get_cached_solver_backend()
-        self._internal = solver_backend(
-            prefix, channels, subdirs, specs_to_add, specs_to_remove
+
+        # Prepare solver kwargs
+        import inspect
+
+        from conda.gateways.shards import (
+            build_repodata_subset as conda_build_repodata_subset,
         )
+
+        solver_kwargs = {
+            "prefix": prefix,
+            "channels": channels,
+            "subdirs": subdirs,
+            "specs_to_add": specs_to_add,
+            "specs_to_remove": specs_to_remove,
+        }
+
+        # Check if solver supports build_repodata_subset parameter
+        sig = inspect.signature(solver_backend.__init__)
+        if "build_repodata_subset" in sig.parameters:
+            solver_kwargs["build_repodata_subset"] = conda_build_repodata_subset
+
+        self._internal = solver_backend(**solver_kwargs)
 
     def solve_final_state(
         self,
