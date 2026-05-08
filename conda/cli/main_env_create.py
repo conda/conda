@@ -22,7 +22,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..auxlib.ish import dals
     from ..base.context import context
     from ..plugins.formats import FormatSummary
-    from ..plugins.types import EnvironmentFormat
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -35,14 +34,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     formats = FormatSummary(
         context.plugin_manager.get_hook_results("environment_specifiers")
-    )
-    spec_example = formats.example_filename(
-        EnvironmentFormat.environment,
-        prefer_filenames=("environment.yml", "environment.yaml"),
-    )
-    lock_example = formats.example_filename(
-        EnvironmentFormat.lockfile,
-        prefer_filenames=("conda-lock.yml", "pixi.lock"),
     )
 
     summary = "Create an environment based on an environment definition file."
@@ -67,17 +58,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     # See the comment in main_create.py for why these conditional blocks
     # are plain strings rather than ``dals`` calls.
-    example_blocks = ["Examples:"]
-    if spec_example:
-        example_blocks.append(
-            "  Create from an environment spec (solved at install time):\n"
-            f"    conda env create -f /path/to/{spec_example}"
-        )
-    if lock_example:
-        example_blocks.append(
-            "  Create from a lockfile (no solve, exact reproduction):\n"
-            f"    conda env create -f {lock_example}"
-        )
+    example_blocks = [
+        "Examples:",
+        "  Create from an environment spec (solved at install time):\n"
+        "    conda env create -f /path/to/environment.yml",
+        "  Create from a lockfile (no solve, exact reproduction):\n"
+        "    conda env create -f explicit.txt",
+    ]
     example_blocks.append(
         "  Use the default file in the current directory:\n"
         "    conda env create\n"

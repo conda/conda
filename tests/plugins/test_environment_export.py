@@ -365,7 +365,7 @@ def test_describe_exporter_formats_groups_by_category(
     rendered = FormatSummary(exporters).describe()
 
     assert "Environment specs:" in rendered
-    assert "- environment-yaml (yaml, yml, env.yml)" in rendered
+    assert "- environment-yaml (aliases: yaml, yml, env.yml)" in rendered
     assert rendered.index("Environment specs:") < rendered.index("Lockfiles:")
 
 
@@ -384,7 +384,7 @@ def test_describe_exporter_formats_includes_registered_lockfile_plugin(
     exporters = plugin_manager_with_exporters.get_environment_exporters()
     rendered = FormatSummary(exporters).describe()
     assert "Lockfiles:" in rendered
-    assert "- my-lock-v1 (mylock)" in rendered
+    assert "- my-lock-v1 (aliases: mylock) : my.lock" in rendered
 
 
 def test_describe_exporter_formats_empty():
@@ -429,36 +429,6 @@ def test_example_filename_for_fallback_skips_empty_default_filenames():
 def test_example_filename_for_empty_plugins():
     """Returns ``None`` when no plugins are provided."""
     assert FormatSummary([]).example_filename(EnvironmentFormat.environment) is None
-
-
-def test_example_filename_for_prefer_filenames_hits(
-    plugin_manager_with_exporters: CondaPluginManager,
-):
-    """``prefer_filenames`` pins the rendered example regardless of plugin order."""
-    exporters = list(plugin_manager_with_exporters.get_environment_exporters())
-    formats = FormatSummary(exporters)
-    assert (
-        formats.example_filename(
-            EnvironmentFormat.environment,
-            prefer_filenames=("environment.yml", "environment.yaml"),
-        )
-        == "environment.yml"
-    )
-
-
-def test_example_filename_for_prefer_filenames_falls_back(
-    plugin_manager_with_exporters: CondaPluginManager,
-):
-    """``prefer_filenames`` falls back to the first ``default_filenames`` entry on miss."""
-    exporters = list(plugin_manager_with_exporters.get_environment_exporters())
-    formats = FormatSummary(exporters)
-    fallback = formats.example_filename(
-        EnvironmentFormat.environment,
-        prefer_filenames=("does-not-exist.txt",),
-    )
-    # Falls back to the first default_filenames entry across candidates
-    # in the matching category.
-    assert fallback in {"environment.yaml", "environment.yml", "environment.json"}
 
 
 def test_example_filename_for_require_multiplatform_filters(

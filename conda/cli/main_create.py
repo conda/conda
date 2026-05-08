@@ -23,7 +23,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..base.context import context
     from ..common.constants import NULL
     from ..plugins.formats import FormatSummary
-    from ..plugins.types import EnvironmentFormat
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
@@ -34,14 +33,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     formats = FormatSummary(
         context.plugin_manager.get_hook_results("environment_specifiers")
-    )
-    spec_example = formats.example_filename(
-        EnvironmentFormat.environment,
-        prefer_filenames=("environment.yml", "environment.yaml"),
-    )
-    lock_example = formats.example_filename(
-        EnvironmentFormat.lockfile,
-        prefer_filenames=("conda-lock.yml", "pixi.lock"),
     )
 
     summary = "Create a new conda environment from a list of specified packages."
@@ -65,25 +56,18 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     # leading whitespace: ``dals`` would strip any indent smaller than the
     # longest common prefix, so the "2-space label, 4-space command" shape
     # we want here (matching the issue #15960 examples) has to be written
-    # literally.
+    # literally. Built-in filenames (environment.yml, explicit.txt) are
+    # hardcoded; third-party lockfile filenames come from the plugin.
     example_blocks = [
         "Examples:\n\n"
         "  Create from package specs:\n"
         "    conda create -n myenv python=3.12 numpy",
+        "  Create from an environment spec (solved at install time):\n"
+        "    conda create -n myenv --file environment.yml",
+        "  Create from a lockfile (no solve, exact reproduction):\n"
+        "    conda create -n myenv --file explicit.txt",
+        "  Clone an existing environment:\n    conda create -n env2 --clone env1",
     ]
-    if spec_example:
-        example_blocks.append(
-            "  Create from an environment spec (solved at install time):\n"
-            f"    conda create -n myenv --file {spec_example}"
-        )
-    if lock_example:
-        example_blocks.append(
-            "  Create from a lockfile (no solve, exact reproduction):\n"
-            f"    conda create -n myenv --file {lock_example}"
-        )
-    example_blocks.append(
-        "  Clone an existing environment:\n    conda create -n env2 --clone env1"
-    )
     if formats:
         example_blocks.append(formats.describe(heading="Available input formats"))
     epilog = "\n\n".join(example_blocks)

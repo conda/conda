@@ -766,7 +766,7 @@ def test_describe_specifier_formats_includes_registered_lockfile_plugin(
     )
     rendered = FormatSummary(specifiers).describe()
     assert "Lockfiles:" in rendered
-    assert "- my-lock-v1 (mylock)" in rendered
+    assert "- my-lock-v1 (aliases: mylock) : my.lock" in rendered
 
 
 def test_describe_specifier_formats_empty():

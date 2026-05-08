@@ -1014,8 +1014,7 @@ def test_export_help_shows_examples_and_available_formats(
 def test_export_help_uses_environment_yml_for_spec_example(
     conda_cli: CondaCLIFixture,
 ) -> None:
-    """The spec example filename is pinned to ``environment.yml`` regardless
-    of plugin sort order (see ``example_filename_for(prefer_filenames=...)``)."""
+    """The spec example uses the hardcoded built-in filename ``environment.yml``."""
     stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
     assert "conda export --from-history > environment.yml" in stdout
     assert "conda export --from-history > environment.json" not in stdout

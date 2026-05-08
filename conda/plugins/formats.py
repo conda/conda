@@ -62,12 +62,14 @@ class FormatSummary:
         """
         sections = []
         for category, plugins in self.by_category.items():
-            entries = [
-                f"{plugin.name} ({', '.join(plugin.aliases)})"
-                if plugin.aliases
-                else plugin.name
-                for plugin in plugins
-            ]
+            entries = []
+            for plugin in plugins:
+                parts = [plugin.name]
+                if plugin.aliases:
+                    parts.append(f"(aliases: {', '.join(plugin.aliases)})")
+                if plugin.default_filenames:
+                    parts.append(f": {', '.join(plugin.default_filenames)}")
+                entries.append(" ".join(parts))
             sections.append(f"{category.label}:{dashlist(entries)}")
 
         return "\n\n".join(
@@ -78,19 +80,13 @@ class FormatSummary:
         self,
         environment_format: EnvironmentFormat,
         *,
-        prefer_filenames: tuple[str, ...] = (),
         require_multiplatform: bool = False,
     ) -> str | None:
         """Pick an example filename for *environment_format*.
 
-        Used by CLI parsers to render illustrative command examples that
-        reflect whichever plugins are installed.
-
-        *prefer_filenames* pins a deterministic display name (e.g.
-        ``("environment.yml",)``) when present in any candidate's
-        ``default_filenames``; falls back to the first available filename
-        otherwise. *require_multiplatform* restricts to exporters that
-        declare ``multiplatform_export``.
+        Returns the first ``default_filenames`` entry from the first
+        matching plugin. *require_multiplatform* restricts to exporters
+        that declare ``multiplatform_export``.
         """
         candidates = list(self.by_category.get(environment_format, ()))
         if not candidates:
@@ -102,11 +98,6 @@ class FormatSummary:
                 for plugin in candidates
                 if getattr(plugin, "multiplatform_export", None)
             ]
-
-        for preferred in prefer_filenames:
-            for plugin in candidates:
-                if preferred in plugin.default_filenames:
-                    return preferred
 
         for plugin in candidates:
             if plugin.default_filenames:

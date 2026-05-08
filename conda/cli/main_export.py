@@ -38,17 +38,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     formats = FormatSummary(context.plugin_manager.get_environment_exporters())
-    spec_example = formats.example_filename(
-        EnvironmentFormat.environment,
-        prefer_filenames=("environment.yml", "environment.yaml"),
-    )
-    lock_example = formats.example_filename(
-        EnvironmentFormat.lockfile,
-        prefer_filenames=("conda-lock.yml", "pixi.lock"),
-    )
     multiplatform_lock_example = formats.example_filename(
         EnvironmentFormat.lockfile,
-        prefer_filenames=("conda-lock.yml", "pixi.lock"),
         require_multiplatform=True,
     )
 
@@ -64,17 +55,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     # See the comment in main_create.py for why these conditional blocks
     # are plain strings rather than ``dals`` calls.
-    example_blocks = ["Examples:"]
-    if spec_example:
-        example_blocks.append(
-            "  Export an environment spec:\n"
-            f"    conda export --from-history > {spec_example}"
-        )
-    if lock_example:
-        example_blocks.append(
-            "  Export a lockfile for the same platform:\n"
-            f"    conda export --file {lock_example}"
-        )
+    example_blocks = [
+        "Examples:",
+        "  Export an environment spec:\n"
+        "    conda export --from-history > environment.yml",
+        "  Export a lockfile for the same platform:\n"
+        "    conda export --file explicit.txt",
+    ]
     if multiplatform_lock_example:
         example_blocks.append(
             "  Export a lockfile for multiple platforms:\n"
