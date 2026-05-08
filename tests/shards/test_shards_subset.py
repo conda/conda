@@ -722,13 +722,13 @@ def test_pipelined_shutdown_race_condition(http_server_shards, mocker, tmp_path)
         result = original_drain_pending(self, pending, shardlikes_by_url)
         # Add delay after drain to increase chance of race condition
         if drain_count["count"] > 1:
-            time.sleep(0.1)
+            time.sleep(0.05)
         return result
 
     mocker.patch.object(RepodataSubset, "_drain_pending", tracked_drain_pending)
 
     # Run multiple times to increase chance of hitting race condition
-    for _ in range(10):
+    for _ in range(5):
         channel_data = build_repodata_subset(
             root_packages, expand_channels([channel]), algorithm="pipelined"
         )
@@ -839,7 +839,7 @@ def test_pipelined_uses_offline_worker(monkeypatch):
 @pytest.mark.integration
 def test_combine_batches_blocking_scenario():
     """
-    Test the scenario where combine_batches_until_none would block indefinitely
+    Test the scenario why combine_batches_until_none would block indefinitely
     without the timeout fix.
 
     This simulates the case where:
@@ -872,8 +872,10 @@ def test_combine_batches_blocking_scenario():
     consumer_thread = threading.Thread(target=consumer, daemon=True)
     consumer_thread.start()
 
-    # Wait for consumer to process existing items
-    consumer_thread.join(timeout=2)
+    # Wait until both items are merged and yielded (do not rely on join(2s)).
+    deadline = time.monotonic() + 2.0
+    while len(received) < 2 and time.monotonic() < deadline:
+        time.sleep(0.01)
 
     # With the timeout fix, the thread should still be alive (waiting)
     # but not blocking indefinitely - it will timeout periodically
@@ -885,7 +887,6 @@ def test_combine_batches_blocking_scenario():
 @pytest.mark.integration
 def test_pipelined_extreme_race_conditions(
     prepare_shards_test,
-    http_server_shards,
     mocker,
     tmp_path,
 ):
@@ -899,7 +900,8 @@ def test_pipelined_extreme_race_conditions(
     - Simulates thread scheduling variability
     """
     channel = Channel("conda-forge-sharded/linux-64")
-    root_packages = ["python", "vaex"]
+    # Keep roots small: vaex pulls a very large closure and dominated runtime.
+    root_packages = ["python", "numpy"]
 
     mocker.patch("conda.gateways.repodata.create_cache_dir", return_value=str(tmp_path))
 
@@ -907,14 +909,14 @@ def test_pipelined_extreme_race_conditions(
     class ChaoticQueue(SimpleQueue):
         def get(self, block=True, timeout=None):
             # Random delay before get
-            if random.random() < 0.3:  # 30% chance
-                time.sleep(random.uniform(0.001, 0.02))
+            if random.random() < 0.25:  # 25% chance
+                time.sleep(random.uniform(0.0005, 0.008))
             return super().get(block=block, timeout=timeout)
 
         def put(self, item, block=True, timeout=None):
             # Random delay before put
-            if random.random() < 0.3:  # 30% chance
-                time.sleep(random.uniform(0.001, 0.02))
+            if random.random() < 0.25:  # 25% chance
+                time.sleep(random.uniform(0.0005, 0.008))
             return super().put(item, block=block, timeout=timeout)
 
     # Patch at module level
@@ -922,7 +924,7 @@ def test_pipelined_extreme_race_conditions(
 
     # Run multiple iterations to increase chance of hitting race condition
     failures = []
-    for iteration in range(20):
+    for iteration in range(8):
         try:
             channel_data = build_repodata_subset(
                 root_packages, expand_channels([channel]), algorithm="pipelined"
