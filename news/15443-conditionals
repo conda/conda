@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Accidentally allowed and silently ignored `package[version<1]`-like `MatchSpecs` will be removed in `26.11`. The square bracket syntax must always include `key=value` pairs. (#15443)
 
 ### Docs
 
