@@ -28,6 +28,7 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.serialize import yaml
 from ..common.url import is_url, path_to_url, unquote
+from ..deprecations import deprecated
 from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
@@ -842,6 +843,24 @@ def _parse_spec_str(spec_str):
                 # Q: Canonicalize or not?
                 value = str(MatchSpec(value))
             brackets[key] = value
+        if not brackets:
+            # No key-value pairs found but there was a outer square brackets match?
+            # That's invalid syntax (e.g. accidental `package[extra]`)
+            if "version" in brackets_str:
+                # Backwards compatibility for a bit; supporting this was an accident!
+                brackets_str_version = brackets_str[len("version") :]
+                brackets["version"] = _sanitize_version_str(brackets_str_version, None)
+                deprecated.topic(
+                    "26.5",
+                    "26.11",
+                    topic=f"This MatchSpec syntax {original_spec_str} was accidentally "
+                    f"allowed in the past. Please use `version='{brackets_str_version}'`",
+                )
+            else:
+                raise InvalidSpec(
+                    "No key-value pairs found in square brackets, "
+                    f"did you mean `extras=[{brackets_str}]`?",
+                )
 
     # Step 4. strip off parens portion
     m4 = _PARENS_RE.match(spec_str)

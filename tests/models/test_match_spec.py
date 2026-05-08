@@ -586,7 +586,14 @@ def test_bracket_matches():
     }
 
     assert MatchSpec("numpy<2").match(record)
-    assert MatchSpec("numpy[version<2]").match(record)
+    with pytest.warns(
+        (DeprecationWarning, PendingDeprecationWarning),
+        match="Please use `version='<2'`",
+    ):
+        badspec = MatchSpec("numpy[version<2]")
+        assert badspec.version
+        assert badspec.match(record)
+    assert MatchSpec("numpy[version=<2]").match(record)
     assert not MatchSpec("numpy>2").match(record)
     assert not MatchSpec("numpy[version='>2']").match(record)
 
@@ -1599,6 +1606,12 @@ def test_extra_specs():
     # Inner lists MUST have commas
     assert MatchSpec("package[extras=[a b]]").get("extras") == ["a b"]
 
+    # Using Python syntax for extras is not supported, but let's error out usefully
+    # This used to be silently swallowed.
+    with pytest.raises(InvalidMatchSpec, match=r"did you mean `extras=\[a\]`"):
+        MatchSpec("package[a]")
+    with pytest.raises(InvalidMatchSpec, match=r"did you mean `extras=\[a,b\]`"):
+        MatchSpec("package[a,b]")
 
 def test_flags_specs():
     # should not be present
