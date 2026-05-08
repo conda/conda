@@ -1462,9 +1462,9 @@ def diff_for_unlink_link_precs(
         for prec in noarch_python_precs:
             _add_to_unlink_and_link(prec)
 
-    unlink_precs_tuple = (
+    unlink_precs_tuple = tuple(
         rec for rec in reversed(previous_records) if rec in unlink_precs
     )
-    link_precs_tuple = (rec for rec in final_precs if rec in link_precs)
+    link_precs_tuple = tuple(rec for rec in final_precs if rec in link_precs)
 
     return unlink_precs_tuple, link_precs_tuple
