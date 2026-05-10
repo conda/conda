@@ -1,0 +1,30 @@
+### Enhancements
+
+* `conda init xonsh` on Windows: replace the `if !(test -f "...")` guard
+  (which silently no-ops because `test` is not on bare Windows) with a
+  pythonic `pathlib.Path("...").is_file()` check, and use
+  `backslash_to_forwardslash` instead of `win_path_to_unix` so the rendered
+  path stays Windows-native (`C:/...`) instead of MSYS-style (`/c/...`)
+  that needs cygpath. (xonsh/xonsh#3676)
+
+### Bug fixes
+
+* `XonshActivator`: route `template_export_var` and `template_set_var`
+  through `path_conversion` so `CONDA_PREFIX`, `CONDA_DEFAULT_ENV` and
+  `CONDA_PROMPT_MODIFIER` no longer emit raw Windows paths inside Python
+  single-quoted literals. The xonsh output is exec'd as Python, so a
+  backslash like `\U` (in `C:\Users\…`) or `\n` / `\t` would otherwise
+  trigger a `SyntaxError` on the very first `conda activate <env>`.
+  (xonsh/xonsh#3676)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
