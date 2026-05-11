@@ -36,6 +36,16 @@ IF NOT EXIST "%__conda_tmp%" (
     ENDLOCAL & EXIT /B 2
 )
 
+:: Check if -h or --help is passed. If so, no need to do activation steps, exit early
+FOR %%A IN (%*) DO (
+    IF "%%A"=="-h" (
+        ENDLOCAL & EXIT /B 0
+    )
+    IF "%%A"=="--help" (
+        ENDLOCAL & EXIT /B 0
+    )
+)
+
 :: Check if conda produced output
 FOR /F "delims=" %%T IN (%__conda_tmp%) DO (
     :: T = "%TEMP%\<uuid>.env"
