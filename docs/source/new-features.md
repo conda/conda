@@ -57,7 +57,7 @@ We want to hear what works, what doesn't, and what should come next. Open an iss
 
 {bdg-light}`Available in conda 26.5` &nbsp; {bdg-warning}`Beta`
 
-Rattler is a Rust-based solver developed within the conda ecosystem by the team at Prefix.dev. It's on track to become conda's next default solver, replacing libmamba.
+Rattler is a Rust-based solver developed within the conda ecosystem by the team at Prefix.dev. It will be replacing Libmamba as the default environment solver in the future.
 
 Environments solve meaningfully faster with Rattler, especially large or complex ones, and your existing environments and workflows keep working.
 
@@ -75,7 +75,7 @@ To switch back at any time:
 conda config --remove-key solver
 ```
 ### What's next
-Rattler is planned to become the default solver in a conda 27.x release. Trying it now and reporting issues helps us decide when it's ready and shapes how the transition will work for the wider community
+Rattler will most likely become the default solver in a conda 27.x release. Trying it now and reporting issues helps us decide when it's ready and shapes how the transition will work for the wider community
 
 [Full documentation](https://github.com/conda-incubator/conda-rattler-solver) · [Open a GitHub issue](https://github.com/conda/conda/issues) · [Join the discussion in Zulip](https://conda.zulipchat.com/)
 ::::
