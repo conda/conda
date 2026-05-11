@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix conda doctor --fix package reinstall step (#16054 via #15740)
+* Fix conda doctor --fix package reinstall step (#15740 via #16054)
 
 ### Deprecations
 
