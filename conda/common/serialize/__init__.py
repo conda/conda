@@ -7,7 +7,6 @@ from io import StringIO
 from logging import getLogger
 
 from ...deprecations import deprecated
-from .json import CondaJSONEncoder, loads
 
 log = getLogger(__name__)
 
@@ -92,22 +91,28 @@ def yaml_safe_dump(object, stream=None):
         return ostream.getvalue()
 
 
+# Defer the ``.json`` submodule (and transitively ``frozendict``) until one
+# of the two deprecated names is actually accessed.
+def _json():
+    from . import json
+
+    return json
+
+
 deprecated.constant(
     "26.3",
     "26.9",
     "EntityEncoder",
-    CondaJSONEncoder,
+    factory=lambda: _json().CondaJSONEncoder,
     addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
 )
-del CondaJSONEncoder
 deprecated.constant(
     "26.3",
     "26.9",
     "json_load",
-    loads,
+    factory=lambda: _json().loads,
     addendum="Use `conda.common.serialize.json.loads(sort_keys=True)` instead.",
 )
-del loads
 
 
 @deprecated(

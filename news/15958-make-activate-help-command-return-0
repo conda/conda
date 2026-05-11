@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Update the `conda activate`/`conda deactivate` commands return a 0 exit code when run with the `-h`/`--help` flag. (#15826 via #15958)
+* Make the windows (bat activator) recognize the `-h`/`--help` flags. (#15826 via #15958)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

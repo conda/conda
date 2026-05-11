@@ -1,0 +1,22 @@
+### Enhancements
+
+* Canonicalize deferred deprecation shims in `conda.auxlib.logz` and
+  `conda.common.serialize` to use `deprecated.constant(..., factory=...)`,
+  avoiding eager imports of `conda.common.serialize.json` on cold paths.
+  (#15926)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

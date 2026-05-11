@@ -389,14 +389,14 @@ def test_notices_does_not_interrupt_command_on_failure(
 
     prefix = path_factory()
 
-    _, _, exit_code = conda_cli(
+    stdout, stderr, rc = conda_cli(
         "create",
         f"--prefix={prefix}",
         "--yes",
         f"--channel={test_recipes_channel}",
     )
 
-    assert exit_code == 0
+    assert rc == 0, f"conda create failed ({rc}): {stderr}"
 
     mock_logger.assert_called_once()
     fmt, exc = mock_logger.call_args.args

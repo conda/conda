@@ -1,0 +1,13 @@
+package:
+  name: unsatisfiable
+  version: 1.0
+
+build:
+  noarch: generic
+
+requirements:
+  run:
+    - versioned <1.0
+
+extra:
+  test_purpose: Package that depends on a missing package version so the solver hits a deterministic unsatisfiable case.

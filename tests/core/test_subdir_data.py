@@ -96,6 +96,20 @@ def test_get_index_no_platform_with_offline_cache(
     # only works if CONDA_PLATFORM exists in tests/data/conda_format_repo
     # (test will not pass on newer platforms with default CONDA_PLATFORM =
     # 'osx-arm64' etc.)
+
+    # Undo env vars from the loops above so we can fetch repodata online.
+    monkeypatch.delenv("CONDA_OFFLINE")
+    monkeypatch.delenv("CONDA_REPODATA_TIMEOUT_SECS")
+    monkeypatch.delenv("CONDA_PLATFORM")
+    reset_context()
+
+    online_channels = context.channels or ["defaults"]
+
+    # Warm the repodata cache while still online so offline reads work
+    # regardless of which channel the CI environment is configured with.
+    SubdirData._cache_.clear()
+    assert len(SubdirData.query_all("zlib", channels=online_channels)) > 1
+
     monkeypatch.setenv("CONDA_OFFLINE", "yes")
     monkeypatch.setenv("CONDA_PLATFORM", platform)
     monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
@@ -104,7 +118,6 @@ def test_get_index_no_platform_with_offline_cache(
 
     local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     offline_channels = [local_channel]
-    online_channels = context.channels or ["defaults"]
 
     # In offline mode with an empty cache, we expect no results from online channels
     assert len(SubdirData.query_all("zlib", channels=offline_channels)) > 0
@@ -200,7 +213,6 @@ def test_use_only_tar_bz2(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
 
 def test_subdir_data_coverage(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
     # disable SSL_VERIFY to cover 'turn off warnings' line
-    monkeypatch.setattr("conda.models.channel.Channel._cache_", {})
     monkeypatch.setenv("CONDA_PLATFORM", platform)
     monkeypatch.setenv("CONDA_SSL_VERIFY", "false")
     reset_context()
