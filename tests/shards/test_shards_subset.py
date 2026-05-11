@@ -19,16 +19,16 @@ import pytest
 from requests.exceptions import HTTPError
 
 import conda.gateways.repodata
-from _conda.shards import cache as shards_cache
-from _conda.shards import subset as shards_subset
-from _conda.shards.shards import (
+from conda._private.shards import cache as shards_cache
+from conda._private.shards import subset as shards_subset
+from conda._private.shards.shards import (
     ShardLike,
     Shards,
     fetch_channels,
     fetch_shards_index,
     shard_mentioned_packages,
 )
-from _conda.shards.subset import (
+from conda._private.shards.subset import (
     QUEUE_TIMEOUT,
     NodeId,
     RepodataSubset,
@@ -56,7 +56,7 @@ if TYPE_CHECKING:
 
     from pytest_benchmark.plugin import BenchmarkFixture
 
-    from _conda.shards.typing import ShardDict
+    from conda._private.shards.typing import ShardDict
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -571,7 +571,9 @@ def test_build_repodata_subset_error_propagation(
 
     # Mock batch_retrieve_from_network to raise an error for bfs algorithm
     if algorithm == "bfs":
-        with patch("_conda.shards.subset.batch_retrieve_from_network") as mock_batch:
+        with patch(
+            "conda._private.shards.subset.batch_retrieve_from_network"
+        ) as mock_batch:
             # Simulate a network error when fetching shards
             mock_batch.side_effect = HTTPError("Simulated network error")
 
@@ -597,7 +599,7 @@ def test_build_repodata_subset_error_propagation(
             executor.submit = mock_submit
             return executor
 
-        with patch("_conda.shards.subset.ThreadPoolExecutor", mock_executor):
+        with patch("conda._private.shards.subset.ThreadPoolExecutor", mock_executor):
             # The pipelined algorithm should propagate this error
             with pytest.raises(
                 HTTPError, match="Simulated network error during pipelined fetch"
@@ -687,7 +689,7 @@ def test_pipelined_with_slow_queue_operations(http_server_shards, mocker, tmp_pa
         # Only slow down shard_out_queue (not all queues)
         return SlowQueue(*args, **kwargs)
 
-    mocker.patch("_conda.shards.subset.SimpleQueue", slow_simple_queue_factory)
+    mocker.patch("conda._private.shards.subset.SimpleQueue", slow_simple_queue_factory)
 
     # This should complete despite slow queue operations
     channel_data = build_repodata_subset(
@@ -792,10 +794,12 @@ def test_pipelined_timeout(http_server_shards, monkeypatch, tmp_path):
 
     # faster failure. Now that we adjust timeouts based on
     # remote_read_timeout_secs, this doesn't do much.
-    monkeypatch.setattr("_conda.shards.subset.REACHABLE_PIPELINED_MAX_TIMEOUTS", 1)
+    monkeypatch.setattr(
+        "conda._private.shards.subset.REACHABLE_PIPELINED_MAX_TIMEOUTS", 1
+    )
     # But, setting a shorter queue timeout period causes more timeouts to fire; exercising the "reach end of log_timeout()" path.
-    monkeypatch.setattr("_conda.shards.subset.QUEUE_TIMEOUT", 0.5)
-    monkeypatch.setattr("_conda.shards.subset.THREAD_WAIT_TIMEOUT", 0)
+    monkeypatch.setattr("conda._private.shards.subset.QUEUE_TIMEOUT", 0.5)
+    monkeypatch.setattr("conda._private.shards.subset.THREAD_WAIT_TIMEOUT", 0)
 
     assert len(shardlikes) == 1, "test expects a single channel"
     assert all(isinstance(shardlike, Shards) for shardlike in shardlikes), (
@@ -918,7 +922,7 @@ def test_pipelined_extreme_race_conditions(
             return super().put(item, block=block, timeout=timeout)
 
     # Patch at module level
-    mocker.patch("_conda.shards.subset.SimpleQueue", ChaoticQueue)
+    mocker.patch("conda._private.shards.subset.SimpleQueue", ChaoticQueue)
 
     # Run multiple iterations to increase chance of hitting race condition
     failures = []
@@ -1048,7 +1052,7 @@ def test_shutdown_with_pending_work(http_server_shards, mocker, tmp_path):
             return super().put(item, *args, **kwargs)
 
     # Patch at module level
-    mocker.patch("_conda.shards.subset.SimpleQueue", TrackShutdownQueue)
+    mocker.patch("conda._private.shards.subset.SimpleQueue", TrackShutdownQueue)
 
     # Run the algorithm
     channel_data = build_repodata_subset(
