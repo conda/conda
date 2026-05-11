@@ -62,11 +62,17 @@
   }
 
   .conda-feature-card.conda-feature-stable {
-    border-left-color: #1D9E75 !important; /* conda green */
+    border-left-color: var(--pst-color-primary) !important; /* primary green for stable */
   }
 
   .conda-feature-card.conda-feature-beta {
-    border-left-color: #BA7517 !important; /* amber for beta */
+    border-left-color: var(--sd-color-warning) !important; /* orange for beta */
+  }
+
+  /* Stable badge color change to primary green */
+
+  .sd-bg-success {
+    background-color: var(--pst-color-primary) !important;
   }
 
   /* Pull the card up to sit right under its H2 heading,
@@ -75,24 +81,6 @@
   h2 + .conda-feature-card,
   h2 + p + .conda-feature-card {
     margin-top: 0.5rem;
-  }
-
-  /* ---- Conda-branded version badge ----
-   */
-
-  .bdg-conda-version,
-  span.sd-badge.conda-version {
-    background-color: #E1F5EE !important;
-    color: #0F6E56 !important;
-    border: 1px solid #1D9E75 !important;
-  }
-
-  /* Optional dark mode handling for the version badge */
-  html[data-theme="dark"] .bdg-conda-version,
-  html[data-theme="dark"] span.sd-badge.conda-version {
-    background-color: #04342C !important;
-    color: #9FE1CB !important;
-    border-color: #0F6E56 !important;
   }
 
 /* ---- Feature heading distinction ----

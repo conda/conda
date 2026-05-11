@@ -5,7 +5,7 @@ This page contains recent additions to `conda` worth your attention, including f
 **Stage legend**<br />
 {bdg-success}`Stable` — On by default, recommended for all users.
 
-{bdg-warning}`Beta` — Opt in to test, not recommended for production. We want your feedback.
+{bdg-warning}`Beta` — Opt in to test, not recommended for production. We want your feedback!
 
 ---
 ## Install PyPI packages with `conda install`
