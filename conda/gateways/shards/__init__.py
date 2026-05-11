@@ -6,7 +6,7 @@ Interface to sharded repodata code.
 
 from __future__ import annotations
 
-from _conda.shards.subset import RepodataSubset, build_repodata_subset
+from conda._private.shards.subset import RepodataSubset, build_repodata_subset
 
 from .typing import BuildRepodataSubset
 
