@@ -62,7 +62,8 @@ def solver_backend_shards(context=context):
     """
     Return solver configured to use shards.
 
-    If `context.plugin_manager.get_cached_solver_backend()` accepts a
+    If `context.repodata_use_shards` is True and
+    `context.plugin_manager.get_cached_solver_backend()` accepts a
     "build_repodata_subset" parameter, return a partial function adding that
     parameter.
     """
@@ -71,6 +72,10 @@ def solver_backend_shards(context=context):
     solver_backend = context.plugin_manager.get_cached_solver_backend()
     if solver_backend is None:
         raise CondaValueError("No solver backend found")
+
+    # Check if repodata_use_shards is disabled
+    if not context.repodata_use_shards:
+        return solver_backend
 
     # Check if solver supports build_repodata_subset parameter
     sig = inspect.signature(solver_backend.__init__)
