@@ -1702,3 +1702,24 @@ def test_kv_regex_does_not_hang_on_channel_urls():
     polish the regex to avoid YAML parsing.
     """
     _BRACKETS_KV_RE.findall("channel=https://repo.anaconda.com/free")
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        pytest.param(
+            "package[build",
+            marks=pytest.mark.xfail(reason="We are not banning bad names"),
+        ),
+        pytest.param(
+            "package[build=",
+            marks=pytest.mark.xfail(reason="We are not banning bad names"),
+        ),
+        "package[build=]",
+        "package[build=value, build=again]",
+        "package[build]",
+    ],
+)
+def test_bad_brackets(spec):
+    with pytest.raises(InvalidMatchSpec):
+        spec = MatchSpec(spec)

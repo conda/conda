@@ -831,6 +831,10 @@ def _parse_spec_str(spec_str):
         for match in m3b:
             groups = match.groupdict()
             key = groups["key"]
+            if key in brackets:
+                raise InvalidSpec(
+                    f"Each key can only be specified once: repeated '{key}' "
+                )
             value = groups["value"] or groups["value_list"]
             if not (key and value):
                 raise InvalidSpec(
@@ -870,7 +874,9 @@ def _parse_spec_str(spec_str):
 
     # Re-process version field, whose syntax depends on the presence of a build field
     if version_value := brackets.get("version"):
-        brackets["version"] = _sanitize_version_str(version_value, brackets.get("build"))
+        brackets["version"] = _sanitize_version_str(
+            version_value, brackets.get("build")
+        )
 
     # Step 4. strip off parens portion
     m4 = _PARENS_RE.match(spec_str)
