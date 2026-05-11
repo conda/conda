@@ -13,10 +13,10 @@ import urllib.parse
 
 import pytest
 
-from _conda.shards.shards import (
+from conda._private.shards.shards import (
     fetch_channels,
 )
-from _conda.shards.subset import (
+from conda._private.shards.subset import (
     RepodataSubset,
     build_repodata_subset,
     filter_redundant_packages,
