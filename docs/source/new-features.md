@@ -22,7 +22,7 @@ This replaces the common workaround of running `pip install` inside a conda envi
 
 1. Make sure you're on conda 26.5 or later. To update:
     ```bash
-    conda install --name base "conda>=26.5.0"
+    conda install --name base 'conda>=26.5'
     ```
 2. Enable the [Rattler solver](#faster-solves-with-rattler-solver) and add the `conda-pypi` channel:
     ```bash
@@ -97,10 +97,10 @@ Conda supports the `conda-lock.yaml` and `pixi.lock` formats natively. No separa
 
 ### Basic usage
 
-**Make sure you're on conda 26.5 or later** to use this feature. To update:
+Update conda to version 26.5 or later to use this feature:
 
 ```bash
-conda install --name base "conda>=26.5.0"
+conda install --name base 'conda>=26.5.'
 ```
 
 Export an environment to a lockfile:
