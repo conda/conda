@@ -222,7 +222,7 @@ class MatchSpec(metaclass=MatchSpecType):
         >>> str(MatchSpec('package[extras=[a,b]]'))
         "package[extras=['a', 'b']]"
         >>> str(MatchSpec('package[when=__unix]'))
-        "package[when='__unix']"
+        "package[when=__unix]"
 
     To fully-specify a package with a full, exact spec, the fields
       - channel
