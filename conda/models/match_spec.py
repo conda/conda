@@ -836,9 +836,7 @@ def _parse_spec_str(spec_str):
                 raise InvalidSpec(
                     "key-value mismatch in brackets; a key or a value is missing",
                 )
-            if key == "version":
-                value = _sanitize_version_str(value, groups.get("build"))
-            elif key in ("flags", "extras"):
+            if key in ("flags", "extras"):
                 if (value[0] == "[" and value[-1] != "]") or (
                     value[-1] == "]" and value[0] != "["
                 ):
@@ -869,6 +867,11 @@ def _parse_spec_str(spec_str):
                     "No key-value pairs found in square brackets, "
                     f"did you mean `extras=[{brackets_str}]`?",
                 )
+
+    # Re-process version field, whose syntax depends on the presence of a build field
+    if version_value := brackets.get("version"):
+        brackets["version"] = _sanitize_version_str(version_value, brackets.get("build"))
+
     # Step 4. strip off parens portion
     m4 = _PARENS_RE.match(spec_str)
     parens = {}
