@@ -299,7 +299,7 @@ class ShardBase(abc.ABC):
         """
         Return monolithic repodata including all visited shards.
 
-        Prefer package_records() over this method.
+        Prefer iter_records() over this method.
         """
         repodata: RepodataDict = {
             **self.repodata_no_packages,
@@ -313,7 +313,7 @@ class ShardBase(abc.ABC):
                 repodata[package_group].update(shard[package_group])
         return repodata
 
-    def package_records(self) -> Iterable[tuple[str, dict]]:
+    def iter_records(self) -> Iterable[tuple[str, dict]]:
         """
         Yield (filename, record) tuples for all packages in visited shards.
         """
