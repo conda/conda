@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* When invalidating the channel notices cache, rewind `notices.cache`'s mtime one second past `NOTICES_DECORATOR_DISPLAY_INTERVAL` so `is_channel_notices_cache_expired()` is not subject to `os.utime`/NTFS FILETIME rounding on Windows. (#16003)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
