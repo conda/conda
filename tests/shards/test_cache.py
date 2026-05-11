@@ -8,7 +8,7 @@ import threading
 
 import zstandard
 
-from _conda.shards.cache import AnnotatedRawShard, ShardCache
+from conda._private.shards.cache import AnnotatedRawShard, ShardCache
 
 
 class TestCacheWALMode:
