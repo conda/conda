@@ -839,7 +839,15 @@ def _parse_spec_str(spec_str):
             if key == "version":
                 value = _sanitize_version_str(value, groups.get("build"))
             elif key in ("flags", "extras"):
-                value = tuple(yaml.loads(f"[{value.strip('[]')}]"))
+                if (value[0] == "[" and value[-1] != "]") or (
+                    value[-1] == "]" and value[0] != "["
+                ):
+                    # mismatched single-item list, raise
+                    raise InvalidSpec(f"'{key}' value has unbalanced brackets: {value}")
+                value = tuple(
+                    str(x) if x is not None else "null"
+                    for x in yaml.loads(f"[{value.strip('[]')}]")
+                )
             elif key == "when":
                 _validate_when_spec(value)
             brackets[key] = value

@@ -1650,12 +1650,25 @@ def test_flags_specs():
     assert str(ms) == "python[flags=['cpu']]"
 
     # This is the list syntax
-    # FIXME: Parser breaks with nested square brackers
     input_spec = "python[flags=[cpu,blas:*]]"
     ms = MatchSpec(input_spec)
     assert ms.get("flags") == ("cpu", "blas:*")
     # they get sorted too
     assert str(ms) == "python[flags=['blas:*', 'cpu']]"
+
+    # Ensure YAML parsing doesn't mess with values
+    assert MatchSpec("package[extras=[yes, no, 0, 1, True, False, null, None]]").get(
+        "extras"
+    ) == ("yes", "no", "0", "1", "True", "False", "null", "None")
+
+    for spec in (
+        "package[extras=[a]",
+        "package[extras=[a, b]",
+        "package[extras=[[a, b]",
+        "package[extras=[[[a, b]",
+    ):
+        with pytest.raises(InvalidMatchSpec, match="unbalanced"):
+            MatchSpec(spec)
 
 
 @pytest.mark.parametrize(
