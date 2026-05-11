@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from queue import SimpleQueue as Queue
     from typing import TypeVar
 
-    from _conda.shards.typing import PackageRecordDict, ShardDict
+    from conda._private.shards.typing import PackageRecordDict, ShardDict
 
     _T = TypeVar("_T")
 

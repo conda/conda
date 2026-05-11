@@ -27,10 +27,10 @@ from conda_libmamba_solver.index import (
 from requests import Request, Response
 
 import conda.gateways.repodata
-from _conda.shards import cache as shards_cache
-from _conda.shards import shards
-from _conda.shards import subset as shards_subset
-from _conda.shards.shards import (
+from conda._private.shards import cache as shards_cache
+from conda._private.shards import shards
+from conda._private.shards import subset as shards_subset
+from conda._private.shards.shards import (
     ShardLike,
     Shards,
     _repodata_shards,
@@ -56,7 +56,7 @@ from .conftest import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
 
-    from _conda.shards.typing import ShardsIndexDict
+    from conda._private.shards.typing import ShardsIndexDict
 
 HERE = Path(__file__).parent
 
@@ -942,7 +942,7 @@ def test_shards_connections(monkeypatch):
     assert context.repodata_threads is None
     assert _shards_connections() == 10  # requests' default
 
-    monkeypatch.setattr("_conda.shards.misc.SHARDS_CONNECTIONS_DEFAULT", 7)
+    monkeypatch.setattr("conda._private.shards.misc.SHARDS_CONNECTIONS_DEFAULT", 7)
     assert _shards_connections() == 7
 
     monkeypatch.setattr(context, "_repodata_threads", 4)

@@ -22,8 +22,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from _conda.shards.cache import ShardCache, connect
-from _conda.shards.misc import (
+from conda._private.shards.cache import ShardCache, connect
+from conda._private.shards.misc import (
     _is_http_error_most_400_codes,
     _safe_urljoin_with_slash,
     _shards_connections,
@@ -33,7 +33,7 @@ from _conda.shards.misc import (
     filter_redundant_packages,
     spec_to_package_name,
 )
-from _conda.shards.shards import (
+from conda._private.shards.shards import (
     ShardFetch,
     ShardLike,
     Shards,
@@ -41,7 +41,7 @@ from _conda.shards.shards import (
     batch_retrieve_from_cache,
     shard_mentioned_packages,
 )
-from _conda.shards.subset import (
+from conda._private.shards.subset import (
     RepodataSubset,
     build_repodata_subset,
     offline_nofetch_thread,
@@ -583,7 +583,7 @@ class TestSubsetModule:
         cache = MagicMock()
 
         # Put NodeId and then None
-        from _conda.shards.subset import NodeId
+        from conda._private.shards.subset import NodeId
 
         node_id = NodeId("pkg", "http://test.com")
         in_queue.put([node_id])
