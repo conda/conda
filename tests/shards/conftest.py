@@ -245,12 +245,13 @@ class ShardFactory:
                     finish_request_action(request)
                 raise
 
+        host = "127.0.0.1"
         server = http_test_server.run_server(
-            handler, "127.0.0.1", base_path=str(shards_repository)
+            handler, host, base_path=str(shards_repository)
         )
         self._http_servers.append(server)
 
-        return f"http://{server.server_name}:{server.server_port}"
+        return f"http://{host}:{server.server_port}"
 
 
 class MockCache(NamedTuple):
