@@ -222,7 +222,7 @@ class MatchSpec(metaclass=MatchSpecType):
         >>> str(MatchSpec('package[extras=[a,b]]'))
         "package[extras=['a', 'b']]"
         >>> str(MatchSpec('package[when=__unix]'))
-        "package[when=__unix]"
+        'package[when=__unix]'
 
     To fully-specify a package with a full, exact spec, the fields
       - channel
@@ -497,7 +497,8 @@ class MatchSpec(metaclass=MatchSpecType):
             >>> MatchSpec("numpy=1.21.0").conda_env_form()  # no-builds case
             'numpy=1.21.0'
             >>> MatchSpec("conda-forge::numpy==1.21.0=py39h1234567_0").conda_env_form()
-            'numpy=1.21.0=py39h1234567_0'  # channel prefix removed
+            'numpy=1.21.0=py39h1234567_0'
+            >>> # channel prefix removed
 
         Returns:
             str: Package specification in conda env export format
@@ -968,13 +969,12 @@ def _validate_when_spec(spec) -> None:
     We can use Python's parser for this but we need to wrap the MatchSpec
     as strings first.
 
-    >>> _parse_when_spec("python")
-    >>> _parse_when_spec("(python)")
-    >>> _parse_when_spec("(python and __unix)")
-    >>> _parse_when_spec("(python and __unix>=3)")
-    >>> _parse_when_spec("(python and __unix>=3 or __win)")
+    >>> _validate_when_spec("python")
+    >>> _validate_when_spec("(python)")
+    >>> _validate_when_spec("(python and __unix)")
+    >>> _validate_when_spec("(python and __unix>=3)")
+    >>> _validate_when_spec("(python and __unix>=3 or __win)")
     """
-    original = spec
     specs = []
     for a in spec.split(" and "):
         for b in a.split(" or "):
@@ -994,7 +994,7 @@ def _validate_when_spec(spec) -> None:
         ast.parse(spec)
     except (ValueError, SyntaxError) as exc:
         raise InvalidSpec("'when' expression cannot be parsed") from exc
-    return original
+    return
 
 
 class MatchInterface(metaclass=ABCMeta):
