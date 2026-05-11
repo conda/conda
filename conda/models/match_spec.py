@@ -8,6 +8,7 @@ The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.
 
 from __future__ import annotations
 
+import ast
 import re
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -839,13 +840,7 @@ def _parse_spec_str(spec_str):
             elif key in ("flags", "extras"):
                 value = tuple(yaml.loads(f"[{value.strip('[]')}]"))
             elif key == "when":
-                when_spec = MatchSpec(value)
-                if when_spec.get("when"):
-                    raise InvalidSpec(
-                        "'when' specs cannot include inner 'when' fields",
-                    )
-                # Q: Canonicalize or not?
-                value = str(when_spec)
+                _validate_when_spec(value)
             brackets[key] = value
         if not brackets:
             # No key-value pairs found but there was a outer square brackets match?
@@ -865,7 +860,6 @@ def _parse_spec_str(spec_str):
                     "No key-value pairs found in square brackets, "
                     f"did you mean `extras=[{brackets_str}]`?",
                 )
-
     # Step 4. strip off parens portion
     m4 = _PARENS_RE.match(spec_str)
     parens = {}
@@ -965,6 +959,42 @@ def _parse_spec_str(spec_str):
     components["_original_spec_str"] = original_spec_str
     _PARSE_CACHE[original_spec_str] = components
     return components
+
+
+def _validate_when_spec(spec) -> None:
+    """
+    The value of a `when` expression is a MatchSpec or a boolean
+    expression of MatchSpecs. Parentheses override precedence.
+    We can use Python's parser for this but we need to wrap the MatchSpec
+    as strings first.
+
+    >>> _parse_when_spec("python")
+    >>> _parse_when_spec("(python)")
+    >>> _parse_when_spec("(python and __unix)")
+    >>> _parse_when_spec("(python and __unix>=3)")
+    >>> _parse_when_spec("(python and __unix>=3 or __win)")
+    """
+    original = spec
+    specs = []
+    for a in spec.split(" and "):
+        for b in a.split(" or "):
+            specs.append(b.strip(" ()'\""))
+    for found in specs:
+        parsed = MatchSpec(found)
+        if parsed.get("when"):
+            raise InvalidSpec(
+                f"'when' specs cannot include inner 'when' fields: {found} ",
+            )
+        escaped = found.replace('"', '\\"')
+        spec = spec.replace(found, f'"{escaped}"')
+    if len(specs) == 1:
+        # no boolean logic found, just check MatchSpec is parsable
+        return
+    try:
+        ast.parse(spec)
+    except (ValueError, SyntaxError) as exc:
+        raise InvalidSpec("'when' expression cannot be parsed") from exc
+    return original
 
 
 class MatchInterface(metaclass=ABCMeta):

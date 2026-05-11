@@ -1574,7 +1574,21 @@ def test_conditional_specs():
         "python[when='package[build]']",  # malformed when spec
     ):
         with pytest.raises(InvalidMatchSpec):
+            print(spec)
             MatchSpec(spec)
+
+
+def test_conditional_specs_2():
+    # More complex when spec has boolean logic and parentheses
+    for when in (
+        "(__linux or __osx)",
+        "(python!=3.0 and python!=3.1)",
+        "(__unix and python[version='>=3.10'])",
+        '(__unix and python[version=">=3.10"])',
+    ):
+        spec = MatchSpec(f"package[when='{when}']")
+
+        assert spec.get("when") == when
 
 
 def test_extra_specs():
