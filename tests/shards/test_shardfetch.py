@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from _conda.shards import cache as shards_cache
-from _conda.shards import shards
-from _conda.shards.shards import (
+from conda._private.shards import cache as shards_cache
+from conda._private.shards import shards
+from conda._private.shards.shards import (
     ShardFetch,
     ShardLike,
 )
@@ -31,7 +31,7 @@ def test_shardfetch_with_shards(empty_shards_cache, tmp_path):
     Test ShardFetch.fetch() with Shards instance (line 104).
     This tests the isinstance(self.shardbase, Shards) branch.
     """
-    from _conda.shards.shards import Shards
+    from conda._private.shards.shards import Shards
 
     # Create fake shard index and Shards instance
     shard_data = {
@@ -55,7 +55,7 @@ def test_shardfetch_cache_required_error(tmp_path):
     """
     from unittest.mock import Mock
 
-    from _conda.shards.shards import Shards
+    from conda._private.shards.shards import Shards
 
     # Create a Shards instance
     shard_data = {
@@ -88,7 +88,7 @@ def test_batch_retrieve_from_cache_with_shardlike():
     """
     Test batch_retrieve_from_cache with non-Shards instances (ShardLike) (line 696).
     """
-    from _conda.shards.shards import batch_retrieve_from_cache
+    from conda._private.shards.shards import batch_retrieve_from_cache
 
     # Create a temporary cache
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -118,7 +118,7 @@ def test_batch_retrieve_from_cache_empty_sharded():
     """
     Test batch_retrieve_from_cache when no Shards instances are provided (line 690-698).
     """
-    from _conda.shards.shards import batch_retrieve_from_cache
+    from conda._private.shards.shards import batch_retrieve_from_cache
 
     # Create a temporary cache
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -149,7 +149,7 @@ def test_fetch_shards_impl_with_visited_cache():
     Test _fetch_shards_impl when packages are already in visited dict (line 143).
     This tests the "if package in shards.visited" branch.
     """
-    from _conda.shards.shards import Shards
+    from conda._private.shards.shards import Shards
 
     # Create a Shards instance
     shard_data = {
