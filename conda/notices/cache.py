@@ -22,7 +22,7 @@ from ..base.constants import (
     APP_NAME,
     NOTICES_CACHE_FN,
     NOTICES_CACHE_SUBDIR,
-    NOTICES_DECORATOR_DISPLAY_INTERVAL,
+    NOTICES_DECORATOR_DISPLAY_INTERVAL_NS,
 )
 from ..common.serialize import json
 from ..exceptions import CondaError
@@ -204,9 +204,9 @@ def clear_cache() -> None:
 
 def _clear_cache_file(cache_file: PathType) -> None:
     cache_file = Path(cache_file)
-    cache_file.write_text("")
+    with open(cache_file, "w") as fp:
+        fp.write("")
     stat = cache_file.stat()
     # Keep natural access time, set only mtime to past for immediate notice display
-    # Set modified time to the past, -1 to account for float/FILETIME rounding.
-    past_mtime = stat.st_mtime - NOTICES_DECORATOR_DISPLAY_INTERVAL - 1
-    os.utime(cache_file, (stat.st_atime, past_mtime))
+    past_mtime_ns = stat.st_mtime_ns - NOTICES_DECORATOR_DISPLAY_INTERVAL_NS
+    os.utime(cache_file, ns=(stat.st_atime_ns, past_mtime_ns))

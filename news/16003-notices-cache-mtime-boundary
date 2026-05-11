@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* When invalidating the channel notices cache, rewind `notices.cache`'s mtime one second past `NOTICES_DECORATOR_DISPLAY_INTERVAL` so `is_channel_notices_cache_expired()` is not subject to `os.utime`/NTFS FILETIME rounding on Windows. (#16003)
+* When invalidating the channel notices cache, rewind `notices.cache`'s mtime in integer nanoseconds (`stat.st_mtime_ns` + `os.utime(ns=...)`) and check expiry against `time.time_ns()` so the `NOTICES_DECORATOR_DISPLAY_INTERVAL` boundary check is not subject to float/FILETIME rounding on Windows. (#16003)
 
 ### Deprecations
 
