@@ -845,7 +845,7 @@ def _parse_spec_str(spec_str):
         if not brackets:
             # No key-value pairs found but there was a outer square brackets match?
             # That's invalid syntax (e.g. accidental `package[extra]`)
-            if "version" in brackets_str:
+            if brackets_str.startswith("version"):
                 # Backwards compatibility for a bit; supporting this was an accident!
                 brackets_str_version = brackets_str[len("version") :]
                 brackets["version"] = _sanitize_version_str(brackets_str_version, None)
@@ -870,7 +870,7 @@ def _parse_spec_str(spec_str):
         m4b = _BRACKETS_KV_RE.finditer(parens_str)
         for match in m4b:
             groups = match.groupdict()
-            parens[groups["key"]] = groups["value"]
+            parens[groups["key"]] = groups["value"] or groups["value_list"]
         if "optional" in parens_str:
             parens["optional"] = True
 
@@ -1275,15 +1275,15 @@ class ListOfStrMatch(MatchInterface):
 
     def _convert(self, value):
         if not value:
-            return []
+            return ()
         elif isinstance(value, str):
-            return [
+            return tuple(
                 f
                 for f in (ff.strip() for ff in value.replace(" ", ",").split(","))
                 if f
-            ]
+            )
         else:
-            return [f for f in (ff.strip() for ff in value) if f]
+            return tuple(f for f in (ff.strip() for ff in value) if f)
 
     def match(self, other):
         other = self._convert(other)
