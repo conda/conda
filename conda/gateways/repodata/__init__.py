@@ -551,11 +551,25 @@ class RepodataCache:
         """Out-of-band etag and other state needed by the RepoInterface."""
         return self.cache_path_json.with_suffix(CACHE_STATE_SUFFIX)
 
-    def load(self, *, state_only=False, binary=False) -> str | bytes:
+    def load(self, *, state_only=False, binary=False, check_mtime=True) -> str | bytes:
+        """
+        Read state, reepodata.json or binary cache data with locking.
+
+        Args:
+            state_only: Read cache stat file only.
+            binary: Read from cache_path_shards instead of cache_path_json.
+            check_mtime: Check cache path against mtime_ns, size in stat file.
+            If different, clear etag, last-modified, cache-control from stat
+            file to trigger re-download.
+
+        Returns: contents of cache_path_json/cache_path_shards or ""
+
+        Raises: FileNotFoundError if cache file does not exist.
+        """
         # read state and repodata.json with locking
 
         # lock {CACHE_STATE_SUFFIX} file
-        # read {CACHE_STATES_SUFFIX} file
+        # read {CACHE_STATE_SUFFIX} file
         # read repodata.json
         # check stat, if wrong clear cache information
 
@@ -576,20 +590,21 @@ class RepodataCache:
                 else:
                     json_data = cache_path.read_text()
 
-            json_stat = cache_path.stat()
-            if not (
-                state.get("mtime_ns") == json_stat.st_mtime_ns
-                and state.get("size") == json_stat.st_size
-            ):
-                # clear mod, etag, cache_control to encourage re-download
-                state.update(
-                    {
-                        ETAG_KEY: "",
-                        LAST_MODIFIED_KEY: "",
-                        CACHE_CONTROL_KEY: "",
-                        "size": 0,
-                    }
-                )
+            if check_mtime:
+                json_stat = cache_path.stat()
+                if not (
+                    state.get("mtime_ns") == json_stat.st_mtime_ns
+                    and state.get("size") == json_stat.st_size
+                ):
+                    # clear mod, etag, cache_control to encourage re-download
+                    state.update(
+                        {
+                            ETAG_KEY: "",
+                            LAST_MODIFIED_KEY: "",
+                            CACHE_CONTROL_KEY: "",
+                            "size": 0,
+                        }
+                    )
             # Replace data in special self.state dict subclass with key aliases
             self.state.clear()
             self.state.update(state)
