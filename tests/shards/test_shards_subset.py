@@ -951,13 +951,29 @@ def test_pipelined_concurrent_stress(http_server_shards, mocker, tmp_path, num_t
     Run pipelined algorithm from multiple threads concurrently. This can expose
     race conditions in shared state or thread coordination.
 
-    (Actually the concurrency issues happen in fetch_channels() which deals with
-    reading, writing repodata_shards.msgpack.zst to disk.)
+    Each thread gets its own cache directory to avoid state file corruption
+    from concurrent reads/writes to the same .info.json file.
     """
     channel = Channel.from_url(f"{http_server_shards}/noarch")
     root_packages = ["foo"]
 
-    mocker.patch("conda.gateways.repodata.create_cache_dir", return_value=str(tmp_path))
+    import threading
+
+    thread_cache_dirs = {}
+    lock = threading.Lock()
+
+    def per_thread_cache_dir():
+        tid = threading.current_thread().ident
+        with lock:
+            if tid not in thread_cache_dirs:
+                d = tmp_path / f"cache-{tid}"
+                d.mkdir(exist_ok=True)
+                thread_cache_dirs[tid] = str(d)
+            return thread_cache_dirs[tid]
+
+    mocker.patch(
+        "conda.gateways.repodata.create_cache_dir", side_effect=per_thread_cache_dir
+    )
 
     errors = []
 
