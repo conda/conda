@@ -26,7 +26,7 @@ This replaces the common workaround of running `pip install` inside a conda envi
     ```
 2. Enable the [Rattler solver](#faster-solves-with-rattler-solver) and add the `conda-pypi` channel:
     ```bash
-    conda config --set solver rattler &&\
+    conda config --set solver rattler
     conda config --append channels conda-pypi
     ```
 
