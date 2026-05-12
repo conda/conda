@@ -28,19 +28,52 @@ class CondaExportWarning(Warning):
     pass
 
 
-def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..plugins.formats import FormatSummary
+def epilog() -> str:
     from ..plugins.types import EnvironmentFormat
+    from .formats import describe_environment_formats
+
+    # get environment exporters grouped by format
+    formats = context.plugin_manager.get_environment_exporter_format_mapping()
+
+    # find the first multiplatform lockfile
+    multiplatform_lockfile = next(
+        (
+            format.default_filenames[0]
+            for format in formats[EnvironmentFormat.lockfile]
+            if format.multiplatform_export and format.default_filenames
+        ),
+        None,
+    )
+
+    # compose examples/epilog
+    examples = [
+        "Examples:",
+        "  Export an environment spec:",
+        "    conda export --from-history > environment.yml",
+        "",
+        "  Export a lockfile for the same platform:",
+        "    conda export --file explicit.txt",
+    ]
+    # include example for multiplatform lockfile if any are registered
+    if multiplatform_lockfile:
+        examples.append("")
+        examples.append("  Export a lockfile for multiple platforms:")
+        examples.append(
+            f"    conda export --file {multiplatform_lockfile} --platform linux-64 --platform osx-arm64"
+        )
+    # include available formats if any are registered
+    if formats:
+        examples.append("")
+        examples.append("Available output formats:")
+        examples.append(describe_environment_formats(formats))
+    return "\n".join(examples)
+
+
+def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from .helpers import (
         LazyChoicesAction,
         add_parser_json,
         add_parser_prefix,
-    )
-
-    formats = FormatSummary(context.plugin_manager.get_environment_exporters())
-    multiplatform_lock_example = formats.example_filename(
-        EnvironmentFormat.lockfile,
-        require_multiplatform=True,
     )
 
     summary = "Export a conda environment to a file."
@@ -53,30 +86,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     ).rstrip()
 
-    # See the comment in main_create.py for why these conditional blocks
-    # are plain strings rather than ``dals`` calls.
-    example_blocks = [
-        "Examples:",
-        "  Export an environment spec:\n"
-        "    conda export --from-history > environment.yml",
-        "  Export a lockfile for the same platform:\n"
-        "    conda export --file explicit.txt",
-    ]
-    if multiplatform_lock_example:
-        example_blocks.append(
-            "  Export a lockfile for multiple platforms:\n"
-            f"    conda export --file {multiplatform_lock_example} "
-            "--platform linux-64 --platform osx-arm64"
-        )
-    if formats:
-        example_blocks.append(formats.describe(heading="Available formats"))
-    epilog = "\n\n".join(example_blocks)
-
     p = sub_parsers.add_parser(
         "export",
         help=summary,
         description=description,
-        epilog=epilog,
+        epilog=epilog(),
         **kwargs,
     )
 

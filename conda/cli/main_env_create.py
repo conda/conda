@@ -18,10 +18,36 @@ from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
 
 
+def epilog() -> str:
+    from ..base.context import context
+    from .formats import describe_environment_formats
+
+    # get environment specifiers grouped by format
+    formats = context.plugin_manager.get_environment_specifier_format_mapping()
+
+    # compose examples/epilog
+    examples = [
+        "Examples:",
+        "  Create from an environment spec (solved at install time):",
+        "    conda env create -f /path/to/environment.yml",
+        "",
+        "  Create from a lockfile (no solve, exact reproduction):",
+        "    conda env create -f explicit.txt",
+        "",
+        "  Use the default file in the current directory:",
+        "    conda env create",
+        "    conda env create -n envname",
+    ]
+    # include available formats if any are registered
+    if formats:
+        examples.append("")
+        examples.append("Available input formats:")
+        examples.append(describe_environment_formats(formats))
+    return "\n".join(examples)
+
+
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..base.context import context
-    from ..plugins.formats import FormatSummary
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -30,10 +56,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_platform,
         add_parser_prefix,
         add_parser_solver,
-    )
-
-    formats = FormatSummary(
-        context.plugin_manager.get_hook_results("environment_specifiers")
     )
 
     summary = "Create an environment based on an environment definition file."
@@ -56,29 +78,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     )
 
-    # See the comment in main_create.py for why these conditional blocks
-    # are plain strings rather than ``dals`` calls.
-    example_blocks = [
-        "Examples:",
-        "  Create from an environment spec (solved at install time):\n"
-        "    conda env create -f /path/to/environment.yml",
-        "  Create from a lockfile (no solve, exact reproduction):\n"
-        "    conda env create -f explicit.txt",
-    ]
-    example_blocks.append(
-        "  Use the default file in the current directory:\n"
-        "    conda env create\n"
-        "    conda env create -n envname"
-    )
-    if formats:
-        example_blocks.append(formats.describe(heading="Available input formats"))
-    epilog = "\n\n".join(example_blocks)
-
     p = sub_parsers.add_parser(
         "create",
         help=summary,
         description=description,
-        epilog=epilog,
+        epilog=epilog(),
         **kwargs,
     )
     p.add_argument(

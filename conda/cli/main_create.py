@@ -18,21 +18,45 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+def epilog() -> str:
+    from ..base.context import context
+    from .formats import describe_environment_formats
+
+    # get environment specifiers grouped by format
+    formats = context.plugin_manager.get_environment_specifier_format_mapping()
+
+    # compose examples/epilog
+    examples = [
+        "Examples:",
+        "  Create from package specs:",
+        "    conda create -n myenv python=3.12 numpy",
+        "",
+        "  Create from an environment spec (solved at install time):",
+        "    conda create -n myenv --file environment.yml",
+        "",
+        "  Create from a lockfile (no solve, exact reproduction):",
+        "    conda create -n myenv --file explicit.txt",
+        "",
+        "  Clone an existing environment:",
+        "    conda create -n env2 --clone env1",
+    ]
+    # include available formats if any are registered
+    if formats:
+        examples.append("")
+        examples.append("Available input formats:")
+        examples.append(describe_environment_formats(formats))
+    return "\n".join(examples)
+
+
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from ..base.context import context
     from ..common.constants import NULL
-    from ..plugins.formats import FormatSummary
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
         add_parser_default_packages,
         add_parser_platform,
         add_parser_solver,
-    )
-
-    formats = FormatSummary(
-        context.plugin_manager.get_hook_results("environment_specifiers")
     )
 
     summary = "Create a new conda environment from a list of specified packages."
@@ -51,31 +75,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
     )
 
-    # Static description blocks use ``dals`` per the house style. The
-    # conditional example sub-blocks below use plain strings with explicit
-    # leading whitespace: ``dals`` would strip any indent smaller than the
-    # longest common prefix, so the "2-space label, 4-space command" shape
-    # we want here (matching the issue #15960 examples) has to be written
-    # literally. Built-in filenames (environment.yml, explicit.txt) are
-    # hardcoded; third-party lockfile filenames come from the plugin.
-    example_blocks = [
-        "Examples:\n\n"
-        "  Create from package specs:\n"
-        "    conda create -n myenv python=3.12 numpy",
-        "  Create from an environment spec (solved at install time):\n"
-        "    conda create -n myenv --file environment.yml",
-        "  Create from a lockfile (no solve, exact reproduction):\n"
-        "    conda create -n myenv --file explicit.txt",
-        "  Clone an existing environment:\n    conda create -n env2 --clone env1",
-    ]
-    if formats:
-        example_blocks.append(formats.describe(heading="Available input formats"))
-    epilog = "\n\n".join(example_blocks)
     p = sub_parsers.add_parser(
         "create",
         help=summary,
         description=description,
-        epilog=epilog,
+        epilog=epilog(),
         **kwargs,
     )
     p.add_argument(
