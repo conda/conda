@@ -863,8 +863,9 @@ def _parse_spec_str(spec_str):
                 deprecated.topic(
                     "26.5",
                     "26.11",
-                    topic=f"This MatchSpec syntax {original_spec_str} was accidentally "
-                    f"allowed in the past. Please use `version='{brackets_str_version}'`",
+                    topic="MatchSpec version expression without = separator",
+                    addendum=f"This MatchSpec syntax `{original_spec_str}` was accidentally "
+                    f"allowed in the past. Please use `version='{brackets_str_version}'`.",
                 )
             else:
                 raise InvalidSpec(
