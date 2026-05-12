@@ -1607,6 +1607,13 @@ def test_conditional_specs_merge():
     assert merged.get("when") == "(__linux) or (__osx)"
 
 
+@pytest.mark.xfail(reason="Pending implementation")
+def test_conditional_specs_match():
+    with pytest.raises(ValueError):
+        # Static matching without a solver are not specified for 'when'
+        MatchSpec("pkg[when=__unix]").match({"name": "pkg"})
+
+
 def test_extra_specs():
     # should not be present
     assert MatchSpec("python").get("extras") is None
@@ -1675,6 +1682,18 @@ def test_extras_specs_merge():
         MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"], union=True)
 
 
+@pytest.mark.xfail(reason="Pending implementation")
+def test_extras_specs_match():
+    """
+    Extras match via 'set.issubset' on the dictionary keys
+    """
+    record = {"name": "pkg", "extras-depends": {"a": [], "b": []}}
+    assert MatchSpec("pkg[extras=a]").match()
+    assert MatchSpec("pkg[extras=[a, b]]").match(record)
+    assert not MatchSpec("pkg[extras=[a, b, c]]").match(record)
+    assert not MatchSpec("pkg[extras=c]").match(record)
+
+
 def test_flags_specs():
     # should not be present
     assert MatchSpec("python").get("flags") is None
@@ -1719,6 +1738,21 @@ def test_flags_specs_merge():
     # We can't OR two flags
     with pytest.raises(ValueError, match="Incompatible component merge"):
         MatchSpec.merge(["pkg[flags=[a]]", "pkg[flags=[b]]"], union=True)
+
+
+@pytest.mark.xfail(reason="Pending implementation")
+def test_flags_specs_match():
+    """
+    Flags match globbing the individual strings on the record.
+    All of them must match at least one flag.
+    """
+    record = {"name": "pkg", "flags": ["cpu", "gpu:cuda"]}
+    assert MatchSpec("pkg[flags=cpu]").match()
+    assert MatchSpec("pkg[flags=[cpu]]").match()
+    assert MatchSpec("pkg[flags=[cpu, gpu:cuda]]").match(record)
+    assert MatchSpec("pkg[flags=gpu:*]").match(record)
+    assert not MatchSpec("pkg[flags=[cpu, gpu:cuda12]]").match(record)
+    assert not MatchSpec("pkg[flags=whatever]").match(record)
 
 
 @pytest.mark.parametrize(

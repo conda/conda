@@ -1392,7 +1392,7 @@ _implementors = {
     "license": CaseInsensitiveStrMatch,
     "license_family": CaseInsensitiveStrMatch,
     # TODO: These needs their own classes for matching and merging
-    "when": CaseInsensitiveStrMatch, # FIXME: Merge should be possible, matching is not
+    "when": CaseInsensitiveStrMatch,  # FIXME: Merge should be possible, matching is not
     "flags": ListOfStrMatch,  # FIXME: Must accept globs too, unordered subsets
     "extras": ListOfStrMatch,  # FIXME: We are matching dicts on keys only
 }
