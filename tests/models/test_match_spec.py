@@ -1970,3 +1970,66 @@ def test_flags_serialization_is_sorted():
     ms = MatchSpec("pkg[flags=[gpu,cpu]]")
     assert ms.get("flags") == ("gpu", "cpu"), "stored in parse/insertion order"
     assert str(ms) == "pkg[flags=['cpu', 'gpu']]", "serialized in sorted order"
+
+
+@pytest.mark.parametrize(
+    "spec_str",
+    [
+        # From rattler parse.rs test_from_str
+        "blas *.* mkl",
+        "foo=1.0=py27_0",
+        "foo==1.0=py27_0",
+        "python 3.8.* *_cpython",
+        "pytorch=*=cuda*",
+        "x264 >=1!164.3095,<1!165",
+        "conda-forge::foo[version=1.0.*]",
+        'conda-forge::foo[version=1.0.*, build_number=">6"]',
+        "python ==2.7.*.*|>=3.6",
+        "python=3.9",
+        "python=*",
+        "conda-forge/linux-32::python[version=3.9, subdir=linux-64]",
+        'conda-forge/linux-32::python ==3.9[subdir=linux-64, build_number="0"]',
+        "python ==3.9[channel=conda-forge]",
+        "python ==3.9[channel=conda-forge/linux-64]",
+        "rust ~=1.2.3",
+        "numpy>=2.*.*",
+        "bird_tool_utils_python =0.*,>=0.4.1",
+        # From rattler mod.rs matching tests
+        "* >=1.0",
+        "tensorflow 2.6.*",
+        "tensorflow 2.6.0.*",
+        "mamba[build=*py310_1]",
+        "mamba[build=*py310*]",
+        "mamba * [build=*py310*]",
+        "foo >=1.0 py37_0",
+        "foo >=1.0 py37*",
+        "foo 1.0.* py38*",
+        "foo * py37_1",
+        "foo ==1.0",
+        "foo >=2.0",
+        "foo >=1.0",
+        # Star build strings from conda-libmamba-solver (test_workarounds, test_channels)
+        "activate_deactivate_package=*=*0",
+        "numpy=*=*py38*",
+        "conda-forge::libblas=*=*openblas",
+        "ca-certificates=*=*_0",
+        # Pinned-file format: exact version + build with space separator (test_solver)
+        "python ==3.7.3",
+        "pandas ==1.2.5 py37h295c915_0",
+        "scipy ==1.7.3 py37hf2a6cf1_0",
+        # Version operators without brackets (test_repoquery)
+        "ca-certificates =2022.9.24",
+        "ca-certificates >=2022.9.24",
+        "ca-certificates >2022.9.24",
+        "ca-certificates<2022.9.24,>2020",
+        "ca-certificates<=2022.9.24,>2020",
+        "ca-certificates !=2022.9.24,>2020",
+        # Bracket syntax (test_repoquery equality checks)
+        "ca-certificates[build='*_0']",
+        "ca-certificates[version='>=2022.9.24']",
+        # Channel::spec with build constraint (test_channels)
+        "pytorch::pytorch=1.12",
+    ],
+)
+def test_parse_ecosystem_corpus(spec_str):
+    MatchSpec(spec_str)
