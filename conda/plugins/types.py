@@ -70,6 +70,20 @@ if TYPE_CHECKING:
         name: str
         aliases: tuple[str, ...]
 
+    class CondaEnvironmentFormatPlugin(Protocol):
+        """Structural type for environment specifier/exporter records used in CLI format help.
+
+        Satisfied by :class:`CondaEnvironmentSpecifier` and
+        :class:`CondaEnvironmentExporter`. Plugin manager
+        ``get_environment_specifier_format_mapping`` and
+        ``get_environment_exporter_format_mapping`` return mappings whose values
+        are lists of objects conforming to this protocol.
+        """
+
+        name: str
+        aliases: tuple[str, ...]
+        default_filenames: tuple[str, ...]
+
 
 @dataclass
 class CondaPlugin:
