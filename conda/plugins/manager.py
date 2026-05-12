@@ -437,10 +437,11 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"{', '.join(solvers_mapping)}"
             )
 
-        if not context.repodata_use_shards:
-            return solver_plugin.backend
-
-        if "build_repodata_subset" in signature(solver_plugin.backend.__init__).parameters:
+        if (
+            context.repodata_use_shards
+            and "build_repodata_subset"
+            in signature(solver_plugin.backend.__init__).parameters
+        ):
             from ..gateways.shards import build_repodata_subset
 
             return functools.partial(
