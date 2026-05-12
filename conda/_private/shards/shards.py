@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import abc
 import concurrent.futures
+import itertools
 import json  # noqa
 import logging
 from collections import defaultdict
@@ -216,38 +217,33 @@ def shard_mentioned_packages(
 ) -> Iterable[str]:
     """
     Return all dependency names mentioned in a shard, not including the shard's
-    own package name. Additional names can be injected via ``extra``.
+    own package name. Additional names can be injected via ``extra`` and
+    ``extra_depends`` for v3 repodata.
     """
     unique_specs = set()
-    for package in (*shard["packages"].values(), *shard["packages.conda"].values()):
-        ensure_hex_hash(package)  # otherwise we could do this at serialization
-        for spec in (
-            *package.get("depends", ()),
-        ):  # , *package.get("constrains", ())):
+    all_records = itertools.chain(
+        shard["packages"].values(),
+        shard["packages.conda"].values(),
+        itertools.chain.from_iterable(  # v3 repodata groups
+            group.values() for group in shard.get("v3", {}).values()
+        ),
+    )
+    for record in all_records:
+        ensure_hex_hash(record)  # otherwise we could do this at serialization
+        for spec in itertools.chain(
+            record.get("depends", ()),
+            (
+                spec
+                for specs in record.get("extra_depends", {}).values()
+                for spec in specs
+            ),
+        ):
             if spec in unique_specs:
                 continue
             unique_specs.add(spec)
-            name = spec_to_package_name(spec)
-            yield name  # not much improvement from only yielding unique names
-    yield from extra
-    # v3 repodata groups
-    for v3_group in shard.get("v3", {}).values():
-        for record in v3_group.values():
-            ensure_hex_hash(record)
-            for spec in (
-                *record.get("depends", ()),
-                *(
-                    spec
-                    for specs in record.get("extra_depends", {}).values()
-                    for spec in specs
-                ),
-            ):
-                if spec in unique_specs:
-                    continue
-                unique_specs.add(spec)
-                name = spec_to_package_name(spec)
-                if name is not None:
-                    yield name
+            yield spec_to_package_name(
+                spec
+            )  # not much improvement from only yielding unique names
     yield from extra
 
 

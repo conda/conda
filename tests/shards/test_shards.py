@@ -634,12 +634,11 @@ def test_shard_mentioned_packages_v3_key_absent():
     assert "zlib" in names
 
 
-def test_shard_mentioned_packages_extra_double_yield():
-    # extra is yielded once before v3 and once after — document current behavior
+def test_shard_mentioned_packages_extra_single_yield():
+    # extra is emitted once, after both classic and v3 packages have been processed
     shard = _v3_shard({"group": {"pkg-1.0.conda": {"depends": ["zlib >=1.2"]}}})
     names = list(shard_mentioned_packages(shard, extra=["injected"]))
-    # current implementation yields extra twice
-    assert names.count("injected") == 2
+    assert names.count("injected") == 1
 
 
 @pytest.mark.integration
