@@ -1825,21 +1825,34 @@ def test_kv_regex_does_not_hang_on_channel_urls():
 
 
 @pytest.mark.parametrize(
-    "spec",
+    "spec,message",
     [
         pytest.param(
             "package[build",
-            marks=pytest.mark.xfail(reason="We are not banning bad names"),
+            None,
+            marks=pytest.mark.xfail(reason="We are not banning bad names", strict=True),
         ),
         pytest.param(
             "package[build=",
-            marks=pytest.mark.xfail(reason="We are not banning bad names"),
+            None,
+            marks=pytest.mark.xfail(reason="We are not banning bad names", strict=True),
         ),
-        "package[build=]",
-        "package[build=value, build=again]",
-        "package[build]",
+        ("package[build=]", "a key or a value is missing"),
+        ("package[build=value, build=again]", "key can only be specified once"),
+        ("package[build]", "No key-value pairs found in square brackets"),
+        pytest.param(
+            "package[build=0]{something else}",
+            "unrecognized sections",
+            marks=pytest.mark.xfail(reason="Improvable message", strict=True),
+        ),
+        pytest.param(
+            "package[build=0]{something-else}",
+            "unrecognized sections",
+            marks=pytest.mark.xfail(reason="Improvable message", strict=True),
+        ),
+        ("package[build=0][version=2]", "bracket section"),
     ],
 )
-def test_bad_brackets(spec):
-    with pytest.raises(InvalidMatchSpec):
+def test_bad_brackets(spec, message):
+    with pytest.raises(InvalidMatchSpec, match=message):
         spec = MatchSpec(spec)

@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 # Matches the whole square brackets section
-_BRACKETS_RE: re.Pattern[str] = re.compile(r".*?(\[.*\])")
+_BRACKETS_RE: re.Pattern[str] = re.compile(r"^.*?(\[.*\])(?:\(.+\))?$")
 # Matches all the key-value pairs within the square brackets section
 _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
     r"""
@@ -840,6 +840,8 @@ def _parse_spec_str(spec_str):
                 raise InvalidSpec(
                     "key-value mismatch in brackets; a key or a value is missing",
                 )
+            if "][" in value:
+                raise InvalidSpec("Multiple bracket sections are not allowed")
             if key in ("flags", "extras"):
                 if (value[0] == "[" and value[-1] != "]") or (
                     value[-1] == "]" and value[0] != "["
