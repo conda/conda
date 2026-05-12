@@ -569,7 +569,8 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
     # Terminate with sentinel
     network_in_queue.put(None)
 
-    network_thread.join(0)
+    network_thread.join(1)
+    assert not network_thread.is_alive()
 
 
 # endregion
