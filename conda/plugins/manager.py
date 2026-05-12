@@ -19,7 +19,7 @@ from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from importlib.metadata import distributions
-from inspect import getmodule, isclass
+from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
@@ -440,12 +440,8 @@ class CondaPluginManager(pluggy.PluginManager):
         backend = solver_plugin.backend
 
         if context.repodata_use_shards:
-            import functools
-            import inspect
-
-            sig = inspect.signature(backend.__init__)
-            if "build_repodata_subset" in sig.parameters:
-                from conda.gateways.shards import build_repodata_subset
+            if "build_repodata_subset" in signature(backend.__init__).parameters:
+                from ..gateways.shards import build_repodata_subset
 
                 return functools.partial(
                     backend, build_repodata_subset=build_repodata_subset
