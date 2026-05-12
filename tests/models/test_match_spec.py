@@ -1568,7 +1568,9 @@ def test_conditional_specs():
         assert str(parsed_when_ms) == str(MatchSpec(when.strip("'")))
 
     # Roundtrip
-    assert MatchSpec(str(MatchSpec("package[when=__unix]"))) == MatchSpec("package[when=__unix]")
+    assert MatchSpec(str(MatchSpec("package[when=__unix]"))) == MatchSpec(
+        "package[when=__unix]"
+    )
 
     # These MUST raise
     for spec in (
@@ -1630,13 +1632,14 @@ def test_extra_specs():
     assert MatchSpec("package[extras=[a b]]").get("extras") == ("a b",)
 
     # Roundtrip
-    assert MatchSpec(str(MatchSpec("package[extras=[a, b]]"))) == MatchSpec("package[extras=[a, b]]")
+    assert MatchSpec(str(MatchSpec("package[extras=[a, b]]"))) == MatchSpec(
+        "package[extras=[a, b]]"
+    )
 
     # Ensure YAML parsing doesn't mess with values
     assert MatchSpec("package[extras=[yes, no, 0, 1, True, False, null, None]]").get(
         "extras"
     ) == ("yes", "no", "0", "1", "True", "False", "null", "None")
-
 
     # Using Python syntax for extras is not supported, but let's error out usefully
     # This used to be silently swallowed.
@@ -1678,6 +1681,42 @@ def test_flags_specs():
     ):
         with pytest.raises(InvalidMatchSpec, match="unbalanced"):
             MatchSpec(spec)
+
+
+@pytest.mark.parametrize(
+    "spec,parsed",
+    [
+        (
+            "pkg[when=__win, extras=[a,b], flags=cpu]",
+            {"when": "__win", "extras": ("a", "b"), "flags": ("cpu",)},
+        ),
+        (
+            "pkg[when=__win, extras=a, flags=[cpu, gpu]]",
+            {"when": "__win", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+        (
+            "pkg[when=__win, extras=[a], flags=[cpu, gpu]]",
+            {"when": "__win", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+        (
+            "pkg[when='__win or __osx', extras=[a], flags=[cpu, gpu]]",
+            {"when": "__win or __osx", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+        (
+            "pkg[when='(__win or __osx)', extras=[a], flags=[cpu, gpu]]",
+            {"when": "(__win or __osx)", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+        (
+            "pkg[when=python[version>=2], extras=[a], flags=[cpu, gpu]]",
+            {"when": "python[version>=2]", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+    ],
+)
+def test_match_spec_repodata_v3(spec, parsed):
+    spec = MatchSpec(spec)
+    assert spec.get("when") == parsed["when"]
+    assert spec.get("extras") == parsed["extras"]
+    assert spec.get("flags") == parsed["flags"]
 
 
 @pytest.mark.parametrize(
