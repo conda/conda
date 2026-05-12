@@ -855,6 +855,10 @@ def _parse_spec_str(spec_str):
             elif key == "when":
                 _validate_when_spec(value)
             brackets[key] = value
+        if m3b:
+            remainder = brackets_str[m3b[-1].end() :].strip(", ")
+            if remainder:
+                raise InvalidSpec(f"Unrecognized content in brackets: {remainder!r}")
         if not brackets:
             # No key-value pairs found but there was a outer square brackets match?
             # That's invalid syntax (e.g. accidental `package[extra]`)
@@ -995,6 +999,8 @@ def _validate_when_spec(spec) -> None:
     >>> _validate_when_spec("(python and __unix>=3)")
     >>> _validate_when_spec("(python and __unix>=3 or __win)")
     """
+    if not spec or not spec.strip():
+        raise InvalidSpec("'when' value must not be empty")
     specs = []
     for a in spec.split(" and "):
         for b in a.split(" or "):
