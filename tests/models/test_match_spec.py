@@ -1567,6 +1567,9 @@ def test_conditional_specs():
 
         assert str(parsed_when_ms) == str(MatchSpec(when.strip("'")))
 
+    # Roundtrip
+    assert MatchSpec(str(MatchSpec("package[when=__unix]"))) == MatchSpec("package[when=__unix]")
+
     # These MUST raise
     for spec in (
         "python[when='package[when='__unix']']",  # nested when
@@ -1574,11 +1577,8 @@ def test_conditional_specs():
         "python[when='package[build]']",  # malformed when spec
     ):
         with pytest.raises(InvalidMatchSpec):
-            print(spec)
             MatchSpec(spec)
 
-
-def test_conditional_specs_2():
     # More complex when spec has boolean logic and parentheses
     for when in (
         "(__linux or __osx)",
@@ -1629,6 +1629,15 @@ def test_extra_specs():
     # Inner lists MUST have commas
     assert MatchSpec("package[extras=[a b]]").get("extras") == ("a b",)
 
+    # Roundtrip
+    assert MatchSpec(str(MatchSpec("package[extras=[a, b]]"))) == MatchSpec("package[extras=[a, b]]")
+
+    # Ensure YAML parsing doesn't mess with values
+    assert MatchSpec("package[extras=[yes, no, 0, 1, True, False, null, None]]").get(
+        "extras"
+    ) == ("yes", "no", "0", "1", "True", "False", "null", "None")
+
+
     # Using Python syntax for extras is not supported, but let's error out usefully
     # This used to be silently swallowed.
     with pytest.raises(InvalidMatchSpec, match=r"did you mean `extras=\[a\]`"):
@@ -1657,8 +1666,8 @@ def test_flags_specs():
     assert str(ms) == "python[flags=['blas:*', 'cpu']]"
 
     # Ensure YAML parsing doesn't mess with values
-    assert MatchSpec("package[extras=[yes, no, 0, 1, True, False, null, None]]").get(
-        "extras"
+    assert MatchSpec("package[flags=[yes, no, 0, 1, True, False, null, None]]").get(
+        "flags"
     ) == ("yes", "no", "0", "1", "True", "False", "null", "None")
 
     for spec in (
