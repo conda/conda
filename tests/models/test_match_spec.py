@@ -1846,8 +1846,8 @@ def test_flags_specs_match():
             {"when": "(__win or __osx)", "extras": ("a",), "flags": ("cpu", "gpu")},
         ),
         (
-            "pkg[when=python[version>=2], extras=[a], flags=[cpu, gpu]]",
-            {"when": "python[version>=2]", "extras": ("a",), "flags": ("cpu", "gpu")},
+            "pkg[when=python[version='>=2'], extras=[a], flags=[cpu, gpu]]",
+            {"when": "python[version='>=2']", "extras": ("a",), "flags": ("cpu", "gpu")},
         ),
     ],
 )
