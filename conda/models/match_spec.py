@@ -250,7 +250,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "license",
         "license_family",
         "fn",
-        "when",  # MatchSpec str
+        "when",  # str
         "extras",  # str | list[str]
         "flags",  # str | list[str]
     )
@@ -1391,6 +1391,8 @@ _implementors = {
     "features": FeatureMatch,
     "license": CaseInsensitiveStrMatch,
     "license_family": CaseInsensitiveStrMatch,
-    "flags": ListOfStrMatch,  # FIXME: Must accept globs too
-    "extras": ListOfStrMatch,
+    # TODO: These needs their own classes for matching and merging
+    "when": CaseInsensitiveStrMatch, # FIXME: Merge should be possible, matching is not
+    "flags": ListOfStrMatch,  # FIXME: Must accept globs too, unordered subsets
+    "extras": ListOfStrMatch,  # FIXME: We are matching dicts on keys only
 }

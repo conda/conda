@@ -1593,6 +1593,18 @@ def test_conditional_specs():
         assert spec.get("when") == when
 
 
+@pytest.mark.xfail(reason="Pending implementation")
+def test_conditional_specs_merge():
+    merged, unmerged = MatchSpec.merge(["pkg[when=__linux", "pkg[when=__osx]"])
+    assert not unmerged
+    assert merged.get("when") == "(__linux) and (__osx)"
+    merged, unmerged = MatchSpec.merge(
+        ["pkg[when=__linux", "pkg[when=__osx]"], union=True
+    )
+    assert not unmerged
+    assert merged.get("when") == "(__linux) or (__osx)"
+
+
 def test_extra_specs():
     # should not be present
     assert MatchSpec("python").get("extras") is None
@@ -1649,6 +1661,16 @@ def test_extra_specs():
         MatchSpec("package[a,b]")
 
 
+@pytest.mark.xfail(reason="Pending implementation")
+def test_extras_specs_merge():
+    merged, unmerged = MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"])
+    assert not unmerged
+    assert merged.get("extras") == ("a", "b")
+    # We can't OR two extras
+    with pytest.raises(ValueError, match="Incompatible component merge"):
+        MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"], union=True)
+
+
 def test_flags_specs():
     # should not be present
     assert MatchSpec("python").get("flags") is None
@@ -1681,6 +1703,16 @@ def test_flags_specs():
     ):
         with pytest.raises(InvalidMatchSpec, match="unbalanced"):
             MatchSpec(spec)
+
+
+@pytest.mark.xfail(reason="Pending implementation")
+def test_flags_specs_merge():
+    merged, unmerged = MatchSpec.merge(["pkg[flags=[a]]", "pkg[flags=[b]]"])
+    assert not unmerged
+    assert merged.get("flags") == ("a", "b")
+    # We can't OR two flags
+    with pytest.raises(ValueError, match="Incompatible component merge"):
+        MatchSpec.merge(["pkg[flags=[a]]", "pkg[flags=[b]]"], union=True)
 
 
 @pytest.mark.parametrize(
