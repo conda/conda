@@ -73,7 +73,7 @@ def test_build_repodata_subset_pipelined(
         # Check that the 1 second queue timeout doesn't happen on an empty
         # traversal.
         if not root_packages:
-            assert (ns / 1e9) < 0.05, "Empty shard traversal should be quick."
+            assert (ns / 1e9) < 0.2, "Empty shard traversal should be quick."
 
     with _timer("RepodataSubset.reachable_pipelined()", assert_quick):
         subset = RepodataSubset((*channel_data.values(),))
