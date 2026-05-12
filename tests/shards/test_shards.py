@@ -925,6 +925,44 @@ def test_shardlike():
     assert len(repodata["packages.conda"]) == 3
 
 
+def test_iter_records_classic():
+    shardlike = ShardLike(
+        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+    )
+    shardlike.visit_shard(
+        "mypkg",
+        {
+            "packages": {"mypkg-1.0-0.tar.bz2": {"name": "mypkg"}},
+            "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg"}},
+        },
+    )
+    records = dict(shardlike.iter_records())
+    assert "mypkg-1.0-0.tar.bz2" in records
+    assert "mypkg-1.0-0.conda" in records
+
+
+def test_iter_records_v3():
+    shardlike = ShardLike(
+        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+    )
+    shardlike.visit_shard(
+        "mypkg",
+        {
+            "packages": {},
+            "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg"}},
+            "v3": {
+                "whl": {"mypkg-1.0-py312-none-any.whl": {"name": "mypkg"}},
+            },
+        },
+    )
+    # None entries in visited must not raise
+    shardlike.visited["ghost"] = None
+    records = dict(shardlike.iter_records())
+    assert "mypkg-1.0-0.conda" in records
+    assert "mypkg-1.0-py312-none-any.whl" in records
+    assert records["mypkg-1.0-py312-none-any.whl"]["name"] == "mypkg"
+
+
 def test_shardlike_repr():
     """
     Code coverage for ShardLike.__repr__()

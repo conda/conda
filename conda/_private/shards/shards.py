@@ -335,6 +335,11 @@ class ShardBase(abc.ABC):
         repodata = self.build_repodata()
         for package_group in ("packages", "packages.conda"):
             yield from repodata.get(package_group, {}).items()
+        for shard in self.visited.values():
+            if shard is None:
+                continue
+            for group in shard.get("v3", {}).values():
+                yield from group.items()
 
 
 class ShardLike(ShardBase):

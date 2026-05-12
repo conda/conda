@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Extract dependency names from v3 repodata groups in `shard_mentioned_packages`. (#16067 via #16078)
+* Extract dependency names and package records from v3 repodata groups in `shard_mentioned_packages` and `iter_records`. (#16067 via #16078)
 
 ### Bug fixes
 
