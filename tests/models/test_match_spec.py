@@ -1847,7 +1847,11 @@ def test_flags_specs_match():
         ),
         (
             "pkg[when=python[version='>=2'], extras=[a], flags=[cpu, gpu]]",
-            {"when": "python[version='>=2']", "extras": ("a",), "flags": ("cpu", "gpu")},
+            {
+                "when": "python[version='>=2']",
+                "extras": ("a",),
+                "flags": ("cpu", "gpu"),
+            },
         ),
     ],
 )
