@@ -1538,6 +1538,8 @@ def test_conditional_specs():
     assert ms.get("when") == "__win"
     assert str(ms) == input_spec
 
+    assert isinstance(hash(ms), int)
+
     # This is the normal syntax, with version and build string
     ms = MatchSpec("python 2.* *cpython*[when=__win]")
     assert ms.get("when") == "__win"
@@ -1617,6 +1619,8 @@ def test_extra_specs():
     assert ms.get("extras") == ("group1",)
     assert str(ms) == "python[extras=['group1']]"
 
+    assert isinstance(hash(ms), int)
+
     # This is the list syntax, single item
     input_spec = "python[extras=[group1]]"
     ms = MatchSpec(input_spec)
@@ -1682,6 +1686,8 @@ def test_flags_specs():
     assert ms.get("flags") == ("cpu",)
     # but serialize to string when there's only one item
     assert str(ms) == "python[flags=['cpu']]"
+
+    assert isinstance(hash(ms), int)
 
     # This is the list syntax
     input_spec = "python[flags=[cpu,blas:*]]"
