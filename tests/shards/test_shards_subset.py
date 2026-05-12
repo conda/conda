@@ -491,7 +491,9 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
     Test network retrieval thread, meant to be chained after the sqlite3 thread
     by having network_in_queue = sqlite3 thread's network_out_queue.
     """
-    monkeypatch.setattr(shards_subset, "QUEUE_TIMEOUT", 0.01)
+    # Timeout allows us to finish `with suppress(Empty)` loop more quickly, but
+    # a too-short timeout can cause failures.
+    monkeypatch.setattr(shards_subset, "QUEUE_TIMEOUT", 0.05)
 
     cache, fake_shards = shard_cache_with_data
     channel = Channel.from_url(f"{http_server_shards}/noarch")
@@ -507,8 +509,6 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
     network_in_queue: SimpleQueue[list[NodeId] | None] = SimpleQueue()
     shard_out_queue: SimpleQueue[list[tuple[NodeId, ShardDict]]] = SimpleQueue()
 
-    # this kind of thread can crash, and we don't hear back without our own
-    # handling.
     network_thread = threading.Thread(
         target=shards_subset.network_fetch_thread,
         args=(network_in_queue, shard_out_queue, cache, [found, invalid_shardlike]),
@@ -524,6 +524,8 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
 
     network_thread.start()
 
+    urls = {}
+
     with suppress(Empty):
         while batch := shard_out_queue.get(timeout=shards_subset.QUEUE_TIMEOUT):
             for url, shard in batch:
@@ -534,13 +536,35 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
                     ("foo.tar.bz2", "bar.tar.bz2")
                 )
 
-    # Worker produces TypeError if non-network NodeId is sent and one of the
-    # shardlikes has its url. (If no shardlike has NodeId's url, it produces
-    # KeyError).
+                urls[url] = shard
+
+    assert len(urls) == 2
+
+    # Expect TypeError if non-network NodeId is sent and one of the shardlikes
+    # has its url. The worker thread will find that "nope" belongs to
+    # invalid_shardlike: ShardLike (not Shards() type) and produce TypeError.
     network_in_queue.put([NodeId("nope", invalid_shardlike.url)])
-    assert isinstance(
-        shard_out_queue.get(timeout=shards_subset.QUEUE_TIMEOUT), TypeError
+    assert isinstance(shard_out_queue.get(timeout=1), TypeError)
+
+    # Thread exits after exception.
+    assert not network_thread.is_alive()
+
+    # The network_in_queue() has an unnecessary None from its exception handler,
+    # telling network_fetch_thread to quit but it already quit due to the
+    # exception.
+    assert network_in_queue.get() is None
+
+    # New thread to test KeyError (invalid_shardlikes not in input args)
+    network_thread = threading.Thread(
+        target=shards_subset.network_fetch_thread,
+        args=(network_in_queue, shard_out_queue, cache, [found]),
+        daemon=False,
     )
+
+    network_thread.start()
+
+    network_in_queue.put([NodeId("nope", invalid_shardlike.url)])
+    assert isinstance(shard_out_queue.get(timeout=1), KeyError)
 
     # Terminate with sentinel
     network_in_queue.put(None)
