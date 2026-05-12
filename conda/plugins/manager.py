@@ -437,7 +437,21 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"{', '.join(solvers_mapping)}"
             )
 
-        return solver_plugin.backend
+        backend = solver_plugin.backend
+
+        if context.repodata_use_shards:
+            import functools
+            import inspect
+
+            sig = inspect.signature(backend.__init__)
+            if "build_repodata_subset" in sig.parameters:
+                from conda.gateways.shards import build_repodata_subset
+
+                return functools.partial(
+                    backend, build_repodata_subset=build_repodata_subset
+                )
+
+        return backend
 
     def get_auth_handler(self, name: str) -> type[AuthBase] | None:
         """

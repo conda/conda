@@ -7,7 +7,7 @@ from .base.constants import UpdateModifier as _UpdateModifier
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .core.solve import solver_backend_shards
+from .base.context import context
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
@@ -51,7 +51,7 @@ class Solver:
                 The set of package specs to remove from the prefix.
 
         """
-        solver_backend = solver_backend_shards()
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
         self._internal = solver_backend(
             prefix, channels, subdirs, specs_to_add, specs_to_remove
         )

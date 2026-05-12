@@ -25,7 +25,7 @@ from ..common.constants import NULL
 from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
-from ..core.solve import diff_for_unlink_link_precs, solver_backend_shards
+from ..core.solve import diff_for_unlink_link_precs
 from ..deprecations import deprecated
 from ..exceptions import (
     CondaExitZero,
@@ -327,7 +327,7 @@ def install(args, parser, command="install"):
         (UnsatisfiableError, SpecsConfigurationConflictError, SystemExit),
     ):
         with repodata_fn as repodata:
-            solver_backend = solver_backend_shards()
+            solver_backend = context.plugin_manager.get_cached_solver_backend()
             solver = solver_backend(
                 prefix,
                 env.config.channels,

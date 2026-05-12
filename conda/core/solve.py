@@ -5,8 +5,6 @@
 from __future__ import annotations
 
 import copy
-import functools
-import inspect
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
@@ -25,7 +23,6 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
 from ..exceptions import (
-    CondaValueError,
     NoChannelsConfiguredError,
     PackagesNotFoundInChannelsError,
     PackagesNotFoundInPrefixError,
@@ -57,34 +54,6 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-
-def solver_backend_shards(context=context):
-    """
-    Return solver configured to use shards.
-
-    If `context.repodata_use_shards` is True and
-    `context.plugin_manager.get_cached_solver_backend()` accepts a
-    "build_repodata_subset" parameter, return a partial function adding that
-    parameter.
-    """
-    from conda.gateways.shards import build_repodata_subset
-
-    solver_backend = context.plugin_manager.get_cached_solver_backend()
-    if solver_backend is None:
-        raise CondaValueError("No solver backend found")
-
-    # Check if repodata_use_shards is disabled
-    if not context.repodata_use_shards:
-        return solver_backend
-
-    # Check if solver supports build_repodata_subset parameter
-    sig = inspect.signature(solver_backend.__init__)
-    if "build_repodata_subset" in sig.parameters:
-        return functools.partial(
-            solver_backend, build_repodata_subset=build_repodata_subset
-        )
-
-    return solver_backend
 
 
 class Solver:

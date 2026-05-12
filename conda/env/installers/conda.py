@@ -12,7 +12,6 @@ from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
 from ...common.iterators import unique
-from ...core.solve import solver_backend_shards
 from ...env.env import EnvironmentYaml
 from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
@@ -46,7 +45,7 @@ def _solve(
     channels = tuple(unique(Channel(url) for url in _channel_priority_map))
     subdirs = tuple(unique(basename(url) for url in _channel_priority_map))
 
-    solver_backend = solver_backend_shards()
+    solver_backend = context.plugin_manager.get_cached_solver_backend()
     solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
     return solver
 

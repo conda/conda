@@ -15,7 +15,6 @@ from ..base.context import context, validate_channels
 from ..common.constants import NULL
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
-from ..core.solve import solver_backend_shards
 from ..exceptions import CondaValueError, PlatformMismatchError
 from ..history import History
 from ..misc import get_package_records_from_explicit
@@ -647,7 +646,7 @@ class Environment:
 
         from ..cli.install import Repodatas
 
-        solver_backend = solver_backend_shards()
+        solver_backend = context.plugin_manager.get_cached_solver_backend()
         requested_packages = self.from_history(self.prefix)
 
         with context._override("_subdir", platform):
