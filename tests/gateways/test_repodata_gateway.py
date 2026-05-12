@@ -215,8 +215,8 @@ def test_repodata_state_check_mtime(repodata_cache):
     assert cache2.load(binary=True, check_mtime=False) == b"bytes"
 
     # When cache_path_* is missing (normal for the bytes xor the text path to
-    # exist), state_only=True should not stat the data file regardless of
-    # check_mtime, since there's no data to validate.
+    # exist), state_only=True tolerates missing files (stat is skipped on
+    # FileNotFoundError). Without state_only the error propagates.
     cache2.cache_path_json.unlink()
     cache2.cache_path_shards.unlink()
     for binary, expected in [(True, b""), (False, "")]:

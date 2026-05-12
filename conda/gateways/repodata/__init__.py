@@ -590,21 +590,26 @@ class RepodataCache:
                 else:
                     json_data = cache_path.read_text()
 
-            if check_mtime and not state_only:
-                json_stat = cache_path.stat()
-                if not (
-                    state.get("mtime_ns") == json_stat.st_mtime_ns
-                    and state.get("size") == json_stat.st_size
-                ):
-                    # clear mod, etag, cache_control to encourage re-download
-                    state.update(
-                        {
-                            ETAG_KEY: "",
-                            LAST_MODIFIED_KEY: "",
-                            CACHE_CONTROL_KEY: "",
-                            "size": 0,
-                        }
-                    )
+            if check_mtime:
+                try:
+                    json_stat = cache_path.stat()
+                except FileNotFoundError:
+                    if not state_only:
+                        raise
+                else:
+                    if not (
+                        state.get("mtime_ns") == json_stat.st_mtime_ns
+                        and state.get("size") == json_stat.st_size
+                    ):
+                        # clear mod, etag, cache_control to encourage re-download
+                        state.update(
+                            {
+                                ETAG_KEY: "",
+                                LAST_MODIFIED_KEY: "",
+                                CACHE_CONTROL_KEY: "",
+                                "size": 0,
+                            }
+                        )
             # Replace data in special self.state dict subclass with key aliases
             self.state.clear()
             self.state.update(state)
