@@ -487,6 +487,7 @@ class Context(Configuration):
     preview = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
+    repodata_use_shards = ParameterLoader(PrimitiveParameter(True))
     envvars_force_uppercase = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
@@ -1310,6 +1311,7 @@ class Context(Configuration):
             "experimental",
             "no_lock",
             "repodata_use_zst",
+            "repodata_use_shards",
         ),
         "Basic Conda Configuration": (  # TODO: Is there a better category name here?
             "envs_dirs",
@@ -2030,7 +2032,12 @@ class Context(Configuration):
             ),
             repodata_use_zst=dals(
                 """
-                Disable check for `repodata.json.zst`; use `repodata.json` only.
+                Use `repodata.json.zst` if available.
+                """
+            ),
+            repodata_use_shards=dals(
+                """
+                Use sharded repodata if available.
                 """
             ),
             envvars_force_uppercase=dals(
