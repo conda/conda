@@ -244,9 +244,8 @@ def shard_mentioned_packages(
             if spec in unique_specs:
                 continue
             unique_specs.add(spec)
-            yield spec_to_package_name(
-                spec
-            )  # not much improvement from only yielding unique names
+            name = spec_to_package_name(spec)
+            yield name  # not much improvement from only yielding unique names
     yield from extra
 
 
