@@ -203,7 +203,7 @@ def test_solver_with_repodata_subset(
         def conda_solvers(*args):
             yield TestCondaSolver
 
-    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", use_shards)
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
     reset_context()
 
     assert plugin_manager.load_plugins(TestSolverPlugin) == 1
