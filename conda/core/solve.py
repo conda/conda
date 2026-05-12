@@ -55,7 +55,6 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
-
 class Solver:
     """
     A high-level API to conda's solving logic. Three public methods are provided to access a
