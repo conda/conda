@@ -551,8 +551,7 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
         # unlink()+rename() under this same lock, so without it a concurrent
         # writer can briefly remove the file between those two operations,
         # causing FileNotFoundError on Windows.
-        with cache.lock("r+"):
-            return cache.cache_path_shards.read_bytes()
+        return cache.load(binary=True, check_mtime=False)
 
     saved_fields = {conda.gateways.repodata.URL_KEY: url}
     for header, key in (
@@ -592,23 +591,11 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
     fetch = sd.repo_fetch
     repo_cache = fetch.repo_cache
 
-    # repo_cache.load_state() will clear the file on JSONDecodeError but cache.load()
-    # will raise the exception.
-    # repo_cache.load_state(
-    #     binary=True
-    # )  # won't succeed when .msgpack.zst is missing as it wants to compare the timestamp (returns empty state)
-
-    # Load state ourselves to avoid clearing when binary cached data is missing.
-    # If we fall back to monolithic repodata.json, the standard fetch code will
-    # load the state again in text mode.
+    # Load state this way to avoid clearing when binary cached data is missing.
     try:
-        with repo_cache.lock("r+") as state_file:
-            # cannot use pathlib.read_text / write_text on any locked file, as
-            # it will release the lock early
-            state = json.loads(state_file.read())
-            repo_cache.state.update(state)
+        repo_cache.load(state_only=True, check_mtime=False)
     except (FileNotFoundError, json.JSONDecodeError):
-        pass
+        pass  # if nothing has been cached
 
     cache_state = repo_cache.state
 
@@ -623,8 +610,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
             cache_state.mod = ""
         elif not repo_cache.stale():
             # load from cache without network request
-            with repo_cache.lock("r+"):
-                shards_data = repo_cache.cache_path_shards.read_bytes()
+            shards_data = repo_cache.load(binary=True, check_mtime=False)
 
         # If we don't have shards_data yet, try fetching (repodata_shards handles offline mode)
         if shards_data is None:
