@@ -1856,3 +1856,117 @@ def test_kv_regex_does_not_hang_on_channel_urls():
 def test_bad_brackets(spec, message):
     with pytest.raises(InvalidMatchSpec, match=message):
         spec = MatchSpec(spec)
+
+
+@pytest.mark.parametrize(
+    "when_val",
+    [
+        '""',
+        "''",
+    ],
+)
+def test_when_empty_value_raises(when_val):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[when={when_val}]")
+
+
+def test_when_whitespace_only_value_raises():
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec('pkg[when="   "]')
+
+
+def test_when_package_name_with_boolean_word_substring():
+    # "pandoc" contains "and" as a substring — the validator must not split it
+    ms = MatchSpec("pkg[when='pandoc >=2.0']")
+    assert ms.get("when") == "pandoc >=2.0"
+
+
+@pytest.mark.xfail(
+    reason=(
+        "_validate_when_spec splits naively on ' and '/'  or ', "
+        "corrupting quoted bracket values that contain those words"
+    )
+)
+def test_when_inner_bracket_with_quoted_boolean_word():
+    # A when value whose inner bracket spec contains a quoted string with "and"
+    # e.g. python[build="fast and slow"] — the split on ' and ' corrupts this
+    MatchSpec(r'pkg[when="python[build=\"fast and slow\"]"]')
+
+
+@pytest.mark.parametrize(
+    "when",
+    [
+        "__linux or __osx",
+        "python >=3.6 and __unix",
+        "(python >=3.6 or python <3.0) and __unix",
+    ],
+)
+def test_when_roundtrip_boolean(when):
+    ms = MatchSpec(f"pkg[when='{when}']")
+    assert MatchSpec(str(ms)) == ms
+
+
+def test_if_syntax_not_silently_dropped():
+    # Old behavior (before PR #15443): "foo if python>=3.6" was silently stripped
+    # to "foo" via split(" if ", 1). Verify this silent drop no longer occurs.
+    try:
+        ms = MatchSpec("foo if python>=3.6")
+        # If parsing did not raise, the result must differ from the old silent result
+        assert ms != MatchSpec("foo"), (
+            "' if ' syntax must not be silently stripped to 'foo'"
+        )
+    except (InvalidMatchSpec, InvalidSpec):
+        pass  # Raising is also acceptable — the key is it must not silently return MatchSpec("foo")
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "pkg[extras=]",  # empty value — caught before YAML is called
+        "pkg[flags=]",  # same for flags
+    ],
+)
+def test_extras_flags_empty_value_raises(spec):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(spec)
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        pytest.param(
+            "pkg[extras=[a,]]",
+            marks=pytest.mark.xfail(
+                reason="Trailing comma in YAML flow sequence behavior not guaranteed to raise"
+            ),
+        ),
+        pytest.param(
+            "pkg[extras=[a,,b]]",
+            marks=pytest.mark.xfail(
+                reason="Empty YAML item becomes 'null' string rather than raising"
+            ),
+        ),
+    ],
+)
+def test_extras_invalid_list_syntax_raises(spec):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(spec)
+
+
+def test_bracket_trailing_junk_raises():
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec("pkg[build=0,junk]")
+
+
+def test_extras_serialization_is_sorted():
+    # conda sorts extras on serialization (unlike Rattler which preserves insertion order).
+    # This documents the intentional difference so downstream consumers are not surprised.
+    ms = MatchSpec("pkg[extras=[b,a]]")
+    assert ms.get("extras") == ("b", "a"), "stored in parse/insertion order"
+    assert str(ms) == "pkg[extras=['a', 'b']]", "serialized in sorted order"
+
+
+def test_flags_serialization_is_sorted():
+    ms = MatchSpec("pkg[flags=[gpu,cpu]]")
+    assert ms.get("flags") == ("gpu", "cpu"), "stored in parse/insertion order"
+    assert str(ms) == "pkg[flags=['cpu', 'gpu']]", "serialized in sorted order"
