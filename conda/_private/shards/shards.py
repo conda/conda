@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import abc
 import concurrent.futures
-import itertools
 import json  # noqa
 import logging
 from collections import defaultdict
@@ -221,22 +220,26 @@ def shard_mentioned_packages(
     ``extra_depends`` for v3 repodata.
     """
     unique_specs = set()
-    all_records = itertools.chain(
-        shard["packages"].values(),
-        shard["packages.conda"].values(),
-        itertools.chain.from_iterable(  # v3 repodata groups
-            group.values() for group in shard.get("v3", {}).values()
-        ),
+    all_records = (
+        record
+        for records in (
+            shard["packages"].values(),
+            shard["packages.conda"].values(),
+            *(
+                group.values() for group in shard.get("v3", {}).values()
+            ),  # v3 repodata groups
+        )
+        for record in records
     )
     for record in all_records:
         ensure_hex_hash(record)  # otherwise we could do this at serialization
-        for spec in itertools.chain(
-            record.get("depends", ()),
-            (
-                spec
-                for specs in record.get("extra_depends", {}).values()
-                for spec in specs
-            ),
+        for spec in (
+            spec
+            for specs in (
+                record.get("depends", ()),
+                *record.get("extra_depends", {}).values(),
+            )
+            for spec in specs
         ):
             if spec in unique_specs:
                 continue
