@@ -1925,13 +1925,7 @@ def test_bad_brackets(spec, message):
         spec = MatchSpec(spec)
 
 
-@pytest.mark.parametrize(
-    "when_val",
-    [
-        '""',
-        "''",
-    ],
-)
+@pytest.mark.parametrize("when_val", ['""', "''"])
 def test_when_empty_value_raises(when_val):
     with pytest.raises(InvalidMatchSpec):
         MatchSpec(f"pkg[when={when_val}]")

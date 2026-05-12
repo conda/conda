@@ -9,6 +9,7 @@ The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.
 from __future__ import annotations
 
 import ast
+import os
 import re
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -47,10 +48,24 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
+
 # Matches the whole square brackets section
-_BRACKETS_RE: re.Pattern[str] = re.compile(r"^.*?(\[.*\])(?:\(.+\))?$")
-# Matches all the key-value pairs within the square brackets section
+_BRACKETS_RE: re.Pattern[str] = re.compile(r".*(?:(\[.*\]))")
 _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
+    r"""
+    ([a-zA-Z0-9_-]+?)       # key
+    =                        # separator
+    (["\']?)                 # optional opening quote
+    ([^\'"]*?)               # value
+    (\2)                     # matching closing quote
+    (?:[,\ ]|$)              # delimiter or end
+    """,
+    re.VERBOSE,
+)
+# These _V3 are for new matchspecs in repodata v3
+_BRACKETS_RE_V3: re.Pattern[str] = re.compile(r"^.*?(\[.*\])(?:\(.+\))?$")
+# Matches all the key-value pairs within the square brackets section
+_BRACKETS_KV_RE_V3: re.Pattern[str] = re.compile(
     r"""
     (?P<key>[a-zA-Z0-9_-]+?)        # key
     \ *=\ *                         # separator, with or without surrounding spaces
@@ -112,7 +127,7 @@ class MatchSpecType(type):
                     new_kwargs.update(**kwargs)
                     return super().__call__(**new_kwargs)
                 elif isinstance(spec_arg, str):
-                    parsed = _parse_spec_str(spec_arg)
+                    parsed = _parse_spec_str_dispatcher(spec_arg)
                     if kwargs:
                         parsed = dict(parsed, **kwargs)
                         if set(kwargs) - {"optional", "target"}:
@@ -766,7 +781,198 @@ def _sanitize_version_str(version: str, build: str | None) -> str:
     return version
 
 
+def _parse_spec_str_dispatcher(spec_str) -> dict[str, object]:
+    """
+    Temporary dispatcher while we introduce the new v3 features
+    """
+    if context.solver == "rattler" or os.environ.get("PYTEST_CURRENT_TEST"):
+        return _parse_spec_str_v3(spec_str)
+    return _parse_spec_str(spec_str)
+
+
 def _parse_spec_str(spec_str):
+    cached_result = _PARSE_CACHE.get(spec_str)
+    if cached_result:
+        return cached_result
+
+    original_spec_str = spec_str
+
+    # pre-step for ugly backward compat
+    if spec_str.endswith("@"):
+        feature_name = spec_str[:-1]
+        return {
+            "name": "*",
+            "track_features": (feature_name,),
+        }
+
+    # Step 1. strip '#' comment
+    if "#" in spec_str:
+        ndx = spec_str.index("#")
+        spec_str, _ = spec_str[:ndx], spec_str[ndx:]
+        spec_str.strip()
+
+    # Step 1.b strip ' if ' anticipating future compatibility issues
+    spec_split = spec_str.split(" if ", 1)
+    if len(spec_split) > 1:
+        log.debug("Ignoring conditional in spec %s", spec_str)
+    spec_str = spec_split[0]
+
+    # Step 2. done if spec_str is a tarball
+    if context.plugin_manager.has_package_extension(spec_str):
+        # treat as a normal url
+        if not is_url(spec_str):
+            spec_str = unquote(path_to_url(expand(spec_str)))
+
+        channel = Channel(spec_str)
+        if channel.subdir:
+            name, version, build = _parse_legacy_dist(channel.package_filename)
+            result = {
+                "channel": channel.canonical_name,
+                "subdir": channel.subdir,
+                "name": name,
+                "version": version,
+                "build": build,
+                "fn": channel.package_filename,
+                "url": spec_str,
+            }
+        else:
+            # url is not a channel
+            if spec_str.startswith("file://"):
+                # We must undo percent-encoding when generating fn.
+                path_or_url = url_to_path(spec_str)
+            else:
+                path_or_url = spec_str
+
+            return {
+                "name": "*",
+                "fn": basename(path_or_url),
+                "url": spec_str,
+            }
+        return result
+
+    # Step 3. strip off brackets portion
+    brackets = {}
+    m3 = _BRACKETS_RE.match(spec_str)
+    if m3:
+        brackets_str = m3.groups()[0]
+        spec_str = spec_str.replace(brackets_str, "")
+        brackets_str = brackets_str[1:-1]
+        m3b = _BRACKETS_KV_RE.finditer(brackets_str)
+        for match in m3b:
+            key, _, value, _ = match.groups()
+            if not key or not value:
+                raise InvalidMatchSpec(
+                    original_spec_str, "key-value mismatch in brackets"
+                )
+            if key == "version" and value:
+                value = _sanitize_version_str(value, match.groupdict().get("build"))
+            brackets[key] = value
+
+    # Step 4. strip off parens portion
+    m4 = _PARENS_RE.match(spec_str)
+    parens = {}
+    if m4:
+        parens_str = m4.groups()[0]
+        spec_str = spec_str.replace(parens_str, "")
+        parens_str = parens_str[1:-1]
+        m4b = _BRACKETS_KV_RE.finditer(parens_str)
+        for match in m4b:
+            key, _, value, _ = match.groups()
+            parens[key] = value
+        if "optional" in parens_str:
+            parens["optional"] = True
+
+    # Step 5. strip off '::' channel and namespace
+    m5 = spec_str.rsplit(":", 2)
+    m5_len = len(m5)
+    if m5_len == 3:
+        channel_str, namespace, spec_str = m5
+    elif m5_len == 2:
+        namespace, spec_str = m5
+        channel_str = None
+    elif m5_len:
+        spec_str = m5[0]
+        channel_str, namespace = None, None
+    else:
+        raise NotImplementedError()
+    channel, subdir = _parse_channel(channel_str)
+    if "channel" in brackets:
+        b_channel, b_subdir = _parse_channel(brackets.pop("channel"))
+        if b_channel:
+            channel = b_channel
+        if b_subdir:
+            subdir = b_subdir
+    if "subdir" in brackets:
+        subdir = brackets.pop("subdir")
+
+    # Step 6. strip off package name from remaining version + build
+    m3 = _NAME_VERSION_RE.match(spec_str)
+    if m3:
+        name, spec_str = m3.groups()
+        if name is None:
+            raise InvalidMatchSpec(
+                original_spec_str, f"no package name found in '{spec_str}'"
+            )
+    else:
+        raise InvalidMatchSpec(original_spec_str, "no package name found")
+
+    # Step 7. otherwise sort out version + build
+    spec_str = spec_str and spec_str.strip()
+    # This was an attempt to make MatchSpec('numpy-1.11.0-py27_0') work like we'd want. It's
+    # not possible though because plenty of packages have names with more than one '-'.
+    # if spec_str is None and name.count('-') >= 2:
+    #     name, version, build = _parse_legacy_dist(name)
+    if spec_str:
+        if "[" in spec_str:
+            raise InvalidMatchSpec(
+                original_spec_str, "multiple brackets sections not allowed"
+            )
+
+        version, build = _parse_version_plus_build(spec_str)
+        version = _sanitize_version_str(version, build)
+    else:
+        version, build = None, None
+
+    # Step 8. now compile components together
+    components = {}
+    components["name"] = name or "*"
+
+    if channel is not None:
+        components["channel"] = channel
+    if subdir is not None:
+        components["subdir"] = subdir
+    if namespace is not None:
+        # components['namespace'] = namespace
+        pass
+    if version is not None:
+        components["version"] = version
+    if build is not None:
+        components["build"] = build
+
+    # anything in brackets will now strictly override key as set in other area of spec str
+    # EXCEPT FOR: name
+    # If we let name in brackets override a name outside of brackets it is possible to write
+    # MatchSpecs that appear to install one package but actually install a completely different one
+    # e.g. tensorflow[name=* version=* md5=<hash of pytorch package> ] will APPEAR to install
+    # tensorflow but actually install pytorch.
+    if "name" in components and "name" in brackets:
+        msg = (
+            f"'name' specified both inside ({brackets['name']}) and outside "
+            f"({components['name']}) of brackets. The value outside of brackets "
+            f"({components['name']}) will be used."
+        )
+        warnings.warn(msg, UserWarning)
+        del brackets["name"]
+    components.update(brackets)
+    components["_original_spec_str"] = original_spec_str
+    _PARSE_CACHE[original_spec_str] = components
+    return components
+
+
+def _parse_spec_str_v3(spec_str):
+    """
+    New parser engine only used
+    """
     cached_result = _PARSE_CACHE.get(spec_str)
     if cached_result:
         return cached_result
@@ -822,12 +1028,12 @@ def _parse_spec_str(spec_str):
 
     # Step 3. strip off brackets portion
     brackets = {}
-    m3 = _BRACKETS_RE.match(spec_str)
+    m3 = _BRACKETS_RE_V3.match(spec_str)
     if m3:
         brackets_str = m3.groups()[0]
         spec_str = spec_str.replace(brackets_str, "")
         brackets_str = brackets_str[1:-1]
-        m3b = list(_BRACKETS_KV_RE.finditer(brackets_str))
+        m3b = list(_BRACKETS_KV_RE_V3.finditer(brackets_str))
         for match in m3b:
             groups = match.groupdict()
             key = groups["key"]
@@ -892,7 +1098,7 @@ def _parse_spec_str(spec_str):
         parens_str = m4.groups()[0]
         spec_str = spec_str.replace(parens_str, "")
         parens_str = parens_str[1:-1]
-        m4b = _BRACKETS_KV_RE.finditer(parens_str)
+        m4b = _BRACKETS_KV_RE_V3.finditer(parens_str)
         for match in m4b:
             groups = match.groupdict()
             parens[groups["key"]] = groups["value"] or groups["value_list"]
