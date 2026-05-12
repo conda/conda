@@ -553,7 +553,7 @@ class RepodataCache:
 
     def load(self, *, state_only=False, binary=False, check_mtime=True) -> str | bytes:
         """
-        Read state, reepodata.json or binary cache data with locking.
+        Read state, repodata.json or binary cache data with locking.
 
         Args:
             state_only: Read cache stat file only.
@@ -590,7 +590,7 @@ class RepodataCache:
                 else:
                     json_data = cache_path.read_text()
 
-            if check_mtime:
+            if check_mtime and not state_only:
                 json_stat = cache_path.stat()
                 if not (
                     state.get("mtime_ns") == json_stat.st_mtime_ns
