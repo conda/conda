@@ -14,6 +14,7 @@ import pytest
 from packaging.version import Version
 
 from conda import plugins
+from conda.base.context import reset_context
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import Any
 
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.plugins.manager import CondaPluginManager
@@ -168,6 +170,45 @@ def test_known_solver(plugin_manager: CondaPluginManager):
     """
     assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_solver_backend("verbose-classic") == VerboseSolver
+
+
+@pytest.mark.parametrize("use_shards", [True, False])
+def test_solver_with_repodata_subset(
+    use_shards: bool, plugin_manager: CondaPluginManager, monkeypatch: MonkeyPatch
+):
+    """
+    Cover getting a solver that uses sharded repodata api
+    """
+
+    class TestSolver(solve.Solver):
+        def __init__(
+            self,
+            build_repodata_subset=None,
+            *args,
+            **kwargs,
+        ):
+            return super().__init__(*args, **kwargs)
+
+        @staticmethod
+        def user_agent() -> str:
+            return "test-solver/1.0"
+
+    TestCondaSolver = plugins.types.CondaSolver(
+        name="test-classic",
+        backend=TestSolver,
+    )
+
+    class TestSolverPlugin:
+        @plugins.hookimpl
+        def conda_solvers(*args):
+            yield TestCondaSolver
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", use_shards)
+    reset_context()
+
+    assert plugin_manager.load_plugins(TestSolverPlugin) == 1
+    solver = plugin_manager.get_solver_backend("test-classic")
+    assert solver.user_agent() == "test-solver/1.0"
 
 
 def test_get_canonical_name_object(plugin_manager: CondaPluginManager):

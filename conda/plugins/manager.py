@@ -444,8 +444,14 @@ class CondaPluginManager(pluggy.PluginManager):
         ):
             from ..gateways.shards import build_repodata_subset
 
-            return functools.partial(
-                solver_plugin.backend, build_repodata_subset=build_repodata_subset
+            new_init = functools.partialmethod(
+                solver_plugin.backend.__init__,
+                build_repodata_subset=build_repodata_subset,
+            )
+            return type(
+                f"Partial{solver_plugin.backend.__name__}",
+                (solver_plugin.backend,),
+                {"__init__": new_init},
             )
 
         return solver_plugin.backend
