@@ -439,13 +439,15 @@ class CondaPluginManager(pluggy.PluginManager):
 
         backend = solver_plugin.backend
 
-        if context.repodata_use_shards:
-            if "build_repodata_subset" in signature(backend.__init__).parameters:
-                from ..gateways.shards import build_repodata_subset
+        if not context.repodata_use_shards:
+            return backend
 
-                return functools.partial(
-                    backend, build_repodata_subset=build_repodata_subset
-                )
+        if "build_repodata_subset" in signature(backend.__init__).parameters:
+            from ..gateways.shards import build_repodata_subset
+
+            return functools.partial(
+                backend, build_repodata_subset=build_repodata_subset
+            )
 
         return backend
 

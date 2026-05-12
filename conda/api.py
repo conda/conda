@@ -4,10 +4,10 @@
 
 from .base.constants import DepsModifier as _DepsModifier
 from .base.constants import UpdateModifier as _UpdateModifier
+from .base.context import context
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
-from .base.context import context
 from .core.subdir_data import SubdirData as _SubdirData
 from .models.channel import Channel
 
