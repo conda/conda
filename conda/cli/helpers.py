@@ -328,6 +328,13 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         default=NULL,
         help="Check for/do not check for repodata.json.zst. Enabled by default.",
     )
+    channel_customization_options.add_argument(
+        "--repodata-use-shards",
+        action=BooleanOptionalAction,
+        dest="repodata_use_shards",
+        default=NULL,
+        help="Use sharded repodata if available. Enabled by default.",
+    )
     return channel_customization_options
 
 

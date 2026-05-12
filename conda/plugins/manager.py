@@ -19,7 +19,7 @@ from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from importlib.metadata import distributions
-from inspect import getmodule, isclass
+from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
@@ -435,6 +435,17 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"You have chosen a non-default solver backend ({name}) "
                 f"but it was not recognized. Choose one of: "
                 f"{', '.join(solvers_mapping)}"
+            )
+
+        if (
+            context.repodata_use_shards
+            and "build_repodata_subset"
+            in signature(solver_plugin.backend.__init__).parameters
+        ):
+            from ..gateways.shards import build_repodata_subset
+
+            return functools.partial(
+                solver_plugin.backend, build_repodata_subset=build_repodata_subset
             )
 
         return solver_plugin.backend
