@@ -29,21 +29,14 @@ class CondaExportWarning(Warning):
 
 
 def epilog() -> str:
-    from ..plugins.types import EnvironmentFormat
-    from .formats import describe_environment_formats
+    """Build ``conda export`` epilog (examples and plugin-driven format list)."""
+    from .formats import get_available_environment_formats, get_multiplatform_lockfile
 
     # get environment exporters grouped by format
     formats = context.plugin_manager.get_environment_exporter_format_mapping()
 
     # find the first multiplatform lockfile
-    multiplatform_lockfile = next(
-        (
-            format.default_filenames[0]
-            for format in formats[EnvironmentFormat.lockfile]
-            if format.multiplatform_export and format.default_filenames
-        ),
-        None,
-    )
+    multiplatform_lockfile = get_multiplatform_lockfile(formats)
 
     # compose examples/epilog
     examples = [
@@ -59,22 +52,19 @@ def epilog() -> str:
         examples.append("")
         examples.append("  Export a lockfile for multiple platforms:")
         examples.append(
-            f"    conda export --file {multiplatform_lockfile} --platform linux-64 --platform osx-arm64"
+            f"    conda export --file {multiplatform_lockfile} "
+            "--platform linux-64 --platform osx-arm64"
         )
     # include available formats if any are registered
     if formats:
         examples.append("")
         examples.append("Available output formats:")
-        examples.append(describe_environment_formats(formats))
+        examples.append(get_available_environment_formats(formats, indent=2))
     return "\n".join(examples)
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from .helpers import (
-        LazyChoicesAction,
-        add_parser_json,
-        add_parser_prefix,
-    )
+    from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
 
     summary = "Export a conda environment to a file."
     description = dals(

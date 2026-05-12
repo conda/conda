@@ -19,8 +19,9 @@ log = getLogger(__name__)
 
 
 def epilog() -> str:
+    """Build ``conda create`` epilog (examples and plugin-driven format list)."""
     from ..base.context import context
-    from .formats import describe_environment_formats
+    from .formats import get_available_environment_formats
 
     # get environment specifiers grouped by format
     formats = context.plugin_manager.get_environment_specifier_format_mapping()
@@ -44,7 +45,7 @@ def epilog() -> str:
     if formats:
         examples.append("")
         examples.append("Available input formats:")
-        examples.append(describe_environment_formats(formats))
+        examples.append(get_available_environment_formats(formats, indent=2))
     return "\n".join(examples)
 
 

@@ -1,46 +1,18 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Tests for `conda create` help text."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.cli.main_create import epilog as create_epilog
-from conda.plugins import hookimpl
-from conda.plugins.types import (
-    CondaEnvironmentSpecifier,
-    EnvironmentFormat,
-    EnvironmentSpecBase,
-)
+from conda.cli.main_env_create import epilog as env_create_epilog
+
+from .test_main_create import DummyEnvSpecPlugin, DummyLockfilePlugin
 
 if TYPE_CHECKING:
     from conda.plugins.manager import CondaPluginManager
     from conda.testing.fixtures import CondaCLIFixture
-
-
-class DummyEnvSpecPlugin:
-    @hookimpl
-    def conda_environment_specifiers(self):
-        yield CondaEnvironmentSpecifier(
-            name="dummy-spec",
-            environment_spec=EnvironmentSpecBase,
-            aliases=("spec",),
-            environment_format=EnvironmentFormat.environment,
-        )
-
-
-class DummyLockfilePlugin:
-    @hookimpl
-    def conda_environment_specifiers(self):
-        yield CondaEnvironmentSpecifier(
-            name="dummy-lock",
-            environment_spec=EnvironmentSpecBase,
-            aliases=("lock",),
-            environment_format=EnvironmentFormat.lockfile,
-        )
 
 
 @pytest.mark.parametrize(
@@ -58,7 +30,7 @@ def test_epilog(
     spec_plugin: bool,
     lockfile_plugin: bool,
 ) -> None:
-    """``conda create --help`` renders examples and format epilog using the registered plugins."""
+    """``conda env create --help`` renders examples and format epilog using the registered plugins."""
     # register dummy plugins
     if spec_plugin:
         plugin_manager_with_reporter_backends.register(DummyEnvSpecPlugin())
@@ -66,17 +38,16 @@ def test_epilog(
         plugin_manager_with_reporter_backends.register(DummyLockfilePlugin())
 
     # check help contains expected text
-    epilog = create_epilog()
+    epilog = env_create_epilog()
     for expected, line in (
         (True, "Examples:"),
-        (True, "Create from package specs:"),
-        (True, "conda create -n myenv python=3.12 numpy"),
         (True, "Create from an environment spec (solved at install time):"),
-        (True, "conda create -n myenv --file environment.yml"),
+        (True, "conda env create -f /path/to/environment.yml"),
         (True, "Create from a lockfile (no solve, exact reproduction):"),
-        (True, "conda create -n myenv --file explicit.txt"),
-        (True, "Clone an existing environment:"),
-        (True, "conda create -n env2 --clone env1"),
+        (True, "conda env create -f explicit.txt"),
+        (True, "Use the default file in the current directory:"),
+        (True, "conda env create"),
+        (True, "conda env create -n envname"),
         (spec_plugin or lockfile_plugin, "Available input formats:"),
         (spec_plugin, "Environment specs:"),
         (spec_plugin, "- dummy-spec (aliases: spec)"),
@@ -87,7 +58,7 @@ def test_epilog(
             assert (line in epilog) is expected, epilog
 
 
-def test_create_help(conda_cli: CondaCLIFixture) -> None:
-    """``conda create --help`` renders the epilog."""
-    stdout, _, _ = conda_cli("create", "--help", raises=SystemExit)
-    assert create_epilog() in stdout
+def test_env_create_help(conda_cli: CondaCLIFixture) -> None:
+    """``conda env create --help`` renders the epilog."""
+    stdout, _, _ = conda_cli("env", "create", "--help", raises=SystemExit)
+    assert env_create_epilog() in stdout

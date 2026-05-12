@@ -13,6 +13,7 @@ import pytest
 
 from conda.base.context import context
 from conda.cli.main_export import CondaExportWarning
+from conda.cli.main_export import epilog as export_epilog
 from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
@@ -994,63 +995,95 @@ def test_export_invalid_platform_from_condarc_fails_fast(
         conda_cli("export")
 
 
-def test_export_help_shows_examples_and_available_formats(
-    conda_cli: CondaCLIFixture, subtests
-) -> None:
-    """The rewritten `conda export --help` renders the example sections and a
-    dynamic listing of available formats grouped by category."""
-    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
-    for line in [
-        "Export an environment spec:",
-        "conda export --from-history",
-        "Export a lockfile for the same platform:",
-        "Available formats:",
-        "Environment specs:",
-    ]:
-        with subtests.test(line):
-            assert line in stdout
-
-
-def test_export_help_uses_environment_yml_for_spec_example(
-    conda_cli: CondaCLIFixture,
-) -> None:
-    """The spec example uses the hardcoded built-in filename ``environment.yml``."""
-    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
-    assert "conda export --from-history > environment.yml" in stdout
-    assert "conda export --from-history > environment.json" not in stdout
-
-
-def test_export_help_omits_multiplatform_example_without_capable_plugin(
-    conda_cli: CondaCLIFixture,
-) -> None:
-    """Without a multi-platform-capable lockfile plugin (built-in ``explicit``
-    is single-platform only), the multi-platform example block is suppressed."""
-    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
-    assert "Export a lockfile for multiple platforms:" not in stdout
-    assert "--platform linux-64 --platform osx-arm64" not in stdout
-
-
-class MultiPlatformLockfilePlugin:
+class DummyEnvSpecPlugin:
     @hookimpl
     def conda_environment_exporters(self):
         yield CondaEnvironmentExporter(
-            name="test-multi-lock",
-            aliases=(),
-            default_filenames=("test-multi.lock",),
+            name="dummy-spec",
+            aliases=("spec",),
+            default_filenames=("spec.dummy",),
+            export=lambda env: "",
+        )
+
+
+class DummyLockfilePlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-lock",
+            aliases=("lock",),
+            default_filenames=("lock.dummy",),
+            export=lambda envs: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+class DummyMultilockPlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-multi",
+            aliases=("multi",),
+            default_filenames=("multi.dummy",),
             multiplatform_export=lambda envs: "",
             environment_format=EnvironmentFormat.lockfile,
         )
 
 
-def test_export_help_renders_multiplatform_example_with_capable_plugin(
-    conda_cli: CondaCLIFixture,
-    request: pytest.FixtureRequest,
+@pytest.mark.parametrize(
+    "spec_plugin,lockfile_plugin,multilock_plugin",
+    [
+        pytest.param(False, False, False, id="no plugins"),
+        pytest.param(True, False, False, id="spec plugin only"),
+        pytest.param(False, True, False, id="lockfile plugin only"),
+        pytest.param(False, False, True, id="multilock plugin only"),
+        pytest.param(True, True, True, id="all plugins"),
+    ],
+)
+def test_epilog(
+    plugin_manager_with_reporter_backends: CondaPluginManager,
+    subtests,
+    spec_plugin: bool,
+    lockfile_plugin: bool,
+    multilock_plugin: bool,
 ) -> None:
-    """Multi-platform example renders with a multi-platform-capable lockfile plugin."""
-    plugin = MultiPlatformLockfilePlugin()
-    context.plugin_manager.register(plugin)
-    request.addfinalizer(lambda: context.plugin_manager.unregister(plugin))
+    """``conda export --help`` renders examples and format epilog using the registered plugins."""
+    # register dummy plugins
+    if spec_plugin:
+        plugin_manager_with_reporter_backends.register(DummyEnvSpecPlugin())
+    if lockfile_plugin:
+        plugin_manager_with_reporter_backends.register(DummyLockfilePlugin())
+    if multilock_plugin:
+        plugin_manager_with_reporter_backends.register(DummyMultilockPlugin())
 
+    # check help contains expected text
+    epilog = export_epilog()
+    for expected, line in (
+        (True, "Examples:"),
+        (True, "Export an environment spec:"),
+        (True, "conda export --from-history > environment.yml"),
+        (True, "Export a lockfile for the same platform:"),
+        (True, "conda export --file explicit.txt"),
+        (multilock_plugin, "Export a lockfile for multiple platforms:"),
+        (
+            multilock_plugin,
+            "conda export --file multi.dummy --platform linux-64 --platform osx-arm64",
+        ),
+        (
+            spec_plugin or lockfile_plugin or multilock_plugin,
+            "Available output formats:",
+        ),
+        (spec_plugin, "Environment specs:"),
+        (spec_plugin, "- dummy-spec (aliases: spec): spec.dummy"),
+        (lockfile_plugin or multilock_plugin, "Lockfiles:"),
+        (lockfile_plugin, "- dummy-lock (aliases: lock): lock.dummy"),
+        (multilock_plugin, "- dummy-multi (aliases: multi): multi.dummy"),
+    ):
+        with subtests.test(f"{'expected' if expected else 'not expected'}: {line}"):
+            assert (line in epilog) is expected, epilog
+
+
+def test_export_help(conda_cli: CondaCLIFixture) -> None:
+    """``conda export --help`` renders the epilog."""
     stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
-    assert "Export a lockfile for multiple platforms:" in stdout
-    assert "test-multi.lock --platform linux-64 --platform osx-arm64" in stdout
+    assert export_epilog() in stdout

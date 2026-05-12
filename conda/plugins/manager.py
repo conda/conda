@@ -840,9 +840,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_environment_specifier_format_mapping(
         self,
     ) -> dict[EnvironmentFormat, list[CondaEnvironmentSpecifier]]:
-        """
-        Get a mapping from environment format to environment specifiers.
-        """
+        """Get a mapping from environment format to environment specifiers."""
         return groupby_to_dict(
             lambda plugin: plugin.environment_format,
             self.get_hook_results("environment_specifiers"),
@@ -929,14 +927,10 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_environment_exporter_format_mapping(
         self,
     ) -> dict[EnvironmentFormat, list[CondaEnvironmentExporter]]:
-        """
-        Get a mapping from environment format to environment exporters.
-
-        :return: Dict mapping environment format to CondaEnvironmentExporter
-        :raises PluginError: If multiple exporters use the same format name or alias
-        """
+        """Get a mapping from environment format to environment exporters."""
         return groupby_to_dict(
-            lambda plugin: plugin.environment_format, self.get_environment_exporters()
+            lambda plugin: plugin.environment_format,
+            self.get_environment_exporters(),
         )
 
     def get_pre_transaction_actions(

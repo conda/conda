@@ -209,7 +209,7 @@ class CondaCLIFixture:
     def __call__(
         self,
         *argv: PathType,
-        raises: type[Exception] | tuple[type[Exception], ...],
+        raises: type[BaseException] | tuple[type[BaseException], ...],
     ) -> tuple[str, str, ExceptionInfo]: ...
 
     @overload
@@ -221,7 +221,7 @@ class CondaCLIFixture:
     def __call__(
         self,
         *argv: PathType,
-        raises: type[Exception] | tuple[type[Exception], ...] | None = None,
+        raises: type[BaseException] | tuple[type[BaseException], ...] | None = None,
     ) -> tuple[str | None, str | None, int | ExceptionInfo]:
         """Test conda CLI. Mimic what is done in `conda.cli.main.main`.
 

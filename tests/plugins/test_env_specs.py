@@ -17,7 +17,6 @@ from conda.exceptions import (
 from conda.models.environment import Environment, EnvironmentConfig
 from conda.models.match_spec import MatchSpec
 from conda.plugins import environment_specifiers
-from conda.plugins.formats import FormatSummary
 from conda.plugins.types import (
     CondaEnvironmentSpecifier,
     EnvironmentFormat,
@@ -725,50 +724,3 @@ def test_env_spec_iteration_pattern(spec_and_platforms):
     spec, expected = spec_and_platforms
     envs = [spec.env_for(p) for p in spec.available_platforms]
     assert tuple(e.platform for e in envs) == expected
-
-
-class DescribeSpecifierLockfilePlugin:
-    @plugins.hookimpl
-    def conda_environment_specifiers(self):
-        yield CondaEnvironmentSpecifier(
-            name="my-lock-v1",
-            aliases=("mylock",),
-            default_filenames=("my.lock",),
-            environment_spec=RandomSpec,
-            environment_format=EnvironmentFormat.lockfile,
-        )
-
-
-def test_describe_specifier_formats_groups_by_category(
-    plugin_manager_with_specifiers,
-):
-    """Specifiers are grouped by category."""
-    specifiers = list(
-        plugin_manager_with_specifiers.get_hook_results("environment_specifiers")
-    )
-    rendered = FormatSummary(specifiers).describe()
-    assert "Environment specs:" in rendered
-    if "Lockfiles:" in rendered:
-        assert rendered.index("Environment specs:") < rendered.index("Lockfiles:")
-
-
-def test_describe_specifier_formats_includes_registered_lockfile_plugin(
-    plugin_manager_with_specifiers,
-    request: pytest.FixtureRequest,
-):
-    """A lockfile specifier plugin appears under the Lockfiles section."""
-    plugin = DescribeSpecifierLockfilePlugin()
-    plugin_manager_with_specifiers.register(plugin)
-    request.addfinalizer(lambda: plugin_manager_with_specifiers.unregister(plugin))
-
-    specifiers = list(
-        plugin_manager_with_specifiers.get_hook_results("environment_specifiers")
-    )
-    rendered = FormatSummary(specifiers).describe()
-    assert "Lockfiles:" in rendered
-    assert "- my-lock-v1 (aliases: mylock) : my.lock" in rendered
-
-
-def test_describe_specifier_formats_empty():
-    """Without registered specifiers the description is empty."""
-    assert FormatSummary([]).describe() == ""
