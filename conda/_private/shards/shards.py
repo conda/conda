@@ -219,33 +219,29 @@ def shard_mentioned_packages(
     own package name. Additional names can be injected via ``extra`` and
     ``extra_depends`` for v3 repodata.
     """
-    unique_specs = set()
-    all_records = (
-        record
-        for records in (
-            shard["packages"].values(),
-            shard["packages.conda"].values(),
-            *(
-                group.values() for group in shard.get("v3", {}).values()
-            ),  # v3 repodata groups
-        )
-        for record in records
-    )
-    for record in all_records:
+    unique_specs: set[str] = set()
+
+    def _yield_record(record):
         ensure_hex_hash(record)  # otherwise we could do this at serialization
-        for spec in (
-            spec
-            for specs in (
-                record.get("depends", ()),
-                *record.get("extra_depends", {}).values(),
-            )
-            for spec in specs
-        ):
-            if spec in unique_specs:
-                continue
-            unique_specs.add(spec)
-            name = spec_to_package_name(spec)
-            yield name  # not much improvement from only yielding unique names
+        for spec in record.get("depends", ()):
+            if spec not in unique_specs:
+                unique_specs.add(spec)
+                yield spec_to_package_name(spec)
+        if extra_depends := record.get("extra_depends"):
+            for deps in extra_depends.values():
+                for spec in deps:
+                    if spec not in unique_specs:
+                        unique_specs.add(spec)
+                        yield spec_to_package_name(spec)
+
+    for record in shard["packages"].values():
+        yield from _yield_record(record)
+    for record in shard["packages.conda"].values():
+        yield from _yield_record(record)
+    if v3 := shard.get("v3"):
+        for group in v3.values():
+            for record in group.values():
+                yield from _yield_record(record)
     yield from extra
 
 
@@ -479,6 +475,8 @@ class Shards(ShardBase):
         # not used in traversal algorithm
         self.visited: dict[str, ShardDict | None] = {}
 
+        self._shard_url_cache: dict[str, str] = {}
+
     @property
     def package_names(self):
         return self.packages_index.keys()
@@ -501,9 +499,13 @@ class Shards(ShardBase):
 
         Raise KeyError if package is not in the index.
         """
+        if cached := self._shard_url_cache.get(package):
+            return cached
         shard_name = f"{bytes(self.packages_index[package]).hex()}.msgpack.zst"
         # "Individual shards are stored under the URL <shards_base_url><sha256>.msgpack.zst"
-        return f"{self.shards_base_url}{shard_name}"
+        url = f"{self.shards_base_url}{shard_name}"
+        self._shard_url_cache[package] = url
+        return url
 
     def shard_loaded(self, package: str) -> bool:
         """
