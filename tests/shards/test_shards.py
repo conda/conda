@@ -506,6 +506,142 @@ def test_shard_mentioned_packages_2():
     )  # type: ignore
 
 
+EMPTY_SHARD: dict = {"packages": {}, "packages.conda": {}}
+
+
+def _v3_shard(groups: dict) -> dict:
+    return {**EMPTY_SHARD, "v3": groups}
+
+
+def test_shard_mentioned_packages_v3_depends():
+    shard = _v3_shard(
+        {
+            "cpython": {
+                "cpython-3.12-h1.conda": {
+                    "depends": ["openssl >=3", "libffi >=3.4"],
+                },
+            }
+        }
+    )
+    names = list(shard_mentioned_packages(shard))
+    assert "openssl" in names
+    assert "libffi" in names
+
+
+def test_shard_mentioned_packages_v3_extra_depends():
+    shard = _v3_shard(
+        {
+            "numpy": {
+                "numpy-2.0-py312.conda": {
+                    "extra_depends": {
+                        "cuda": ["cudatoolkit >=11.8"],
+                        "mkl": ["mkl >=2023"],
+                    },
+                },
+            }
+        }
+    )
+    names = list(shard_mentioned_packages(shard))
+    assert "cudatoolkit" in names
+    assert "mkl" in names
+
+
+def test_shard_mentioned_packages_v3_depends_and_extra_depends():
+    shard = _v3_shard(
+        {
+            "scipy": {
+                "scipy-1.13-py312.conda": {
+                    "depends": ["numpy >=1.23"],
+                    "extra_depends": {"cuda": ["cudatoolkit >=11.8"]},
+                },
+            }
+        }
+    )
+    names = list(shard_mentioned_packages(shard))
+    assert "numpy" in names
+    assert "cudatoolkit" in names
+
+
+def test_shard_mentioned_packages_v3_deduplication_within_v3():
+    # two records in the same v3 group share a dep spec
+    shard = _v3_shard(
+        {
+            "group": {
+                "pkgA-1.0.conda": {"depends": ["openssl >=3"]},
+                "pkgA-2.0.conda": {"depends": ["openssl >=3"]},
+            }
+        }
+    )
+    names = list(shard_mentioned_packages(shard))
+    assert names.count("openssl") == 1
+
+
+def test_shard_mentioned_packages_v3_deduplication_across_classic_and_v3():
+    shard = {
+        "packages": {
+            "foo-1.0-0.tar.bz2": {
+                "name": "foo",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["openssl >=3"],
+            }
+        },
+        "packages.conda": {},
+        "v3": {
+            "group": {
+                "bar-1.0.conda": {"depends": ["openssl >=3"]},
+            }
+        },
+    }
+    names = list(shard_mentioned_packages(shard))
+    assert names.count("openssl") == 1
+
+
+def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
+    # spy on the name as bound inside shards.py (imported by-name at module level)
+    spy = mocker.spy(shards, "ensure_hex_hash")
+    record = {"sha256": b"\xde\xad\xbe\xef" * 8, "depends": ["zlib >=1.2"]}
+    shard = _v3_shard({"group": {"pkg-1.0.conda": record}})
+    list(shard_mentioned_packages(shard))
+    spy.assert_called()
+    # ensure_hex_hash mutates in-place
+    assert record["sha256"] == "deadbeef" * 8
+
+
+def test_shard_mentioned_packages_v3_empty():
+    shard_with_empty_v3 = _v3_shard({})
+    shard_without_v3 = dict(EMPTY_SHARD)
+    assert list(shard_mentioned_packages(shard_with_empty_v3)) == list(
+        shard_mentioned_packages(shard_without_v3)
+    )
+
+
+def test_shard_mentioned_packages_v3_key_absent():
+    shard = {
+        "packages": {
+            "pkg-1.0-0.tar.bz2": {
+                "name": "pkg",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["zlib >=1.2"],
+            }
+        },
+        "packages.conda": {},
+    }
+    names = list(shard_mentioned_packages(shard))
+    assert "zlib" in names
+
+
+def test_shard_mentioned_packages_extra_double_yield():
+    # extra is yielded once before v3 and once after — document current behavior
+    shard = _v3_shard({"group": {"pkg-1.0.conda": {"depends": ["zlib >=1.2"]}}})
+    names = list(shard_mentioned_packages(shard, extra=["injected"]))
+    # current implementation yields extra twice
+    assert names.count("injected") == 2
+
+
 @pytest.mark.integration
 def test_fetch_shards_channels(prepare_shards_test: None):
     """

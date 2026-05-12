@@ -230,6 +230,25 @@ def shard_mentioned_packages(
             name = spec_to_package_name(spec)
             yield name  # not much improvement from only yielding unique names
     yield from extra
+    # v3 repodata groups
+    for v3_group in shard.get("v3", {}).values():
+        for record in v3_group.values():
+            ensure_hex_hash(record)
+            for spec in (
+                *record.get("depends", ()),
+                *(
+                    spec
+                    for specs in record.get("extra_depends", {}).values()
+                    for spec in specs
+                ),
+            ):
+                if spec in unique_specs:
+                    continue
+                unique_specs.add(spec)
+                name = spec_to_package_name(spec)
+                if name is not None:
+                    yield name
+    yield from extra
 
 
 class ShardBase(abc.ABC):
