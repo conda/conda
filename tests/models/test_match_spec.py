@@ -934,9 +934,42 @@ def test_parse_hard():
     }
 
 
+@pytest.mark.xfail(
+    reason="boolean ops in space-separated build string not handled, see #15385"
+)
+@pytest.mark.parametrize(
+    "spec_str,expected_build",
+    [
+        ("mypkg 1.2.3 py310|*gpu*", "py310|*gpu*"),
+        ("mypkg 1.2.3 py310,*gpu*", "py310,*gpu*"),
+    ],
+)
+def test_boolean_operator_in_space_separated_build(spec_str, expected_build):
+    """Boolean operators in the build position of space-separated specs should not
+    be folded into the version field.
+
+    See https://github.com/conda/conda/issues/15385
+    """
+    ms = MatchSpec(spec_str)
+    assert ms.version == VersionSpec("1.2.3")
+    assert ms.get("build") == expected_build
+
+
 def test_parse_errors():
     with pytest.raises(InvalidMatchSpec):
         _parse_spec_str("!xyz 1.3")
+
+
+@pytest.mark.xfail(reason="bare '=' with no version value should raise, see #12046")
+def test_bare_equals_operator_raises():
+    """A bare '=' with no following version value should raise InvalidMatchSpec.
+
+    Single '=' in conda means glob match (e.g. ``foo=1.0`` → ``1.0*``), but
+    ``foo=`` with nothing after it is not a valid spec.
+    See https://github.com/conda/conda/issues/12046
+    """
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec("foo=")
 
 
 def test_parse_channel_subdir():
@@ -973,6 +1006,27 @@ def test_parse_parens():
         # "target": "blarg",  # suppressing these for now
         # "optional": True,
     }
+
+
+@pytest.mark.xfail(reason="parentheses in version not yet supported, see #15654")
+@pytest.mark.parametrize(
+    "spec_str,expected_version",
+    [
+        ("foo (>=1,<2)|>3", "(>=1,<2)|>3"),
+        ("* >=3,(<4|<5)", ">=3,(<4|<5)"),
+        ("numpy >=1.8,(<2|>=1.7.1)", ">=1.8,(<2|>=1.7.1)"),
+        ("python (>=3.8,<3.10)|(>=3.11,<3.13)", "(>=3.8,<3.10)|(>=3.11,<3.13)"),
+    ],
+)
+def test_version_with_parentheses(spec_str, expected_version):
+    """Parentheses for precedence in version expressions should be preserved.
+
+    See https://github.com/conda/conda/issues/15654
+    and https://github.com/conda/conda/issues/14242
+    Fix tracked in https://github.com/conda/conda/pull/15662
+    """
+    ms = MatchSpec(spec_str)
+    assert ms.version == VersionSpec(expected_version)
 
 
 def test_parse_build_number_brackets():
@@ -1526,6 +1580,19 @@ def test_no_triple_equals_roundtrip():
     assert "===" not in str(ms)
     assert str(ms) == "numpy=2"
     assert MatchSpec("numpy=2").version == ms.version
+
+
+def test_double_equals_version_consistency():
+    """Regression test for https://github.com/conda/conda/issues/13932
+
+    Without a build string, ``==`` was stripped from the version representation
+    while the presence of a build string preserved it, creating an inconsistency.
+    """
+    ms_no_build = MatchSpec("awscli==2.15.37")
+    ms_with_build = MatchSpec("awscli==2.15.37=wghq")
+    assert ms_no_build.get("version") == ms_with_build.get("version")
+    assert str(ms_no_build) == "awscli==2.15.37"
+    assert str(ms_with_build) == "awscli==2.15.37=wghq"
 
 
 def test_conditional_specs():
