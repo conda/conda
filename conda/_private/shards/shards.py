@@ -213,6 +213,7 @@ def shard_mentioned_packages(
     shard: ShardDict,
     extra: Iterable[str] = (),
     spec_to_package_name=spec_to_package_name,
+    v3: bool = False,
 ) -> Iterable[str]:
     """
     Return all dependency names mentioned in a shard, not including the shard's
@@ -238,8 +239,8 @@ def shard_mentioned_packages(
         yield from _yield_record(record)
     for record in shard["packages.conda"].values():
         yield from _yield_record(record)
-    if v3 := shard.get("v3"):
-        for group in v3.values():
+    if v3 and (v3_data := shard.get("v3")):
+        for group in v3_data.values():
             for record in group.values():
                 yield from _yield_record(record)
     yield from extra

@@ -161,12 +161,14 @@ class RepodataSubset:
         self,
         shardlikes: Iterable[ShardBase],
         spec_to_package_name: Callable[[str], str] = spec_to_package_name,
+        v3: bool = False,
     ):
         self._nodes = {}
         self.shardlikes = list(shardlikes)
         self._use_only_tar_bz2 = context.use_only_tar_bz2
         self._add_pip_as_python_dependency = context.add_pip_as_python_dependency
         self._spec_to_package_name = spec_to_package_name
+        self._v3 = v3
 
     @property
     def node_count(self) -> int:
@@ -213,7 +215,10 @@ class RepodataSubset:
                 else ()
             )
             for package in shard_mentioned_packages(
-                shard, extra=extra, spec_to_package_name=self._spec_to_package_name
+                shard,
+                extra=extra,
+                spec_to_package_name=self._spec_to_package_name,
+                v3=self._v3,
             ):
                 node_id = NodeId(package, shardlike.url)
 
@@ -491,6 +496,7 @@ class RepodataSubset:
                             shard,
                             extra=extra,
                             spec_to_package_name=self._spec_to_package_name,
+                            v3=self._v3,
                         ),
                     )
                 )
@@ -550,6 +556,7 @@ def build_repodata_subset(
     channels: dict[str, Channel],
     algorithm: Literal["bfs", "pipelined"] = RepodataSubset.DEFAULT_STRATEGY,
     spec_to_package_name_func: Callable[[str], str] = spec_to_package_name,
+    v3: bool = False,
 ) -> dict[str, ShardBase] | None:
     """
     Retrieve all necessary information to build a repodata subset.
@@ -563,7 +570,7 @@ def build_repodata_subset(
         algorithm: desired traversal algorithm ("bfs" or "pipelined")
         spec_to_package_name_func: callable to convert package specs to names.
                                    Defaults to the standard spec_to_package_name.
-
+        v3: whether to use the v3 format of the repodata.
     Return:
         None if there are no shards available, or a mapping of channel URL's to
         ShardBase objects where build_repodata() returns the computed subset.
@@ -571,7 +578,9 @@ def build_repodata_subset(
     channel_data = fetch_channels(channels)
     if channel_data is not None:
         subset = RepodataSubset(
-            (*channel_data.values(),), spec_to_package_name=spec_to_package_name_func
+            (*channel_data.values(),),
+            spec_to_package_name=spec_to_package_name_func,
+            v3=v3,
         )
         subset.reachable(root_packages, strategy=algorithm)
         log.debug("%d (channel, package) nodes discovered", subset.node_count)

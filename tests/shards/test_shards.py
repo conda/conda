@@ -523,7 +523,7 @@ def test_shard_mentioned_packages_v3_depends():
             }
         }
     )
-    names = list(shard_mentioned_packages(shard))
+    names = list(shard_mentioned_packages(shard, v3=True))
     assert "openssl" in names
     assert "libffi" in names
 
@@ -541,7 +541,7 @@ def test_shard_mentioned_packages_v3_extra_depends():
             }
         }
     )
-    names = list(shard_mentioned_packages(shard))
+    names = list(shard_mentioned_packages(shard, v3=True))
     assert "cudatoolkit" in names
     assert "mkl" in names
 
@@ -557,7 +557,7 @@ def test_shard_mentioned_packages_v3_depends_and_extra_depends():
             }
         }
     )
-    names = list(shard_mentioned_packages(shard))
+    names = list(shard_mentioned_packages(shard, v3=True))
     assert "numpy" in names
     assert "cudatoolkit" in names
 
@@ -572,7 +572,7 @@ def test_shard_mentioned_packages_v3_deduplication_within_v3():
             }
         }
     )
-    names = list(shard_mentioned_packages(shard))
+    names = list(shard_mentioned_packages(shard, v3=True))
     assert names.count("openssl") == 1
 
 
@@ -594,7 +594,7 @@ def test_shard_mentioned_packages_v3_deduplication_across_classic_and_v3():
             }
         },
     }
-    names = list(shard_mentioned_packages(shard))
+    names = list(shard_mentioned_packages(shard, v3=True))
     assert names.count("openssl") == 1
 
 
@@ -603,7 +603,7 @@ def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
     spy = mocker.spy(shards, "ensure_hex_hash")
     record = {"sha256": b"\xde\xad\xbe\xef" * 8, "depends": ["zlib >=1.2"]}
     shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": record}})
-    list(shard_mentioned_packages(shard))
+    list(shard_mentioned_packages(shard, v3=True))
     spy.assert_called()
     # ensure_hex_hash mutates in-place
     assert record["sha256"] == "deadbeef" * 8
@@ -612,8 +612,8 @@ def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
 def test_shard_mentioned_packages_v3_empty():
     shard_with_empty_v3 = _v3_shard({})
     shard_without_v3 = dict(EMPTY_SHARD)
-    assert list(shard_mentioned_packages(shard_with_empty_v3)) == list(
-        shard_mentioned_packages(shard_without_v3)
+    assert list(shard_mentioned_packages(shard_with_empty_v3, v3=True)) == list(
+        shard_mentioned_packages(shard_without_v3, v3=True)
     )
 
 
@@ -637,8 +637,49 @@ def test_shard_mentioned_packages_v3_key_absent():
 def test_shard_mentioned_packages_extra_single_yield():
     # extra is emitted once, after both classic and v3 packages have been processed
     shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["zlib >=1.2"]}}})
-    names = list(shard_mentioned_packages(shard, extra=["injected"]))
+    names = list(shard_mentioned_packages(shard, extra=["injected"], v3=True))
     assert names.count("injected") == 1
+
+
+def test_shard_mentioned_packages_v3_skipped_by_default():
+    # v3 deps must not appear when the v3 flag is not set (default False)
+    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["v3only >=1"]}}})
+    names = list(shard_mentioned_packages(shard))
+    assert "v3only" not in names
+
+
+def test_shard_mentioned_packages_v3_skipped_explicit_false():
+    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["v3only >=1"]}}})
+    names = list(shard_mentioned_packages(shard, v3=False))
+    assert "v3only" not in names
+
+
+def test_shard_mentioned_packages_classic_unaffected_by_v3_flag():
+    # classic deps always appear; v3-only deps are gated by the flag
+    shard = {
+        "packages": {
+            "foo-1.0-0.tar.bz2": {
+                "name": "foo",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["classic_dep >=1"],
+            }
+        },
+        "packages.conda": {},
+        "v3": {
+            "whl": {
+                "bar-1.0-py3_none_any_0": {"depends": ["v3only_dep >=1"]},
+            }
+        },
+    }
+    without_v3 = list(shard_mentioned_packages(shard, v3=False))
+    assert "classic_dep" in without_v3
+    assert "v3only_dep" not in without_v3
+
+    with_v3 = list(shard_mentioned_packages(shard, v3=True))
+    assert "classic_dep" in with_v3
+    assert "v3only_dep" in with_v3
 
 
 @pytest.mark.integration
