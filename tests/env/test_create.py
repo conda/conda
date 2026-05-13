@@ -487,17 +487,17 @@ def test_export_and_recreate_environment(
     # Setup a simple environment
     with tmp_env("ca-certificates") as prefix:
         env_file_path = path_factory(file_name)
-        stdout, stderr, rc = conda_cli(
+        _, stderr, rc = conda_cli(
             "export",
             f"--prefix={prefix}",
             f"--format={target_format}",
             f"--file={env_file_path}",
         )
-        assert rc == 0, "Unable to export env to format {target_format}"
+        assert rc == 0, f"conda export failed ({target_format=}): {stderr}"
 
         # recreate the environment
         recreate_prefix = path_factory()
-        stdout, stderr, rc = conda_cli(
+        _, stderr, rc = conda_cli(
             "env",
             "create",
             f"--prefix={recreate_prefix}",
@@ -505,4 +505,6 @@ def test_export_and_recreate_environment(
             f"--file={env_file_path}",
             "--dry-run",
         )
-        assert rc == 0, "Unable to recreate env from format {target_format}"
+        assert rc == 0, (
+            f"conda env create --dry-run failed ({target_format=}): {stderr}"
+        )

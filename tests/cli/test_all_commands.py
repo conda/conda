@@ -194,8 +194,8 @@ def test_activate_help_commands_exit_0_rc(
 ):
     """Ensure that conda returns a 0 error code when cli --help is called"""
     with pytest.raises(SystemExit):
-        out, err, rc = conda_cli(command, "-h")
-        assert rc == 0
-        assert f"usage: conda {command}" in out
-        assert not re.search(r"\berror\b", out, re.IGNORECASE)
-        assert not re.search(r"\berror\b", err, re.IGNORECASE)
+        stdout, stderr, rc = conda_cli(command, "-h")
+        assert rc == 0, f"conda {command} failed ({rc}): {stderr}"
+        assert f"usage: conda {command}" in stdout
+        assert not re.search(r"\berror\b", stdout, re.IGNORECASE)
+        assert not re.search(r"\berror\b", stderr, re.IGNORECASE)
