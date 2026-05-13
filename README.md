@@ -1,23 +1,35 @@
-[conda-logo]: https://s3.amazonaws.com/conda-dev/conda_logo.svg
-[tests-badge]: https://img.shields.io/github/actions/workflow/status/conda/conda/tests.yml?branch=main&event=schedule&logo=github&label=tests
-[codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main?logo=codecov
-[codspeed-badge]: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json
-[release-badge]: https://img.shields.io/github/v/release/conda/conda?logo=github
-[anaconda-badge]: https://img.shields.io/conda/vn/anaconda/conda?logo=anaconda
-[conda-forge-badge]: https://img.shields.io/conda/vn/conda-forge/conda?logo=conda-forge
-[calver-badge]: https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg
-[gitpod]: https://gitpod.io/button/open-in-gitpod.svg
+<p align="center">
+  <a href="https://github.com/conda/conda" title="conda">
+    <img src="https://s3.amazonaws.com/conda-dev/conda_logo.svg" alt="conda logo" width="50%">
+  </a>
+</p>
 
-[![Conda Logo][conda-logo]](https://github.com/conda/conda)
+<p align="center">
+  <a href="https://github.com/conda/conda/actions/workflows/tests.yml?query=branch%3Amain+event%3Aschedule">
+    <img src="https://img.shields.io/github/actions/workflow/status/conda/conda/tests.yml?branch=main&event=schedule&logo=github&label=tests" alt="GitHub Scheduled Tests">
+  </a>
+  <a href="https://codecov.io/gh/conda/conda/branch/main">
+    <img src="https://img.shields.io/codecov/c/github/conda/conda/main?logo=codecov" alt="Codecov Status">
+  </a>
+  <a href="https://codspeed.io/conda/conda">
+    <img src="https://img.shields.io/endpoint?url=https://codspeed.io/badge.json" alt="CodSpeed Performance Benchmarks">
+  </a>
+  <a href="https://calver.org">
+    <img src="https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg" alt="CalVer Versioning">
+  </a>
+  <br>
+  <a href="https://github.com/conda/conda/releases">
+    <img src="https://img.shields.io/github/v/release/conda/conda?logo=github" alt="GitHub Release">
+  </a>
+  <a href="https://anaconda.org/anaconda/conda">
+    <img src="https://img.shields.io/conda/vn/anaconda/conda?logo=anaconda" alt="Anaconda Package">
+  </a>
+  <a href="https://anaconda.org/conda-forge/conda">
+    <img src="https://img.shields.io/conda/vn/conda-forge/conda?logo=conda-forge" alt="conda-forge Package">
+  </a>
+</p>
 
-[![GitHub Scheduled Tests][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml?query=branch%3Amain+event%3Aschedule)
-[![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
-[![CodSpeed Performance Benchmarks][codspeed-badge]](https://codspeed.io/conda/conda)
-[![CalVer Versioning][calver-badge]](https://calver.org)
-<br>
-[![GitHub Release][release-badge]](https://github.com/conda/conda/releases)
-[![Anaconda Package][anaconda-badge]](https://anaconda.org/anaconda/conda)
-[![conda-forge Package][conda-forge-badge]](https://anaconda.org/conda-forge/conda)
+---
 
 Conda is a cross-platform, language-agnostic binary package manager. It is a
 package manager used in conda distributions like [Miniforge](https://github.com/conda-forge/miniforge)
