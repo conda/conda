@@ -352,7 +352,7 @@ Multi-platform lockfiles
 
 A lockfile contains the exact packages, versions, builds, and
 channels required to recreate an environment exactly. Because
-the lockfile captures a fully resolved state conda can skip the solver
+the lockfile captures a fully resolved state, conda can skip the solver
 step and go drectly to downloading and installing packages.
 Conda supports ``conda-lock.yaml`` and ``pixi.lock``
 natively, and these lockfile types can be used to exactly recreate
