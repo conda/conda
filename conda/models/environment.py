@@ -638,7 +638,8 @@ class Environment:
 
     def extrapolate(self, platform: str) -> Environment:
         """
-        Given the current environment, extrapolate the environment for the given platform.
+        Given the current environment, solve for a comparable environment on a
+        different platform.
         """
         if platform == self.platform:
             return self
@@ -648,17 +649,18 @@ class Environment:
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         requested_packages = self.from_history(self.prefix)
 
-        for repodata_manager in Repodatas(self.config.repodata_fns, {}):
-            with repodata_manager as repodata_fn:
-                solver = solver_backend(
-                    prefix="/env/does/not/exist",
-                    channels=self.config.channels,
-                    subdirs=(platform, "noarch"),
-                    specs_to_add=requested_packages,
-                    repodata_fn=repodata_fn,
-                    command="create",
-                )
-                explicit_packages = solver.solve_final_state()
+        with context._override("_subdir", platform):
+            for repodata_manager in Repodatas(self.config.repodata_fns, {}):
+                with repodata_manager as repodata_fn:
+                    solver = solver_backend(
+                        prefix="/env/does/not/exist",
+                        channels=self.config.channels,
+                        subdirs=(platform, "noarch"),
+                        specs_to_add=requested_packages,
+                        repodata_fn=repodata_fn,
+                        command="create",
+                    )
+                    explicit_packages = solver.solve_final_state()
         return Environment(
             prefix=self.prefix,
             name=self.name,

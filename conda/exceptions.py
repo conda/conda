@@ -87,7 +87,7 @@ class ArgumentError(CondaError):
 
 
 class Help(CondaError):
-    pass
+    return_code = 0
 
 
 class ActivateHelp(Help):
