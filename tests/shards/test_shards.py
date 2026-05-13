@@ -506,8 +506,9 @@ def test_shard_mentioned_packages_2():
     )  # type: ignore
 
 
-def test_shard_mentioned_packages_invalid_spec_yields_none():
-    # An unparseable spec produces None for that entry but does not abort iteration.
+def test_shard_mentioned_packages_invalid_spec_skipped():
+    # An unparseable spec is silently skipped; valid deps are still yielded and
+    # no None values appear in the output.
     shard = {
         "packages": {
             "foo-1.0-0.tar.bz2": {
@@ -519,7 +520,7 @@ def test_shard_mentioned_packages_invalid_spec_yields_none():
     }
     names = list(shard_mentioned_packages(shard))
     assert "valid_pkg" in names
-    assert None in names
+    assert None not in names
 
 
 @pytest.mark.integration

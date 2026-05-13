@@ -215,8 +215,6 @@ class RepodataSubset:
             for package in shard_mentioned_packages(
                 shard, extra=extra, spec_to_package_name=self._spec_to_package_name
             ):
-                if package is None:
-                    continue
                 node_id = NodeId(package, shardlike.url)
 
                 if node_id not in self._nodes:
@@ -498,15 +496,13 @@ class RepodataSubset:
                 )
 
     def _visit_node(
-        self, parent_node: Node, mentioned_packages: Iterable[str | None]
+        self, parent_node: Node, mentioned_packages: Iterable[str]
     ) -> Iterable[NodeId]:
         """Broadcast mentioned packages across channels. yield pending NodeId's."""
         # NOTE we have visit for Nodes which is used in the graph traversal
         # algorithm, and a separate visit for ShardBase which means "include
         # this package in the output repodata".
         for package in mentioned_packages:
-            if package is None:
-                continue
             for shardlike in self.shardlikes:
                 if package in shardlike:
                     new_node_id = NodeId(
