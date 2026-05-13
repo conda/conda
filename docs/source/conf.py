@@ -26,8 +26,8 @@ version = release = conda.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "autoapi.extension",
-    "conda_umls",
+    # "autoapi.extension",
+    # "conda_umls",
     "conda_sphinx_theme.version_anchors",
     "myst_parser",
     "sphinx.ext.autodoc",
@@ -190,7 +190,8 @@ def skip_log(app, what, name, obj, skip, options):
 
 
 def setup(sphinx):
-    sphinx.connect("autoapi-skip-member", skip_log)
+    pass
+    # sphinx.connect("autoapi-skip-member", skip_log)
 
 
 # -----------------------------------------------------------------------------

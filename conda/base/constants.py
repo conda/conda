@@ -219,6 +219,9 @@ CONDA_LOGS_DIR: Final = ".logs"
 UNKNOWN_CHANNEL: Final = "<unknown>"
 REPODATA_FN: Final = "repodata.json"
 
+REPODATA_SHARDS_FN: Final = "repodata_shards.msgpack.zst"
+"""Index for sharded repodata data of a channel"""
+
 NOTICES_FN: Final = "notices.json"
 """Default name of the notices file on the server we look for."""
 

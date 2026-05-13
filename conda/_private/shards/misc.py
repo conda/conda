@@ -13,12 +13,14 @@ This module contains utility functions that don't fit cleanly into other modules
 from __future__ import annotations
 
 import functools
+import logging
 import queue
 from contextlib import suppress
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse, urlunparse, uses_relative
 
 from conda.base.context import context
+from conda.exceptions import InvalidMatchSpec
 from conda.models.match_spec import MatchSpec
 
 if TYPE_CHECKING:
@@ -30,6 +32,8 @@ if TYPE_CHECKING:
 
     _T = TypeVar("_T")
 
+
+log = logging.getLogger(__name__)
 
 # Schemes that urljoin handles correctly (registered in urllib.parse.uses_relative)
 _URLJOIN_SAFE_SCHEMES = frozenset(uses_relative)
@@ -126,15 +130,20 @@ def ensure_hex_hash(record: PackageRecordDict):
 
 
 @functools.cache
-def spec_to_package_name(spec: str) -> str:
+def spec_to_package_name(spec: str) -> str | None:
     """
-    Given a dependency spec, return the package name.
+    Given a dependency spec, return the package name, or None if the spec is
+    not parseable.
 
     Uses conda's MatchSpec rather than libmambapy to avoid a hard dependency
     on a solver backend. With @functools.cache the performance is equivalent
     (benchmarked at ~10ms for 5000 unique specs either way).
     """
-    return MatchSpec(spec).name
+    try:
+        return MatchSpec(spec).name
+    except InvalidMatchSpec:
+        log.warning("Could not parse dependency spec %r; skipping", spec)
+        return None
 
 
 def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> ShardDict:
