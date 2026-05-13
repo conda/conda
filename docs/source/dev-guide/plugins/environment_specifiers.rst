@@ -92,13 +92,13 @@ to select the plugin using the aliased names in addition to the provided name.
 Using the Plugin
 ----------------
 Once this plugin is registered, users will be able to create environments from the
-types of files specified by the plugin. The ``conda env create``, ``conda create``,
+types of files specified by the plugin. The ``conda create``, ``conda env create``,
 and ``conda install`` commands all use these plugins when given a ``--file`` argument.
 For example to create a `random` environment using the plugin defined above:
 
 .. code-block:: bash
 
-   conda env create --file /doesnt/matter/any/way.random
+   conda create --file /doesnt/matter/any/way.random
 
 Plugin detection
 ----------------
@@ -219,4 +219,4 @@ Then, create the environment
 
 .. code-block:: bash
 
-   $ conda env create --file testenv.json
+   $ conda create --file testenv.json
