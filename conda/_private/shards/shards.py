@@ -214,7 +214,7 @@ def shard_mentioned_packages(
     shard: ShardDict,
     extra: Iterable[str] = (),
     spec_to_package_name=spec_to_package_name,
-) -> Iterable[str, None]:
+) -> Iterable[str | None]:
     """
     Return all dependency names mentioned in a shard, not including the shard's
     own package name. Additional names can be injected via ``extra``.
