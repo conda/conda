@@ -837,10 +837,10 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
 
-    def get_environment_specifier_format_mapping(
+    def get_environment_specifiers_grouped(
         self,
     ) -> dict[EnvironmentFormat, list[CondaEnvironmentSpecifier]]:
-        """Get a mapping from environment format to environment specifiers."""
+        """Group environment specifiers by :class:`~conda.plugins.types.EnvironmentFormat`."""
         return groupby_to_dict(
             lambda plugin: plugin.environment_format,
             self.get_hook_results("environment_specifiers"),
@@ -924,10 +924,10 @@ class CondaPluginManager(pluggy.PluginManager):
 
         return exporter
 
-    def get_environment_exporter_format_mapping(
+    def get_environment_exporters_grouped(
         self,
     ) -> dict[EnvironmentFormat, list[CondaEnvironmentExporter]]:
-        """Get a mapping from environment format to environment exporters."""
+        """Group environment exporters by :class:`~conda.plugins.types.EnvironmentFormat`."""
         return groupby_to_dict(
             lambda plugin: plugin.environment_format,
             self.get_environment_exporters(),

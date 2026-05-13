@@ -24,7 +24,7 @@ def epilog() -> str:
     from .formats import get_available_environment_formats
 
     # get environment specifiers grouped by format
-    formats = context.plugin_manager.get_environment_specifier_format_mapping()
+    formats = context.plugin_manager.get_environment_specifiers_grouped()
 
     # compose examples/epilog
     examples = [

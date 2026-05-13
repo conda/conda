@@ -33,7 +33,7 @@ def epilog() -> str:
     from .formats import get_available_environment_formats, get_multiplatform_lockfile
 
     # get environment exporters grouped by format
-    formats = context.plugin_manager.get_environment_exporter_format_mapping()
+    formats = context.plugin_manager.get_environment_exporters_grouped()
 
     # find the first multiplatform lockfile
     multiplatform_lockfile = get_multiplatform_lockfile(formats)
