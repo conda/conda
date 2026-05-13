@@ -39,7 +39,7 @@ class BuildRepodataSubset(typing.Protocol):
         root_packages: Iterable[str],
         channels: dict[str, typing.Any],
         algorithm: Literal["bfs", "pipelined"] = "pipelined",
-        v3: bool = False,
+        repodata_version: int = 1,
     ) -> dict[str, Shards] | None:
         """
         Retrieve a minimal subset of repodata based on root packages.
@@ -48,7 +48,7 @@ class BuildRepodataSubset(typing.Protocol):
             root_packages: Iterable of installed and requested package names
             channels: Dictionary mapping channel URLs to Channel objects
             algorithm: Traversal algorithm to use ("bfs" or "pipelined")
-            v3: whether to use the v3 format of the repodata.
+            repodata_version: repodata format version (1 = classic, 3 = v3).
         Returns:
             A dictionary mapping channel URLs to Shards objects containing
             the subset of packages needed, or None if shards are unavailable

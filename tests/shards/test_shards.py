@@ -523,7 +523,7 @@ def test_shard_mentioned_packages_v3_depends():
             }
         }
     )
-    names = list(shard_mentioned_packages(shard, v3=True))
+    names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert "openssl" in names
     assert "libffi" in names
 
@@ -541,7 +541,7 @@ def test_shard_mentioned_packages_v3_extra_depends():
             }
         }
     )
-    names = list(shard_mentioned_packages(shard, v3=True))
+    names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert "cudatoolkit" in names
     assert "mkl" in names
 
@@ -557,7 +557,7 @@ def test_shard_mentioned_packages_v3_depends_and_extra_depends():
             }
         }
     )
-    names = list(shard_mentioned_packages(shard, v3=True))
+    names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert "numpy" in names
     assert "cudatoolkit" in names
 
@@ -572,7 +572,7 @@ def test_shard_mentioned_packages_v3_deduplication_within_v3():
             }
         }
     )
-    names = list(shard_mentioned_packages(shard, v3=True))
+    names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert names.count("openssl") == 1
 
 
@@ -594,7 +594,7 @@ def test_shard_mentioned_packages_v3_deduplication_across_classic_and_v3():
             }
         },
     }
-    names = list(shard_mentioned_packages(shard, v3=True))
+    names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert names.count("openssl") == 1
 
 
@@ -603,7 +603,7 @@ def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
     spy = mocker.spy(shards, "ensure_hex_hash")
     record = {"sha256": b"\xde\xad\xbe\xef" * 8, "depends": ["zlib >=1.2"]}
     shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": record}})
-    list(shard_mentioned_packages(shard, v3=True))
+    list(shard_mentioned_packages(shard, repodata_version=3))
     spy.assert_called()
     # ensure_hex_hash mutates in-place
     assert record["sha256"] == "deadbeef" * 8
@@ -612,9 +612,9 @@ def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
 def test_shard_mentioned_packages_v3_empty():
     shard_with_empty_v3 = _v3_shard({})
     shard_without_v3 = dict(EMPTY_SHARD)
-    assert list(shard_mentioned_packages(shard_with_empty_v3, v3=True)) == list(
-        shard_mentioned_packages(shard_without_v3, v3=True)
-    )
+    assert list(
+        shard_mentioned_packages(shard_with_empty_v3, repodata_version=3)
+    ) == list(shard_mentioned_packages(shard_without_v3, repodata_version=3))
 
 
 def test_shard_mentioned_packages_v3_key_absent():
@@ -637,7 +637,9 @@ def test_shard_mentioned_packages_v3_key_absent():
 def test_shard_mentioned_packages_extra_single_yield():
     # extra is emitted once, after both classic and v3 packages have been processed
     shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["zlib >=1.2"]}}})
-    names = list(shard_mentioned_packages(shard, extra=["injected"], v3=True))
+    names = list(
+        shard_mentioned_packages(shard, extra=["injected"], repodata_version=3)
+    )
     assert names.count("injected") == 1
 
 
@@ -650,7 +652,7 @@ def test_shard_mentioned_packages_v3_skipped_by_default():
 
 def test_shard_mentioned_packages_v3_skipped_explicit_false():
     shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["v3only >=1"]}}})
-    names = list(shard_mentioned_packages(shard, v3=False))
+    names = list(shard_mentioned_packages(shard, repodata_version=1))
     assert "v3only" not in names
 
 
@@ -673,11 +675,11 @@ def test_shard_mentioned_packages_classic_unaffected_by_v3_flag():
             }
         },
     }
-    without_v3 = list(shard_mentioned_packages(shard, v3=False))
+    without_v3 = list(shard_mentioned_packages(shard, repodata_version=1))
     assert "classic_dep" in without_v3
     assert "v3only_dep" not in without_v3
 
-    with_v3 = list(shard_mentioned_packages(shard, v3=True))
+    with_v3 = list(shard_mentioned_packages(shard, repodata_version=3))
     assert "classic_dep" in with_v3
     assert "v3only_dep" in with_v3
 
