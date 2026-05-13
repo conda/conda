@@ -516,8 +516,8 @@ def _v3_shard(groups: dict) -> dict:
 def test_shard_mentioned_packages_v3_depends():
     shard = _v3_shard(
         {
-            "cpython": {
-                "cpython-3.12-h1.conda": {
+            "conda": {
+                "cpython-3.12.0-0": {
                     "depends": ["openssl >=3", "libffi >=3.4"],
                 },
             }
@@ -531,8 +531,8 @@ def test_shard_mentioned_packages_v3_depends():
 def test_shard_mentioned_packages_v3_extra_depends():
     shard = _v3_shard(
         {
-            "numpy": {
-                "numpy-2.0-py312.conda": {
+            "whl": {
+                "numpy-2.0-py312_none_any_0": {
                     "extra_depends": {
                         "cuda": ["cudatoolkit >=11.8"],
                         "mkl": ["mkl >=2023"],
@@ -549,8 +549,8 @@ def test_shard_mentioned_packages_v3_extra_depends():
 def test_shard_mentioned_packages_v3_depends_and_extra_depends():
     shard = _v3_shard(
         {
-            "scipy": {
-                "scipy-1.13-py312.conda": {
+            "whl": {
+                "scipy-1.13.0-py312_none_any_0": {
                     "depends": ["numpy >=1.23"],
                     "extra_depends": {"cuda": ["cudatoolkit >=11.8"]},
                 },
@@ -566,9 +566,9 @@ def test_shard_mentioned_packages_v3_deduplication_within_v3():
     # two records in the same v3 group share a dep spec
     shard = _v3_shard(
         {
-            "group": {
-                "pkgA-1.0.conda": {"depends": ["openssl >=3"]},
-                "pkgA-2.0.conda": {"depends": ["openssl >=3"]},
+            "whl": {
+                "pkgA-1.0-py3_none_any_0": {"depends": ["openssl >=3"]},
+                "pkgA-2.0-py3_none_any_0": {"depends": ["openssl >=3"]},
             }
         }
     )
@@ -589,8 +589,8 @@ def test_shard_mentioned_packages_v3_deduplication_across_classic_and_v3():
         },
         "packages.conda": {},
         "v3": {
-            "group": {
-                "bar-1.0.conda": {"depends": ["openssl >=3"]},
+            "whl": {
+                "bar-1.0-py3_none_any_0": {"depends": ["openssl >=3"]},
             }
         },
     }
@@ -602,7 +602,7 @@ def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
     # spy on the name as bound inside shards.py (imported by-name at module level)
     spy = mocker.spy(shards, "ensure_hex_hash")
     record = {"sha256": b"\xde\xad\xbe\xef" * 8, "depends": ["zlib >=1.2"]}
-    shard = _v3_shard({"group": {"pkg-1.0.conda": record}})
+    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": record}})
     list(shard_mentioned_packages(shard))
     spy.assert_called()
     # ensure_hex_hash mutates in-place
@@ -636,7 +636,7 @@ def test_shard_mentioned_packages_v3_key_absent():
 
 def test_shard_mentioned_packages_extra_single_yield():
     # extra is emitted once, after both classic and v3 packages have been processed
-    shard = _v3_shard({"group": {"pkg-1.0.conda": {"depends": ["zlib >=1.2"]}}})
+    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["zlib >=1.2"]}}})
     names = list(shard_mentioned_packages(shard, extra=["injected"]))
     assert names.count("injected") == 1
 
@@ -951,7 +951,12 @@ def test_iter_records_v3():
             "packages": {},
             "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg"}},
             "v3": {
-                "whl": {"mypkg-1.0-py312-none-any.whl": {"name": "mypkg"}},
+                "whl": {
+                    "mypkg-1.0-py312_none_any_0": {
+                        "name": "mypkg",
+                        "fn": "mypkg-1.0-py312-none-any.whl",
+                    }
+                },
             },
         },
     )
@@ -959,8 +964,8 @@ def test_iter_records_v3():
     shardlike.visited["ghost"] = None
     records = dict(shardlike.iter_records())
     assert "mypkg-1.0-0.conda" in records
-    assert "mypkg-1.0-py312-none-any.whl" in records
-    assert records["mypkg-1.0-py312-none-any.whl"]["name"] == "mypkg"
+    assert "mypkg-1.0-py312_none_any_0" in records
+    assert records["mypkg-1.0-py312_none_any_0"]["name"] == "mypkg"
 
 
 def test_shardlike_repr():
