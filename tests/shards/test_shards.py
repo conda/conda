@@ -506,6 +506,150 @@ def test_shard_mentioned_packages_2():
     )  # type: ignore
 
 
+EMPTY_SHARD: dict = {"packages": {}, "packages.conda": {}}
+
+
+def _v3_shard(groups: dict) -> dict:
+    return {**EMPTY_SHARD, "v3": groups}
+
+
+def test_shard_mentioned_packages_v3_depends():
+    shard = _v3_shard(
+        {
+            "conda": {
+                "cpython-3.12.0-0": {
+                    "depends": ["openssl >=3", "libffi >=3.4"],
+                },
+            }
+        }
+    )
+    names = list(shard_mentioned_packages(shard, repodata_version=3))
+    assert "openssl" in names
+    assert "libffi" in names
+
+
+def test_shard_mentioned_packages_v3_deduplication_within_v3():
+    # two records in the same v3 group share a dep spec
+    shard = _v3_shard(
+        {
+            "whl": {
+                "pkgA-1.0-py3_none_any_0": {"depends": ["openssl >=3"]},
+                "pkgA-2.0-py3_none_any_0": {"depends": ["openssl >=3"]},
+            }
+        }
+    )
+    names = list(shard_mentioned_packages(shard, repodata_version=3))
+    assert names.count("openssl") == 1
+
+
+def test_shard_mentioned_packages_v3_deduplication_across_classic_and_v3():
+    shard = {
+        "packages": {
+            "foo-1.0-0.tar.bz2": {
+                "name": "foo",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["openssl >=3"],
+            }
+        },
+        "packages.conda": {},
+        "v3": {
+            "whl": {
+                "bar-1.0-py3_none_any_0": {"depends": ["openssl >=3"]},
+            }
+        },
+    }
+    names = list(shard_mentioned_packages(shard, repodata_version=3))
+    assert names.count("openssl") == 1
+
+
+def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
+    # spy on the name as bound inside shards.py (imported by-name at module level)
+    spy = mocker.spy(shards, "ensure_hex_hash")
+    record = {"sha256": b"\xde\xad\xbe\xef" * 8, "depends": ["zlib >=1.2"]}
+    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": record}})
+    list(shard_mentioned_packages(shard, repodata_version=3))
+    spy.assert_called()
+    # ensure_hex_hash mutates in-place
+    assert record["sha256"] == "deadbeef" * 8
+
+
+def test_shard_mentioned_packages_v3_empty():
+    shard_with_empty_v3 = _v3_shard({})
+    shard_without_v3 = dict(EMPTY_SHARD)
+    assert list(
+        shard_mentioned_packages(shard_with_empty_v3, repodata_version=3)
+    ) == list(shard_mentioned_packages(shard_without_v3, repodata_version=3))
+
+
+def test_shard_mentioned_packages_v3_key_absent():
+    shard = {
+        "packages": {
+            "pkg-1.0-0.tar.bz2": {
+                "name": "pkg",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["zlib >=1.2"],
+            }
+        },
+        "packages.conda": {},
+    }
+    names = list(shard_mentioned_packages(shard))
+    assert "zlib" in names
+
+
+def test_shard_mentioned_packages_extra_single_yield():
+    # extra is emitted once, after both classic and v3 packages have been processed
+    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["zlib >=1.2"]}}})
+    names = list(
+        shard_mentioned_packages(shard, extra=["injected"], repodata_version=3)
+    )
+    assert names.count("injected") == 1
+
+
+def test_shard_mentioned_packages_v3_skipped_by_default():
+    # v3 deps must not appear when the v3 flag is not set (default False)
+    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["v3only >=1"]}}})
+    names = list(shard_mentioned_packages(shard))
+    assert "v3only" not in names
+
+
+def test_shard_mentioned_packages_v3_skipped_explicit_false():
+    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": {"depends": ["v3only >=1"]}}})
+    names = list(shard_mentioned_packages(shard, repodata_version=1))
+    assert "v3only" not in names
+
+
+def test_shard_mentioned_packages_classic_unaffected_by_v3_flag():
+    # classic deps always appear; v3-only deps are gated by the flag
+    shard = {
+        "packages": {
+            "foo-1.0-0.tar.bz2": {
+                "name": "foo",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["classic_dep >=1"],
+            }
+        },
+        "packages.conda": {},
+        "v3": {
+            "whl": {
+                "bar-1.0-py3_none_any_0": {"depends": ["v3only_dep >=1"]},
+            }
+        },
+    }
+    without_v3 = list(shard_mentioned_packages(shard, repodata_version=1))
+    assert "classic_dep" in without_v3
+    assert "v3only_dep" not in without_v3
+
+    with_v3 = list(shard_mentioned_packages(shard, repodata_version=3))
+    assert "classic_dep" in with_v3
+    assert "v3only_dep" in with_v3
+
+
 @pytest.mark.integration
 def test_fetch_shards_channels(prepare_shards_test: None):
     """
@@ -788,6 +932,49 @@ def test_shardlike():
     repodata = as_shards.build_repodata()
     assert len(repodata["packages"]) == 3
     assert len(repodata["packages.conda"]) == 3
+
+
+def test_iter_records_classic():
+    shardlike = ShardLike(
+        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+    )
+    shardlike.visit_shard(
+        "mypkg",
+        {
+            "packages": {"mypkg-1.0-0.tar.bz2": {"name": "mypkg"}},
+            "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg"}},
+        },
+    )
+    records = dict(shardlike.iter_records())
+    assert "mypkg-1.0-0.tar.bz2" in records
+    assert "mypkg-1.0-0.conda" in records
+
+
+def test_iter_records_v3():
+    shardlike = ShardLike(
+        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+    )
+    shardlike.visit_shard(
+        "mypkg",
+        {
+            "packages": {},
+            "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg"}},
+            "v3": {
+                "whl": {
+                    "mypkg-1.0-py312_none_any_0": {
+                        "name": "mypkg",
+                        "fn": "mypkg-1.0-py312-none-any.whl",
+                    }
+                },
+            },
+        },
+    )
+    # None entries in visited must not raise
+    shardlike.visited["ghost"] = None
+    records = dict(shardlike.iter_records())
+    assert "mypkg-1.0-0.conda" in records
+    assert "mypkg-1.0-py312_none_any_0" in records
+    assert records["mypkg-1.0-py312_none_any_0"]["name"] == "mypkg"
 
 
 def test_shardlike_repr():
