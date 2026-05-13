@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Extract dependency names and package records from v3 repodata groups in `shard_mentioned_packages` and `iter_records`. (#16067 via #16078)
+* Sharded repodata: extract dependency names and package records from v3 repodata groups in `shard_mentioned_packages` and `iter_records` for compatible solvers. (#16067 via #16078)
 
 ### Bug fixes
 
