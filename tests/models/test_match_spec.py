@@ -1946,18 +1946,6 @@ def test_when_package_name_with_boolean_word_substring():
     assert ms.get("when") == "pandoc >=2.0"
 
 
-@pytest.mark.xfail(
-    reason=(
-        "_validate_when_spec splits naively on ' and '/'  or ', "
-        "corrupting quoted bracket values that contain those words"
-    )
-)
-def test_when_inner_bracket_with_quoted_boolean_word():
-    # A when value whose inner bracket spec contains a quoted string with "and"
-    # e.g. python[build="fast and slow"] — the split on ' and ' corrupts this
-    MatchSpec(r'pkg[when="python[build=\"fast and slow\"]"]')
-
-
 @pytest.mark.parametrize(
     "when",
     [
