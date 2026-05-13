@@ -217,8 +217,7 @@ def shard_mentioned_packages(
 ) -> Iterable[str]:
     """
     Return all dependency names mentioned in a shard, not including the shard's
-    own package name. Additional names can be injected via ``extra`` and
-    ``extra_depends`` for v3 repodata.
+    own package name.
     """
     unique_specs: set[str] = set()
 
@@ -228,12 +227,6 @@ def shard_mentioned_packages(
             if spec not in unique_specs:
                 unique_specs.add(spec)
                 yield spec_to_package_name(spec)
-        if extra_depends := record.get("extra_depends"):
-            for deps in extra_depends.values():
-                for spec in deps:
-                    if spec not in unique_specs:
-                        unique_specs.add(spec)
-                        yield spec_to_package_name(spec)
 
     for record in shard["packages"].values():
         yield from _yield_record(record)

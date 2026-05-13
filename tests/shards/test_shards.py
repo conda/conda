@@ -528,40 +528,6 @@ def test_shard_mentioned_packages_v3_depends():
     assert "libffi" in names
 
 
-def test_shard_mentioned_packages_v3_extra_depends():
-    shard = _v3_shard(
-        {
-            "whl": {
-                "numpy-2.0-py312_none_any_0": {
-                    "extra_depends": {
-                        "cuda": ["cudatoolkit >=11.8"],
-                        "mkl": ["mkl >=2023"],
-                    },
-                },
-            }
-        }
-    )
-    names = list(shard_mentioned_packages(shard, repodata_version=3))
-    assert "cudatoolkit" in names
-    assert "mkl" in names
-
-
-def test_shard_mentioned_packages_v3_depends_and_extra_depends():
-    shard = _v3_shard(
-        {
-            "whl": {
-                "scipy-1.13.0-py312_none_any_0": {
-                    "depends": ["numpy >=1.23"],
-                    "extra_depends": {"cuda": ["cudatoolkit >=11.8"]},
-                },
-            }
-        }
-    )
-    names = list(shard_mentioned_packages(shard, repodata_version=3))
-    assert "numpy" in names
-    assert "cudatoolkit" in names
-
-
 def test_shard_mentioned_packages_v3_deduplication_within_v3():
     # two records in the same v3 group share a dep spec
     shard = _v3_shard(
