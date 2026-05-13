@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import os
 import sys
 from argparse import (
@@ -13,9 +12,12 @@ from argparse import (
     RawDescriptionHelpFormatter,
 )
 from argparse import ArgumentParser as ArgumentParserBase
+from functools import partial
 from importlib import import_module
+from inspect import getmodule
 from logging import getLogger
 from subprocess import Popen
+from typing import TYPE_CHECKING
 
 from .. import __version__
 from ..auxlib.ish import dals
@@ -65,6 +67,9 @@ from .main_run import configure_parser as configure_parser_run
 from .main_search import configure_parser as configure_parser_search
 from .main_update import configure_parser as configure_parser_update
 
+if TYPE_CHECKING:
+    from ..plugins.types import CondaSubcommand
+
 log = getLogger(__name__)
 
 escaped_user_rc_path = user_rc_path.replace("%", "%%")
@@ -95,6 +100,29 @@ BUILTIN_COMMANDS = {
     "upgrade",  # update alias
 }
 """List of built-in commands; these cannot be overridden by plugin subcommands."""
+
+BUILTIN_COMMAND_PARSERS = {
+    "activate": configure_parser_activate,
+    "clean": configure_parser_clean,
+    "commands": configure_parser_commands,
+    "compare": configure_parser_compare,
+    "config": configure_parser_config,
+    "create": configure_parser_create,
+    "deactivate": configure_parser_deactivate,
+    "env": configure_parser_env,
+    "export": configure_parser_export,
+    "info": configure_parser_info,
+    "init": configure_parser_init,
+    "install": configure_parser_install,
+    "list": configure_parser_list,
+    "notices": configure_parser_notices,
+    "package": configure_parser_package,
+    "remove": partial(configure_parser_remove, aliases=["uninstall"]),
+    "rename": configure_parser_rename,
+    "run": configure_parser_run,
+    "search": configure_parser_search,
+    "update": partial(configure_parser_update, aliases=["upgrade"]),
+}
 
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:
@@ -141,27 +169,20 @@ def generate_parser(**kwargs) -> ArgumentParser:
         required=True,
     )
 
-    configure_parser_activate(sub_parsers)
-    configure_parser_clean(sub_parsers)
-    configure_parser_commands(sub_parsers)
-    configure_parser_compare(sub_parsers)
-    configure_parser_config(sub_parsers)
-    configure_parser_create(sub_parsers)
-    configure_parser_deactivate(sub_parsers)
-    configure_parser_env(sub_parsers)
-    configure_parser_export(sub_parsers)
-    configure_parser_info(sub_parsers)
-    configure_parser_init(sub_parsers)
-    configure_parser_install(sub_parsers)
-    configure_parser_list(sub_parsers)
-    configure_parser_notices(sub_parsers)
-    configure_parser_package(sub_parsers)
+    preview_plugin_commands = {
+        name
+        for name, plugin_subcommand in context.plugin_manager.get_subcommands().items()
+        if _is_preview_command(plugin_subcommand)
+    }
+
+    # We only register if it's not being overriden by something in the
+    # `conda._preview` module
+    for builtin, config_func in BUILTIN_COMMAND_PARSERS.items():
+        if builtin not in preview_plugin_commands:
+            config_func(sub_parsers)
+
+    # Special configure call just for plugin subcommands
     configure_parser_plugins(sub_parsers)
-    configure_parser_remove(sub_parsers, aliases=["uninstall"])
-    configure_parser_rename(sub_parsers)
-    configure_parser_run(sub_parsers)
-    configure_parser_search(sub_parsers)
-    configure_parser_update(sub_parsers, aliases=["upgrade"])
 
     return parser
 
@@ -183,28 +204,8 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # let's call the subcommand the old-fashioned way via the assigned func..
         module_name, func_name = args.func.rsplit(".", 1)
         # func_name should always be 'execute'
+        module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
-
-        # Dynamic preview routing: for each enabled preview label, check whether a
-        # corresponding module exists under conda._preview.<pkg>.cli and use it instead.
-        # This means adding e.g. conda/_preview/env_setup/cli/main_update.py is sufficient
-        # to intercept `conda update` — no code change needed here.
-        # Only built-in conda.cli.* modules are eligible for redirection; plugin
-        # subcommands are handled by the branch above and are never affected.
-        module = None
-        for _label in context.preview:
-            _pkg = _label.replace("-", "_")
-            _candidate = module_name.replace(
-                "conda.cli", f"conda._preview.{_pkg}.cli", 1
-            )
-            if (
-                _candidate != module_name
-                and importlib.util.find_spec(_candidate) is not None
-            ):
-                module = import_module(_candidate)
-                break
-        if module is None:
-            module = import_module(module_name)
 
         context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)
@@ -294,6 +295,15 @@ def _exec_unix(executable_args, env_vars):
     os.execvpe(executable_args[0], executable_args, env_vars)
 
 
+def _is_preview_command(plugin_subcommand: CondaSubcommand) -> bool:
+    """
+    Determine whether this plugin subcommand is a preview command.
+    """
+    module_name = getmodule(plugin_subcommand.action).__name__
+
+    return module_name.startswith("conda._preview")
+
+
 def configure_parser_plugins(sub_parsers) -> None:
     """
     For each of the provided plugin-based subcommands, we'll create
@@ -305,7 +315,7 @@ def configure_parser_plugins(sub_parsers) -> None:
     for name, plugin_subcommand in plugin_subcommands.items():
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
-        if name in BUILTIN_COMMANDS:
+        if name in BUILTIN_COMMANDS and not _is_preview_command(plugin_subcommand):
             log.error(
                 dals(
                     f"""
