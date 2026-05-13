@@ -1213,7 +1213,7 @@ def _validate_when_spec(spec) -> None:
     specs = []
     for a in spec.split(" and "):
         for b in a.split(" or "):
-            specs.append(b.strip(" ()").strip("'\""))
+            specs.append(b.strip(" ()"))
     for found in specs:
         parsed = MatchSpec(found)
         if parsed.get("when"):
