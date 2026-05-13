@@ -327,7 +327,7 @@ def test_get_conda_anchor_files_and_records():
 
 
 def test_get_conda_anchor_files_and_records_case_sensitivity(monkeypatch: MonkeyPatch):
-    monkeypatch.setattr("conda.core.prefix_data.on_win", lambda: True)
+    monkeypatch.setattr("conda.core.prefix_data.on_win", True)
 
     @dataclass
     class DummyPythonRecord:
