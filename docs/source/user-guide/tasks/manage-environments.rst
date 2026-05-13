@@ -332,7 +332,7 @@ source environment and the new copy.
 Building identical conda environments
 =====================================
 
-There are two ways to build identical conda environments, 
+There are two ways to build identical conda environments,
 using explicit specification files and using lockfiles.
 
 Explicit spec files are usually limited to a single platform,
@@ -343,11 +343,11 @@ Multi-platform lockfiles
 
 .. note::
 
-  Lockfile support is available in conda 26.5 and later. 
+  Lockfile support is available in conda 26.5 and later.
   Use the following command to update:
-  
+
   .. code::
-    
+
      conda install --name base "conda>=26.5"
 
 A lockfile contains the exact packages, versions, builds, and
