@@ -489,25 +489,24 @@ class RepodataSubset:
                 pending.update(
                     self._visit_node(
                         parent_node,
-                        filter(
-                            None,
-                            shard_mentioned_packages(
-                                shard,
-                                extra=extra,
-                                spec_to_package_name=self._spec_to_package_name,
-                            ),
+                        shard_mentioned_packages(
+                            shard,
+                            extra=extra,
+                            spec_to_package_name=self._spec_to_package_name,
                         ),
                     )
                 )
 
     def _visit_node(
-        self, parent_node: Node, mentioned_packages: Iterable[str]
+        self, parent_node: Node, mentioned_packages: Iterable[str | None]
     ) -> Iterable[NodeId]:
         """Broadcast mentioned packages across channels. yield pending NodeId's."""
         # NOTE we have visit for Nodes which is used in the graph traversal
         # algorithm, and a separate visit for ShardBase which means "include
         # this package in the output repodata".
         for package in mentioned_packages:
+            if package is None:
+                continue
             for shardlike in self.shardlikes:
                 if package in shardlike:
                     new_node_id = NodeId(
