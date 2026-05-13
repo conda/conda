@@ -586,10 +586,7 @@ def test_bracket_matches():
     }
 
     assert MatchSpec("numpy<2").match(record)
-    with pytest.warns(
-        (DeprecationWarning, PendingDeprecationWarning),
-        match="Please use `version='<2'`",
-    ):
+    with pytest.deprecated_call(match="Please use `version='<2'`"):
         badspec = MatchSpec("numpy[version<2]")
         assert badspec.version
         assert badspec.match(record)
@@ -1980,27 +1977,13 @@ def test_if_syntax_not_silently_dropped():
     [
         "pkg[extras=]",  # empty value — caught before YAML is called
         "pkg[flags=]",  # same for flags
+        "pkg[extras=[a,,b]]",  # invalid list
+        "pkg[build=0,junk]",  # trailing junk
     ],
 )
 def test_extras_flags_empty_value_raises(spec):
     with pytest.raises(InvalidMatchSpec):
         MatchSpec(spec)
-
-
-@pytest.mark.parametrize(
-    "spec",
-    [
-        "pkg[extras=[a,,b]]",
-    ],
-)
-def test_extras_invalid_list_syntax_raises(spec):
-    with pytest.raises(InvalidMatchSpec):
-        MatchSpec(spec)
-
-
-def test_bracket_trailing_junk_raises():
-    with pytest.raises(InvalidMatchSpec):
-        MatchSpec("pkg[build=0,junk]")
 
 
 def test_extras_serialization_is_sorted():

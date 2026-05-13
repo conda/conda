@@ -77,7 +77,7 @@ _BRACKETS_KV_RE_V3: re.Pattern[str] = re.compile(
                                       #    comma-separated lists fully (e.g. flags=[a, b])
                                       #    without being caught by 'when' specs like
                                       #    `python[version='>=3,<4']`
-        \[ *                            # opening square bracket, with maybe spaces
+        \[\ *                           # opening square bracket, with maybe spaces
         (?P<value_list>[^\[\]]*?)         # inner value; will be parsed as YAML, this is enough.
                                           # a previous attempt had a more sophisticated regex
                                           # with quote and comma tracking, but it hang with input:
@@ -1051,9 +1051,7 @@ def _parse_spec_str_v3(spec_str):
             if "][" in value:
                 raise InvalidSpec("Multiple bracket sections are not allowed")
             if key in ("flags", "extras"):
-                if (value[0] == "[" and value[-1] != "]") or (
-                    value[-1] == "]" and value[0] != "["
-                ):
+                if (value[0] == "[") ^ (value[-1] == "]"):
                     # mismatched single-item list, raise
                     raise InvalidSpec(f"'{key}' value has unbalanced brackets: {value}")
                 inner = value.strip("[]")
@@ -1078,8 +1076,8 @@ def _parse_spec_str_v3(spec_str):
                 brackets_str_version = brackets_str[len("version") :]
                 brackets["version"] = _sanitize_version_str(brackets_str_version, None)
                 deprecated.topic(
-                    "26.5",
-                    "26.11",
+                    "26.9",
+                    "27.3",
                     topic="MatchSpec version expression without = separator",
                     addendum=f"This MatchSpec syntax `{original_spec_str}` was accidentally "
                     f"allowed in the past. Please use `version='{brackets_str_version}'`.",
@@ -1215,7 +1213,7 @@ def _validate_when_spec(spec) -> None:
     specs = []
     for a in spec.split(" and "):
         for b in a.split(" or "):
-            specs.append(b.strip(" ()'\""))
+            specs.append(b.strip(" ()").strip("'\""))
     for found in specs:
         parsed = MatchSpec(found)
         if parsed.get("when"):
