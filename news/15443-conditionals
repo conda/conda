@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add support for conditional dependencies, optional dependency groups, and variant flags in `MatchSpec` expressions (introduced in [conda/ceps#164](https://github.com/conda/ceps/pull/164), [conda/ceps#165](https://github.com/conda/ceps/pull/165), and [conda/ceps#166](https://github.com/conda/ceps/pull/166)). (#15443)
+* Add parsing and storage support for conditional dependencies, optional dependency groups, and variant flags in `MatchSpec` expressions (introduced in [conda/ceps#164](https://github.com/conda/ceps/pull/164), [conda/ceps#165](https://github.com/conda/ceps/pull/165), and [conda/ceps#166](https://github.com/conda/ceps/pull/166)). (#15443)
 
 ### Bug fixes
 
