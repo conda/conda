@@ -64,6 +64,8 @@ _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
 )
 # These _V3 are for new matchspecs in repodata v3
 _BRACKETS_RE_V3: re.Pattern[str] = re.compile(r"^.*?(\[.*\])(?:\(.+\))?$")
+# Detects empty items in a YAML flow sequence (e.g. [a,,b])
+_LIST_EMPTY_ITEM_RE: re.Pattern[str] = re.compile(r",\s*,")
 # Matches all the key-value pairs within the square brackets section
 _BRACKETS_KV_RE_V3: re.Pattern[str] = re.compile(
     r"""
@@ -1054,9 +1056,12 @@ def _parse_spec_str_v3(spec_str):
                 ):
                     # mismatched single-item list, raise
                     raise InvalidSpec(f"'{key}' value has unbalanced brackets: {value}")
+                inner = value.strip("[]")
+                if _LIST_EMPTY_ITEM_RE.search(inner):
+                    raise InvalidSpec(f"'{key}' list has an empty item: {value!r}")
                 value = tuple(
                     str(x) if x is not None else "null"
-                    for x in yaml.loads(f"[{value.strip('[]')}]")
+                    for x in yaml.loads(f"[{inner}]")
                 )
             elif key == "when":
                 _validate_when_spec(value)

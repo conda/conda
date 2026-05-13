@@ -1718,6 +1718,9 @@ def test_extra_specs():
         assert ms.get("extras") == ("a", "b")
         assert str(ms) == "python[extras=['a', 'b']]"
 
+    # Trailing comma is accepted (YAML flow-sequence semantics) and normalizes silently
+    assert MatchSpec("pkg[extras=[a,]]").get("extras") == ("a",)
+
     # Inner lists MUST have commas
     assert MatchSpec("package[extras=[a b]]").get("extras") == ("a b",)
 
@@ -1987,18 +1990,7 @@ def test_extras_flags_empty_value_raises(spec):
 @pytest.mark.parametrize(
     "spec",
     [
-        pytest.param(
-            "pkg[extras=[a,]]",
-            marks=pytest.mark.xfail(
-                reason="Trailing comma in YAML flow sequence behavior not guaranteed to raise"
-            ),
-        ),
-        pytest.param(
-            "pkg[extras=[a,,b]]",
-            marks=pytest.mark.xfail(
-                reason="Empty YAML item becomes 'null' string rather than raising"
-            ),
-        ),
+        "pkg[extras=[a,,b]]",
     ],
 )
 def test_extras_invalid_list_syntax_raises(spec):
