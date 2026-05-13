@@ -59,7 +59,6 @@ requirements:
     - zstandard >=0.15
     # Plugins to bundle with conda
     - conda-libmamba-solver >=26.4.1
-    - conda-pypi >=0.8.0
     - conda-lockfiles >=0.2.0
     - conda-self >=0.2.0
   run_constrained:
