@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add parsing and storage support for conditional dependencies, optional dependency groups, and variant flags in `MatchSpec` expressions (introduced in [conda/ceps#164](https://github.com/conda/ceps/pull/164), [conda/ceps#165](https://github.com/conda/ceps/pull/165), and [conda/ceps#166](https://github.com/conda/ceps/pull/166)). (#15443)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Accidentally allowed and silently ignored `package[version<1]`-like `MatchSpecs` will be removed in `27.3`. The square bracket syntax must always include `key=value` pairs. (#15443)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -28,6 +28,7 @@ from ..auxlib.entity import (
     EnumField,
     IntegerField,
     ListField,
+    MapField,
     NumberField,
     StringField,
 )
@@ -408,6 +409,11 @@ class PackageRecord(DictSafeMixin, Entity):
 
     depends = ListField(str, default=())
     constrains = ListField(str, default=())
+
+    extra_depends = MapField(
+        default={}, required=False, default_in_dump=False, aliases=("extra-depends",)
+    )
+    flags = ListField(str, default=(), required=False, default_in_dump=False)
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
