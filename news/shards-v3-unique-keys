@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* In v3 sharded repodata, yield unique keys from `Shards.iter_records()`
+  by appending section name (package extension) to keys. (`iter_records()`
+  yields key, value pairs). #16099
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
