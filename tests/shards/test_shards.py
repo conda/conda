@@ -506,6 +506,23 @@ def test_shard_mentioned_packages_2():
     )  # type: ignore
 
 
+def test_shard_mentioned_packages_invalid_spec_skipped():
+    # An unparseable spec is silently skipped; valid deps are still yielded and
+    # no None values appear in the output.
+    shard = {
+        "packages": {
+            "foo-1.0-0.tar.bz2": {
+                "name": "foo",
+                "depends": ["valid_pkg >=1", "!!!invalid!!!"],
+            }
+        },
+        "packages.conda": {},
+    }
+    names = list(shard_mentioned_packages(shard))
+    assert "valid_pkg" in names
+    assert None not in names
+
+
 EMPTY_SHARD: dict = {"packages": {}, "packages.conda": {}}
 
 

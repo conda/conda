@@ -19,6 +19,7 @@ import zstandard
 
 import conda.exceptions
 import conda.gateways.repodata
+from conda.base.constants import REPODATA_SHARDS_FN
 from conda.base.context import context
 from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import get_session
@@ -226,7 +227,9 @@ def shard_mentioned_packages(
         for spec in record.get("depends", ()):
             if spec not in unique_specs:
                 unique_specs.add(spec)
-                yield spec_to_package_name(spec)
+                name = spec_to_package_name(spec)
+                if name is not None:
+                    yield name  # not much improvement from only yielding unique names
 
     for record in shard["packages"].values():
         yield from _yield_record(record)
@@ -547,9 +550,8 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
         headers["If-None-Match"] = str(etag)
     if last_modified:
         headers["If-Modified-Since"] = str(last_modified)
-    filename = "repodata_shards.msgpack.zst"
 
-    with conda_http_errors(url, filename):
+    with conda_http_errors(url, REPODATA_SHARDS_FN):
         timeout = (
             context.remote_connect_timeout_secs,
             context.remote_read_timeout_secs,
@@ -633,7 +635,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
     if cache_state.should_check_format("shards"):
         # look for shards index
         shards_data = None
-        shards_index_url = f"{sd.url_w_subdir}/repodata_shards.msgpack.zst"
+        shards_index_url = f"{sd.url_w_subdir}/{REPODATA_SHARDS_FN}"
 
         if not repo_cache.cache_path_shards.exists():
             # avoid 304 not modified if we don't have the file
