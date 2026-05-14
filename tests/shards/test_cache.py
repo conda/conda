@@ -4,11 +4,14 @@
 
 from __future__ import annotations
 
+import platform
 import threading
 
+import pytest
 import zstandard
 
 from conda._private.shards.cache import AnnotatedRawShard, ShardCache
+from conda.common.compat import on_mac
 
 
 class TestCacheWALMode:
@@ -76,6 +79,10 @@ class TestCacheWALMode:
         # No sqlite3.OperationalError from either thread
         assert errors == []
 
+    @pytest.mark.skipif(
+        on_mac and platform.machine() == "x86_64",
+        reason="concurrent sqlite writes segfault on macOS Intel (#16083)",
+    )
     def test_shards_cache_concurrent_multiple_writers(self, tmp_path):
         """Multiple concurrent writers must not raise OperationalError."""
         import msgpack
