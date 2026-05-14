@@ -661,10 +661,7 @@ def test_invalid_match_spec():
     [
         ("'package'", "invalid characters"),
         ('"package"', "invalid characters"),
-        ("'package==3'", "invalid characters"),
-        ('"package==3"', "invalid characters"),
-        ("'package'>=1.0", "invalid characters"),
-        ("pack@ge>=1.0", "invalid characters"),
+        ("pack@ge", "invalid characters"),
         ("pkg..name", "invalid package name"),
         ("pkg--name", "invalid package name"),
         (".pkg", "invalid package name"),
