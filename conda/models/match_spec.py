@@ -915,6 +915,11 @@ def _parse_spec_str(spec_str):
             raise InvalidMatchSpec(
                 original_spec_str, f"no package name found in '{spec_str}'"
             )
+        if "'" in name or '"' in name:
+            raise InvalidMatchSpec(
+                original_spec_str,
+                "package name contains invalid quote characters",
+            )
     else:
         raise InvalidMatchSpec(original_spec_str, "no package name found")
 
@@ -1138,6 +1143,11 @@ def _parse_spec_str_v3(spec_str):
         if name is None:
             raise InvalidMatchSpec(
                 original_spec_str, f"no package name found in '{spec_str}'"
+            )
+        if "'" in name or '"' in name:
+            raise InvalidMatchSpec(
+                original_spec_str,
+                "package name contains invalid quote characters",
             )
     else:
         raise InvalidMatchSpec(original_spec_str, "no package name found")

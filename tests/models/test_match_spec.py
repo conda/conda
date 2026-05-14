@@ -656,6 +656,22 @@ def test_invalid_match_spec():
         str(MatchSpec("!xyz 1.3"))
 
 
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "'package'",
+        '"package"',
+        "'package==3'",
+        '"package==3"',
+        "'package'>=1.0",
+    ],
+)
+def test_quoted_name_rejected(spec):
+    """Quote characters in package names must raise InvalidMatchSpec (CEP-26)."""
+    with pytest.raises(InvalidMatchSpec, match="quote"):
+        MatchSpec(spec)
+
+
 def cb_form(spec_str):
     return MatchSpec(spec_str).conda_build_form()
 
