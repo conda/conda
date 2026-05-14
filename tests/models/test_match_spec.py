@@ -3,7 +3,7 @@
 import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from conda.base.context import context, reset_context
+from conda.base.context import context
 from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
 from conda.exceptions import InvalidMatchSpec, InvalidSpec
@@ -23,10 +23,8 @@ blas_value = "accelerate" if context.subdir == "osx-64" else "openblas"
 
 
 @pytest.fixture
-def match_spec_v3(monkeypatch):
+def match_spec_v3(solver_rattler):
     """Activate the v3 MatchSpec parser by setting the solver to rattler."""
-    monkeypatch.setenv("CONDA_SOLVER", "rattler")
-    reset_context()
     _PARSE_CACHE.clear()
     yield
     _PARSE_CACHE.clear()

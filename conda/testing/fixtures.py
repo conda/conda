@@ -181,7 +181,14 @@ def solver_libmamba(
     yield from _solver_helper(request, "libmamba")
 
 
-Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"])
+@pytest.fixture
+def solver_rattler(
+    request: FixtureRequest,
+) -> Iterable[Literal["rattler"]]:
+    yield from _solver_helper(request, "rattler")
+
+
+Solver = TypeVar("Solver", Literal["libmamba"], Literal["classic"], Literal["rattler"])
 
 
 def _solver_helper(
