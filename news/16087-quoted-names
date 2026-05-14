@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Reject package names containing quote characters in `MatchSpec` with a clear error message. (#16087)
+* Validate `MatchSpec` package names against CEP-26 rules, rejecting names with invalid characters or structure. (#16087)
 
 ### Deprecations
 
