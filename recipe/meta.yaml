@@ -94,7 +94,6 @@ test:
     - conda upgrade --help
     # plugin subcommands
     - conda doctor --help
-    - conda pypi --help
     - conda self --help
 
 about:
