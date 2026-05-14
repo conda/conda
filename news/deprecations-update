@@ -10,7 +10,7 @@
 
 * Define private symbols, modules (i.e. starts-with-underscore `_`) as not
   requiring deprecation. Library users should avoid these symbols. See
-  [deprecations.md](https://github.com/conda/conda/blob/main/docs/source/dev-guide/deprecations.md).
+  [deprecations.md](https://docs.conda.io/projects/conda/en/26.5.x/dev-guide/deprecations.html). (#15977)
 
 ### Docs
 
