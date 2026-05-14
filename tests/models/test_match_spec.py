@@ -11,6 +11,7 @@ from conda.models.channel import Channel
 from conda.models.dist import Dist
 from conda.models.match_spec import (
     _BRACKETS_KV_RE,
+    _PARSE_CACHE,
     ChannelMatch,
     MatchSpec,
     _parse_spec_str,
@@ -19,6 +20,14 @@ from conda.models.records import PackageRecord
 from conda.models.version import VersionSpec
 
 blas_value = "accelerate" if context.subdir == "osx-64" else "openblas"
+
+
+@pytest.fixture
+def match_spec_v3(solver_rattler):
+    """Activate the v3 MatchSpec parser by setting the solver to rattler."""
+    _PARSE_CACHE.clear()
+    yield
+    _PARSE_CACHE.clear()
 
 
 def m(string) -> str:
@@ -586,10 +595,6 @@ def test_bracket_matches():
     }
 
     assert MatchSpec("numpy<2").match(record)
-    with pytest.deprecated_call(match="Please use `version='<2'`"):
-        badspec = MatchSpec("numpy[version<2]")
-        assert badspec.version
-        assert badspec.match(record)
     assert MatchSpec("numpy[version=<2]").match(record)
     assert not MatchSpec("numpy>2").match(record)
     assert not MatchSpec("numpy[version='>2']").match(record)
@@ -601,6 +606,21 @@ def test_bracket_matches():
 
     assert MatchSpec("numpy ~=1.10").match(record)
     assert MatchSpec("numpy~=1.10").match(record)
+
+
+def test_bracket_version_without_equals_v3(match_spec_v3):
+    """The v3 parser (rattler solver) handles numpy[version<2] with a deprecation warning."""
+    record = {
+        "name": "numpy",
+        "version": "1.11.0",
+        "build": "py34_7",
+        "build_number": 7,
+    }
+
+    with pytest.deprecated_call(match="Please use `version='<2'`"):
+        badspec = MatchSpec("numpy[version<2]")
+        assert badspec.version
+        assert badspec.match(record)
 
 
 def test_license_match():
@@ -1592,7 +1612,7 @@ def test_double_equals_version_consistency():
     assert str(ms_with_build) == "awscli==2.15.37=wghq"
 
 
-def test_conditional_specs():
+def test_conditional_specs(match_spec_v3):
     # should not be present
     assert MatchSpec("python").get("when") is None
 
@@ -1660,7 +1680,7 @@ def test_conditional_specs():
 
 
 @pytest.mark.xfail(reason="Pending implementation")
-def test_conditional_specs_merge():
+def test_conditional_specs_merge(match_spec_v3):
     merged, unmerged = MatchSpec.merge(["pkg[when=__linux", "pkg[when=__osx]"])
     assert not unmerged
     assert merged.get("when") == "(__linux) and (__osx)"
@@ -1672,13 +1692,13 @@ def test_conditional_specs_merge():
 
 
 @pytest.mark.xfail(reason="Pending implementation")
-def test_conditional_specs_match():
+def test_conditional_specs_match(match_spec_v3):
     with pytest.raises(ValueError):
         # Static matching without a solver are not specified for 'when'
         MatchSpec("pkg[when=__unix]").match({"name": "pkg"})
 
 
-def test_extra_specs():
+def test_extra_specs(match_spec_v3):
     # should not be present
     assert MatchSpec("python").get("extras") is None
 
@@ -1740,7 +1760,7 @@ def test_extra_specs():
 
 
 @pytest.mark.xfail(reason="Pending implementation")
-def test_extras_specs_merge():
+def test_extras_specs_merge(match_spec_v3):
     merged, unmerged = MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"])
     assert not unmerged
     assert merged.get("extras") == ("a", "b")
@@ -1750,7 +1770,7 @@ def test_extras_specs_merge():
 
 
 @pytest.mark.xfail(reason="Pending implementation")
-def test_extras_specs_match():
+def test_extras_specs_match(match_spec_v3):
     """
     Extras match via 'set.issubset' on the dictionary keys
     """
@@ -1761,7 +1781,7 @@ def test_extras_specs_match():
     assert not MatchSpec("pkg[extras=c]").match(record)
 
 
-def test_flags_specs():
+def test_flags_specs(match_spec_v3):
     # should not be present
     assert MatchSpec("python").get("flags") is None
 
@@ -1798,7 +1818,7 @@ def test_flags_specs():
 
 
 @pytest.mark.xfail(reason="Pending implementation")
-def test_flags_specs_merge():
+def test_flags_specs_merge(match_spec_v3):
     merged, unmerged = MatchSpec.merge(["pkg[flags=[a]]", "pkg[flags=[b]]"])
     assert not unmerged
     assert merged.get("flags") == ("a", "b")
@@ -1808,7 +1828,7 @@ def test_flags_specs_merge():
 
 
 @pytest.mark.xfail(reason="Pending implementation")
-def test_flags_specs_match():
+def test_flags_specs_match(match_spec_v3):
     """
     Flags match globbing the individual strings on the record.
     All of them must match at least one flag.
@@ -1855,7 +1875,7 @@ def test_flags_specs_match():
         ),
     ],
 )
-def test_match_spec_repodata_v3(spec, parsed):
+def test_match_spec_repodata_v3(spec, parsed, match_spec_v3):
     spec = MatchSpec(spec)
     assert spec.get("when") == parsed["when"]
     assert spec.get("extras") == parsed["extras"]
@@ -1924,24 +1944,23 @@ def test_kv_regex_does_not_hang_on_channel_urls():
         ("package[build=0][version=2]", "bracket section"),
     ],
 )
-def test_bad_brackets(spec, message):
+def test_bad_brackets(spec, message, match_spec_v3):
     with pytest.raises(InvalidMatchSpec, match=message):
         spec = MatchSpec(spec)
 
 
 @pytest.mark.parametrize("when_val", ['""', "''"])
-def test_when_empty_value_raises(when_val):
+def test_when_empty_value_raises(when_val, match_spec_v3):
     with pytest.raises(InvalidMatchSpec):
         MatchSpec(f"pkg[when={when_val}]")
 
 
-def test_when_whitespace_only_value_raises():
+def test_when_whitespace_only_value_raises(match_spec_v3):
     with pytest.raises(InvalidMatchSpec):
         MatchSpec('pkg[when="   "]')
 
 
-def test_when_package_name_with_boolean_word_substring():
-    # "pandoc" contains "and" as a substring — the validator must not split it
+def test_when_package_name_with_boolean_word_substring(match_spec_v3):
     ms = MatchSpec("pkg[when='pandoc >=2.0']")
     assert ms.get("when") == "pandoc >=2.0"
 
@@ -1954,12 +1973,12 @@ def test_when_package_name_with_boolean_word_substring():
         "(python >=3.6 or python <3.0) and __unix",
     ],
 )
-def test_when_roundtrip_boolean(when):
+def test_when_roundtrip_boolean(when, match_spec_v3):
     ms = MatchSpec(f"pkg[when='{when}']")
     assert MatchSpec(str(ms)) == ms
 
 
-def test_if_syntax_not_silently_dropped():
+def test_if_syntax_not_silently_dropped(match_spec_v3):
     # Old behavior (before PR #15443): "foo if python>=3.6" was silently stripped
     # to "foo" via split(" if ", 1). Verify this silent drop no longer occurs.
     try:
@@ -1981,20 +2000,18 @@ def test_if_syntax_not_silently_dropped():
         "pkg[build=0,junk]",  # trailing junk
     ],
 )
-def test_extras_flags_empty_value_raises(spec):
+def test_extras_flags_empty_value_raises(spec, match_spec_v3):
     with pytest.raises(InvalidMatchSpec):
         MatchSpec(spec)
 
 
-def test_extras_serialization_is_sorted():
-    # conda sorts extras on serialization (unlike Rattler which preserves insertion order).
-    # This documents the intentional difference so downstream consumers are not surprised.
+def test_extras_serialization_is_sorted(match_spec_v3):
     ms = MatchSpec("pkg[extras=[b,a]]")
     assert ms.get("extras") == ("b", "a"), "stored in parse/insertion order"
     assert str(ms) == "pkg[extras=['a', 'b']]", "serialized in sorted order"
 
 
-def test_flags_serialization_is_sorted():
+def test_flags_serialization_is_sorted(match_spec_v3):
     ms = MatchSpec("pkg[flags=[gpu,cpu]]")
     assert ms.get("flags") == ("gpu", "cpu"), "stored in parse/insertion order"
     assert str(ms) == "pkg[flags=['cpu', 'gpu']]", "serialized in sorted order"
