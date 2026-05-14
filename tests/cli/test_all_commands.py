@@ -119,8 +119,8 @@ def test_activate_help_commands_exit_0_rc(
     command: str,
 ):
     """Ensure that conda returns a 0 error code when cli --help is called"""
-    stdout, stderr, rc = conda_cli(command, "-h", raises=SystemExit)
-    assert rc == 0, f"conda {command} failed ({rc}): {stderr}"
+    stdout, stderr, exc = conda_cli(command, "-h", raises=SystemExit)
+    assert exc.value.code == 0, f"conda {command} failed ({exc.value.code}): {stderr}"
     assert f"usage: conda {command}" in stdout
     assert not re.search(r"\berror\b", stdout, re.IGNORECASE)
     assert not re.search(r"\berror\b", stderr, re.IGNORECASE)
