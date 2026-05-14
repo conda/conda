@@ -5,6 +5,7 @@ log = getLogger(__name__)
 
 
 def Raise(exception):  # NOQA
+    """Raise the provided exception."""
     raise exception
 
 
@@ -13,6 +14,7 @@ class AuxlibError:
 
 
 class ValidationError(AuxlibError, TypeError):
+    """Raised when a value fails auxlib validation."""
 
     def __init__(self, key, value=None, valid_types=None, msg=None):
         self.__cause__ = None  # in python3 don't chain ValidationError exceptions
@@ -29,4 +31,4 @@ class ValidationError(AuxlibError, TypeError):
 
 
 class ThisShouldNeverHappenError(AuxlibError, AttributeError):
-    pass
+    """Raised when an unreachable code path is reached."""
