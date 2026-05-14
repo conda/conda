@@ -9,7 +9,6 @@ The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.
 from __future__ import annotations
 
 import ast
-import os
 import re
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -63,7 +62,7 @@ _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
     re.VERBOSE,
 )
 # These _V3 are for new matchspecs in repodata v3
-_BRACKETS_RE_V3: re.Pattern[str] = re.compile(r"^.*?(\[.*\])(?:\(.+\))?$")
+_BRACKETS_RE_V3: re.Pattern[str] = re.compile(r"^.*?(\[.*\])")
 # Detects empty items in a YAML flow sequence (e.g. [a,,b])
 _LIST_EMPTY_ITEM_RE: re.Pattern[str] = re.compile(r",\s*,")
 # Matches all the key-value pairs within the square brackets section
@@ -787,7 +786,7 @@ def _parse_spec_str_dispatcher(spec_str) -> dict[str, object]:
     """
     Temporary dispatcher while we introduce the new v3 features
     """
-    if context.solver == "rattler" or os.environ.get("PYTEST_CURRENT_TEST"):
+    if context.solver == "rattler":
         return _parse_spec_str_v3(spec_str)
     return _parse_spec_str(spec_str)
 
