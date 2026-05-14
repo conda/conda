@@ -310,8 +310,8 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     channel_customization_options.add_argument(
         "--experimental",
         action=deprecated.action(
-            "26.3",
-            "26.5",
+            "26.9",
+            "27.3",
             _AppendAction,
             addendum="Deprecated: jlap and lock no longer supported.",
         ),
