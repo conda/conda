@@ -242,3 +242,27 @@ def test_reinstall_packages_calls_install(tmp_path: Path, mocker: MockerFixture)
     call_args = mock_install.call_args
     assert call_args[0][0] is args  # First positional arg is args
     assert len(call_args[0]) >= 2  # Must have at least 2 positional args
+
+
+def test_reinstall_args(tmp_path: Path, mocker: MockerFixture):
+    """Test that reinstall_packages includes all required arguments when calling install."""
+
+    class EmptySolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def solve_for_transaction(self, *args, **kwargs):
+            pass
+
+    mock_solver = mocker.patch(
+        "conda.cli.install.context.plugin_manager.get_cached_solver_backend",
+        return_value=EmptySolver,
+    )
+    mock_handle_txn = mocker.patch("conda.cli.install.handle_txn", return_value=0)
+
+    # Create minimal args namespace with required attributes
+    args = Namespace(prefix=str(tmp_path), name=None, cmd="install")
+
+    reinstall_packages(args, ["some-package"], force_reinstall=True)
+    mock_solver.assert_called_once()
+    mock_handle_txn.assert_called_once()
