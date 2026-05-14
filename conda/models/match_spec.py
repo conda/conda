@@ -136,7 +136,9 @@ def _validate_package_name(name: str, original_spec_str: str) -> None:
             original_spec_str,
             f"package name contains invalid characters ({''.join(dict.fromkeys(invalid))})",
         )
-    if not (_CEP26_NAME_RE.match(normalized) or _CEP26_VIRTUAL_NAME_RE.match(normalized)):
+    if not (
+        _CEP26_NAME_RE.match(normalized) or _CEP26_VIRTUAL_NAME_RE.match(normalized)
+    ):
         raise InvalidMatchSpec(
             original_spec_str,
             "invalid package name",
