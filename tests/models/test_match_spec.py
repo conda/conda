@@ -676,6 +676,45 @@ def test_invalid_match_spec():
         str(MatchSpec("!xyz 1.3"))
 
 
+@pytest.mark.parametrize(
+    "spec,match",
+    [
+        ("'package'", "invalid characters"),
+        ('"package"', "invalid characters"),
+        ("pack@ge", "invalid characters"),
+        ("pkg..name", "invalid package name"),
+        ("pkg--name", "invalid package name"),
+        (".pkg", "invalid package name"),
+        ("-pkg", "invalid package name"),
+    ],
+)
+def test_invalid_package_name_rejected(spec, match):
+    """Invalid package names must raise InvalidMatchSpec (CEP-26)."""
+    with pytest.raises(InvalidMatchSpec, match=match):
+        MatchSpec(spec)
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "numpy",
+        "my-package",
+        "my_package",
+        "my.package",
+        "r-base",
+        "python-dateutil",
+        "_openmp_mutex",
+        "_pkg",
+        "__glibc",
+        "__unix",
+    ],
+)
+def test_valid_package_names(spec):
+    """Valid CEP-26 package names must be accepted."""
+    ms = MatchSpec(spec)
+    assert ms.name == spec
+
+
 def cb_form(spec_str):
     return MatchSpec(spec_str).conda_build_form()
 
@@ -1918,16 +1957,8 @@ def test_kv_regex_does_not_hang_on_channel_urls():
 @pytest.mark.parametrize(
     "spec,message",
     [
-        pytest.param(
-            "package[build",
-            None,
-            marks=pytest.mark.xfail(reason="We are not banning bad names", strict=True),
-        ),
-        pytest.param(
-            "package[build=",
-            None,
-            marks=pytest.mark.xfail(reason="We are not banning bad names", strict=True),
-        ),
+        ("package[build", "invalid characters"),
+        ("package[build=", "invalid characters"),
         ("package[build=]", "a key or a value is missing"),
         ("package[build=value, build=again]", "key can only be specified once"),
         ("package[build]", "No key-value pairs found in square brackets"),

@@ -101,6 +101,13 @@ _NAME_VERSION_RE: re.Pattern[str] = re.compile(
     """,
     re.VERBOSE,
 )
+# CEP-26 package name validation (distributable and virtual)
+_CEP26_NAME_RE: re.Pattern[str] = re.compile(
+    r"^(([a-z0-9])|([a-z0-9_](?!_)))[._-]?([a-z0-9]+(\.|-|_|$))*$"
+)
+_CEP26_VIRTUAL_NAME_RE: re.Pattern[str] = re.compile(
+    r"^__[a-z0-9][._-]?([a-z0-9]+(\.|-|_|$))*$"
+)
 _VERSION_BUILD_RE: re.Pattern[str] = re.compile(
     r"""
     ((?:.+?)[^><!,|]?)      # version (non-greedy, not ending in operator)
@@ -112,6 +119,29 @@ _VERSION_BUILD_RE: re.Pattern[str] = re.compile(
     """,
     re.VERBOSE,
 )
+
+
+def _validate_package_name(name: str, original_spec_str: str) -> None:
+    """Validate a package name against CEP-26 rules.
+
+    Glob patterns (containing *) are not validated.
+    Names are lowercased before checking since conda normalizes case.
+    """
+    if "*" in name:
+        return
+    normalized = name.lower()
+    if invalid := re.findall(r"[^a-z0-9._-]", normalized):
+        raise InvalidMatchSpec(
+            original_spec_str,
+            f"package name contains invalid characters ({''.join(dict.fromkeys(invalid))})",
+        )
+    if not (
+        _CEP26_NAME_RE.match(normalized) or _CEP26_VIRTUAL_NAME_RE.match(normalized)
+    ):
+        raise InvalidMatchSpec(
+            original_spec_str,
+            "invalid package name",
+        )
 
 
 class MatchSpecType(type):
@@ -914,6 +944,7 @@ def _parse_spec_str(spec_str):
             raise InvalidMatchSpec(
                 original_spec_str, f"no package name found in '{spec_str}'"
             )
+        _validate_package_name(name, original_spec_str)
     else:
         raise InvalidMatchSpec(original_spec_str, "no package name found")
 
@@ -1138,6 +1169,7 @@ def _parse_spec_str_v3(spec_str):
             raise InvalidMatchSpec(
                 original_spec_str, f"no package name found in '{spec_str}'"
             )
+        _validate_package_name(name, original_spec_str)
     else:
         raise InvalidMatchSpec(original_spec_str, "no package name found")
 
