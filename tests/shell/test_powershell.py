@@ -145,3 +145,39 @@ def test_powershell_PATH_management(
         sh.expect_exact("Alias")
         sh.sendline(f'conda create -yqp "{prefix}" bzip2')
         sh.expect(r"Executing transaction: ...working... done.*\n")
+
+
+@PARAMETRIZE_POWERSHELL
+def test_powershell_activate_help(shell: Shell) -> None:
+    with shell.interactive() as sh:
+        sh.assert_env_var("CONDA_SHLVL", "0")
+        # Check -h flag
+        sh.sendline("Enter-CondaEnvironment -h")
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
+        sh.assert_env_var("CONDA_SHLVL", "0")
+        # Check --help flag
+        sh.sendline("Enter-CondaEnvironment --help")
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
+        sh.assert_env_var("CONDA_SHLVL", "0")
+
+
+@PARAMETRIZE_POWERSHELL
+def test_powershell_deactivate_help(
+    shell_wrapper_integration: tuple[str, str, str], shell: Shell
+) -> None:
+    prefix, _, _ = shell_wrapper_integration
+    with shell.interactive() as sh:
+        sh.sendline(f'conda activate "{prefix}"')
+        sh.assert_env_var("CONDA_SHLVL", "1")
+        # Check -h flag
+        sh.sendline("Exit-CondaEnvironment -h")
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
+        sh.assert_env_var("CONDA_SHLVL", "1")
+        # Check --help flag
+        sh.sendline("Exit-CondaEnvironment --help")
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
+        sh.assert_env_var("CONDA_SHLVL", "1")

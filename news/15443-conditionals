@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* <news item>
+* Fix v3 MatchSpec parser regression where PyPI-style extras in `constrains` (e.g. `dask[array]`) crash the classic solver due to a regex anchor bug and a test-only dispatcher override. (#15443 via #16095)
 
 ### Deprecations
 

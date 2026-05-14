@@ -9,7 +9,7 @@ import time
 from functools import wraps
 from typing import TYPE_CHECKING
 
-from ..base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL, NOTICES_FN
+from ..base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL_NS, NOTICES_FN
 from ..base.context import context
 
 if TYPE_CHECKING:
@@ -217,14 +217,14 @@ def is_channel_notices_cache_expired() -> bool:
     Checks to see if the notices cache file we use to keep track of
     displayed notices is expired. This involves checking the mtime
     attribute of the file. Anything older than what is specified as
-    the NOTICES_DECORATOR_DISPLAY_INTERVAL is considered expired.
+    the NOTICES_DECORATOR_DISPLAY_INTERVAL_NS is considered expired.
     """
     from . import cache
 
     cache_file = cache.get_notices_cache_file()
 
     cache_file_stat = cache_file.stat()
-    now = time.time()
-    seconds_since_checked = now - cache_file_stat.st_mtime
+    now = time.time_ns()
+    ns_since_checked = now - cache_file_stat.st_mtime_ns
 
-    return seconds_since_checked >= NOTICES_DECORATOR_DISPLAY_INTERVAL
+    return ns_since_checked >= NOTICES_DECORATOR_DISPLAY_INTERVAL_NS
