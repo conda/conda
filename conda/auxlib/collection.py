@@ -1,11 +1,20 @@
 """Common collection classes."""
+
+from __future__ import annotations
+
 from functools import reduce
-from collections.abc import Mapping, Set
+from collections.abc import Callable, Iterable, Mapping, Reversible, Set
+from typing import Any, TypeVar, overload
 
 from frozendict import frozendict
 
 from ..deprecations import deprecated
 from ..common.compat import isiterable
+
+
+_T = TypeVar("_T")
+_U = TypeVar("_U")
+_V = TypeVar("_V")
 
 
 # http://stackoverflow.com/a/14620633/2127762
@@ -20,12 +29,36 @@ class AttrDict(dict):
         >>> d.b, d['b']
         (2, 2)
     """
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__dict__ = self
 
 
-def first(seq, key=bool, default=None, apply=lambda x: x):
+@overload
+def first(
+    seq: Iterable[_T],
+    key: Callable[[_T], Any] = bool,
+    default: _U | Callable[[], _U] | None = None,
+    apply: Callable[[_T], _T] = lambda x: x,
+) -> _T | _U | None: ...
+
+
+@overload
+def first(
+    seq: Iterable[_T],
+    key: Callable[[_T], Any],
+    default: _U | Callable[[], _U] | None,
+    apply: Callable[[_T], _V],
+) -> _V | _U | None: ...
+
+
+def first(
+    seq: Iterable[_T],
+    key: Callable[[_T], Any] = bool,
+    default: _U | Callable[[], _U] | None = None,
+    apply: Callable[[_T], Any] = lambda x: x,
+) -> Any:
     """Give the first value that satisfies the key test.
 
     Args:
@@ -55,8 +88,44 @@ def first(seq, key=bool, default=None, apply=lambda x: x):
         4
 
     """
-    return next((apply(x) for x in seq if key(x)), default() if callable(default) else default)
+    return next(
+        (apply(x) for x in seq if key(x)), default() if callable(default) else default
+    )
 
 
-def last(seq, key=bool, default=None, apply=lambda x: x):
+@overload
+def last(
+    seq: Reversible[_T],
+    key: Callable[[_T], Any] = bool,
+    default: _U | None = None,
+    apply: Callable[[_T], _T] = lambda x: x,
+) -> _T | _U | None: ...
+
+
+@overload
+def last(
+    seq: Reversible[_T],
+    key: Callable[[_T], Any],
+    default: _U | None,
+    apply: Callable[[_T], _V],
+) -> _V | _U | None: ...
+
+
+def last(
+    seq: Reversible[_T],
+    key: Callable[[_T], Any] = bool,
+    default: _U | None = None,
+    apply: Callable[[_T], Any] = lambda x: x,
+) -> Any:
+    """Give the last value that satisfies the key test.
+
+    Args:
+        seq: Reversible collection to inspect.
+        key: Test applied to each element.
+        default: Returned when all elements fail the test.
+        apply: Applied to the matched element before return.
+
+    Returns:
+        The last matching element after applying ``apply``, or ``default``.
+    """
     return next((apply(x) for x in reversed(seq) if key(x)), default)
