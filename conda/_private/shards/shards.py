@@ -326,6 +326,8 @@ class ShardBase(abc.ABC):
     def iter_records(self) -> Iterable[tuple[str, dict]]:
         """
         Yield (filename, record) tuples for all packages in visited shards.
+        For v3 packages, appends the section name as an extension (e.g., '.whl')
+        to preserve the original package type information.
         """
         repodata = self.build_repodata()
         for package_group in ("packages", "packages.conda"):
@@ -333,8 +335,10 @@ class ShardBase(abc.ABC):
         for shard in self.visited.values():
             if shard is None:
                 continue
-            for group in shard.get("v3", {}).values():
-                yield from group.items()
+            for section_name, group in shard.get("v3", {}).items():
+                for package_key, record in group.items():
+                    # Append section name as extension to preserve package type
+                    yield f"{package_key}.{section_name}", record
 
 
 class ShardLike(ShardBase):

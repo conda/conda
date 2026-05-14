@@ -21,6 +21,8 @@ class Shards(typing.Protocol):
     def iter_records(self) -> Iterator[tuple[str, dict]]:
         """
         Yield (filename, record) tuples for all packages in visited shards.
+        For v3 packages, the filename includes the section name as an extension
+        (e.g., '.whl') to preserve package type information.
         """
 
 

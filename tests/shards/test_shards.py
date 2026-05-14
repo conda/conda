@@ -990,8 +990,8 @@ def test_iter_records_v3():
     shardlike.visited["ghost"] = None
     records = dict(shardlike.iter_records())
     assert "mypkg-1.0-0.conda" in records
-    assert "mypkg-1.0-py312_none_any_0" in records
-    assert records["mypkg-1.0-py312_none_any_0"]["name"] == "mypkg"
+    assert "mypkg-1.0-py312_none_any_0.whl" in records
+    assert records["mypkg-1.0-py312_none_any_0.whl"]["name"] == "mypkg"
 
 
 def test_shardlike_repr():
