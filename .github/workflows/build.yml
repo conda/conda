@@ -101,15 +101,15 @@ jobs:
           # e.g., `main` branch commits
           envs = {"ANACONDA_ORG_LABEL": "dev"}
 
+          _, name = "${{ github.repository }}".split("/")
+
           if "${{ github.event_name }}" == "pull_request":
-              # e.g., conda/conda/pr/123
-              envs["ANACONDA_ORG_LABEL"] = "${{ github.repository }}/pr/${{ github.event.number }}"
+              envs["ANACONDA_ORG_LABEL"] = f"{name}-pr-${{ github.event.number }}"
           elif "${{ env.REF_NAME }}".startswith("feature/"):
-              # e.g., conda/conda/feature/my-feature
-              envs["ANACONDA_ORG_LABEL"] = "${{ github.repository }}/${{ env.REF_NAME }}"
+              feature = "${{ env.REF_NAME }}".removeprefix("feature/")
+              envs["ANACONDA_ORG_LABEL"] = f"{name}-feature-{feature}"
           elif re.match(r"\d+(\.\d+)+\.x", "${{ env.REF_NAME }}"):
-              # e.g., conda/conda/rc/26.3.x
-              envs["ANACONDA_ORG_LABEL"] = f"${{ github.repository }}/rc/${{ env.REF_NAME }}"
+              envs["ANACONDA_ORG_LABEL"] = f"rc-{name}-${{ env.REF_NAME }}"
 
               # if no releases have occurred on this branch yet then `git describe --tag`
               # will misleadingly produce a version number relative to the last release
@@ -121,9 +121,6 @@ jobs:
               prefix = "${{ env.REF_NAME }}"[:-1]  # without x suffix
               if not last_release.startswith(prefix):
                   envs["VERSION_OVERRIDE"] = f"{prefix}0"
-
-          # workaround for anaconda.org's 404 error when trying to install from a slash label
-          envs["ANACONDA_ORG_LABEL"] = envs["ANACONDA_ORG_LABEL"].replace("/", "-")
 
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
