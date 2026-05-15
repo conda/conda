@@ -35,6 +35,9 @@ def m(string) -> str:
 
 
 def DPkg(s, **kwargs):
+    """
+    Mock for creating Dist and PackageRecord objects.
+    """
     d = Dist(s)
     return PackageRecord(
         fn=d.to_filename(),
@@ -1818,6 +1821,37 @@ def test_extras_specs_match(match_spec_v3):
     assert MatchSpec("pkg[extras=[a, b]]").match(record)
     assert not MatchSpec("pkg[extras=[a, b, c]]").match(record)
     assert not MatchSpec("pkg[extras=c]").match(record)
+
+
+def test_package_record_extras_field_default(match_spec_v3):
+    """PackageRecord must expose an extras attribute that defaults to empty (GH-16016)."""
+    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2")
+    assert hasattr(rec, "extras")
+    assert rec.extras == () or rec.extras == []
+
+
+def test_package_record_extras_not_in_dump_when_empty(match_spec_v3):
+    """Empty extras must not appear in the serialized record (GH-16016)."""
+    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2")
+    assert "extras" not in rec.dist_fields_dump()
+
+
+def test_match_extras_no_attribute_error_on_plain_record(match_spec_v3):
+    """MatchSpec with extras must not raise AttributeError on a plain PackageRecord (GH-16016)."""
+    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2")
+    assert MatchSpec("pkg[extras=foo]").match(rec) is False
+
+
+def test_match_extras_record_with_matching_extras(match_spec_v3):
+    """A PackageRecord carrying matching extras must match the spec (GH-16016)."""
+    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2", extras=["group1"])
+    assert MatchSpec("pkg[extras=group1]").match(rec) is True
+
+
+def test_match_extras_record_with_non_matching_extras(match_spec_v3):
+    """A PackageRecord whose extras differ from the spec must not match (GH-16016)."""
+    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2", extras=["group1"])
+    assert MatchSpec("pkg[extras=other]").match(rec) is False
 
 
 def test_flags_specs(match_spec_v3):

@@ -394,7 +394,10 @@ class MatchSpec(metaclass=MatchSpecType):
         return True
 
     def _match_individual(self, record, field_name, match_component):
-        val = getattr(record, field_name)
+        # Use getattr with a default of None so that MatchSpec fields that are
+        # not yet present on PackageRecord (e.g. "extras") do not raise
+        # AttributeError and instead evaluate as a non-match.  See GH-16016.
+        val = getattr(record, field_name, None)
         try:
             return match_component.match(val)
         except AttributeError:

@@ -410,6 +410,7 @@ class PackageRecord(DictSafeMixin, Entity):
     constrains = ListField(str, default=())
 
     flags = ListField(str, default=(), required=False, default_in_dump=False)
+    extras = ListField(str, default=(), required=False, default_in_dump=False)
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
