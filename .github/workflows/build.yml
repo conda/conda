@@ -102,13 +102,13 @@ jobs:
           envs = {"ANACONDA_ORG_LABEL": "dev"}
 
           if "${{ github.event_name }}" == "pull_request":
-              # e.g., conda/conda/pr/123
+              # e.g., conda/conda/pr/123 -> conda-conda-pr-123
               envs["ANACONDA_ORG_LABEL"] = "${{ github.repository }}/pr/${{ github.event.number }}"
           elif "${{ env.REF_NAME }}".startswith("feature/"):
-              # e.g., conda/conda/feature/my-feature
+              # e.g., conda/conda/feature/my-feature -> conda-conda-feature-my-feature
               envs["ANACONDA_ORG_LABEL"] = "${{ github.repository }}/${{ env.REF_NAME }}"
           elif re.match(r"\d+(\.\d+)+\.x", "${{ env.REF_NAME }}"):
-              # e.g., conda/conda/rc/26.3.x
+              # e.g., conda/conda/rc/26.5.x -> conda-conda-rc-26.5.x
               envs["ANACONDA_ORG_LABEL"] = f"${{ github.repository }}/rc/${{ env.REF_NAME }}"
 
               # if no releases have occurred on this branch yet then `git describe --tag`
