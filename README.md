@@ -7,9 +7,12 @@
 [conda-forge-badge]: https://img.shields.io/conda/vn/conda-forge/conda?logo=conda-forge
 [calver-badge]: https://img.shields.io/badge/calver-YY.MM.MICRO-22bfda.svg
 
-<h1 align="center">
-<img src="https://s3.amazonaws.com/conda-dev/conda_logo.svg" width="50%">
-</h1><br>
+<h1 id="home" align="center">
+  <a href="https://github.com/conda/conda">
+    <img src="https://s3.amazonaws.com/conda-dev/conda_logo.svg" width="50%">
+  </a>
+</h1>
+<br>
 
 [![GitHub Scheduled Tests][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml?query=branch%3Amain+event%3Aschedule)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
