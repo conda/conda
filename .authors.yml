@@ -2664,25 +2664,31 @@
   first_commit: 2026-02-13 07:01:21
 - name: John Costa
   email: costajohnt@gmail.com
+  github: costajohnt
   num_commits: 1
   first_commit: 2026-04-08 03:20:53
 - name: Vedant Madane
   email: 6527493+VedantMadane@users.noreply.github.com
+  github: VedantMadane
   num_commits: 1
   first_commit: 2026-04-02 16:30:44
 - name: Dasha Gurova
   email: 28690090+dashagurova@users.noreply.github.com
+  github: dashagurova
   num_commits: 1
   first_commit: 2026-05-13 09:15:14
 - name: Pradyot Ranjan
   email: 99216956+prady0t@users.noreply.github.com
+  github: prady0t
   num_commits: 1
   first_commit: 2026-04-23 13:10:43
 - name: Jakov Smolić
   email: jsmolic@gentoo.org
+  github: jsmolic
   num_commits: 1
   first_commit: 2026-05-13 15:04:23
 - name: SmartCoder
   email: pavelnefir85@gmail.com
+  github: smartcoder0777
   num_commits: 1
   first_commit: 2026-04-01 09:40:08
