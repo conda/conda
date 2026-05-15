@@ -127,14 +127,6 @@
   shells (`ash`, `csh`, `fish`, `tcsh`, `zsh`) non-interactively with
   `--no-install-recommends` to shrink the download footprint.
 
-
-
-## 26.3.2 (2026-04-10)
-
-### Bug fixes
-
-* Revert inline environment activation for and subsequent optimizations to `conda run` (#15534, #15672), due to regressions with post-link scripts. (#15896)
-
 ### Contributors
 
 * @agriyakhetarpal
@@ -153,6 +145,18 @@
 * @soapy1
 * @travishathaway
 * @VedantMadane made their first contribution in <https://github.com/conda/conda/pull/15773>
+
+
+
+## 26.3.2 (2026-04-10)
+
+### Bug fixes
+
+* Revert inline environment activation for and subsequent optimizations to `conda run` (#15534, #15672), due to regressions with post-link scripts. (#15896)
+
+### Contributors
+
+* @agriyakhetarpal
 
 
 
