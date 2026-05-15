@@ -122,6 +122,9 @@ jobs:
               if not last_release.startswith(prefix):
                   envs["VERSION_OVERRIDE"] = f"{prefix}0"
 
+          # workaround for anaconda.org's 404 error when trying to install from a slash label
+          envs["ANACONDA_ORG_LABEL"] = envs["ANACONDA_ORG_LABEL"].replace("/", "-")
+
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
