@@ -632,7 +632,8 @@
   aliases:
   - Jacob
   alternate_emails:
-  - jhultman@novateurresearch.comgit config --global user.email jhultman@novateurresearch.com
+  - jhultman@novateurresearch.comgit config --global user.email
+    jhultman@novateurresearch.com
 - name: Stan Seibert
   email: stan.seibert@continuum.io
   num_commits: 7
@@ -645,7 +646,7 @@
   github: bradsaracik
 - name: Jaime Rodríguez-Guerra
   email: jaime.rogue@gmail.com
-  num_commits: 141
+  num_commits: 143
   first_commit: 2016-04-18 20:12:46
   github: jaimergp
   aliases:
@@ -1250,7 +1251,7 @@
   - scastellarin@anaconda.com
   - scastellarin95@gmail.com
   - scastellarin@continuum.io
-  num_commits: 471
+  num_commits: 478
   first_commit: 2016-10-11 00:29:05
 - name: Ryan Grout
   email: rgrout@continuum.io
@@ -1523,7 +1524,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 174
+  num_commits: 206
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -1961,7 +1962,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 597
+  num_commits: 618
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2007,7 +2008,7 @@
 - name: Daniel Holth
   email: dholth@anaconda.com
   github: dholth
-  num_commits: 131
+  num_commits: 138
   first_commit: 2021-11-18 08:57:14
 - name: John Flavin
   email: flavinj@gmail.com
@@ -2045,7 +2046,7 @@
   first_commit: 2021-11-29 23:03:32
 - name: Conda Bot
   email: 18747875+conda-bot@users.noreply.github.com
-  num_commits: 215
+  num_commits: 221
   first_commit: 2022-01-17 20:22:29
   github: conda-bot
   aliases:
@@ -2102,12 +2103,12 @@
 - name: Katherine Kinnaman
   email: kkinnaman@anaconda.com
   github: kathatherine
-  num_commits: 25
+  num_commits: 26
   first_commit: 2022-05-03 03:06:46
 - name: Travis Hathaway
   email: travis.j.hathaway@gmail.com
   github: travishathaway
-  num_commits: 80
+  num_commits: 86
   first_commit: 2022-03-31 12:01:37
 - name: Tom Hu
   email: 88201630+thomasrockhu-codecov@users.noreply.github.com
@@ -2225,7 +2226,7 @@
   github: fragmede
 - name: dependabot[bot]
   email: 49699333+dependabot[bot]@users.noreply.github.com
-  num_commits: 59
+  num_commits: 70
   first_commit: 2022-10-13 14:01:08
   github: dependabot[bot]
 - name: Xuehai Pan
@@ -2581,7 +2582,7 @@
 - name: Dan Yeaw
   email: dan@yeaw.me
   github: danyeaw
-  num_commits: 12
+  num_commits: 16
   first_commit: 2025-09-26 10:42:03
 - name: Sumanth
   email: 33193748+sumanth-manchala@users.noreply.github.com
@@ -2662,3 +2663,27 @@
   github: crowecawcaw
   num_commits: 1
   first_commit: 2026-02-13 07:01:21
+- name: John Costa
+  email: costajohnt@gmail.com
+  num_commits: 1
+  first_commit: 2026-04-08 03:20:53
+- name: Vedant Madane
+  email: 6527493+VedantMadane@users.noreply.github.com
+  num_commits: 1
+  first_commit: 2026-04-02 16:30:44
+- name: Dasha Gurova
+  email: 28690090+dashagurova@users.noreply.github.com
+  num_commits: 1
+  first_commit: 2026-05-13 09:15:14
+- name: Pradyot Ranjan
+  email: 99216956+prady0t@users.noreply.github.com
+  num_commits: 1
+  first_commit: 2026-04-23 13:10:43
+- name: Jakov Smolić
+  email: jsmolic@gentoo.org
+  num_commits: 1
+  first_commit: 2026-05-13 15:04:23
+- name: SmartCoder
+  email: pavelnefir85@gmail.com
+  num_commits: 1
+  first_commit: 2026-04-01 09:40:08
