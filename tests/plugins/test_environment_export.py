@@ -331,6 +331,18 @@ def test_exporter_error_conditions(
 
 def test_get_environment_exporters(plugin_manager_with_exporters: CondaPluginManager):
     """Test getting environment exporters mapping."""
+    exporters = {
+        exporter.name
+        for exporter in plugin_manager_with_exporters.get_environment_exporters()
+    }
+    assert "test-single-platform" in exporters
+    assert "test-multi-platform" in exporters
+
+
+def test_get_environment_exporters_disable_external_plugins(
+    plugin_manager_with_exporters: CondaPluginManager,
+):
+    plugin_manager_with_exporters.disable_external_plugins()
     assert {
         exporter.name
         for exporter in plugin_manager_with_exporters.get_environment_exporters()
@@ -339,8 +351,6 @@ def test_get_environment_exporters(plugin_manager_with_exporters: CondaPluginMan
         ENVIRONMENT_JSON_FORMAT,
         EXPLICIT_FORMAT,
         REQUIREMENTS_FORMAT,
-        "test-single-platform",
-        "test-multi-platform",
     }
 
 
