@@ -297,7 +297,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "license_family",
         "fn",
         "when",  # str
-        "extras",  # str | list[str]
+        "extras",  # str | list[str] — names of requested extras; matched against dict[str, list[str]] keys on PackageRecord
         "flags",  # str | list[str]
     )
     FIELD_NAMES_SET = frozenset(FIELD_NAMES)
@@ -1574,6 +1574,31 @@ class ListOfStrMatch(MatchInterface):
         return self._raw_value
 
 
+class ExtrasMatch(ListOfStrMatch):
+    """Matcher for the ``extras`` bracket field.
+
+    The MatchSpec stores the *requested* extra names as a tuple of strings.
+    A PackageRecord stores ``extras`` as a ``dict[str, list[str]]`` mapping each
+    extra-group name to its dependency strings.
+
+    A record matches when every requested extra name is a key in the record's
+    extras dict (subset check).  A record with ``extras=None`` or an empty dict
+    never matches a non-empty extras spec.
+    """
+
+    def match(self, other):
+        if not self._raw_value:
+            # empty spec matches everything
+            return True
+        if not other:
+            return False
+        if isinstance(other, dict):
+            return all(k in other for k in self._raw_value)
+        # fall back: treat other as a flat iterable of strings (e.g. old-style records)
+        other_set = set(self._convert(other))
+        return all(k in other_set for k in self._raw_value)
+
+
 class ChannelMatch(GlobStrMatch):
     def __init__(self, value):
         self._re_match = None
@@ -1645,5 +1670,5 @@ _implementors = {
     # TODO: These needs their own classes for matching and merging
     "when": CaseInsensitiveStrMatch,  # FIXME: Merge should be possible, matching is not
     "flags": ListOfStrMatch,  # FIXME: Must accept globs too, unordered subsets
-    "extras": ListOfStrMatch,  # FIXME: We are matching dicts on keys only
+    "extras": ExtrasMatch,  # subset check: requested extra names must be keys in record's extras dict
 }

@@ -26,6 +26,7 @@ from ..auxlib.entity import (
     DictSafeMixin,
     Entity,
     EnumField,
+    Field,
     IntegerField,
     ListField,
     NumberField,
@@ -118,6 +119,44 @@ class _FeaturesField(ListField):
             return " ".join(val)
         else:
             return val or ()  # default value is (), and default_in_dump=False
+
+
+class _ExtrasField(Field):
+    """Field for ``extras``: stores ``dict[str, list[str]]`` (PEP 508 extras groups).
+
+    On the record the value is ``None`` when not set (and therefore omitted from
+    serialization when *default_in_dump=False*), or a plain ``dict`` mapping each
+    extra-group name to its list of dependency strings.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(default=None, nullable=True, **kwargs)
+
+    def box(self, instance, instance_type, val):
+        if val is None:
+            return None
+        if isinstance(val, dict):
+            return {k: list(v) for k, v in val.items()}
+        raise ValueError(
+            f"extras must be a dict[str, list[str]], got {type(val).__name__!r}"
+        )
+
+    def unbox(self, instance, instance_type, val):
+        return val
+
+    def dump(self, instance, instance_type, val):
+        if val is None:
+            return None
+        return {k: list(v) for k, v in val.items()}
+
+    def validate(self, instance, val):
+        if val is None:
+            return val
+        if not isinstance(val, dict):
+            raise ValueError(
+                f"extras must be a dict[str, list[str]], got {type(val).__name__!r}"
+            )
+        return val
 
 
 class ChannelField(ComposableField):
@@ -410,7 +449,7 @@ class PackageRecord(DictSafeMixin, Entity):
     constrains = ListField(str, default=())
 
     flags = ListField(str, default=(), required=False, default_in_dump=False)
-    extras = ListField(str, default=(), required=False, default_in_dump=False)
+    extras = _ExtrasField(required=False, default_in_dump=False)
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)

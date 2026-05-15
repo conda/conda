@@ -1811,23 +1811,20 @@ def test_extras_specs_merge(match_spec_v3):
         MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"], union=True)
 
 
-@pytest.mark.xfail(reason="Pending implementation")
 def test_extras_specs_match(match_spec_v3):
-    """
-    Extras match via 'set.issubset' on the dictionary keys
-    """
-    record = {"name": "pkg", "extras-depends": {"a": [], "b": []}}
-    assert MatchSpec("pkg[extras=a]").match()
-    assert MatchSpec("pkg[extras=[a, b]]").match(record)
-    assert not MatchSpec("pkg[extras=[a, b, c]]").match(record)
-    assert not MatchSpec("pkg[extras=c]").match(record)
+    """Extras match via subset check on the record's extras dict keys."""
+    rec_ab = DPkg("defaults::pkg-1.0-py313_0.tar.bz2", extras={"a": [], "b": []})
+    assert MatchSpec("pkg[extras=a]").match(rec_ab)
+    assert MatchSpec("pkg[extras=[a, b]]").match(rec_ab)
+    assert not MatchSpec("pkg[extras=[a, b, c]]").match(rec_ab)
+    assert not MatchSpec("pkg[extras=c]").match(rec_ab)
 
 
 def test_package_record_extras_field_default(match_spec_v3):
-    """PackageRecord must expose an extras attribute that defaults to empty (GH-16016)."""
+    """PackageRecord must expose an extras attribute that defaults to None when not set (GH-16016)."""
     rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2")
     assert hasattr(rec, "extras")
-    assert rec.extras == () or rec.extras == []
+    assert rec.extras is None
 
 
 def test_package_record_extras_not_in_dump_when_empty(match_spec_v3):
@@ -1844,13 +1841,13 @@ def test_match_extras_no_attribute_error_on_plain_record(match_spec_v3):
 
 def test_match_extras_record_with_matching_extras(match_spec_v3):
     """A PackageRecord carrying matching extras must match the spec (GH-16016)."""
-    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2", extras=["group1"])
+    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2", extras={"group1": []})
     assert MatchSpec("pkg[extras=group1]").match(rec) is True
 
 
 def test_match_extras_record_with_non_matching_extras(match_spec_v3):
     """A PackageRecord whose extras differ from the spec must not match (GH-16016)."""
-    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2", extras=["group1"])
+    rec = DPkg("defaults::pkg-1.0-py313_0.tar.bz2", extras={"group1": []})
     assert MatchSpec("pkg[extras=other]").match(rec) is False
 
 
