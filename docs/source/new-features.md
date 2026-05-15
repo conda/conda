@@ -129,5 +129,5 @@ conda export --name my-env --file conda-lock.yaml \
  - **Reproducibility depends on the channel.** A lockfile pins exact packages, but those packages must still be available when you recreate. If a package is removed or yanked later, the recreate will fail.
  - **`pip`-installed packages aren't captured by default.** `conda export` to a lockfile captures conda packages only. If you need PyPI packages reproducibly captured, see [Install PyPI packages with conda](#install-pypi-packages-with-conda-install) above. That option enables conda to install (and export) PyPI packages natively.
 
-[Full documentation](https://conda-incubator.github.io/conda-lockfiles/getting-started/) · [Open a GitHub issue](https://github.com/conda/conda/issues) · [Join the discussion in Zulip](https://conda.zulipchat.com/)
+[Full documentation](https://conda.github.io/conda-lockfiles/getting-started/) · [Open a GitHub issue](https://github.com/conda/conda/issues) · [Join the discussion in Zulip](https://conda.zulipchat.com/)
 ::::
