@@ -139,11 +139,8 @@ def test_download_filename_from_url_basename():
     assert cache_action.target_package_basename == "idna-3.10-py3-none-any.whl"
     assert cache_action.target_package_basename != package_prec.fn
 
-    # The extract action uses strip_pkg_extension on the URL basename.
-    # Since .whl is not in KNOWN_EXTENSIONS (handled by conda-pypi plugin),
-    # the full filename is used as the extracted directory name.
     assert extract_action is not None
-    assert extract_action.target_extracted_dirname == "idna-3.10-py3-none-any.whl"
+    assert extract_action.target_extracted_dirname == "idna-3.10-py3-none-any"
 
 
 def test_download_filename_strips_url_fragment():
