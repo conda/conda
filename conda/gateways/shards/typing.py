@@ -18,11 +18,14 @@ class Shards(typing.Protocol):
     def __contains__(self, package: str) -> bool:
         """Check if a package is available in this shard collection."""
 
-    def iter_records(self) -> Iterator[tuple[str, dict]]:
+    def iter_records(self) -> Iterator[tuple[tuple[str, str], dict]]:
         """
-        Yield (filename, record) tuples for all packages in visited shards.
-        For v3 packages, the filename includes the section name as an extension
-        (e.g., '.whl') to preserve package type information.
+        Yield ((filename, section), record) tuples for all packages in visited shards.
+
+        Section can be:
+        - "packages" for .tar.bz2 packages
+        - "packages.conda" for .conda packages
+        - "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages
         """
 
 

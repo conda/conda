@@ -323,22 +323,27 @@ class ShardBase(abc.ABC):
                 repodata[package_group].update(shard[package_group])
         return repodata
 
-    def iter_records(self) -> Iterable[tuple[str, dict]]:
+    def iter_records(self) -> Iterable[tuple[tuple[str, str], dict]]:
         """
-        Yield (filename, record) tuples for all packages in visited shards.
-        For v3 packages, appends the section name as an extension (e.g., '.whl')
-        to preserve the original package type information.
+        Yield ((filename, section), record) tuples for all packages in visited shards.
+
+        Section can be:
+        - "packages" for .tar.bz2 packages
+        - "packages.conda" for .conda packages
+        - "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages
         """
-        repodata = self.build_repodata()
-        for package_group in ("packages", "packages.conda"):
-            yield from repodata.get(package_group, {}).items()
         for shard in self.visited.values():
             if shard is None:
                 continue
+            # Classic packages
+            for package_group in ("packages", "packages.conda"):
+                for filename, record in shard.get(package_group, {}).items():
+                    yield (filename, package_group), record
+            # v3 packages
             for section_name, group in shard.get("v3", {}).items():
+                v3_section = f"v3.{section_name}"
                 for package_key, record in group.items():
-                    # Append section name as extension to preserve package type
-                    yield f"{package_key}.{section_name}", record
+                    yield (package_key, v3_section), record
 
 
 class ShardLike(ShardBase):
