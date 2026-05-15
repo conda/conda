@@ -38,6 +38,7 @@ ShardDict = TypedDict(
     {
         "packages": dict[str, PackageRecordDict],
         "packages.conda": dict[str, PackageRecordDict],
+        "v3": NotRequired[dict[str, dict[str, PackageRecordDict]]],
     },
 )
 
