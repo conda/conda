@@ -12,6 +12,7 @@ from conda import CondaError, CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
+from conda.common.path import strip_pkg_extension
 from conda.core import package_cache_data
 from conda.core.index import Index
 from conda.core.package_cache_data import (
@@ -139,11 +140,13 @@ def test_download_filename_from_url_basename():
     assert cache_action.target_package_basename == "idna-3.10-py3-none-any.whl"
     assert cache_action.target_package_basename != package_prec.fn
 
-    # The extract action uses strip_pkg_extension on the URL basename.
-    # Since .whl is not in KNOWN_EXTENSIONS (handled by conda-pypi plugin),
-    # the full filename is used as the extracted directory name.
     assert extract_action is not None
-    assert extract_action.target_extracted_dirname == "idna-3.10-py3-none-any.whl"
+    # Computed dynamically so the assertion holds regardless of which plugins
+    # (e.g. conda-pypi registering .whl) are installed in the test environment.
+    assert (
+        extract_action.target_extracted_dirname
+        == strip_pkg_extension(cache_action.target_package_basename)[0]
+    )
 
 
 def test_download_filename_strips_url_fragment():
