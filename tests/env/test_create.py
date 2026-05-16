@@ -149,6 +149,7 @@ def test_create_advanced_pip(
     assert package_is_installed(prefix, "xmltodict=0.10.2")
 
 
+@pytest.mark.filterwarnings("ignore::PendingDeprecationWarning:conda_lockfiles")
 @pytest.mark.integration
 def test_create_empty_env(
     monkeypatch: MonkeyPatch,
