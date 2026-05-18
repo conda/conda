@@ -14,4 +14,5 @@ Developer guide
    deprecations
    releasing
    plugins/index
+   previews
    specs/index
