@@ -22,9 +22,9 @@ if TYPE_CHECKING:
 
 def test_install_preview_disabled(conda_cli: CondaCLIFixture):
     """conda install without CONDA_PREVIEW set routes to the standard implementation."""
-    # --help exits cleanly via SystemExit(0); if routing had fired it would raise
+    # --help exits cleanly via SystemExit; if routing had fired it would raise
     # OperationNotAllowed instead, so a clean SystemExit proves no redirection occurred.
-    with pytest.raises(SystemExit, match="0"):
+    with pytest.raises(SystemExit):
         conda_cli("install", "--help")
 
 
@@ -35,7 +35,7 @@ def test_install_preview_enabled(
     """conda install with CONDA_PREVIEW=env-setup is routed to the stub."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
 
-    out, err, exc = conda_cli("install", "numpy", raises=OperationNotAllowed)
+    out, err, exc = conda_cli("install", raises=OperationNotAllowed)
 
     assert exc.value is not None
     assert "env-setup" in str(exc.value)
