@@ -5,6 +5,9 @@ on:
     types:
       - opened
 
+permissions:
+  contents: read
+
 jobs:
   add_to_project:
     if: '!github.event.repository.fork'
