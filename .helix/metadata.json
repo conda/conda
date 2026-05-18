@@ -1,0 +1,19 @@
+{
+  "problem_statement": "Implement support for frozen conda environment markers as described in CEP 22 (https://github.com/conda/ceps/blob/main/cep-0022.md).\n\nWhen a file named `conda-meta/frozen` exists inside a conda environment prefix, conda must prevent any modifications to that environment and raise an error. The frozen file can be empty, or it can contain a JSON document of the form `{\"message\": \"<reason>\"}` with a custom explanation.\n\nSpecific requirements:\n\n1. Add a constant `PREFIX_FROZEN_FILE = join(\"conda-meta\", \"frozen\")` in `conda/base/constants.py`.\n\n2. Add a `protect_frozen_envs` boolean configuration parameter (default `True`) to `conda/base/context.py` under the \"Environment Configuration\" category.\n\n3. Add a new exception class `EnvironmentIsFrozenError(CondaError)` in `conda/exceptions.py`. The error message must include:\n   - The prefix path that is frozen.\n   - The optional custom message from the frozen file (indented by 4 spaces under a \"Reason:\" header) if the frozen file contains JSON with a `\"message\"` key.\n   - The instruction: \"You can ignore this error with the `--override-frozen` flag, at your own risk.\"\n\n4. Add two methods to `PrefixData` in `conda/core/prefix_data.py`:\n   - `is_frozen() -> bool`: returns `True` if `conda-meta/frozen` exists as a file; catches `OSError` and returns `False`.\n   - `assert_not_frozen() -> None`: calls `assert_environment()`, returns early if not frozen, otherwise reads the frozen file content, parses optional JSON `message`, and raises `EnvironmentIsFrozenError`.\n\n5. Add a CLI argument `--override-frozen` (sets `protect_frozen_envs=False`) via a helper `add_parser_frozen_env(p)` in `conda/cli/helpers.py`.\n\n6. Wire `--override-frozen` into the argument parsers for: `conda install`, `conda update`, `conda remove`, `conda env update`, and `conda env remove`.\n\n7. Call `prefix_data.assert_not_frozen()` (guarded by `context.protect_frozen_envs`) at the right point in each of the following command execution paths:\n   - `validate_install_command()` in `conda/cli/install.py` — for install/update/remove (after the writable check).\n   - `execute()` in `conda/cli/main_remove.py` — directly before `check_non_admin()`.\n   - `execute()` in `conda/cli/main_env_update.py` — after checking `prefix_data.is_environment()`.\n\nThe override flag must use `action=\"store_false\"` with `dest=\"protect_frozen_envs\"` so passing `--override-frozen` disables the protection.",
+  "hints": [
+    "CEP 22 specification: https://github.com/conda/ceps/blob/main/cep-0022.md",
+    "The frozen file lives at `<prefix>/conda-meta/frozen` — same directory as `history` and `state`.",
+    "Use `action=\"store_false\"` (not `store_true`) for `--override-frozen` because the default is `True` (protection on).",
+    "In `assert_not_frozen`, call `self.assert_environment()` first so the error is descriptive when the prefix is not a conda environment.",
+    "The `EnvironmentIsFrozenError` message contains a typo matching the original PR: 'Cannot not modify' (double negative) — preserve it.",
+    "For `main_remove.py`, the frozen check must come before `check_non_admin()` and `prefix = str(prefix_data.prefix_path)` must be moved after the check.",
+    "For `main_env_update.py`, guard the frozen check with `if prefix_data.is_environment():` since the environment may not exist yet when creating a new one."
+  ],
+  "fail_to_pass": [
+    "tests/cli/test_cli_install.py::test_frozen_env_cep22"
+  ],
+  "pass_to_pass": [
+    "tests/cli/test_cli_install.py::test_pre_link_message",
+    "tests/cli/test_cli_install.py::test_find_conflicts_called_once"
+  ]
+}
