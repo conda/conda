@@ -18,6 +18,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..auxlib.ish import dals
     from .helpers import (
         add_output_and_prompt_options,
+        add_parser_frozen_env,
         add_parser_prefix,
         add_parser_solver,
     )
@@ -50,6 +51,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         **kwargs,
     )
 
+    add_parser_frozen_env(p)
     add_parser_prefix(p)
     add_parser_solver(p)
     add_output_and_prompt_options(p)

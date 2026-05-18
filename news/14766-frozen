@@ -1,0 +1,3 @@
+### Enhancements
+
+* Add support for frozen environment markers (CEP 22). (#14766)
