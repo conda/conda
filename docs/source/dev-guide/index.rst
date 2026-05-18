@@ -101,6 +101,13 @@ Guides for writing tests, managing deprecations, and cutting releases.
         Step-by-step instructions for preparing and publishing a new conda release,
         including the CalVer versioning scheme.
 
+    .. grid-item-card:: Type hinting :octicon:`italic;1em;sd-text-primary`
+        :link: typing
+        :link-type: doc
+
+        Guidelines for adding and improving type annotations in the conda codebase,
+        including custom types and local tooling.
+
 API reference :octicon:`code;1em;sd-text-primary`
 ..................................................
 
@@ -128,3 +135,4 @@ API reference :octicon:`code;1em;sd-text-primary`
    releasing
    plugins/index
    specs/index
+   typing
