@@ -45,6 +45,7 @@ requirements:
     - distro >=1.5.0
     - frozendict >=2.4.2
     - menuinst >=2
+    - msgpack-python >=1.1.1
     - packaging >=23.0
     - platformdirs >=3.10.0
     - pluggy >=1.6.0
@@ -57,8 +58,9 @@ requirements:
     - truststore >=0.8.0           # [py>=310]
     - zstandard >=0.15
     # Plugins to bundle with conda
-    - conda-libmamba-solver >=26.4.0
-    - conda-pypi >=0.8.0
+    - conda-libmamba-solver >=26.4.1
+    - conda-lockfiles >=0.2.0
+    - conda-self >=0.2.0
   run_constrained:
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed
@@ -92,6 +94,7 @@ test:
     - conda upgrade --help
     # plugin subcommands
     - conda doctor --help
+    - conda self --help
 
 about:
   home: https://conda.org

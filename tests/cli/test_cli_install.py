@@ -11,10 +11,7 @@ from conda.base.context import context, reset_context
 from conda.cli.install import reinstall_packages
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import DryRunExit, EnvironmentIsFrozenError, UnsatisfiableError
-from conda.models.match_spec import MatchSpec
 from conda.testing.integration import package_is_installed
-
-from .. import PYTHON_SPEC_OLD
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -51,6 +48,7 @@ def test_pre_link_message(
 
 @pytest.mark.integration
 def test_find_conflicts_called_once(
+    test_recipes_channel: Path,
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
     path_factory: PathFactoryFixture,
@@ -59,54 +57,31 @@ def test_find_conflicts_called_once(
     if context.solver in ("libmamba", "rattler"):
         pytest.skip(f"conda-{context.solver}-solver handle conflicts differently")
 
-    bad_deps = {
-        "python": {
-            (
-                (
-                    MatchSpec("statistics"),
-                    MatchSpec("python[version='>=2.7,<2.8.0a0']"),
-                ),
-                "python=3",
-            )
-        }
-    }
+    # Side effect only needs to be UnsatisfiableError; dependency structure is irrelevant.
     mocked_find_conflicts = mocker.patch(
         "conda.resolve.Resolve.find_conflicts",
-        side_effect=UnsatisfiableError(bad_deps, strict=True),
+        side_effect=UnsatisfiableError([], strict=True),
     )
-    channels = (
-        "--repodata-fn",
-        "current_repodata.json",
-        "--override-channels",
-        "-c",
-        "defaults",
-    )
-    with tmp_env(PYTHON_SPEC_OLD, *channels) as prefix:
+    with tmp_env("versioned=2.0") as prefix:
         with pytest.raises(UnsatisfiableError):
-            # Statistics is a py27 only package allowing us a simple unsatisfiable case
-            conda_cli("install", f"--prefix={prefix}", "statistics", "--yes", *channels)
+            conda_cli("install", f"--prefix={prefix}", "unsatisfiable")
         assert mocked_find_conflicts.call_count == 1
 
         with pytest.raises(UnsatisfiableError):
             conda_cli(
                 "install",
                 f"--prefix={prefix}",
-                "statistics",
+                "unsatisfiable",
                 "--freeze-installed",
-                "--yes",
-                *channels,
             )
         assert mocked_find_conflicts.call_count == 2
 
     with pytest.raises(UnsatisfiableError):
-        # NOTE: statistics is available for 3.10
         conda_cli(
             "create",
             f"--prefix={path_factory()}",
-            "statistics",
-            PYTHON_SPEC_OLD,
-            "--yes",
-            *channels,
+            "versioned=1.0",
+            "unsatisfiable",
         )
     assert mocked_find_conflicts.call_count == 3
 
@@ -267,3 +242,27 @@ def test_reinstall_packages_calls_install(tmp_path: Path, mocker: MockerFixture)
     call_args = mock_install.call_args
     assert call_args[0][0] is args  # First positional arg is args
     assert len(call_args[0]) >= 2  # Must have at least 2 positional args
+
+
+def test_reinstall_args(tmp_path: Path, mocker: MockerFixture):
+    """Test that reinstall_packages includes all required arguments when calling install."""
+
+    class EmptySolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def solve_for_transaction(self, *args, **kwargs):
+            pass
+
+    mock_solver = mocker.patch(
+        "conda.cli.install.context.plugin_manager.get_cached_solver_backend",
+        return_value=EmptySolver,
+    )
+    mock_handle_txn = mocker.patch("conda.cli.install.handle_txn", return_value=0)
+
+    # Create minimal args namespace with required attributes
+    args = Namespace(prefix=str(tmp_path), name=None, cmd="install")
+
+    reinstall_packages(args, ["some-package"], force_reinstall=True)
+    mock_solver.assert_called_once()
+    mock_handle_txn.assert_called_once()
