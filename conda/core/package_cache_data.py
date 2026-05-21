@@ -714,8 +714,10 @@ class ProgressiveFetchExtract:
         # rattler sanitizes it internally to a conda-style identifier
         # (e.g., idna-3.10-py3_none_any_0). We extract from URL which always
         # contains the correct filename.
-        # See: https://github.com/conda/conda/issues/15620
-        target_package_basename = basename(url) or pref_or_spec.fn
+        # PyPI URLs may include a #sha256=... fragment (e.g., file.whl#sha256=abc123);
+        # strip the fragment before extracting the basename so the cached filename
+        # ends with the real extension (needed for plugin-based extraction).
+        target_package_basename = basename(url.split("#")[0]) or pref_or_spec.fn
 
         cache_action = CacheUrlAction(
             url=url,

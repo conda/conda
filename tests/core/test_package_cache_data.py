@@ -12,6 +12,7 @@ from conda import CondaError, CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
+from conda.common.path import strip_pkg_extension
 from conda.core import package_cache_data
 from conda.core.index import Index
 from conda.core.package_cache_data import (
@@ -139,11 +140,53 @@ def test_download_filename_from_url_basename():
     assert cache_action.target_package_basename == "idna-3.10-py3-none-any.whl"
     assert cache_action.target_package_basename != package_prec.fn
 
-    # The extract action uses strip_pkg_extension on the URL basename.
-    # Since .whl is not in KNOWN_EXTENSIONS (handled by conda-pypi plugin),
-    # the full filename is used as the extracted directory name.
     assert extract_action is not None
-    assert extract_action.target_extracted_dirname == "idna-3.10-py3-none-any.whl"
+    # Computed dynamically so the assertion holds regardless of which plugins
+    # (e.g. conda-pypi registering .whl) are installed in the test environment.
+    assert (
+        extract_action.target_extracted_dirname
+        == strip_pkg_extension(cache_action.target_package_basename)[0]
+    )
+
+
+def test_download_filename_strips_url_fragment():
+    """
+    Test that a URL fragment (e.g. #sha256=...) is stripped from the cached filename.
+
+    PyPI URLs include a #sha256=... integrity fragment. Without stripping it, the
+    cached file ends up with the fragment in its name, causing the package extractor
+    plugin lookup to fail because `endswith(".whl")` no longer matches.
+    """
+    sha256 = "46bf16173620e97c3a9fcb75457fca6b32b40b5a97887fdeed4c6c37d3c7ba6e"
+    package_url = f"https://files.pythonhosted.org/packages/noarch/idna-3.10-py3-none-any.whl#{sha256}"
+    package_prec = PackageRecord.from_objects(
+        {
+            "name": "idna",
+            "version": "3.10",
+            "build": "py3_none_any_0",
+            "build_number": 0,
+            "depends": ["python >=3.6"],
+            "sha256": sha256,
+            "size": 5718,
+            "subdir": "noarch",
+        },
+        fn="idna-3.10-py3_none_any_0.whl",
+        url=package_url,
+    )
+
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        package_prec
+    )
+
+    assert cache_action is not None
+    # The fragment must not appear in the cached filename
+    assert "#" not in cache_action.target_package_basename
+    assert cache_action.target_package_basename == "idna-3.10-py3-none-any.whl"
+    assert cache_action.target_full_path.endswith(".whl")
+
+    assert extract_action is not None
+    assert "#" not in extract_action.source_full_path
+    assert extract_action.source_full_path.endswith(".whl")
 
 
 def test_download_filename_backward_compat_old_repodata():

@@ -28,27 +28,59 @@ class CondaExportWarning(Warning):
     pass
 
 
+def epilog() -> str:
+    """Build ``conda export`` epilog (examples and plugin-driven format list)."""
+    from .formats import get_available_environment_formats, get_multiplatform_lockfile
+
+    # get environment exporters grouped by format
+    formats = context.plugin_manager.get_environment_exporters_grouped()
+
+    # find the first multiplatform lockfile
+    multiplatform_lockfile = get_multiplatform_lockfile(formats)
+
+    # compose examples/epilog
+    examples = [
+        "Examples:",
+        "  Export an environment spec:",
+        "    conda export --from-history > environment.yml",
+        "",
+        "  Export a lockfile for the same platform:",
+        "    conda export --file explicit.txt",
+    ]
+    # include example for multiplatform lockfile if any are registered
+    if multiplatform_lockfile:
+        examples.append("")
+        examples.append("  Export a lockfile for multiple platforms:")
+        examples.append(
+            f"    conda export --file {multiplatform_lockfile} "
+            "--platform linux-64 --platform osx-arm64"
+        )
+    # include available formats if any are registered
+    if formats:
+        examples.append("")
+        examples.append("Available output formats:")
+        examples.append(get_available_environment_formats(formats, indent=2))
+    return "\n".join(examples)
+
+
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from .helpers import LazyAction, add_parser_json, add_parser_prefix
 
-    summary = "Export a given environment"
-    description = summary
-    epilog = dals(
+    summary = "Export a conda environment to a file."
+    description = dals(
         """
-        Examples::
-
-            conda export
-            conda export --file FILE_NAME
-            conda export --format yaml
-            conda export --file environment.yaml
+        Export a conda environment to a file. The set of supported formats
+        depends on the plugins installed in your environment. Both portable
+        environment specs and reproducible lockfiles may be available. See
+        the epilog for the list of formats available here.
         """
-    )
+    ).rstrip()
 
     p = sub_parsers.add_parser(
         "export",
         help=summary,
         description=description,
-        epilog=epilog,
+        epilog=epilog(),
         **kwargs,
     )
 
@@ -77,7 +109,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--subdir",
         action="append",
         dest="export_platforms",
-        help="Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64)",
+        help=(
+            "Target platform(s)/subdir(s) for export (e.g. linux-64, osx-arm64, "
+            "win-64). For formats that support multi-platform output, repeat "
+            "the flag to produce a single file covering every platform."
+        ),
     )
     p.add_argument(
         "--override-platforms",
@@ -92,9 +128,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=None,
         required=False,
         help=(
-            "File name or path for the exported environment. "
-            "Note: This will silently overwrite any existing file "
-            "of the same name in the current directory."
+            "File name or path for the exported environment. Standard filenames "
+            "registered by the installed format plugins are auto-detected. "
+            "Custom filenames require --format. Existing files are overwritten "
+            "silently."
         ),
     )
 
@@ -106,9 +143,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         choices_factory=lambda: sorted(
             context.plugin_manager.get_exporter_format_mapping()
         ),
+        metavar="FORMAT",
         help=(
-            "Format for the exported environment. "
-            "If not specified, format will be determined by file extension or default to YAML."
+            "Override the output format. When omitted, the format is detected "
+            "from --file. See the epilog for the formats available in your "
+            "installation."
         ),
     )
 

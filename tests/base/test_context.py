@@ -971,3 +971,45 @@ def test_category_map_covers_all_parameters(context_testdata: None) -> None:
         mapped = [m for m in mapped if m != extra]
 
     assert not set(parameters).difference(mapped)
+
+
+def test_preview_default_is_empty(context_testdata: None) -> None:
+    assert context.preview == ()
+
+
+def test_preview_loads_from_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup,other-feature")
+    reset_context()
+    assert context.preview == ("env-setup", "other-feature")
+
+
+def test_preview_loads_from_condarc(context_testdata: None) -> None:
+    reset_context()
+    rd = {
+        "testdata": YamlRawParameter.make_raw_parameters(
+            "testdata",
+            yaml.loads("preview:\n  - env-setup\n  - other-feature\n"),
+        )
+    }
+    context._set_raw_data(rd)
+    assert context.preview == ("env-setup", "other-feature")
+
+
+def test_preview_enabled_returns_true_when_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
+    reset_context()
+    assert context.preview_enabled("env-setup")
+
+
+def test_preview_enabled_returns_false_when_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_PREVIEW", "other-feature")
+    reset_context()
+    assert not context.preview_enabled("env-setup")
+
+
+def test_preview_enabled_returns_false_when_empty(context_testdata: None) -> None:
+    assert not context.preview_enabled("env-setup")

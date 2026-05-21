@@ -87,7 +87,7 @@ class ArgumentError(CondaError):
 
 
 class Help(CondaError):
-    pass
+    return_code = 0
 
 
 class ActivateHelp(Help):
@@ -1094,7 +1094,7 @@ class PlatformMismatchError(CondaValueError):
 
     The message is derived from a list of ``(source, available_platforms)`` pairs
     so the wording stays consistent whether the failure comes from a single file
-    (``conda env create``, ``conda env update``) or several
+    (``conda create``, ``conda update``) or several
     (``Environment.from_cli`` with multiple ``-f`` / ``--file`` arguments).
     """
 
