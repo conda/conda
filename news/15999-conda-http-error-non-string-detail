@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Avoid a `TypeError` in `CondaHTTPError` and `UnavailableInvalidChannel` when the response body may contain a non-string `detail` field. (#15999)
+* Avoid a `TypeError` in `CondaHTTPError` and `UnavailableInvalidChannel` by only reading the RFC 9457 `detail` field from `application/problem+json` responses. (#15999)
 
 ### Deprecations
 
