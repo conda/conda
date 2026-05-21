@@ -149,6 +149,8 @@ def test_create_advanced_pip(
     assert package_is_installed(prefix, "xmltodict=0.10.2")
 
 
+# TODO: remove once https://github.com/conda/conda-lockfiles/issues/145 is fixed and released
+@pytest.mark.filterwarnings("ignore:.*yaml_safe.*:PendingDeprecationWarning")
 @pytest.mark.integration
 def test_create_empty_env(
     monkeypatch: MonkeyPatch,
@@ -402,6 +404,8 @@ def test_create_env_custom_platform(
         assert f"subdir: {platform}" in config.read_text()
 
 
+# TODO: remove once https://github.com/conda/conda-lockfiles/issues/145 is fixed and released
+@pytest.mark.filterwarnings("ignore:.*yaml_safe.*:PendingDeprecationWarning")
 @pytest.mark.integration
 def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     conda_cli: CondaCLIFixture,
@@ -487,17 +491,17 @@ def test_export_and_recreate_environment(
     # Setup a simple environment
     with tmp_env("ca-certificates") as prefix:
         env_file_path = path_factory(file_name)
-        stdout, stderr, rc = conda_cli(
+        _, stderr, rc = conda_cli(
             "export",
             f"--prefix={prefix}",
             f"--format={target_format}",
             f"--file={env_file_path}",
         )
-        assert rc == 0, "Unable to export env to format {target_format}"
+        assert rc == 0, f"conda export failed ({target_format=}): {stderr}"
 
         # recreate the environment
         recreate_prefix = path_factory()
-        stdout, stderr, rc = conda_cli(
+        _, stderr, rc = conda_cli(
             "env",
             "create",
             f"--prefix={recreate_prefix}",
@@ -505,4 +509,6 @@ def test_export_and_recreate_environment(
             f"--file={env_file_path}",
             "--dry-run",
         )
-        assert rc == 0, "Unable to recreate env from format {target_format}"
+        assert rc == 0, (
+            f"conda env create --dry-run failed ({target_format=}): {stderr}"
+        )

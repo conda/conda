@@ -7,6 +7,7 @@ circumstance.
 
 from __future__ import annotations
 
+import re
 import warnings
 from argparse import ArgumentParser
 from typing import TYPE_CHECKING
@@ -14,7 +15,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.cli.helpers import add_parser_environment_specifier
-from conda.deprecations import DeprecatedError, DeprecationHandler
 from conda.exceptions import ChannelDenied
 
 if TYPE_CHECKING:
@@ -86,98 +86,41 @@ def test_commands_with_plugin_backed_options(
     assert err_message in captured.err
 
 
-_FAKE_SPECIFIER = "yaml"
-"""
-A fake environment-specifier plugin name used as a valid choice in tests.
-"""
-
-_ENV_SPEC_FLAGS = pytest.mark.parametrize(
-    "flag", ["--environment-specifier", "--env-spec"]
+@pytest.mark.parametrize(
+    "flag",
+    ["--environment-specifier", "--env-spec"],
 )
-"""
-Parametrize over both flag aliases so both are covered.
-"""
-
-
-def _make_parser(mocker: MockerFixture, handler: DeprecationHandler) -> ArgumentParser:
-    """Return a fresh ArgumentParser with the environment-specifier arguments
-    registered, using the given *handler* as the ``deprecated`` singleton and
-    a single fake specifier choice so validation passes.
-
-    TODO: Remove test before 26.9.0 release
-    """
-    # Replace the module-level `deprecated` object so the action is built with
-    # the version embedded in *handler* rather than the real conda version.
-    mocker.patch("conda.cli.helpers.deprecated", handler)
-
+def test_env_spec_deprecation(mocker: MockerFixture, flag: str) -> None:
     # Provide a known valid choice so LazyChoicesAction does not reject it.
+    specifier = "yaml"
     mocker.patch(
         "conda.base.context.context.plugin_manager.get_environment_specifiers",
-        return_value=[_FAKE_SPECIFIER],
+        return_value=[specifier],
     )
 
     parser = ArgumentParser()
     add_parser_environment_specifier(parser)
-    return parser
 
+    with pytest.deprecated_call():
+        parser.parse_args([flag, specifier])
 
-@_ENV_SPEC_FLAGS
-def test_env_spec_deprecation_pending(mocker: MockerFixture, flag: str) -> None:
-    """
-    Before 26.5 the flag emits a ``PendingDeprecationWarning``.
-
-    TODO: Remove test before 26.9.0 release
-    """
-    parser = _make_parser(mocker, DeprecationHandler("26.3"))
-
-    with pytest.warns(PendingDeprecationWarning, match="pending deprecation"):
-        parser.parse_args([flag, _FAKE_SPECIFIER])
-
-
-@_ENV_SPEC_FLAGS
-def test_env_spec_deprecation_active(mocker: MockerFixture, flag: str) -> None:
-    """
-    From 26.9 onwards the flag emits a ``FutureWarning`` (active deprecation).
-
-    TODO: Remove test before 27.3.0 release
-    """
-    parser = _make_parser(mocker, DeprecationHandler("26.9"))
-
-    with pytest.warns(FutureWarning, match="deprecated"):
-        parser.parse_args([flag, _FAKE_SPECIFIER])
-
-
-def test_env_spec_deprecation_removal(mocker: MockerFixture) -> None:
-    """
-    At 27.3 the option should no longer exist: building the parser raises
-    ``DeprecatedError`` to alert developers that the dead code must be removed.
-
-    TODO: Remove test before  27.3.0 release
-    """
-    mocker.patch("conda.cli.helpers.deprecated", DeprecationHandler("27.3"))
-    mocker.patch(
-        "conda.base.context.context.plugin_manager.get_environment_specifiers",
-        return_value=[_FAKE_SPECIFIER],
-    )
-
-    parser = ArgumentParser()
-    with pytest.raises(DeprecatedError):
-        add_parser_environment_specifier(parser)
-
-
-def test_env_spec_no_warning_when_not_used(mocker: MockerFixture) -> None:
-    """
-    Passing ``--format`` (the replacement flag) must not trigger any
-    deprecation warning, even when the deprecated handler is at the active
-    version.
-
-    TODO: Remove before 27.3.0 release
-    """
-    parser = _make_parser(mocker, DeprecationHandler("26.9"))
-
-    # pytest.warns(None) would raise in newer pytest when *no* warning fires;
-    # use warnings.catch_warnings to assert silence instead.
+    # no deprecation warning when unused
     with warnings.catch_warnings():
         warnings.simplefilter("error", FutureWarning)
-        # --format stores into the same dest; should not raise
-        parser.parse_args(["--format", _FAKE_SPECIFIER])
+        parser.parse_args(["--format", specifier])
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["activate", "deactivate"],
+)
+def test_activate_help_commands_exit_0_rc(
+    conda_cli: CondaCLIFixture,
+    command: str,
+):
+    """Ensure that conda returns a 0 error code when cli --help is called"""
+    stdout, stderr, exc = conda_cli(command, "-h", raises=SystemExit)
+    assert exc.value.code == 0, f"conda {command} failed ({exc.value.code}): {stderr}"
+    assert f"usage: conda {command}" in stdout
+    assert not re.search(r"\berror\b", stdout, re.IGNORECASE)
+    assert not re.search(r"\berror\b", stderr, re.IGNORECASE)

@@ -12,8 +12,9 @@ if TYPE_CHECKING:
 
 
 def test_commands(conda_cli: CondaCLIFixture) -> None:
-    stdout, stderr, code = conda_cli("commands")
+    stdout, stderr, rc = conda_cli("commands")
 
+    assert rc == 0, f"conda commands failed ({rc}): {stderr}"
     assert stdout.splitlines() == sorted(
         {
             *BUILTIN_COMMANDS,
@@ -21,4 +22,3 @@ def test_commands(conda_cli: CondaCLIFixture) -> None:
         }
     )
     assert not stderr
-    assert not code

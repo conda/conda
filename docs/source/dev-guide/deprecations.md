@@ -2,7 +2,48 @@
 
 # Deprecations
 
-Conda abides by the Deprecation Schedule defined in [CEP-9][cep9]. To help make deprecations as much of a no-brainer as possible we provide several helper decorators and functions to facilitate the correct deprecation process.
+Conda abides by the Deprecation Schedule defined in [CEP 9][cep9].
+
+## What must be deprecated
+
+**Public** symbols must be deprecated before being removed.
+
+**Private** symbols are no longer considered "features" eligible for
+deprecation.[^1]
+
+[^1]: Private symbols introduced before 2026-05 may require deprecation per the
+    discretion of the conda maintainers.
+
+A private symbol is any symbol that starts with a single `_` character; any
+symbol inside a module that starts with a single `_` character; or any symbol
+not in a module's `__all__` list if it has such a list. This includes
+underscore-prefixed symbols in class instances.
+
+Imported symbols (`import <package>` statements) are considered private.
+
+Type checkers should be able to check these rules.
+
+## Using conda as a library
+
+Use conda's public API. If you need a private symbol, pin your conda dependency
+to that specific conda release `conda==26.9.0`, and file an issue so we can
+consider exposing a suitable public API.
+
+As a review, if any part of the import path starts with a single `_` (`from
+conda._private.NiftyClass`) then it is private. Most other symbols are public
+when imported from their point of definition, unless a module has an `__all__`
+omitting that symbol.
+
+### Re-exporting a private symbol to the public API
+
+[typing.python.org](https://typing.python.org/en/latest/spec/distributing.html#library-interface-public-and-private-symbols)
+defines conventions for *re-exporting* symbols to the public API. Type checkers
+understand these rules. This system helps conda to expose a designed set of APIs
+to the library user.
+
+## Marking code for deprecation
+
+To help make deprecations as much of a no-brainer as possible we provide several helper decorators and functions to facilitate the correct deprecation process.
 
 :::{tip}
 
@@ -194,6 +235,36 @@ del Bar
 :::{note}
 Constants deprecation relies on the module's `__getattr__` introduced in [PEP-562](https://peps.python.org/pep-0562/).
 :::
+
+### Deferred constants
+
+When the value of a deprecated constant is expensive to materialize (for example, a class whose definition requires a heavy import), pass a zero-argument callable to the `factory=` keyword instead of passing `value` positionally. The factory is only invoked the first time the deprecated symbol is accessed; the result is cached for subsequent accesses, so identity is preserved:
+
+```{code-block} python
+:caption: Example file, `foo.py`.
+from conda.deprecations import deprecated
+
+
+def _make_heavy():
+    import some_heavy_dependency
+    return some_heavy_dependency.Thing
+
+
+deprecated.constant(
+    "23.9",
+    "24.3",
+    "HEAVY_THING",
+    factory=_make_heavy,
+    addendum="Use `lightweight_alternative` instead.",
+)
+```
+
+```{code-block} pycon
+:caption: Example invocation.
+>>> import foo  # some_heavy_dependency is NOT imported
+>>> foo.HEAVY_THING  # some_heavy_dependency is imported now, and only now
+<stdin>:1: PendingDeprecationWarning: foo.HEAVY_THING is pending deprecation and will be removed in 24.3. Use `lightweight_alternative` instead.
+```
 
 ## Modules
 

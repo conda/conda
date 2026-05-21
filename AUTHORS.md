@@ -110,6 +110,7 @@ Authors are sorted alphabetically.
 * Daniel Zeng
 * Dario Curreri
 * Darren Dale
+* Dasha Gurova
 * Dave
 * Dave Hirschfeld
 * Dave Hogue
@@ -182,6 +183,7 @@ Authors are sorted alphabetically.
 * Jacopo Sabbatini
 * Jacques Kvam
 * Jaime Rodríguez-Guerra
+* Jakov Smolić
 * James Domingo
 * James Myatt
 * James Penn
@@ -209,6 +211,7 @@ Authors are sorted alphabetically.
 * Johan Carlin
 * Johannes Köster
 * John Ayad
+* John Costa
 * John Flavin
 * John Kirkham
 * Johnny Núñez Cano
@@ -353,6 +356,7 @@ Authors are sorted alphabetically.
 * Philippe Ombredanne
 * Pirzada Ahmad Faraz
 * Pradipta Ghosh
+* Pradyot Ranjan
 * Preston Moore
 * Rachel Rigdon
 * Rafael de Barros
@@ -402,6 +406,7 @@ Authors are sorted alphabetically.
 * Simon Li
 * Simon McLaren
 * Skipper Seabold
+* SmartCoder
 * Sophia Castellarin
 * Spencer Mathews
 * Srivas Venkatesh
@@ -450,6 +455,7 @@ Authors are sorted alphabetically.
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
+* Vedant Madane
 * Victor Ma
 * Vlad Frolov
 * Vlad Zagorodniy

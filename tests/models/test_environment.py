@@ -12,7 +12,7 @@ import pytest
 from conda.base.constants import ChannelPriority
 from conda.base.context import context, reset_context
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, PlatformMismatchError
 from conda.models.environment import (
     EXTERNAL_PACKAGES_PYPI_KEY,
     Environment,
@@ -21,6 +21,9 @@ from conda.models.environment import (
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import PrefixGraph
 from conda.models.records import PackageRecord
+from conda.plugins.types import EnvironmentSpecBase
+
+from .. import PYTHON_SPEC
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -29,6 +32,63 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
+
+
+class FixedEnvSpec(EnvironmentSpecBase):
+    """Minimal `EnvironmentSpecBase` that returns a pre-built `Environment`."""
+
+    def __init__(self, env: Environment):
+        self._env = env
+
+    def can_handle(self) -> bool:
+        return True
+
+    @property
+    def env(self) -> Environment:
+        return self._env
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        return (self._env.platform,)
+
+    def env_for(self, platform: str) -> Environment:
+        if platform != self._env.platform:
+            raise ValueError(
+                f"Platform {platform!r} not available. "
+                f"Available platforms: {self._env.platform}"
+            )
+        return self._env
+
+
+class MultiPlatformEnvSpec(EnvironmentSpecBase):
+    """`EnvironmentSpecBase` covering multiple platforms, one `Environment` per call."""
+
+    def __init__(self, platforms: tuple[str, ...]):
+        self._platforms = platforms
+
+    def can_handle(self) -> bool:
+        return True
+
+    @property
+    def env(self) -> Environment:
+        return self.env_for(self._platforms[0])
+
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        return self._platforms
+
+    def env_for(self, platform: str) -> Environment:
+        if platform not in self._platforms:
+            raise ValueError(
+                f"Platform {platform!r} not available. "
+                f"Available platforms: {', '.join(self._platforms)}"
+            )
+        return Environment(
+            prefix="/path",
+            platform=platform,
+            requested_packages=[MatchSpec("numpy")],
+            explicit_packages=[],
+        )
 
 
 def test_create_environment_missing_required_fields():
@@ -307,7 +367,7 @@ def test_from_cli_override_channels_excludes_file_channels(mocker: MockerFixture
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=SimpleNamespace(
-            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+            environment_spec=lambda fpath: FixedEnvSpec(file_env)
         ),
     )
 
@@ -337,7 +397,7 @@ def test_from_cli_channel_order_base_file_cli(mocker: MockerFixture):
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=SimpleNamespace(
-            environment_spec=lambda fpath: SimpleNamespace(env=file_env)
+            environment_spec=lambda fpath: FixedEnvSpec(file_env)
         ),
     )
     mocker.patch(
@@ -503,8 +563,7 @@ def test_from_prefix_behavior_with_pip_interoperability(
 ):
     """Test that extrapolating an env from a prefix behaves correctly with conda and pip packages."""
     # Create environment with conda packages and pip
-    packages = ["python=3.13", "pip"]
-    with tmp_env(*packages) as prefix:
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
         # Install small-python-package wheel for testing pip interoperability
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli(
@@ -523,7 +582,7 @@ def test_from_prefix_behavior_with_pip_interoperability(
         # that are not common for all platforms.
         expected_conda_explicit_names = [
             "python",
-            "python_abi",
+            # "python_abi",  # Python>=3.12 only
             "pip",
             "tk",
             "bzip2",
@@ -563,8 +622,8 @@ def test_from_cli_empty():
 def test_from_cli_empty_with_default_packages(
     monkeypatch: MonkeyPatch,
 ):
-    # Setup the default packages. Expect this to inject python==3.13
-    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "python==3.13")
+    # Setup the default packages.
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", PYTHON_SPEC)
     reset_context()
 
     env = Environment.from_cli(
@@ -572,7 +631,7 @@ def test_from_cli_empty_with_default_packages(
         add_default_packages=True,
     )
     assert env.config == EnvironmentConfig.from_context()
-    assert env.requested_packages == [MatchSpec("python==3.13")]
+    assert env.requested_packages == [MatchSpec(PYTHON_SPEC)]
 
 
 def test_from_cli_with_specs():
@@ -587,6 +646,59 @@ def test_from_cli_with_specs():
     assert env.name == "testenv"
     assert env.requested_packages == [MatchSpec("numpy"), MatchSpec("scipy=1.*")]
     assert env.explicit_packages == []
+
+
+@pytest.mark.parametrize("file_count", [1, 2])
+def test_from_cli_pre_flight_rejects_incompatible_files(
+    mocker: MockerFixture, file_count: int
+):
+    """Pre-flight pass reports every file that does not cover `context.subdir`."""
+    incompatible_platforms = tuple(
+        p
+        for p in ("linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64")
+        if p != context.subdir
+    )[:2]
+    paths = [f"/tmp/f{i}.yml" for i in range(file_count)]
+    specs_by_path = {fp: MultiPlatformEnvSpec(incompatible_platforms) for fp in paths}
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(
+            environment_spec=lambda fpath: specs_by_path[fpath]
+        ),
+    )
+    with pytest.raises(PlatformMismatchError) as exc_info:
+        Environment.from_cli(SimpleNamespace(name="testenv", packages=[], file=paths))
+    msg = str(exc_info.value)
+    if len(paths) == 1:
+        assert (
+            f"Environment file '{paths[0]}' does not include packages for "
+            f"{context.subdir}"
+        ) in msg
+    else:
+        assert (
+            f"The following environment files do not include packages for "
+            f"{context.subdir}"
+        ) in msg
+    assert f"--platform {context.subdir}" in msg
+    for fp in paths:
+        assert fp in msg
+
+
+def test_from_cli_accepts_multi_platform_file_covering_current(mocker: MockerFixture):
+    """Multi-platform specs that cover `context.subdir` return only that platform's `Environment`."""
+    spec = MultiPlatformEnvSpec(("linux-64", "osx-arm64", "win-64", context.subdir))
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(environment_spec=lambda fpath: spec),
+    )
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=[],
+            file=["/tmp/multi.lock"],
+        )
+    )
+    assert env.platform == context.subdir
 
 
 def test_from_cli_with_explicit_specs(mocker: MockerFixture):
@@ -634,9 +746,7 @@ def test_from_cli_with_files(mocker: MockerFixture):
         explicit_packages=[],
         config=EnvironmentConfig.from_context(),
     )
-    mock_spec = SimpleNamespace(
-        environment_spec=lambda fpath: SimpleNamespace(env=fake_env)
-    )
+    mock_spec = SimpleNamespace(environment_spec=lambda fpath: FixedEnvSpec(fake_env))
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
         return_value=mock_spec,
@@ -727,7 +837,7 @@ def test_from_cli_environment_inject_default_packages_override_file(
         platform=context.subdir,
         requested_packages=[MatchSpec("numpy==2.3.1")],
     )
-    mock_spec = type("Spec", (), {"env": fake_env})()
+    mock_spec = FixedEnvSpec(fake_env)
     mock_hook = type("Hook", (), {"environment_spec": lambda self, path: mock_spec})()
     mocker.patch(
         "conda.models.environment.context.plugin_manager.get_environment_specifier",
@@ -747,6 +857,224 @@ def test_from_cli_environment_inject_default_packages_override_file(
     assert MatchSpec("numpy==2.0.0") not in env.requested_packages
     assert MatchSpec("numpy==2.3.1") in env.requested_packages
     assert env.explicit_packages == []
+
+
+@pytest.mark.parametrize(
+    "target,expected_virtual",
+    [
+        ("linux-64", "__glibc"),
+        ("osx-arm64", "__osx"),
+        ("win-64", "__win"),
+    ],
+)
+def test_extrapolate_uses_target_subdir(
+    mocker: MockerFixture,
+    target: str,
+    expected_virtual: str,
+):
+    """Regression test for conda/conda#15919.
+
+    ``Environment.extrapolate`` must override ``context.subdir`` for the
+    duration of the solve so that the virtual_packages plugins emit virtual
+    packages for the *target* platform (e.g. ``__glibc`` on ``linux-*``)
+    rather than the host's. Otherwise cross-platform solves fail when a
+    requested spec transitively depends on a target-only virtual package.
+    """
+    original_subdir = context.subdir
+    if target == original_subdir:
+        pytest.skip("target equals host; extrapolate short-circuits")
+
+    captured: list[dict] = []
+
+    class RecordingSolver:
+        def __init__(self, **kwargs):
+            captured.append(
+                {
+                    "init_subdir": context.subdir,
+                    "kwargs_subdirs": kwargs.get("subdirs"),
+                }
+            )
+
+        def solve_final_state(self):
+            captured[-1]["solve_subdir"] = context.subdir
+            captured[-1]["virtual_pkg_names"] = {
+                rec.name for rec in context.plugin_manager.get_virtual_package_records()
+            }
+            return []
+
+    mocker.patch(
+        "conda.models.environment.Environment.from_history",
+        return_value=[MatchSpec("python=3.13")],
+    )
+    mocker.patch(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        return_value=RecordingSolver,
+    )
+
+    env = Environment(
+        prefix="/fake/prefix",
+        platform=original_subdir,
+        config=EnvironmentConfig.from_context(),
+    )
+
+    result = env.extrapolate(target)
+
+    assert result.platform == target
+    assert len(captured) == 1, "Solver was not invoked"
+    for record in captured:
+        assert record["init_subdir"] == target
+        assert record["solve_subdir"] == target
+        assert record["kwargs_subdirs"] == (target, "noarch")
+
+    assert context.subdir == original_subdir
+
+    assert expected_virtual in captured[-1]["virtual_pkg_names"], (
+        f"Expected {expected_virtual} to be available when extrapolating to "
+        f"{target}, got: {captured[-1]['virtual_pkg_names']}"
+    )
+
+
+@pytest.mark.parametrize("target", ["linux-64", "osx-arm64", "win-64"])
+def test_extrapolate_restores_subdir_on_solver_error(
+    mocker: MockerFixture,
+    target: str,
+):
+    """``context.subdir`` must be restored even when the solver raises.
+
+    Companion to ``test_extrapolate_uses_target_subdir``; covers the
+    exception-safety of the temporary subdir override.
+    """
+    original_subdir = context.subdir
+    if target == original_subdir:
+        pytest.skip("target equals host; extrapolate short-circuits")
+
+    class FailingSolver:
+        def __init__(self, **kwargs):
+            pass
+
+        def solve_final_state(self):
+            raise RuntimeError("boom")
+
+    mocker.patch(
+        "conda.models.environment.Environment.from_history",
+        return_value=[MatchSpec("python=3.13")],
+    )
+    mocker.patch(
+        "conda.base.context.context.plugin_manager.get_cached_solver_backend",
+        return_value=FailingSolver,
+    )
+
+    env = Environment(
+        prefix="/fake/prefix",
+        platform=original_subdir,
+        config=EnvironmentConfig.from_context(),
+    )
+
+    with pytest.raises(RuntimeError, match="boom"):
+        env.extrapolate(target)
+
+    assert context.subdir == original_subdir
+
+
+# Overrides used by the version-pinned case of
+# ``test_extrapolate_virtualdep_package``. Both are set unconditionally
+# so the test behaves deterministically regardless of the CI runner's
+# actual glibc / macOS version: the target override is required by the
+# extrapolate step, and the host override is required by the initial
+# ``tmp_env`` install when the host runs on an older kernel / OS than
+# the constraint. Windows has no versioned virtual package, so it
+# doesn't participate in the ``version="2.0"`` cases below.
+_VERSIONED_OVERRIDES = {
+    "CONDA_OVERRIDE_GLIBC": "2.28",
+    "CONDA_OVERRIDE_OSX": "11.0",
+}
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "target,version,envvars",
+    [
+        # Failure mode 1: target-platform virtual package not emitted
+        # at all during extrapolation. Fixed by this PR via the
+        # ``context._override("_subdir", target)`` wrapper around the
+        # solve. No version constraint on the virtual dep, so the
+        # ``==0=0`` fallback emitted by the target's virtual_packages
+        # plugin is sufficient to satisfy it. No overrides needed.
+        pytest.param("linux-fake", "1.0", {}, id="linux-fake-unversioned"),
+        pytest.param("osx-fake", "1.0", {}, id="osx-fake-unversioned"),
+        pytest.param("win-fake", "1.0", {}, id="win-fake-unversioned"),
+        # Failure mode 2 (documented known follow-up): the target's
+        # virtual package plugin falls back to emitting ``==0=0`` when
+        # it can't introspect a foreign target. A versioned dep like
+        # ``__glibc >=2.28`` doesn't satisfy that, so ``CONDA_OVERRIDE_*``
+        # is still required. These cases verify that the override path
+        # works once this PR's subdir-override lands; they do NOT assert
+        # the second-order fix (introspecting the target) which is
+        # tracked separately.
+        pytest.param(
+            "linux-fake", "2.0", _VERSIONED_OVERRIDES, id="linux-fake-versioned"
+        ),
+        pytest.param("osx-fake", "2.0", _VERSIONED_OVERRIDES, id="osx-fake-versioned"),
+    ],
+)
+def test_extrapolate_virtualdep_package(
+    tmp_env: TmpEnvFixture,
+    test_recipes_channel: Path,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    target: str,
+    version: str,
+    envvars: dict[str, str],
+):
+    """End-to-end regression test for conda/conda#15919.
+
+    Uses a mock package (``virtualdep-package``) in the local
+    ``test-recipes`` channel that declares a target-specific virtual
+    dependency per fake subdir. Two variants exist:
+
+    * ``v1.0`` declares an unversioned virtual dep (``__glibc``,
+      ``__osx``, ``__win``). Exercises the fix in this PR: without
+      ``context._subdir`` being overridden for the extrapolate solve,
+      the target's virtual_packages plugin never runs and the solver
+      fails with ``nothing provides __glibc`` / ``__osx`` / ``__win``.
+    * ``v2.0`` declares a versioned virtual dep (``__glibc >=2.28``,
+      ``__osx >=11.0``). Still hits the same root failure mode without
+      the fix, but the ``==0=0`` fallback doesn't satisfy the version
+      constraint either, so ``CONDA_OVERRIDE_*`` is required. Those
+      cases confirm the override path keeps working and document what
+      users on versioned pins (e.g. ``python=3.13`` requiring
+      ``__glibc>=2.17``) need to do until the target-introspection
+      follow-up lands.
+    """
+    host_fake = f"{context.subdir.split('-')[0]}-fake"
+    if target == host_fake:
+        pytest.skip("target equals host's fake subdir; extrapolate short-circuits")
+
+    # Pretend we're running on the host's fake subdir so the initial
+    # env solves against the local channel instead of the real host
+    # subdir (which has no repodata entry in test-recipes). Patch both
+    # ``conda.base.context.KNOWN_SUBDIRS`` (read by the ``known_subdirs``
+    # property; ``from .constants import KNOWN_SUBDIRS`` creates a local
+    # binding that ignores constants-level patches) and
+    # ``conda.models.environment.PLATFORMS`` so both the solver's
+    # unknown-subdir check and ``Environment``'s platform validation
+    # accept the fake subdirs.
+    mocker.patch("conda.base.context.KNOWN_SUBDIRS", (host_fake, target))
+    mocker.patch("conda.base.constants.KNOWN_SUBDIRS", (host_fake, target))
+    mocker.patch("conda.models.environment.PLATFORMS", (host_fake, target))
+    monkeypatch.setenv("CONDA_SUBDIR", host_fake)
+    for var, value in envvars.items():
+        monkeypatch.setenv(var, value)
+    reset_context()
+
+    with tmp_env(f"virtualdep-package={version}") as prefix:
+        env = Environment.from_prefix(prefix, None, context.subdir)
+        extrapolated = env.extrapolate(target)
+        assert extrapolated.platform == target
+        names = {pkg.name for pkg in extrapolated.explicit_packages}
+        assert "virtualdep-package" in names, (
+            f"virtualdep-package missing from extrapolated env for {target}: {names}"
+        )
 
 
 def test_extrapolate(tmp_env: TmpEnvFixture):

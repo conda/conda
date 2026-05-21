@@ -14,15 +14,17 @@ import fnmatch
 import functools
 import logging
 import os
+import sys
 from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from importlib.metadata import distributions
-from inspect import getmodule, isclass
+from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
 
+from .. import __version__
 from ..auxlib import NULL
 from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
@@ -50,10 +52,12 @@ from . import (
 from .config import PluginConfig
 from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
+from .types import CondaExceptionEvent
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
-    from typing import Any, Literal, cast
+    from types import TracebackType
+    from typing import Any, Literal, TypeVar, cast
 
     from pluggy import HookImpl
     from requests.auth import AuthBase
@@ -67,9 +71,10 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
-        CondaPlugin,
+        CondaPluginWithAliases,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -84,7 +89,10 @@ if TYPE_CHECKING:
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
+        EnvironmentFormat,
     )
+
+    P = TypeVar("P", bound=CondaPluginWithAliases)
 
 log = logging.getLogger(__name__)
 
@@ -339,6 +347,11 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["environment_exporters"]
     ) -> list[CondaEnvironmentExporter]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["exception_observers"]
+    ) -> list[CondaExceptionObserver]: ...
+
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -425,6 +438,23 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"{', '.join(solvers_mapping)}"
             )
 
+        if (
+            context.repodata_use_shards
+            and "build_repodata_subset"
+            in signature(solver_plugin.backend.__init__).parameters
+        ):
+            from ..gateways.shards import build_repodata_subset
+
+            new_init = functools.partialmethod(
+                solver_plugin.backend.__init__,
+                build_repodata_subset=build_repodata_subset,
+            )
+            return type(
+                f"Partial{solver_plugin.backend.__name__}",
+                (solver_plugin.backend,),
+                {"__init__": new_init},
+            )
+
         return solver_plugin.backend
 
     def get_auth_handler(self, name: str) -> type[AuthBase] | None:
@@ -469,6 +499,89 @@ class CondaPluginManager(pluggy.PluginManager):
         for hook in self.get_hook_results("post_commands"):
             if command in hook.run_for:
                 hook.action(command)
+
+    def invoke_exception_observers(
+        self,
+        exc_val: BaseException,
+        exc_tb: TracebackType,
+    ) -> None:
+        """
+        Invokes ``CondaExceptionObserver.hook`` functions registered with
+        ``conda_exception_observers``.
+
+        Observers are purely observational (following CPython's ``sys.excepthook``
+        model) and cannot suppress, modify, or redirect the exception. Return
+        values are ignored.
+
+        Any exception raised by an observer is caught at the ``BaseException``
+        level and logged -- a buggy plugin raising ``SystemExit`` or
+        ``KeyboardInterrupt`` cannot kill conda's error reporting.
+
+        :param exc_val: the exception instance being handled
+        :param exc_tb: the associated traceback
+        """
+        try:
+            observers = self.get_hook_results("exception_observers")
+            if not observers:
+                return
+
+            exc_mro_names = frozenset(cls.__name__ for cls in type(exc_val).__mro__)
+
+            if all(
+                observer.watch_for.isdisjoint(exc_mro_names) for observer in observers
+            ):
+                return
+
+            if isinstance(exc_val, SystemExit):
+                return_code = exc_val.code
+            else:
+                return_code = getattr(exc_val, "return_code", 1)
+
+            try:
+                from ..models.channel import Channel
+
+                event = CondaExceptionEvent(
+                    exc_type=type(exc_val),
+                    exc_value=exc_val,
+                    exc_traceback=exc_tb,
+                    argv=tuple(sys.argv),
+                    conda_version=__version__,
+                    return_code=return_code,
+                    active_prefix=context.active_prefix,
+                    target_prefix=str(context.target_prefix),
+                    channels=tuple(
+                        Channel.from_value(c).canonical_name for c in context.channels
+                    ),
+                    subdir=context.subdir,
+                    offline=context.offline,
+                    dry_run=context.dry_run,
+                    quiet=context.quiet,
+                    json=context.json,
+                )
+            except BaseException:
+                event = CondaExceptionEvent(
+                    exc_type=type(exc_val),
+                    exc_value=exc_val,
+                    exc_traceback=exc_tb,
+                )
+
+            for observer in observers:
+                if observer.watch_for.isdisjoint(exc_mro_names):
+                    continue
+                try:
+                    observer.hook(event)
+                except BaseException:
+                    log.debug(
+                        "Exception observer plugin %r failed",
+                        observer.name,
+                        exc_info=True,
+                    )
+
+            # Break reference cycles between traceback and frame locals promptly
+            # (same reason CPython warns against storing exc_value/exc_traceback).
+            del event, exc_tb
+        except BaseException:
+            log.debug("invoke_exception_observers failed", exc_info=True)
 
     def disable_external_plugins(self) -> None:
         """
@@ -587,7 +700,7 @@ class CondaPluginManager(pluggy.PluginManager):
         self, *, supports_detection: bool | None = None, with_aliases: bool = True
     ) -> dict[str, CondaEnvironmentSpecifier]:
         """
-         Returns a mapping from environment specifier name to environment specifier.
+        Returns a mapping from environment specifier name to environment specifier.
 
         :param supports_detection: ternary value that returns either everything, only supporting
                                     detection or not supporting detection.
@@ -614,17 +727,15 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"Plugin name conflicts detected in environment specifiers.\n{err}"
             )
 
-    def _get_name_and_alias_mapping(
-        self, plugins: Iterable[CondaPlugin]
-    ) -> dict[str, CondaEnvironmentSpecifier]:
+    def _get_name_and_alias_mapping(self, plugins: Iterable[P]) -> dict[str, P]:
         """
         Get a mapping from plugin names (including aliases) to plugin.
 
-        :param plugins: List of plugins that have a name and aliases attribute.
-        :return: Dict mapping format name to CondaEnvironmentExporter
-        :raises PluginError: If multiple exporters use the same format name or alias
+        :param plugins: Plugins that expose a ``name`` and ``aliases``.
+        :return: Mapping from each canonical name and alias to the corresponding plugin.
+        :raises PluginError: If multiple plugins use the same name or alias.
         """
-        mapping = {}
+        mapping: dict[str, P] = {}
         conflicts = {}  # format_name -> set of plugin names
 
         for plugin in plugins:
@@ -836,6 +947,15 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
 
+    def get_environment_specifiers_grouped(
+        self,
+    ) -> dict[EnvironmentFormat, list[CondaEnvironmentSpecifier]]:
+        """Group environment specifiers by :class:`~conda.plugins.types.EnvironmentFormat`."""
+        return groupby_to_dict(
+            lambda plugin: plugin.environment_format,
+            self.get_hook_results("environment_specifiers"),
+        )
+
     def get_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
         """
         Yields all detected environment exporters.
@@ -913,6 +1033,15 @@ class CondaPluginManager(pluggy.PluginManager):
             )
 
         return exporter
+
+    def get_environment_exporters_grouped(
+        self,
+    ) -> dict[EnvironmentFormat, list[CondaEnvironmentExporter]]:
+        """Group environment exporters by :class:`~conda.plugins.types.EnvironmentFormat`."""
+        return groupby_to_dict(
+            lambda plugin: plugin.environment_format,
+            self.get_environment_exporters(),
+        )
 
     def get_pre_transaction_actions(
         self,

@@ -15,7 +15,7 @@ from ..base.context import context, validate_channels
 from ..common.constants import NULL
 from ..common.iterators import groupby_to_dict as groupby
 from ..core.prefix_data import PrefixData
-from ..exceptions import CondaValueError
+from ..exceptions import CondaValueError, PlatformMismatchError
 from ..history import History
 from ..misc import get_package_records_from_explicit
 from .match_spec import MatchSpec
@@ -540,14 +540,23 @@ class Environment:
 
         envs_from_file = []
         fpath_envs_map = {}
+        file_specs = {}
+        incompatible = []
         for fpath in args.file:
             spec_hook = context.plugin_manager.get_environment_specifier(
                 source=fpath,
                 name=context.environment_specifier,
             )
             spec = spec_hook.environment_spec(fpath)
-            envs_from_file.append(spec.env)
-            fpath_envs_map[fpath] = spec.env
+            file_specs[fpath] = spec
+            if context.subdir not in spec.available_platforms:
+                incompatible.append((fpath, spec.available_platforms))
+        if incompatible:
+            raise PlatformMismatchError(incompatible, context.subdir)
+        for fpath, spec in file_specs.items():
+            env = spec.env_for(context.subdir)
+            envs_from_file.append(env)
+            fpath_envs_map[fpath] = env
 
         # Add default packages if required. If the default package is already
         # present in the list of specs, don't add it (this will override any
@@ -629,7 +638,8 @@ class Environment:
 
     def extrapolate(self, platform: str) -> Environment:
         """
-        Given the current environment, extrapolate the environment for the given platform.
+        Given the current environment, solve for a comparable environment on a
+        different platform.
         """
         if platform == self.platform:
             return self
@@ -639,17 +649,18 @@ class Environment:
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         requested_packages = self.from_history(self.prefix)
 
-        for repodata_manager in Repodatas(self.config.repodata_fns, {}):
-            with repodata_manager as repodata_fn:
-                solver = solver_backend(
-                    prefix="/env/does/not/exist",
-                    channels=self.config.channels,
-                    subdirs=(platform, "noarch"),
-                    specs_to_add=requested_packages,
-                    repodata_fn=repodata_fn,
-                    command="create",
-                )
-                explicit_packages = solver.solve_final_state()
+        with context._override("_subdir", platform):
+            for repodata_manager in Repodatas(self.config.repodata_fns, {}):
+                with repodata_manager as repodata_fn:
+                    solver = solver_backend(
+                        prefix="/env/does/not/exist",
+                        channels=self.config.channels,
+                        subdirs=(platform, "noarch"),
+                        specs_to_add=requested_packages,
+                        repodata_fn=repodata_fn,
+                        command="create",
+                    )
+                    explicit_packages = solver.solve_final_state()
         return Environment(
             prefix=self.prefix,
             name=self.name,

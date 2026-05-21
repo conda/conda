@@ -27,6 +27,8 @@ from conda.exceptions import (
 from conda.testing.helpers import forward_to_subprocess, in_subprocess
 from conda.testing.integration import package_is_installed
 
+from .. import PYTHON_SPEC
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
@@ -649,8 +651,7 @@ def test_export_multi_channel(
     """Test conda env export."""
     from conda.core.prefix_data import PrefixData
 
-    with tmp_env() as prefix:
-        conda_cli("create", f"--prefix={prefix}", "python", "--yes")
+    with tmp_env(PYTHON_SPEC) as prefix:
         assert PrefixData(prefix).is_environment()
 
         # install something from other channel not in config file

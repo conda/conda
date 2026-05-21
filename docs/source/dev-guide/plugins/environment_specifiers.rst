@@ -37,6 +37,21 @@ of its abstract methods:
 * ``can_handle`` Determines if the defined plugin can read and operate on the provided file.
 * ``env`` Expresses the provided environment file as a conda environment object.
 
+The base class also provides default-implemented APIs for multi-platform specs.
+Single-platform specs (``environment.yml``, ``requirements.txt``) can ignore them:
+
+* ``available_platforms`` Tuple of platform subdirs this spec covers. Defaults to
+  ``(context.subdir,)``.
+* ``env_for(platform)`` Return the ``Environment`` for a specific platform. Defaults
+  to ``env`` if ``platform == context.subdir``, raises otherwise.
+
+Multi-platform specs (``conda-lock.yml``, ``pixi.lock``) override both to expose the
+full platform set declared in the input file. Callers iterate with:
+
+.. code-block:: python
+
+    envs = (spec.env_for(p) for p in spec.available_platforms)
+
 The class may also define the boolean class variable `detection_supported`. When set to
 ``True``, the plugin will be included in the environment spec type discovery process. Otherwise,
 the plugin will only be able to be used when it is specifically selected. By default, this
@@ -77,13 +92,13 @@ to select the plugin using the aliased names in addition to the provided name.
 Using the Plugin
 ----------------
 Once this plugin is registered, users will be able to create environments from the
-types of files specified by the plugin. The ``conda env create``, ``conda create``,
+types of files specified by the plugin. The ``conda create``, ``conda env create``,
 and ``conda install`` commands all use these plugins when given a ``--file`` argument.
 For example to create a `random` environment using the plugin defined above:
 
 .. code-block:: bash
 
-   conda env create --file /doesnt/matter/any/way.random
+   conda create --file /doesnt/matter/any/way.random
 
 Plugin detection
 ----------------
@@ -204,4 +219,4 @@ Then, create the environment
 
 .. code-block:: bash
 
-   $ conda env create --file testenv.json
+   $ conda create --file testenv.json

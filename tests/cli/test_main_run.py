@@ -23,6 +23,8 @@ from conda.gateways.logging import initialize_logging
 from conda.testing.integration import env_or_set
 from conda.utils import wrap_subprocess_call
 
+from .. import PYTHON_SPEC
+
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
@@ -157,7 +159,7 @@ def test_no_newline_in_output(
     expected_stdout: str,
     expected_stderr: str,
 ):
-    with tmp_env("python") as prefix:
+    with tmp_env(PYTHON_SPEC) as prefix:
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",

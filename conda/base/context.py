@@ -484,8 +484,10 @@ class Context(Configuration):
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
+    preview = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
+    repodata_use_shards = ParameterLoader(PrimitiveParameter(True))
     envvars_force_uppercase = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
@@ -1090,6 +1092,10 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
+    def preview_enabled(self, value: str) -> bool:
+        """Return True if the given preview feature label is enabled by the user."""
+        return value in self.preview
+
     @property
     def override_virtual_packages(self) -> dict[str, str | None]:
         """Remove any dunders in the virtual_package name keys"""
@@ -1126,19 +1132,23 @@ class Context(Configuration):
 
     @contextmanager
     def _override(self, key: str, value: Any) -> Iterator[None]:
-        """
-        TODO: This might be broken in some ways. Unsure what happens if the `old`
-        value is a property and gets set to a new value. Or if the new value
-        overrides the validation logic on the underlying ParameterLoader instance.
+        """Temporarily override an attribute on the context.
 
-        Investigate and implement in a safer way.
+        Uses ``__dict__`` directly because ``ParameterLoader`` (and other
+        non-data descriptors used by the context) have no ``__set__``: a
+        plain ``setattr`` would shadow the descriptor permanently in
+        ``__dict__`` and ``reset_context()`` could not restore it.
         """
-        old = getattr(self, key)
-        setattr(self, key, value)
+        sentinel = object()
+        previous = self.__dict__.get(key, sentinel)
+        self.__dict__[key] = value
         try:
             yield
         finally:
-            setattr(self, key, old)
+            if previous is sentinel:
+                self.__dict__.pop(key, None)
+            else:
+                self.__dict__[key] = previous
 
     @memoizedproperty
     def requests_version(self) -> str:
@@ -1225,7 +1235,7 @@ class Context(Configuration):
                 if context.plugin_manager.has_package_extension(x)
                 else "spec"
             ),
-            sequence=self._create_default_packages,
+            self._create_default_packages,
         )
 
         if grouped_packages.get("explicit", None):
@@ -1301,11 +1311,13 @@ class Context(Configuration):
             "experimental",
             "no_lock",
             "repodata_use_zst",
+            "repodata_use_shards",
         ),
         "Basic Conda Configuration": (  # TODO: Is there a better category name here?
             "envs_dirs",
             "pkgs_dirs",
             "default_threads",
+            "preview",
         ),
         "Network Configuration": (
             "client_ssl_cert",
@@ -2008,6 +2020,11 @@ class Context(Configuration):
                 List of experimental features to enable.
                 """
             ),
+            preview=dals(
+                """
+                List of preview features to opt into.
+                """
+            ),
             no_lock=dals(
                 """
                 Disable index cache lock (defaults to enabled).
@@ -2015,7 +2032,12 @@ class Context(Configuration):
             ),
             repodata_use_zst=dals(
                 """
-                Disable check for `repodata.json.zst`; use `repodata.json` only.
+                Use `repodata.json.zst` if available.
+                """
+            ),
+            repodata_use_shards=dals(
+                """
+                Use sharded repodata if available.
                 """
             ),
             envvars_force_uppercase=dals(

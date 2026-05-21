@@ -6,11 +6,14 @@ from __future__ import annotations
 
 import json
 import uuid
+import warnings
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.context import context
+from conda.cli.main_export import CondaExportWarning
+from conda.cli.main_export import epilog as export_epilog
 from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
@@ -18,12 +21,16 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
+from conda.plugins import hookimpl
+from conda.plugins.types import CondaEnvironmentExporter, EnvironmentFormat
+
+from .. import PYTHON_SPEC
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from conda.plugins.manager import CondaPluginManager
-    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
 
 
 def test_export(conda_cli: CondaCLIFixture) -> None:
@@ -660,34 +667,24 @@ def test_export_pip_dependencies_handling(conda_cli, format_name, parser_func):
     ],
 )
 def test_export_with_pip_dependencies_integration(
-    tmp_env,
-    conda_cli,
-    pip_cli: PipCLIFixture,
-    wheelhouse: Path,
+    env_with_small_pip_package,
+    conda_cli: CondaCLIFixture,
     format_name,
     format_flag,
     parser_func,
 ):
-    """Test that conda export properly includes pip dependencies when present.
-
-    Uses our small-python-package as a reliable test package that's proven to work in conda's test suite.
+    """Test that conda export properly includes pip dependencies when present. Including raising a warning
+    message when pip is used to install dependencies.
     """
-    with tmp_env("python=3.10", "pip") as prefix:
-        # Install small-python-package wheel built in test data directory
-        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+    # Export the environment in the specified format
+    export_args = ["export", f"--prefix={env_with_small_pip_package}"] + (
+        [format_flag] if format_flag else []
+    )
 
-        # Install using pip_cli fixture for better error handling
-        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
-        assert pip_code == 0, f"pip install failed: {pip_stderr}"
-
-        # Clear prefix data cache to ensure fresh data
-        PrefixData._cache_.clear()
-
-        # Export the environment in the specified format
-        export_args = ["export", f"--prefix={prefix}"] + (
-            [format_flag] if format_flag else []
-        )
-
+    with pytest.warns(
+        CondaExportWarning,
+        match="The exported environment contains 3rd party Python packages",
+    ):
         stdout, stderr, code = conda_cli(*export_args)
         assert code == 0, f"{format_name} export failed: {stderr}"
 
@@ -718,6 +715,54 @@ def test_export_with_pip_dependencies_integration(
         assert "small-python-package" in pip_packages, (
             f"Expected 'small-python-package' in {format_name} export: {pip_deps}"
         )
+
+
+@pytest.mark.parametrize(
+    "flags,warns",
+    [
+        pytest.param([], True, id="default behavior raises warning"),
+        pytest.param(["--format=json"], True, id="JSON format with `--format` flag"),
+        pytest.param(["--json"], True, id="JSON format with `--json` flag"),
+        pytest.param(
+            ["--file", "environment.yaml"], True, id="warns with `--file` flag alone"
+        ),
+        pytest.param(["--quiet"], False, id="suppress warning with `--quiet`"),
+        pytest.param(
+            ["--json", "--file", "environment.yaml"],
+            False,
+            id="suppress warning with `--json` and `--file`",
+        ),
+    ],
+)
+def test_export_warnings(
+    env_with_small_pip_package: Path,
+    conda_cli: CondaCLIFixture,
+    flags: list[str],
+    warns,
+):
+    """Test that conda export warns under the correct set of cli options when pip dependencies are present."""
+    # Export the environment in the specified format
+    export_args = ["export", f"--prefix={env_with_small_pip_package}"] + flags
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always", category=CondaExportWarning)
+        conda_cli(*export_args)
+        if warns:
+            assert len(w) > 0, f"Expected a warning for flags {flags}"
+        else:
+            assert len(w) == 0, f"Did not expect a warning for flags {flags}"
+
+
+def test_export_non_pip_env_warnings(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    """Test that conda does not warn for environments without pip dependencies"""
+    with tmp_env(PYTHON_SPEC) as prefix:
+        PrefixData._cache_.clear()
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always", category=CondaExportWarning)
+            conda_cli("export", f"--prefix={prefix}")
+            assert len(w) == 0
 
 
 def test_export_override_channels_and_ignore_channels_independence(conda_cli):
@@ -806,7 +851,7 @@ def test_export_explicit_format_validation_errors(
 ):
     """Test that explicit format properly errors on invalid environments."""
     # Create an environment with conda packages and pip dependencies
-    with tmp_env("python=3.10", "pip") as prefix:
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
         # Install a pip package to create external packages
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
@@ -948,3 +993,97 @@ def test_export_invalid_platform_from_condarc_fails_fast(
         CondaValueError, match=r"Could not find platform\(s\): doesnotexist"
     ):
         conda_cli("export")
+
+
+class DummyEnvSpecPlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-spec",
+            aliases=("spec",),
+            default_filenames=("spec.dummy",),
+            export=lambda env: "",
+        )
+
+
+class DummyLockfilePlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-lock",
+            aliases=("lock",),
+            default_filenames=("lock.dummy",),
+            export=lambda envs: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+class DummyMultilockPlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-multi",
+            aliases=("multi",),
+            default_filenames=("multi.dummy",),
+            multiplatform_export=lambda envs: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+@pytest.mark.parametrize(
+    "spec_plugin,lockfile_plugin,multilock_plugin",
+    [
+        pytest.param(False, False, False, id="no plugins"),
+        pytest.param(True, False, False, id="spec plugin only"),
+        pytest.param(False, True, False, id="lockfile plugin only"),
+        pytest.param(False, False, True, id="multilock plugin only"),
+        pytest.param(True, True, True, id="all plugins"),
+    ],
+)
+def test_epilog(
+    plugin_manager_with_reporter_backends: CondaPluginManager,
+    subtests,
+    spec_plugin: bool,
+    lockfile_plugin: bool,
+    multilock_plugin: bool,
+) -> None:
+    """``conda export --help`` renders examples and format epilog using the registered plugins."""
+    # register dummy plugins
+    if spec_plugin:
+        plugin_manager_with_reporter_backends.register(DummyEnvSpecPlugin())
+    if lockfile_plugin:
+        plugin_manager_with_reporter_backends.register(DummyLockfilePlugin())
+    if multilock_plugin:
+        plugin_manager_with_reporter_backends.register(DummyMultilockPlugin())
+
+    # check help contains expected text
+    epilog = export_epilog()
+    for expected, line in (
+        (True, "Examples:"),
+        (True, "Export an environment spec:"),
+        (True, "conda export --from-history > environment.yml"),
+        (True, "Export a lockfile for the same platform:"),
+        (True, "conda export --file explicit.txt"),
+        (multilock_plugin, "Export a lockfile for multiple platforms:"),
+        (
+            multilock_plugin,
+            "conda export --file multi.dummy --platform linux-64 --platform osx-arm64",
+        ),
+        (
+            spec_plugin or lockfile_plugin or multilock_plugin,
+            "Available output formats:",
+        ),
+        (spec_plugin, "Environment specs:"),
+        (spec_plugin, "- dummy-spec (aliases: spec): spec.dummy"),
+        (lockfile_plugin or multilock_plugin, "Lockfiles:"),
+        (lockfile_plugin, "- dummy-lock (aliases: lock): lock.dummy"),
+        (multilock_plugin, "- dummy-multi (aliases: multi): multi.dummy"),
+    ):
+        with subtests.test(f"{'expected' if expected else 'not expected'}: {line}"):
+            assert (line in epilog) is expected, epilog
+
+
+def test_export_help(conda_cli: CondaCLIFixture) -> None:
+    """``conda export --help`` renders the epilog."""
+    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
+    assert export_epilog() in stdout
