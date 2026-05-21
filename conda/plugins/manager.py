@@ -19,7 +19,7 @@ from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from importlib.metadata import distributions
-from inspect import getmodule, isclass
+from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
@@ -89,6 +89,7 @@ if TYPE_CHECKING:
         CondaSolver,
         CondaSubcommand,
         CondaVirtualPackage,
+        EnvironmentFormat,
     )
 
     P = TypeVar("P", bound=CondaPluginWithAliases)
@@ -435,6 +436,23 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"You have chosen a non-default solver backend ({name}) "
                 f"but it was not recognized. Choose one of: "
                 f"{', '.join(solvers_mapping)}"
+            )
+
+        if (
+            context.repodata_use_shards
+            and "build_repodata_subset"
+            in signature(solver_plugin.backend.__init__).parameters
+        ):
+            from ..gateways.shards import build_repodata_subset
+
+            new_init = functools.partialmethod(
+                solver_plugin.backend.__init__,
+                build_repodata_subset=build_repodata_subset,
+            )
+            return type(
+                f"Partial{solver_plugin.backend.__name__}",
+                (solver_plugin.backend,),
+                {"__init__": new_init},
             )
 
         return solver_plugin.backend
@@ -929,6 +947,15 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return self.get_environment_specifier_by_name(source=source, name=name)
 
+    def get_environment_specifiers_grouped(
+        self,
+    ) -> dict[EnvironmentFormat, list[CondaEnvironmentSpecifier]]:
+        """Group environment specifiers by :class:`~conda.plugins.types.EnvironmentFormat`."""
+        return groupby_to_dict(
+            lambda plugin: plugin.environment_format,
+            self.get_hook_results("environment_specifiers"),
+        )
+
     def get_environment_exporters(self) -> Iterable[CondaEnvironmentExporter]:
         """
         Yields all detected environment exporters.
@@ -1006,6 +1033,15 @@ class CondaPluginManager(pluggy.PluginManager):
             )
 
         return exporter
+
+    def get_environment_exporters_grouped(
+        self,
+    ) -> dict[EnvironmentFormat, list[CondaEnvironmentExporter]]:
+        """Group environment exporters by :class:`~conda.plugins.types.EnvironmentFormat`."""
+        return groupby_to_dict(
+            lambda plugin: plugin.environment_format,
+            self.get_environment_exporters(),
+        )
 
     def get_pre_transaction_actions(
         self,

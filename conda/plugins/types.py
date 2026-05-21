@@ -71,6 +71,14 @@ if TYPE_CHECKING:
         name: str
         aliases: tuple[str, ...]
 
+    class CondaPluginWithEnvironmentFormat(CondaPluginWithAliases):
+        """
+        Structural type for plugins that expose a environment format.
+        """
+
+        environment_format: EnvironmentFormat
+        default_filenames: tuple[str, ...]
+
 
 @dataclass
 class CondaPlugin:
@@ -684,7 +692,7 @@ class EnvironmentFormat(enum.Enum):
     """
     Represents supported environment formats.
 
-    TODO: After minimum support for Python 3.11 is introduced, convert to using enum.StrEnum
+    FUTURE: Python 3.11+, use enum.StrEnum
     """
 
     lockfile = "lockfile"
@@ -692,6 +700,13 @@ class EnvironmentFormat(enum.Enum):
 
     def __str__(self) -> str:
         return self.value
+
+    @property
+    def label(self) -> str:
+        return {
+            EnvironmentFormat.lockfile: "Lockfiles",
+            EnvironmentFormat.environment: "Environment specs",
+        }[self]
 
 
 @dataclass
@@ -745,7 +760,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     :param name: name of the exporter (e.g., ``environment-yaml``)
     :param aliases: user-friendly format aliases (e.g., ("yaml",))
     :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
-    :param export: callable that exports an Environment to string format
+    :param export: callable that exports an Environment to string format for a single platform
+    :param multiplatform_export: callable that exports an Environment to string format for multiple platforms
     :param description: user-friendly description of what the format does. Defaults to the name if not provided.
     :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """

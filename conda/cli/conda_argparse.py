@@ -98,6 +98,7 @@ BUILTIN_COMMANDS = {
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:
     pre_parser = ArgumentParser(
+        prog="conda",
         description="conda is a tool for managing and deploying applications,"
         " environments and packages.",
         **kwargs,
