@@ -14,7 +14,6 @@ from argparse import (
 
 from conda.base.constants import KNOWN_SUBDIRS
 
-from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.constants import NULL
 from ..models.environment import Environment
@@ -67,20 +66,18 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from .helpers import LazyAction, add_parser_json, add_parser_prefix
 
     summary = "Export a conda environment to a file."
-    description = dals(
-        """
-        Export a conda environment to a file. The set of supported formats
-        depends on the plugins installed in your environment. Both portable
-        environment specs and reproducible lockfiles may be available. See
-        the epilog for the list of formats available here.
-        """
-    ).rstrip()
+    description = (
+        "The set of supported formats depends on the plugins installed in your "
+        "environment. Both portable environment specs and reproducible "
+        "lockfiles may be available. See the epilog for the list of formats "
+        "available here."
+    )
 
     p = sub_parsers.add_parser(
         "export",
         help=summary,
-        description=description,
-        epilog=epilog(),
+        description=summary + "\n\n" + description,
+        epilog_factory=epilog,
         **kwargs,
     )
 
