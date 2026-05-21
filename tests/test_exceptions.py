@@ -7,6 +7,7 @@ from contextlib import nullcontext
 from unittest.mock import patch
 
 import pytest
+import requests
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
@@ -567,6 +568,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     [
         json.JSONDecodeError,
         ValueError,
+        requests.exceptions.JSONDecodeError,
     ],
 )
 def test_non_json_response_body(error_class: type) -> None:
