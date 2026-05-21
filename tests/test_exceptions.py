@@ -30,6 +30,7 @@ from conda.exceptions import (
     ProxyError,
     SharedLinkPathClobberError,
     TooManyArgumentsError,
+    UnavailableInvalidChannel,
     UnknownPackageClobberError,
     conda_exception_handler,
 )
@@ -576,8 +577,6 @@ def test_non_json_response_body(error_class: type) -> None:
     inherits from simplejson.JSONDecodeError (a ValueError), not from
     json.JSONDecodeError (stdlib).
     """
-    from conda.exceptions import CondaHTTPError, UnavailableInvalidChannel
-
     class MockResponse:
         reason = "Not Found"
         headers = {}
