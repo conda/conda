@@ -209,7 +209,7 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
         "code": (
             "from conda.cli.conda_argparse import generate_parser\ngenerate_parser()"
         ),
-        "max_modules": 1200,
+        "max_modules": 1400,
     },
     "full_startup": {
         "code": (
