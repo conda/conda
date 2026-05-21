@@ -149,6 +149,8 @@ def test_create_advanced_pip(
     assert package_is_installed(prefix, "xmltodict=0.10.2")
 
 
+# TODO: remove once https://github.com/conda/conda-lockfiles/issues/145 is fixed and released
+@pytest.mark.filterwarnings("ignore:.*yaml_safe.*:PendingDeprecationWarning")
 @pytest.mark.integration
 def test_create_empty_env(
     monkeypatch: MonkeyPatch,
@@ -402,6 +404,8 @@ def test_create_env_custom_platform(
         assert f"subdir: {platform}" in config.read_text()
 
 
+# TODO: remove once https://github.com/conda/conda-lockfiles/issues/145 is fixed and released
+@pytest.mark.filterwarnings("ignore:.*yaml_safe.*:PendingDeprecationWarning")
 @pytest.mark.integration
 def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     conda_cli: CondaCLIFixture,
