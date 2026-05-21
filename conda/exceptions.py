@@ -562,7 +562,8 @@ class UnavailableInvalidChannel(ChannelError):
         try:
             body = response.json()
         except (AttributeError, ValueError):
-            # ValueError covers both json.JSONDecodeError and simplejson.JSONDecodeError
+            # AttributeError: response has no .json method
+            # ValueError: covers both json.JSONDecodeError and simplejson.JSONDecodeError
             body = {}
         else:
             reason = body.get("reason") or reason
@@ -657,7 +658,8 @@ class CondaHTTPError(CondaError):
         try:
             body = response.json()
         except (AttributeError, ValueError):
-            # ValueError covers both json.JSONDecodeError and simplejson.JSONDecodeError
+            # AttributeError: response has no .json method
+            # ValueError: covers both json.JSONDecodeError and simplejson.JSONDecodeError
             body = {}
         else:
             reason = body.get("reason") or reason
