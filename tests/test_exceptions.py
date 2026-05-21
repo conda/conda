@@ -520,7 +520,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     class MockResponse:
         def __init__(self, json_data):
             self.json_data = json_data
-            self.headers = {}
+            self.headers = {"content-type": "application/problem+json"}
 
         def json(self):
             return self.json_data
@@ -568,8 +568,10 @@ def test_http_error_rfc_9457_non_string_detail(
     monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
     """
-    CondaHTTPError shouldn't crash when 'detail' is a non-string, for example,
-    when receiving a list of validation errors as returned by FastAPI.
+    CondaHTTPError should ignore 'detail' when the response is not an RFC 9457
+    application/problem+json response. Frameworks such as FastAPI use 'detail'
+    for non-string values (say, a list of validation error objects), so we must
+    not read it unless the content type is indicative of an RFC 9457 response.
     """
     msg = ""
     url = "https://example.com/channel/linux-64/repodata.json"
@@ -581,7 +583,7 @@ def test_http_error_rfc_9457_non_string_detail(
     class MockResponse:
         def __init__(self, json_data):
             self.json_data = json_data
-            self.headers = {}
+            self.headers = {"content-type": "application/json"}
 
         def json(self):
             return self.json_data
@@ -598,7 +600,7 @@ def test_http_error_rfc_9457_non_string_detail(
     stdout, stderr = capsys.readouterr()
 
     assert not stdout
-    assert str(detail) in stderr
+    assert str(detail) not in stderr
 
 
 def test_CommandNotFoundError_simple(
