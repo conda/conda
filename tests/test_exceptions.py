@@ -577,6 +577,7 @@ def test_non_json_response_body(error_class: type) -> None:
     inherits from simplejson.JSONDecodeError (a ValueError), not from
     json.JSONDecodeError (stdlib).
     """
+
     class MockResponse:
         reason = "Not Found"
         headers = {}
