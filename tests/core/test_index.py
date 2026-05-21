@@ -154,27 +154,54 @@ def test_get_index_platform(platform: str) -> None:
         assert platform_in_record(platform, record), (platform, record.url)
 
 
-def test_channel_mismatch_dist_str_no_double_subdir() -> None:
-    """Test that records from a channel URL with no subdir must not produce a
-    doubled or platform-mismatched subdir in dist_str() after the canonical_name
-    is faked by _supplement_index_dict_with_prefix.
+def test_supplement_index_merges_bare_and_subdir_url_channels(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
+    """Regression test for https://github.com/conda/conda/issues/15933.
+
+    Prefix and repodata records that share a canonical_name should merge, even
+    when their channels were constructed from different URL forms (bare vs
+    subdir). The old ``Channel.__eq__`` comparison included ``platform`` and
+    treated the two differently, and that corrupted ``dist_str()``.
     """
-    rec = PackageRecord.from_objects(
-        channel="http://localhost:8080/my-channel",  # no subdir in URL
-        subdir="linux-64",
+    record_kwargs = dict(
         name="foo",
         version="1.0",
         build="0",
         build_number=0,
+        subdir="linux-64",
     )
-    prefix_channel = rec.channel
-    assert isinstance(prefix_channel, Channel)
-    assert prefix_channel.platform is None  # bare URL has no subdir
-    _ = rec._pkey
-    prefix_channel._Channel__canonical_name = prefix_channel.base_url
-    del rec._PackageRecord__pkey
+    prefix_record = PrefixRecord.from_objects(
+        channel="http://localhost:8080/my-channel",  # bare URL, no subdir
+        **record_kwargs,
+        link={"source": str(tmp_path), "type": 1},
+    )
+    repodata_record = PackageRecord.from_objects(
+        channel="http://localhost:8080/my-channel/linux-64",  # explicit subdir
+        **record_kwargs,
+    )
 
-    dist = rec.dist_str()
+    assert prefix_record.channel.platform is None
+    assert repodata_record.channel.platform == "linux-64"
+    assert (
+        prefix_record.channel.canonical_name
+        == repodata_record.channel.canonical_name
+    )
+    assert prefix_record == repodata_record
+    assert hash(prefix_record) == hash(repodata_record)
+
+    class _FakePrefixData:
+        def iter_records(self):
+            return iter([prefix_record])
+
+    idx = Index()
+    monkeypatch.setattr(idx, "prefix_data", _FakePrefixData())
+    idx._data = {repodata_record: repodata_record}
+    idx._supplement_index_dict_with_prefix()
+
+    merged = idx._data[prefix_record]
+    assert isinstance(merged, PrefixRecord)
+    dist = merged.dist_str()
     assert dist.count("linux-64") == 1
     assert dist.endswith("::foo-1.0-0")
 
