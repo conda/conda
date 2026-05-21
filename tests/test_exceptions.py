@@ -561,6 +561,38 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     )
 
 
+@pytest.mark.parametrize(
+    "error_class",
+    [
+        json.JSONDecodeError,
+        ValueError,
+    ],
+)
+def test_non_json_response_body(error_class: type) -> None:
+    """UnavailableInvalidChannel and CondaHTTPError handle non-JSON responses.
+
+    Regression test for #16136: when simplejson is installed,
+    response.json() raises requests.exceptions.JSONDecodeError which
+    inherits from simplejson.JSONDecodeError (a ValueError), not from
+    json.JSONDecodeError (stdlib).
+    """
+    from conda.exceptions import CondaHTTPError, UnavailableInvalidChannel
+
+    class MockResponse:
+        reason = "Not Found"
+        headers = {}
+
+        def json(self):
+            raise error_class("bad", "", 0)
+
+    response = MockResponse()
+
+    exc = UnavailableInvalidChannel("test-channel", 404, response=response)
+    assert exc.status_code == 404
+
+    CondaHTTPError("msg", "https://x", 404, "Not Found", "0:01", response)
+
+
 def test_CommandNotFoundError_simple(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
