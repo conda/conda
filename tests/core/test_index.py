@@ -184,8 +184,7 @@ def test_supplement_index_merges_bare_and_subdir_url_channels(
     assert prefix_record.channel.platform is None
     assert repodata_record.channel.platform == "linux-64"
     assert (
-        prefix_record.channel.canonical_name
-        == repodata_record.channel.canonical_name
+        prefix_record.channel.canonical_name == repodata_record.channel.canonical_name
     )
     assert prefix_record == repodata_record
     assert hash(prefix_record) == hash(repodata_record)
