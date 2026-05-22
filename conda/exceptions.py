@@ -26,7 +26,6 @@ from .base.constants import (
 from .common.compat import on_win
 from .common.io import dashlist
 from .common.iterators import groupby_to_dict as groupby
-from .common.serialize.json import JSONDecodeError
 from .common.serialize.json import dumps as json_dumps
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
@@ -562,7 +561,9 @@ class UnavailableInvalidChannel(ChannelError):
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
-        except (AttributeError, JSONDecodeError):
+        except (AttributeError, ValueError):
+            # AttributeError: response has no .json method
+            # ValueError: covers both json.JSONDecodeError and simplejson.JSONDecodeError
             body = {}
         else:
             reason = body.get("reason") or reason
@@ -656,7 +657,9 @@ class CondaHTTPError(CondaError):
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
-        except (AttributeError, JSONDecodeError):
+        except (AttributeError, ValueError):
+            # AttributeError: response has no .json method
+            # ValueError: covers both json.JSONDecodeError and simplejson.JSONDecodeError
             body = {}
         else:
             reason = body.get("reason") or reason
