@@ -187,9 +187,9 @@ def _search_package_via_shards(
     channels = {
         channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
     }
-    # TODO: is it possible to ask build_repodata_subset to just get the top level nodes?
-    # Would that speed this up?
-    subset_dict = build_repodata_subset([spec.name], channels, repodata_version=3)
+    subset_dict = build_repodata_subset(
+        [spec.name], channels, repodata_version=3, depth=0
+    )
     if not subset_dict:
         return _search_package(spec, channel_urls, subdirs)
     records = []
