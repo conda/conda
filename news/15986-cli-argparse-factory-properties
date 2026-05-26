@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `description_factory` and `epilog_factory` to `conda.cli.conda_argparse.ArgumentParser` and `help_factory` to `conda.cli.actions.LazyAction` (aliased as `conda.cli.helpers.LazyChoicesAction`) so help text can be generated when needed instead of when the parser is first constructed. (#15960 via #15986)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.cli.actions.LazyAction(choices_func)` as pending deprecation, to be removed in 27.3. Use `choices_factory` instead. (#15960 via #15986)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

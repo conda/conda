@@ -7,17 +7,16 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from argparse import (
-    SUPPRESS,
-    RawDescriptionHelpFormatter,
-)
+from argparse import SUPPRESS, RawDescriptionHelpFormatter
 from argparse import ArgumentParser as ArgumentParserBase
 from importlib import import_module
 from logging import getLogger
 from subprocess import Popen
+from typing import TYPE_CHECKING
 
 from .. import __version__
 from ..auxlib.ish import dals
+from ..auxlib.type_coercion import maybecall
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
@@ -63,6 +62,10 @@ from .main_rename import configure_parser as configure_parser_rename
 from .main_run import configure_parser as configure_parser_run
 from .main_search import configure_parser as configure_parser_search
 from .main_update import configure_parser as configure_parser_update
+
+if TYPE_CHECKING:
+    from argparse import HelpFormatter
+    from collections.abc import Callable
 
 log = getLogger(__name__)
 
@@ -199,12 +202,68 @@ def find_builtin_commands(parser: ArgumentParserBase) -> tuple[str, ...]:
 
 
 class ArgumentParser(ArgumentParserBase):
-    def __init__(self, *args, add_help=True, **kwargs):
-        kwargs.setdefault("formatter_class", RawDescriptionHelpFormatter)
-        super().__init__(*args, add_help=False, **kwargs)
+    _description: str | None
+    _description_factory: Callable[[], str | None] | None
+    _epilog: str | None
+    _epilog_factory: Callable[[], str | None] | None
+
+    def __init__(
+        self,
+        *,  # force keyword-only arguments
+        add_help: bool = True,
+        formatter_class: type[HelpFormatter] = RawDescriptionHelpFormatter,
+        description: str | None = None,
+        description_factory: Callable[[], str | None] | None = None,
+        epilog: str | None = None,
+        epilog_factory: Callable[[], str | None] | None = None,
+        **kwargs,
+    ):
+        if description and description_factory:
+            raise ValueError(
+                "description and description_factory are mutually exclusive"
+            )
+        self._description_factory = description_factory
+
+        if epilog and epilog_factory:
+            raise ValueError("epilog and epilog_factory are mutually exclusive")
+        self._epilog_factory = epilog_factory
+
+        super().__init__(
+            add_help=False,
+            formatter_class=formatter_class,
+            description=description,
+            epilog=epilog,
+            **kwargs,
+        )
 
         if add_help:
             add_parser_help(self)
+
+    @property
+    def description(self) -> str | None:
+        try:
+            return self._description
+        except AttributeError:
+            self._description = maybecall(self._description_factory)
+            return self._description
+
+    @description.setter
+    def description(self, value: str | None):
+        if value is not None or self._description_factory is None:
+            self._description = value
+
+    @property
+    def epilog(self) -> str | None:
+        try:
+            return self._epilog
+        except AttributeError:
+            self._epilog = maybecall(self._epilog_factory)
+            return self._epilog
+
+    @epilog.setter
+    def epilog(self, value: str | None):
+        if value is not None or self._epilog_factory is None:
+            self._epilog = value
 
     def _check_value(self, action, value):
         # For our greedy subparsers, sort the choices by their repr for stable output

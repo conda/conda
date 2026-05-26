@@ -8,77 +8,21 @@ from __future__ import annotations
 
 from argparse import (
     SUPPRESS,
-    Action,
     BooleanOptionalAction,
     _AppendAction,
     _HelpAction,
-    _StoreAction,
 )
 from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
+from .actions import LazyAction, _ValidatePackages
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
 
 
-class LazyChoicesAction(Action):
-    def __init__(self, option_strings, dest, choices_func, **kwargs):
-        self.choices_func = choices_func
-        self._cached_choices = None
-        super().__init__(option_strings, dest, **kwargs)
-
-    @property
-    def choices(self):
-        """Dynamically evaluate choices for help generation and validation."""
-        if self._cached_choices is None:
-            self._cached_choices = self.choices_func()
-        return self._cached_choices
-
-    @choices.setter
-    def choices(self, value):
-        """Ignore attempts to set choices since we use choices_func."""
-        # argparse tries to set self.choices during __init__, but we ignore it
-        # since we dynamically generate choices via choices_func
-        pass
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        valid_choices = self.choices
-        if values not in valid_choices:
-            choices_string = ", ".join(f"'{val}'" for val in valid_choices)
-            # Use the same format as argparse for consistency
-            option_display = "/".join(self.option_strings)
-            parser.error(
-                f"argument {option_display}: invalid choice: {values!r} (choose from {choices_string})"
-            )
-        setattr(namespace, self.dest, values)
-
-
-class _ValidatePackages(_StoreAction):
-    """
-    Used to validate match specs of packages
-    """
-
-    @staticmethod
-    def _validate_no_denylist_channels(packages_specs):
-        """
-        Ensure the packages do not contain denylist_channels
-        """
-        from ..base.context import validate_channels
-        from ..models.match_spec import MatchSpec
-
-        if not isinstance(packages_specs, (list, tuple)):
-            packages_specs = [packages_specs]
-
-        validate_channels(
-            channel
-            for spec in map(MatchSpec, packages_specs)
-            if (channel := spec.get_exact_value("channel"))
-        )
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        self._validate_no_denylist_channels(values)
-        super().__call__(parser, namespace, values, option_string)
+# backwards compatibility
+LazyChoicesAction = LazyAction
 
 
 def add_parser_create_install_update(p, prefix_required=False):
@@ -477,8 +421,8 @@ def add_parser_solver(p: ArgumentParser) -> None:
     group.add_argument(
         "--solver",
         dest="solver",
-        action=LazyChoicesAction,
-        choices_func=context.plugin_manager.get_solvers,
+        action=LazyAction,
+        choices_factory=context.plugin_manager.get_solvers,
         help="Choose which solver backend to use.",
         default=NULL,
     )
@@ -638,18 +582,18 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
         action=deprecated.action(
             "26.9",
             "27.3",
-            LazyChoicesAction,
+            LazyAction,
             addendum="Use the `--format` flag instead.",
         ),
-        choices_func=context.plugin_manager.get_environment_specifiers,
+        choices_factory=context.plugin_manager.get_environment_specifiers,
         default=NULL,
     )
 
     p.add_argument(
         "--format",
         dest="environment_specifier",
-        action=LazyChoicesAction,
-        choices_func=context.plugin_manager.get_environment_specifiers,
+        action=LazyAction,
+        choices_factory=context.plugin_manager.get_environment_specifiers,
         default=NULL,
         metavar="FORMAT",
         help=(
