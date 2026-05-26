@@ -11,9 +11,9 @@ love, we'll integrate the preview as a core component of conda.
 The previews themselves reside in the {mod}`conda._preview` module. Within
 this module, you'll find various feature modules that we're experimenting
 with (e.g. {mod}`conda._preview.env_setup` contains a set of new commands overriding
-the traditional environment creation and management process). These feature modules
-mirror the top-level `conda` module so that when/if these features are taken
-out of experimentation, the updates can be more-or-less seamless.
+the traditional environment creation and management process). Preview modules
+can mirror the top-level `conda` module where that makes graduation easier, but
+CLI entry points should still be wired through conda's plugin framework.
 
 
 :::{warning}
@@ -38,3 +38,5 @@ preview:
    or as a collection of issues before creating a preview.
 2. When creating your own preview feature, please use snake-case for the module name and
    kebab-case for the name that appears in the configuration file.
+3. Preview subcommands should be exposed through `conda.plugins.previews`, which gates
+   bundled preview hook implementations with their matching preview label.

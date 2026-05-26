@@ -14,16 +14,15 @@ from argparse import (
 from argparse import ArgumentParser as ArgumentParserBase
 from functools import partial
 from importlib import import_module
-from inspect import getmodule
 from logging import getLogger
 from subprocess import Popen
-from typing import TYPE_CHECKING
 
 from .. import __version__
 from ..auxlib.ish import dals
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
+from ..plugins.previews import is_preview_subcommand
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
 from .helpers import (  # noqa: F401
     add_output_and_prompt_options,
@@ -66,9 +65,6 @@ from .main_rename import configure_parser as configure_parser_rename
 from .main_run import configure_parser as configure_parser_run
 from .main_search import configure_parser as configure_parser_search
 from .main_update import configure_parser as configure_parser_update
-
-if TYPE_CHECKING:
-    from ..plugins.types import CondaSubcommand
 
 log = getLogger(__name__)
 
@@ -173,11 +169,10 @@ def generate_parser(**kwargs) -> ArgumentParser:
     preview_plugin_commands = {
         name
         for name, plugin_subcommand in context.plugin_manager.get_subcommands().items()
-        if _is_preview_command(plugin_subcommand)
+        if is_preview_subcommand(plugin_subcommand)
     }
 
-    # We only register if it's not being overriden by something in the
-    # `conda._preview` module
+    # We only register built-ins that are not overridden by bundled previews.
     for builtin, config_func in BUILTIN_COMMAND_PARSERS.items():
         if builtin not in preview_plugin_commands:
             config_func(sub_parsers)
@@ -296,15 +291,6 @@ def _exec_unix(executable_args, env_vars):
     os.execvpe(executable_args[0], executable_args, env_vars)
 
 
-def _is_preview_command(plugin_subcommand: CondaSubcommand) -> bool:
-    """
-    Determine whether this plugin subcommand is a preview command.
-    """
-    module_name = getmodule(plugin_subcommand.action).__name__
-
-    return module_name.startswith("conda._preview")
-
-
 def configure_parser_plugins(sub_parsers) -> None:
     """
     For each of the provided plugin-based subcommands, we'll create
@@ -316,7 +302,17 @@ def configure_parser_plugins(sub_parsers) -> None:
     for name, plugin_subcommand in plugin_subcommands.items():
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand, we print an error
-        if name in BUILTIN_COMMANDS and not _is_preview_command(plugin_subcommand):
+        if name in BUILTIN_COMMANDS:
+            if (
+                is_preview_subcommand(plugin_subcommand)
+                and name in BUILTIN_COMMAND_PARSERS
+            ):
+                parser = BUILTIN_COMMAND_PARSERS[name](sub_parsers)
+                if plugin_subcommand.configure_parser:
+                    plugin_subcommand.configure_parser(parser)
+                parser.set_defaults(_plugin_subcommand=plugin_subcommand)
+                continue
+
             log.error(
                 dals(
                     f"""

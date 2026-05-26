@@ -51,10 +51,14 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     # Unrecognized labels are silently skipped so typos don't crash the CLI.
     for label in context.preview:
         package = label.replace("-", "_")
+        module_name = f"conda._preview.{package}"
         try:
-            mod = import_module(f"conda._preview.{package}")
-        except ModuleNotFoundError:
-            continue
+            mod = import_module(module_name)
+        except ModuleNotFoundError as err:
+            # Ignore unknown preview labels, but surface missing imports inside previews.
+            if err.name == module_name:
+                continue
+            raise
         mod.register(context)
 
     # used with main_pip.py

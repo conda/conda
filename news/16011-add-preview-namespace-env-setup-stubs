@@ -2,5 +2,5 @@
 
 * Add `conda/_preview/` private namespace with `register(context)` convention for
   opt-in preview features; scaffold the first preview (`env-setup`) with non-operational
-  stubs for `conda create` and `conda install` wired into CLI dispatch via dynamic
-  module routing. (#16011)
+  stubs for `conda create` and `conda install` wired into CLI dispatch through
+  built-in plugin subcommand hooks. (#16011)
