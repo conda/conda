@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
 
-    from pytest import CaptureFixture, Subtests
+    from pytest import Subtests
 
     from conda.testing.fixtures import CondaCLIFixture
 
@@ -112,7 +112,7 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
     assert validate(getattr(module, attr))
 
 
-def test_sorted_commands_in_error(capsys: CaptureFixture):
+def test_sorted_commands_in_error(capsys):
     p = ArgumentParser()
     sp = p.add_subparsers(
         metavar="COMMAND",
@@ -121,25 +121,22 @@ def test_sorted_commands_in_error(capsys: CaptureFixture):
         required=True,
     )
     # These are added in a non-alphabetical order...
-    sp.add_parser("charlie")
-    sp.add_parser("alpha")
-    sp.add_parser("bravo")
+    sp.add_parser("c")
+    sp.add_parser("a")
+    sp.add_parser("b")
     try:
-        p.parse_args(["delta"])
+        p.parse_args(["d"])
     except SystemExit:
         stderr = capsys.readouterr().err
         # ...but the suggestions here are sorted
 
-        # some Pythons quote the choices:
-        #   invalid choice: 'delta' (choose from 'alpha', 'bravo', 'charlie')
-        # others don't:
-        #   invalid choice: 'delta' (choose from alpha, bravo, charlie)
-        assert (
-            stderr.index("invalid choice:")
-            < stderr.index("delta")
-            < stderr.index("alpha")
-            < stderr.index("bravo")
-            < stderr.index("charlie")
-        )
+        # See https://github.com/python/cpython/pull/144983 for context
+        # Some Python versions did not quote choices as a side-effect of a
+        # different fix in 3.12. This was reverted in 3.15 and backported.
+        # We could annotate which style is used in each version, but why bother:
+        # both are valid assertions for choice ordering.
+        quoted = "invalid choice: 'd' (choose from 'a', 'b', 'c')"
+        unquoted = "invalid choice: 'd' (choose from a, b, c)"
+        assert quoted in stderr or unquoted in stderr
     else:
         pytest.fail("Did not raise")
