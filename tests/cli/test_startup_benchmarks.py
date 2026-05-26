@@ -3,7 +3,6 @@
 """Startup performance benchmarks.
 
 Measures the cost of conda's startup phases. Runs locally with
-``pytest --codspeed tests/cli/test_startup_benchmarks.py`` or
 ``pytest -m benchmark tests/cli/test_startup_benchmarks.py``.
 
 Import benchmarks use ``benchmark.pedantic`` with a setup function that
@@ -47,7 +46,6 @@ _TEST_INFRA = frozenset(
         "py",
         "pytest",
         "pytest_benchmark",
-        "pytest_codspeed",
         "pytest_cov",
         "pytest_mock",
         "pytest_split",
@@ -98,10 +96,9 @@ def _restore_modules():
 def _run_import_benchmark(benchmark: BenchmarkFixture, target) -> None:
     """Run an import benchmark, using pedantic mode when available.
 
-    ``benchmark.pedantic`` (with per-round ``sys.modules`` cleanup) is only
-    available under CodSpeed instrumentation or pytest-benchmark.  In plain
-    pytest-codspeed walltime/local mode it is absent, so fall back to a
-    single ``benchmark(target)`` call — still useful as a smoke test.
+    ``benchmark.pedantic`` with per-round ``sys.modules`` cleanup is available
+    with pytest-benchmark. Keep the fallback so the test remains a useful smoke
+    test if another benchmark fixture implementation lacks pedantic mode.
     """
     if hasattr(benchmark, "pedantic"):
         benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)

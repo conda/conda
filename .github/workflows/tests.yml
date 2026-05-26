@@ -348,11 +348,18 @@ jobs:
 
   # linux benchmarks
   linux-benchmarks:
-    # only run test suite if there are code changes
+    # only run benchmarks if there are code changes
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    env:
+      BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+      BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -402,6 +409,7 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           python=${{ matrix.python-version }}
+          "pytest-benchmark>=5.1.0"
 
       - name: Conda Info
         # view test env info (not base)
@@ -409,72 +417,6 @@ jobs:
 
       - name: Conda Config
         run: conda config --show-sources
-
-      - name: Conda List
-        run: conda list --show-channel-urls
-
-      - name: Run Benchmarks
-        uses: CodSpeedHQ/action@3194d9a39c4d46684cb44bf7207fc56626aad8fd # v4.15.1
-        with:
-          token: ${{ secrets.CODSPEED_TOKEN }}
-          run: $CONDA/envs/test/bin/python -m pytest --codspeed
-          mode: instrumentation
-
-  # linux bencher benchmarks
-  linux-bencher-benchmarks:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-
-    runs-on: ubuntu-latest
-    permissions:
-      checks: write
-      pull-requests: write
-    defaults:
-      run:
-        shell: bash -el {0}
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.14']
-
-    steps:
-      - name: Checkout Source
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Hash + Timestamp
-        run: |
-          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
-          echo "CACHE_KEY=${STEM}-defaults-aux" >> $GITHUB_ENV
-          echo "HASH=${STEM}-bencher" >> $GITHUB_ENV
-
-      - name: Cache Conda
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/conda_pkgs_dir/*.tar.bz2
-            ~/conda_pkgs_dir/*.conda
-          key: cache-${{ env.CACHE_KEY }}
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
-        with:
-          condarc-file: .github/condarc-defaults
-          run-post: false
-
-      - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
-          --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
-
-      - name: Conda Info
-        run: python -m conda info --verbose
 
       - name: Conda List
         run: conda list --show-channel-urls
@@ -489,10 +431,8 @@ jobs:
           --benchmark-json benchmark_results.json
 
       - name: Track base branch benchmarks with Bencher
-        if: github.event_name == 'push' && env.BENCHER_API_TOKEN != ''
+        if: github.event_name == 'push' && env.BENCHER_API_TOKEN != '' && env.BENCHER_PROJECT_SLUG != ''
         env:
-          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
-          BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
@@ -500,7 +440,7 @@ jobs:
             --project "$BENCHER_PROJECT_SLUG" \
             --token "$BENCHER_API_TOKEN" \
             --branch "$BRANCH_NAME" \
-            --testbed ubuntu-latest \
+            --testbed ubuntu-22.04 \
             --threshold-measure latency \
             --threshold-test t_test \
             --threshold-max-sample-size 64 \
@@ -512,10 +452,8 @@ jobs:
             --file benchmark_results.json
 
       - name: Track PR benchmarks with Bencher
-        if: github.event_name == 'pull_request' && env.BENCHER_API_TOKEN != ''
+        if: github.event_name == 'pull_request' && env.BENCHER_API_TOKEN != '' && env.BENCHER_PROJECT_SLUG != ''
         env:
-          BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
-          BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
@@ -527,7 +465,7 @@ jobs:
             --start-point-hash "$PR_BASE_SHA" \
             --start-point-clone-thresholds \
             --start-point-reset \
-            --testbed ubuntu-latest \
+            --testbed ubuntu-22.04 \
             --threshold-measure latency \
             --threshold-test t_test \
             --threshold-max-sample-size 64 \
