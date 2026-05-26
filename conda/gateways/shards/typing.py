@@ -18,7 +18,12 @@ class Shards(typing.Protocol):
     def __contains__(self, package: str) -> bool:
         """Check if a package is available in this shard collection."""
 
-    def iter_records(self) -> Iterator[tuple[tuple[str, str], dict]]:
+    def iter_records(self) -> Iterator[tuple[str, dict]]:
+        """
+        Yield (filename, record) tuples for all packages in visited shards.
+        """
+
+    def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
         """
         Yield ((filename, section), record) tuples for all packages in visited shards.
 

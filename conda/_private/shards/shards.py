@@ -309,7 +309,9 @@ class ShardBase(abc.ABC):
         """
         Return monolithic repodata including all visited shards.
 
-        Prefer iter_records() over this method.
+        Does not return "v3" repodata.
+
+        Prefer iter_records_v3() over this method.
         """
         repodata: RepodataDict = {
             **self.repodata_no_packages,
@@ -323,7 +325,16 @@ class ShardBase(abc.ABC):
                 repodata[package_group].update(shard[package_group])
         return repodata
 
-    def iter_records(self) -> Iterable[tuple[tuple[str, str], dict]]:
+    def iter_records(self) -> Iterable[tuple[str, dict]]:
+        """
+        Yield (filename, record) tuples for all packages in visited shards.
+        """
+        for (filename, section), record in self.iter_records_v3():
+            if section not in ("packages", "packages.conda"):
+                continue
+            yield filename, record
+
+    def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
         """
         Yield ((filename, section), record) tuples for all packages in visited shards.
 
@@ -339,7 +350,7 @@ class ShardBase(abc.ABC):
             for package_group in ("packages", "packages.conda"):
                 for filename, record in shard.get(package_group, {}).items():
                     yield (filename, package_group), record
-            # v3 packages
+            # v3 packages (iter_records() method depends on these coming last)
             for section_name, group in shard.get("v3", {}).items():
                 v3_section = f"v3.{section_name}"
                 for package_key, record in group.items():
@@ -707,9 +718,11 @@ def batch_retrieve_from_cache(
     for shardlike in sharded:
         for package_name in packages:
             if package_name in shardlike:  # and not package_name in shardlike.visited
-                wanted.append(
-                    (shardlike, package_name, shardlike.shard_url(package_name))
-                )
+                wanted.append((
+                    shardlike,
+                    package_name,
+                    shardlike.shard_url(package_name),
+                ))
 
     log.debug("%d shards to fetch", len(wanted))
 
