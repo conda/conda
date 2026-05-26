@@ -2366,6 +2366,11 @@ def test_dont_remove_conda_3(
     upgrades a dependency) it could produce spurious RemoveError, blocking
     further use of conda.
     """
+    if context.solver != "libmamba" or context.solver != "classic":
+        pytest.skip(
+            "This test can only be run with solvers that come shipped with conda"
+        )
+
     with tmp_env("conda", "conda-pypi") as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         monkeypatch.setenv("CONDA_PREFIX", str(prefix))

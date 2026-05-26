@@ -134,6 +134,7 @@ def test_sorted_commands_in_error(capsys: CaptureFixture):
         #   invalid choice: 'delta' (choose from 'alpha', 'bravo', 'charlie')
         # others don't:
         #   invalid choice: 'delta' (choose from alpha, bravo, charlie)
+        # See https://github.com/python/cpython/pull/144983 for context
         assert (
             stderr.index("invalid choice:")
             < stderr.index("delta")
