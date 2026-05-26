@@ -336,25 +336,27 @@ class ShardBase(abc.ABC):
 
     def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
         """
-        Yield ((filename, section), record) tuples for all packages in visited shards.
+        Yield ((key, section), record) tuples for all packages in visited
+        shards.
 
-        Section can be:
-        - "packages" for .tar.bz2 packages
-        - "packages.conda" for .conda packages
-        - "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages
+        Section can be: "packages" for .tar.bz2 packages, "packages.conda"
+        for .conda packages, "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages.
+
+        key is the same as the filename for "packages", "packages.conda" but is
+        different from the filename for v3 packages.
         """
         for shard in self.visited.values():
             if shard is None:
                 continue
             # Classic packages
             for package_group in ("packages", "packages.conda"):
-                for filename, record in shard.get(package_group, {}).items():
-                    yield (filename, package_group), record
+                for key, record in shard.get(package_group, {}).items():
+                    yield (key, package_group), record
             # v3 packages (iter_records() method depends on these coming last)
             for section_name, group in shard.get("v3", {}).items():
                 v3_section = f"v3.{section_name}"
-                for package_key, record in group.items():
-                    yield (package_key, v3_section), record
+                for key, record in group.items():
+                    yield (key, v3_section), record
 
 
 class ShardLike(ShardBase):

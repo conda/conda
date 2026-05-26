@@ -25,12 +25,14 @@ class Shards(typing.Protocol):
 
     def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
         """
-        Yield ((filename, section), record) tuples for all packages in visited shards.
+        Yield ((key, section), record) tuples for all packages in visited
+        shards.
 
-        Section can be:
-        - "packages" for .tar.bz2 packages
-        - "packages.conda" for .conda packages
-        - "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages
+        Section can be: "packages" for .tar.bz2 packages, "packages.conda"
+        for .conda packages, "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages.
+
+        key is the same as the filename for "packages", "packages.conda" but is
+        different from the filename for v3 packages.
         """
 
 
