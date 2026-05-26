@@ -131,17 +131,13 @@ def test_sorted_commands_in_error(capsys):
         stderr = capsys.readouterr().err
         # ...but the suggestions here are sorted
 
-        # Linux Python 3.12.3 and possibly other 3.12 builds appear to use the
-        # quoted style:
-        old_style = "invalid choice: 'd' (choose from 'a', 'b', 'c')"
-        new_style = "invalid choice: 'd' (choose from a, b, c)"
-
-        if sys.version_info < (3, 12):
-            # FUTURE: Python 3.12+: remove this test case
-            assert old_style in stderr
-        elif sys.version_info[:2] == (3, 12):
-            assert old_style in stderr or new_style in stderr
-        else:
-            assert new_style in stderr
+        # See https://github.com/python/cpython/pull/144983 for context
+        # Some Python versions did not quote choices as a side-effect of a
+        # different fix in 3.12. This was reverted in 3.15 and backported.
+        # We could annotate which style is used in each version, but why bother:
+        # both are valid assertions for choice ordering.
+        quoted = "invalid choice: 'd' (choose from 'a', 'b', 'c')"
+        unquoted = "invalid choice: 'd' (choose from a, b, c)"
+        assert quoted in stderr or unquoted in stderr
     else:
         pytest.fail("Did not raise")
