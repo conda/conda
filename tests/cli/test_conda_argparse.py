@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib
-import sys
 from inspect import isclass, isfunction
 from logging import getLogger
 from typing import TYPE_CHECKING
