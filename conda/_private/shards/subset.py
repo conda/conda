@@ -297,7 +297,9 @@ class RepodataSubset:
                 node.visited = True
 
                 for next_node, _ in self._outgoing(node):
-                    if not next_node.visited and next_node.distance < self.depth:  # pragma: no branch
+                    if (
+                        not next_node.visited and next_node.distance <= self.depth
+                    ):  # pragma: no branch
                         node_queue.append(next_node)
 
     def reachable_pipelined(self, root_packages):
@@ -561,7 +563,7 @@ def build_repodata_subset(
     algorithm: Literal["bfs", "pipelined"] = RepodataSubset.DEFAULT_STRATEGY,
     spec_to_package_name_func: Callable[[str], str] = spec_to_package_name,
     repodata_version: int = 1,
-    depth: int | None = None,
+    depth: int = sys.maxsize,
 ) -> dict[str, ShardBase] | None:
     """
     Retrieve all necessary information to build a repodata subset.

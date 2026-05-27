@@ -749,7 +749,7 @@ def _search_package_via_shards(
         channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
     }
     subset_dict = build_repodata_subset(
-        [spec.name], channels, repodata_version=3, depth=1
+        [spec.name], channels, repodata_version=3, depth=0
     )
     if not subset_dict:
         return _search_package(spec, channel_urls, subdirs)
