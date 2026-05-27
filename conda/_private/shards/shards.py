@@ -720,11 +720,13 @@ def batch_retrieve_from_cache(
     for shardlike in sharded:
         for package_name in packages:
             if package_name in shardlike:  # and not package_name in shardlike.visited
-                wanted.append((
-                    shardlike,
-                    package_name,
-                    shardlike.shard_url(package_name),
-                ))
+                wanted.append(
+                    (
+                        shardlike,
+                        package_name,
+                        shardlike.shard_url(package_name),
+                    )
+                )
 
     log.debug("%d shards to fetch", len(wanted))
 
