@@ -568,6 +568,9 @@ class UnavailableInvalidChannel(ChannelError):
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
+            # RFC 9457 'detail' is preferred over 'message' for
+            # application/problem+json responses.
+            # See https://datatracker.ietf.org/doc/html/rfc9457
             content_type = getattr(response, "headers", {}).get("content-type", "")
             if "application/problem+json" in content_type:
                 detail = body.get("detail")
@@ -666,6 +669,9 @@ class CondaHTTPError(CondaError):
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
+            # RFC 9457 'detail' is preferred over 'message' for
+            # application/problem+json responses.
+            # See https://datatracker.ietf.org/doc/html/rfc9457
             content_type = getattr(response, "headers", {}).get("content-type", "")
             if "application/problem+json" in content_type:
                 detail = body.get("detail")
