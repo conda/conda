@@ -730,3 +730,74 @@ class SubdirData(metaclass=SubdirDataType):
         if with_credentials:
             return self.url_w_credentials
         return self.url_w_subdir
+
+
+def _search_package_via_shards(
+    spec: MatchSpec,
+    channel_urls: tuple[str, ...] | list[str],
+    subdirs: tuple[str, ...] | list[str],
+) -> tuple[PackageRecord, ...]:
+    from ..base.context import context
+    from ..gateways.shards import build_repodata_subset
+    from ..models.channel import Channel, all_channel_urls
+    from ..models.records import PackageRecord
+
+    if channel_urls is None:
+        channel_urls = context.channels
+    channel_urls = all_channel_urls(channel_urls, subdirs=subdirs)
+    channels = {
+        channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
+    }
+    subset_dict = build_repodata_subset(
+        [spec.name], channels, repodata_version=3, depth=1
+    )
+    if not subset_dict:
+        return _search_package(spec, channel_urls, subdirs)
+    records = []
+    for channel, shard in subset_dict.items():
+        for _, record in shard.iter_records_v3():
+            rec = PackageRecord(channel=channel, **record)
+            target_spec = rec.to_match_spec()
+            if spec.match(target_spec):
+                records.append(PackageRecord(channel=channel, **record))
+    return records
+
+
+def _search_package(
+    spec: MatchSpec,
+    channel_urls: tuple[str, ...] | list[str],
+    subdirs: tuple[str, ...] | list[str],
+    repodata_fn: str = REPODATA_FN,
+) -> tuple[PackageRecord, ...]:
+    from ..core.subdir_data import SubdirData
+    from ..models.version import VersionOrder
+
+    return sorted(
+        SubdirData.query_all(spec, channel_urls, subdirs, repodata_fn),
+        key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
+    )
+
+
+def query_all(
+    match_spec: MatchSpec,
+    channels: Iterable[Channel | str] | None = None,
+    subdirs: Iterable[str] | None = None,
+    repodata_fn: str = REPODATA_FN,
+) -> tuple[PackageRecord, ...]:
+    """
+    Execute a query against all repodata instances in the channel/subdir
+    matrix. Will try to load data from shards if conda is configured to use
+    shards and the channel provides sharded repodata. If not, will fall back
+    to providing data from monolithic repodata.
+
+    :param match_spec: A `MatchSpec` query object.
+    :param channels: An iterable of urls for channels or `Channel` objects.
+        If None, will fall back to `context.channels`.
+    :param subdirs: If None, will fall back to context.subdirs.
+    :param repodata_fn: The filename of the repodata.
+    :return: A tuple of `PackageRecord` objects.
+    """
+    if context.repodata_use_shards:
+        return _search_package_via_shards(match_spec, channels, subdirs)
+    else:
+        return _search_package(match_spec, channels, subdirs, repodata_fn)

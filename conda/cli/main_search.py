@@ -17,7 +17,6 @@ from .helpers import _ValidatePackages
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
 
-    from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
 
 
@@ -171,51 +170,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-def _search_package_via_shards(
-    spec: MatchSpec,
-    channel_urls: tuple[str, ...] | list[str],
-    subdirs: tuple[str, ...] | list[str],
-) -> tuple[PackageRecord, ...]:
-    from ..base.context import context
-    from ..gateways.shards import build_repodata_subset
-    from ..models.channel import Channel, all_channel_urls
-    from ..models.records import PackageRecord
-
-    if channel_urls is None:
-        channel_urls = context.channels
-    channel_urls = all_channel_urls(channel_urls, subdirs=subdirs)
-    channels = {
-        channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
-    }
-    subset_dict = build_repodata_subset(
-        [spec.name], channels, repodata_version=3, depth=0
-    )
-    if not subset_dict:
-        return _search_package(spec, channel_urls, subdirs)
-    records = []
-    for channel, shard in subset_dict.items():
-        for _, record in shard.iter_records():
-            rec = PackageRecord(channel=channel, **record)
-            target_spec = rec.to_match_spec()
-            if spec.match(target_spec):
-                records.append(PackageRecord(channel=channel, **record))
-    return records
-
-
-def _search_package(
-    spec: MatchSpec,
-    channel_urls: tuple[str, ...] | list[str],
-    subdirs: tuple[str, ...] | list[str],
-) -> tuple[PackageRecord, ...]:
-    from ..core.subdir_data import SubdirData
-    from ..models.version import VersionOrder
-
-    return sorted(
-        SubdirData.query_all(spec, channel_urls, subdirs),
-        key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
-    )
-
-
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """
     Implements `conda search` commands.
@@ -227,6 +181,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..cli.common import stdout_json
     from ..core.envs_manager import query_all_prefixes
+    from ..core.subdir_data import query_all
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from ..reporters import get_spinner
@@ -296,26 +251,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     with get_spinner("Loading channels"):
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
-        
         if not channel_urls:
             from ..exceptions import NoChannelsConfiguredError
 
             raise NoChannelsConfiguredError(
                 packages=[spec.name] if spec.get_exact_value("name") else [],
             )
-        
-        if context.repodata_use_shards:
-            matches = _search_package_via_shards(spec, channel_urls, subdirs)
-        else:
-            matches = _search_package(spec, channel_urls, subdirs)
+        matches = query_all(spec, channel_urls, subdirs)
     if not matches and not args.skip_flexible_search and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name=f"*{spec.name}*")
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
-        if context.repodata_use_shards:
-            matches = _search_package_via_shards(flex_spec, channel_urls, subdirs)
-        else:
-            matches = _search_package(flex_spec, channel_urls, subdirs)
+        matches = query_all(flex_spec, channel_urls, subdirs)
     if not matches:
         from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls
