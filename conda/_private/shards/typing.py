@@ -33,14 +33,17 @@ class PackageRecordDict(TypedDict):
 
 
 # in this style because "packages.conda" is not a Python identifier
-ShardDict = TypedDict(
-    "ShardDict",
+_ShardDictBase = TypedDict(
+    "_ShardDictBase",
     {
         "packages": dict[str, PackageRecordDict],
         "packages.conda": dict[str, PackageRecordDict],
-        "v3": NotRequired[dict[str, dict[str, PackageRecordDict]]],
     },
 )
+
+
+class ShardDict(_ShardDictBase, total=False):
+    v3: dict[str, dict[str, PackageRecordDict]]
 
 
 class RepodataInfoDict(TypedDict):
