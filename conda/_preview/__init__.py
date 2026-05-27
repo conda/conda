@@ -14,9 +14,10 @@ Conventions
   - ``PREVIEW_LABEL: str`` — the kebab-case label users put in ``context.preview``.
   - ``register(context)`` — called once after the final ``context.__init__()`` in
     ``main_subshell()`` when this preview is enabled.
-- Each preview may mirror conda's ``cli/`` module structure under its own ``cli/``
-  subdirectory. Modules there are discovered dynamically by ``do_call()`` and require
-  no registration — adding ``cli/main_update.py`` is sufficient.
+- Preview command implementations should use conda's plugin framework. For
+  subcommands, expose ``conda_subcommands`` hooks and register them through
+  ``conda.plugins.previews``. Built-in command overrides are only allowed for
+  bundled preview subcommands routed through conda's preview plugin.
 
 Graduation path
 ---------------

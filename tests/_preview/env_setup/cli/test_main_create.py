@@ -37,12 +37,87 @@ def test_create_preview_enabled(
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
 
     out, err, exc = conda_cli(
-        "create", "--name", "test-env", raises=OperationNotAllowed
+        "create", "--name", "test-env", "python", raises=OperationNotAllowed
     )
 
     assert exc.value is not None
     assert "env-setup" in str(exc.value)
     assert "conda create" in str(exc.value)
+
+
+def test_create_preview_enabled_with_no_plugins(
+    conda_cli: CondaCLIFixture,
+    monkeypatch,
+):
+    """Bundled preview subcommands remain available with --no-plugins."""
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
+
+    out, err, exc = conda_cli(
+        "--no-plugins",
+        "create",
+        "--name",
+        "test-env",
+        "python",
+        raises=OperationNotAllowed,
+    )
+
+    assert exc.value is not None
+    assert "env-setup" in str(exc.value)
+    assert "conda create" in str(exc.value)
+
+
+def test_create_preview_uses_builtin_parser_arguments(
+    conda_cli: CondaCLIFixture,
+    monkeypatch,
+):
+    """The preview stub accepts options from the built-in create parser."""
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
+
+    out, err, exc = conda_cli(
+        "create", "--clone", "base", "--name", "test-env", raises=OperationNotAllowed
+    )
+
+    assert exc.value is not None
+    assert "env-setup" in str(exc.value)
+    assert "conda create" in str(exc.value)
+
+
+def test_create_preview_can_extend_builtin_parser(
+    conda_cli: CondaCLIFixture,
+    monkeypatch,
+):
+    """A preview override can add options to the built-in command parser."""
+    from conda._preview.env_setup.cli import main_create
+    from conda.plugins.types import CondaSubcommand
+
+    def configure_parser(parser):
+        parser.add_argument("--preview-only-option", action="store_true")
+
+    def execute(args):
+        assert args.preview_only_option is True
+        raise OperationNotAllowed("preview-only option parsed")
+
+    def conda_subcommands():
+        yield CondaSubcommand(
+            name="create",
+            summary="Create a new conda environment.",
+            action=execute,
+            configure_parser=configure_parser,
+        )
+
+    monkeypatch.setattr(main_create, "conda_subcommands", conda_subcommands)
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
+
+    out, err, exc = conda_cli(
+        "create",
+        "--name",
+        "test-env",
+        "--preview-only-option",
+        raises=OperationNotAllowed,
+    )
+
+    assert exc.value is not None
+    assert "preview-only option parsed" in str(exc.value)
 
 
 def test_unknown_preview_label_no_crash(conda_cli: CondaCLIFixture, monkeypatch):
