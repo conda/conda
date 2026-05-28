@@ -41,6 +41,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         use the --no-update-deps option. This may force conda to install older
         versions of the requested packages, and it does not prevent additional
         dependency packages from being installed.
+
+        When using --file, only the package list from the file is used. Any name
+        or prefix in the file is ignored; packages are updated in the target
+        environment (-n/-p or the current environment).
         """
     )
     epilog = dals(
@@ -60,9 +64,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         **kwargs,
     )
     add_parser_frozen_env(p)
-    solver_mode_options, package_install_options, _ = add_parser_create_install_update(
-        p
-    )
+    solver_mode_options, _, _ = add_parser_create_install_update(p)
 
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
@@ -75,13 +77,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     add_parser_update_modifiers(solver_mode_options)
 
-    package_install_options.add_argument(
-        "--clobber",
-        action="store_true",
-        default=NULL,
-        help="Allow clobbering of overlapping file paths within packages, "
-        "and suppress related warnings.",
-    )
     p.set_defaults(func="conda.cli.main_update.execute")
 
     return p

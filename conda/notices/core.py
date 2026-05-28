@@ -9,18 +9,15 @@ import time
 from functools import wraps
 from typing import TYPE_CHECKING
 
-from ..base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL, NOTICES_FN
+from ..base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL_NS, NOTICES_FN
 from ..base.context import context
-from ..models.channel import get_channel_objs
-from . import cache, fetch, views
-from .types import ChannelNoticeResultSet
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from ..base.context import Context
     from ..models.channel import Channel, MultiChannel
-    from .types import ChannelNotice, ChannelNoticeResponse
+    from .types import ChannelNotice, ChannelNoticeResponse, ChannelNoticeResultSet
 
 # Used below in type hints
 ChannelName = str
@@ -44,6 +41,10 @@ def retrieve_notices(
                             (defaults to True).
         silent: Whether to use a spinner when fetching and caching notices.
     """
+    from ..models.channel import get_channel_objs
+    from . import cache, fetch
+    from .types import ChannelNoticeResultSet
+
     channel_name_urls = get_channel_name_and_urls(get_channel_objs(context))
     channel_notice_responses = fetch.get_notice_responses(
         channel_name_urls, silent=silent
@@ -78,6 +79,8 @@ def retrieve_notices(
 
 def display_notices(channel_notice_set: ChannelNoticeResultSet) -> None:
     """Prints the channel notices to std out."""
+    from . import cache, views
+
     views.print_notices(channel_notice_set.channel_notices)
 
     # Updates cache database, marking displayed notices as "viewed"
@@ -121,10 +124,16 @@ def notices(func):
             except OSError as exc:
                 # If we encounter any OSError related error, we simply abandon
                 # fetching notices
-                logger.error(f"Unable to open cache file: {str(exc)}")
+                logger.error("Unable to open cache file: %s", exc)
 
             if channel_notice_set is not None:
                 try:
+                    # Load display deps before the command: upgrading/downgrading base
+                    # python rewrites site-packages under the running interpreter, so
+                    # display_notices() must not be the first import of views.
+                    # see https://github.com/conda/conda/issues/16126
+                    from . import cache, views  # noqa: F401
+
                     return_value = func(*args, **kwargs)
                     display_notices(channel_notice_set)
 
@@ -132,7 +141,8 @@ def notices(func):
 
                 except Exception:
                     try:
-                        # Remove the notices cache file if we encounter an exception
+                        from . import cache
+
                         cache.clear_cache()
                     except OSError:
                         pass
@@ -213,12 +223,14 @@ def is_channel_notices_cache_expired() -> bool:
     Checks to see if the notices cache file we use to keep track of
     displayed notices is expired. This involves checking the mtime
     attribute of the file. Anything older than what is specified as
-    the NOTICES_DECORATOR_DISPLAY_INTERVAL is considered expired.
+    the NOTICES_DECORATOR_DISPLAY_INTERVAL_NS is considered expired.
     """
+    from . import cache
+
     cache_file = cache.get_notices_cache_file()
 
     cache_file_stat = cache_file.stat()
-    now = time.time()
-    seconds_since_checked = now - cache_file_stat.st_mtime
+    now = time.time_ns()
+    ns_since_checked = now - cache_file_stat.st_mtime_ns
 
-    return seconds_since_checked >= NOTICES_DECORATOR_DISPLAY_INTERVAL
+    return ns_since_checked >= NOTICES_DECORATOR_DISPLAY_INTERVAL_NS

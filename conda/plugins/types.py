@@ -9,14 +9,14 @@ Each type corresponds to the plugin hook for which it is used.
 
 from __future__ import annotations
 
+import enum
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
-from requests.auth import AuthBase
+from requests.auth import AuthBase  # noqa: TID253
 
 from ..auxlib import NULL
 from ..auxlib.type_coercion import maybecall
@@ -28,7 +28,8 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from collections.abc import Callable, Iterable
     from contextlib import AbstractContextManager
-    from typing import Any, ClassVar, Literal, TypeAlias
+    from types import TracebackType
+    from typing import Any, ClassVar, Literal, Protocol, TypeAlias
 
     from ..auxlib import _Null
     from ..common.configuration import Parameter
@@ -44,12 +45,39 @@ if TYPE_CHECKING:
         dict[str, PrefixRecord],
     ]
 
+    PackageExtract: TypeAlias = Callable[
+        [PathType, PathType],  # (source_path, destination_directory)
+        None,
+    ]
+
     SinglePlatformEnvironmentExport = Callable[[Environment], str]
     MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
 
     # Callback type for health check fixer confirmation prompts.
     # Raises CondaSystemExit if user declines, or DryRunExit in dry-run mode.
     ConfirmCallback: TypeAlias = Callable[[str], None]
+
+    class CondaPluginWithAliases(Protocol):
+        """
+        Structural type for plugins that expose a canonical :attr:`~CondaPlugin.name`
+        and :attr:`aliases`.
+
+        Used when building lookup mappings that include alternate names (for example
+        environment specifiers, exporters, and settings). Concrete types such as
+        :class:`CondaSetting`, :class:`CondaEnvironmentSpecifier`, and
+        :class:`CondaEnvironmentExporter` satisfy this protocol.
+        """
+
+        name: str
+        aliases: tuple[str, ...]
+
+    class CondaPluginWithEnvironmentFormat(CondaPluginWithAliases):
+        """
+        Structural type for plugins that expose a environment format.
+        """
+
+        environment_format: EnvironmentFormat
+        default_filenames: tuple[str, ...]
 
 
 @dataclass
@@ -69,7 +97,7 @@ class CondaPlugin:
             raise PluginError(f"Invalid plugin name for {self!r}")
 
 
-@dataclass
+@dataclass(init=False)
 class CondaSubcommand(CondaPlugin):
     """
     Return type to use when defining a conda subcommand plugin hook.
@@ -77,19 +105,56 @@ class CondaSubcommand(CondaPlugin):
     For details on how this is used, see
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_subcommands`.
 
+    Subcommands support two shapes, distinguished by ``configure_parser``:
+
+    * If ``configure_parser`` is set, ``action`` receives the parsed
+      :class:`argparse.Namespace`.
+    * If ``configure_parser`` is omitted, ``action`` receives the remaining
+      argv as :class:`tuple[str, ...]`.
+
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
     :param configure_parser: Callable that will be run when the subcommand parser is initialized.
     """
 
-    name: str
     summary: str
-    action: Callable[
-        [Namespace | tuple[str]],  # arguments
-        int | None,  # return code
-    ]
+    action: Callable[[Namespace], int | None] | Callable[[tuple[str, ...]], int | None]
     configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
+
+    @overload
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[Namespace], int | None],
+        configure_parser: Callable[[ArgumentParser], None],
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[tuple[str, ...]], int | None],
+        configure_parser: None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        *,
+        name: str,
+        summary: str,
+        action: Callable[[Namespace], int | None]
+        | Callable[[tuple[str, ...]], int | None],
+        configure_parser: Callable[[ArgumentParser], None] | None = None,
+    ) -> None:
+        super().__init__(name=name)
+        self.summary = summary
+        self.action = action
+        self.configure_parser = configure_parser
 
 
 @dataclass
@@ -573,6 +638,8 @@ class EnvironmentSpecBase(ABC):
         environment described by the `filename`.
 
         :returns bool: returns True, if the plugin can interpret the file.
+        :raises: raises an exception if it can not handle the file. The exception should
+                 describe why the file can not be handled.
         """
         raise NotImplementedError()
 
@@ -586,6 +653,61 @@ class EnvironmentSpecBase(ABC):
         """
         raise NotImplementedError()
 
+    @property
+    def available_platforms(self) -> tuple[str, ...]:
+        """
+        Platforms this spec can produce an ``Environment`` for.
+
+        Defaults to ``(context.subdir,)``. Multi-platform specs
+        (``conda-lock.yml``, ``pixi.lock``) override to return every
+        platform declared in the input file.
+        """
+        from ..base.context import context
+
+        return (context.subdir,)
+
+    def env_for(self, platform: str) -> Environment:
+        """
+        Return the ``Environment`` for a specific platform.
+
+        Defaults to returning :attr:`env` when ``platform`` matches
+        ``context.subdir``, and raising :class:`ValueError` otherwise.
+        Multi-platform specs override this method to build the
+        ``Environment`` directly from the parsed input file without
+        constructing one per platform.
+
+        To iterate every platform a spec covers::
+
+            envs = (spec.env_for(p) for p in spec.available_platforms)
+        """
+        if platform not in self.available_platforms:
+            raise ValueError(
+                f"Platform {platform!r} not available in this spec. "
+                f"Available platforms: {', '.join(self.available_platforms)}"
+            )
+        return self.env
+
+
+class EnvironmentFormat(enum.Enum):
+    """
+    Represents supported environment formats.
+
+    FUTURE: Python 3.11+, use enum.StrEnum
+    """
+
+    lockfile = "lockfile"
+    environment = "environment"
+
+    def __str__(self) -> str:
+        return self.value
+
+    @property
+    def label(self) -> str:
+        return {
+            EnvironmentFormat.lockfile: "Lockfiles",
+            EnvironmentFormat.environment: "Environment specs",
+        }[self]
+
 
 @dataclass
 class CondaEnvironmentSpecifier(CondaPlugin):
@@ -598,11 +720,34 @@ class CondaEnvironmentSpecifier(CondaPlugin):
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_environment_specifiers`.
 
     :param name: name of the spec (e.g., ``environment_yaml``)
+    :param aliases: user-friendly format aliases (e.g., ("yaml",)). Defaults to an empty list.
     :param environment_spec: EnvironmentSpecBase subclass handler
+    :param default_filenames: default filename patterns this specifier handles (e.g., ("environment.yml", "*.conda-lock.yml"))
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
     environment_spec: type[EnvironmentSpecBase]
+    default_filenames: tuple[str, ...] = field(default_factory=tuple)
+    aliases: tuple[str, ...] = field(default_factory=tuple)
+    description: str | None = field(default=None)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
+
+    def __post_init__(self):
+        super().__post_init__()  # Handle name normalization
+        # Normalize aliases using same pattern as name normalization
+        try:
+            self.aliases = tuple(
+                dict.fromkeys(alias.lower().strip() for alias in self.aliases)
+            )
+        except AttributeError:
+            # AttributeError: alias is not a string
+            raise PluginError(f"Invalid plugin aliases for {self!r}")
+
+        # Set default description to name if not provided
+        if self.description is None:
+            self.description = self.name
 
 
 @dataclass
@@ -615,7 +760,10 @@ class CondaEnvironmentExporter(CondaPlugin):
     :param name: name of the exporter (e.g., ``environment-yaml``)
     :param aliases: user-friendly format aliases (e.g., ("yaml",))
     :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
-    :param export: callable that exports an Environment to string format
+    :param export: callable that exports an Environment to string format for a single platform
+    :param multiplatform_export: callable that exports an Environment to string format for multiple platforms
+    :param description: user-friendly description of what the format does. Defaults to the name if not provided.
+    :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
 
     name: str
@@ -623,6 +771,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     default_filenames: tuple[str, ...]
     export: SinglePlatformEnvironmentExport | None = None
     multiplatform_export: MultiPlatformEnvironmentExport | None = None
+    description: str | None = field(default=None)
+    environment_format: EnvironmentFormat = field(default=EnvironmentFormat.environment)
 
     def __post_init__(self):
         super().__post_init__()  # Handle name normalization
@@ -639,3 +789,135 @@ class CondaEnvironmentExporter(CondaPlugin):
             raise PluginError(
                 f"Exactly one of export or multiplatform_export must be set for {self!r}"
             )
+
+        # Set default description to name if not provided
+        if self.description is None:
+            self.description = self.name
+
+
+@dataclass
+class CondaPackageExtractor(CondaPlugin):
+    """
+    Return type to use when defining a conda package extractor plugin hook.
+
+    Package extractors handle the extraction of different package archive formats.
+    Each extractor specifies which file extensions it supports and provides an
+    extraction function to unpack the archive.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_package_extractors`.
+
+    :param name: Extractor name (e.g., ``conda-package``, ``wheel-package``).
+    :param extensions: List of file extensions this extractor handles
+                       (e.g., ``[".conda", ".tar.bz2"]`` or ``[".whl"]``).
+    :param extract: Callable that extracts the package archive. Takes the source
+                    archive path and the destination directory where the package
+                    contents should be extracted.
+    """
+
+    name: str
+    extensions: list[str]
+    extract: PackageExtract
+
+
+@dataclass(frozen=True)
+class CondaExceptionEvent:
+    """
+    Structured exception event passed to exception observer plugin callbacks.
+
+    Frozen to prevent plugins from mutating exception state. Structured args
+    follow the ``threading.ExceptHookArgs`` / ``sys.UnraisableHookArgs``
+    pattern for forward compatibility.
+
+    The exception triple (``exc_type``, ``exc_value``, ``exc_traceback``) is
+    always populated. The remaining fields describe the conda runtime state
+    and default to ``None`` when the runtime isn't initialized (e.g.
+    ``MemoryError`` during early startup). Runtime fields are populated
+    all-or-nothing: if ``conda_version`` is not ``None``, the runtime was
+    available and all other fields are populated (``active_prefix`` may
+    still be ``None`` when no environment is active).
+
+    .. warning::
+
+       Do not store references to ``exc_value`` or ``exc_traceback`` beyond
+       the lifetime of the callback. This can create reference cycles and
+       prevent garbage collection.
+
+    :param exc_type: The exception class.
+    :param exc_value: The exception instance.
+    :param exc_traceback: The traceback object.
+    :param argv: The command-line arguments at the time of error (frozen copy
+                 of ``sys.argv``). ``None`` if unavailable.
+    :param conda_version: The conda version string. ``None`` if unavailable.
+    :param return_code: The exit code conda will return for this error.
+                        ``None`` if unavailable.
+    :param active_prefix: The currently active conda environment prefix,
+                          or ``None`` if no environment is active (also
+                          ``None`` when the runtime is unavailable).
+    :param target_prefix: The prefix the command was operating on.
+    :param channels: The configured channel names at the time of error
+                     (canonical names, e.g. ``defaults``, ``conda-forge``).
+    :param subdir: The platform subdirectory (e.g., ``linux-64``, ``osx-arm64``).
+    :param offline: Whether conda is running in offline mode (``--offline``).
+    :param dry_run: Whether conda is running in dry-run mode (``--dry-run``).
+    :param quiet: Whether conda is running in quiet mode (``--quiet``).
+    :param json: Whether conda is running in JSON output mode (``--json``).
+    """
+
+    exc_type: type[BaseException]
+    exc_value: BaseException
+    exc_traceback: TracebackType
+    argv: tuple[str, ...] | None = None
+    conda_version: str | None = None
+    return_code: int | None = None
+    active_prefix: str | None = None
+    target_prefix: str | None = None
+    channels: tuple[str, ...] | None = None
+    subdir: str | None = None
+    offline: bool | None = None
+    dry_run: bool | None = None
+    quiet: bool | None = None
+    json: bool | None = None
+
+
+@dataclass
+class CondaExceptionObserver(CondaPlugin):
+    """
+    Return type to use when defining a conda exception observer plugin hook.
+
+    Exception observers are purely observational, modelled after CPython's
+    ``sys.excepthook``. They cannot suppress, modify, or redirect the
+    exception. Their return value is ignored.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_exception_observers`.
+
+    .. warning::
+
+       Do not store references to ``exc_value`` or ``exc_traceback`` beyond
+       the lifetime of the callback. This can create reference cycles and
+       prevent garbage collection.
+
+    :param name: Observer name (e.g., ``missing-package-reporter``).
+    :param hook: Callable invoked with a :class:`CondaExceptionEvent` instance.
+                 Must not raise; any exception is caught and logged.
+    :param watch_for: Set of exception class names this observer watches for.
+                      Matches against the full MRO. Examples:
+
+                      - ``{"BaseException"}`` — fires for every exception.
+                      - ``{"Exception"}`` — all standard exceptions (excludes
+                        ``KeyboardInterrupt``, ``SystemExit``).
+                      - ``{"CondaError"}`` — all conda errors and subclasses.
+                      - ``{"PackagesNotFoundError"}`` — a specific error and
+                        its subclasses (e.g. ``PackagesNotFoundInChannelsError``).
+                      - ``{"MemoryError"}``, ``{"KeyboardInterrupt"}``,
+                        ``{"SystemExit"}`` — specific non-conda exceptions.
+                      - ``{"CondaError", "MemoryError"}`` — combine scopes.
+
+                      For non-``CondaError`` exceptions the conda-specific fields
+                      on :class:`CondaExceptionEvent` may be ``None``.
+    """
+
+    name: str
+    hook: Callable[[CondaExceptionEvent], None]
+    watch_for: set[str]

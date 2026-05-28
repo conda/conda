@@ -36,7 +36,7 @@ from ....common.path import (
 )
 from ....models.channel import Channel
 from ....models.enums import PackageType, PathEnum
-from ....models.records import PathData, PathDataV1, PathsData, PrefixRecord
+from ....models.records import PathDataV1, PathsData, PrefixRecord
 
 log = getLogger(__name__)
 
@@ -1277,7 +1277,8 @@ def read_python_record(prefix_path, anchor_file, python_version):
             paths_data = PathsData(
                 paths_version=1,
                 paths=(
-                    PathData(_path=path, path_type=PathEnum.hardlink) for path in files
+                    PathDataV1(_path=path, path_type=PathEnum.hardlink)
+                    for path in files
                 ),
             )
         else:

@@ -10,11 +10,13 @@ from argparse import (
     SUPPRESS,
     Action,
     BooleanOptionalAction,
+    _AppendAction,
     _HelpAction,
     _StoreAction,
-    _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
+
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
@@ -104,13 +106,19 @@ def add_parser_create_install_update(p, prefix_required=False):
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
-        # "-f",  # FUTURE: 26.3: Enable this after deprecating alias in --force
+        "-f",
         "--file",
         default=[],
         action="append",
-        help="Read package versions from the given file. Repeated file "
-        "specifications can be passed (e.g. --file=file1 --file=file2).",
+        help=(
+            "Read environment or package specs from a file. The format is "
+            "detected from the filename or contents. Which formats are "
+            "supported depends on the installed plugins (see the epilog for "
+            "the list available here). Custom filenames require --format. "
+            "May be repeated (e.g. --file=file1 --file=file2)."
+        ),
     )
+    add_parser_environment_specifier(p)
     p.add_argument(
         "packages",
         metavar="package_spec",
@@ -298,12 +306,17 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
             "conda config --describe repodata_fns."
         ),
     )
+    # jlap and lock experimental features are deprecated but are left in so older scripts will still work.
     channel_customization_options.add_argument(
         "--experimental",
-        action="append",
+        action=deprecated.action(
+            "26.9",
+            "27.3",
+            _AppendAction,
+            addendum="Deprecated: jlap and lock no longer supported.",
+        ),
         choices=["jlap", "lock"],
-        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+        help="Deprecated: jlap and lock no longer supported.  These options will have no effect.",
     )
     channel_customization_options.add_argument(
         "--no-lock",
@@ -317,6 +330,13 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         dest="repodata_use_zst",
         default=NULL,
         help="Check for/do not check for repodata.json.zst. Enabled by default.",
+    )
+    channel_customization_options.add_argument(
+        "--repodata-use-shards",
+        action=BooleanOptionalAction,
+        dest="repodata_use_shards",
+        default=NULL,
+        help="Use sharded repodata if available. Enabled by default.",
     )
     return channel_customization_options
 
@@ -497,22 +517,9 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
-    from ..deprecations import deprecated
 
     package_install_options = p.add_argument_group(
         "Package Linking and Install-time Options"
-    )
-    package_install_options.add_argument(
-        "-f",
-        dest="force",
-        action=deprecated.action(
-            "25.9",
-            "26.3",
-            _StoreTrueAction,
-            addendum="Use `--force` instead.",
-        ),
-        default=NULL,
-        help=SUPPRESS,
     )
     package_install_options.add_argument(
         "--force",
@@ -545,6 +552,13 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         action="append",
         help="Install shortcuts only for this package name. Can be used several times.",
         dest="shortcuts_only",
+    )
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering (i.e. overwriting) of overlapping file paths "
+        "within packages and suppress related warnings.",
     )
     return package_install_options
 
@@ -621,10 +635,28 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
+        action=deprecated.action(
+            "26.9",
+            "27.3",
+            LazyChoicesAction,
+            addendum="Use the `--format` flag instead.",
+        ),
+        choices_func=context.plugin_manager.get_environment_specifiers,
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--format",
+        dest="environment_specifier",
         action=LazyChoicesAction,
         choices_func=context.plugin_manager.get_environment_specifiers,
         default=NULL,
-        help="(EXPERIMENTAL) Specify the environment specifier plugin to use.",
+        metavar="FORMAT",
+        help=(
+            "Override auto-detection of the input file's format. See "
+            "`conda export --help` for the formats available in your "
+            "installation. Aliases are interchangeable with canonical names."
+        ),
     )
 
 

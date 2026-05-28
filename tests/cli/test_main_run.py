@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import stat
 import subprocess
-import sys
 import uuid
 from logging import WARNING, getLogger
 from pathlib import Path
@@ -23,6 +22,8 @@ from conda.exceptions import (
 from conda.gateways.logging import initialize_logging
 from conda.testing.integration import env_or_set
 from conda.utils import wrap_subprocess_call
+
+from .. import PYTHON_SPEC
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -123,8 +124,12 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
         conda_cli("run", f"--prefix={tmp_path}", "echo", "hello")
 
 
-def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
+def test_multiline_run_command(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("small-executable") as prefix:
         stdout, stderr, _ = conda_cli(
             "run",
             f"--prefix={prefix}",
@@ -132,11 +137,11 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
             dals(
                 f"""
                 {env_or_set}
-                git --version
+                small
                 """
             ),
         )
-        assert stdout
+        assert stdout.strip().endswith("Hello!")
         assert not stderr
 
 
@@ -154,7 +159,7 @@ def test_no_newline_in_output(
     expected_stdout: str,
     expected_stderr: str,
 ):
-    with tmp_env("python") as prefix:
+    with tmp_env(PYTHON_SPEC) as prefix:
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",

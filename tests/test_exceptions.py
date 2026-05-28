@@ -4,9 +4,11 @@ import getpass
 import json
 import sys
 from contextlib import nullcontext
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+import requests
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
@@ -20,14 +22,17 @@ from conda.exceptions import (
     CommandNotFoundError,
     CondaHTTPError,
     CondaKeyError,
+    CondaValueError,
     DirectoryNotFoundError,
     ExceptionHandler,
     KnownPackageClobberError,
     PackagesNotFoundError,
     PathNotFoundError,
+    PlatformMismatchError,
     ProxyError,
     SharedLinkPathClobberError,
     TooManyArgumentsError,
+    UnavailableInvalidChannel,
     UnknownPackageClobberError,
     conda_exception_handler,
 )
@@ -517,7 +522,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     class MockResponse:
         def __init__(self, json_data):
             self.json_data = json_data
-            self.headers = {}
+            self.headers = {"content-type": "application/problem+json"}
 
         def json(self):
             return self.json_data
@@ -526,7 +531,9 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     response = MockResponse({"detail": detail})
 
     elapsed_time = 1.26
-    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
+    exc = CondaHTTPError(
+        msg, url, status_code, reason, timedelta(seconds=elapsed_time), response
+    )
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
@@ -550,7 +557,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
         (
             "",
             "CondaHTTPError: HTTP 403 CONNECTION FAILED for url <https://download.url/path/to/something.tar.gz>",
-            "Elapsed: 1.26",
+            "Elapsed: 00:01.260000",
             "",
             detail,
             "",
@@ -559,12 +566,84 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     )
 
 
+def test_http_error_rfc_9457_non_string_detail(
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture
+) -> None:
+    """
+    CondaHTTPError should ignore 'detail' when the response is not an RFC 9457
+    application/problem+json response. Frameworks such as FastAPI use 'detail'
+    for non-string values (say, a list of validation error objects), so we must
+    not read it unless the content type is indicative of an RFC 9457 response.
+    """
+    msg = ""
+    url = "https://example.com/channel/linux-64/repodata.json"
+    status_code = "422"
+    reason = "Unprocessable Content"
+    # FastAPI returns 'detail' as a list of validation error objects, not a string
+    detail = [{"loc": ["path", "filename"], "msg": "value is not a valid enum member"}]
+
+    class MockResponse:
+        def __init__(self, json_data):
+            self.json_data = json_data
+            self.headers = {"content-type": "application/json"}
+
+        def json(self):
+            return self.json_data
+
+    response = MockResponse({"detail": detail})
+    exc = CondaHTTPError(
+        msg, url, status_code, reason, timedelta(seconds=0.1), response
+    )
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
+
+    assert not stdout
+    assert str(detail) not in stderr
+
+
+@pytest.mark.parametrize(
+    "error_class",
+    [
+        json.JSONDecodeError,
+        ValueError,
+        requests.exceptions.JSONDecodeError,
+    ],
+)
+def test_non_json_response_body(error_class: type) -> None:
+    """UnavailableInvalidChannel and CondaHTTPError handle non-JSON responses.
+
+    Regression test for #16136: when simplejson is installed,
+    response.json() raises requests.exceptions.JSONDecodeError which
+    inherits from simplejson.JSONDecodeError (a ValueError), not from
+    json.JSONDecodeError (stdlib).
+    """
+
+    class MockResponse:
+        reason = "Not Found"
+        headers = {}
+
+        def json(self):
+            raise error_class("bad", "", 0)
+
+    response = MockResponse()
+
+    exc = UnavailableInvalidChannel("test-channel", 404, response=response)
+    assert exc.status_code == 404
+
+    CondaHTTPError("msg", "https://x", 404, "Not Found", "0:01", response)
+
+
 def test_CommandNotFoundError_simple(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
 ) -> None:
     cmd = "instate"
-    exc = CommandNotFoundError(cmd)
+    with pytest.deprecated_call():
+        exc = CommandNotFoundError(cmd)
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
@@ -605,7 +684,8 @@ def test_CommandNotFoundError_conda_build(
     capsys: CaptureFixture,
 ) -> None:
     cmd = "build"
-    exc = CommandNotFoundError(cmd)
+    with pytest.deprecated_call():
+        exc = CommandNotFoundError(cmd)
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
@@ -907,3 +987,49 @@ def test_ExceptionHandler_deprecations(
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(ExceptionHandler(), function)()
+
+
+def test_platform_mismatch_error_is_conda_value_error() -> None:
+    """`PlatformMismatchError` is a `CondaValueError` so existing handlers keep working."""
+    exc = PlatformMismatchError([("env.yml", ("osx-64",))], "linux-64")
+    assert isinstance(exc, CondaValueError)
+
+
+@pytest.mark.parametrize(
+    "sources,subdir,expected_fragments",
+    [
+        pytest.param(
+            [("env.yml", ("osx-64", "osx-arm64"))],
+            "linux-64",
+            (
+                "Environment file 'env.yml' does not include packages for linux-64",
+                "Available platforms: osx-64, osx-arm64",
+                "regenerate the environment file with linux-64",
+                "    conda export --file env.yml "
+                "--platform osx-64 --platform osx-arm64 --platform linux-64",
+            ),
+            id="single-source",
+        ),
+        pytest.param(
+            [("a.yml", ("osx-64",)), ("b.yml", ("win-64", "linux-aarch64"))],
+            "linux-64",
+            (
+                "The following environment files do not include packages for linux-64",
+                "'a.yml': osx-64",
+                "'b.yml': win-64, linux-aarch64",
+                "Regenerate each file with linux-64",
+                "--platform linux-64",
+            ),
+            id="multiple-sources",
+        ),
+    ],
+)
+def test_platform_mismatch_error_message(
+    sources: list[tuple[str, tuple[str, ...]]],
+    subdir: str,
+    expected_fragments: tuple[str, ...],
+) -> None:
+    """Error message names every incompatible source and advises regenerating it."""
+    message = str(PlatformMismatchError(sources, subdir))
+    for fragment in expected_fragments:
+        assert fragment in message

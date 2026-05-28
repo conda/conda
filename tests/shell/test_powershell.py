@@ -93,14 +93,16 @@ def test_powershell_basic_integration(
         sh.sendline("$LASTEXITCODE")
         sh.expect("0")
 
-        # TODO: reactivate does not set envvars?
+        # Ensure env is reactivated so activate.ps1 ran and SMALL_EXE is set.
+        # When the loaded Conda.psm1 has the #15643 fix, reactivate runs after
+        # install; otherwise re-activate so the test passes in CI too.
         sh.sendline(f'conda activate -stack "{venusaur}"')
 
         # see tests/test-recipes/small-executable
         log.debug("## [PowerShell integration] Checking installed version.")
+        sh.assert_env_var("SMALL_EXE", "small-var-pwsh")
         sh.sendline("small")
         sh.expect_exact("Hello!")
-        sh.assert_env_var("SMALL_EXE", "small-var-pwsh")
 
         # see tests/test-recipes/small-executable
         log.debug("## [PowerShell integration] Checking conda run.")
@@ -143,3 +145,39 @@ def test_powershell_PATH_management(
         sh.expect_exact("Alias")
         sh.sendline(f'conda create -yqp "{prefix}" bzip2')
         sh.expect(r"Executing transaction: ...working... done.*\n")
+
+
+@PARAMETRIZE_POWERSHELL
+def test_powershell_activate_help(shell: Shell) -> None:
+    with shell.interactive() as sh:
+        sh.assert_env_var("CONDA_SHLVL", "0")
+        # Check -h flag
+        sh.sendline("Enter-CondaEnvironment -h")
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
+        sh.assert_env_var("CONDA_SHLVL", "0")
+        # Check --help flag
+        sh.sendline("Enter-CondaEnvironment --help")
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
+        sh.assert_env_var("CONDA_SHLVL", "0")
+
+
+@PARAMETRIZE_POWERSHELL
+def test_powershell_deactivate_help(
+    shell_wrapper_integration: tuple[str, str, str], shell: Shell
+) -> None:
+    prefix, _, _ = shell_wrapper_integration
+    with shell.interactive() as sh:
+        sh.sendline(f'conda activate "{prefix}"')
+        sh.assert_env_var("CONDA_SHLVL", "1")
+        # Check -h flag
+        sh.sendline("Exit-CondaEnvironment -h")
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
+        sh.assert_env_var("CONDA_SHLVL", "1")
+        # Check --help flag
+        sh.sendline("Exit-CondaEnvironment --help")
+        sh.sendline("$LASTEXITCODE")
+        sh.expect("0")
+        sh.assert_env_var("CONDA_SHLVL", "1")

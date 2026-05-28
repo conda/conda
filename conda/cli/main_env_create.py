@@ -18,6 +18,35 @@ from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
 
 
+def epilog() -> str:
+    """Build ``conda env create`` epilog (examples and plugin-driven format list)."""
+    from ..base.context import context
+    from .formats import get_available_environment_formats
+
+    # get environment specifiers grouped by format
+    formats = context.plugin_manager.get_environment_specifiers_grouped()
+
+    # compose examples/epilog
+    examples = [
+        "Examples:",
+        "  Create from an environment spec (solved at install time):",
+        "    conda env create -f /path/to/environment.yml",
+        "",
+        "  Create from a lockfile (no solve, exact reproduction):",
+        "    conda env create -f explicit.txt",
+        "",
+        "  Use the default file in the current directory:",
+        "    conda env create",
+        "    conda env create -n envname",
+    ]
+    # include available formats if any are registered
+    if formats:
+        examples.append("")
+        examples.append("Available input formats:")
+        examples.append(get_available_environment_formats(formats, indent=2))
+    return "\n".join(examples)
+
+
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .helpers import (
@@ -35,28 +64,17 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         f"""
         {summary}
 
-        If using an environment.yml file (the default), you can name the
-        environment in the first line of the file with 'name: envname' or
-        you can specify the environment name in the CLI command using the
-        -n/--name argument. The name specified in the CLI will override
-        the name specified in the environment.yml file.
+        The file format is detected from the filename or contents. Which
+        formats are supported depends on the plugins installed in your
+        environment. See the epilog for the list of formats available here.
+
+        If the file declares a name in its contents (for instance as the
+        first line of an environment.yml file), that name is used unless
+        overridden on the CLI with -n/--name.
 
         Unless you are in the directory containing the environment definition
         file, use -f to specify the file path of the environment definition
         file you want to use.
-
-        """
-    )
-    epilog = dals(
-        """
-        Examples::
-
-            conda env create
-            conda env create -n envname
-            conda env create folder/envname
-            conda env create -f /path/to/environment.yml
-            conda env create -f /path/to/requirements.txt -n envname
-            conda env create -f /path/to/requirements.txt -p /home/user/envname
 
         """
     )
@@ -65,14 +83,18 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "create",
         help=summary,
         description=description,
-        epilog=epilog,
+        epilog=epilog(),
         **kwargs,
     )
     p.add_argument(
         "-f",
         "--file",
         action="store",
-        help="Environment definition file (default: environment.yml)",
+        help=(
+            "Environment definition file (default: environment.yml). Standard "
+            "filenames registered by the installed format plugins are "
+            "auto-detected. Custom filenames require --format."
+        ),
         default="environment.yml",
     )
 
@@ -103,7 +125,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
     from ..env.installers.base import get_installer
-    from ..exceptions import CondaEnvException, InvalidInstaller
+    from ..env.pip_util import get_pip_workdir
+    from ..exceptions import (
+        CondaEnvException,
+        InvalidInstaller,
+        PlatformMismatchError,
+    )
     from ..gateways.disk.delete import rm_rf
     from .common import validate_file_exists
 
@@ -116,7 +143,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         name=context.environment_specifier,
     )
     spec = spec_hook.environment_spec(args.file)
-    env = spec.env
+    if context.subdir not in spec.available_platforms:
+        raise PlatformMismatchError(
+            [(args.file, spec.available_platforms)], context.subdir
+        )
+    env = spec.env_for(context.subdir)
 
     # FIXME conda code currently requires args to have a name or prefix
     # don't overwrite name if it's given. gh-254
@@ -181,7 +212,15 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         for installer_type, pkg_specs in env.external_packages.items():
             try:
                 installer = get_installer(installer_type)
-                result[installer_type] = installer.install(prefix, pkg_specs, args, env)
+                if installer_type == "pip":
+                    workdir = get_pip_workdir(args.file)
+                    result[installer_type] = installer.install(
+                        prefix, pkg_specs, args, env, workdir=workdir
+                    )
+                else:
+                    result[installer_type] = installer.install(
+                        prefix, pkg_specs, args, env
+                    )
             except InvalidInstaller:
                 raise CondaError(
                     dals(

@@ -62,18 +62,26 @@ function Enter-CondaEnvironment {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)][switch]$Stack,
-        [Parameter(Position=0)][string]$Name
+
+        [Parameter(Position=0)][string]$Name,
+
+        [Parameter(Mandatory=$false)][switch]$Help = $False
     );
 
     begin {
-        If ($Stack) {
-            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
-        } Else {
-            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
-        }
+        # Includes if the user provides the flags -h/-help
+        If ($Help -or  ($Name -contains "--help")) {
+            & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --help;
+        } else {
+            If ($Stack) {
+                $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
+            } Else {
+                $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
+            }
 
-        Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
-        Invoke-Expression -Command $activateCommand;
+            Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
+            Invoke-Expression -Command $activateCommand;
+        }
     }
 
     process {}
@@ -94,21 +102,43 @@ function Enter-CondaEnvironment {
 #>
 function Exit-CondaEnvironment {
     [CmdletBinding()]
-    param();
+    param(
+        [Parameter(Mandatory=$false)][switch]$Help = $False,
+
+        [Parameter(Position=0)][string]$Arg
+    );
 
     begin {
-        $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate | Out-String);
-
-        # If deactivate returns an empty string, we have nothing more to do,
-        # so return early.
-        if ($deactivateCommand.Trim().Length -eq 0) {
-            return;
+        # Includes if the user provides the flags -h/-help
+        If ($Help -or  ($Name -contains "--help")) {
+            & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate --help;
+        } else {
+            $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate $Arg | Out-String);
+            # If deactivate returns an empty string, we have nothing more to do,
+            # so return early.
+            if ($deactivateCommand.Trim().Length -eq 0) {
+                return;
+            }
+            Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand";
+            Invoke-Expression -Command $deactivateCommand;
         }
-        Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand";
-        Invoke-Expression -Command $deactivateCommand;
     }
     process {}
     end {}
+}
+
+<#
+    .SYNOPSIS
+        Runs the conda reactivate command and invokes the resulting shell
+        script, if any. Called after install/update/remove/etc. so that
+        environment variables set by activate.ps1 are refreshed in the
+        current session.
+#>
+function Invoke-CondaReactivate {
+    $reactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell reactivate | Out-String);
+    if ($reactivateCommand.Trim().Length -gt 0) {
+        Invoke-Expression -Command $reactivateCommand;
+    }
 }
 
 ## CONDA WRAPPER ###############################################################
@@ -138,12 +168,23 @@ function Invoke-Conda() {
         } else {
             $OtherArgs = @();
         }
-        switch ($Command) {
-            "activate" {
+        switch -Regex ($Command) {
+            "^activate$" {
                 Enter-CondaEnvironment @OtherArgs;
             }
-            "deactivate" {
-                Exit-CondaEnvironment;
+            "^deactivate$" {
+                Exit-CondaEnvironment @OtherArgs;
+            }
+
+            # Run the command, then reactivate so activate.ps1 runs and env vars
+            # (e.g. from packages like proj, GDAL) are set in this session.
+            # Matches behavior of conda.sh and conda.bat (see issue #15643).
+            "^(install|update|upgrade|remove|uninstall)$" {
+                & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA $Command @OtherArgs;
+                $succeeded = $?;
+                $exitCode = if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $LASTEXITCODE } else { if ($succeeded) { 0 } else { 1 } };
+                if ($succeeded) { Invoke-CondaReactivate }
+                if (Get-Variable -Name LASTEXITCODE -Scope Global -ErrorAction SilentlyContinue) { $global:LASTEXITCODE = $exitCode; }
             }
 
             default {

@@ -43,8 +43,8 @@ def to_dict(env: Environment) -> dict[str, Any]:
         env_dict["channels"] = list(env.config.channels)
 
     # Convert requested_packages to dependencies list
+    dependencies = []
     if env.requested_packages:
-        dependencies = []
         for item in env.requested_packages:
             if isinstance(item, dict):
                 # Handle pip dependencies (dict format: {"pip": [...]})
@@ -58,12 +58,13 @@ def to_dict(env: Environment) -> dict[str, Any]:
         if env.external_packages:
             dependencies.append(env.external_packages)
 
-        env_dict["dependencies"] = dependencies
     elif env.explicit_packages:
         # Fall back to explicit packages if no requested packages
-        env_dict["dependencies"] = [
+        dependencies = [
             explicit_package.spec for explicit_package in env.explicit_packages
         ]
+
+    env_dict["dependencies"] = dependencies
 
     # Add variables if present
     if env.variables:
@@ -99,9 +100,10 @@ def conda_environment_exporters():
     """Register the built-in YAML and JSON environment exporters."""
     yield CondaEnvironmentExporter(
         name=ENVIRONMENT_YAML_FORMAT,
-        aliases=("yaml", "yml"),
+        aliases=("yaml", "yml", "env.yml"),
         default_filenames=("environment.yaml", "environment.yml"),
         export=export_yaml,
+        description="YAML format with channels and dependencies",
     )
 
     yield CondaEnvironmentExporter(
@@ -109,4 +111,5 @@ def conda_environment_exporters():
         aliases=("json",),
         default_filenames=("environment.json",),
         export=export_json,
+        description="JSON format with channels and dependencies",
     )

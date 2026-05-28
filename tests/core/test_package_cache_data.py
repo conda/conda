@@ -12,6 +12,7 @@ from conda import CondaError, CondaMultiError
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
+from conda.common.path import strip_pkg_extension
 from conda.core import package_cache_data
 from conda.core.index import Index
 from conda.core.package_cache_data import (
@@ -98,6 +99,173 @@ def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatc
     assert cache_action.target_package_basename.endswith(".conda")
     assert extract_action
     assert extract_action.source_full_path.endswith(".conda")
+
+
+def test_download_filename_from_url_basename():
+    """
+    Test that the download filename is extracted from URL, not the fn attribute.
+
+    For repodata v3, the fn attribute may contain the repodata key which
+    differs from the actual filename. For example, wheel packages where
+    the key uses underscores (idna-3.10-py3_none_any_0) but the actual
+    filename uses hyphens (idna-3.10-py3-none-any.whl).
+
+    See: https://github.com/conda/conda/issues/15620
+    """
+    # Create a package record that simulates repodata v3 format
+    # where fn contains the repodata key but URL contains the actual filename
+    package_url = "https://example.com/noarch/idna-3.10-py3-none-any.whl"
+    package_prec = PackageRecord.from_objects(
+        {
+            "name": "idna",
+            "version": "3.10",
+            "build": "py3_none_any_0",
+            "build_number": 0,
+            "depends": ["python >=3.6"],
+            "sha256": "b49df1a1923a9398542b6a713875dcea6d8cd80b3c5b9ca68ecf1d76bcf1ff3e",
+            "size": 5718,
+            "subdir": "noarch",
+        },
+        # This simulates repodata v3 where fn is the repodata key (differs from URL)
+        fn="idna-3.10-py3_none_any_0.whl",
+        url=package_url,
+    )
+
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        package_prec
+    )
+
+    # The cache action should use the URL basename, not fn
+    assert cache_action is not None
+    assert cache_action.target_package_basename == "idna-3.10-py3-none-any.whl"
+    assert cache_action.target_package_basename != package_prec.fn
+
+    assert extract_action is not None
+    # Computed dynamically so the assertion holds regardless of which plugins
+    # (e.g. conda-pypi registering .whl) are installed in the test environment.
+    assert (
+        extract_action.target_extracted_dirname
+        == strip_pkg_extension(cache_action.target_package_basename)[0]
+    )
+
+
+def test_download_filename_strips_url_fragment():
+    """
+    Test that a URL fragment (e.g. #sha256=...) is stripped from the cached filename.
+
+    PyPI URLs include a #sha256=... integrity fragment. Without stripping it, the
+    cached file ends up with the fragment in its name, causing the package extractor
+    plugin lookup to fail because `endswith(".whl")` no longer matches.
+    """
+    sha256 = "46bf16173620e97c3a9fcb75457fca6b32b40b5a97887fdeed4c6c37d3c7ba6e"
+    package_url = f"https://files.pythonhosted.org/packages/noarch/idna-3.10-py3-none-any.whl#{sha256}"
+    package_prec = PackageRecord.from_objects(
+        {
+            "name": "idna",
+            "version": "3.10",
+            "build": "py3_none_any_0",
+            "build_number": 0,
+            "depends": ["python >=3.6"],
+            "sha256": sha256,
+            "size": 5718,
+            "subdir": "noarch",
+        },
+        fn="idna-3.10-py3_none_any_0.whl",
+        url=package_url,
+    )
+
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        package_prec
+    )
+
+    assert cache_action is not None
+    # The fragment must not appear in the cached filename
+    assert "#" not in cache_action.target_package_basename
+    assert cache_action.target_package_basename == "idna-3.10-py3-none-any.whl"
+    assert cache_action.target_full_path.endswith(".whl")
+
+    assert extract_action is not None
+    assert "#" not in extract_action.source_full_path
+    assert extract_action.source_full_path.endswith(".whl")
+
+
+def test_download_filename_backward_compat_old_repodata():
+    """
+    Test backward compatibility with old repodata format.
+
+    For traditional conda packages (repodata v1/v2), the fn attribute matches
+    the URL basename. This test ensures the fix for repodata v3 doesn't break
+    existing behavior.
+    """
+    # Create a package record that simulates traditional repodata format
+    # where fn matches the URL basename
+    package_url = "https://conda.anaconda.org/conda-forge/noarch/numpy-1.26.4-py312h8753938_0.conda"
+    package_prec = PackageRecord.from_objects(
+        {
+            "name": "numpy",
+            "version": "1.26.4",
+            "build": "py312h8753938_0",
+            "build_number": 0,
+            "depends": ["python >=3.12"],
+            "sha256": "abc123def456",
+            "size": 12345678,
+            "subdir": "noarch",
+        },
+        # Traditional repodata: fn matches the URL basename
+        fn="numpy-1.26.4-py312h8753938_0.conda",
+        url=package_url,
+    )
+
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        package_prec
+    )
+
+    # The cache action should use the URL basename (which matches fn)
+    assert cache_action is not None
+    assert cache_action.target_package_basename == "numpy-1.26.4-py312h8753938_0.conda"
+    assert cache_action.target_package_basename == package_prec.fn
+
+    # The extract action should correctly strip the .conda extension
+    assert extract_action is not None
+    assert extract_action.target_extracted_dirname == "numpy-1.26.4-py312h8753938_0"
+
+
+def test_download_filename_backward_compat_tar_bz2():
+    """
+    Test backward compatibility with .tar.bz2 packages.
+
+    Ensures the fix works correctly for the older .tar.bz2 package format.
+    """
+    package_url = "https://conda.anaconda.org/defaults/noarch/requests-2.32.3-py313h06a4308_0.tar.bz2"
+    package_prec = PackageRecord.from_objects(
+        {
+            "name": "requests",
+            "version": "2.32.3",
+            "build": "py313h06a4308_0",
+            "build_number": 0,
+            "depends": ["python >=3.13"],
+            "sha256": "def456abc789",
+            "size": 87654,
+            "subdir": "noarch",
+        },
+        fn="requests-2.32.3-py313h06a4308_0.tar.bz2",
+        url=package_url,
+    )
+
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        package_prec
+    )
+
+    # The cache action should use the URL basename
+    assert cache_action is not None
+    assert (
+        cache_action.target_package_basename
+        == "requests-2.32.3-py313h06a4308_0.tar.bz2"
+    )
+
+    # The extract action should correctly strip the .tar.bz2 extension
+    assert extract_action is not None
+    assert extract_action.target_extracted_dirname == "requests-2.32.3-py313h06a4308_0"
 
 
 @pytest.mark.skipif(

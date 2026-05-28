@@ -3,21 +3,34 @@
 import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-from conda.base.context import conda_tests_ctxt_mgmt_def_pol, context
+from conda.base.context import context
 from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
-from conda.common.io import env_unmodified
 from conda.exceptions import InvalidMatchSpec, InvalidSpec
 from conda.models.channel import Channel
 from conda.models.dist import Dist
-from conda.models.match_spec import ChannelMatch, MatchSpec, _parse_spec_str
+from conda.models.match_spec import (
+    _BRACKETS_KV_RE,
+    _PARSE_CACHE,
+    ChannelMatch,
+    MatchSpec,
+    _parse_spec_str,
+)
 from conda.models.records import PackageRecord
 from conda.models.version import VersionSpec
 
 blas_value = "accelerate" if context.subdir == "osx-64" else "openblas"
 
 
-def m(string):
+@pytest.fixture
+def match_spec_v3(solver_rattler):
+    """Activate the v3 MatchSpec parser by setting the solver to rattler."""
+    _PARSE_CACHE.clear()
+    yield
+    _PARSE_CACHE.clear()
+
+
+def m(string) -> str:
     return str(MatchSpec(string))
 
 
@@ -377,35 +390,19 @@ def test_exact_values():
 
 
 def test_channel_matching():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        assert ChannelMatch("pkgs/main").match("defaults") is False
-        assert ChannelMatch("defaults").match("pkgs/main") is True
+    assert not ChannelMatch("pkgs/main").match("defaults")
+    assert ChannelMatch("defaults").match("pkgs/main")
 
-        assert (
-            ChannelMatch("https://repo.anaconda.com/pkgs/main").match("defaults")
-            is False
-        )
-        assert (
-            ChannelMatch("defaults").match("https://repo.anaconda.com/pkgs/main")
-            is True
-        )
+    assert not ChannelMatch("https://repo.anaconda.com/pkgs/main").match("defaults")
+    assert ChannelMatch("defaults").match("https://repo.anaconda.com/pkgs/main")
 
-        assert (
-            ChannelMatch("https://conda.anaconda.org/conda-forge").match("conda-forge")
-            is True
-        )
-        assert (
-            ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge")
-            is True
-        )
+    assert ChannelMatch("https://conda.anaconda.org/conda-forge").match("conda-forge")
+    assert ChannelMatch("conda-forge").match("https://conda.anaconda.org/conda-forge")
 
-        assert (
-            ChannelMatch("https://repo.anaconda.com/pkgs/main").match("conda-forge")
-            is False
-        )
+    assert not ChannelMatch("https://repo.anaconda.com/pkgs/main").match("conda-forge")
 
-        assert str(MatchSpec("pkgs/main::*")) == "pkgs/main::*"
-        assert str(MatchSpec("defaults::*")) == "defaults::*"
+    assert str(MatchSpec("pkgs/main::*")) == "pkgs/main::*"
+    assert str(MatchSpec("defaults::*")) == "defaults::*"
 
 
 def test_matchspec_errors():
@@ -427,94 +424,93 @@ def test_matchspec_errors():
 
 
 def test_dist():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        dst = Dist("defaults::foo-1.2.3-4.tar.bz2")
-        a = MatchSpec(dst)
-        b = MatchSpec(a)
-        c = MatchSpec(dst, optional=True, target="burg")
-        d = MatchSpec(a, build="5")
+    dst = Dist("defaults::foo-1.2.3-4.tar.bz2")
+    a = MatchSpec(dst)
+    b = MatchSpec(a)
+    c = MatchSpec(dst, optional=True, target="burg")
+    d = MatchSpec(a, build="5")
 
-        assert a == b
-        assert hash(a) == hash(b)
-        assert a is b
+    assert a == b
+    assert hash(a) == hash(b)
+    assert a is b
 
-        assert a != c
-        assert hash(a) != hash(c)
+    assert a != c
+    assert hash(a) != hash(c)
 
-        assert a != d
-        assert hash(a) != hash(d)
+    assert a != d
+    assert hash(a) != hash(d)
 
-        p = MatchSpec(channel="defaults", name="python", version=VersionSpec("3.5*"))
-        assert p.match(
-            Dist(
-                channel="defaults",
-                dist_name="python-3.5.3-1",
-                name="python",
-                version="3.5.3",
-                build_string="1",
-                build_number=1,
-                base_url=None,
-                platform=None,
-            )
+    p = MatchSpec(channel="defaults", name="python", version=VersionSpec("3.5*"))
+    assert p.match(
+        Dist(
+            channel="defaults",
+            dist_name="python-3.5.3-1",
+            name="python",
+            version="3.5.3",
+            build_string="1",
+            build_number=1,
+            base_url=None,
+            platform=None,
         )
+    )
 
-        assert not p.match(
-            Dist(
-                channel="defaults",
-                dist_name="python-3.6.0-0",
-                name="python",
-                version="3.6.0",
-                build_string="0",
-                build_number=0,
-                base_url=None,
-                platform=None,
-            )
+    assert not p.match(
+        Dist(
+            channel="defaults",
+            dist_name="python-3.6.0-0",
+            name="python",
+            version="3.6.0",
+            build_string="0",
+            build_number=0,
+            base_url=None,
+            platform=None,
         )
+    )
 
-        assert p.match(
-            Dist(
-                channel="defaults",
-                dist_name="python-3.5.1-0",
-                name="python",
-                version="3.5.1",
-                build_string="0",
-                build_number=0,
-                base_url=None,
-                platform=None,
-            )
+    assert p.match(
+        Dist(
+            channel="defaults",
+            dist_name="python-3.5.1-0",
+            name="python",
+            version="3.5.1",
+            build_string="0",
+            build_number=0,
+            base_url=None,
+            platform=None,
         )
-        assert p.match(
-            PackageRecord(
-                name="python",
-                version="3.5.1",
-                build="0",
-                build_number=0,
-                depends=(
-                    "openssl 1.0.2*",
-                    "readline 6.2*",
-                    "sqlite",
-                    "tk 8.5*",
-                    "xz 5.0.5",
-                    "zlib 1.2*",
-                    "pip",
-                ),
-                channel=Channel(
-                    scheme="https",
-                    auth=None,
-                    location="repo.anaconda.com",
-                    token=None,
-                    name="pkgs/main",
-                    platform="osx-64",
-                    package_filename=None,
-                ),
-                subdir="osx-64",
-                fn="python-3.5.1-0.tar.bz2",
-                md5="a813bc0a32691ab3331ac9f37125164c",
-                size=14678857,
-                priority=0,
-                url="https://repo.anaconda.com/pkgs/main/osx-64/python-3.5.1-0.tar.bz2",
-            )
+    )
+    assert p.match(
+        PackageRecord(
+            name="python",
+            version="3.5.1",
+            build="0",
+            build_number=0,
+            depends=(
+                "openssl 1.0.2*",
+                "readline 6.2*",
+                "sqlite",
+                "tk 8.5*",
+                "xz 5.0.5",
+                "zlib 1.2*",
+                "pip",
+            ),
+            channel=Channel(
+                scheme="https",
+                auth=None,
+                location="repo.anaconda.com",
+                token=None,
+                name="pkgs/main",
+                platform="osx-64",
+                package_filename=None,
+            ),
+            subdir="osx-64",
+            fn="python-3.5.1-0.tar.bz2",
+            md5="a813bc0a32691ab3331ac9f37125164c",
+            size=14678857,
+            priority=0,
+            url="https://repo.anaconda.com/pkgs/main/osx-64/python-3.5.1-0.tar.bz2",
         )
+    )
 
 
 def test_index_record():
@@ -599,7 +595,7 @@ def test_bracket_matches():
     }
 
     assert MatchSpec("numpy<2").match(record)
-    assert MatchSpec("numpy[version<2]").match(record)
+    assert MatchSpec("numpy[version=<2]").match(record)
     assert not MatchSpec("numpy>2").match(record)
     assert not MatchSpec("numpy[version='>2']").match(record)
 
@@ -610,6 +606,21 @@ def test_bracket_matches():
 
     assert MatchSpec("numpy ~=1.10").match(record)
     assert MatchSpec("numpy~=1.10").match(record)
+
+
+def test_bracket_version_without_equals_v3(match_spec_v3):
+    """The v3 parser (rattler solver) handles numpy[version<2] with a deprecation warning."""
+    record = {
+        "name": "numpy",
+        "version": "1.11.0",
+        "build": "py34_7",
+        "build_number": 7,
+    }
+
+    with pytest.deprecated_call(match="Please use `version='<2'`"):
+        badspec = MatchSpec("numpy[version<2]")
+        assert badspec.version
+        assert badspec.match(record)
 
 
 def test_license_match():
@@ -665,6 +676,45 @@ def test_invalid_match_spec():
         str(MatchSpec("!xyz 1.3"))
 
 
+@pytest.mark.parametrize(
+    "spec,match",
+    [
+        ("'package'", "invalid characters"),
+        ('"package"', "invalid characters"),
+        ("pack@ge", "invalid characters"),
+        ("pkg..name", "invalid package name"),
+        ("pkg--name", "invalid package name"),
+        (".pkg", "invalid package name"),
+        ("-pkg", "invalid package name"),
+    ],
+)
+def test_invalid_package_name_rejected(spec, match):
+    """Invalid package names must raise InvalidMatchSpec (CEP-26)."""
+    with pytest.raises(InvalidMatchSpec, match=match):
+        MatchSpec(spec)
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "numpy",
+        "my-package",
+        "my_package",
+        "my.package",
+        "r-base",
+        "python-dateutil",
+        "_openmp_mutex",
+        "_pkg",
+        "__glibc",
+        "__unix",
+    ],
+)
+def test_valid_package_names(spec):
+    """Valid CEP-26 package names must be accepted."""
+    ms = MatchSpec(spec)
+    assert ms.name == spec
+
+
 def cb_form(spec_str):
     return MatchSpec(spec_str).conda_build_form()
 
@@ -706,39 +756,38 @@ def test_pip_style2():
 
 
 def test_parse_spec_str_tarball_url():
-    with env_unmodified(conda_tests_ctxt_mgmt_def_pol):
-        url = "https://repo.anaconda.com/pkgs/main/linux-64/_license-1.1-py27_1.tar.bz2"
-        assert _parse_spec_str(url) == {
-            "channel": "defaults",
-            "subdir": "linux-64",
-            "name": "_license",
-            "version": "1.1",
-            "build": "py27_1",
-            "fn": "_license-1.1-py27_1.tar.bz2",
-            "url": url,
-        }
+    url = "https://repo.anaconda.com/pkgs/main/linux-64/_license-1.1-py27_1.tar.bz2"
+    assert _parse_spec_str(url) == {
+        "channel": "defaults",
+        "subdir": "linux-64",
+        "name": "_license",
+        "version": "1.1",
+        "build": "py27_1",
+        "fn": "_license-1.1-py27_1.tar.bz2",
+        "url": url,
+    }
 
-        url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-        assert _parse_spec_str(url) == {
-            "channel": "conda-canary",
-            "subdir": "linux-64",
-            "name": "conda",
-            "version": "4.3.21.post699+1dab973",
-            "build": "py36h4a561cd_0",
-            "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
-            "url": url,
-        }
+    url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
+    assert _parse_spec_str(url) == {
+        "channel": "conda-canary",
+        "subdir": "linux-64",
+        "name": "conda",
+        "version": "4.3.21.post699+1dab973",
+        "build": "py36h4a561cd_0",
+        "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2",
+        "url": url,
+    }
 
-        url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda"
-        assert _parse_spec_str(url) == {
-            "channel": "conda-canary",
-            "subdir": "linux-64",
-            "name": "conda",
-            "version": "4.3.21.post699+1dab973",
-            "build": "py36h4a561cd_0",
-            "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda",
-            "url": url,
-        }
+    url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda"
+    assert _parse_spec_str(url) == {
+        "channel": "conda-canary",
+        "subdir": "linux-64",
+        "name": "conda",
+        "version": "4.3.21.post699+1dab973",
+        "build": "py36h4a561cd_0",
+        "fn": "conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda",
+        "url": url,
+    }
 
 
 def test_parse_spec_str_no_brackets():
@@ -941,9 +990,42 @@ def test_parse_hard():
     }
 
 
+@pytest.mark.xfail(
+    reason="boolean ops in space-separated build string not handled, see #15385"
+)
+@pytest.mark.parametrize(
+    "spec_str,expected_build",
+    [
+        ("mypkg 1.2.3 py310|*gpu*", "py310|*gpu*"),
+        ("mypkg 1.2.3 py310,*gpu*", "py310,*gpu*"),
+    ],
+)
+def test_boolean_operator_in_space_separated_build(spec_str, expected_build):
+    """Boolean operators in the build position of space-separated specs should not
+    be folded into the version field.
+
+    See https://github.com/conda/conda/issues/15385
+    """
+    ms = MatchSpec(spec_str)
+    assert ms.version == VersionSpec("1.2.3")
+    assert ms.get("build") == expected_build
+
+
 def test_parse_errors():
     with pytest.raises(InvalidMatchSpec):
         _parse_spec_str("!xyz 1.3")
+
+
+@pytest.mark.xfail(reason="bare '=' with no version value should raise, see #12046")
+def test_bare_equals_operator_raises():
+    """A bare '=' with no following version value should raise InvalidMatchSpec.
+
+    Single '=' in conda means glob match (e.g. ``foo=1.0`` → ``1.0*``), but
+    ``foo=`` with nothing after it is not a valid spec.
+    See https://github.com/conda/conda/issues/12046
+    """
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec("foo=")
 
 
 def test_parse_channel_subdir():
@@ -980,6 +1062,27 @@ def test_parse_parens():
         # "target": "blarg",  # suppressing these for now
         # "optional": True,
     }
+
+
+@pytest.mark.xfail(reason="parentheses in version not yet supported, see #15654")
+@pytest.mark.parametrize(
+    "spec_str,expected_version",
+    [
+        ("foo (>=1,<2)|>3", "(>=1,<2)|>3"),
+        ("* >=3,(<4|<5)", ">=3,(<4|<5)"),
+        ("numpy >=1.8,(<2|>=1.7.1)", ">=1.8,(<2|>=1.7.1)"),
+        ("python (>=3.8,<3.10)|(>=3.11,<3.13)", "(>=3.8,<3.10)|(>=3.11,<3.13)"),
+    ],
+)
+def test_version_with_parentheses(spec_str, expected_version):
+    """Parentheses for precedence in version expressions should be preserved.
+
+    See https://github.com/conda/conda/issues/15654
+    and https://github.com/conda/conda/issues/14242
+    Fix tracked in https://github.com/conda/conda/pull/15662
+    """
+    ms = MatchSpec(spec_str)
+    assert ms.version == VersionSpec(expected_version)
 
 
 def test_parse_build_number_brackets():
@@ -1533,3 +1636,476 @@ def test_no_triple_equals_roundtrip():
     assert "===" not in str(ms)
     assert str(ms) == "numpy=2"
     assert MatchSpec("numpy=2").version == ms.version
+
+
+def test_double_equals_version_consistency():
+    """Regression test for https://github.com/conda/conda/issues/13932
+
+    Without a build string, ``==`` was stripped from the version representation
+    while the presence of a build string preserved it, creating an inconsistency.
+    """
+    ms_no_build = MatchSpec("awscli==2.15.37")
+    ms_with_build = MatchSpec("awscli==2.15.37=wghq")
+    assert ms_no_build.get("version") == ms_with_build.get("version")
+    assert str(ms_no_build) == "awscli==2.15.37"
+    assert str(ms_with_build) == "awscli==2.15.37=wghq"
+
+
+def test_conditional_specs(match_spec_v3):
+    # should not be present
+    assert MatchSpec("python").get("when") is None
+
+    # This is the normal syntax
+    input_spec = "python[when=__win]"
+    ms = MatchSpec(input_spec)
+    assert ms.get("when") == "__win"
+    assert str(ms) == input_spec
+
+    assert isinstance(hash(ms), int)
+
+    # This is the normal syntax, with version and build string
+    ms = MatchSpec("python 2.* *cpython*[when=__win]")
+    assert ms.get("when") == "__win"
+    assert str(ms) == "python=2[build=*cpython*,when=__win]"
+
+    # This is the normal syntax, with version in brackets
+    ms = MatchSpec("python[version=2,when=__win]")
+    assert ms.get("when") == "__win"
+    assert str(ms) == "python==2[when=__win]"
+
+    # test space and quotes normalization
+    assert (
+        str(MatchSpec("python [when=__win]"))
+        == str(MatchSpec("python [when='__win']"))
+        == str(MatchSpec('python [when="__win"]'))
+        == "python[when=__win]"
+    )
+
+    # More complex when spec with its own version specifier
+    for when in (
+        "python<3.10",
+        "'python>=3.9,<=3.11'",  # this MUST be quoted; otherwise the comma is interpreted as a separator
+        "python[version='<=3.11']",
+    ):
+        inp = MatchSpec(f"tomli[when={when}]")
+        parsed_when_ms = MatchSpec(inp.get("when"))
+
+        assert str(parsed_when_ms) == str(MatchSpec(when.strip("'")))
+
+    # Roundtrip
+    assert MatchSpec(str(MatchSpec("package[when=__unix]"))) == MatchSpec(
+        "package[when=__unix]"
+    )
+
+    # These MUST raise
+    for spec in (
+        "python[when='package[when='__unix']']",  # nested when
+        "python[when='package[build=]']",  # malformed when spec
+        "python[when='package[build]']",  # malformed when spec
+    ):
+        with pytest.raises(InvalidMatchSpec):
+            MatchSpec(spec)
+
+    # More complex when spec has boolean logic and parentheses
+    for when in (
+        "(__linux or __osx)",
+        "(python!=3.0 and python!=3.1)",
+        "(__unix and python[version='>=3.10'])",
+        '(__unix and python[version=">=3.10"])',
+    ):
+        spec = MatchSpec(f"package[when='{when}']")
+
+        assert spec.get("when") == when
+
+
+@pytest.mark.xfail(reason="Pending implementation")
+def test_conditional_specs_merge(match_spec_v3):
+    merged, unmerged = MatchSpec.merge(["pkg[when=__linux", "pkg[when=__osx]"])
+    assert not unmerged
+    assert merged.get("when") == "(__linux) and (__osx)"
+    merged, unmerged = MatchSpec.merge(
+        ["pkg[when=__linux", "pkg[when=__osx]"], union=True
+    )
+    assert not unmerged
+    assert merged.get("when") == "(__linux) or (__osx)"
+
+
+@pytest.mark.xfail(reason="Pending implementation")
+def test_conditional_specs_match(match_spec_v3):
+    with pytest.raises(ValueError):
+        # Static matching without a solver are not specified for 'when'
+        MatchSpec("pkg[when=__unix]").match({"name": "pkg"})
+
+
+def test_extra_specs(match_spec_v3):
+    # should not be present
+    assert MatchSpec("python").get("extras") is None
+
+    # This is the string syntax
+    input_spec = "python[extras=group1]"
+    ms = MatchSpec(input_spec)
+    assert ms.name == "python"
+    # It should always store groups as lists internally
+    assert ms.get("extras") == ("group1",)
+    assert str(ms) == "python[extras=['group1']]"
+
+    assert isinstance(hash(ms), int)
+
+    # This is the list syntax, single item
+    input_spec = "python[extras=[group1]]"
+    ms = MatchSpec(input_spec)
+    assert ms.name == "python"
+    assert ms.get("extras") == ("group1",)
+    assert str(ms) == "python[extras=['group1']]"
+
+    # This is the list syntax, with all types of delimiters and quoting
+    for value in (
+        "a,b",
+        "a, b",
+        "a ,b",
+        "a , b",
+        "a  , b ",
+        "a, 'b'",
+        "'a' , 'b'",
+    ):
+        input_spec = f"python[extras=[{value}]]"
+        ms = MatchSpec(input_spec)
+        assert ms.name == "python"
+        assert ms.get("extras") == ("a", "b")
+        assert str(ms) == "python[extras=['a', 'b']]"
+
+    # Trailing comma is accepted (YAML flow-sequence semantics) and normalizes silently
+    assert MatchSpec("pkg[extras=[a,]]").get("extras") == ("a",)
+
+    # Inner lists MUST have commas
+    assert MatchSpec("package[extras=[a b]]").get("extras") == ("a b",)
+
+    # Roundtrip
+    assert MatchSpec(str(MatchSpec("package[extras=[a, b]]"))) == MatchSpec(
+        "package[extras=[a, b]]"
+    )
+
+    # Ensure YAML parsing doesn't mess with values
+    assert MatchSpec("package[extras=[yes, no, 0, 1, True, False, null, None]]").get(
+        "extras"
+    ) == ("yes", "no", "0", "1", "True", "False", "null", "None")
+
+    # Using Python syntax for extras is not supported, but let's error out usefully
+    # This used to be silently swallowed.
+    with pytest.raises(InvalidMatchSpec, match=r"did you mean `extras=\[a\]`"):
+        MatchSpec("package[a]")
+    with pytest.raises(InvalidMatchSpec, match=r"did you mean `extras=\[a,b\]`"):
+        MatchSpec("package[a,b]")
+
+
+@pytest.mark.xfail(reason="Pending implementation")
+def test_extras_specs_merge(match_spec_v3):
+    merged, unmerged = MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"])
+    assert not unmerged
+    assert merged.get("extras") == ("a", "b")
+    # We can't OR two extras
+    with pytest.raises(ValueError, match="Incompatible component merge"):
+        MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"], union=True)
+
+
+@pytest.mark.xfail(reason="Pending implementation")
+def test_extras_specs_match(match_spec_v3):
+    """
+    Extras match via 'set.issubset' on the dictionary keys
+    """
+    record = {"name": "pkg", "extras-depends": {"a": [], "b": []}}
+    assert MatchSpec("pkg[extras=a]").match()
+    assert MatchSpec("pkg[extras=[a, b]]").match(record)
+    assert not MatchSpec("pkg[extras=[a, b, c]]").match(record)
+    assert not MatchSpec("pkg[extras=c]").match(record)
+
+
+def test_flags_specs(match_spec_v3):
+    # should not be present
+    assert MatchSpec("python").get("flags") is None
+
+    # This is the string syntax
+    input_spec = "python[flags=cpu]"
+    ms = MatchSpec(input_spec)
+    # It should always store groups as lists internally
+    assert ms.get("flags") == ("cpu",)
+    # but serialize to string when there's only one item
+    assert str(ms) == "python[flags=['cpu']]"
+
+    assert isinstance(hash(ms), int)
+
+    # This is the list syntax
+    input_spec = "python[flags=[cpu,blas:*]]"
+    ms = MatchSpec(input_spec)
+    assert ms.get("flags") == ("cpu", "blas:*")
+    # they get sorted too
+    assert str(ms) == "python[flags=['blas:*', 'cpu']]"
+
+    # Ensure YAML parsing doesn't mess with values
+    assert MatchSpec("package[flags=[yes, no, 0, 1, True, False, null, None]]").get(
+        "flags"
+    ) == ("yes", "no", "0", "1", "True", "False", "null", "None")
+
+    for spec in (
+        "package[extras=[a]",
+        "package[extras=[a, b]",
+        "package[extras=[[a, b]",
+        "package[extras=[[[a, b]",
+    ):
+        with pytest.raises(InvalidMatchSpec, match="unbalanced"):
+            MatchSpec(spec)
+
+
+@pytest.mark.xfail(reason="Pending implementation")
+def test_flags_specs_merge(match_spec_v3):
+    merged, unmerged = MatchSpec.merge(["pkg[flags=[a]]", "pkg[flags=[b]]"])
+    assert not unmerged
+    assert merged.get("flags") == ("a", "b")
+    # We can't OR two flags
+    with pytest.raises(ValueError, match="Incompatible component merge"):
+        MatchSpec.merge(["pkg[flags=[a]]", "pkg[flags=[b]]"], union=True)
+
+
+@pytest.mark.xfail(reason="Pending implementation")
+def test_flags_specs_match(match_spec_v3):
+    """
+    Flags match globbing the individual strings on the record.
+    All of them must match at least one flag.
+    """
+    record = {"name": "pkg", "flags": ["cpu", "gpu:cuda"]}
+    assert MatchSpec("pkg[flags=cpu]").match()
+    assert MatchSpec("pkg[flags=[cpu]]").match()
+    assert MatchSpec("pkg[flags=[cpu, gpu:cuda]]").match(record)
+    assert MatchSpec("pkg[flags=gpu:*]").match(record)
+    assert not MatchSpec("pkg[flags=[cpu, gpu:cuda12]]").match(record)
+    assert not MatchSpec("pkg[flags=whatever]").match(record)
+
+
+@pytest.mark.parametrize(
+    "spec,parsed",
+    [
+        (
+            "pkg[when=__win, extras=[a,b], flags=cpu]",
+            {"when": "__win", "extras": ("a", "b"), "flags": ("cpu",)},
+        ),
+        (
+            "pkg[when=__win, extras=a, flags=[cpu, gpu]]",
+            {"when": "__win", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+        (
+            "pkg[when=__win, extras=[a], flags=[cpu, gpu]]",
+            {"when": "__win", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+        (
+            "pkg[when='__win or __osx', extras=[a], flags=[cpu, gpu]]",
+            {"when": "__win or __osx", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+        (
+            "pkg[when='(__win or __osx)', extras=[a], flags=[cpu, gpu]]",
+            {"when": "(__win or __osx)", "extras": ("a",), "flags": ("cpu", "gpu")},
+        ),
+        (
+            "pkg[when=python[version='>=2'], extras=[a], flags=[cpu, gpu]]",
+            {
+                "when": "python[version='>=2']",
+                "extras": ("a",),
+                "flags": ("cpu", "gpu"),
+            },
+        ),
+    ],
+)
+def test_match_spec_repodata_v3(spec, parsed, match_spec_v3):
+    spec = MatchSpec(spec)
+    assert spec.get("when") == parsed["when"]
+    assert spec.get("extras") == parsed["extras"]
+    assert spec.get("flags") == parsed["flags"]
+
+
+@pytest.mark.parametrize(
+    "spec_str,expected_name,expected_version",
+    [
+        ("numpy", "numpy", None),
+        ("numpy>=1.20", "numpy", ">=1.20"),
+        ("numpy 1.20 py39_0", "numpy", "1.20"),
+        ("conda-forge::numpy>=1.20", "numpy", ">=1.20"),
+        ("numpy[version='>=1.20']", "numpy", ">=1.20"),
+    ],
+)
+def test_parse_spec_str_with_precompiled_regex(
+    spec_str: str, expected_name: str, expected_version: str | None
+) -> None:
+    """_parse_spec_str should correctly parse specs using the module-level compiled regexes."""
+    ms = MatchSpec(spec_str)
+    assert ms.name == expected_name
+    if expected_version is not None:
+        assert ms.version is not None
+
+
+@pytest.mark.timeout(1)
+def test_kv_regex_does_not_hang_on_channel_urls():
+    """
+    A previous attempt at _BRACKETS_KV_RE used quotes and comma
+    tracking for inner lists, meant to match inputs like `flags=[a, "b"]`.
+    However, this made unrelated inputs hang! Too much backtracking perhaps?
+
+    Adding a test here to avoid regressions in case someone is tempted to
+    polish the regex to avoid YAML parsing.
+    """
+    _BRACKETS_KV_RE.findall("channel=https://repo.anaconda.com/free")
+
+
+@pytest.mark.parametrize(
+    "spec,message",
+    [
+        ("package[build", "invalid characters"),
+        ("package[build=", "invalid characters"),
+        ("package[build=]", "a key or a value is missing"),
+        ("package[build=value, build=again]", "key can only be specified once"),
+        ("package[build]", "No key-value pairs found in square brackets"),
+        pytest.param(
+            "package[build=0]{something else}",
+            "unrecognized sections",
+            marks=pytest.mark.xfail(reason="Improvable message", strict=True),
+        ),
+        pytest.param(
+            "package[build=0]{something-else}",
+            "unrecognized sections",
+            marks=pytest.mark.xfail(reason="Improvable message", strict=True),
+        ),
+        ("package[build=0][version=2]", "bracket section"),
+    ],
+)
+def test_bad_brackets(spec, message, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec, match=message):
+        spec = MatchSpec(spec)
+
+
+@pytest.mark.parametrize("when_val", ['""', "''"])
+def test_when_empty_value_raises(when_val, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[when={when_val}]")
+
+
+def test_when_whitespace_only_value_raises(match_spec_v3):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec('pkg[when="   "]')
+
+
+def test_when_package_name_with_boolean_word_substring(match_spec_v3):
+    ms = MatchSpec("pkg[when='pandoc >=2.0']")
+    assert ms.get("when") == "pandoc >=2.0"
+
+
+@pytest.mark.parametrize(
+    "when",
+    [
+        "__linux or __osx",
+        "python >=3.6 and __unix",
+        "(python >=3.6 or python <3.0) and __unix",
+    ],
+)
+def test_when_roundtrip_boolean(when, match_spec_v3):
+    ms = MatchSpec(f"pkg[when='{when}']")
+    assert MatchSpec(str(ms)) == ms
+
+
+def test_if_syntax_not_silently_dropped(match_spec_v3):
+    # Old behavior (before PR #15443): "foo if python>=3.6" was silently stripped
+    # to "foo" via split(" if ", 1). Verify this silent drop no longer occurs.
+    try:
+        ms = MatchSpec("foo if python>=3.6")
+        # If parsing did not raise, the result must differ from the old silent result
+        assert ms != MatchSpec("foo"), (
+            "' if ' syntax must not be silently stripped to 'foo'"
+        )
+    except (InvalidMatchSpec, InvalidSpec):
+        pass  # Raising is also acceptable — the key is it must not silently return MatchSpec("foo")
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "pkg[extras=]",  # empty value — caught before YAML is called
+        "pkg[flags=]",  # same for flags
+        "pkg[extras=[a,,b]]",  # invalid list
+        "pkg[build=0,junk]",  # trailing junk
+    ],
+)
+def test_extras_flags_empty_value_raises(spec, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(spec)
+
+
+def test_extras_serialization_is_sorted(match_spec_v3):
+    ms = MatchSpec("pkg[extras=[b,a]]")
+    assert ms.get("extras") == ("b", "a"), "stored in parse/insertion order"
+    assert str(ms) == "pkg[extras=['a', 'b']]", "serialized in sorted order"
+
+
+def test_flags_serialization_is_sorted(match_spec_v3):
+    ms = MatchSpec("pkg[flags=[gpu,cpu]]")
+    assert ms.get("flags") == ("gpu", "cpu"), "stored in parse/insertion order"
+    assert str(ms) == "pkg[flags=['cpu', 'gpu']]", "serialized in sorted order"
+
+
+@pytest.mark.parametrize(
+    "spec_str",
+    [
+        # From rattler parse.rs test_from_str
+        "blas *.* mkl",
+        "foo=1.0=py27_0",
+        "foo==1.0=py27_0",
+        "python 3.8.* *_cpython",
+        "pytorch=*=cuda*",
+        "x264 >=1!164.3095,<1!165",
+        "conda-forge::foo[version=1.0.*]",
+        'conda-forge::foo[version=1.0.*, build_number=">6"]',
+        "python ==2.7.*.*|>=3.6",
+        "python=3.9",
+        "python=*",
+        "conda-forge/linux-32::python[version=3.9, subdir=linux-64]",
+        'conda-forge/linux-32::python ==3.9[subdir=linux-64, build_number="0"]',
+        "python ==3.9[channel=conda-forge]",
+        "python ==3.9[channel=conda-forge/linux-64]",
+        "rust ~=1.2.3",
+        "numpy>=2.*.*",
+        "bird_tool_utils_python =0.*,>=0.4.1",
+        # From rattler mod.rs matching tests
+        "* >=1.0",
+        "tensorflow 2.6.*",
+        "tensorflow 2.6.0.*",
+        "mamba[build=*py310_1]",
+        "mamba[build=*py310*]",
+        "mamba * [build=*py310*]",
+        "foo >=1.0 py37_0",
+        "foo >=1.0 py37*",
+        "foo 1.0.* py38*",
+        "foo * py37_1",
+        "foo ==1.0",
+        "foo >=2.0",
+        "foo >=1.0",
+        # Star build strings from conda-libmamba-solver (test_workarounds, test_channels)
+        "activate_deactivate_package=*=*0",
+        "numpy=*=*py38*",
+        "conda-forge::libblas=*=*openblas",
+        "ca-certificates=*=*_0",
+        # Pinned-file format: exact version + build with space separator (test_solver)
+        "python ==3.7.3",
+        "pandas ==1.2.5 py37h295c915_0",
+        "scipy ==1.7.3 py37hf2a6cf1_0",
+        # Version operators without brackets (test_repoquery)
+        "ca-certificates =2022.9.24",
+        "ca-certificates >=2022.9.24",
+        "ca-certificates >2022.9.24",
+        "ca-certificates<2022.9.24,>2020",
+        "ca-certificates<=2022.9.24,>2020",
+        "ca-certificates !=2022.9.24,>2020",
+        # Bracket syntax (test_repoquery equality checks)
+        "ca-certificates[build='*_0']",
+        "ca-certificates[version='>=2022.9.24']",
+        # Channel::spec with build constraint (test_channels)
+        "pytorch::pytorch=1.12",
+    ],
+)
+def test_parse_ecosystem_corpus(spec_str):
+    MatchSpec(spec_str)

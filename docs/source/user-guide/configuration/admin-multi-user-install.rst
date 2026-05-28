@@ -150,3 +150,57 @@ User configuration file
 
    The user can now search for packages in the allowed
    ``admin`` channel.
+
+
+Shared conda installations
+==========================
+
+For clusters, HPC systems, or organizations, you can provide a centralized conda
+installation that multiple users can access.
+
+Basic setup
+-----------
+
+#. Install conda to a shared location:
+
+   .. code-block:: bash
+
+      bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda
+      chmod -R a+rX,go-w /opt/conda
+
+#. Users activate conda by sourcing the initialization script:
+
+   .. code-block:: bash
+
+      source /opt/conda/etc/profile.d/conda.sh
+
+Shared package cache and environments
+--------------------------------------
+
+Create a system ``.condarc`` at ``/opt/conda/.condarc`` to configure shared locations:
+
+.. code-block:: yaml
+
+   pkgs_dirs:
+     - /shared/conda/pkgs    # Shared cache
+     - ~/.conda/pkgs          # User fallback
+
+   envs_dirs:
+     - /shared/conda/envs     # Shared environments
+     - ~/.conda/envs          # User fallback
+
+Set up the shared directories:
+
+.. code-block:: bash
+
+   mkdir -p /shared/conda/pkgs /shared/conda/envs
+   chmod -R a+rX,go-w /shared/conda/pkgs  # Read-only cache
+
+Best practices
+--------------
+
+* Keep the conda installation read-only; only admins should update it
+* Use shared package cache to reduce redundant downloads
+* Implement disk quotas on user home directories
+* For HPC systems, integrate with module systems (e.g., Lmod)
+* Document for users: how to activate conda, where to create environments, and support contacts

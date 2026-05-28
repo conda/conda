@@ -18,6 +18,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -26,15 +27,15 @@ dependencies = [
   "boltons >=23.0.0",
   "charset-normalizer",
   # Disabled due to conda-libmamba-solver not being available on PyPI
-  # "conda-libmamba-solver >=25.4.0",
+  # "conda-libmamba-solver >=26.4.1",
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
   "frozendict >=2.4.2",
-  "jsonpatch >=1.32",
   "menuinst >=2",
+  "msgpack >=1.1.1",
   "packaging >=23.0",
   "platformdirs >=3.10.0",
-  "pluggy >=1.0.0",
+  "pluggy >=1.6.0",
   "pycosat >=0.6.3",
   "requests >=2.28.0,<3",
   "ruamel.yaml >=0.11.14,<0.19",
@@ -73,16 +74,19 @@ exclude_lines = [
 omit = [
   "*/site-packages/*",
   '*\site-packages\*',
+  "conda/_private/shards/typing.py",
   "conda/_vendor.py",
-  "conda/console.py",
   "conda/cli/activate.py",
   "conda/cli/main_package.py",
+  "conda/console.py",
   "conda/exports.py",
   "conda/gateways/connection/adapters/ftp.py",
   "conda/gateways/connection/adapters/s3.py",
-  "conda_env/*",
   "tests/*",
   "utils/*",
+]
+partial_branches = [
+  "pragma: no branch",
 ]
 show_missing = true
 skip_covered = true
@@ -93,7 +97,7 @@ sort = "Miss"
 relative_files = true
 
 [tool.hatch.build]
-include = ["conda", "conda_env"]
+include = ["conda"]
 
 [tool.hatch.build.hooks.vcs]
 version-file = "conda/_version.py"
@@ -168,12 +172,6 @@ filterwarnings = [
   "error::PendingDeprecationWarning",
   "error::DeprecationWarning",
   "error::FutureWarning",
-  # ##### external library deprecations that we cannot fix in the conda source code
-  # - conda_content_trust.plugin uses old CondaSubcommand import path; remove when conda-content-trust plugin is updated
-  "ignore:conda.plugins.CondaSubcommand:PendingDeprecationWarning:conda_content_trust.plugin",
-  # ##### internal conda deprecations that need some special handling right now
-  # - ignore this until 26.3 due to a circular deprecation warning
-  "ignore:conda.core.link.PrefixActions:DeprecationWarning:conda.core.link",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
@@ -221,34 +219,48 @@ ignore = [
 pydocstyle = {convention = "pep257"}
 # see https://docs.astral.sh/ruff/rules/
 select = [
+  # Enable ANN locally for type hints linting
+  # "ANN", # flake8-annotations
   "B012",  # bugbear
   "D1",  # pydocstyle
   "E",  # pycodestyle errors
   "F",  # pyflakes
   "FA",  # flake8-future-annotations
+  "G004",  # flake8-logging-format: no f-strings in log calls
   "I",  # isort
   "ISC",  # flake8-implicit-str-concat
   "RUF100",  # Unused noqa directive
   "S101",  # forbid assert
   "T10",  # flake8-debugger
   "TC",  # flake8-type-checking
-  "TID251",  # flake8-tidy-imports
+  "TID251",  # flake8-tidy-imports: banned-api
+  "TID253",  # flake8-tidy-imports: banned-module-level-imports
   "UP",  # pyupgrade
   "W",  # pycodestyle warnings
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "conda/testing/*" = [
+  "ANN",  # flake8-annotations
   "S101",  # forbid assert
 ]
 "docs/*" = [
+  "ANN",  # flake8-annotations
   "D1",  # pydocstyle
 ]
 "tests/*" = [
+  "ANN",  # flake8-annotations
   "D1",  # pydocstyle
   "S101",  # forbid assert
   "TID251",  # flake8-tidy-imports
+  "TID253",  # flake8-tidy-imports: tests may import requests directly
 ]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Prevent accidental module-level imports of heavy packages on the startup path.
+# Files that legitimately import these packages (e.g. conda/gateways/) should
+# suppress the warning with # noqa: TID253 on the relevant import lines.
+banned-module-level-imports = ["requests"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "json".msg = "Use `conda.common.serialize.json` instead."

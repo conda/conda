@@ -7,11 +7,7 @@ from __future__ import annotations
 import re
 from logging import getLogger
 from os.path import (
-    dirname,
     exists,
-    isdir,
-    isfile,
-    join,
     normcase,
 )
 from typing import TYPE_CHECKING
@@ -22,23 +18,18 @@ from ..base.constants import (
     CONFIGURATION_SOURCES,
     ENV_VARS_SOURCE,
     EXPLICIT_MARKER,
-    PREFIX_MAGIC_FILE,
 )
 from ..base.context import context, env_name
 from ..common.io import swallow_broken_pipe
 from ..common.path import expand, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
-    DirectoryNotACondaEnvironmentError,
     EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
-    EnvironmentLocationNotFound,
-    EnvironmentNotWritableError,
     InvalidSpec,
     OperationNotAllowed,
 )
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
-from ..gateways.disk.test import file_path_is_writable
 from ..models.match_spec import MatchSpec
 from ..reporters import render
 
@@ -211,40 +202,6 @@ def check_non_admin():
         )
 
 
-@deprecated("25.9", "26.3", addendum="Use PrefixData.assert_environment()")
-def validate_prefix(prefix) -> str:
-    """Verifies the prefix is a valid conda environment.
-
-    :raises EnvironmentLocationNotFound: Non-existent path or not a directory.
-    :raises DirectoryNotACondaEnvironmentError: Directory is not a conda environment.
-    :returns: Valid prefix.
-    :rtype: str
-    """
-    if isdir(prefix):
-        if not isfile(join(prefix, PREFIX_MAGIC_FILE)):
-            raise DirectoryNotACondaEnvironmentError(prefix)
-    else:
-        raise EnvironmentLocationNotFound(prefix)
-
-    return prefix
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixData.assert_writable()")
-def validate_prefix_is_writable(prefix: str) -> str:
-    """Verifies the environment directory is writable by trying to access
-    the conda-meta/history file. If this file is not writable then we assume
-    the whole prefix is not writable and raise an exception.
-
-    :raises EnvironmentNotWritableError: Conda does not have permission to write to the prefix
-    :returns: Valid prefix.
-    :rtype: str
-    """
-    test_path = join(prefix, PREFIX_MAGIC_FILE)
-    if isdir(dirname(test_path)) and file_path_is_writable(test_path):
-        return prefix
-    raise EnvironmentNotWritableError(prefix)
-
-
 def validate_subdir_config():
     """Validates that the configured subdir is ok. A subdir that is different from
     the native system is only allowed if it comes from the global configuration, or
@@ -307,6 +264,26 @@ def print_activate(env_name_or_prefix):
             """
         )
         print(message)  # TODO: use logger
+
+
+def get_name_prefix_from_env_file(file: str) -> tuple[str | None, str | None]:
+    """
+    Get name and prefix from an environment spec file.
+
+    Intentionally swallows all errors and logs them.
+    """
+    try:
+        spec_hook = context.plugin_manager.get_environment_specifier(
+            source=file,
+            name=context.environment_specifier,
+        )
+        env = spec_hook.environment_spec(file).env
+        if env.name is not None or env.prefix is not None:
+            return env.name, env.prefix
+    except Exception as exc:
+        log.info(exc, exc_info=True)
+
+    return None, None
 
 
 def validate_environment_files_consistency(files: list[str]) -> None:

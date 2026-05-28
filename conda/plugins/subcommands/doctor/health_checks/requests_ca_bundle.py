@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException  # noqa: TID253
 
 from .....base.constants import OK_MARK, X_MARK
 from .....base.context import context

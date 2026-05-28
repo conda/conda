@@ -6,6 +6,10 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: read
+  issues: write
+
 env:
   FEEDBACK_LBL: pending::feedback
   SUPPORT_LBL: pending::support
@@ -20,7 +24,7 @@ jobs:
       !github.event.repository.fork
       && !github.event.issue.pull_request
       && contains(github.event.issue.labels.*.name, 'pending::feedback')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     steps:
       # remove [pending::feedback]
       - uses: actions-ecosystem/action-remove-labels@2ce5d41b4b6aa8503e285553f75ed56e0a40bae0 # v1.3.0

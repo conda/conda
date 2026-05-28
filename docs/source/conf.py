@@ -169,7 +169,7 @@ copybutton_remove_prompts = True
 
 # -- For autoapi.extension -------------------------------------------------
 
-autoapi_dirs = ["../../conda", "../../conda_env"]
+autoapi_dirs = ["../../conda"]
 autoapi_root = "dev-guide/api"
 # Manually inserted into TOC in dev-guide/api.rst for proper integration into
 # folder-view

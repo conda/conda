@@ -1,7 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import pytest
 
 from conda.env.specs.explicit import ExplicitSpec
+from conda.exceptions import CondaValueError, PluginError
 from conda.models.environment import Environment
 
 from .. import support_file
@@ -9,7 +11,8 @@ from .. import support_file
 
 def test_no_environment_file():
     spec = ExplicitSpec()
-    assert not spec.can_handle()
+    with pytest.raises(CondaValueError):
+        spec.can_handle()
 
 
 def test_can_handle_explicit():
@@ -19,7 +22,8 @@ def test_can_handle_explicit():
 
 def test_can_not_handle_requirements_txt():
     spec = ExplicitSpec(filename=support_file("requirements.txt"))
-    assert not spec.can_handle()
+    with pytest.raises(PluginError):
+        spec.can_handle()
 
 
 def test_environment():

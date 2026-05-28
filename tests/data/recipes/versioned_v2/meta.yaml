@@ -1,0 +1,12 @@
+package:
+  name: versioned
+  version: 2.0
+
+build:
+  noarch: generic
+
+about:
+  summary: A versioned package
+
+extra:
+  test_purpose: A versioned package to test package upgrades

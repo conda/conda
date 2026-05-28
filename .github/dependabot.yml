@@ -15,8 +15,16 @@ updates:
   - package-ecosystem: github-actions
     directory: /.github/workflows
     schedule:
-      interval: monthly
+      interval: weekly
     groups:
       workflows:
+        patterns:
+          - '*'
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      pre-commit:
         patterns:
           - '*'

@@ -35,76 +35,86 @@ to identify potential causes:
 * Is the channel metadata sane?
 * Are channels interacting in bad ways?
 
-
 Improving conda performance
 ===========================
 
-To address these challenges, you can move packages to archive
-channels and follow the methods below to present conda with a smaller, simpler view than
-all available packages.
+This section goes over some of the best practices we recommend for addressing performance challenges.
 
-To speed up conda, we offer the following recommendations.
+1. Make your package specifications more narrow.
 
-Are you:
-    * Using conda-forge?
-        * Use conda-metachannel to reduce conda’s problem size.
-    * Using bioconda?
-        * Use conda-metachannel to reduce conda’s problem size.
-        * `Read more about docker images <https://github.com/bioconda/bioconda-recipes/issues/13774>`_.
-    * Specifying very broad package specs?
-        * Be more specific. Letting conda filter more candidates makes it faster.
-          For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
-        * If you are using R, instead of specifying only ``r-essentials``, specify ``r-base=3.5 r-essentials``.
-    * Feeling frustrated with “verifying transaction” and also feeling lucky?
-        * Run ``conda config --set safety_checks disabled``.
-    * Getting strange mixtures of defaults and conda-forge?
-        * Run ``conda config --set channel_priority strict``.
-        * This also makes things go faster by eliminating possible mixed solutions.
-    * Observing that an Anaconda or Miniconda installation is getting slower over time?
-        * Create a fresh environment. As environments grow, they become harder
-          and harder to solve. Working with small, dedicated environments can
-          be much faster.
+   For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
 
-Read more about `how we made conda faster <https://www.anaconda.com/how-we-made-conda-faster-4-7/>`_.
+2. Make sure you have libmamba set as your dependency solver. The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
+
+   To check which solver you have, run the following command:
+
+   .. code-block:: shell
+
+      conda config --show solver
+
+   If libmamba is set as your solver, you will see the following:
+
+   .. code-block:: shell
+
+      solver: libmamba
+
+   If you don't have libmamba set as your solver, follow these steps to enable it:
+
+   #. Make sure ``conda-libmamba-solver`` is installed in your base environment:
+
+      .. code-block:: shell
+
+         conda install --name base conda-libmamba-solver
+
+   #. Set libmamba as your default solver:
+
+      .. code-block:: shell
+
+         conda config --set solver libmamba
+
+   .. tip::
+
+       You can also use the libmamba solver temporarily when installing a package:
+
+       .. code-block:: shell
+
+          conda install --solver=libmamba package_name
 
 .. _concepts-performance-channel-priority:
 
-Set strict channel priority
----------------------------
+3. Use strict channel priority.
 
-Setting strict channel priority makes it so that if a package exists on
-a channel, conda will ignore all packages with the same name on lower
-priority channels.
+   .. code-block:: shell
 
-.. figure:: ../../img/strict-disabled.png
-    :width: 50%
-.. figure:: ../../img/strict-enabled.png
-    :width: 50%
+       conda config --set channel_priority strict
 
-This can dramatically reduce package search space and reduces the use of
-improperly constrained packages.
+   Strict channel priority makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained packages.
 
-One thing to consider is that setting strict channel priority may make
-environments unsatisfiable. Learn more about :ref:`strict`.
+   .. warning::
 
+      Setting strict channel priority might make environments unsatisfiable. Learn more about :ref:`strict`.
 
-Reduce the index
-----------------
-One option for speeding up conda is to reduce the index. The index is
-reduced by conda based upon the user's input specs. It's likely that
-your repodata contains package data that is not used in the solving stage.
-Filtering out these unnecessary packages before solving can save time.
+   .. figure:: ../../img/strict-disabled.png
+       :width: 50%
+   .. figure:: ../../img/strict-enabled.png
+       :width: 50%
 
-Making your input specifications more specific improves
-the effectiveness of the index reduction and, thus, speeds up the
-process. Listing a version and build string for each of your specs can
-dramatically reduce the number of packages that are considered when solving
-so that the SAT doesn’t have as much work to do.
+4. Enable sharded repodata. This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
 
-Reducing the index:
-  * Reduces unnecessary input into generating solver clauses.
-  * Reduces solve complexity.
-  * Prefers newer packages that apply constraints.
+   .. note::
 
-Read more on `Understanding and Improving Conda's Performance
-<https://www.anaconda.com/understanding-and-improving-condas-performance/>`_.
+      This option is currently available for conda-forge and prefix.dev for all channels as of March 2026.
+
+   Follow these steps to opt-in to sharded repodata:
+
+   #. Update conda-libmamba-solver, if needed:
+
+      .. code-block:: shell
+
+         conda install --name base "conda-libmamba-solver>=25.11.0"
+
+   #. Set the ``use_sharded_repodata`` plugin to ``true``:
+
+      .. code-block:: shell
+
+         conda config --set plugins.use_sharded_repodata true

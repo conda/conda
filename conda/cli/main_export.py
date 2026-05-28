@@ -5,6 +5,7 @@
 Dumps specified environment package specifications to the screen.
 """
 
+import warnings
 from argparse import (
     ArgumentParser,
     Namespace,
@@ -23,27 +24,63 @@ from ..plugins.environment_exporters.environment_yml import (
 )
 
 
+class CondaExportWarning(Warning):
+    pass
+
+
+def epilog() -> str:
+    """Build ``conda export`` epilog (examples and plugin-driven format list)."""
+    from .formats import get_available_environment_formats, get_multiplatform_lockfile
+
+    # get environment exporters grouped by format
+    formats = context.plugin_manager.get_environment_exporters_grouped()
+
+    # find the first multiplatform lockfile
+    multiplatform_lockfile = get_multiplatform_lockfile(formats)
+
+    # compose examples/epilog
+    examples = [
+        "Examples:",
+        "  Export an environment spec:",
+        "    conda export --from-history > environment.yml",
+        "",
+        "  Export a lockfile for the same platform:",
+        "    conda export --file explicit.txt",
+    ]
+    # include example for multiplatform lockfile if any are registered
+    if multiplatform_lockfile:
+        examples.append("")
+        examples.append("  Export a lockfile for multiple platforms:")
+        examples.append(
+            f"    conda export --file {multiplatform_lockfile} "
+            "--platform linux-64 --platform osx-arm64"
+        )
+    # include available formats if any are registered
+    if formats:
+        examples.append("")
+        examples.append("Available output formats:")
+        examples.append(get_available_environment_formats(formats, indent=2))
+    return "\n".join(examples)
+
+
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
 
-    summary = "Export a given environment"
-    description = summary
-    epilog = dals(
+    summary = "Export a conda environment to a file."
+    description = dals(
         """
-        Examples::
-
-            conda export
-            conda export --file FILE_NAME
-            conda export --format yaml
-            conda export --file environment.yaml
+        Export a conda environment to a file. The set of supported formats
+        depends on the plugins installed in your environment. Both portable
+        environment specs and reproducible lockfiles may be available. See
+        the epilog for the list of formats available here.
         """
-    )
+    ).rstrip()
 
     p = sub_parsers.add_parser(
         "export",
         help=summary,
         description=description,
-        epilog=epilog,
+        epilog=epilog(),
         **kwargs,
     )
 
@@ -72,7 +109,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--subdir",
         action="append",
         dest="export_platforms",
-        help="Target platform(s)/subdir(s) for export (e.g., linux-64, osx-64, win-64)",
+        help=(
+            "Target platform(s)/subdir(s) for export (e.g. linux-64, osx-arm64, "
+            "win-64). For formats that support multi-platform output, repeat "
+            "the flag to produce a single file covering every platform."
+        ),
     )
     p.add_argument(
         "--override-platforms",
@@ -87,9 +128,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         default=None,
         required=False,
         help=(
-            "File name or path for the exported environment. "
-            "Note: This will silently overwrite any existing file "
-            "of the same name in the current directory."
+            "File name or path for the exported environment. Standard filenames "
+            "registered by the installed format plugins are auto-detected. "
+            "Custom filenames require --format. Existing files are overwritten "
+            "silently."
         ),
     )
 
@@ -101,9 +143,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         choices_func=lambda: sorted(
             context.plugin_manager.get_exporter_format_mapping()
         ),
+        metavar="FORMAT",
         help=(
-            "Format for the exported environment. "
-            "If not specified, format will be determined by file extension or default to YAML."
+            "Override the output format. When omitted, the format is detected "
+            "from --file. See the epilog for the formats available in your "
+            "installation."
         ),
     )
 
@@ -139,6 +183,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import env_name
+    from ..common.io import dashlist
+    from ..core.prefix_data import PrefixData
     from ..exceptions import CondaValueError
     from .common import stdout_json
 
@@ -201,6 +247,20 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         channels=context.channels,
     )
 
+    pd = PrefixData(prefix, interoperability=True)
+    pypi_packages = pd.get_python_packages()
+    warning: str | None = None
+    if pypi_packages:
+        warning = (
+            "The exported environment contains 3rd party Python packages.\n\n"
+            f"Your environment contains {len(pypi_packages)} package{'s' if len(pypi_packages) > 1 else ''} "
+            "installed via pip. Conda cannot reliably lock these packages for reproducible "
+            "environments.\n\n"
+            "Detected packages:"
+            f"{dashlist([package.to_simple_match_spec() for package in pypi_packages])}"
+            "\n\nLearn more: https://docs.conda.io/projects/conda/en/stable/user-guide/configuration/pip-interoperability.html"
+        )
+
     # Export using the appropriate method
     envs = [env.extrapolate(platform) for platform in context.export_platforms]
     if environment_exporter.multiplatform_export:
@@ -220,8 +280,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         with open(args.file, "w") as fp:
             fp.write(exported_content)
         if args.json:
-            stdout_json({"success": True, "file": args.file, "format": target_format})
+            stdout_json(
+                {
+                    "success": True,
+                    "file": args.file,
+                    "format": target_format,
+                    "warnings": [warning] if warning else [],
+                }
+            )
+        elif warning and not context.quiet:
+            warnings.warn(warning, CondaExportWarning)
     else:
+        if warning and not context.quiet:
+            warnings.warn(warning, CondaExportWarning)
         print(exported_content, end="")
 
     return 0

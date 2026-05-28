@@ -81,7 +81,7 @@ def execute(args: Namespace) -> int:
     if check_names:
         unknown = set(check_names) - set(checks.keys())
         if unknown:
-            log.warning(f"Unknown health check(s): {', '.join(sorted(unknown))}")
+            log.warning("Unknown health check(s): %s", ", ".join(sorted(unknown)))
         checks = {n: c for n, c in checks.items() if n in check_names}
 
     # Run health checks
@@ -90,7 +90,7 @@ def execute(args: Namespace) -> int:
         try:
             check.action(prefix, context.verbose)
         except Exception as err:
-            log.warning(f"Error running health check: {name} ({err})")
+            log.warning("Error running health check: %s (%s)", name, err)
 
     # If --fix was provided, run fixes
     if getattr(args, "fix", False):
@@ -117,7 +117,7 @@ def execute(args: Namespace) -> int:
                 # User cancelled the fix
                 pass
             except Exception as err:
-                log.warning(f"Error running fix: {name} ({err})")
+                log.warning("Error running fix: %s (%s)", name, err)
                 exit_code = 1
         return exit_code
 

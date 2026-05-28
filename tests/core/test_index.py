@@ -17,7 +17,6 @@ from conda.core import index
 from conda.core.index import (
     Index,
     calculate_channel_urls,
-    check_allowlist,
     dist_str_in_index,
 )
 from conda.core.prefix_data import PrefixData
@@ -449,16 +448,6 @@ class TestIndex:
             # each OS has different virtual packages
             + len(context.plugin_manager.get_virtual_package_records())
         )
-
-
-def test_check_allowlist_deprecation_warning():
-    """
-    Ensure a deprecation warning is raised for ``check_allowlist``.
-
-    Also used to ensure coverage on this code path
-    """
-    with pytest.deprecated_call():
-        check_allowlist(("defaults",))
 
 
 @pytest.mark.parametrize(

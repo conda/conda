@@ -9,10 +9,8 @@ from __future__ import annotations
 
 import os
 from functools import partial
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-from conda.deprecations import deprecated
 from conda.exceptions import CondaEnvException
 
 if TYPE_CHECKING:
@@ -66,49 +64,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.set_defaults(func="conda.cli.main_rename.execute")
 
     return p
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixData.validate_path()")
-def check_protected_dirs(prefix: str | Path, json: bool = False) -> None:
-    """Ensure that the new prefix does not contain protected directories."""
-    from conda.core.prefix_data import PrefixData
-
-    if PrefixData(Path(prefix).parent).is_environment():
-        raise CondaEnvException(
-            f"The specified prefix '{prefix}' "
-            "appears to be a top level directory within an existing conda environment "
-            "(i.e., {history_file} exists). Creating an environment in this location "
-            "has the potential to irreversibly corrupt your conda installation and/or "
-            "other conda environments, please choose a different location for your "
-            "new conda environment. Aborting.",
-            json,
-        )
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use PrefixData.validate_path(), PrefixData.validate_name()",
-)
-def validate_src() -> str:
-    """
-    Ensure that we are receiving at least one valid value for the environment
-    to be renamed and that the "base" environment is not being renamed
-    """
-    from ..base.context import context
-    from .install import validate_prefix_exists
-
-    prefix = Path(context.target_prefix)
-    validate_prefix_exists(prefix)
-
-    if prefix.samefile(context.root_prefix):
-        raise CondaEnvException("The 'base' environment cannot be renamed")
-    if context.active_prefix and prefix.samefile(context.active_prefix):
-        raise CondaEnvException("Cannot rename the active environment")
-    else:
-        check_protected_dirs(prefix)
-
-    return str(prefix)
 
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
