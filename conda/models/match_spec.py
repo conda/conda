@@ -1611,6 +1611,8 @@ class ChannelMatch(GlobStrMatch):
             return self._raw_value.name in (_other_val.name, _other_val.canonical_name)
 
     def __str__(self):
+        if isinstance(self._raw_value, Channel):
+            return self._raw_value.canonical_name
         return f"{self._raw_value}"
 
     def __repr__(self):
