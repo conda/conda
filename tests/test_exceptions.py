@@ -4,6 +4,7 @@ import getpass
 import json
 import sys
 from contextlib import nullcontext
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -521,7 +522,7 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     class MockResponse:
         def __init__(self, json_data):
             self.json_data = json_data
-            self.headers = {}
+            self.headers = {"content-type": "application/problem+json"}
 
         def json(self):
             return self.json_data
@@ -530,7 +531,9 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
     response = MockResponse({"detail": detail})
 
     elapsed_time = 1.26
-    exc = CondaHTTPError(msg, url, status_code, reason, elapsed_time, response)
+    exc = CondaHTTPError(
+        msg, url, status_code, reason, timedelta(seconds=elapsed_time), response
+    )
 
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
@@ -554,13 +557,52 @@ def test_http_error_rfc_9457(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -
         (
             "",
             "CondaHTTPError: HTTP 403 CONNECTION FAILED for url <https://download.url/path/to/something.tar.gz>",
-            "Elapsed: 1.26",
+            "Elapsed: 00:01.260000",
             "",
             detail,
             "",
             "",
         )
     )
+
+
+def test_http_error_rfc_9457_non_string_detail(
+    monkeypatch: MonkeyPatch, capsys: CaptureFixture
+) -> None:
+    """
+    CondaHTTPError should ignore 'detail' when the response is not an RFC 9457
+    application/problem+json response. Frameworks such as FastAPI use 'detail'
+    for non-string values (say, a list of validation error objects), so we must
+    not read it unless the content type is indicative of an RFC 9457 response.
+    """
+    msg = ""
+    url = "https://example.com/channel/linux-64/repodata.json"
+    status_code = "422"
+    reason = "Unprocessable Content"
+    # FastAPI returns 'detail' as a list of validation error objects, not a string
+    detail = [{"loc": ["path", "filename"], "msg": "value is not a valid enum member"}]
+
+    class MockResponse:
+        def __init__(self, json_data):
+            self.json_data = json_data
+            self.headers = {"content-type": "application/json"}
+
+        def json(self):
+            return self.json_data
+
+    response = MockResponse({"detail": detail})
+    exc = CondaHTTPError(
+        msg, url, status_code, reason, timedelta(seconds=0.1), response
+    )
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    conda_exception_handler(_raise_helper, exc)
+    stdout, stderr = capsys.readouterr()
+
+    assert not stdout
+    assert str(detail) not in stderr
 
 
 @pytest.mark.parametrize(
