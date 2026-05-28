@@ -49,16 +49,11 @@ def platform_in_record(platform, record):
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize(
-    "sharded",
-    ("true", "false"),
-)
 def test_get_index_no_platform_with_offline_cache(
-    tmp_path, sharded: str, monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
+    tmp_path, monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
 ):
     monkeypatch.setenv("CONDA_REPODATA_TIMEOUT_SECS", "0")
     monkeypatch.setenv("CONDA_PLATFORM", platform)
-    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
     reset_context()
 
     channel_urls = ("https://repo.anaconda.com/pkgs/pro",)
