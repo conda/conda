@@ -405,6 +405,16 @@ def test_channel_matching():
     assert str(MatchSpec("defaults::*")) == "defaults::*"
 
 
+def test_channel_matching_preserves_full_url_for_local_channel(tmp_path):
+    distr = (tmp_path / "distr").as_uri()
+    spec = MatchSpec(f"{distr}::test-package")
+    assert str(spec) == f"{distr}::test-package"
+    assert spec.get("channel").canonical_name == distr
+
+    # channel_alias channels still stringify to their short name.
+    assert str(MatchSpec("conda-forge::python")) == "conda-forge::python"
+
+
 def test_matchspec_errors():
     with pytest.raises(InvalidSpec):
         MatchSpec("blas [optional")
