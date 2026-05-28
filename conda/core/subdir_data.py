@@ -756,14 +756,21 @@ def _search_package_via_shards(
     records = []
     for channel, shard in subset_dict.items():
         for section_tuple, record in shard.iter_records_v3():
-            # The section_tuple contains (key, section). For tar.bz2 packages,
-            # the section is called "packages"
+            # If conda if only using tar_bz2 packages, skip any sections that
+            # are not called "packages"
             if context.use_only_tar_bz2 and section_tuple[1] != "packages":
                 continue
-            rec = PackageRecord(channel=channel, **record)
+
+            # Inject the fn into package records if available. For repodata v1,
+            # the filename is associated with the key of the section tuple. For
+            # repodata v3 it is not.
+            if section_tuple[1] in ["packages", "packages.conda"]:
+                rec = PackageRecord(channel=channel, fn=section_tuple[0], **record)
+            else:
+                rec = PackageRecord(channel=channel, **record)
             target_spec = rec.to_match_spec()
             if spec.match(target_spec):
-                records.append(PackageRecord(channel=channel, **record))
+                records.append(rec)
     return records
 
 

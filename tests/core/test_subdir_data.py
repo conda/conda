@@ -230,6 +230,7 @@ def test_query_all_only_tar_bz2(
     reset_context()
 
     results = query_all(MatchSpec("zlib"), [channel], subdirs=[platform])
+    assert len(results) >= 1
     for result in results:
         assert result.fn.endswith(".tar.bz2")
 
@@ -238,6 +239,7 @@ def test_query_all_only_tar_bz2(
     reset_context()
 
     results = query_all(MatchSpec("zlib"), [channel], subdirs=[platform])
+    assert len(results) >= 1
     assert any(result.fn.endswith(".conda") for result in results)
 
 
