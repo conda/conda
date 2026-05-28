@@ -218,10 +218,15 @@ def test_use_only_tar_bz2(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
 
 
 @pytest.mark.parametrize(
-        "sharded",
-        ("true", "false",)
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
 )
-def test_query_all_only_tar_bz2(sharded: str, monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
+def test_query_all_only_tar_bz2(
+    sharded: str, monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
+):
     channel = Channel(join(CHANNEL_DIR_V1, platform))
     monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
     SubdirData.clear_cached_local_channel_data()
