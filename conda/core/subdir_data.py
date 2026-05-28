@@ -755,7 +755,11 @@ def _search_package_via_shards(
         return _search_package(spec, channel_urls, subdirs)
     records = []
     for channel, shard in subset_dict.items():
-        for _, record in shard.iter_records_v3():
+        for section_tuple, record in shard.iter_records_v3():
+            # The section_tuple contains (key, section). For tar.bz2 packages,
+            # the section is called "packages"
+            if context.use_only_tar_bz2 and section_tuple[1] != "packages":
+                continue
             rec = PackageRecord(channel=channel, **record)
             target_spec = rec.to_match_spec()
             if spec.match(target_spec):
