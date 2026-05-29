@@ -20,29 +20,18 @@ PREVIEW_PLUGIN_NAME = __name__
 @hookimpl
 def conda_subcommands():
     from .._preview.env_setup import PREVIEW_LABEL as ENV_SETUP_PREVIEW_LABEL
-    from .._preview.env_setup.cli import main_create, main_install
 
-    yield from _preview_subcommands(
-        ENV_SETUP_PREVIEW_LABEL,
-        main_create.conda_subcommands,
-        main_install.conda_subcommands,
-    )
+    if context.preview_enabled(ENV_SETUP_PREVIEW_LABEL):
+        from .._preview.env_setup.cli import main_create, main_install
 
-
-def _preview_subcommands(
-    label: str,
-    *subcommand_hooks: Callable[[], Iterable[CondaSubcommand]],
-) -> Iterable[CondaSubcommand]:
-    if not context.preview_enabled(label):
-        return
-
-    for subcommand_hook in subcommand_hooks:
-        yield from subcommand_hook()
+        yield from main_create.conda_subcommands()
+        yield from main_install.conda_subcommands()
 
 
 def is_preview_subcommand(plugin_subcommand: CondaSubcommand) -> bool:
-    """
-    Determine whether this plugin subcommand is a bundled preview command.
+    """Return whether *plugin_subcommand* was yielded by ``conda.plugins.previews``.
+
+    Checks ``plugin_subcommand.impl.plugin_name`` (hook provenance set by the plugin manager).
     """
     plugin_name = getattr(getattr(plugin_subcommand, "impl", None), "plugin_name", "")
 
