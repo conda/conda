@@ -44,6 +44,7 @@ from . import (
     package_extractors,
     post_solves,
     prefix_data_loaders,
+    previews,
     reporter_backends,
     solvers,
     subcommands,
@@ -1193,6 +1194,7 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager.add_hookspecs(CondaSpecs)
     plugin_manager.load_plugins(
         solvers,
+        previews,
         *virtual_packages.plugins,
         *subcommands.plugins,
         *health_checks.plugins,

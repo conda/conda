@@ -146,14 +146,11 @@ def test_version_fast_path(flag: str, capsys: CaptureFixture[str]) -> None:
 
 @pytest.mark.parametrize("flag", ["-V", "--version"])
 def test_version_fast_path_skips_plugins(
-    flag: str, capsys: CaptureFixture[str]
+    flag: str,
+    clear_plugin_manager_cache: None,
 ) -> None:
     """The fast path must not trigger plugin loading."""
     from conda.plugins.manager import get_plugin_manager
 
-    get_plugin_manager.cache_clear()
-    try:
-        main(flag)
-        assert get_plugin_manager.cache_info().currsize == 0
-    finally:
-        get_plugin_manager.cache_clear()
+    main(flag)
+    assert get_plugin_manager.cache_info().currsize == 0

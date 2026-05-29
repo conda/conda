@@ -134,5 +134,6 @@ API reference :octicon:`code;1em;sd-text-primary`
    deprecations
    releasing
    plugins/index
+   previews
    specs/index
    typing
