@@ -36,13 +36,8 @@ def test_create_preview_enabled(
     """conda create with CONDA_PREVIEW=env-setup is routed to the stub."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
 
-    out, err, exc = conda_cli(
-        "create", "--name", "test-env", "python", raises=OperationNotAllowed
-    )
-
-    assert exc.value is not None
-    assert "env-setup" in str(exc.value)
-    assert "conda create" in str(exc.value)
+    with pytest.raises(OperationNotAllowed, match=r"'env-setup'.+'conda create'"):
+        conda_cli("create", "--name", "test-env", "python")
 
 
 def test_create_preview_enabled_with_no_plugins(
