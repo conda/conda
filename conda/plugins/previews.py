@@ -10,8 +10,6 @@ from ..base.context import context
 from . import hookimpl
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
-
     from .types import CondaSubcommand
 
 PREVIEW_PLUGIN_NAME = __name__
