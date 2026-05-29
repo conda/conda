@@ -17,6 +17,8 @@ import pytest
 from conda.exceptions import OperationNotAllowed
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -30,7 +32,7 @@ def test_install_preview_disabled(conda_cli: CondaCLIFixture):
 
 def test_install_preview_enabled(
     conda_cli: CondaCLIFixture,
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ):
     """conda install with CONDA_PREVIEW=env-setup is routed to the stub."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
@@ -44,7 +46,7 @@ def test_install_preview_enabled(
 
 def test_install_preview_uses_builtin_parser_arguments(
     conda_cli: CondaCLIFixture,
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ):
     """The preview stub accepts options from the built-in install parser."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")

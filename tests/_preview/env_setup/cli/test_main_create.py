@@ -19,6 +19,8 @@ from conda.exceptions import OperationNotAllowed
 from conda.plugins.manager import get_plugin_manager
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -32,7 +34,7 @@ def test_create_preview_disabled(conda_cli: CondaCLIFixture):
 
 def test_create_preview_enabled(
     conda_cli: CondaCLIFixture,
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ):
     """conda create with CONDA_PREVIEW=env-setup is routed to the stub."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
@@ -43,7 +45,7 @@ def test_create_preview_enabled(
 
 def test_create_preview_enabled_with_no_plugins(
     conda_cli: CondaCLIFixture,
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ):
     """Bundled preview subcommands remain available with --no-plugins."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
@@ -68,7 +70,7 @@ def test_create_preview_enabled_with_no_plugins(
 
 def test_create_preview_uses_builtin_parser_arguments(
     conda_cli: CondaCLIFixture,
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ):
     """The preview stub accepts options from the built-in create parser."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
@@ -84,7 +86,7 @@ def test_create_preview_uses_builtin_parser_arguments(
 
 def test_create_preview_can_extend_builtin_parser(
     conda_cli: CondaCLIFixture,
-    monkeypatch,
+    monkeypatch: MonkeyPatch,
 ):
     """A preview override can add options to the built-in command parser."""
     from conda._preview.env_setup.cli import main_create
@@ -120,7 +122,10 @@ def test_create_preview_can_extend_builtin_parser(
     assert "preview-only option parsed" in str(exc.value)
 
 
-def test_unknown_preview_label_no_crash(conda_cli: CondaCLIFixture, monkeypatch):
+def test_unknown_preview_label_no_crash(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+):
     """An unrecognized preview label produces no crash; the normal path is used."""
     monkeypatch.setenv("CONDA_PREVIEW", "typo-label")
 

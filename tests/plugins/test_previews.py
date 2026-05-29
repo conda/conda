@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import conda.plugins.previews as previews
@@ -16,6 +17,11 @@ from conda.plugins.previews import (
 )
 from conda.plugins.types import CondaSubcommand
 
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+    from conda.plugins.manager import CondaPluginManager
+
 
 def test_preview_plugin_name_is_module_name():
     # The constant must equal the fully-qualified module name so that
@@ -23,7 +29,7 @@ def test_preview_plugin_name_is_module_name():
     assert PREVIEW_PLUGIN_NAME == "conda.plugins.previews"
 
 
-def test_conda_subcommands_env_setup_disabled_yields_nothing(monkeypatch):
+def test_conda_subcommands_env_setup_disabled_yields_nothing(monkeypatch: MonkeyPatch):
     """conda_subcommands yields nothing when the env-setup preview is off."""
     monkeypatch.setenv("CONDA_PREVIEW", "")
     reset_context()
@@ -33,7 +39,9 @@ def test_conda_subcommands_env_setup_disabled_yields_nothing(monkeypatch):
     assert result == []
 
 
-def test_conda_subcommands_env_setup_enabled_yields_create_and_install(monkeypatch):
+def test_conda_subcommands_env_setup_enabled_yields_create_and_install(
+    monkeypatch: MonkeyPatch,
+):
     """conda_subcommands yields 'create' and 'install' when env-setup is enabled."""
     monkeypatch.setenv("CONDA_PREVIEW", ENV_SETUP_PREVIEW_LABEL)
     reset_context()
@@ -44,7 +52,7 @@ def test_conda_subcommands_env_setup_enabled_yields_create_and_install(monkeypat
     assert names == ["create", "install"]
 
 
-def test_conda_subcommands_env_setup_subcommand_names(monkeypatch):
+def test_conda_subcommands_env_setup_subcommand_names(monkeypatch: MonkeyPatch):
     """Each yielded CondaSubcommand has the expected name attribute."""
     monkeypatch.setenv("CONDA_PREVIEW", ENV_SETUP_PREVIEW_LABEL)
     reset_context()
@@ -55,7 +63,7 @@ def test_conda_subcommands_env_setup_subcommand_names(monkeypatch):
     assert "install" in subcommands
 
 
-def test_conda_subcommands_unrelated_preview_yields_nothing(monkeypatch):
+def test_conda_subcommands_unrelated_preview_yields_nothing(monkeypatch: MonkeyPatch):
     """Enabling an unrelated preview label does not activate env-setup subcommands."""
     monkeypatch.setenv("CONDA_PREVIEW", "some-other-preview")
     reset_context()
@@ -117,8 +125,8 @@ def test_is_preview_subcommand_false_when_plugin_name_empty():
 
 
 def test_is_preview_subcommand_with_plugin_manager(
-    plugin_manager,
-    monkeypatch,
+    plugin_manager: CondaPluginManager,
+    monkeypatch: MonkeyPatch,
 ):
     """
     Subcommands registered via the previews module are identified as preview
