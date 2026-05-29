@@ -3,7 +3,6 @@
 """Entry point for all conda subcommands."""
 
 import sys
-from importlib import import_module
 
 
 def init_loggers():

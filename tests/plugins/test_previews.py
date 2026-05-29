@@ -6,15 +6,14 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import conda.plugins.previews as previews
 from conda._preview.env_setup import PREVIEW_LABEL as ENV_SETUP_PREVIEW_LABEL
 from conda.base.context import reset_context
 from conda.plugins.previews import (
     PREVIEW_PLUGIN_NAME,
-    _preview_subcommands,
     conda_subcommands,
     is_preview_subcommand,
 )
-import conda.plugins.previews as previews
 from conda.plugins.types import CondaSubcommand
 
 
@@ -22,61 +21,6 @@ def test_preview_plugin_name_is_module_name():
     # The constant must equal the fully-qualified module name so that
     # is_preview_subcommand() can reliably identify bundled preview commands.
     assert PREVIEW_PLUGIN_NAME == "conda.plugins.previews"
-
-
-def test_preview_subcommands_disabled_yields_nothing(monkeypatch):
-    """When the preview label is not enabled, no subcommands are produced."""
-    monkeypatch.setenv("CONDA_PREVIEW", "")
-    reset_context()
-
-    dummy_hook = MagicMock(return_value=iter([MagicMock()]))
-
-    result = list(_preview_subcommands("some-preview-label", dummy_hook))
-
-    assert result == []
-    dummy_hook.assert_not_called()
-
-
-def test_preview_subcommands_enabled_yields_from_hooks(monkeypatch):
-    """When the preview label is enabled, all hook results are yielded."""
-    label = "my-preview"
-    monkeypatch.setenv("CONDA_PREVIEW", label)
-    reset_context()
-
-    sc1 = MagicMock(spec=CondaSubcommand)
-    sc2 = MagicMock(spec=CondaSubcommand)
-    hook_a = MagicMock(return_value=iter([sc1]))
-    hook_b = MagicMock(return_value=iter([sc2]))
-
-    result = list(_preview_subcommands(label, hook_a, hook_b))
-
-    assert result == [sc1, sc2]
-    hook_a.assert_called_once()
-    hook_b.assert_called_once()
-
-
-def test_preview_subcommands_enabled_no_hooks_yields_nothing(monkeypatch):
-    """Enabling a preview with no hook callables still yields nothing."""
-    label = "my-preview"
-    monkeypatch.setenv("CONDA_PREVIEW", label)
-    reset_context()
-
-    result = list(_preview_subcommands(label))
-
-    assert result == []
-
-
-def test_preview_subcommands_wrong_label_yields_nothing(monkeypatch):
-    """Having a different preview enabled does not activate an unrelated label."""
-    monkeypatch.setenv("CONDA_PREVIEW", "other-preview")
-    reset_context()
-
-    dummy_hook = MagicMock(return_value=iter([MagicMock()]))
-
-    result = list(_preview_subcommands("my-preview", dummy_hook))
-
-    assert result == []
-    dummy_hook.assert_not_called()
 
 
 def test_conda_subcommands_env_setup_disabled_yields_nothing(monkeypatch):
@@ -109,6 +53,16 @@ def test_conda_subcommands_env_setup_subcommand_names(monkeypatch):
 
     assert "create" in subcommands
     assert "install" in subcommands
+
+
+def test_conda_subcommands_unrelated_preview_yields_nothing(monkeypatch):
+    """Enabling an unrelated preview label does not activate env-setup subcommands."""
+    monkeypatch.setenv("CONDA_PREVIEW", "some-other-preview")
+    reset_context()
+
+    result = list(conda_subcommands())
+
+    assert result == []
 
 
 def test_is_preview_subcommand_true_when_plugin_name_matches():
@@ -178,7 +132,9 @@ def test_is_preview_subcommand_with_plugin_manager(
 
     subcommands = plugin_manager.get_subcommands()
 
-    preview_subcommands = [sc for sc in subcommands.values() if is_preview_subcommand(sc)]
+    preview_subcommands = [
+        sc for sc in subcommands.values() if is_preview_subcommand(sc)
+    ]
     assert len(preview_subcommands) == 2  # create + install
 
     non_preview_subcommands = [
