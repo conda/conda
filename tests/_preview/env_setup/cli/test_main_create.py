@@ -45,16 +45,22 @@ def test_create_preview_enabled_with_no_plugins(
     monkeypatch,
 ):
     """Bundled preview subcommands remain available with --no-plugins."""
+    from conda.plugins.manager import get_plugin_manager
+
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
 
-    out, err, exc = conda_cli(
-        "--no-plugins",
-        "create",
-        "--name",
-        "test-env",
-        "python",
-        raises=OperationNotAllowed,
-    )
+    get_plugin_manager.cache_clear()
+    try:
+        out, err, exc = conda_cli(
+            "--no-plugins",
+            "create",
+            "--name",
+            "test-env",
+            "python",
+            raises=OperationNotAllowed,
+        )
+    finally:
+        get_plugin_manager.cache_clear()
 
     assert exc.value is not None
     assert "env-setup" in str(exc.value)
