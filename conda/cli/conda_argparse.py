@@ -337,7 +337,7 @@ def configure_parser_plugins(sub_parsers) -> None:
             except argparse.ArgumentError:
                 pass
 
-        # case 2: preview subcommand uses the built-in parser and are non-greedy
+        # case 2: preview subcommand uses the built-in parser and is non-greedy
         elif preview:
             pass
 

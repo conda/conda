@@ -26,7 +26,7 @@ def test_install_preview_disabled(conda_cli: CondaCLIFixture):
     """conda install without CONDA_PREVIEW set routes to the standard implementation."""
     # --help exits cleanly via SystemExit; if routing had fired it would raise
     # OperationNotAllowed instead, so a clean SystemExit proves no redirection occurred.
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit, match="0"):
         conda_cli("install", "--help")
 
 

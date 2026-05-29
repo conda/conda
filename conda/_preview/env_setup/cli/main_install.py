@@ -12,7 +12,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ....exceptions import OperationNotAllowed
-from ....plugins import hookimpl
 from ....plugins.types import CondaSubcommand
 
 if TYPE_CHECKING:
@@ -26,7 +25,7 @@ def execute(args: Namespace) -> int:
     )
 
 
-@hookimpl
+# not a real hookimpl since it's dynamically imported in conda.plugins.previews
 def conda_subcommands() -> Iterable[CondaSubcommand]:
     yield CondaSubcommand(
         name="install",

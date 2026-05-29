@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Tests for the env-setup preview register() entry point."""
+"""Tests for env-setup preview module constants."""
 
 from __future__ import annotations
 

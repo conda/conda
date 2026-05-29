@@ -46,21 +46,8 @@ def test_conda_subcommands_env_setup_enabled_yields_create_and_install(
     monkeypatch.setenv("CONDA_PREVIEW", ENV_SETUP_PREVIEW_LABEL)
     reset_context()
 
-    result = list(conda_subcommands())
-
-    names = [sc.name for sc in result]
-    assert names == ["create", "install"]
-
-
-def test_conda_subcommands_env_setup_subcommand_names(monkeypatch: MonkeyPatch):
-    """Each yielded CondaSubcommand has the expected name attribute."""
-    monkeypatch.setenv("CONDA_PREVIEW", ENV_SETUP_PREVIEW_LABEL)
-    reset_context()
-
     subcommands = {sc.name: sc for sc in conda_subcommands()}
-
-    assert "create" in subcommands
-    assert "install" in subcommands
+    assert subcommands == {"create", "install"}
 
 
 def test_conda_subcommands_unrelated_preview_yields_nothing(monkeypatch: MonkeyPatch):
@@ -140,13 +127,7 @@ def test_is_preview_subcommand_with_plugin_manager(
 
     subcommands = plugin_manager.get_subcommands()
 
-    preview_subcommands = [
-        sc for sc in subcommands.values() if is_preview_subcommand(sc)
-    ]
-    assert len(preview_subcommands) == 2  # create + install
-
-    non_preview_subcommands = [
-        sc for sc in subcommands.values() if not is_preview_subcommand(sc)
-    ]
-    for sc in non_preview_subcommands:
-        assert not is_preview_subcommand(sc)
+    preview_names = {
+        sc.name for sc in subcommands.values() if is_preview_subcommand(sc)
+    }
+    assert preview_names == {"create", "install"}
