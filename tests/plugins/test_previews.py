@@ -46,7 +46,7 @@ def test_conda_subcommands_env_setup_enabled_yields_create_and_install(
     monkeypatch.setenv("CONDA_PREVIEW", ENV_SETUP_PREVIEW_LABEL)
     reset_context()
 
-    subcommands = {sc.name: sc for sc in conda_subcommands()}
+    subcommands = {sc.name for sc in conda_subcommands()}
     assert subcommands == {"create", "install"}
 
 
