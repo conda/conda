@@ -777,7 +777,29 @@ class UnlinkLinkTransaction:
             # this should never be able to be skipped, even with --force
             yield RemoveError(
                 "This operation will remove conda without replacing it with\n"
-                "another version of conda."
+                "another version of conda.",
+                guidance={
+                    "summary": (
+                        "Conda cannot remove itself from this environment without "
+                        "installing another conda build to replace it."
+                    ),
+                    "cause": (
+                        "The planned transaction would uninstall the conda package "
+                        "without linking a replacement."
+                    ),
+                    "hints": [
+                        {
+                            "text": "Install a specific conda build first, for example: "
+                            "conda install conda=<version>",
+                            "hint_code": "install_conda_build",
+                        },
+                        {
+                            "text": "Use a separate environment for other packages "
+                            "instead of changing the base environment where conda runs.",
+                            "hint_code": "use_non_base_env",
+                        },
+                    ],
+                },
             )
 
         if conda_final_setup is None:
@@ -813,7 +835,30 @@ class UnlinkLinkTransaction:
                 ):
                     yield RemoveError(
                         f"'{dep_name}' is a dependency of conda and cannot be removed from\n"
-                        "conda's operating environment."
+                        "conda's operating environment.",
+                        guidance={
+                            "summary": (
+                                f"'{dep_name}' is required by conda and cannot be "
+                                "removed from this environment."
+                            ),
+                            "cause": (
+                                "The solver planned a change that would remove this "
+                                "package from the environment that runs conda."
+                            ),
+                            "hints": [
+                                {
+                                    "text": "Create a new environment for your work "
+                                    "(for example: conda create -n myenv python=...) "
+                                    "instead of installing everything in base.",
+                                    "hint_code": "use_non_base_env",
+                                },
+                                {
+                                    "text": "If you mix pip and conda, reinstall "
+                                    "affected packages with conda so conda can track them.",
+                                    "hint_code": "pip_conda_mix",
+                                },
+                            ],
+                        },
                     )
 
         # Verification 3. enforce disallowed_packages

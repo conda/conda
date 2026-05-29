@@ -30,11 +30,14 @@ from conda.exceptions import (
     PathNotFoundError,
     PlatformMismatchError,
     ProxyError,
+    RemoveError,
     SharedLinkPathClobberError,
     TooManyArgumentsError,
     UnavailableInvalidChannel,
     UnknownPackageClobberError,
+    UnsatisfiableError,
     conda_exception_handler,
+    print_conda_exception,
 )
 
 
@@ -937,6 +940,134 @@ def test_BinaryPrefixReplacementError(
             "",
         )
     )
+
+
+def test_RemoveError_with_guidance() -> None:
+    exc = RemoveError(
+        "legacy message",
+        guidance={
+            "summary": "Guidance summary.",
+            "cause": "Root cause.",
+            "hints": [
+                {"text": "Do the thing.", "hint_code": "do_the_thing"},
+            ],
+        },
+    )
+    assert exc.guidance is not None
+    assert exc.guidance.summary == "Guidance summary."
+    assert exc.guidance.cause == "Root cause."
+    assert len(exc.guidance.hints) == 1
+    assert exc.guidance.hints[0].text == "Do the thing."
+    assert exc.guidance.hints[0].hint_code == "do_the_thing"
+
+
+def test_RemoveError_without_guidance() -> None:
+    exc = RemoveError("legacy message")
+    assert exc.guidance is None
+
+
+def test_RemoveError_guidance_in_dump_map() -> None:
+    exc = RemoveError(
+        "legacy message",
+        guidance={
+            "summary": "S",
+            "cause": "C",
+            "hints": [{"text": "H", "hint_code": "h"}],
+        },
+    )
+    assert exc.dump_map()["guidance"] == {
+        "summary": "S",
+        "cause": "C",
+        "hints": ({"text": "H", "hint_code": "h"},),
+        "hint_codes": ("h",),
+    }
+
+
+def test_RemoveError_without_guidance_dump_map_no_key() -> None:
+    exc = RemoveError("legacy message")
+    dm = exc.dump_map()
+    assert "guidance" not in dm
+
+
+def test_RemoveError_str_unchanged_with_guidance() -> None:
+    """__str__ should remain the legacy message, not the guidance."""
+    exc = RemoveError(
+        "legacy message",
+        guidance={
+            "summary": "Guidance summary.",
+            "hints": [{"text": "Do the thing.", "hint_code": "do_the_thing"}],
+        },
+    )
+    assert str(exc) == "legacy message"
+
+
+def test_print_conda_exception_with_guidance(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    exc = RemoveError(
+        "legacy message",
+        guidance={
+            "summary": "Guidance summary.",
+            "cause": "Root cause.",
+            "hints": [{"text": "Do the thing.", "hint_code": "do_the_thing"}],
+        },
+    )
+    print_conda_exception(exc)
+    err = capsys.readouterr().err
+    assert "Guidance summary." in err
+    assert "Root cause." in err
+    assert "Do the thing." in err
+    assert "do_the_thing" in err
+    assert "RemoveError" in err
+
+
+def test_print_conda_exception_without_guidance(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    exc = RemoveError("legacy message")
+    # Use a context manager to avoid issues with the exception_handler
+    print_conda_exception(exc)
+    err = capsys.readouterr().err
+    assert "RemoveError: legacy message" in err
+
+
+def test_PackagesNotFoundError_guidance_for_bulk_missing(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+    pkgs = [f"pkg{i}" for i in range(5)]
+    exc = PackagesNotFoundError(
+        pkgs,
+        channel_urls=["https://repo.anaconda.org/pkgs/main"],
+    )
+    assert exc.guidance is not None
+    assert "Many packages are unavailable" in exc.guidance.summary
+    assert exc.guidance.hints[0].hint_code == "check_channel_config"
+
+
+def test_PackagesNotFoundError_no_guidance_for_few_packages(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+    exc = PackagesNotFoundError(
+        ["single-pkg"],
+        channel_urls=["https://repo.anaconda.org/pkgs/main"],
+    )
+    assert exc.guidance is None
+
+
+def test_UnsatisfiableError_guidance() -> None:
+    exc = UnsatisfiableError({})
+    assert exc.guidance is not None
+    assert "could not find a compatible set" in exc.guidance.summary.lower()
 
 
 @pytest.mark.parametrize("use_only_tar_bz2", [True, False])
