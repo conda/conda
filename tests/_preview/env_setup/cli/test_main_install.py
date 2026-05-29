@@ -37,11 +37,8 @@ def test_install_preview_enabled(
     """conda install with CONDA_PREVIEW=env-setup is routed to the stub."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
 
-    out, err, exc = conda_cli("install", "numpy", raises=OperationNotAllowed)
-
-    assert exc.value is not None
-    assert "env-setup" in str(exc.value)
-    assert "conda install" in str(exc.value)
+    with pytest.raises(OperationNotAllowed, match=r"'env-setup'.+'conda install'"):
+        conda_cli("install", "numpy")
 
 
 def test_install_preview_uses_builtin_parser_arguments(
@@ -51,8 +48,5 @@ def test_install_preview_uses_builtin_parser_arguments(
     """The preview stub accepts options from the built-in install parser."""
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
 
-    out, err, exc = conda_cli("install", "--revision", "1", raises=OperationNotAllowed)
-
-    assert exc.value is not None
-    assert "env-setup" in str(exc.value)
-    assert "conda install" in str(exc.value)
+    with pytest.raises(OperationNotAllowed, match=r"'env-setup'.+'conda install'"):
+        conda_cli("install", "--revision", "1")
