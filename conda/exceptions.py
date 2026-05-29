@@ -26,7 +26,6 @@ from .base.constants import (
 from .common.compat import on_win
 from .common.io import dashlist
 from .common.iterators import groupby_to_dict as groupby
-from .common.serialize.json import JSONDecodeError
 from .common.serialize.json import dumps as json_dumps
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
@@ -562,14 +561,21 @@ class UnavailableInvalidChannel(ChannelError):
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
-        except (AttributeError, JSONDecodeError):
+        except (AttributeError, ValueError):
+            # AttributeError: response has no .json method
+            # ValueError: covers both json.JSONDecodeError and simplejson.JSONDecodeError
             body = {}
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
-            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # RFC 9457 'detail' is preferred over 'message' for
+            # application/problem+json responses.
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail") or message
+            content_type = getattr(response, "headers", {}).get("content-type", "")
+            if "application/problem+json" in content_type:
+                detail = body.get("detail")
+                if isinstance(detail, str):
+                    message = detail
 
         # standardize arguments
         status_code = status_code or "000"
@@ -656,14 +662,21 @@ class CondaHTTPError(CondaError):
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
-        except (AttributeError, JSONDecodeError):
+        except (AttributeError, ValueError):
+            # AttributeError: response has no .json method
+            # ValueError: covers both json.JSONDecodeError and simplejson.JSONDecodeError
             body = {}
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
-            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # RFC 9457 'detail' is preferred over 'message' for
+            # application/problem+json responses.
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail") or message
+            content_type = getattr(response, "headers", {}).get("content-type", "")
+            if "application/problem+json" in content_type:
+                detail = body.get("detail")
+                if isinstance(detail, str):
+                    message = detail
 
         # standardize arguments
         url = maybe_unquote(url)

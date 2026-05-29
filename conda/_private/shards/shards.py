@@ -309,7 +309,9 @@ class ShardBase(abc.ABC):
         """
         Return monolithic repodata including all visited shards.
 
-        Prefer iter_records() over this method.
+        Does not return "v3" repodata.
+
+        Prefer iter_records_v3() over this method.
         """
         repodata: RepodataDict = {
             **self.repodata_no_packages,
@@ -327,14 +329,34 @@ class ShardBase(abc.ABC):
         """
         Yield (filename, record) tuples for all packages in visited shards.
         """
-        repodata = self.build_repodata()
-        for package_group in ("packages", "packages.conda"):
-            yield from repodata.get(package_group, {}).items()
+        for (filename, section), record in self.iter_records_v3():
+            if section not in ("packages", "packages.conda"):
+                continue
+            yield filename, record
+
+    def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
+        """
+        Yield ((key, section), record) tuples for all packages in visited
+        shards.
+
+        Section can be: "packages" for .tar.bz2 packages, "packages.conda"
+        for .conda packages, "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages.
+
+        key is the same as the filename for "packages", "packages.conda" but is
+        different from the filename for v3 packages.
+        """
         for shard in self.visited.values():
             if shard is None:
                 continue
-            for group in shard.get("v3", {}).values():
-                yield from group.items()
+            # Classic packages
+            for package_group in ("packages", "packages.conda"):
+                for key, record in shard.get(package_group, {}).items():
+                    yield (key, package_group), record
+            # v3 packages (iter_records() method depends on these coming last)
+            for section_name, group in shard.get("v3", {}).items():
+                v3_section = f"v3.{section_name}"
+                for key, record in group.items():
+                    yield (key, v3_section), record
 
 
 class ShardLike(ShardBase):
@@ -699,7 +721,11 @@ def batch_retrieve_from_cache(
         for package_name in packages:
             if package_name in shardlike:  # and not package_name in shardlike.visited
                 wanted.append(
-                    (shardlike, package_name, shardlike.shard_url(package_name))
+                    (
+                        shardlike,
+                        package_name,
+                        shardlike.shard_url(package_name),
+                    )
                 )
 
     log.debug("%d shards to fetch", len(wanted))
