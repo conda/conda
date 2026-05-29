@@ -12,8 +12,6 @@ Conventions
   replaced by underscores (e.g. ``env-setup`` → ``env_setup/``).
 - Each preview's ``__init__.py`` must expose:
   - ``PREVIEW_LABEL: str`` — the kebab-case label users put in ``context.preview``.
-  - ``register(context)`` — called once after the final ``context.__init__()`` in
-    ``main_subshell()`` when this preview is enabled.
 - Preview command implementations should use conda's plugin framework. For
   subcommands, expose ``conda_subcommands`` hooks and register them through
   ``conda.plugins.previews``. Built-in command overrides are only allowed for
