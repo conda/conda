@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.exceptions import OperationNotAllowed
+from conda.plugins.manager import get_plugin_manager
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture
@@ -45,8 +46,6 @@ def test_create_preview_enabled_with_no_plugins(
     monkeypatch,
 ):
     """Bundled preview subcommands remain available with --no-plugins."""
-    from conda.plugins.manager import get_plugin_manager
-
     monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
 
     get_plugin_manager.cache_clear()
