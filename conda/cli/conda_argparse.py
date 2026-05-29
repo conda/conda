@@ -301,18 +301,9 @@ def configure_parser_plugins(sub_parsers) -> None:
     plugin_subcommands = context.plugin_manager.get_subcommands()
     for name, plugin_subcommand in plugin_subcommands.items():
         # if the name of the plugin-based subcommand overlaps a built-in
-        # subcommand, we print an error
-        if name in BUILTIN_COMMANDS:
-            if (
-                is_preview_subcommand(plugin_subcommand)
-                and name in BUILTIN_COMMAND_PARSERS
-            ):
-                parser = BUILTIN_COMMAND_PARSERS[name](sub_parsers)
-                if plugin_subcommand.configure_parser:
-                    plugin_subcommand.configure_parser(parser)
-                parser.set_defaults(_plugin_subcommand=plugin_subcommand)
-                continue
-
+        # subcommand and isn't a preview, we print an error
+        preview = is_preview_subcommand(plugin_subcommand)
+        if name in BUILTIN_COMMANDS and not preview:
             log.error(
                 dals(
                     f"""
@@ -325,12 +316,16 @@ def configure_parser_plugins(sub_parsers) -> None:
             )
             continue
 
-        parser = sub_parsers.add_parser(
-            name,
-            description=plugin_subcommand.summary,
-            help=plugin_subcommand.summary,
-            add_help=False,  # defer to subcommand's help processing
-        )
+        # create the parser for the subcommand
+        if preview and name in BUILTIN_COMMAND_PARSERS:
+            parser = BUILTIN_COMMAND_PARSERS[name](sub_parsers)
+        else:
+            parser = sub_parsers.add_parser(
+                name,
+                description=plugin_subcommand.summary,
+                help=plugin_subcommand.summary,
+                add_help=False,  # defer to subcommand's help processing
+            )
 
         # case 1: plugin extends the parser
         if plugin_subcommand.configure_parser:
@@ -342,7 +337,11 @@ def configure_parser_plugins(sub_parsers) -> None:
             except argparse.ArgumentError:
                 pass
 
-        # case 2: plugin has their own parser, see _GreedySubParsersAction
+        # case 2: preview subcommand uses the built-in parser and are non-greedy
+        elif preview:
+            pass
+
+        # case 3: plugin has their own parser, see _GreedySubParsersAction
         else:
             parser.greedy = True
 
