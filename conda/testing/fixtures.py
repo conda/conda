@@ -32,6 +32,7 @@ from ..core.subdir_data import SubdirData
 from ..exceptions import CondaExitZero
 from ..gateways.disk.create import TemporaryDirectory
 from ..models.records import PackageRecord
+from ..plugins.manager import get_plugin_manager
 from .integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
@@ -114,6 +115,13 @@ def tmpdir(tmpdir, request):
 @pytest.fixture(autouse=True)
 def clear_subdir_cache():
     SubdirData.clear_cached_local_channel_data()
+
+
+@pytest.fixture
+def clear_plugin_manager_cache() -> Iterable[None]:
+    get_plugin_manager.cache_clear()
+    yield
+    get_plugin_manager.cache_clear()
 
 
 @pytest.fixture(scope="function")

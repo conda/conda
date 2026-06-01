@@ -953,7 +953,11 @@ def test_shardlike():
 
 def test_iter_records_classic():
     shardlike = ShardLike(
-        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
     )
     shardlike.visit_shard(
         "mypkg",
@@ -969,7 +973,11 @@ def test_iter_records_classic():
 
 def test_iter_records_v3():
     shardlike = ShardLike(
-        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
     )
     shardlike.visit_shard(
         "mypkg",
@@ -988,10 +996,10 @@ def test_iter_records_v3():
     )
     # None entries in visited must not raise
     shardlike.visited["ghost"] = None
-    records = dict(shardlike.iter_records())
-    assert "mypkg-1.0-0.conda" in records
-    assert "mypkg-1.0-py312_none_any_0" in records
-    assert records["mypkg-1.0-py312_none_any_0"]["name"] == "mypkg"
+    records = dict(shardlike.iter_records_v3())
+    assert ("mypkg-1.0-0.conda", "packages.conda") in records
+    assert ("mypkg-1.0-py312_none_any_0", "v3.whl") in records
+    assert records[("mypkg-1.0-py312_none_any_0", "v3.whl")]["name"] == "mypkg"
 
 
 def test_shardlike_repr():
