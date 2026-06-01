@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Validate Python entry point definitions before generating entry point scripts. (#TBD)
+* Validate Python entry point definitions before generating entry point scripts. (#16168)
 
 ### Deprecations
 
