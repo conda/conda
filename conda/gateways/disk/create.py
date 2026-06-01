@@ -18,6 +18,7 @@ from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
+from ...common.path.python import is_valid_import_path
 from ...common.serialize import json
 from ...deprecations import deprecated
 from ...exceptions import (
@@ -128,6 +129,11 @@ def write_as_json_to_file(file_path, obj):
 
 
 def create_python_entry_point(target_full_path, python_full_path, module, func):
+    if not is_valid_import_path(module):
+        raise ValueError("'module' is not a valid Python import path")
+    if not is_valid_import_path(func):
+        raise ValueError("'func' is not a valid Python import path")
+
     if lexists(target_full_path):
         maybe_raise(
             BasicClobberError(
