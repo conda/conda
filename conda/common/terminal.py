@@ -7,7 +7,16 @@ Utility functions for terminal output.
 import os
 import sys
 
-IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+from ..deprecations import deprecated
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "IS_INTERACTIVE",
+    hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
+    addendum="Use `conda.common.terminal.is_tty()` instead.",
+)
+del deprecated
 
 
 def is_tty() -> bool:

@@ -1,8 +1,7 @@
 ### Enhancements
 
-* Centralize TTY detection and terminal output-mode logic in `conda.common.io`, adding helpers `is_tty()`, `no_color()`, `force_color()`, and `should_use_color()` that respect the `NO_COLOR`, `FORCE_COLOR`, and `TERM=dumb` environment variables. (#15943)
-* Add `create_console()` to `conda._ng.cli.common` for building Rich `Console` instances that automatically honour the output-mode helpers above.
-* Suppress progress-bar and spinner animations in the console reporter backend when the output is not a TTY. `NO_COLOR` and `TERM=dumb` no longer suppress animations. (#15943)
+* Add `conda.common.terminal` module centralizing TTY detection and terminal output-mode logic with helpers `is_tty()`, `no_color()`, `force_color()`, and `should_use_color()` that respect the `NO_COLOR`, `FORCE_COLOR`, and `TERM=dumb`/`TERM=unknown` environment variables. (#15943)
+* Suppress progress-bar and spinner animations in the console reporter backend when the output is not a TTY or `TERM=dumb`/`TERM=unknown` is set. (#15943)
 
 ### Bug fixes
 
@@ -10,7 +9,7 @@
 
 ### Deprecations
 
-* <news item>
+* Deprecate `conda.common.terminal.IS_INTERACTIVE` (pending removal in 27.3). Use `conda.common.terminal.is_tty()` instead. (#15943)
 
 ### Docs
 
