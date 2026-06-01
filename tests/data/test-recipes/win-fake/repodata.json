@@ -14,6 +14,34 @@
       "subdir": "win-fake",
       "timestamp": 1703010608204,
       "version": "1.0"
+    },
+    "virtualdep-package-1.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "__win"
+      ],
+      "md5": "ef4af6b4ba6b15d11068c21f40500b67",
+      "name": "virtualdep-package",
+      "sha256": "f5a0ab3daf66160af478ba82e74f38a0b346ceceaf4426f1ca1e33184d155f4e",
+      "size": 2952,
+      "subdir": "win-fake",
+      "timestamp": 1703010608204,
+      "version": "1.0"
+    },
+    "virtualdep-package-2.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "__win"
+      ],
+      "md5": "e83a2ea1ab3ff3773710dd71a800c4a2",
+      "name": "virtualdep-package",
+      "sha256": "30b1bfe3c7c18b7cca70558cb46914f396c97ad43e8b190a1cd0babbb27dba82",
+      "size": 2957,
+      "subdir": "win-fake",
+      "timestamp": 1703010608204,
+      "version": "2.0"
     }
   },
   "packages.conda": {},

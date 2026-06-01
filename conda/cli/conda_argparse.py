@@ -12,6 +12,7 @@ from argparse import (
     RawDescriptionHelpFormatter,
 )
 from argparse import ArgumentParser as ArgumentParserBase
+from functools import partial
 from importlib import import_module
 from logging import getLogger
 from subprocess import Popen
@@ -21,6 +22,7 @@ from ..auxlib.ish import dals
 from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
+from ..plugins.previews import is_preview_subcommand
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
 from .helpers import (  # noqa: F401
     add_output_and_prompt_options,
@@ -95,9 +97,33 @@ BUILTIN_COMMANDS = {
 }
 """List of built-in commands; these cannot be overridden by plugin subcommands."""
 
+BUILTIN_COMMAND_PARSERS = {
+    "activate": configure_parser_activate,
+    "clean": configure_parser_clean,
+    "commands": configure_parser_commands,
+    "compare": configure_parser_compare,
+    "config": configure_parser_config,
+    "create": configure_parser_create,
+    "deactivate": configure_parser_deactivate,
+    "env": configure_parser_env,
+    "export": configure_parser_export,
+    "info": configure_parser_info,
+    "init": configure_parser_init,
+    "install": configure_parser_install,
+    "list": configure_parser_list,
+    "notices": configure_parser_notices,
+    "package": configure_parser_package,
+    "remove": partial(configure_parser_remove, aliases=["uninstall"]),
+    "rename": configure_parser_rename,
+    "run": configure_parser_run,
+    "search": configure_parser_search,
+    "update": partial(configure_parser_update, aliases=["upgrade"]),
+}
+
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:
     pre_parser = ArgumentParser(
+        prog="conda",
         description="conda is a tool for managing and deploying applications,"
         " environments and packages.",
         **kwargs,
@@ -140,27 +166,19 @@ def generate_parser(**kwargs) -> ArgumentParser:
         required=True,
     )
 
-    configure_parser_activate(sub_parsers)
-    configure_parser_clean(sub_parsers)
-    configure_parser_commands(sub_parsers)
-    configure_parser_compare(sub_parsers)
-    configure_parser_config(sub_parsers)
-    configure_parser_create(sub_parsers)
-    configure_parser_deactivate(sub_parsers)
-    configure_parser_env(sub_parsers)
-    configure_parser_export(sub_parsers)
-    configure_parser_info(sub_parsers)
-    configure_parser_init(sub_parsers)
-    configure_parser_install(sub_parsers)
-    configure_parser_list(sub_parsers)
-    configure_parser_notices(sub_parsers)
-    configure_parser_package(sub_parsers)
+    preview_plugin_commands = {
+        name
+        for name, plugin_subcommand in context.plugin_manager.get_subcommands().items()
+        if is_preview_subcommand(plugin_subcommand)
+    }
+
+    # We only register built-ins that are not overridden by bundled previews.
+    for builtin, config_func in BUILTIN_COMMAND_PARSERS.items():
+        if builtin not in preview_plugin_commands:
+            config_func(sub_parsers)
+
+    # Special configure call just for plugin subcommands
     configure_parser_plugins(sub_parsers)
-    configure_parser_remove(sub_parsers, aliases=["uninstall"])
-    configure_parser_rename(sub_parsers)
-    configure_parser_run(sub_parsers)
-    configure_parser_search(sub_parsers)
-    configure_parser_update(sub_parsers, aliases=["upgrade"])
 
     return parser
 
@@ -283,8 +301,9 @@ def configure_parser_plugins(sub_parsers) -> None:
     plugin_subcommands = context.plugin_manager.get_subcommands()
     for name, plugin_subcommand in plugin_subcommands.items():
         # if the name of the plugin-based subcommand overlaps a built-in
-        # subcommand, we print an error
-        if name in BUILTIN_COMMANDS:
+        # subcommand and isn't a preview, we print an error
+        preview = is_preview_subcommand(plugin_subcommand)
+        if name in BUILTIN_COMMANDS and not preview:
             log.error(
                 dals(
                     f"""
@@ -297,12 +316,16 @@ def configure_parser_plugins(sub_parsers) -> None:
             )
             continue
 
-        parser = sub_parsers.add_parser(
-            name,
-            description=plugin_subcommand.summary,
-            help=plugin_subcommand.summary,
-            add_help=False,  # defer to subcommand's help processing
-        )
+        # create the parser for the subcommand
+        if preview and name in BUILTIN_COMMAND_PARSERS:
+            parser = BUILTIN_COMMAND_PARSERS[name](sub_parsers)
+        else:
+            parser = sub_parsers.add_parser(
+                name,
+                description=plugin_subcommand.summary,
+                help=plugin_subcommand.summary,
+                add_help=False,  # defer to subcommand's help processing
+            )
 
         # case 1: plugin extends the parser
         if plugin_subcommand.configure_parser:
@@ -314,7 +337,11 @@ def configure_parser_plugins(sub_parsers) -> None:
             except argparse.ArgumentError:
                 pass
 
-        # case 2: plugin has their own parser, see _GreedySubParsersAction
+        # case 2: preview subcommand uses the built-in parser and is non-greedy
+        elif preview:
+            pass
+
+        # case 3: plugin has their own parser, see _GreedySubParsersAction
         else:
             parser.greedy = True
 

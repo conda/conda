@@ -62,18 +62,26 @@ function Enter-CondaEnvironment {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$false)][switch]$Stack,
-        [Parameter(Position=0)][string]$Name
+
+        [Parameter(Position=0)][string]$Name,
+
+        [Parameter(Mandatory=$false)][switch]$Help = $False
     );
 
     begin {
-        If ($Stack) {
-            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
-        } Else {
-            $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
-        }
+        # Includes if the user provides the flags -h/-help
+        If ($Help -or  ($Name -contains "--help")) {
+            & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --help;
+        } else {
+            If ($Stack) {
+                $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate --stack $Name | Out-String);
+            } Else {
+                $activateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell activate $Name | Out-String);
+            }
 
-        Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
-        Invoke-Expression -Command $activateCommand;
+            Write-Verbose "[conda shell.powershell activate $Name]`n$activateCommand";
+            Invoke-Expression -Command $activateCommand;
+        }
     }
 
     process {}
@@ -94,18 +102,26 @@ function Enter-CondaEnvironment {
 #>
 function Exit-CondaEnvironment {
     [CmdletBinding()]
-    param();
+    param(
+        [Parameter(Mandatory=$false)][switch]$Help = $False,
+
+        [Parameter(Position=0)][string]$Arg
+    );
 
     begin {
-        $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate | Out-String);
-
-        # If deactivate returns an empty string, we have nothing more to do,
-        # so return early.
-        if ($deactivateCommand.Trim().Length -eq 0) {
-            return;
+        # Includes if the user provides the flags -h/-help
+        If ($Help -or  ($Name -contains "--help")) {
+            & $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate --help;
+        } else {
+            $deactivateCommand = (& $Env:CONDA_EXE $Env:_CE_M $Env:_CE_CONDA shell.powershell deactivate $Arg | Out-String);
+            # If deactivate returns an empty string, we have nothing more to do,
+            # so return early.
+            if ($deactivateCommand.Trim().Length -eq 0) {
+                return;
+            }
+            Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand";
+            Invoke-Expression -Command $deactivateCommand;
         }
-        Write-Verbose "[conda shell.powershell deactivate]`n$deactivateCommand";
-        Invoke-Expression -Command $deactivateCommand;
     }
     process {}
     end {}
@@ -157,7 +173,7 @@ function Invoke-Conda() {
                 Enter-CondaEnvironment @OtherArgs;
             }
             "^deactivate$" {
-                Exit-CondaEnvironment;
+                Exit-CondaEnvironment @OtherArgs;
             }
 
             # Run the command, then reactivate so activate.ps1 runs and env vars

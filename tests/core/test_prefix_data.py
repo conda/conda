@@ -27,6 +27,7 @@ from conda.testing.helpers import record
 from .. import PYTHON_SPEC
 
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
@@ -323,6 +324,35 @@ def test_get_conda_anchor_files_and_records():
         )
         == valid_records
     )
+
+
+def test_get_conda_anchor_files_and_records_case_sensitivity(monkeypatch: MonkeyPatch):
+    monkeypatch.setattr("conda.core.prefix_data.on_win", True)
+
+    @dataclass
+    class DummyPythonRecord:
+        files: list[str]
+
+    records = {
+        path: DummyPythonRecord([path])
+        for path in (
+            "lib/site-packages/spam.egg-info/PKG-INFO",
+            "Lib/site-packages/foo.dist-info/RECORD",
+            "lIb/site-packages/bar.egg-info",
+        )
+    }
+
+    expected_records_set = {
+        "Lib/site-packages/spam.egg-info/PKG-INFO",
+        "Lib/site-packages/foo.dist-info/RECORD",
+        "Lib/site-packages/bar.egg-info",
+    }
+
+    python_packages = get_conda_anchor_files_and_records(
+        "Lib/site-packages",
+        [*records.values()],
+    )
+    assert set(python_packages) == expected_records_set
 
 
 def test_corrupt_unicode_conda_meta_json():

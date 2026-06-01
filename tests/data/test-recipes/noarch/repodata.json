@@ -394,6 +394,21 @@
       "timestamp": 1765401586628,
       "version": "1.0.0"
     },
+    "unsatisfiable-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "versioned <1.0"
+      ],
+      "md5": "9bf2a6c82ed53fffb502be7fb543712a",
+      "name": "unsatisfiable",
+      "noarch": "generic",
+      "sha256": "d2b749d293998bfc3e4b41b70391bbc14cd623b798ed78060ac71018cb90a86a",
+      "size": 3769,
+      "subdir": "noarch",
+      "timestamp": 1778020793322,
+      "version": "1.0"
+    },
     "versioned-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
