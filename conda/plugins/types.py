@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from collections.abc import Callable, Iterable
     from contextlib import AbstractContextManager
+    from types import TracebackType
     from typing import Any, ClassVar, Literal, Protocol, TypeAlias
 
     from ..auxlib import _Null
@@ -69,6 +70,14 @@ if TYPE_CHECKING:
 
         name: str
         aliases: tuple[str, ...]
+
+    class CondaPluginWithEnvironmentFormat(CondaPluginWithAliases):
+        """
+        Structural type for plugins that expose a environment format.
+        """
+
+        environment_format: EnvironmentFormat
+        default_filenames: tuple[str, ...]
 
 
 @dataclass
@@ -683,7 +692,7 @@ class EnvironmentFormat(enum.Enum):
     """
     Represents supported environment formats.
 
-    TODO: After minimum support for Python 3.11 is introduced, convert to using enum.StrEnum
+    FUTURE: Python 3.11+, use enum.StrEnum
     """
 
     lockfile = "lockfile"
@@ -691,6 +700,13 @@ class EnvironmentFormat(enum.Enum):
 
     def __str__(self) -> str:
         return self.value
+
+    @property
+    def label(self) -> str:
+        return {
+            EnvironmentFormat.lockfile: "Lockfiles",
+            EnvironmentFormat.environment: "Environment specs",
+        }[self]
 
 
 @dataclass
@@ -744,7 +760,8 @@ class CondaEnvironmentExporter(CondaPlugin):
     :param name: name of the exporter (e.g., ``environment-yaml``)
     :param aliases: user-friendly format aliases (e.g., ("yaml",))
     :param default_filenames: default filenames this exporter handles (e.g., ("environment.yml", "environment.yaml"))
-    :param export: callable that exports an Environment to string format
+    :param export: callable that exports an Environment to string format for a single platform
+    :param multiplatform_export: callable that exports an Environment to string format for multiple platforms
     :param description: user-friendly description of what the format does. Defaults to the name if not provided.
     :param environment_format: EnvironmentFormat category. Defaults to EnvironmentFormat.environment.
     """
@@ -801,3 +818,106 @@ class CondaPackageExtractor(CondaPlugin):
     name: str
     extensions: list[str]
     extract: PackageExtract
+
+
+@dataclass(frozen=True)
+class CondaExceptionEvent:
+    """
+    Structured exception event passed to exception observer plugin callbacks.
+
+    Frozen to prevent plugins from mutating exception state. Structured args
+    follow the ``threading.ExceptHookArgs`` / ``sys.UnraisableHookArgs``
+    pattern for forward compatibility.
+
+    The exception triple (``exc_type``, ``exc_value``, ``exc_traceback``) is
+    always populated. The remaining fields describe the conda runtime state
+    and default to ``None`` when the runtime isn't initialized (e.g.
+    ``MemoryError`` during early startup). Runtime fields are populated
+    all-or-nothing: if ``conda_version`` is not ``None``, the runtime was
+    available and all other fields are populated (``active_prefix`` may
+    still be ``None`` when no environment is active).
+
+    .. warning::
+
+       Do not store references to ``exc_value`` or ``exc_traceback`` beyond
+       the lifetime of the callback. This can create reference cycles and
+       prevent garbage collection.
+
+    :param exc_type: The exception class.
+    :param exc_value: The exception instance.
+    :param exc_traceback: The traceback object.
+    :param argv: The command-line arguments at the time of error (frozen copy
+                 of ``sys.argv``). ``None`` if unavailable.
+    :param conda_version: The conda version string. ``None`` if unavailable.
+    :param return_code: The exit code conda will return for this error.
+                        ``None`` if unavailable.
+    :param active_prefix: The currently active conda environment prefix,
+                          or ``None`` if no environment is active (also
+                          ``None`` when the runtime is unavailable).
+    :param target_prefix: The prefix the command was operating on.
+    :param channels: The configured channel names at the time of error
+                     (canonical names, e.g. ``defaults``, ``conda-forge``).
+    :param subdir: The platform subdirectory (e.g., ``linux-64``, ``osx-arm64``).
+    :param offline: Whether conda is running in offline mode (``--offline``).
+    :param dry_run: Whether conda is running in dry-run mode (``--dry-run``).
+    :param quiet: Whether conda is running in quiet mode (``--quiet``).
+    :param json: Whether conda is running in JSON output mode (``--json``).
+    """
+
+    exc_type: type[BaseException]
+    exc_value: BaseException
+    exc_traceback: TracebackType
+    argv: tuple[str, ...] | None = None
+    conda_version: str | None = None
+    return_code: int | None = None
+    active_prefix: str | None = None
+    target_prefix: str | None = None
+    channels: tuple[str, ...] | None = None
+    subdir: str | None = None
+    offline: bool | None = None
+    dry_run: bool | None = None
+    quiet: bool | None = None
+    json: bool | None = None
+
+
+@dataclass
+class CondaExceptionObserver(CondaPlugin):
+    """
+    Return type to use when defining a conda exception observer plugin hook.
+
+    Exception observers are purely observational, modelled after CPython's
+    ``sys.excepthook``. They cannot suppress, modify, or redirect the
+    exception. Their return value is ignored.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_exception_observers`.
+
+    .. warning::
+
+       Do not store references to ``exc_value`` or ``exc_traceback`` beyond
+       the lifetime of the callback. This can create reference cycles and
+       prevent garbage collection.
+
+    :param name: Observer name (e.g., ``missing-package-reporter``).
+    :param hook: Callable invoked with a :class:`CondaExceptionEvent` instance.
+                 Must not raise; any exception is caught and logged.
+    :param watch_for: Set of exception class names this observer watches for.
+                      Matches against the full MRO. Examples:
+
+                      - ``{"BaseException"}`` — fires for every exception.
+                      - ``{"Exception"}`` — all standard exceptions (excludes
+                        ``KeyboardInterrupt``, ``SystemExit``).
+                      - ``{"CondaError"}`` — all conda errors and subclasses.
+                      - ``{"PackagesNotFoundError"}`` — a specific error and
+                        its subclasses (e.g. ``PackagesNotFoundInChannelsError``).
+                      - ``{"MemoryError"}``, ``{"KeyboardInterrupt"}``,
+                        ``{"SystemExit"}`` — specific non-conda exceptions.
+                      - ``{"CondaError", "MemoryError"}`` — combine scopes.
+
+                      For non-``CondaError`` exceptions the conda-specific fields
+                      on :class:`CondaExceptionEvent` may be ``None``.
+    """
+
+    name: str
+    hook: Callable[[CondaExceptionEvent], None]
+    watch_for: set[str]

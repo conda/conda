@@ -18,6 +18,7 @@ as well as conda's internal implementations of plugins.
 
 **Modules with internal plugin implementations**
 
+- :mod:`conda.plugins.previews`: aggregator for opt-in preview features
 - :mod:`conda.plugins.solvers`: implementation of the "classic" solver
 - :mod:`conda.plugins.subcommands.doctor`: ``conda doctor`` and ``conda check`` subcommands (with ``--fix`` support)
 - :mod:`conda.plugins.virtual_packages`: registers virtual packages in conda
