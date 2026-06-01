@@ -4,6 +4,7 @@ from contextlib import nullcontext
 from errno import EPIPE
 from io import StringIO
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -239,113 +240,113 @@ def test_prompt_error_reading_stdin(mocker):
         reporter.prompt()
 
 
-class TestProgressBarOutputMode:
-    """Verify progress_bar() respects output-mode helpers."""
-
-    def test_quiet_context_returns_quiet_bar(self, mocker):
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.is_tty",
-            return_value=True,
-        )
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
-        )
-        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = True
-        renderer = ConsoleReporterRenderer()
-        bar = renderer.progress_bar("test")
-        assert isinstance(bar, QuietProgressBar)
-
-    def test_non_tty_returns_quiet_bar(self, mocker):
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.is_tty",
-            return_value=False,
-        )
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
-        )
-        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
-        renderer = ConsoleReporterRenderer()
-        bar = renderer.progress_bar("test")
-        assert isinstance(bar, QuietProgressBar)
-
-    def test_term_dumb_returns_quiet_bar(self, mocker):
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.is_tty",
-            return_value=True,
-        )
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.term_dumb", return_value=True
-        )
-        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
-        renderer = ConsoleReporterRenderer()
-        bar = renderer.progress_bar("test")
-        assert isinstance(bar, QuietProgressBar)
-
-    def test_tty_returns_tqdm_bar(self, mocker):
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.is_tty",
-            return_value=True,
-        )
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
-        )
-        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
-        renderer = ConsoleReporterRenderer()
-        bar = renderer.progress_bar("test")
-        assert isinstance(bar, TQDMProgressBar)
+def test_progress_bar_quiet_context_returns_quiet_bar(monkeypatch):
+    """Verify progress_bar() returns QuietProgressBar when context.quiet is True."""
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: False
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=True)
+    )
+    renderer = ConsoleReporterRenderer()
+    bar = renderer.progress_bar("test")
+    assert isinstance(bar, QuietProgressBar)
 
 
-class TestSpinnerOutputMode:
-    """Verify spinner() respects output-mode helpers."""
+def test_progress_bar_non_tty_returns_quiet_bar(monkeypatch):
+    """Verify progress_bar() returns QuietProgressBar when not in a TTY."""
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: False)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: False
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=True)
+    )
+    renderer = ConsoleReporterRenderer()
+    bar = renderer.progress_bar("test")
+    assert isinstance(bar, QuietProgressBar)
 
-    def test_quiet_context_returns_quiet_spinner(self, mocker):
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.is_tty",
-            return_value=True,
-        )
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
-        )
-        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = True
-        renderer = ConsoleReporterRenderer()
-        spinner = renderer.spinner("test")
-        assert isinstance(spinner, QuietSpinner)
 
-    def test_non_tty_returns_quiet_spinner(self, mocker):
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.is_tty",
-            return_value=False,
-        )
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
-        )
-        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
-        renderer = ConsoleReporterRenderer()
-        spinner = renderer.spinner("test")
-        assert isinstance(spinner, QuietSpinner)
+def test_progress_bar_term_dumb_returns_quiet_bar(monkeypatch):
+    """Verify progress_bar() returns QuietProgressBar when terminal is dumb."""
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: True
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
+    )
+    renderer = ConsoleReporterRenderer()
+    bar = renderer.progress_bar("test")
+    assert isinstance(bar, QuietProgressBar)
 
-    def test_term_dumb_returns_quiet_spinner(self, mocker):
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.is_tty",
-            return_value=True,
-        )
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.term_dumb", return_value=True
-        )
-        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
-        renderer = ConsoleReporterRenderer()
-        spinner = renderer.spinner("test")
-        assert isinstance(spinner, QuietSpinner)
 
-    def test_tty_returns_animated_spinner(self, mocker):
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.is_tty",
-            return_value=True,
-        )
-        mocker.patch(
-            "conda.plugins.reporter_backends.console.term_dumb", return_value=False
-        )
-        mocker.patch("conda.plugins.reporter_backends.console.context").quiet = False
-        renderer = ConsoleReporterRenderer()
-        spinner = renderer.spinner("test")
-        assert isinstance(spinner, Spinner)
+def test_progress_bar_tty_returns_tqdm_bar(monkeypatch):
+    """Verify progress_bar() returns TQDMProgressBar in a normal TTY."""
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: False
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
+    )
+    renderer = ConsoleReporterRenderer()
+    bar = renderer.progress_bar("test")
+    assert isinstance(bar, TQDMProgressBar)
+
+
+def test_spinner_quiet_context_returns_quiet_spinner(monkeypatch):
+    """Verify spinner() returns QuietSpinner when context.quiet is True."""
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: False
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=True)
+    )
+    renderer = ConsoleReporterRenderer()
+    spinner = renderer.spinner("test")
+    assert isinstance(spinner, QuietSpinner)
+
+
+def test_spinner_non_tty_returns_quiet_spinner(monkeypatch):
+    """Verify spinner() returns QuietSpinner when not in a TTY."""
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: False)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: False
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
+    )
+    renderer = ConsoleReporterRenderer()
+    spinner = renderer.spinner("test")
+    assert isinstance(spinner, QuietSpinner)
+
+
+def test_spinner_term_dumb_returns_quiet_spinner(monkeypatch):
+    """Verify spinner() returns QuietSpinner when terminal is dumb."""
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: True
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
+    )
+    renderer = ConsoleReporterRenderer()
+    spinner = renderer.spinner("test")
+    assert isinstance(spinner, QuietSpinner)
+
+
+def test_spinner_tty_returns_animated_spinner(monkeypatch):
+    """Verify spinner() returns Spinner in a normal TTY."""
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: False
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
+    )
+    renderer = ConsoleReporterRenderer()
+    spinner = renderer.spinner("test")
+    assert isinstance(spinner, Spinner)

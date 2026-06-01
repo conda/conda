@@ -19,8 +19,9 @@ from ...base.constants import (
     DEFAULT_CONSOLE_REPORTER_BACKEND,
 )
 from ...base.context import context
-from ...common.io import is_tty, swallow_broken_pipe, term_dumb
+from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
+from ...common.terminal import is_tty, term_dumb
 from ...core.prefix_data import PrefixData
 from ...exceptions import CondaError
 from ...utils import human_bytes

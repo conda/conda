@@ -28,11 +28,12 @@ from ..base.constants import (
 )
 from ..base.context import context
 from ..common.constants import NULL, TRACE
-from ..common.io import IS_INTERACTIVE, time_recorder
+from ..common.io import time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.serialize import json
 from ..common.signals import signal_handler
+from ..common.terminal import IS_INTERACTIVE
 from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
