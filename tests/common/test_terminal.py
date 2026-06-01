@@ -72,7 +72,7 @@ def test_should_use_color_no_color_takes_precedence(monkeypatch):
 def test_should_use_color_force_color_or_tty(monkeypatch, is_tty_value, expected):
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setenv("FORCE_COLOR", "1")
-    monkeypatch.setattr("conda.common.io.is_tty", lambda: is_tty_value)
+    monkeypatch.setattr("conda.common.terminal.is_tty", lambda: is_tty_value)
     assert should_use_color() is expected
 
 
@@ -83,5 +83,5 @@ def test_should_use_color_force_color_or_tty(monkeypatch, is_tty_value, expected
 def test_should_use_color_tty_only(monkeypatch, is_tty_value, expected):
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.delenv("FORCE_COLOR", raising=False)
-    monkeypatch.setattr("conda.common.io.is_tty", lambda: is_tty_value)
+    monkeypatch.setattr("conda.common.terminal.is_tty", lambda: is_tty_value)
     assert should_use_color() is expected
