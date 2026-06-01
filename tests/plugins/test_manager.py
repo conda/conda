@@ -105,8 +105,11 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
     plugin_manager.register(SecondArchspec)
     with pytest.raises(
         PluginError, match="Conflicting plugins found for `virtual_packages`"
-    ):
+    ) as exc_info:
         plugin_manager.get_hook_results(name)
+    # Both conflicting sources must be named so users know what to uninstall
+    assert "'archspec' provided by:" in str(exc_info.value)
+    assert "and" in str(exc_info.value)
 
 
 def test_load_plugins_error(plugin_manager: CondaPluginManager):

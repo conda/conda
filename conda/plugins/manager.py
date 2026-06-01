@@ -401,20 +401,24 @@ class CondaPluginManager(pluggy.PluginManager):
             )
 
         # Check for conflicts since no two plugins can have the same name
-        conflicts = [
-            plugin
-            for plugins in groupby_to_dict(lambda plugin: plugin.name, plugins).values()
-            if len(plugins) > 1
-            for plugin in plugins
-        ]
-        if conflicts:
-            plugin_names = (
-                f"{plugin.__class__.__name__}(name={plugin.name}) (source: {plugin.impl.plugin_name})"
-                for plugin in conflicts
-            )
+        conflict_groups = {
+            plugin_name: conflicting
+            for plugin_name, conflicting in groupby_to_dict(
+                lambda plugin: plugin.name, plugins
+            ).items()
+            if len(conflicting) > 1
+        }
+        if conflict_groups:
+            lines = [
+                f"{conflict_name!r} provided by: "
+                + " and ".join(
+                    _plugin_source(plugin.impl.plugin_name) for plugin in conflicting
+                )
+                for conflict_name, conflicting in sorted(conflict_groups.items())
+            ]
             raise PluginError(
                 f"Conflicting plugins found for `{name}`:\n"
-                f"{dashlist(plugin_names)}\n"
+                f"{dashlist(lines)}\n"
                 f"\n"
                 f"Multiple conda plugins are registered via the `{specname}` hook. "
                 f"Please make sure that you don't have any incompatible plugins installed."
