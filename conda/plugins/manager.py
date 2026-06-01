@@ -409,13 +409,13 @@ class CondaPluginManager(pluggy.PluginManager):
             if len(conflicting) > 1
         }
         if conflict_groups:
-            lines = [
-                f"{conflict_name!r} provided by: "
-                + " and ".join(
-                    _plugin_source(plugin.impl.plugin_name) for plugin in conflicting
+            lines = []
+            for conflict_name, conflicting in sorted(conflict_groups.items()):
+                providers = dashlist(
+                    [_plugin_source(p.impl.plugin_name) for p in conflicting],
+                    indent=4,
                 )
-                for conflict_name, conflicting in sorted(conflict_groups.items())
-            ]
+                lines.append(f"{conflict_name!r} provided by:{providers}")
             raise PluginError(
                 f"Conflicting plugins found for `{name}`:\n"
                 f"{dashlist(lines)}\n"
