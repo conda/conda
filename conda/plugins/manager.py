@@ -98,6 +98,22 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+def _plugin_source(impl_plugin_name: str) -> str:
+    """Return a human-readable 'distname version' for a pluggy plugin name."""
+    from importlib.metadata import distribution, packages_distributions
+
+    top_level = impl_plugin_name.split(".")[0]
+    dist_names = packages_distributions().get(top_level, [])
+    if dist_names:
+        meta = distribution(dist_names[0]).metadata
+        version = meta.get("Version", "")
+        return f"{dist_names[0]} {version}".strip()
+    # For a plugin defined by an editable installation, packages_distributions may not be reliable.
+    # https://docs.python.org/3/library/importlib.metadata.html#importlib.metadata.packages_distributions
+    # In this case, we can fall back to the raw pluggy plugin name.
+    return impl_plugin_name
+
+
 @dataclass
 class _HookImplWrapper:
     impl: HookImpl
