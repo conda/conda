@@ -11,7 +11,7 @@ import requests
 from conda.base.context import context, reset_context
 from conda.cli.main_search import _pretty_record_format, pretty_record
 from conda.common.serialize import json
-from conda.exceptions import PackagesNotFoundError
+from conda.exceptions import NoChannelsConfiguredError, PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.models.records import PackageRecord
 
@@ -360,16 +360,14 @@ def test_pretty_record():
         args.append(arg)
 
     pretty_record(
-        PackageRecord.from_objects(
-            {
-                "name": "p",
-                "version": "1",
-                "build": "1",
-                "build_number": 1,
-                "timestamp": 0,
-                "license": None,
-            }
-        ),
+        PackageRecord.from_objects({
+            "name": "p",
+            "version": "1",
+            "build": "1",
+            "build_number": 1,
+            "timestamp": 0,
+            "license": None,
+        }),
         print=print,
     )
 
@@ -380,18 +378,33 @@ def test_pretty_record():
 
     # cover timestamp, size, constrains lines
     with_timestamp_and_constrains = _pretty_record_format(
-        PackageRecord.from_objects(
-            {
-                "name": "p",
-                "version": "1",
-                "build": "1",
-                "build_number": 1,
-                "timestamp": 1,
-                "license": None,
-                "constrains": ["conda"],
-                "size": 1,
-            }
-        )
+        PackageRecord.from_objects({
+            "name": "p",
+            "version": "1",
+            "build": "1",
+            "build_number": 1,
+            "timestamp": 1,
+            "license": None,
+            "constrains": ["conda"],
+            "size": 1,
+        })
     )
 
     assert with_timestamp_and_constrains.startswith("p 1 1\n")
+
+
+def test_search_no_channels_configured(
+    monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+):
+    # Test that search raises NoChannelsConfiguredError when no channels are configured
+    monkeypatch.setenv("CONDA_CHANNELS", "")
+    reset_context()
+    with pytest.raises(NoChannelsConfiguredError) as exc:
+        conda_cli(
+            "search",
+            "numpy",
+        )
+    error_message = str(exc.value)
+    assert "No channels are configured" in error_message
+    assert "numpy" in error_message
+    reset_context()

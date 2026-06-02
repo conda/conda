@@ -253,6 +253,12 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
 
+        if not channel_urls:
+            from ..exceptions import NoChannelsConfiguredError
+            raise NoChannelsConfiguredError(
+                packages=[spec.name] if spec.get_exact_value("name") else [],
+            )
+
         matches = sorted(
             SubdirData.query_all(spec, channel_urls, subdirs),
             key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
