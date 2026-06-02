@@ -1,13 +1,36 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import pytest
 
 from conda.common.terminal import (
     force_color,
+    is_tty,
     no_color,
     should_use_color,
     term_dumb,
 )
+
+
+@pytest.fixture(autouse=True)
+def clear_terminal_caches():
+    """Clear all functools.cache caches in conda.common.terminal before each test.
+
+    Without this, cached results from one test bleed into the next whenever
+    monkeypatch changes environment variables between tests.
+    """
+    is_tty.cache_clear()
+    term_dumb.cache_clear()
+    no_color.cache_clear()
+    force_color.cache_clear()
+    should_use_color.cache_clear()
+    yield
+    is_tty.cache_clear()
+    term_dumb.cache_clear()
+    no_color.cache_clear()
+    force_color.cache_clear()
+    should_use_color.cache_clear()
 
 
 @pytest.mark.parametrize(

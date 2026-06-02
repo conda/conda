@@ -6,8 +6,10 @@ Utility functions for terminal output.
 
 import os
 import sys
+from functools import cache
 
 
+@cache
 def is_tty() -> bool:
     """Return True if both stdin and stdout are connected to a TTY."""
     return (
@@ -18,6 +20,7 @@ def is_tty() -> bool:
     )
 
 
+@cache
 def term_dumb() -> bool:
     """
     Return True when ``TERM`` indicates a non-capable terminal.
@@ -29,6 +32,7 @@ def term_dumb() -> bool:
     return os.environ.get("TERM") in ("dumb", "unknown")
 
 
+@cache
 def no_color() -> bool:
     """
     Return True when *color* output should be suppressed.
@@ -43,6 +47,7 @@ def no_color() -> bool:
     return "NO_COLOR" in os.environ or term_dumb()
 
 
+@cache
 def force_color() -> bool:
     """
     Return True when color output should be forced even in non-TTY contexts.
@@ -53,6 +58,7 @@ def force_color() -> bool:
     return "FORCE_COLOR" in os.environ
 
 
+@cache
 def should_use_color() -> bool:
     """
     Determine whether ANSI color output should be produced.
