@@ -394,11 +394,17 @@ def test_pretty_record():
 
 
 def test_search_no_channels_configured(
-    monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+    mocker, conda_cli: CondaCLIFixture
 ):
-    # Test that search raises NoChannelsConfiguredError when no channels are configured
-    monkeypatch.setenv("CONDA_CHANNELS", "")
-    reset_context()
+    """
+    Test that search raises NoChannelsConfiguredError when no channels are configured.
+    """
+    from unittest.mock import PropertyMock
+    
+    # Mock context.channels to return empty tuple to simulate no channels configured
+    mocker.patch.object(
+        type(context), "channels", new_callable=PropertyMock, return_value=()
+    )
     with pytest.raises(NoChannelsConfiguredError) as exc:
         conda_cli(
             "search",
