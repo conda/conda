@@ -407,4 +407,3 @@ def test_search_no_channels_configured(
     error_message = str(exc.value)
     assert "No channels are configured" in error_message
     assert "numpy" in error_message
-    reset_context()
