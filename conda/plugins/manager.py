@@ -412,7 +412,10 @@ class CondaPluginManager(pluggy.PluginManager):
             lines = []
             for conflict_name, conflicting in sorted(conflict_groups.items()):
                 providers = dashlist(
-                    [_plugin_source(p.impl.plugin_name) for p in conflicting],
+                    [
+                        _plugin_source(p.impl.plugin_name)
+                        for p in sorted(conflicting, key=lambda p: p.impl.plugin_name)
+                    ],
                     indent=4,
                 )
                 lines.append(f"{conflict_name!r} provided by:{providers}")
