@@ -391,7 +391,8 @@ class CondaPluginManager(pluggy.PluginManager):
         ]
         if invalid:
             plugin_names = (
-                f"{repr(plugin)} ({plugin.impl.plugin_name})" for plugin in invalid
+                f"{repr(plugin)} ({_plugin_source(plugin.impl.plugin_name)})"
+                for plugin in invalid
             )
             raise PluginError(
                 f"Invalid plugin names found for `{name}`:\n"
