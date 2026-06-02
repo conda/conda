@@ -74,7 +74,9 @@ def parse_entry_point_def(ep_definition):
         )
     # Validate module and func
     if not is_valid_import_path(module):
-        raise ValueError(f"'{module}' is not a valid absolute import of a Python module")
+        raise ValueError(
+            f"'{module}' is not a valid absolute import of a Python module"
+        )
     if not is_valid_import_path(func):
         raise ValueError(f"'{func}' is not a valid Python function identifier")
 
