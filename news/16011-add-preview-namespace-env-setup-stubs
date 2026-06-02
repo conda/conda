@@ -1,0 +1,5 @@
+### Enhancements
+
+* Add `conda/_preview/` private namespace for opt-in preview features; scaffold the
+  first preview (`env-setup`) with non-operational stubs for `conda create` and
+  `conda install`, wired through `conda.plugins.previews`. (#16011)
