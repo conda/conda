@@ -19,6 +19,7 @@ from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
 from conda.plugins import virtual_packages
+from conda.plugins.manager import _plugin_source
 from conda.plugins.types import CondaPlugin
 
 if TYPE_CHECKING:
@@ -63,6 +64,18 @@ class DummyVirtualPackagePlugin:
     @plugins.hookimpl
     def conda_virtual_packages(*args) -> Iterator[plugins.types.CondaVirtualPackage]:
         yield DummyVirtualPackage
+
+
+def test_plugin_source_known_distribution():
+    # pluggy is always installed as a normal (non-editable) package
+    result = _plugin_source("pluggy.hooks")
+    assert re.match(r"pluggy \d+\.\d+", result)
+
+
+def test_plugin_source_unknown_distribution():
+    # a module that is definitely not from any installed package falls back to the raw name
+    raw = "__no_such_package__.plugin"
+    assert _plugin_source(raw) == raw
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
