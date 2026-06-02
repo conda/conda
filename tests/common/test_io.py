@@ -123,9 +123,9 @@ def test_thread_limited_executor_handles_thread_limit(
             side_effect=[None, None, None, RuntimeError],
         )
 
-        with thread_class() as executor:
-            if should_fail:
-                with pytest.raises(RuntimeError):
-                    _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
-            else:
+    with thread_class() as executor:
+        if should_fail:
+            with pytest.raises(RuntimeError):
                 _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
+        else:
+            _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]

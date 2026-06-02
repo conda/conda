@@ -11,13 +11,8 @@ from functools import cache
 
 @cache
 def is_tty() -> bool:
-    """Return True if both stdin and stdout are connected to a TTY."""
-    return (
-        hasattr(sys.stdout, "isatty")
-        and sys.stdout.isatty()
-        and hasattr(sys.stdin, "isatty")
-        and sys.stdin.isatty()
-    )
+    """Return True if stdout is connected to a TTY."""
+    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
 @cache
