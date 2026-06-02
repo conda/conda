@@ -72,15 +72,13 @@ deprecated.constant(
 )
 
 
-def reinstall_packages(args, specs: list[str], **kwargs) -> int:
+def reinstall_packages(args, specs: list[str], **kwargs) -> None:
     """Reinstall packages using conda install.
 
     Helper for health fixes that need to reinstall packages.
-
     :param args: Parsed arguments namespace
     :param specs: Package specs to reinstall
     :param kwargs: Override default install options (e.g., force_reinstall=True)
-    :return: Exit code from install
     """
     args.packages = specs
     args.channel = kwargs.get("channel", None)
@@ -93,12 +91,8 @@ def reinstall_packages(args, specs: list[str], **kwargs) -> int:
     args.prune = kwargs.get("prune", False)
     args.freeze_installed = kwargs.get("freeze_installed", False)
     args.solver_retries = kwargs.get("solver_retries", 0)
-    args.use_local = kwargs.get("use_local", False)
-    args.file = kwargs.get("file", [])
-    args.repodata_fns = kwargs.get("repodata_fns", None)
-    args.update_modifier = kwargs.get("update_modifier", NULL)
 
-    return install(args, None)
+    install(args, None)
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
