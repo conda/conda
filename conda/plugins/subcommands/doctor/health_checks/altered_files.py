@@ -110,8 +110,7 @@ def fix_altered_files(prefix: str, args: Namespace, confirm: ConfirmCallback) ->
     confirm("Reinstall these packages to restore original files?")
 
     specs = list(altered.keys())
-    reinstall_packages(args, specs, force_reinstall=True)
-    return 0
+    return reinstall_packages(args, specs, force_reinstall=True)
 
 
 @hookimpl

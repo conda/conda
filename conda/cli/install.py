@@ -72,7 +72,7 @@ deprecated.constant(
 )
 
 
-def reinstall_packages(args, specs: list[str], **kwargs) -> None:
+def reinstall_packages(args, specs: list[str], **kwargs) -> int:
     """Reinstall packages using conda install.
 
     Helper for health fixes that need to reinstall packages.
@@ -97,6 +97,7 @@ def reinstall_packages(args, specs: list[str], **kwargs) -> None:
     args.update_modifier = kwargs.get("update_modifier", NULL)
 
     install(args, None)
+    return 0
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):

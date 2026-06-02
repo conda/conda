@@ -120,8 +120,7 @@ def fix_inconsistent_packages(
         if pkg_name not in specs:
             specs.append(pkg_name)
 
-    reinstall_packages(args, specs, update_deps=True)
-    return 0
+    return reinstall_packages(args, specs, update_deps=True)
 
 
 @hookimpl
