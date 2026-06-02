@@ -71,7 +71,8 @@ def fix_missing_files(prefix: str, args: Namespace, confirm: ConfirmCallback) ->
     confirm("Reinstall these packages to restore missing files?")
 
     specs = list(packages_with_missing.keys())
-    return reinstall_packages(args, specs, force_reinstall=True)
+    reinstall_packages(args, specs, force_reinstall=True)
+    return 0
 
 
 @hookimpl

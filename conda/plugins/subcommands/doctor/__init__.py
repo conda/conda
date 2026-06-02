@@ -117,7 +117,10 @@ def execute(args: Namespace) -> int:
                 # User cancelled the fix
                 pass
             except Exception as err:
-                log.warning("Error running fix: %s (%s)", name, err)
+                if context.debug:
+                    log.exception("Error running fix: %s (%s)", name, err)
+                else:
+                    log.exception("Error running fix: %s (%s)", name, err)
                 exit_code = 1
         return exit_code
 
