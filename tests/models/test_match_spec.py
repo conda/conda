@@ -188,8 +188,14 @@ def test_canonical_string_forms():
     assert m("numpy=1.7=py3*_2") == "numpy==1.7[build=py3*_2]"
     assert m("numpy=1.7.*=py3*_2") == "numpy=1.7[build=py3*_2]"
 
-    assert m("https://repo.anaconda.com/pkgs/free::numpy") == "pkgs/free::numpy"
-    assert m("numpy[channel=https://repo.anaconda.com/pkgs/free]") == "pkgs/free::numpy"
+    assert (
+        m("https://repo.anaconda.com/pkgs/free::numpy")
+        == "https://repo.anaconda.com/pkgs/free::numpy"
+    )
+    assert (
+        m("numpy[channel=https://repo.anaconda.com/pkgs/free]")
+        == "https://repo.anaconda.com/pkgs/free::numpy"
+    )
     assert m("defaults::numpy") == "defaults::numpy"
     assert m("numpy[channel=defaults]") == "defaults::numpy"
     assert m("conda-forge::numpy") == "conda-forge::numpy"
@@ -198,15 +204,15 @@ def test_canonical_string_forms():
     assert m("numpy[channel=defaults,subdir=osx-64]") == "defaults/osx-64::numpy"
     assert (
         m("numpy[channel=https://repo.anaconda.com/pkgs/free/osx-64, subdir=linux-64]")
-        == "pkgs/free/linux-64::numpy"
+        == "https://repo.anaconda.com/pkgs/free/linux-64::numpy"
     )
     assert (
         m("https://repo.anaconda.com/pkgs/free/win-32::numpy")
-        == "pkgs/free/win-32::numpy"
+        == "https://repo.anaconda.com/pkgs/free/win-32::numpy"
     )
     assert (
         m("numpy[channel=https://repo.anaconda.com/pkgs/free/osx-64]")
-        == "pkgs/free/osx-64::numpy"
+        == "https://repo.anaconda.com/pkgs/free/osx-64::numpy"
     )
     assert m("defaults/win-32::numpy") == "defaults/win-32::numpy"
     assert m("conda-forge/linux-64::numpy") == "conda-forge/linux-64::numpy"
@@ -219,11 +225,11 @@ def test_canonical_string_forms():
     # TODO: should the result in these example pull out subdir?
     assert (
         m("https://repo.anaconda.com/pkgs/free/linux-32::numpy")
-        == "pkgs/free/linux-32::numpy"
+        == "https://repo.anaconda.com/pkgs/free/linux-32::numpy"
     )
     assert (
         m("numpy[channel=https://repo.anaconda.com/pkgs/free/linux-32]")
-        == "pkgs/free/linux-32::numpy"
+        == "https://repo.anaconda.com/pkgs/free/linux-32::numpy"
     )
 
     assert m("numpy=1.10=py38_0") == "numpy==1.10=py38_0"
@@ -401,7 +407,7 @@ def test_channel_matching():
 
     assert not ChannelMatch("https://repo.anaconda.com/pkgs/main").match("conda-forge")
 
-    assert str(MatchSpec("pkgs/main::*")) == "pkgs/main::*"
+    assert str(MatchSpec("pkgs/main::*")) == "defaults::*"
     assert str(MatchSpec("defaults::*")) == "defaults::*"
 
 
@@ -817,7 +823,7 @@ def test_parse_spec_str_no_brackets():
     }
     assert _parse_spec_str("https://repo.anaconda.com/pkgs/free::numpy") == {
         "_original_spec_str": "https://repo.anaconda.com/pkgs/free::numpy",
-        "channel": "pkgs/free",
+        "channel": "https://repo.anaconda.com/pkgs/free",
         "name": "numpy",
     }
     assert _parse_spec_str("defaults::numpy=1.8") == {
@@ -1265,15 +1271,20 @@ def test_merge_multiple_name():
 
 
 def test_channel_merge():
-    specs = (MatchSpec("pkgs/main::python"), MatchSpec("defaults::python"))
+    specs = (MatchSpec("conda-forge::python"), MatchSpec("defaults::python"))
     with pytest.raises(ValueError):
         MatchSpec.merge(specs)
 
-    specs = (MatchSpec("defaults::python"), MatchSpec("pkgs/main::python"))
+    specs = (MatchSpec("defaults::python"), MatchSpec("conda-forge::python"))
     with pytest.raises(ValueError):
         MatchSpec.merge(specs)
 
     specs = (MatchSpec("defaults::python"), MatchSpec("defaults::python 1.2.3"))
+    merged = MatchSpec.merge(specs)
+    assert len(merged) == 1
+    assert str(merged[0]) == "defaults::python==1.2.3"
+
+    specs = (MatchSpec("pkgs/main::python"), MatchSpec("defaults::python 1.2.3"))
     merged = MatchSpec.merge(specs)
     assert len(merged) == 1
     assert str(merged[0]) == "defaults::python==1.2.3"
