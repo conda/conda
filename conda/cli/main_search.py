@@ -255,6 +255,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
         if not channel_urls:
             from ..exceptions import NoChannelsConfiguredError
+
             raise NoChannelsConfiguredError(
                 packages=[spec.name] if spec.get_exact_value("name") else [],
             )

@@ -360,14 +360,16 @@ def test_pretty_record():
         args.append(arg)
 
     pretty_record(
-        PackageRecord.from_objects({
-            "name": "p",
-            "version": "1",
-            "build": "1",
-            "build_number": 1,
-            "timestamp": 0,
-            "license": None,
-        }),
+        PackageRecord.from_objects(
+            {
+                "name": "p",
+                "version": "1",
+                "build": "1",
+                "build_number": 1,
+                "timestamp": 0,
+                "license": None,
+            }
+        ),
         print=print,
     )
 
@@ -378,29 +380,29 @@ def test_pretty_record():
 
     # cover timestamp, size, constrains lines
     with_timestamp_and_constrains = _pretty_record_format(
-        PackageRecord.from_objects({
-            "name": "p",
-            "version": "1",
-            "build": "1",
-            "build_number": 1,
-            "timestamp": 1,
-            "license": None,
-            "constrains": ["conda"],
-            "size": 1,
-        })
+        PackageRecord.from_objects(
+            {
+                "name": "p",
+                "version": "1",
+                "build": "1",
+                "build_number": 1,
+                "timestamp": 1,
+                "license": None,
+                "constrains": ["conda"],
+                "size": 1,
+            }
+        )
     )
 
     assert with_timestamp_and_constrains.startswith("p 1 1\n")
 
 
-def test_search_no_channels_configured(
-    mocker, conda_cli: CondaCLIFixture
-):
+def test_search_no_channels_configured(mocker, conda_cli: CondaCLIFixture):
     """
     Test that search raises NoChannelsConfiguredError when no channels are configured.
     """
     from unittest.mock import PropertyMock
-    
+
     # Mock context.channels to return empty tuple to simulate no channels configured
     mocker.patch.object(
         type(context), "channels", new_callable=PropertyMock, return_value=()
