@@ -5,7 +5,7 @@
 ### Bug fixes
 
 * `conda search` now raises `NoChannelsConfiguredError` when no channels are
-  configured, making its behavior consistent with `conda install`.
+  configured, making its behavior consistent with `conda install`. (#16180)
 
 ### Deprecations
 
