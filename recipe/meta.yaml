@@ -39,6 +39,7 @@ requirements:
     - tqdm >=4
   run:
     - archspec >=0.2.3
+    - backports.zstd >=1.0.0       # [py<314]
     - boltons >=23.0.0
     - charset-normalizer
     - conda-package-handling >=2.2.0
@@ -55,8 +56,7 @@ requirements:
     - ruamel.yaml >=0.11.14,<0.19
     - setuptools >=60.0.0
     - tqdm >=4
-    - truststore >=0.8.0           # [py>=310]
-    - zstandard >=0.15
+    - truststore >=0.8.0
     # Plugins to bundle with conda
     - conda-libmamba-solver >=26.4.1
     - conda-lockfiles >=0.2.0

@@ -24,6 +24,7 @@ classifiers = [
 ]
 dependencies = [
   "archspec >=0.2.3",
+  "backports.zstd >=1.0.0; python_version < '3.14'",
   "boltons >=23.0.0",
   "charset-normalizer",
   # Disabled due to conda-libmamba-solver not being available on PyPI
@@ -41,8 +42,7 @@ dependencies = [
   "ruamel.yaml >=0.11.14,<0.19",
   "setuptools >=60.0.0",
   "tqdm >=4",
-  "truststore >=0.8.0; python_version>='3.10'",
-  "zstandard >=0.15",
+  "truststore >=0.8.0",
 ]
 description = "OS-agnostic, system-level binary package manager."
 dynamic = ["version"]

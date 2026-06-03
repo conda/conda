@@ -217,6 +217,11 @@
     @SET "_CHANNEL_NAME=conda-forge"
 )
 
+@SET "_PRE314="
+@IF "%_PYTHON:~0,4%"=="3.10" SET "_PRE314=--file=%_SRC%\tests\requirements-pre314.txt"
+@IF "%_PYTHON:~0,4%"=="3.11" SET "_PRE314=--file=%_SRC%\tests\requirements-pre314.txt"
+@IF "%_PYTHON:~0,4%"=="3.12" SET "_PRE314=--file=%_SRC%\tests\requirements-pre314.txt"
+@IF "%_PYTHON:~0,4%"=="3.13" SET "_PRE314=--file=%_SRC%\tests\requirements-pre314.txt"
 @CALL :CONDA "%_BASEEXE%" install ^
     --yes ^
     --quiet ^
@@ -226,6 +231,7 @@
     "--file=%_SRC%\tests\requirements.txt" ^
     "--file=%_SRC%\tests\requirements-ci.txt" ^
     "--file=%_SRC%\tests\requirements-Windows.txt" ^
+    %_PRE314% ^
     "python=%_PYTHON%" > NUL
 @IF NOT %ErrorLevel%==0 (
     @ECHO Error: failed to update %_NAME% 1>&2

@@ -1,0 +1,2 @@
+# Python < 3.14 only (stdlib compression.zstd from 3.14 onward; see conda.common.zstd).
+backports.zstd >=1.0.0

@@ -139,6 +139,7 @@ jobs:
           conda install
           --yes
           --file tests\requirements.txt
+          ${{ contains(fromJSON('["3.10","3.11","3.12","3.13"]'), matrix.python-version) && '--file tests\requirements-pre314.txt' || '' }}
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
@@ -284,6 +285,7 @@ jobs:
           conda install
           --yes
           --file tests/requirements.txt
+          ${{ contains(fromJSON('["3.10","3.11","3.12","3.13"]'), matrix.python-version) && '--file tests/requirements-pre314.txt' || '' }}
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
@@ -730,6 +732,7 @@ jobs:
           conda install
           --yes
           --file tests/requirements.txt
+          ${{ contains(fromJSON('["3.10","3.11","3.12","3.13"]'), matrix.python-version) && '--file tests/requirements-pre314.txt' || '' }}
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           python=${{ matrix.python-version }}
