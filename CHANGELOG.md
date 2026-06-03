@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 26.5.2 (2026-06-01)
+
+### Bug fixes
+
+* Validate Python entry point definitions before generating entry point scripts. (#16168)
+
+### Contributors
+
+* @jaimergp
+
+
+
 ## 26.5.1 (2026-05-26)
 
 ### Bug fixes
