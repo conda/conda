@@ -6,31 +6,10 @@ import pytest
 
 from conda.common.terminal import (
     force_color,
-    is_tty,
     no_color,
     should_use_color,
     term_dumb,
 )
-
-
-@pytest.fixture(autouse=True)
-def clear_terminal_caches():
-    """Clear all functools.cache caches in conda.common.terminal before each test.
-
-    Without this, cached results from one test bleed into the next whenever
-    monkeypatch changes environment variables between tests.
-    """
-    is_tty.cache_clear()
-    term_dumb.cache_clear()
-    no_color.cache_clear()
-    force_color.cache_clear()
-    should_use_color.cache_clear()
-    yield
-    is_tty.cache_clear()
-    term_dumb.cache_clear()
-    no_color.cache_clear()
-    force_color.cache_clear()
-    should_use_color.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -53,15 +32,9 @@ def test_no_color_when_env_var_set(monkeypatch, value):
     assert no_color() is True
 
 
-def test_no_color_when_term_dumb(monkeypatch):
+def test_no_color_false_without_env_var(monkeypatch):
     monkeypatch.delenv("NO_COLOR", raising=False)
     monkeypatch.setenv("TERM", "dumb")
-    assert no_color() is True
-
-
-def test_no_color_false_without_env_vars(monkeypatch):
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.delenv("TERM", raising=False)
     assert no_color() is False
 
 
@@ -71,42 +44,47 @@ def test_no_color_false_with_non_dumb_term(monkeypatch):
     assert no_color() is False
 
 
-@pytest.mark.parametrize("value", ["1", ""])
+@pytest.mark.parametrize("value", ["1", "true"])
 def test_force_color_when_env_var_set(monkeypatch, value):
     monkeypatch.setenv("FORCE_COLOR", value)
     assert force_color() is True
 
 
-def test_force_color_false_without_env_var(monkeypatch):
-    monkeypatch.delenv("FORCE_COLOR", raising=False)
+@pytest.mark.parametrize("value", [None, ""])
+def test_force_color_false(monkeypatch, value):
+    if value is None:
+        monkeypatch.delenv("FORCE_COLOR", raising=False)
+    else:
+        monkeypatch.setenv("FORCE_COLOR", value)
     assert force_color() is False
 
 
-def test_should_use_color_no_color_takes_precedence(monkeypatch):
-    monkeypatch.setenv("NO_COLOR", "1")
-    monkeypatch.setenv("FORCE_COLOR", "1")
-    assert should_use_color() is False
-
-
 @pytest.mark.parametrize(
-    "is_tty_value,expected",
-    [(False, True), (True, True)],
+    "term,no_color_value,force_color_value,is_tty_value,expected",
+    [
+        ("xterm-256color", "1", "1", True, False),
+        ("xterm-256color", None, "1", False, True),
+        ("dumb", None, "1", False, True),
+        ("dumb", None, None, True, False),
+        ("unknown", None, None, True, False),
+        ("xterm-256color", None, "", False, False),
+        ("xterm-256color", None, None, True, True),
+        ("xterm-256color", None, None, False, False),
+    ],
 )
-def test_should_use_color_force_color_or_tty(monkeypatch, is_tty_value, expected):
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.setenv("TERM", "xterm-256color")
-    monkeypatch.setenv("FORCE_COLOR", "1")
-    monkeypatch.setattr("conda.common.terminal.is_tty", lambda: is_tty_value)
-    assert should_use_color() is expected
+def test_should_use_color(
+    monkeypatch, term, no_color_value, force_color_value, is_tty_value, expected
+):
+    monkeypatch.setenv("TERM", term)
+    if no_color_value is None:
+        monkeypatch.delenv("NO_COLOR", raising=False)
+    else:
+        monkeypatch.setenv("NO_COLOR", no_color_value)
+    if force_color_value is None:
+        monkeypatch.delenv("FORCE_COLOR", raising=False)
+    else:
+        monkeypatch.setenv("FORCE_COLOR", force_color_value)
 
-
-@pytest.mark.parametrize(
-    "is_tty_value,expected",
-    [(True, True), (False, False)],
-)
-def test_should_use_color_tty_only(monkeypatch, is_tty_value, expected):
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.delenv("FORCE_COLOR", raising=False)
-    monkeypatch.setenv("TERM", "xterm-256color")
     monkeypatch.setattr("conda.common.terminal.is_tty", lambda: is_tty_value)
+
     assert should_use_color() is expected

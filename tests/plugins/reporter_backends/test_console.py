@@ -261,7 +261,7 @@ def test_progress_bar_non_tty_returns_quiet_bar(monkeypatch):
         "conda.plugins.reporter_backends.console.term_dumb", lambda: False
     )
     monkeypatch.setattr(
-        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=True)
+        "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
     )
     renderer = ConsoleReporterRenderer()
     bar = renderer.progress_bar("test")

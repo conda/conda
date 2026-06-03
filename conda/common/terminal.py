@@ -6,16 +6,13 @@ Utility functions for terminal output.
 
 import os
 import sys
-from functools import cache
 
 
-@cache
 def is_tty() -> bool:
     """Return True if stdout is connected to a TTY."""
     return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
-@cache
 def term_dumb() -> bool:
     """
     Return True when ``TERM`` indicates a non-capable terminal.
@@ -27,7 +24,6 @@ def term_dumb() -> bool:
     return os.environ.get("TERM") in ("dumb", "unknown")
 
 
-@cache
 def no_color() -> bool:
     """
     Return True when *color* output should be suppressed.
@@ -35,38 +31,36 @@ def no_color() -> bool:
     Respects the ``NO_COLOR`` standard (https://no-color.org/): color is
     suppressed when the ``NO_COLOR`` environment variable is set to any value.
     Non-color ANSI formatting (bold, underline, etc.) may still be used.
-
-    Note: ``TERM=dumb`` also implies no color, but it additionally disables
-    *all* escape codes — use :func:`term_dumb` to check that condition.
     """
-    return "NO_COLOR" in os.environ or term_dumb()
+    return "NO_COLOR" in os.environ
 
 
-@cache
 def force_color() -> bool:
     """
     Return True when color output should be forced even in non-TTY contexts.
 
-    Respects the ``FORCE_COLOR`` environment variable (used by many CI
-    systems and tools such as pytest).
+    Respects the ``FORCE_COLOR`` environment variable when it is set to a
+    non-empty value.
     """
-    return "FORCE_COLOR" in os.environ
+    return bool(os.environ.get("FORCE_COLOR"))
 
 
-@cache
 def should_use_color() -> bool:
     """
     Determine whether ANSI color output should be produced.
 
     The precedence order (highest to lowest) is:
 
-    1. ``NO_COLOR`` set or ``TERM=dumb``/``TERM=unknown`` → no color.
-    2. ``FORCE_COLOR`` set → color even in non-TTY.
-    3. stdout is a TTY → color.
-    4. Otherwise → no color.
+    1. ``NO_COLOR`` set -> no color.
+    2. non-empty ``FORCE_COLOR`` set -> color even in non-TTY.
+    3. ``TERM=dumb``/``TERM=unknown`` -> no color.
+    4. stdout is a TTY -> color.
+    5. Otherwise -> no color.
     """
     if no_color():
         return False
     if force_color():
         return True
+    if term_dumb():
+        return False
     return is_tty()

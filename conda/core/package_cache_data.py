@@ -33,7 +33,7 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.serialize import json
 from ..common.signals import signal_handler
-from ..common.terminal import is_tty
+from ..common.terminal import is_tty, term_dumb
 from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError
 from ..gateways.disk.create import (
@@ -811,7 +811,7 @@ class ProgressiveFetchExtract:
             if not context.verbose and not context.quiet and not context.json:
                 print(
                     "\nDownloading and Extracting Packages:",
-                    end="\n" if is_tty() else " ...working...",
+                    end="\n" if is_tty() and not term_dumb() else " ...working...",
                 )
             else:
                 log.debug(
@@ -915,7 +915,7 @@ class ProgressiveFetchExtract:
                 bar.close()
 
             if not context.verbose and not context.quiet and not context.json:
-                if is_tty():
+                if is_tty() and not term_dumb():
                     print("\r")  # move to column 0
                 else:
                     print(" done")
@@ -952,7 +952,7 @@ class ProgressiveFetchExtract:
             context_manager=context_manager,
             position=position,
             leave=leave,
-            enabled=not context.verbose and not context.quiet and is_tty(),
+            enabled=not context.verbose and not context.quiet and is_tty() and not term_dumb(),
         )
 
         return progress_bar
