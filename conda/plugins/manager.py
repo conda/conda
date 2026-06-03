@@ -23,6 +23,7 @@ from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
+from pluggy._manager import DistFacade
 
 from .. import __version__
 from ..auxlib import NULL
@@ -96,22 +97,6 @@ if TYPE_CHECKING:
     P = TypeVar("P", bound=CondaPluginWithAliases)
 
 log = logging.getLogger(__name__)
-
-
-def _plugin_source(impl_plugin_name: str) -> str:
-    """Return a human-readable 'distname version' for a pluggy plugin name."""
-    from importlib.metadata import distribution, packages_distributions
-
-    top_level = impl_plugin_name.split(".")[0]
-    dist_names = packages_distributions().get(top_level, [])
-    if dist_names:
-        meta = distribution(dist_names[0]).metadata
-        version = meta.get("Version", "")
-        return f"{dist_names[0]} {version}".strip()
-    # For a plugin defined by an editable installation, packages_distributions may not be reliable.
-    # https://docs.python.org/3/library/importlib.metadata.html#importlib.metadata.packages_distributions
-    # In this case, we can fall back to the raw pluggy plugin name.
-    return impl_plugin_name
 
 
 @dataclass
@@ -190,6 +175,15 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
 
+    def get_plugin_source(self, plugin: object) -> str:
+        """Return a human-readable source for a registered plugin."""
+        for registered_plugin, dist in self.list_plugin_distinfo():
+            if registered_plugin is plugin:
+                version = getattr(dist, "version", "")
+                return f"{dist.project_name} {version}".strip()
+
+        return self.get_name(plugin) or self.get_canonical_name(plugin)
+
     def register(self, plugin, name: str | None = None) -> str | None:
         """
         Call :meth:`pluggy.PluginManager.register` and return the result or
@@ -258,6 +252,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     continue
 
                 if self.register(plugin):
+                    self._plugin_distinfo.append((plugin, DistFacade(dist)))
                     count += 1
         return count
 
@@ -391,7 +386,7 @@ class CondaPluginManager(pluggy.PluginManager):
         ]
         if invalid:
             plugin_names = (
-                f"{repr(plugin)} ({_plugin_source(plugin.impl.plugin_name)})"
+                f"{repr(plugin)} ({self.get_plugin_source(plugin.impl.plugin)})"
                 for plugin in invalid
             )
             raise PluginError(
@@ -414,7 +409,7 @@ class CondaPluginManager(pluggy.PluginManager):
             for conflict_name, conflicting in sorted(conflict_groups.items()):
                 providers = dashlist(
                     [
-                        _plugin_source(p.impl.plugin_name)
+                        self.get_plugin_source(p.impl.plugin)
                         for p in sorted(conflicting, key=lambda p: p.impl.plugin_name)
                     ],
                     indent=4,

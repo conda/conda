@@ -19,7 +19,6 @@ from textwrap import wrap
 from typing import TYPE_CHECKING, Literal
 
 from ..exceptions import ArgumentError
-from ..plugins.manager import _plugin_source
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -518,12 +517,18 @@ class InfoRenderer:
 
         subcommands = self._context.plugin_manager.get_subcommands()
         conda_build = subcommands.pop("build", None)
-        impl_name = getattr(getattr(conda_build, "impl", None), "plugin_name", None)
-        plugin_source = _plugin_source(impl_name) if impl_name else None
+        plugin = getattr(getattr(conda_build, "impl", None), "plugin", None)
+        plugin_source = (
+            self._context.plugin_manager.get_plugin_source(plugin) if plugin else None
+        )
         output.append(f"conda-build: {plugin_source or '(missing)'}")
-        for name, plugin in sorted(subcommands.items()):
-            impl_name = getattr(getattr(plugin, "impl", None), "plugin_name", None)
-            plugin_source = _plugin_source(impl_name) if impl_name else None
+        for name, subcommand in sorted(subcommands.items()):
+            plugin = getattr(getattr(subcommand, "impl", None), "plugin", None)
+            plugin_source = (
+                self._context.plugin_manager.get_plugin_source(plugin)
+                if plugin
+                else None
+            )
             output.append(f"conda-{name}: {plugin_source or '(unknown)'}")
 
         site_dirs = self._info_dict["site_dirs"]
