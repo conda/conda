@@ -6,15 +6,64 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from conda.env.specs.requirements import RequirementsSpec
+from conda.exceptions import PluginError
 from conda.plugins.types import (
     CondaEnvironmentExporter,
     CondaEnvironmentSpecifier,
+    CondaSubcommand,
     EnvironmentFormat,
 )
 
 if TYPE_CHECKING:
     from conda.models.environment import Environment
+
+
+def noop_action(args):
+    pass
+
+
+def test_subcommand_aliases_default_to_empty_tuple():
+    subcommand = CondaSubcommand(
+        name="custom",
+        summary="Custom command.",
+        action=noop_action,
+    )
+
+    assert subcommand.aliases == ()
+
+
+def test_subcommand_aliases_normalized_and_deduplicated():
+    subcommand = CondaSubcommand(
+        name=" custom ",
+        summary="Custom command.",
+        action=noop_action,
+        aliases=(" Alternate ", "alternate", "Other"),
+    )
+
+    assert subcommand.name == "custom"
+    assert subcommand.aliases == ("alternate", "other")
+
+
+@pytest.mark.parametrize(
+    "aliases",
+    [
+        pytest.param(("",), id="empty-alias"),
+        pytest.param(("custom",), id="alias-matches-name"),
+        pytest.param((None,), id="non-string-alias"),
+        pytest.param("alternate", id="aliases-is-string"),
+    ],
+)
+def test_subcommand_invalid_aliases_raise_plugin_error(aliases):
+    with pytest.raises(PluginError, match="Invalid plugin aliases"):
+        CondaSubcommand(
+            name="custom",
+            summary="Custom command.",
+            action=noop_action,
+            aliases=aliases,
+        )
 
 
 class TestCondaEnvironmentSpecifier:

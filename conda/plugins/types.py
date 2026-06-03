@@ -115,11 +115,13 @@ class CondaSubcommand(CondaPlugin):
     :param name: Subcommand name (e.g., ``conda my-subcommand-name``).
     :param summary: Subcommand summary, will be shown in ``conda --help``.
     :param action: Callable that will be run when the subcommand is invoked.
+    :param aliases: Alternative names for the subcommand.
     :param configure_parser: Callable that will be run when the subcommand parser is initialized.
     """
 
     summary: str
     action: Callable[[Namespace], int | None] | Callable[[tuple[str, ...]], int | None]
+    aliases: tuple[str, ...] = field(default_factory=tuple)
     configure_parser: Callable[[ArgumentParser], None] | None = field(default=None)
 
     @overload
@@ -130,6 +132,7 @@ class CondaSubcommand(CondaPlugin):
         summary: str,
         action: Callable[[Namespace], int | None],
         configure_parser: Callable[[ArgumentParser], None],
+        aliases: tuple[str, ...] = (),
     ) -> None: ...
 
     @overload
@@ -140,6 +143,7 @@ class CondaSubcommand(CondaPlugin):
         summary: str,
         action: Callable[[tuple[str, ...]], int | None],
         configure_parser: None = None,
+        aliases: tuple[str, ...] = (),
     ) -> None: ...
 
     def __init__(
@@ -150,11 +154,23 @@ class CondaSubcommand(CondaPlugin):
         action: Callable[[Namespace], int | None]
         | Callable[[tuple[str, ...]], int | None],
         configure_parser: Callable[[ArgumentParser], None] | None = None,
+        aliases: tuple[str, ...] = (),
     ) -> None:
         super().__init__(name=name)
         self.summary = summary
         self.action = action
         self.configure_parser = configure_parser
+        self.aliases = ()
+        if isinstance(aliases, str):
+            raise PluginError(f"Invalid plugin aliases for {self!r}")
+        try:
+            self.aliases = tuple(
+                dict.fromkeys(alias.lower().strip() for alias in aliases)
+            )
+        except (AttributeError, TypeError):
+            raise PluginError(f"Invalid plugin aliases for {self!r}")
+        if any(not alias or alias == self.name for alias in self.aliases):
+            raise PluginError(f"Invalid plugin aliases for {self!r}")
 
 
 @dataclass
