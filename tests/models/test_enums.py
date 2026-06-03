@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.exceptions import CondaUpgradeError
-from conda.models.enums import NoarchType
+from conda.models.enums import NoarchType, PathEnum
 
 if TYPE_CHECKING:
     from typing import Any
@@ -108,3 +108,11 @@ def test_noarch_type_coercion(
         else nullcontext()
     ):
         assert NoarchType.coerce(value) == expected
+
+
+def test_path_enum():
+    assert PathEnum.basic_types == (
+        PathEnum.hardlink,
+        PathEnum.softlink,
+        PathEnum.directory,
+    )
