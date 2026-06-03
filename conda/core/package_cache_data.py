@@ -952,7 +952,10 @@ class ProgressiveFetchExtract:
             context_manager=context_manager,
             position=position,
             leave=leave,
-            enabled=not context.verbose and not context.quiet and is_tty() and not term_dumb(),
+            enabled=not context.verbose
+            and not context.quiet
+            and is_tty()
+            and not term_dumb(),
         )
 
         return progress_bar
