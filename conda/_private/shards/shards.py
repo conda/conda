@@ -595,7 +595,7 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 # shards as not supported; otherwise, we will check again next time.
 
 
-def fetch_shards_index(sd: SubdirData, *, force: bool = False) -> Shards | None:
+def fetch_shards_index(sd: SubdirData) -> Shards | None:
     """
     Check a SubdirData's URL for shards.
 
@@ -632,7 +632,10 @@ def fetch_shards_index(sd: SubdirData, *, force: bool = False) -> Shards | None:
 
     cache_state = repo_cache.state
 
-    if force or cache_state.should_check_format("shards"):
+    if (
+        cache_state.should_check_format("shards")
+        or not repo_cache.cache_path_json.exists()
+    ):
         # look for shards index
         shards_data = None
         shards_index_url = f"{sd.url_w_subdir}/{REPODATA_SHARDS_FN}"
@@ -761,21 +764,6 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             channel_url: SubdirData(Channel(channel_url))
             for channel_url in url_to_channel
         }
-        fallback_recheck_channels = set()
-        for channel_url, sd in subdir_data.items():
-            repo_cache = sd.repo_cache
-            try:
-                with repo_cache.lock("r+") as state_file:
-                    repo_cache.state.update(json.loads(state_file.read()))
-            except (FileNotFoundError, json.JSONDecodeError):
-                pass
-
-            if (
-                not repo_cache.state.should_check_format("shards")
-                and not repo_cache.cache_path_json.exists()
-            ):
-                fallback_recheck_channels.add(channel_url)
-
         futures = {
             executor.submit(fetch_shards_index, sd): channel_url
             for channel_url, sd in subdir_data.items()
@@ -790,30 +778,8 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        # If every channel appears non-sharded because of cached negative shard
-        # state, recheck channels that also have no classic cache before sending
-        # the caller down a repodata.json fallback path.
         if all(value is None for value in channel_data.values()):
-            retry_futures = {
-                executor.submit(
-                    fetch_shards_index, subdir_data[channel_url], force=True
-                ): channel_url
-                for channel_url in fallback_recheck_channels
-            }
-            for future in concurrent.futures.as_completed(retry_futures):
-                channel_url = retry_futures[future]
-                found = future.result()
-                if found:
-                    channel_data[channel_url] = found
-
-            if all(value is None for value in channel_data.values()):
-                return None  # caller should interpret this as falling back to the older code path
-
-            non_sharded_channels = [
-                (channel_url, channel)
-                for channel_url, channel in non_sharded_channels
-                if channel_data[channel_url] is None
-            ]
+            return None  # caller should interpret this as falling back to the older code path
 
         # Latency penalty launching these requests here instead of when we
         # non_sharded_channels.append(), but we want to leave a fallback to the

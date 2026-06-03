@@ -255,6 +255,64 @@ def test_fetch_channels_rechecks_shards_when_needed(
         httpd.shutdown()
 
 
+def test_fetch_channels_rechecks_stale_shards_in_mixed_channels(monkeypatch, tmp_path):
+    """
+    A stale negative shard result should be rechecked even when another channel
+    already has shards.
+    """
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-arm64")
+    reset_context()
+
+    stale_channel_root = tmp_path / "stale-channel"
+    other_channel_root = tmp_path / "other-channel"
+    stale_channel_root.mkdir()
+    other_channel_root.mkdir()
+
+    stale_httpd = _run_test_server(str(stale_channel_root))
+    other_httpd = _run_test_server(str(other_channel_root))
+    try:
+
+        def channel_url(httpd):
+            host, port = httpd.socket.getsockname()[:2]
+            url_host = f"[{host}]" if ":" in host else host
+            return f"http://{url_host}:{port}/"
+
+        stale_channel_url = channel_url(stale_httpd)
+        stale_channels = expand_channels(
+            [Channel(stale_channel_url)], subdirs=("osx-arm64", "noarch")
+        )
+        assert fetch_channels(stale_channels) is None
+
+        write_shards_repository(stale_channel_root)
+        write_shards_repository(other_channel_root)
+
+        other_channel_url = channel_url(other_httpd)
+        channels = expand_channels(
+            [Channel(stale_channel_url), Channel(other_channel_url)],
+            subdirs=("osx-arm64", "noarch"),
+        )
+        stale_noarch_url = next(
+            url
+            for url in channels
+            if url.startswith(stale_channel_url.rstrip("/")) and url.endswith("/noarch")
+        )
+        other_noarch_url = next(
+            url
+            for url in channels
+            if url.startswith(other_channel_url.rstrip("/")) and url.endswith("/noarch")
+        )
+
+        channel_data = fetch_channels(channels)
+
+        assert channel_data is not None
+        assert isinstance(channel_data[stale_noarch_url], Shards)
+        assert isinstance(channel_data[other_noarch_url], Shards)
+    finally:
+        stale_httpd.shutdown()
+        other_httpd.shutdown()
+
+
 @pytest.mark.integration
 def test_build_repodata_subset(prepare_shards_test: None, tmp_path):
     """
