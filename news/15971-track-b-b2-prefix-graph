@@ -1,0 +1,19 @@
+### Enhancements
+
+* Build a per-name candidate index in `PrefixGraph.__init__()` to replace the quadratic scan over all records. Speeds up transactions against large environments — ~50× at 1,000 records, far more at the scales where users notice it. (#15971)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
