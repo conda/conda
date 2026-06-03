@@ -403,9 +403,9 @@ def test_search_no_channels_configured(mocker, conda_cli: CondaCLIFixture):
     """
     # Mock context.channels to return empty tuple to simulate no channels configured
     mocker.patch(
-        "conda.base.context.Context.channels", 
+        "conda.base.context.Context.channels",
         new_callable=mocker.PropertyMock,
-        return_value=()
+        return_value=(),
     )
     with pytest.raises(NoChannelsConfiguredError) as exc:
         conda_cli(
