@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import msgpack
 import pytest
-import zstandard
+from conda.common.compression_zstd import zstd
 
 from conda._private.shards import cache, shards, subset
 from conda.base.context import context, reset_context
@@ -287,17 +287,17 @@ class ShardFactory:
         noarch = shards_repository / "noarch"
         noarch.mkdir(exist_ok=True)
 
-        foo_shard = zstandard.compress(msgpack.dumps(FAKE_SHARD))  # type: ignore
+        foo_shard = zstd.compress(msgpack.dumps(FAKE_SHARD))  # type: ignore
         foo_shard_digest = hashlib.sha256(foo_shard).digest()
         (noarch / f"{foo_shard_digest.hex()}.msgpack.zst").write_bytes(foo_shard)
 
-        bar_shard = zstandard.compress(msgpack.dumps(FAKE_SHARD_2))  # type: ignore
+        bar_shard = zstd.compress(msgpack.dumps(FAKE_SHARD_2))  # type: ignore
         bar_shard_digest = hashlib.sha256(bar_shard).digest()
         (noarch / f"{bar_shard_digest.hex()}.msgpack.zst").write_bytes(bar_shard)
 
         # Create fake malformed shards to test error handling
         malformed = {"follows_schema": False}
-        bad_schema = zstandard.compress(msgpack.dumps(malformed))  # type: ignore
+        bad_schema = zstd.compress(msgpack.dumps(malformed))  # type: ignore
         malformed_digest = hashlib.sha256(bad_schema).digest()
         (noarch / f"{malformed_digest.hex()}.msgpack.zst").write_bytes(bad_schema)
 
@@ -306,7 +306,7 @@ class ShardFactory:
             not_zstd
         )
 
-        not_msgpack = zstandard.compress(b"not msgpack")
+        not_msgpack = zstd.compress(b"not msgpack")
         (
             noarch / f"{hashlib.sha256(not_msgpack).digest().hex()}.msgpack.zst"
         ).write_bytes(not_msgpack)
@@ -325,7 +325,7 @@ class ShardFactory:
                 "not_msgpack": hashlib.sha256(not_msgpack).digest(),
             },
         }
-        index_data = zstandard.compress(msgpack.dumps(fake_shards))  # type: ignore
+        index_data = zstd.compress(msgpack.dumps(fake_shards))  # type: ignore
         (noarch / "repodata_shards.msgpack.zst").write_bytes(index_data)
 
         httpd = _run_test_server(
@@ -371,13 +371,12 @@ def mock_cache(tmp_path: Path) -> Iterator[MockCache]:
     with cache.ShardCache(tmp_path) as cache_instance:
         fake_shards = []
 
-        compressor = zstandard.ZstdCompressor(level=1)
         for i in range(num_fake_shards):
             fake_shard = {f"foo{i}": "bar"}
             annotated_shard = cache.AnnotatedRawShard(
                 f"https://foo{i}",
                 f"foo{i}",
-                compressor.compress(msgpack.dumps(fake_shard)),  # type: ignore
+                zstd.compress(msgpack.dumps(fake_shard), level=1),  # type: ignore
             )
             cache_instance.insert(annotated_shard)
             fake_shards.append(annotated_shard)

@@ -15,12 +15,12 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import msgpack
-import zstandard
 
 import conda.exceptions
 import conda.gateways.repodata
 from conda.base.constants import REPODATA_SHARDS_FN
 from conda.base.context import context
+from conda.common.compression_zstd import capped_decompress
 from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import get_session
 from conda.gateways.repodata import (
@@ -172,7 +172,7 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            zstandard.decompress(
+            capped_decompress(
                 fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
             )
         )
@@ -698,7 +698,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         if shards_data:
             # basic parse (move into caller?)
             shards_index: ShardsIndexDict = msgpack.loads(
-                zstandard.decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
+                capped_decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
             )  # type: ignore
             shards = Shards(shards_index, shards_index_url)
             return shards

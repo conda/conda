@@ -8,7 +8,7 @@ import platform
 import threading
 
 import pytest
-import zstandard
+from conda.common.compression_zstd import zstd
 
 from conda._private.shards.cache import AnnotatedRawShard, ShardCache
 from conda.common.compat import on_mac
@@ -37,7 +37,6 @@ class TestCacheWALMode:
         """Concurrent readers and writers must not raise OperationalError."""
         import msgpack
 
-        compressor = zstandard.ZstdCompressor(level=1)
         errors: list[Exception] = []
         stop = threading.Event()
 
@@ -50,7 +49,7 @@ class TestCacheWALMode:
                         shard = AnnotatedRawShard(
                             f"https://shard{i}",
                             f"pkg{i}",
-                            compressor.compress(msgpack.dumps({f"pkg{i}": "data"})),
+                            zstd.compress(msgpack.dumps({f"pkg{i}": "data"}), level=1),
                         )
                         cache_copy.insert(shard)
             except Exception as exc:
@@ -87,7 +86,6 @@ class TestCacheWALMode:
         """Multiple concurrent writers must not raise OperationalError."""
         import msgpack
 
-        compressor = zstandard.ZstdCompressor(level=1)
         errors: list[Exception] = []
         stop = threading.Event()
         num_writers = 3
@@ -101,8 +99,8 @@ class TestCacheWALMode:
                         shard = AnnotatedRawShard(
                             f"https://writer{writer_id}/shard{i}",
                             f"pkg{writer_id}_{i}",
-                            compressor.compress(
-                                msgpack.dumps({f"pkg{writer_id}_{i}": "data"})
+                            zstd.compress(
+                                msgpack.dumps({f"pkg{writer_id}_{i}": "data"}), level=1
                             ),
                         )
                         cache_copy.insert(shard)

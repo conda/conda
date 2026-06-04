@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import msgpack
-import zstandard
+from conda.common.compression_zstd import capped_decompress
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -158,7 +158,7 @@ class ShardCache:
             row = c.execute("SELECT shard FROM shards WHERE url = ?", (url,)).fetchone()
             return (
                 msgpack.loads(
-                    zstandard.decompress(
+                    capped_decompress(
                         row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE
                     )
                 )
@@ -175,15 +175,11 @@ class ShardCache:
         if not urls:
             return {}  # this optimization does not save a noticeable amount of time.
 
-        # In one test reusing the context saves difference between .006s and .01s
-        # We could make this a threadlocal.
-        dctx = zstandard.ZstdDecompressor()
-
         query = f"SELECT url, shard FROM shards WHERE url IN ({','.join(('?',) * len(urls))}) ORDER BY url"
         with self.conn as c:
             result: dict[str, ShardDict | None] = {
                 row["url"]: msgpack.loads(
-                    dctx.decompress(row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE)
+                    capped_decompress(row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE)
                 )
                 if row
                 else None

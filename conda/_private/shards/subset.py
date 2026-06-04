@@ -61,10 +61,10 @@ from queue import SimpleQueue
 from typing import TYPE_CHECKING
 
 import msgpack
-import zstandard
 
 import conda.gateways.repodata
 from conda.base.context import context
+from conda.common.compression_zstd import capped_decompress
 
 from . import cache
 from .cache import AnnotatedRawShard
@@ -687,7 +687,6 @@ def network_fetch_thread(
         cache: once shards are decoded they are stored in cache.
         shardlikes: list of (network-only) shard index objects.
     """
-    dctx = zstandard.ZstdDecompressor(max_window_size=ZSTD_MAX_SHARD_SIZE)
     shardlikes_by_url = {s.url: s for s in shardlikes}
 
     def fetch(s, url: str, node_id: NodeId):
@@ -716,7 +715,7 @@ def network_fetch_thread(
         # msgpack.zst, insert into cache. Then put "known
         # good" shard into out queue.
         shard: ShardDict = msgpack.loads(
-            dctx.decompress(data, max_output_size=ZSTD_MAX_SHARD_SIZE)
+            capped_decompress(data, max_output_size=ZSTD_MAX_SHARD_SIZE)
         )  # type: ignore[assign]
         # This may be a QueueCache which lets the cache thread serialize access
         # to the database:
