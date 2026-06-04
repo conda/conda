@@ -175,8 +175,12 @@ class CondaPluginManager(pluggy.PluginManager):
         else:
             return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
 
-    def get_plugin_source(self, plugin: object) -> str:
-        """Return a human-readable source for a registered plugin."""
+    def get_plugin_source(self, plugin: object) -> str | None:
+        """Return a human-readable source for a registered plugin,
+        or ``None`` if ``plugin`` is ``None``.
+        """
+        if plugin is None:
+            return None
         for registered_plugin, dist in self.list_plugin_distinfo():
             if registered_plugin is plugin:
                 version = getattr(dist, "version", "")
@@ -396,10 +400,11 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"Please report this issue to the plugin author(s)."
             )
 
-        # Check for conflicts since no two plugins can have the same name
         conflict_groups = {
             plugin_name: sorted(
-                self.get_plugin_source(plugin.impl.plugin) for plugin in conflicting
+                source
+                for plugin in conflicting
+                if (source := self.get_plugin_source(plugin.impl.plugin)) is not None
             )
             for plugin_name, conflicting in sorted(
                 groupby_to_dict(lambda plugin: plugin.name, plugins).items()

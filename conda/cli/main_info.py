@@ -515,21 +515,18 @@ class InfoRenderer:
             f"conda location: {self._info_dict['conda_location']}",
         ]
 
-        subcommands = self._context.plugin_manager.get_subcommands()
+        plugin_manager = self._context.plugin_manager
+        subcommands = plugin_manager.get_subcommands()
         conda_build = subcommands.pop("build", None)
         plugin = getattr(getattr(conda_build, "impl", None), "plugin", None)
-        plugin_source = (
-            self._context.plugin_manager.get_plugin_source(plugin) if plugin else None
+        output.append(
+            f"conda-build: {plugin_manager.get_plugin_source(plugin) or '(missing)'}"
         )
-        output.append(f"conda-build: {plugin_source or '(missing)'}")
         for name, subcommand in sorted(subcommands.items()):
             plugin = getattr(getattr(subcommand, "impl", None), "plugin", None)
-            plugin_source = (
-                self._context.plugin_manager.get_plugin_source(plugin)
-                if plugin
-                else None
+            output.append(
+                f"conda-{name}: {plugin_manager.get_plugin_source(plugin) or '(unknown)'}"
             )
-            output.append(f"conda-{name}: {plugin_source or '(unknown)'}")
 
         site_dirs = self._info_dict["site_dirs"]
         if site_dirs:
