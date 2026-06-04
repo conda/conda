@@ -158,10 +158,15 @@ class CondaPluginManager(pluggy.PluginManager):
         self.get_cached_request_headers = functools.cache(self.get_request_headers)
 
     def get_canonical_name(self, plugin: object) -> str:
-        # detect the fully qualified module name
-        prefix = "<unknown_module>"
-        if (module := getmodule(plugin)) and module.__spec__:
-            prefix = module.__spec__.name
+        # Detect the fully qualified module name. Prefer`__spec__.name
+        # which is set for normally-imported modules, including editable
+        # installations, and fall back to module.__name__ and to
+        # plugin.__module__ if getmodule couldn't locate source module
+        module = getmodule(plugin)
+        if module is not None:
+            prefix = (module.__spec__ and module.__spec__.name) or module.__name__
+        else:
+            prefix = getattr(plugin, "__module__", None) or "<unknown_module>"
 
         # return the fully qualified name for modules
         if module is plugin:
