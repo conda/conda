@@ -1,5 +1,31 @@
 [//]: # (current developments)
 
+## 26.5.2 (2026-06-01)
+
+### Bug fixes
+
+* Validate Python entry point definitions before generating entry point scripts. (#16168)
+
+### Contributors
+
+* @jaimergp
+
+
+
+## 26.5.1 (2026-05-26)
+
+### Bug fixes
+
+* Fix channel notices display failing with `ImportError` when a decorated command replaces base `python` while conda is still running on the previous interpreter. Pre-import `conda.notices.views` before the command so post-command display does not load modules from rewritten `site-packages`. (#16126 via #16142)
+* Fix crash in `UnavailableInvalidChannel` and `CondaHTTPError` when `simplejson` is installed and a non-JSON HTTP error response is received. (#16136)
+
+### Contributors
+
+* @jezdez
+* @kenodegard
+
+
+
 ## 26.5.0 (2026-05-15)
 
 ### Enhancements
