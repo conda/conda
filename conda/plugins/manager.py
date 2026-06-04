@@ -398,22 +398,18 @@ class CondaPluginManager(pluggy.PluginManager):
 
         # Check for conflicts since no two plugins can have the same name
         conflict_groups = {
-            plugin_name: conflicting
-            for plugin_name, conflicting in groupby_to_dict(
-                lambda plugin: plugin.name, plugins
-            ).items()
+            plugin_name: sorted(
+                self.get_plugin_source(plugin.impl.plugin) for plugin in conflicting
+            )
+            for plugin_name, conflicting in sorted(
+                groupby_to_dict(lambda plugin: plugin.name, plugins).items()
+            )
             if len(conflicting) > 1
         }
         if conflict_groups:
             lines = []
-            for conflict_name, conflicting in sorted(conflict_groups.items()):
-                providers = dashlist(
-                    [
-                        self.get_plugin_source(p.impl.plugin)
-                        for p in sorted(conflicting, key=lambda p: p.impl.plugin_name)
-                    ],
-                    indent=4,
-                )
+            for conflict_name, conflicting in conflict_groups.items():
+                providers = dashlist(conflicting, indent=4)
                 lines.append(f"{conflict_name!r} provided by:{providers}")
             raise PluginError(
                 f"Conflicting plugins found for `{name}`:\n"
