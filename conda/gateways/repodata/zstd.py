@@ -89,6 +89,9 @@ def download_repodata(
     if response.status_code == 200:
         with dest_path.open("wb") as repodata:
             if is_zst:
+                # Content-Encoding could be present so we need to decode it before
+                # decompressing the response payload.  No op if absent.
+                response.raw.decode_content = True
                 with zstd.ZstdFile(response.raw, "rb") as zf:
                     shutil.copyfileobj(zf, repodata)
             else:
