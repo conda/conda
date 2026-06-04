@@ -39,7 +39,7 @@ requirements:
     - tqdm >=4
   run:
     - archspec >=0.2.3
-    - backports.zstd >=1.0.0       # [py<314]
+    - backports.zstd >=1.3.0       # [py<314]
     - boltons >=23.0.0
     - charset-normalizer
     - conda-package-handling >=2.2.0
