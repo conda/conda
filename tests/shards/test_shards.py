@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import msgpack
 import pytest
-from conda.common.compression_zstd import zstd
 from conda_libmamba_solver.index import (
     _is_sharded_repodata_enabled,
 )
@@ -42,6 +41,7 @@ from conda._private.shards.shards import (
     shard_mentioned_packages,
 )
 from conda.base.context import context, reset_context
+from conda.common.compression_zstd import zstd
 from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
 

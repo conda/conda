@@ -23,10 +23,10 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import msgpack
 import pytest
-from conda.common.compression_zstd import zstd
 
 from conda._private.shards import cache, shards, subset
 from conda.base.context import context, reset_context
+from conda.common.compression_zstd import zstd
 from conda.models.channel import Channel, all_channel_urls
 
 if TYPE_CHECKING:

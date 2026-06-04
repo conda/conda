@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import msgpack
+
 from conda.common.compression_zstd import capped_decompress
 
 if TYPE_CHECKING:
@@ -158,9 +159,7 @@ class ShardCache:
             row = c.execute("SELECT shard FROM shards WHERE url = ?", (url,)).fetchone()
             return (
                 msgpack.loads(
-                    capped_decompress(
-                        row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE
-                    )
+                    capped_decompress(row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE)
                 )
                 if row
                 else None

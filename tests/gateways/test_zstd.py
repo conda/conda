@@ -10,11 +10,11 @@ from socket import socket
 
 import pytest
 import requests
-from conda.common.compression_zstd import zstd
 from pytest import MonkeyPatch
 
 import conda.gateways.repodata
 from conda.base.context import reset_context
+from conda.common.compression_zstd import zstd
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError
 from conda.gateways.connection.session import CondaSession
