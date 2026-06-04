@@ -353,13 +353,6 @@ jobs:
     if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-22.04
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-    env:
-      BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
-      BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -421,60 +414,26 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
-      - name: Install Bencher CLI
-        uses: bencherdev/bencher@0f8f620172ccd6225d40a7590598eb7b41718af8 # v0.6.2
-
       - name: Run Benchmarks
         run: >
           $CONDA/envs/test/bin/python -m pytest
           -m benchmark
           --benchmark-json benchmark_results.json
 
-      - name: Track base branch benchmarks with Bencher
-        if: github.event_name == 'push' && env.BENCHER_API_TOKEN != '' && env.BENCHER_PROJECT_SLUG != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH_NAME: ${{ github.ref_name }}
-        run: |
-          bencher run \
-            --project "$BENCHER_PROJECT_SLUG" \
-            --token "$BENCHER_API_TOKEN" \
-            --branch "$BRANCH_NAME" \
-            --testbed ubuntu-22.04 \
-            --threshold-measure latency \
-            --threshold-test t_test \
-            --threshold-max-sample-size 64 \
-            --threshold-upper-boundary 0.99 \
-            --thresholds-reset \
-            --err \
-            --adapter python_pytest \
-            --github-actions "$GH_TOKEN" \
-            --file benchmark_results.json
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: benchmark-results
+          path: benchmark_results.json
+          retention-days: 7
 
-      - name: Track PR benchmarks with Bencher
-        if: github.event_name == 'pull_request' && env.BENCHER_API_TOKEN != '' && env.BENCHER_PROJECT_SLUG != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          bencher run \
-            --project "$BENCHER_PROJECT_SLUG" \
-            --token "$BENCHER_API_TOKEN" \
-            --branch "$GITHUB_HEAD_REF" \
-            --start-point "$GITHUB_BASE_REF" \
-            --start-point-hash "$PR_BASE_SHA" \
-            --start-point-clone-thresholds \
-            --start-point-reset \
-            --testbed ubuntu-22.04 \
-            --threshold-measure latency \
-            --threshold-test t_test \
-            --threshold-max-sample-size 64 \
-            --threshold-upper-boundary 0.99 \
-            --ci-only-thresholds \
-            --err \
-            --adapter python_pytest \
-            --github-actions "$GH_TOKEN" \
-            --file benchmark_results.json
+      - name: Upload GitHub Pull Request Event
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: benchmark-event
+          path: ${{ github.event_path }}
+          retention-days: 7
 
   # linux typing
   linux-typing:
