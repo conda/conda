@@ -16,7 +16,6 @@ from requests import HTTPError  # noqa: TID253
 
 from ...base.constants import REPODATA_FN
 from ...base.context import context
-from ...common.compression_zstd import ZstdError, zstd
 from ...common.serialize import json
 from ...common.url import mask_anaconda_token
 from ...deprecations import deprecated
@@ -89,6 +88,8 @@ def download_repodata(
     if response.status_code == 200:
         with dest_path.open("wb") as repodata:
             if is_zst:
+                from ...common.compression_zstd import zstd
+
                 # Content-Encoding could be present so we need to decode it before
                 # decompressing the response payload.  No op if absent.
                 response.raw.decode_content = True
@@ -139,6 +140,8 @@ def request_url_zstd_state(
         dict | None: Parsed JSON or None if error
     """
     json_path = cache.cache_path_json
+
+    from ...common.compression_zstd import ZstdError
 
     is_fallback = False
     with timeme(f"Download complete {url} "):
