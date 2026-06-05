@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Prepare Release Notes
-        uses: conda/actions/prepare-release@main
+        uses: conda/actions/prepare-release@85d4128bba308734e876575a6ebee245c586884d
         with:
           news-directory: news
           changelog-path: CHANGELOG.md
