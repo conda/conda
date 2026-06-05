@@ -632,10 +632,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
 
     cache_state = repo_cache.state
 
-    if (
-        cache_state.should_check_format("shards")
-        or not repo_cache.cache_path_json.exists()
-    ):
+    if cache_state.should_check_format("shards"):
         # look for shards index
         shards_data = None
         shards_index_url = f"{sd.url_w_subdir}/{REPODATA_SHARDS_FN}"
