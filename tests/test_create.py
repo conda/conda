@@ -1659,7 +1659,8 @@ def test_menuinst_v2(
     assert install.call_count == 1
     assert "menuinst Exception" not in stdout + stderr
     assert not err
-    assert all(path.is_file() for path in shortcut_files)
+    missing = [p for p in shortcut_files if not p.is_file()]
+    assert not missing, f"missing shortcuts under {shortcut_root}: {missing}"
 
 
 def test_create_default_packages(
