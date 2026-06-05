@@ -325,11 +325,6 @@ if updating; then
         miniforge) _CHANNEL_NAME="conda-forge" ;;
     esac
 
-    _PRE314=
-    case "${_PYTHON}" in
-        3.10*|3.11*|3.12*|3.13*) _PRE314="--file=${_SRC}/tests/requirements-pre314.txt" ;;
-    esac
-
     if ! PYTHONPATH="" "${_BASEEXE}" install \
         --yes \
         --quiet \
@@ -339,7 +334,6 @@ if updating; then
         "--file=${_SRC}/tests/requirements.txt" \
         "--file=${_SRC}/tests/requirements-ci.txt" \
         "$([ "${_MACH}" = "Linux" ] && echo "--file=${_SRC}/tests/requirements-Linux.txt")" \
-        ${_PRE314} \
         "python=${_PYTHON}" > /dev/null; then
         echo "Error: failed to update ${_NAME}" 1>&2
         return 1
