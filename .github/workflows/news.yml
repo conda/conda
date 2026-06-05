@@ -1,0 +1,27 @@
+name: News fragment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check News
+        uses: conda/actions/check-news@main
+        with:
+          skip-label: no-news
+          require-pr-number: true
+          fragment-format: sectioned
+          news-directory: news
