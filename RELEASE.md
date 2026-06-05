@@ -4,6 +4,7 @@
 [compare]: https://github.com/conda/conda/compare
 [new release]: https://github.com/conda/conda/releases/new
 [infrastructure]: https://github.com/conda/infrastructure
+[rever docs]: https://regro.github.io/rever-docs
 [release docs]: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
 [merge conflicts]: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/about-merge-conflicts
 [Anaconda Recipes]: https://github.com/AnacondaRecipes/conda-feedstock
@@ -129,24 +130,132 @@ Once the release PRs are filed, successful canary builds will be available on `h
 > [!NOTE]
 > You do not need to apply the `build::review` label for release PRs; every commit to the release branch builds and uploads canary builds to the respective `rc-` label.
 
-## 4. Ensure `news/TEMPLATE` and release workflows are up to date.
+## 4. Ensure `rever.xsh`, `news/TEMPLATE`, and release workflows are up to date.
 
-These are synced from [`conda/infrastructure`][infrastructure]. News validation uses `conda/actions/check-news`; release-note generation uses `conda/actions/prepare-release`.
+These are synced from [`conda/infrastructure`][infrastructure]. `rever` remains responsible for authorship and mailmap maintenance; news validation uses `conda/actions/check-news`; release-note generation uses `conda/actions/prepare-release`.
 
 <details>
-<summary><h2>5. Prepare release notes. (ideally done on the Monday of release week)</h2></summary>
+<summary><h2>5. Run rever for authorship and prepare release notes. (ideally done on the Monday of release week)</h2></summary>
 
-The release notes flow is split into two pieces:
+The release flow is split into two pieces:
 
-- Contributor and mailmap maintenance remains separate from news generation.
-- News snippets are aggregated by the `Prepare release notes` workflow after `Tests` succeeds on the release branch.
+- `rever` is still used to update `.authors.yml`, `.mailmap`, and `AUTHORS.md`.
+- News snippets are aggregated into `CHANGELOG.md` by the `Prepare release notes` workflow after `Tests` succeeds on the release branch.
 
-1. Review news snippets and add any missing user-facing entries before the release branch test run finishes.
+1. Install [`rever`][rever docs] and activate the environment:
+
+    ```bash
+    $ conda create -n rever conda-forge::rever
+    $ conda activate rever
+    (rever) $
+    ```
+
+2. Clone and `cd` into the repository if you haven't done so already:
+
+    ```bash
+    (rever) $ git clone git@github.com:conda/conda.git
+    (rever) $ cd conda
+    ```
+
+2. Fetch the latest changes from the remote and checkout the release branch created a week ago:
+
+    ```bash
+    (rever) $ git fetch upstream
+    (rever) $ git checkout YY.MM.x
+    ```
+
+2. Create a versioned branch for the authorship, mailmap, and news updates:
+
+    ```bash
+    (rever) $ git checkout -b authorship-news-YY.MM.MICRO
+    ```
+
+2. Run `rever --activities authors <VERSION>`:
 
     > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
-    > Name news snippets with the following format: `<PR #>-<DESCRIPTIVE SLUG>`.
+    > Include `--force` when re-running any rever commands for the same `<VERSION>`, otherwise, rever will skip the activity and no changes will be made (i.e., rever remembers if an activity has been run for a given version).
+
+    ```bash
+    (rever) $ rever --activities authors --force <VERSION>
+    ```
+
+    - If rever finds that any of the authors are not correctly represented in `.authors.yml` it will produce an error. If the author that the error pertains to is:
+        - **a new contributor**: the snippet suggested by rever should be added to the `.authors.yml` file.
+        - **an existing contributor**, a result of using a new name/email combo: find the existing author in `.authors.yml` and add the new name/email combo to that author's `aliases` and `alterative_emails`.
+
+    - Once you have successfully run `rever --activities authors` with no errors, review the commit made by rever. This commit will contain updates to one or more of the author files (`.authors.yml`, `.mailmap`, and `AUTHORS.md`). Due to the race condition between `.authors.yml` and `.mailmap`, we want to extract changes made to any of the following keys in `.authors.yml` and commit them separately from the other changes in the rever commit:
+        -  `name`
+        -  `email`
+        -  `github`
+        -  `aliases`
+        -  `alternate_emails`
+
+      Other keys (e.g., `num_commits` and `first_commit`) do not need to be included in this separate commit as they will be overwritten by rever.
+
+    - Here's a sample run where we undo the commit made by rever in order to commit the changes to `.authors.yml` separately:
+
+        ```bash
+        (rever) $ rever --activities authors --force YY.MM.MICRO
+
+        # changes were made to .authors.yml as per the prior bullet
+        (rever) $ git diff --name-only HEAD HEAD~1
+        .authors.yml
+        .mailmap
+        AUTHORS.md
+
+        # undo commit
+        (rever) $ git reset --soft HEAD~1
+
+        # undo changes made to everything except .authors.yml
+        (rever) $ git restore --staged --worktree .mailmap AUTHORS.md
+        ```
+
+    - Commit these changes to `.authors.yml`:
+
+        ```bash
+        (rever) $ git add .
+        (rever) $ git commit -m "Update .authors.yml"
+        ```
+
+    - Rerun `rever --activities authors --force <VERSION>` and finally check that your `.mailmap` is correct by running:
+
+        ```bash
+        git shortlog -se
+        ```
+
+      Compare this list with `AUTHORS.md`. If they have any discrepancies, additional modifications to `.authors.yml` is needed, so repeat the above steps as needed.
+
+    - Once you are pleased with how the author's file looks, we want to undo the rever commit and commit the `.mailmap` changes separately:
+
+        ```bash
+        # undo commit (but preserve changes)
+        (rever) $ git reset --soft HEAD~1
+
+        # undo changes made to everything except .mailmap
+        (rever) $ git restore --staged --worktree .authors.yml AUTHORS.md
+        ```
+
+    - Commit these changes to `.mailmap`:
+
+        ```bash
+        (rever) $ git add .
+        (rever) $ git commit -m "Update .mailmap"
+        ```
+
+    - Continue repeating the above processes until the `.authors.yml` and `.mailmap` are corrected to your liking. After completing this, you will have at most two commits on your release branch:
+
+        ```bash
+        (rever) $ git cherry -v <release branch>
+        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
+        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
+        ```
+
+4. Review news snippets (ensure they are all using the correct Markdown format, **not** reStructuredText) and add additional snippets for undocumented PRs/changes as necessary.
+
+    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
+    > We've found it useful to name news snippets with the following format: `<PR #>-<DESCRIPTIVE SLUG>`.
     >
-    > Include the PR number inline with the text itself, e.g.:
+    > We've also found that we like to include the PR #s inline with the text itself, e.g.:
     >
     > ```markdown
     > ### Enhancements
@@ -154,29 +263,76 @@ The release notes flow is split into two pieces:
     > * Add `win-arm64` as a known platform (subdir). (#11778)
     > ```
 
-    - Use [GitHub's compare view][compare] to review what changes are included in this release. Compare the current release branch against the previous release branch.
+    - You can utilize [GitHub's compare view][compare] to review what changes are to be included in this release. Make sure you compare the current release branch against the previous one
 
-    - Add a new news snippet for any important PRs that are missing one.
+    - Add a new news snippet for any PRs of importance that are missing.
 
-2. Wait for `Tests` to pass on the `YY.MM.x` release branch.
+    - Commit these changes to news snippets:
+
+        ```bash
+        (rever) $ git add .
+        (rever) $ git commit -m "Update news"
+        ```
+
+    - After completing this, you will have at most three commits on your release branch:
+
+        ```bash
+        (rever) $ git cherry -v <release branch>
+        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
+        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
+        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
+        ```
+
+5. Push this versioned branch.
+
+    ```bash
+    (rever) $ git push -u upstream authorship-news-YY.MM.MICRO
+    ```
+
+6. Open the authorship and news PR targeting the `YY.MM.x` branch.
+
+    <details>
+    <summary>GitHub PR Template</summary>
+
+    ```markdown
+    ## Description
+
+    Update release authorship metadata, mailmap, and news snippets for YY.MM.MICRO.
+
+    Xref #<RELEASE ISSUE>
+    ```
+
+    </details>
+
+7. Update the release issue to include a link to the authorship and news PR.
+
+8. Merge the authorship and news PR after review.
+
+9. Wait for `Tests` to pass on the `YY.MM.x` release branch.
 
     The `Prepare release notes` workflow runs from that successful `workflow_run`, validates that it came from a trusted push to this repository, and opens or updates a `release-notes-YY.MM.MICRO` PR targeting `YY.MM.x`.
 
-3. Review the generated release-notes PR.
+10. Review the generated release-notes PR.
 
     - The PR should modify only `CHANGELOG.md` and consumed `news/` snippets.
     - The PR body should describe the generated release-notes update.
     - The changelog should preserve the news text under `Enhancements`, `Bug fixes`, `Deprecations`, `Docs`, and `Other`.
     - The consumed `news/` snippets should be deleted from the generated branch.
 
-4. If the changelog needs wording changes, edit the generated release-notes PR branch and rerun checks.
+11. Add first-time contributor information if the project includes contributor notes in `CHANGELOG.md`.
 
-5. Update the release issue to include a link to the release-notes PR.
+    - Use [GitHub's auto-generated release notes][new release] to get a list of all new contributors (and their first PR). See [GitHub docs][release docs] for how to auto-generate the release notes.
 
-6. [Create][new release] the release and **SAVE AS A DRAFT** with the following values:
+    - Manually merge this list into `CHANGELOG.md` on the generated release-notes PR branch.
+
+12. If the changelog needs wording changes, edit the generated release-notes PR branch and rerun checks.
+
+13. Update the release issue to include a link to the release-notes PR.
+
+14. [Create][new release] the release and **SAVE AS A DRAFT** with the following values:
 
     > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
-    > Only publish the release after the release PR is merged, until then always **save as draft**.
+    > Only publish the release after the release PRs are merged, until then always **save as draft**.
 
     | Field | Value |
     |---|---|
@@ -186,9 +342,9 @@ The release notes flow is split into two pieces:
 
 </details>
 
-## 6. Wait for review and approval of release PR.
+## 6. Wait for review and approval of release PRs.
 
-## 7. Merge release PR and publish release.
+## 7. Merge release PRs and publish release.
 
 To publish the release, go to the project's release page (e.g., https://github.com/conda/conda/releases) and add the release notes from `CHANGELOG.md` to the draft release you created earlier. Then publish the release.
 
