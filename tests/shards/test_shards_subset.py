@@ -338,6 +338,7 @@ def repodata_subset_size(channel_data):
     return repodata_size
 
 
+@pytest.mark.benchmark
 @pytest.mark.integration
 @pytest.mark.parametrize("cache_state", ("cold", "warm"))
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
