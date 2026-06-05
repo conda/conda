@@ -134,6 +134,10 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      # Necessary for menuinst testing in pytest
+      - name: Install backports in base
+        run: conda install -n base --yes backports.zstd
+
       - name: Conda Install
         run: >
           conda install
