@@ -4,7 +4,8 @@
 
 ### Bug fixes
 
-* Add search support for sharded repodata (#16134 via #16149)
+* Add search support for sharded repodata. `conda search *` is disallowed to
+  avoid downloading every shard.  (#16134 via #16149)
 
 ### Deprecations
 

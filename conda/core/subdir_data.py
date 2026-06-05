@@ -737,8 +737,9 @@ def _search_package_via_shards(
     channel_urls: tuple[str, ...] | list[str],
     subdirs: tuple[str, ...] | list[str],
 ) -> tuple[PackageRecord, ...]:
+    from .._private.shards.shards import fetch_channels
+    from .._private.shards.subset import RepodataSubset
     from ..base.context import context
-    from ..gateways.shards import build_repodata_subset
     from ..models.channel import Channel, all_channel_urls
     from ..models.records import PackageRecord
 
@@ -748,11 +749,48 @@ def _search_package_via_shards(
     channels = {
         channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
     }
-    subset_dict = build_repodata_subset(
-        [spec.name], channels, repodata_version=3, depth=0
-    )
-    if not subset_dict:
+
+    subset_dict = fetch_channels(channels)
+    if subset_dict is None:
         return _search_package(spec, channel_urls, subdirs)
+
+    if not spec.get_exact_value("name"):
+        # Needed if MatchSpec() includes a wildcard, otherwise root_packages =
+        # [spec.name] would be sufficient. Adds about 1s on conda-forge compared
+        # to exact-name shortcut.
+        packages: set[str] = set()
+        for shard_base in subset_dict.values():
+            if shard_base is not None:
+                packages.update(shard_base.package_names)
+
+        # MatchSpec.match(dict) does create a new PackageRecord(), match against
+        # name only to defer version etc. filter until later.
+        raw_name = spec.get_raw_value("name")
+        if raw_name == "*":  # Refuse instead of fetching all shards
+            from ..exceptions import CondaValueError
+
+            raise CondaValueError(
+                "Cannot search for bare '*'. Please include package name in search."
+            )  # TODO improve error message
+        name_only = MatchSpec(raw_name)  # type: ignore[assign]
+        root_packages = [
+            name
+            for name in packages
+            if name_only.match(
+                {
+                    "name": name,
+                    "version": "",
+                    "build": "",
+                    "build_number": 0,
+                }
+            )
+        ]
+    else:
+        root_packages = [spec.name]
+
+    subset = RepodataSubset((*subset_dict.values(),), repodata_version=3, depth=0)
+    subset.reachable(root_packages)
+
     records = []
     for channel, shard in subset_dict.items():
         for section_tuple, record in shard.iter_records_v3():
@@ -768,8 +806,7 @@ def _search_package_via_shards(
                 rec = PackageRecord(channel=channel, fn=section_tuple[0], **record)
             else:
                 rec = PackageRecord(channel=channel, **record)
-            target_spec = rec.to_match_spec()
-            if spec.match(target_spec):
+            if spec.match(rec):
                 records.append(rec)
     return records
 
