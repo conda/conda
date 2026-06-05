@@ -81,10 +81,10 @@ def package_is_installed(
         return prefix_recs[0]
 
 
-def get_shortcut_dir(prefix_for_unix=sys.prefix):
+def get_shortcut_dir(prefix=sys.prefix):
     if sys.platform == "win32":
-        # On Windows, .nonadmin has been historically created by constructor in sys.prefix
-        user_mode = "user" if Path(sys.prefix, ".nonadmin").is_file() else "system"
+        # menuinst 2.5.0+ checks .nonadmin in target_prefix or base_prefix
+        user_mode = "user" if Path(prefix, ".nonadmin").is_file() else "system"
         try:  # menuinst v2
             from menuinst.platforms.win_utils.knownfolders import dirs_src
 
@@ -101,7 +101,7 @@ def get_shortcut_dir(prefix_for_unix=sys.prefix):
     # on unix, .nonadmin is only created by menuinst v2 as needed on the target prefix
     # it might exist, or might not; if it doesn't, we try to create it
     # see https://github.com/conda/menuinst/issues/150
-    non_admin_file = Path(prefix_for_unix, ".nonadmin")
+    non_admin_file = Path(prefix, ".nonadmin")
     if non_admin_file.is_file():
         user_mode = "user"
     else:

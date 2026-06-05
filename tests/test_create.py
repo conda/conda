@@ -1612,7 +1612,7 @@ def test_menuinst_v2(
     install = mocker.spy(menuinst, "install")
 
     (tmp_path / ".nonadmin").touch()
-    shortcut_root = Path(get_shortcut_dir(prefix_for_unix=tmp_path))
+    shortcut_root = Path(get_shortcut_dir(prefix=tmp_path))
 
     # shortcut_dirs are directories that need to be cleaned up
     # shortcut_files are files that need to be cleaned up
