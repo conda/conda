@@ -83,8 +83,8 @@ def package_is_installed(
 
 def get_shortcut_dir(prefix_for_unix=sys.prefix):
     if sys.platform == "win32":
-        # Target-prefix .nonadmin (same signal menuinst uses); name is historical.
-        user_mode = "user" if Path(prefix_for_unix, ".nonadmin").is_file() else "system"
+        # On Windows, .nonadmin has been historically created by constructor in sys.prefix
+        user_mode = "user" if Path(sys.prefix, ".nonadmin").is_file() else "system"
         try:  # menuinst v2
             from menuinst.platforms.win_utils.knownfolders import dirs_src
 
