@@ -40,8 +40,6 @@ class _CutoffParser:
             return None
         if isinstance(value, str) and not value.strip():
             return None
-        if self.is_disabled_cutoff(value):
-            return None
 
         return self.cutoff(value)
 
@@ -86,19 +84,6 @@ class _CutoffParser:
                 f"Invalid exclude_newer value {value!r}; duration must not be negative"
             )
         return self.now - duration_seconds
-
-    def is_disabled_cutoff(self, value: str | int | float | bool) -> bool:
-        if isinstance(value, bool):
-            return False
-        if isinstance(value, (int, float)):
-            return value == 0
-
-        raw_value = value.strip()
-        try:
-            duration = parse_duration(raw_value)
-        except ValueError:
-            duration = None
-        return duration is not None and duration.total_seconds() == 0
 
     @staticmethod
     def invalid(value: str) -> CondaValueError:

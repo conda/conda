@@ -131,9 +131,14 @@ def test_exclude_newer_policy_parses_durations(
     assert policy.global_cutoff == NOW - expected_duration
 
 
-@pytest.mark.parametrize("value", ["0", "0d", "P0D"])
-def test_exclude_newer_policy_accepts_zero_as_disabled(value: str) -> None:
-    assert not ExcludeNewerPolicy.from_values(value, {}, now=NOW).active
+@pytest.mark.parametrize("value", [0, "0", "0d", "P0D"])
+def test_exclude_newer_policy_accepts_zero_as_now(value: str | int) -> None:
+    policy = ExcludeNewerPolicy.from_values(value, {}, now=NOW)
+
+    assert policy.active
+    assert policy.global_cutoff == NOW
+    assert policy.should_include(_record("current", timestamp=NOW))
+    assert not policy.should_include(_record("future", timestamp=NOW + 1))
 
 
 def test_exclude_newer_policy_accepts_absolute_cutoff_equal_to_now() -> None:
