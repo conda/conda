@@ -233,6 +233,126 @@ def test_build_repodata_subset(prepare_shards_test: None, tmp_path):
     )
 
 
+@pytest.mark.parametrize(
+    "algorithm,depth,root_package,expected_result",
+    [
+        (
+            "bfs",
+            0,
+            "bar",
+            {
+                "bar",
+            },
+        ),
+        (
+            "pipelined",
+            0,
+            "bar",
+            {
+                "bar",
+            },
+        ),
+        (
+            "bfs",
+            1,
+            "bar",
+            {
+                "bar",
+                "foo",
+            },
+        ),
+        ("pipelined", 1, "bar", {"bar", "foo"}),
+        (
+            "bfs",
+            10,
+            "foo",
+            {
+                "bar",
+                "foo",
+            },
+        ),
+        ("pipelined", 10, "foo", {"bar", "foo"}),
+    ],
+)
+def test_build_repodata_subset_with_depth(
+    http_server_shards,
+    algorithm,
+    depth,
+    root_package,
+    expected_result,
+    monkeypatch,
+    tmp_path,
+):
+    """
+    Ensure we can fetch and build a valid repodata subset for different fetch depths from our mock local server.
+    A depth of 0 should just get the root package. Depth of 1 should get just the just the first level dependencies, etc,
+    """
+    # Guarantee clean cache to avoid interference from previous tests
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    channel_data = build_repodata_subset(
+        [root_package], {channel.url() or "": channel}, algorithm=algorithm, depth=depth
+    )
+
+    record_names = []
+    for shardlike in channel_data.values():
+        record_names += [rec.get("name") for _, rec in shardlike.iter_records_v3()]
+    assert set(record_names) == expected_result
+
+
+@pytest.mark.parametrize(
+    "search_spec,should_find_results",
+    [
+        pytest.param("foo", True, id="exact_foo"),
+        pytest.param("bar", True, id="exact_bar"),
+        pytest.param("bar*", True, id="wild_bar*"),
+        pytest.param("bar 1 0_a", True, id="bar_params_match"),
+        pytest.param("bar[sha256=a]", False, id="params_nomatch"),
+        pytest.param("xyz", False, id="exact_no_match"),
+        pytest.param("*", False, id="bare *"),
+    ],
+)
+def test_query_all_sharded_search(
+    http_server_shards,
+    search_spec,
+    should_find_results,
+    monkeypatch,
+    tmp_path,
+):
+    """
+    Test that query_all can search for packages against sharded repodata.
+    """
+    from conda.core.subdir_data import query_all
+    from conda.models.match_spec import MatchSpec
+
+    # Enable shards and clean cache
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    spec = MatchSpec(search_spec)
+
+    if search_spec == "*":
+        with pytest.raises(ValueError, match="bare '*'"):
+            query_all(spec, [channel], subdirs=["noarch"])
+        return
+
+    results = query_all(spec, [channel], subdirs=["noarch"])
+
+    if should_find_results:
+        assert len(results) > 0, f"Expected to find packages for {search_spec}"
+        # Verify all results match the spec
+        for result in results:
+            assert spec.match(result), f"{result.name} doesn't match {spec}"
+    else:
+        assert len(results) == 0, (
+            f"Expected no results for {search_spec}, but found {results}"
+        )
+
+
 class TestAddPipAsPythonDependency:
     """Tests for add_pip_as_python_dependency context setting"""
 
@@ -534,7 +654,10 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
 
                 # Make sure this is either one of the two packages from above ("foo" or "bar")
                 assert set(shard.get("packages", {}).keys()).intersection(
-                    ("foo.tar.bz2", "bar.tar.bz2")
+                    (
+                        "foo.tar.bz2",
+                        "bar.tar.bz2",
+                    )
                 )
 
                 urls[url] = shard

@@ -319,7 +319,7 @@ class ShardFactory:
                 "foo": foo_shard_digest,
                 "bar": bar_shard_digest,
                 "wrong_package_name": foo_shard_digest,
-                "fake_package": b"",
+                "fake_package": bytes.fromhex("0bad"),
                 "malformed": malformed_digest,
                 "not_zstd": hashlib.sha256(not_zstd).digest(),
                 "not_msgpack": hashlib.sha256(not_msgpack).digest(),
