@@ -436,6 +436,7 @@ class PackageRecord(DictSafeMixin, Entity):
         return self.package_type in PackageType.unmanageable_package_types()
 
     timestamp = TimestampField()
+    indexed_timestamp = TimestampField()
 
     @property
     def combined_depends(self):

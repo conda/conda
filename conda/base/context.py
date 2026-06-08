@@ -1600,7 +1600,10 @@ class Context(Configuration):
                 threshold. Accepts durations (7d, 3d12h, 1w, P7D),
                 ISO 8601 dates (2026-04-01), RFC 3339 timestamps
                 (2026-04-01T12:00:00Z), or a plain number of seconds.
-                Set to 0 or empty string to disable (the default).
+                Date-only values are interpreted as the start of the next
+                day in UTC. Set to 0 or empty string to disable (the default).
+                Packages without an indexed_timestamp or timestamp are included
+                for compatibility.
                 """
             ),
             exclude_newer_package=dals(
