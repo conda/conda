@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from types import MappingProxyType
 
@@ -59,8 +59,12 @@ def parse_datetime_to_timestamp(
     """
     if _DATE_ONLY_RE.match(value):
         if date_only == DateOnlyBehavior.NEXT_UTC_DAY:
-            day = datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
-            return (day + timedelta(days=1)).timestamp()
+            day = date.fromisoformat(value) + timedelta(days=1)
+            return datetime.combine(
+                day,
+                datetime.min.time(),
+                tzinfo=timezone.utc,
+            ).timestamp()
         return None
 
     if _COMPACT_DATE_ONLY_RE.match(value):
