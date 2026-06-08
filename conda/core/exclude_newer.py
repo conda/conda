@@ -9,10 +9,10 @@ from time import time
 from typing import TYPE_CHECKING
 
 from ..common.datetime import (
+    DateOnlyBehavior,
     normalize_timestamp_seconds,
-    parse_date_to_next_utc_day_timestamp,
-    parse_duration_seconds,
-    parse_iso_datetime_to_timestamp,
+    parse_datetime_to_timestamp,
+    parse_duration,
 )
 from ..exceptions import CondaValueError
 
@@ -62,20 +62,19 @@ class _CutoffParser:
             )
 
         try:
-            duration = parse_duration_seconds(raw_value)
+            duration = parse_duration(raw_value)
         except ValueError as exc:
             raise self.invalid(raw_value) from exc
         if duration is not None:
-            return self.duration_cutoff(duration, raw_value)
+            return self.duration_cutoff(duration.total_seconds(), raw_value)
 
         try:
-            date_cutoff = parse_date_to_next_utc_day_timestamp(raw_value)
+            timestamp = parse_datetime_to_timestamp(
+                raw_value,
+                date_only=DateOnlyBehavior.NEXT_UTC_DAY,
+            )
         except ValueError as exc:
             raise self.invalid(raw_value) from exc
-        if date_cutoff is not None:
-            return date_cutoff
-
-        timestamp = parse_iso_datetime_to_timestamp(raw_value)
         if timestamp is not None:
             return timestamp
 
@@ -89,15 +88,17 @@ class _CutoffParser:
         return self.now - duration_seconds
 
     def is_disabled_cutoff(self, value: str | int | float | bool) -> bool:
+        if isinstance(value, bool):
+            return False
         if isinstance(value, (int, float)):
             return value == 0
 
         raw_value = value.strip()
         try:
-            duration = parse_duration_seconds(raw_value)
+            duration = parse_duration(raw_value)
         except ValueError:
             duration = None
-        return duration == 0
+        return duration is not None and duration.total_seconds() == 0
 
     @staticmethod
     def invalid(value: str) -> CondaValueError:
