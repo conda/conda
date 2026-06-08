@@ -1,0 +1,19 @@
+### Enhancements
+
+* Batch per-file `codesign` invocations on osx-arm64 into a single end-of-transaction call. Cuts `conda install` / `conda update` time on macOS by roughly 15–30% for packages with many prefix-replaced binaries. No effect on other platforms. (#15975)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
