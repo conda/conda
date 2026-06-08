@@ -17,6 +17,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from ..common.io import dashlist
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import Any, NotRequired, TypedDict
@@ -26,8 +28,8 @@ if TYPE_CHECKING:
         hint_code: str
 
     class ErrorGuidanceTypedDict(TypedDict):
-        summary: NotRequired[str]
-        cause: NotRequired[str]
+        summary: NotRequired[str | None]
+        cause: NotRequired[str | None]
         hints: NotRequired[Iterable[GuidanceHintTypedDict]]
 
 
@@ -79,15 +81,15 @@ def format_guidance(guidance: ErrorGuidance, message: str) -> str:
     """
     lines = []
     lines.append(guidance.summary.rstrip() if guidance.summary else message.rstrip())
-    if guidance.cause:
+    if guidance.cause or guidance.hints:
         lines.append("")
+    if guidance.cause:
         lines.append(f"Cause: {guidance.cause.rstrip()}")
     if guidance.hints:
-        lines.append("")
-        lines.append("Next steps:")
-        for i, hint in enumerate(guidance.hints, 1):
-            code = f" ({hint.hint_code})" if hint.hint_code else ""
-            lines.append(f"  {i}. {hint.text.rstrip()}{code}")
+        hint_items = [
+            f"({hint.hint_code}) {hint.text}".rstrip() for hint in guidance.hints
+        ]
+        lines.append(f"Next steps:{dashlist(hint_items, indent=2)}")
     return "\n".join(lines)
 
 

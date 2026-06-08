@@ -779,19 +779,18 @@ class UnlinkLinkTransaction:
                 "This operation will remove conda without replacing it with\n"
                 "another version of conda.",
                 guidance={
-                    "summary": (
-                        "Conda cannot remove itself from this environment without "
-                        "installing another conda build to replace it."
-                    ),
+                    "summary": "Conda cannot remove itself.",
                     "cause": (
                         "The planned transaction would uninstall the conda package "
                         "without linking a replacement."
                     ),
                     "hints": [
                         {
-                            "text": "Install a specific conda build first, for example: "
-                            "conda install conda=<version>",
-                            "hint_code": "install_conda_build",
+                            "text": (
+                                "Install a specific conda version first, for example:\n"
+                                "      conda install conda=<version>"
+                            ),
+                            "hint_code": "install_conda_version",
                         },
                         {
                             "text": "Use a separate environment for other packages "
@@ -847,9 +846,12 @@ class UnlinkLinkTransaction:
                             ),
                             "hints": [
                                 {
-                                    "text": "Create a new environment for your work "
-                                    "(for example: conda create -n myenv python=...) "
-                                    "instead of installing everything in base.",
+                                    "text": (
+                                        "Create a new environment for your work "
+                                        "instead of installing everything in base, "
+                                        "for example:\n"
+                                        "      conda create -n myenv python=..."
+                                    ),
                                     "hint_code": "use_non_base_env",
                                 },
                                 {

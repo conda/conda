@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+import pytest
+
 from conda._private.exception_guidance import (
     ErrorGuidance,
     GuidanceHint,
@@ -41,7 +43,6 @@ def test_ErrorGuidance_full() -> None:
 
 def test_ErrorGuidance_frozen() -> None:
     g = ErrorGuidance(summary="Test.")
-    import pytest
 
     with pytest.raises(AttributeError):
         g.summary = "Changed."
@@ -74,10 +75,35 @@ def test_format_guidance_with_hints() -> None:
             GuidanceHint("Do B", "do_b"),
         ),
     )
-    result = format_guidance(g, "fallback")
-    assert "Next steps:" in result
-    assert "1. Do A (do_a)" in result
-    assert "2. Do B (do_b)" in result
+    result = format_guidance(g, "fallback").splitlines()
+    assert result == [
+        "Failed.",
+        "",
+        "Next steps:",
+        "  - (do_a) Do A",
+        "  - (do_b) Do B",
+    ]
+
+
+def test_format_guidance_multiline_command_hint() -> None:
+    g = ErrorGuidance(
+        summary="Failed.",
+        hints=(
+            GuidanceHint(
+                "Install a specific conda version first, for example:\n"
+                "      conda install conda=<version>",
+                "install_conda_version",
+            ),
+        ),
+    )
+    result = format_guidance(g, "fallback").splitlines()
+    assert result == [
+        "Failed.",
+        "",
+        "Next steps:",
+        "  - (install_conda_version) Install a specific conda version first, for example:",
+        "      conda install conda=<version>",
+    ]
 
 
 def test_format_guidance_full() -> None:
@@ -89,12 +115,15 @@ def test_format_guidance_full() -> None:
             GuidanceHint("Try Z.", "try_z"),
         ),
     )
-    result = format_guidance(g, "fallback")
-    assert "Failed." in result
-    assert "Cause: Because of X." in result
-    assert "Next steps:" in result
-    assert "1. Try Y. (try_y)" in result
-    assert "2. Try Z. (try_z)" in result
+    result = format_guidance(g, "fallback").splitlines()
+    assert result == [
+        "Failed.",
+        "",
+        "Cause: Because of X.",
+        "Next steps:",
+        "  - (try_y) Try Y.",
+        "  - (try_z) Try Z.",
+    ]
 
 
 def test_ErrorGuidance_hint_codes_computed() -> None:
@@ -179,7 +208,5 @@ def test_coerce_guidance_dict_unknown_keys_ignored() -> None:
 
 
 def test_coerce_guidance_invalid_type() -> None:
-    import pytest
-
     with pytest.raises(TypeError, match="guidance must be dict or ErrorGuidance"):
         _coerce_guidance("not a dict or ErrorGuidance")  # type: ignore[arg-type]

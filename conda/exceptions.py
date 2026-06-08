@@ -43,7 +43,10 @@ if TYPE_CHECKING:
 
     import requests
 
-    from ._private.exception_guidance import ErrorGuidance, ErrorGuidanceTypedDict
+    from ._private.exception_guidance import (
+        ErrorGuidance,
+        ErrorGuidanceTypedDict,
+    )
     from .base.context import Context
     from .common.path import PathType
     from .models.match_spec import MatchSpec
@@ -793,18 +796,23 @@ class PackagesNotFoundError(CondaError):
                 % {"count": len(self.packages)},
                 "hints": [
                     {
-                        "text": "Run 'conda config --show channels' and verify "
-                        "the expected channels are listed.",
+                        "text": (
+                            "Verify the expected channels are listed:\n"
+                            "      conda config --show channels"
+                        ),
                         "hint_code": "check_channel_config",
                     },
                     {
-                        "text": "Run 'conda info' and confirm the platform "
-                        "(subdir) matches your system.",
+                        "text": (
+                            "Confirm the platform (subdir) matches your system:\n"
+                            "      conda info"
+                        ),
                         "hint_code": "check_platform_subdir",
                     },
                     {
-                        "text": "Run 'conda clean -i' to clear the index cache, "
-                        "then retry.",
+                        "text": (
+                            "Clear the index cache, then retry:\n      conda clean -i"
+                        ),
                         "hint_code": "clear_index_cache",
                     },
                 ],
@@ -1121,33 +1129,44 @@ def _build_unsatisfiable_guidance(
     if had_empty:
         hints.append(
             {
-                "text": "Enable unsatisfiable hints: conda config --set unsatisfiable_hints True",
+                "text": (
+                    "Enable unsatisfiable hints for more detail:\n"
+                    "      conda config --set unsatisfiable_hints True"
+                ),
                 "hint_code": "enable_unsatisfiable_hints",
             }
         )
     else:
         hints.append(
             {
-                "text": "Review the conflicting specifications above and adjust version ranges or package names.",
+                "text": (
+                    "Review the conflicting specifications above and adjust version "
+                    "ranges or package names."
+                ),
                 "hint_code": "review_conflicting_specs",
             }
         )
     if strict:
         hints.append(
             {
-                "text": "Strict channel priority is enabled. Try 'conda config --set channel_priority flexible'.",
+                "text": (
+                    "Strict channel priority is enabled. Try flexible priority:\n"
+                    "      conda config --set channel_priority flexible"
+                ),
                 "hint_code": "channel_priority_flexible",
             }
         )
     hints.append(
         {
-            "text": "Check for pinned packages: conda config --show pinned_packages",
+            "text": (
+                "Check for pinned packages:\n      conda config --show pinned_packages"
+            ),
             "hint_code": "check_pinned_packages",
         }
     )
     hints.append(
         {
-            "text": "Update conda and try again: conda update conda",
+            "text": "Update conda and try again:\n      conda update conda",
             "hint_code": "update_conda",
         }
     )
