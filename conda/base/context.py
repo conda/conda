@@ -1601,7 +1601,8 @@ class Context(Configuration):
                 ISO 8601 dates (2026-04-01), RFC 3339 timestamps
                 (2026-04-01T12:00:00Z), or a plain number of seconds.
                 Date-only values are interpreted as the start of the next
-                day in UTC. Set to 0 or empty string to disable (the default).
+                day in UTC. Set to 0 for no delay, using the current time as
+                the cutoff. Leave empty to disable (the default).
                 Packages without an indexed_timestamp or timestamp are included
                 for compatibility.
                 """
