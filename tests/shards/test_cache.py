@@ -9,8 +9,8 @@ import threading
 
 import pytest
 
+from conda._private import zstd
 from conda._private.shards.cache import AnnotatedRawShard, ShardCache
-from conda._private.zstd import zstd
 from conda.common.compat import on_mac
 
 

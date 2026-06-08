@@ -88,7 +88,7 @@ def download_repodata(
     if response.status_code == 200:
         with dest_path.open("wb") as repodata:
             if is_zst:
-                from ..._private.zstd import zstd
+                from ..._private import zstd
 
                 # Content-Encoding could be present so we need to decode it before
                 # decompressing the response payload.  No op if absent.
