@@ -34,7 +34,6 @@ from conda.base.constants import (
 from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
-from conda.common.io import stderr_log_level
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
     BIN_DIRECTORY,
@@ -75,7 +74,6 @@ from conda.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
 from conda.testing.integration import (
     PYTHON_BINARY,
-    TEST_LOG_LEVEL,
     get_shortcut_dir,
     package_is_installed,
     which_or_where,
@@ -100,8 +98,6 @@ if TYPE_CHECKING:
     )
 
 log = getLogger(__name__)
-stderr_log_level(TEST_LOG_LEVEL, "conda")
-stderr_log_level(TEST_LOG_LEVEL, "requests")
 
 pytestmark = [
     # all tests in this file are integration tests

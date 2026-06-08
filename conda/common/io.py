@@ -142,7 +142,7 @@ class SwallowBrokenPipe(ContextDecorator):
 swallow_broken_pipe = SwallowBrokenPipe()
 
 
-class CaptureTarget(Enum):
+class _CaptureTarget(Enum):
     """Constants used for contextmanager captured.
 
     Used similarly like the constants PIPE, STDOUT for stdlib's subprocess.Popen.
@@ -150,6 +150,9 @@ class CaptureTarget(Enum):
 
     STRING = -1
     STDOUT = -2
+
+
+deprecated.constant("26.9", "27.3", "CaptureTarget", _CaptureTarget)
 
 
 @contextmanager
@@ -225,9 +228,10 @@ def env_unmodified(
 
 
 @contextmanager
+@deprecated("26.9", "27.3")
 def captured(
-    stdout: CaptureTarget | None | Any = CaptureTarget.STRING,
-    stderr: CaptureTarget | None | Any = CaptureTarget.STRING,
+    stdout: _CaptureTarget | None | Any = _CaptureTarget.STRING,
+    stderr: _CaptureTarget | None | Any = _CaptureTarget.STRING,
 ) -> Generator[Any, None, None]:
     r"""Capture outputs of sys.stdout and sys.stderr.
 
@@ -283,7 +287,7 @@ def captured(
     # sys.stdout.write(bytes('bytes out', encoding='utf-8'))
     # sys.stdout.write(str('str out'))
     saved_stdout, saved_stderr = sys.stdout, sys.stderr
-    if stdout == CaptureTarget.STRING:
+    if stdout == _CaptureTarget.STRING:
         outfile = StringIO()
         outfile.old_write = outfile.write
         outfile.write = partial(write_wrapper, outfile)
@@ -292,12 +296,12 @@ def captured(
         outfile = stdout
         if outfile is not None:
             sys.stdout = outfile
-    if stderr == CaptureTarget.STRING:
+    if stderr == _CaptureTarget.STRING:
         errfile = StringIO()
         errfile.old_write = errfile.write
         errfile.write = partial(write_wrapper, errfile)
         sys.stderr = errfile
-    elif stderr == CaptureTarget.STDOUT:
+    elif stderr == _CaptureTarget.STDOUT:
         sys.stderr = errfile = outfile
     else:
         errfile = stderr
@@ -308,13 +312,13 @@ def captured(
     try:
         yield c
     finally:
-        if stdout == CaptureTarget.STRING:
+        if stdout == _CaptureTarget.STRING:
             c.stdout = outfile.getvalue()
         else:
             c.stdout = outfile
-        if stderr == CaptureTarget.STRING:
+        if stderr == _CaptureTarget.STRING:
             c.stderr = errfile.getvalue()
-        elif stderr == CaptureTarget.STDOUT:
+        elif stderr == _CaptureTarget.STDOUT:
             c.stderr = None
         else:
             c.stderr = errfile
@@ -323,6 +327,7 @@ def captured(
 
 
 @contextmanager
+@deprecated("26.9", "27.3")
 def argv(args_list: list[str]) -> Generator[None, None, None]:
     """Temporarily replace sys.argv with the given list.
 
@@ -337,6 +342,7 @@ def argv(args_list: list[str]) -> Generator[None, None, None]:
 
 
 @contextmanager
+@deprecated("26.9", "27.3")
 def disable_logger(logger_name: str) -> Generator[None, None, None]:
     """Temporarily disable a logger by setting its level above CRITICAL.
 
@@ -359,6 +365,7 @@ def disable_logger(logger_name: str) -> Generator[None, None, None]:
 
 
 @contextmanager
+@deprecated("26.9", "27.3")
 def stderr_log_level(
     level: int,
     logger_name: str | None = None,

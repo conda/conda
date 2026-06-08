@@ -23,6 +23,7 @@ from ..common.io import captured as common_io_captured
 from ..common.serialize import json
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData
+from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..history import History
@@ -60,6 +61,7 @@ def raises(exception, func, string=None):
 
 
 @contextmanager
+@deprecated("26.9", "27.3", addendum="Use pytest's `capsys` fixture instead.")
 def captured(disallow_stderr=True):
     # same as common.io.captured but raises Exception if unexpected output was written to stderr
     try:

@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context, reset_context
-from conda.common.io import stderr_log_level
 from conda.exceptions import (
     CondaEnvException,
     DryRunExit,
@@ -18,10 +17,7 @@ from conda.exceptions import (
     PackagesNotFoundInPrefixError,
 )
 from conda.gateways.disk.delete import path_is_clean
-from conda.testing.integration import (
-    TEST_LOG_LEVEL,
-    package_is_installed,
-)
+from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -31,8 +27,6 @@ if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 log = getLogger(__name__)
-stderr_log_level(TEST_LOG_LEVEL, "conda")
-stderr_log_level(TEST_LOG_LEVEL, "requests")
 
 
 def test_remove_all(
