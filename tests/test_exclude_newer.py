@@ -4,28 +4,36 @@
 
 from __future__ import annotations
 
-from argparse import ArgumentTypeError
 from datetime import datetime, timezone
-from os.path import join
 from time import time
 from typing import TYPE_CHECKING
 
 import pytest
 
+from conda import CondaError
 from conda.base.context import context, reset_context
-from conda.cli.helpers import parse_duration_to_seconds
 from conda.common.serialize import json
+from conda.core.exclude_newer import ExcludeNewerPolicy
+from conda.core.index import ReducedIndex
+from conda.core.solve import Solver
 from conda.core.subdir_data import SubdirData
+from conda.exceptions import CondaValueError, PackagesNotFoundError
 from conda.models.channel import Channel
-from conda.testing.helpers import CHANNEL_DIR_V1
+from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from pytest import MonkeyPatch
 
+    from conda.testing.fixtures import CondaCLIFixture
+
 
 PLATFORM = "linux-64"
+NOW = 1_700_000_000.0
+DAY = 86400
+CUTOFF = datetime.fromtimestamp(NOW - DAY, timezone.utc).isoformat()
 
 PKG_BASE = {
     "build": "0",
@@ -38,327 +46,271 @@ PKG_BASE = {
 }
 
 
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        pytest.param("0", 0, id="zero"),
-        pytest.param("3600", 3600, id="plain-seconds"),
-        pytest.param("604800", 604800, id="plain-large"),
-        pytest.param("30s", 30, id="seconds"),
-        pytest.param("5m", 300, id="minutes"),
-        pytest.param("24h", 86400, id="hours"),
-        pytest.param("7d", 604800, id="days"),
-        pytest.param("1w", 604800, id="one-week"),
-        pytest.param("2w", 1209600, id="two-weeks"),
-        pytest.param("3d12h", 3 * 86400 + 12 * 3600, id="combined-days-hours"),
-        pytest.param("1w2d", 9 * 86400, id="combined-weeks-days"),
-        pytest.param("7D", 604800, id="uppercase-D"),
-        pytest.param("1W", 604800, id="uppercase-W"),
-        pytest.param("  7d  ", 604800, id="whitespace"),
-        pytest.param("P7D", 604800, id="iso8601-days"),
-        pytest.param("PT24H", 86400, id="iso8601-hours"),
-        pytest.param("P1W", 604800, id="iso8601-week"),
-        pytest.param("P1DT12H", 1 * 86400 + 12 * 3600, id="iso8601-combined"),
-        pytest.param("PT30M", 1800, id="iso8601-minutes"),
-        pytest.param("PT3600S", 3600, id="iso8601-seconds"),
-        pytest.param("P2W3D", 2 * 604800 + 3 * 86400, id="iso8601-weeks-days"),
-    ],
-)
-def test_parse_duration_valid(value: str, expected: int):
-    assert parse_duration_to_seconds(value) == expected
-
-
-def test_parse_duration_iso_date():
-    result = parse_duration_to_seconds("2020-01-01")
-    expected_ts = int(datetime(2020, 1, 1, tzinfo=timezone.utc).timestamp())
-    expected_delta = int(time()) - expected_ts
-    assert abs(result - expected_delta) < 2
-
-
-def test_parse_duration_rfc3339_timestamp():
-    result = parse_duration_to_seconds("2020-06-15T12:00:00Z")
-    expected_ts = int(datetime(2020, 6, 15, 12, 0, 0, tzinfo=timezone.utc).timestamp())
-    expected_delta = int(time()) - expected_ts
-    assert abs(result - expected_delta) < 2
-
-
-def test_parse_duration_rfc3339_with_offset():
-    result = parse_duration_to_seconds("2020-06-15T12:00:00+02:00")
-    expected_ts = int(datetime(2020, 6, 15, 10, 0, 0, tzinfo=timezone.utc).timestamp())
-    expected_delta = int(time()) - expected_ts
-    assert abs(result - expected_delta) < 2
-
-
-def test_parse_duration_future_timestamp_rejected():
-    with pytest.raises(ArgumentTypeError, match="in the future"):
-        parse_duration_to_seconds("2099-01-01")
-
-
-@pytest.mark.parametrize(
-    "value, match",
-    [
-        pytest.param("", "must not be empty", id="empty"),
-        pytest.param("abc", "invalid duration", id="garbage"),
-        pytest.param("0d", "invalid duration", id="zero-duration"),
-        pytest.param("P0D", "invalid duration", id="iso8601-zero"),
-        pytest.param("7x", "invalid duration", id="unknown-unit"),
-    ],
-)
-def test_parse_duration_invalid(value: str, match: str):
-    with pytest.raises(ArgumentTypeError, match=match):
-        parse_duration_to_seconds(value)
-
-
-@pytest.mark.parametrize(
-    "exclude_newer, pkg_overrides, expected_in, expected_out",
-    [
-        pytest.param(
-            "0",
-            None,
-            {"zlib", "libgcc-ng"},
-            set(),
-            id="disabled",
-        ),
-        pytest.param(
-            "86400",
-            None,
-            {"zlib", "libgcc-ng"},
-            set(),
-            id="short-threshold-old-packages",
-        ),
-        pytest.param(
-            None,
-            None,
-            set(),
-            {"zlib", "libgcc-ng"},
-            id="huge-threshold-filters-all",
-        ),
-        pytest.param(
-            None,
-            {"zlib": "false", "libgcc-ng": "false"},
-            {"zlib", "libgcc-ng"},
-            set(),
-            id="exempt-bypasses-all",
-        ),
-        pytest.param(
-            None,
-            {"zlib": "false"},
-            {"zlib"},
-            {"libgcc-ng"},
-            id="partial-exempt",
-        ),
-    ],
-)
-def test_exclude_newer_local_channel(
-    monkeypatch: MonkeyPatch,
-    exclude_newer: str | None,
-    pkg_overrides: dict[str, str] | None,
-    expected_in: set[str],
-    expected_out: set[str],
-):
-    if exclude_newer is None:
-        exclude_newer = str(int(time()) + 86400)
-    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", exclude_newer)
-    reset_context()
-    if pkg_overrides is not None:
-        monkeypatch.setattr(context, "exclude_newer_package", pkg_overrides)
-
-    SubdirData.clear_cached_local_channel_data()
-    channel = Channel(join(CHANNEL_DIR_V1, PLATFORM))
-    sd = SubdirData(channel=channel)
-    names = {rec.name for rec in sd.iter_records()}
-
-    for name in expected_in:
-        assert name in names, f"{name} should be included"
-    for name in expected_out:
-        assert name not in names, f"{name} should be excluded"
+def _record(
+    name: str,
+    *,
+    timestamp: int | float | None = None,
+    indexed_timestamp: int | float | None = None,
+) -> PackageRecord:
+    kwargs = {
+        **PKG_BASE,
+        "name": name,
+        "channel": Channel("https://example.test/conda"),
+        "fn": f"{name}-1.0-0.tar.bz2",
+    }
+    if timestamp is not None:
+        kwargs["timestamp"] = timestamp
+    if indexed_timestamp is not None:
+        kwargs["indexed_timestamp"] = indexed_timestamp
+    return PackageRecord(**kwargs)
 
 
 @pytest.fixture
-def exclude_newer_channel(tmp_path: Path) -> Channel:
-    """Create a temporary channel with packages that have and lack timestamps."""
-    subdir_path = tmp_path / PLATFORM
-    subdir_path.mkdir()
+def exclude_newer_channel(tmp_path: Path) -> tuple[Path, Channel]:
+    channel_root = tmp_path / "channel"
+    subdir_path = channel_root / PLATFORM
+    noarch_path = channel_root / "noarch"
+    subdir_path.mkdir(parents=True)
+    noarch_path.mkdir()
 
-    now_ms = int(time() * 1000)
     repodata = {
         "info": {"subdir": PLATFORM},
         "packages": {
-            "has-old-timestamp-1.0-0.tar.bz2": {
+            "old-pkg-1.0-0.tar.bz2": {
                 **PKG_BASE,
-                "name": "has-old-timestamp",
-                "timestamp": 1534516107109,
+                "name": "old-pkg",
+                "timestamp": int((NOW - 10 * DAY) * 1000),
             },
-            "has-new-timestamp-1.0-0.tar.bz2": {
+            "new-pkg-1.0-0.tar.bz2": {
                 **PKG_BASE,
-                "name": "has-new-timestamp",
-                "timestamp": now_ms,
+                "name": "new-pkg",
+                "timestamp": int((NOW - 60) * 1000),
             },
-            "no-timestamp-1.0-0.tar.bz2": {
+            "no-timestamp-pkg-1.0-0.tar.bz2": {
                 **PKG_BASE,
-                "name": "no-timestamp",
+                "name": "no-timestamp-pkg",
             },
         },
         "packages.conda": {},
     }
 
     (subdir_path / "repodata.json").write_text(json.dumps(repodata))
-    return Channel(str(subdir_path))
+    (noarch_path / "repodata.json").write_text(
+        json.dumps({"info": {"subdir": "noarch"}, "packages": {}, "packages.conda": {}})
+    )
+    return channel_root, Channel(str(subdir_path))
 
 
 @pytest.mark.parametrize(
-    "pkg_overrides, expected_in, expected_out",
+    "value, expected_duration",
     [
-        pytest.param(
-            None,
-            {"no-timestamp", "has-old-timestamp"},
-            {"has-new-timestamp"},
-            id="no-timestamp-passes-through",
-        ),
-        pytest.param(
-            {"has-new-timestamp": "false"},
-            {"no-timestamp", "has-old-timestamp", "has-new-timestamp"},
-            set(),
-            id="exempt-overrides-new-timestamp",
-        ),
+        pytest.param("3600", 3600, id="plain-seconds"),
+        pytest.param("30s", 30, id="seconds"),
+        pytest.param("5m", 300, id="minutes"),
+        pytest.param("24h", DAY, id="hours"),
+        pytest.param("7d", 7 * DAY, id="days"),
+        pytest.param("1w", 7 * DAY, id="one-week"),
+        pytest.param("3d12h", 3 * DAY + 12 * 3600, id="combined-compact"),
+        pytest.param("7D", 7 * DAY, id="uppercase-compact"),
+        pytest.param("P7D", 7 * DAY, id="iso-days"),
+        pytest.param("PT24H", DAY, id="iso-hours"),
+        pytest.param("P1W", 7 * DAY, id="iso-week"),
+        pytest.param("P1DT12H", DAY + 12 * 3600, id="iso-combined"),
+        pytest.param("PT30M", 1800, id="iso-minutes"),
+        pytest.param("PT3600S", 3600, id="iso-seconds"),
     ],
 )
-def test_exclude_newer_synthetic_channel(
+def test_exclude_newer_policy_parses_durations(
+    value: str, expected_duration: int
+) -> None:
+    policy = ExcludeNewerPolicy.from_values(value, {}, now=NOW)
+    assert policy.global_cutoff == NOW - expected_duration
+
+
+@pytest.mark.parametrize("value", ["0", "0d", "P0D"])
+def test_exclude_newer_policy_accepts_zero_as_disabled(value: str) -> None:
+    assert not ExcludeNewerPolicy.from_values(value, {}, now=NOW).active
+
+
+def test_exclude_newer_policy_parses_date_as_next_utc_day() -> None:
+    policy = ExcludeNewerPolicy.from_values("2026-03-30", {}, now=NOW)
+    expected = datetime(2026, 3, 31, tzinfo=timezone.utc).timestamp()
+    assert policy.global_cutoff == expected
+
+
+def test_exclude_newer_policy_parses_rfc3339_offset() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "2020-06-15T12:00:00+02:00", {}, now=NOW
+    )
+    expected = datetime(2020, 6, 15, 10, 0, tzinfo=timezone.utc).timestamp()
+    assert policy.global_cutoff == expected
+
+
+def test_exclude_newer_policy_allows_future_absolute_timestamp() -> None:
+    policy = ExcludeNewerPolicy.from_values("2099-01-01", {}, now=NOW)
+    assert policy.active
+    assert policy.global_cutoff == datetime(2099, 1, 2, tzinfo=timezone.utc).timestamp()
+
+
+@pytest.mark.parametrize("value", ["abc", "7x", "P", "-1"])
+def test_exclude_newer_policy_rejects_invalid_values(value: str) -> None:
+    with pytest.raises(CondaValueError, match="Invalid exclude_newer value"):
+        ExcludeNewerPolicy.from_values(value, {}, now=NOW)
+
+
+def test_exclude_newer_policy_filters_records() -> None:
+    policy = ExcludeNewerPolicy.from_values("1d", {}, now=NOW)
+
+    assert policy.should_include(_record("old", timestamp=NOW - 2 * DAY))
+    assert not policy.should_include(_record("new", timestamp=NOW - 60))
+    assert policy.should_include(_record("missing"))
+
+
+def test_exclude_newer_policy_normalizes_millisecond_timestamps() -> None:
+    policy = ExcludeNewerPolicy.from_values("1d", {}, now=NOW)
+
+    assert policy.should_include(_record("old", timestamp=int((NOW - 2 * DAY) * 1000)))
+    assert not policy.should_include(_record("new", timestamp=int((NOW - 60) * 1000)))
+
+
+def test_exclude_newer_policy_prefers_indexed_timestamp() -> None:
+    policy = ExcludeNewerPolicy.from_values("1d", {}, now=NOW)
+
+    assert policy.should_include(
+        _record("old-indexed", timestamp=NOW - 60, indexed_timestamp=NOW - 2 * DAY)
+    )
+    assert not policy.should_include(
+        _record("new-indexed", timestamp=NOW - 2 * DAY, indexed_timestamp=NOW - 60)
+    )
+
+
+def test_exclude_newer_policy_honors_package_false_exemption() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "1d", {"openssl": False, "ca-certificates": "false"}, now=NOW
+    )
+
+    assert policy.should_include(_record("openssl", timestamp=NOW - 60))
+    assert policy.should_include(_record("ca-certificates", timestamp=NOW - 60))
+    assert not policy.should_include(_record("new-pkg", timestamp=NOW - 60))
+
+
+def test_exclude_newer_policy_honors_package_custom_cutoff() -> None:
+    policy = ExcludeNewerPolicy.from_values("1d", {"numpy": "3d"}, now=NOW)
+
+    assert policy.should_include(_record("scipy", timestamp=NOW - 2 * DAY))
+    assert not policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
+
+
+def test_exclude_newer_policy_allows_package_only_cutoff() -> None:
+    policy = ExcludeNewerPolicy.from_values("", {"numpy": "3d"}, now=NOW)
+
+    assert policy.should_include(_record("scipy", timestamp=NOW - 2 * DAY))
+    assert not policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
+
+
+def test_subdir_data_cache_stays_unfiltered(
+    exclude_newer_channel: tuple[Path, Channel],
+) -> None:
+    _, channel = exclude_newer_channel
+    SubdirData.clear_cached_local_channel_data()
+
+    records = tuple(SubdirData(channel=channel).iter_records())
+    names = {record.name for record in records}
+
+    assert {"old-pkg", "new-pkg", "no-timestamp-pkg"} == names
+
+    policy_before = ExcludeNewerPolicy.from_values("2h", {}, now=NOW)
+    policy_after = ExcludeNewerPolicy.from_values("2h", {}, now=NOW + 3 * 3600)
+
+    assert "new-pkg" not in {record.name for record in policy_before.filter_records(records)}
+    assert "new-pkg" in {record.name for record in policy_after.filter_records(records)}
+
+
+def test_reduced_index_applies_exclude_newer_policy(
+    exclude_newer_channel: tuple[Path, Channel],
+) -> None:
+    channel_root, _ = exclude_newer_channel
+    policy = ExcludeNewerPolicy.from_values("1d", {}, now=NOW)
+
+    index = ReducedIndex(
+        specs=(MatchSpec("old-pkg"), MatchSpec("new-pkg")),
+        channels=(str(channel_root),),
+        prepend=False,
+        subdirs=(PLATFORM,),
+        use_system=False,
+        exclude_newer_policy=policy,
+    )
+    names = {record.name for record in index.data}
+
+    assert "old-pkg" in names
+    assert "new-pkg" not in names
+
+
+def test_search_applies_exclude_newer_policy(
+    exclude_newer_channel: tuple[Path, Channel],
     monkeypatch: MonkeyPatch,
-    exclude_newer_channel: Channel,
-    pkg_overrides: dict[str, str] | None,
-    expected_in: set[str],
-    expected_out: set[str],
-):
-    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "86400")
-    reset_context()
-    if pkg_overrides is not None:
-        monkeypatch.setattr(context, "exclude_newer_package", pkg_overrides)
-
-    SubdirData.clear_cached_local_channel_data()
-    sd = SubdirData(channel=exclude_newer_channel)
-    names = {rec.name for rec in sd.iter_records()}
-
-    for name in expected_in:
-        assert name in names, f"{name} should be included"
-    for name in expected_out:
-        assert name not in names, f"{name} should be excluded"
-
-
-def test_exclude_newer_prefers_indexed_timestamp(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-):
-    subdir_path = tmp_path / PLATFORM
-    subdir_path.mkdir()
-
-    old_ms = 1534516107109
-    now_ms = int(time() * 1000)
-
-    repodata = {
-        "info": {"subdir": PLATFORM},
-        "packages": {
-            "old-indexed-1.0-0.tar.bz2": {
-                **PKG_BASE,
-                "name": "old-indexed",
-                "timestamp": now_ms,
-                "indexed_timestamp": old_ms,
-            },
-            "new-indexed-1.0-0.tar.bz2": {
-                **PKG_BASE,
-                "name": "new-indexed",
-                "timestamp": old_ms,
-                "indexed_timestamp": now_ms,
-            },
-        },
-        "packages.conda": {},
-    }
-
-    (subdir_path / "repodata.json").write_text(json.dumps(repodata))
-
-    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "86400")
+    conda_cli: CondaCLIFixture,
+) -> None:
+    channel_root, _ = exclude_newer_channel
+    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", CUTOFF)
     reset_context()
 
-    SubdirData.clear_cached_local_channel_data()
-    sd = SubdirData(channel=Channel(str(subdir_path)))
-    names = {rec.name for rec in sd.iter_records()}
-
-    assert "old-indexed" in names, (
-        "old indexed_timestamp should pass despite new build timestamp"
-    )
-    assert "new-indexed" not in names, (
-        "new indexed_timestamp should be filtered despite old build timestamp"
+    conda_cli(
+        "search",
+        "new-pkg",
+        f"--platform={PLATFORM}",
+        "--override-channels",
+        f"--channel={channel_root}",
+        raises=PackagesNotFoundError,
     )
 
+    monkeypatch.setattr(context, "exclude_newer_package", {"new-pkg": False})
+    stdout, _, _ = conda_cli(
+        "search",
+        "new-pkg",
+        f"--platform={PLATFORM}",
+        "--override-channels",
+        f"--channel={channel_root}",
+        "--json",
+    )
+    assert "new-pkg" in json.loads(stdout)
 
-def test_exclude_newer_per_package_duration(tmp_path: Path, monkeypatch: MonkeyPatch):
-    """Per-package override with a custom duration."""
-    subdir_path = tmp_path / PLATFORM
-    subdir_path.mkdir()
 
-    now_ms = int(time() * 1000)
-    two_days_ago_ms = int((time() - 2 * 86400) * 1000)
+def test_solver_subclass_fails_closed_for_unsupported_policy(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    class UnsupportedSolver(Solver):
+        pass
 
-    repodata = {
-        "info": {"subdir": PLATFORM},
-        "packages": {
-            "recent-pkg-1.0-0.tar.bz2": {
-                **PKG_BASE,
-                "name": "recent-pkg",
-                "timestamp": now_ms,
-            },
-            "two-day-old-pkg-1.0-0.tar.bz2": {
-                **PKG_BASE,
-                "name": "two-day-old-pkg",
-                "timestamp": two_days_ago_ms,
-            },
-        },
-        "packages.conda": {},
-    }
-
-    (subdir_path / "repodata.json").write_text(json.dumps(repodata))
-
-    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "86400")
+    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "1d")
     reset_context()
-    monkeypatch.setattr(context, "exclude_newer_package", {"two-day-old-pkg": "3d"})
 
-    SubdirData.clear_cached_local_channel_data()
-    sd = SubdirData(channel=Channel(str(subdir_path)))
-    names = {rec.name for rec in sd.iter_records()}
-
-    assert "recent-pkg" not in names, (
-        "recent-pkg should be excluded by global 1d threshold"
-    )
-    assert "two-day-old-pkg" not in names, (
-        "two-day-old-pkg should be excluded by its per-package 3d threshold"
-    )
+    with pytest.raises(CondaError, match="does not support --exclude-newer"):
+        UnsupportedSolver(prefix=str(tmp_path))
 
 
-def test_exclude_newer_per_package_bool_false(tmp_path: Path, monkeypatch: MonkeyPatch):
-    """Boolean False (from YAML parsing) exempts a package, same as string 'false'."""
-    subdir_path = tmp_path / PLATFORM
-    subdir_path.mkdir()
+def test_solver_global_only_subclass_fails_for_package_overrides(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    class GlobalOnlySolver(Solver):
+        supports_exclude_newer_global = True
 
-    now_ms = int(time() * 1000)
-    repodata = {
-        "info": {"subdir": PLATFORM},
-        "packages": {
-            "some-pkg-1.0-0.tar.bz2": {
-                **PKG_BASE,
-                "name": "some-pkg",
-                "timestamp": now_ms,
-            },
-        },
-        "packages.conda": {},
-    }
-
-    (subdir_path / "repodata.json").write_text(json.dumps(repodata))
-
-    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "86400")
+    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "1d")
     reset_context()
-    monkeypatch.setattr(context, "exclude_newer_package", {"some-pkg": False})
+    monkeypatch.setattr(context, "exclude_newer_package", {"openssl": False})
 
-    SubdirData.clear_cached_local_channel_data()
-    sd = SubdirData(channel=Channel(str(subdir_path)))
-    names = {rec.name for rec in sd.iter_records()}
+    with pytest.raises(CondaError, match="package overrides"):
+        GlobalOnlySolver(prefix=str(tmp_path))
 
-    assert "some-pkg" in names, "boolean False should exempt the package"
+
+def test_post_solve_guard_rejects_newer_link_prec(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "1d")
+    reset_context()
+    solver = Solver(prefix=str(tmp_path))
+
+    with pytest.raises(CondaError, match="solver returned package"):
+        solver._validate_exclude_newer_link_precs(
+            (_record("new-pkg", timestamp=int(time() * 1000)),)
+        )
