@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPostCommand,
@@ -805,5 +806,59 @@ class CondaSpecs:
                 )
 
         :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_exception_observers(self) -> Iterable[CondaExceptionObserver]:
+        """
+        Register exception observer callbacks in conda.
+
+        Exception observers are invoked when any exception is handled by the
+        ``ExceptionHandler``. They are **purely observational**: they cannot
+        suppress, modify, or redirect the exception. Their return value is
+        ignored. This follows the same model as CPython's ``sys.excepthook``.
+
+        Any exception raised by an observer is caught at the ``BaseException``
+        level, logged at DEBUG, and swallowed -- a buggy plugin can never
+        disrupt conda's error reporting path.
+
+        Observers run synchronously on the error path. They **must return
+        promptly**. Network I/O, large file operations, or any potentially
+        blocking call should be deferred to a daemon thread or subprocess.
+
+        Observers receive a frozen :class:`~conda.plugins.types.CondaExceptionEvent`
+        dataclass. The exception triple (``exc_type``, ``exc_value``,
+        ``exc_traceback``) is always populated. Conda runtime fields
+        (``argv``, ``conda_version``, ``return_code``, ``active_prefix``,
+        ``target_prefix``, ``channels``, ``subdir``, ``offline``, ``dry_run``,
+        ``quiet``, ``json``) are ``None`` when the runtime isn't initialized.
+
+        ``watch_for`` controls which exceptions trigger the observer via
+        MRO matching: ``{"CondaError"}`` catches all conda errors,
+        ``{"BaseException"}`` catches everything, ``{"MemoryError"}`` catches
+        only OOM, etc. See :class:`~conda.plugins.types.CondaExceptionObserver`.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+
+
+            def report_missing(event):
+                print(f"Missing packages: {event.exc_value.packages}")
+                print(f"Command was: {' '.join(event.argv)}")
+
+
+            @plugins.hookimpl
+            def conda_exception_observers():
+                yield plugins.types.CondaExceptionObserver(
+                    name="missing-package-reporter",
+                    hook=report_missing,
+                    watch_for={"PackagesNotFoundInChannelsError"},
+                )
+
+        :return: An iterable of :class:`~conda.plugins.types.CondaExceptionObserver` entries.
         """
         yield from ()

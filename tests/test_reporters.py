@@ -49,10 +49,14 @@ def test_render(capsys: CaptureFixture):
         render({"test": "data"}, style="non_existent_view")
 
 
-def test_get_progress_bar():
+def test_get_progress_bar(monkeypatch):
     """
     Ensure basic coverage of the :func:`~conda.reporters.get_progress_bar~` function
     """
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: False
+    )
     progress_bar_manager = get_progress_bar("test")
 
     assert isinstance(progress_bar_manager, TQDMProgressBar)

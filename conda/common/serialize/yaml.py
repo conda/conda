@@ -4,47 +4,56 @@
 
 from __future__ import annotations
 
-from enum import Enum
 from functools import cache
 from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING, overload
 
-import ruamel.yaml
+from ...deprecations import deprecated
 
 if TYPE_CHECKING:
     from io import IO
     from typing import Any
 
+    import ruamel.yaml
+
     from ..path import PathType
 
 
-class CondaYAMLRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
-    def default(self, data: Any) -> Any:
-        # Python types
-        if isinstance(data, Enum):
-            return self.represent_str(data.value)
-        elif isinstance(data, Path):
-            return self.represent_str(str(data))
+@cache
+def _representer() -> type[ruamel.yaml.representer.RoundTripRepresenter]:
+    import ruamel.yaml
 
-        # auxlib entity types
-        for attr in ("dump", "__json__", "to_json", "as_json"):
-            if method := getattr(data, attr, None):
-                return self.represent_data(method())
+    class CondaYAMLRepresenter(ruamel.yaml.representer.RoundTripRepresenter):
+        def default(self, data: Any) -> Any:
+            from enum import Enum
 
-        # mirror JSON behavior
-        raise TypeError(
-            f"Object of type {data.__class__.__name__} is not YAML serializable"
-        )
+            # Python types
+            if isinstance(data, Enum):
+                return self.represent_str(data.value)
+            elif isinstance(data, Path):
+                return self.represent_str(str(data))
 
+            # auxlib entity types
+            for attr in ("dump", "__json__", "to_json", "as_json"):
+                if method := getattr(data, attr, None):
+                    return self.represent_data(method())
 
-CondaYAMLRepresenter.add_representer(None, CondaYAMLRepresenter.default)
+            # mirror JSON behavior
+            raise TypeError(
+                f"Object of type {data.__class__.__name__} is not YAML serializable"
+            )
+
+    CondaYAMLRepresenter.add_representer(None, CondaYAMLRepresenter.default)
+    return CondaYAMLRepresenter
 
 
 @cache
 def _yaml() -> ruamel.yaml.YAML:
+    import ruamel.yaml
+
     parser = ruamel.yaml.YAML(typ="rt")
-    parser.Representer = CondaYAMLRepresenter
+    parser.Representer = _representer()
     parser.indent(mapping=2, offset=2, sequence=4)
     parser.default_flow_style = False
     parser.sort_base_mapping_type_on_output = False
@@ -124,4 +133,30 @@ def loads(s: str) -> Any:
     return read(text=s)
 
 
-YAMLError = ruamel.yaml.YAMLError
+# ``YAMLError`` is re-exported lazily via PEP-562 so that merely importing
+# this module does not pull in ``ruamel.yaml``. ``deprecated.constant``
+# below installs its own module-level ``__getattr__`` and wires this one
+# up as its fallback, so both names resolve correctly.
+def __getattr__(name: str) -> Any:
+    if name == "YAMLError":
+        import ruamel.yaml
+
+        return ruamel.yaml.YAMLError
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+# ``CondaYAMLRepresenter`` used to be a module-level class. Keep it
+# importable for external consumers but emit a deprecation warning on
+# access. Passing ``factory=`` defers ``_representer()`` (which imports
+# ``ruamel.yaml``) until the deprecated symbol is actually used.
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "CondaYAMLRepresenter",
+    factory=_representer,
+    addendum=(
+        "Use `conda.common.serialize.yaml.write`/`read` or subclass "
+        "`ruamel.yaml.representer.RoundTripRepresenter` directly."
+    ),
+)

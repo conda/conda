@@ -162,10 +162,13 @@ def add_parser_create_install_update(p, prefix_required=False):
         default=[],
         action="append",
         type=conda_file_type,
-        help="Read environment or package specs from the given file. Supports "
-        "YAML, requirements.txt, explicit, and other formats via env specifier "
-        "plugins. Repeated file specs of some type can be passed "
-        "(e.g. --file=file1 --file=file2).",
+        help=(
+            "Read environment or package specs from a file. The format is "
+            "detected from the filename or contents. Which formats are "
+            "supported depends on the installed plugins (see the epilog for "
+            "the list available here). Custom filenames require --format. "
+            "May be repeated (e.g. --file=file1 --file=file2)."
+        ),
     )
     add_parser_environment_specifier(p)
     p.add_argument(
@@ -359,8 +362,8 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     channel_customization_options.add_argument(
         "--experimental",
         action=deprecated.action(
-            "26.3",
-            "26.5",
+            "26.9",
+            "27.3",
             _AppendAction,
             addendum="Deprecated: jlap and lock no longer supported.",
         ),
@@ -379,6 +382,13 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         dest="repodata_use_zst",
         default=NULL,
         help="Check for/do not check for repodata.json.zst. Enabled by default.",
+    )
+    channel_customization_options.add_argument(
+        "--repodata-use-shards",
+        action=BooleanOptionalAction,
+        dest="repodata_use_shards",
+        default=NULL,
+        help="Use sharded repodata if available. Enabled by default.",
     )
     return channel_customization_options
 
@@ -693,9 +703,11 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
         action=LazyChoicesAction,
         choices_func=context.plugin_manager.get_environment_specifiers,
         default=NULL,
+        metavar="FORMAT",
         help=(
-            "Format for the created environment. If not specified, "
-            "format will be determined by file contents or extension."
+            "Override auto-detection of the input file's format. See "
+            "`conda export --help` for the formats available in your "
+            "installation. Aliases are interchangeable with canonical names."
         ),
     )
 

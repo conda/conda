@@ -773,6 +773,11 @@ def get_conda_anchor_files_and_records(
             if on_win:
                 fpath = fpath.replace("\\", "/")
             if matcher(fpath):
+                if on_win:
+                    fpath = (
+                        site_packages_short_path
+                        + fpath[len(site_packages_short_path) :]
+                    )
                 anchor_paths.append(fpath)
         if len(anchor_paths) > 1:
             anchor_path = max(anchor_paths, key=len)

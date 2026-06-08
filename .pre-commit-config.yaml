@@ -68,7 +68,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 6fec9b7edb08fd9989088709d864a7826dc74e80  # frozen: v0.15.12
+    rev: 22f0422809455ec89ffdcf5a00170ba816e42ddb  # frozen: v0.15.16
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
@@ -114,7 +114,7 @@ repos:
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 13614ab716a3113145f1294ed259d9fbe5678ff3  # frozen: 0.37.1
+    rev: f805888065fdb6162e1f800e50bb9460cbd223d6  # frozen: 0.37.2
     hooks:
       # verify github syntaxes
       - id: check-github-workflows

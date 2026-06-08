@@ -88,7 +88,7 @@ jobs:
             test-group: 3
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration' }}
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
@@ -128,6 +128,11 @@ jobs:
           run-post: false  # skip post cleanup
           pkgs-dirs: D:\conda_pkgs_dir
           installation-dir: D:\conda
+
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
       - name: Conda Install
         run: >
@@ -180,7 +185,7 @@ jobs:
           ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -237,7 +242,7 @@ jobs:
           - runs-on: ubuntu-24.04-arm
             python-version: '3.12'
     env:
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration' }}
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.14' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
 
@@ -268,6 +273,11 @@ jobs:
           run-post: false  # skip post cleanup
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
       - name: Conda Install
         run: >
@@ -319,7 +329,7 @@ jobs:
           ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -338,7 +348,7 @@ jobs:
 
   # linux benchmarks
   linux-benchmarks:
-    # only run test suite if there are code changes
+    # only run benchmarks if there are code changes
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
@@ -378,6 +388,11 @@ jobs:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
 
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
       - name: Conda Install
         run: >
           conda install
@@ -387,6 +402,7 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           python=${{ matrix.python-version }}
+          "pytest-benchmark>=5.1.0"
 
       - name: Conda Info
         # view test env info (not base)
@@ -399,11 +415,25 @@ jobs:
         run: conda list --show-channel-urls
 
       - name: Run Benchmarks
-        uses: CodSpeedHQ/action@c381be0bfd20e844fb45594f6aa182ffcd94545c # v4.15.0
+        run: >
+          $CONDA/envs/test/bin/python -m pytest
+          -m benchmark
+          --benchmark-json benchmark_results.json
+
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          token: ${{ secrets.CODSPEED_TOKEN }}
-          run: $CONDA/envs/test/bin/python -m pytest --codspeed
-          mode: instrumentation
+          name: benchmark-results
+          path: benchmark_results.json
+          retention-days: 7
+
+      - name: Upload GitHub Pull Request Event
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: benchmark-event
+          path: ${{ github.event_path }}
+          retention-days: 7
 
   # linux typing
   linux-typing:
@@ -447,6 +477,11 @@ jobs:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
 
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
       - name: Conda Install
         run: >
           conda install
@@ -478,7 +513,7 @@ jobs:
 
       - name: Upload Coverage
         if: '!cancelled()'
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},MyPy
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -529,7 +564,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
         with:
           platforms: linux/${{ matrix.platform }}
 
@@ -599,6 +634,11 @@ jobs:
           condarc-file: .github/condarc-defaults
           run-post: false  # skip post cleanup
 
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
       - name: Conda Install
         run: >
           conda install
@@ -663,7 +703,7 @@ jobs:
           - test-type: unit
             test-group: 3
     env:
-      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration' }}
+      PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
 
@@ -694,6 +734,11 @@ jobs:
           run-post: false  # skip post cleanup
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
       - name: Conda Install
         run: >
@@ -730,7 +775,7 @@ jobs:
           ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
@@ -773,7 +818,7 @@ jobs:
           retention-days: 7  # for durations.yml workflow
 
       - name: Test Summary
-        uses: test-summary/action@31493c76ec9e7aa675f1585d3ed6f1da69269a86 # v2.4
+        uses: test-summary/action@37b508cfee6d4d080eedd00b5bb240a6a784a6a5 # v2.6
         with:
           paths: test-results-*/test-report.xml
 
@@ -869,6 +914,11 @@ jobs:
         with:
           condarc-file: conda/.github/condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
+
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
       - name: Conda Install
         working-directory: conda

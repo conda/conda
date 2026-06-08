@@ -12,6 +12,8 @@ from conda.common.compat import on_win
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from pytest_benchmark.fixture import BenchmarkFixture
+
     from conda.testing.fixtures import (
         CondaCLIFixture,
         PathFactoryFixture,
@@ -103,34 +105,52 @@ def test_init(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.benchmark
-def test_install(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request):
-    with tmp_env() as prefix:
-        out, err, code = conda_cli(
-            "install",
-            *("--prefix", prefix),
-            "ca-certificates",
-            "--yes",
-        )
+def test_install(
+    benchmark: BenchmarkFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    request,
+):
+    def run():
+        with tmp_env() as prefix:
+            out, err, code = conda_cli(
+                "install",
+                *("--prefix", prefix),
+                "ca-certificates",
+                "--yes",
+            )
+            assert out
+            assert not err
+            assert not code
+
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
+
+
+@pytest.mark.benchmark
+def test_list(
+    benchmark: BenchmarkFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
+    def run():
+        with tmp_env("ca-certificates") as prefix:
+            out, err, code = conda_cli("list", "--prefix", prefix)
+            assert out
+            assert not err
+            assert not code
+
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
+
+
+@pytest.mark.benchmark
+def test_env_list_benchmark(benchmark: BenchmarkFixture, conda_cli: CondaCLIFixture):
+    def run():
+        out, err, code = conda_cli("env", "list")
         assert out
         assert not err
         assert not code
 
-
-@pytest.mark.benchmark
-def test_list(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
-    with tmp_env("ca-certificates") as prefix:
-        out, err, code = conda_cli("list", "--prefix", prefix)
-        assert out
-        assert not err
-        assert not code
-
-
-@pytest.mark.benchmark
-def test_env_list_benchmark(conda_cli: CondaCLIFixture):
-    out, err, code = conda_cli("env", "list")
-    assert out
-    assert not err
-    assert not code
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
 
 
 def test_notices(conda_cli: CondaCLIFixture):
@@ -184,12 +204,19 @@ def test_rename(
 
 
 @pytest.mark.benchmark
-def test_run(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
-    with tmp_env("m2-patch" if on_win else "patch") as prefix:
-        out, err, code = conda_cli("run", "--prefix", prefix, "patch", "--help")
-        assert out
-        assert not err
-        assert not code
+def test_run(
+    benchmark: BenchmarkFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+):
+    def run():
+        with tmp_env("m2-patch" if on_win else "patch") as prefix:
+            out, err, code = conda_cli("run", "--prefix", prefix, "patch", "--help")
+            assert out
+            assert not err
+            assert not code
+
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
 
 
 def test_search(conda_cli: CondaCLIFixture):
@@ -202,13 +229,20 @@ def test_search(conda_cli: CondaCLIFixture):
 @pytest.mark.parametrize("subcommand", ["update", "upgrade"])
 @pytest.mark.benchmark
 def test_update(
-    subcommand: str, conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, request
+    benchmark: BenchmarkFixture,
+    subcommand: str,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    request,
 ):
-    with tmp_env("ca-certificates<2023") as prefix:
-        out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--yes")
-        assert out
-        assert not err
-        assert not code
+    def run():
+        with tmp_env("ca-certificates<2023") as prefix:
+            out, err, code = conda_cli(subcommand, "--prefix", prefix, "--all", "--yes")
+            assert out
+            assert not err
+            assert not code
+
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
 
 
 def test_env_list(conda_cli: CondaCLIFixture):
@@ -232,37 +266,45 @@ def test_env_remove(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):
 
 @pytest.mark.benchmark
 def test_env_create(
+    benchmark: BenchmarkFixture,
     conda_cli: CondaCLIFixture,
     path_factory: PathFactoryFixture,
     environment_yml: Path,
 ):
-    out, err, code = conda_cli(
-        "env",
-        "create",
-        *("--prefix", path_factory()),
-        *("--file", environment_yml),
-    )
-    assert out
-    assert not err
-    assert not code
-
-
-@pytest.mark.benchmark
-def test_env_update(
-    conda_cli: CondaCLIFixture,
-    tmp_env: TmpEnvFixture,
-    environment_yml: Path,
-):
-    with tmp_env("ca-certificates<2023") as prefix:
+    def run():
         out, err, code = conda_cli(
             "env",
-            "update",
-            *("--prefix", prefix),
+            "create",
+            *("--prefix", path_factory()),
             *("--file", environment_yml),
         )
         assert out
         assert not err
         assert not code
+
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
+
+
+@pytest.mark.benchmark
+def test_env_update(
+    benchmark: BenchmarkFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    environment_yml: Path,
+):
+    def run():
+        with tmp_env("ca-certificates<2023") as prefix:
+            out, err, code = conda_cli(
+                "env",
+                "update",
+                *("--prefix", prefix),
+                *("--file", environment_yml),
+            )
+            assert out
+            assert not err
+            assert not code
+
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
 
 
 def test_env_config_vars(conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture):

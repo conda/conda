@@ -11,7 +11,7 @@ import requests
 from conda.base.context import context, reset_context
 from conda.cli.main_search import _pretty_record_format, pretty_record
 from conda.common.serialize import json
-from conda.exceptions import PackagesNotFoundError
+from conda.exceptions import NoChannelsConfiguredError, PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.models.records import PackageRecord
 
@@ -395,3 +395,23 @@ def test_pretty_record():
     )
 
     assert with_timestamp_and_constrains.startswith("p 1 1\n")
+
+
+def test_search_no_channels_configured(mocker, conda_cli: CondaCLIFixture):
+    """
+    Test that search raises NoChannelsConfiguredError when no channels are configured.
+    """
+    # Mock context.channels to return empty tuple to simulate no channels configured
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(),
+    )
+    with pytest.raises(NoChannelsConfiguredError) as exc:
+        conda_cli(
+            "search",
+            "numpy",
+        )
+    error_message = str(exc.value)
+    assert "No channels are configured" in error_message
+    assert "numpy" in error_message
