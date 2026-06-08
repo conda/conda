@@ -54,9 +54,10 @@ class _CutoffParser:
             return None
         if isinstance(value, str) and not value.strip():
             return None
+        if self.is_disabled_cutoff(value):
+            return None
 
-        cutoff = self.cutoff(value)
-        return None if cutoff == self.now else cutoff
+        return self.cutoff(value)
 
     def cutoff(self, value: str | int | float | bool) -> float:
         if isinstance(value, bool):
@@ -87,9 +88,7 @@ class _CutoffParser:
             return (day + timedelta(days=1)).timestamp()
 
         normalized = (
-            raw_value.replace("Z", "+00:00")
-            if raw_value.endswith("Z")
-            else raw_value
+            raw_value.replace("Z", "+00:00") if raw_value.endswith("Z") else raw_value
         )
         try:
             timestamp = datetime.fromisoformat(normalized)
@@ -116,6 +115,29 @@ class _CutoffParser:
                 f"Invalid exclude_newer value {value!r}; duration must not be negative"
             )
         return self.now - duration_seconds
+
+    def is_disabled_cutoff(self, value: str | int | float) -> bool:
+        if isinstance(value, (int, float)):
+            return value == 0
+
+        raw_value = value.strip()
+        try:
+            return int(raw_value) == 0
+        except ValueError:
+            pass
+
+        try:
+            duration = self.iso8601_duration(raw_value)
+        except CondaValueError:
+            duration = None
+        if duration == 0:
+            return True
+
+        try:
+            duration = self.compact_duration(raw_value)
+        except CondaValueError:
+            duration = None
+        return duration == 0
 
     def iso8601_duration(self, value: str) -> int | None:
         match = _ISO8601_DURATION_RE.match(value)
@@ -145,7 +167,9 @@ class _CutoffParser:
         if consumed:
             raise self.invalid(value)
 
-        return sum(int(amount) * _DURATION_UNITS[unit.lower()] for amount, unit in pairs)
+        return sum(
+            int(amount) * _DURATION_UNITS[unit.lower()] for amount, unit in pairs
+        )
 
     @staticmethod
     def invalid(value: str) -> CondaValueError:
@@ -230,7 +254,11 @@ class ExcludeNewerPolicy:
         return bool(self.package_cutoffs) and self.active
 
     def cutoff_for(self, package_name: str | None) -> float | None:
-        if package_name and self.package_cutoffs and package_name in self.package_cutoffs:
+        if (
+            package_name
+            and self.package_cutoffs
+            and package_name in self.package_cutoffs
+        ):
             return self.package_cutoffs[package_name]
         return self.global_cutoff
 

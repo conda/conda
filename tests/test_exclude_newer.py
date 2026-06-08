@@ -51,6 +51,7 @@ def _record(
     *,
     timestamp: int | float | None = None,
     indexed_timestamp: int | float | None = None,
+    date: str | None = None,
 ) -> PackageRecord:
     kwargs = {
         **PKG_BASE,
@@ -62,6 +63,8 @@ def _record(
         kwargs["timestamp"] = timestamp
     if indexed_timestamp is not None:
         kwargs["indexed_timestamp"] = indexed_timestamp
+    if date is not None:
+        kwargs["date"] = date
     return PackageRecord(**kwargs)
 
 
@@ -132,6 +135,14 @@ def test_exclude_newer_policy_accepts_zero_as_disabled(value: str) -> None:
     assert not ExcludeNewerPolicy.from_values(value, {}, now=NOW).active
 
 
+def test_exclude_newer_policy_accepts_absolute_cutoff_equal_to_now() -> None:
+    value = datetime.fromtimestamp(NOW, timezone.utc).isoformat()
+    policy = ExcludeNewerPolicy.from_values(value, {}, now=NOW)
+
+    assert policy.active
+    assert policy.global_cutoff == NOW
+
+
 def test_exclude_newer_policy_parses_date_as_next_utc_day() -> None:
     policy = ExcludeNewerPolicy.from_values("2026-03-30", {}, now=NOW)
     expected = datetime(2026, 3, 31, tzinfo=timezone.utc).timestamp()
@@ -139,9 +150,7 @@ def test_exclude_newer_policy_parses_date_as_next_utc_day() -> None:
 
 
 def test_exclude_newer_policy_parses_rfc3339_offset() -> None:
-    policy = ExcludeNewerPolicy.from_values(
-        "2020-06-15T12:00:00+02:00", {}, now=NOW
-    )
+    policy = ExcludeNewerPolicy.from_values("2020-06-15T12:00:00+02:00", {}, now=NOW)
     expected = datetime(2020, 6, 15, 10, 0, tzinfo=timezone.utc).timestamp()
     assert policy.global_cutoff == expected
 
@@ -184,6 +193,18 @@ def test_exclude_newer_policy_prefers_indexed_timestamp() -> None:
     )
 
 
+def test_exclude_newer_policy_does_not_use_date_as_indexed_timestamp() -> None:
+    policy = ExcludeNewerPolicy.from_values("1d", {}, now=NOW)
+    record = _record(
+        "legacy-date",
+        timestamp=NOW - 2 * DAY,
+        date=datetime.fromtimestamp(NOW - 60, timezone.utc).isoformat(),
+    )
+
+    assert record.indexed_timestamp == 0
+    assert policy.should_include(record)
+
+
 def test_exclude_newer_policy_honors_package_false_exemption() -> None:
     policy = ExcludeNewerPolicy.from_values(
         "1d", {"openssl": False, "ca-certificates": "false"}, now=NOW
@@ -222,7 +243,9 @@ def test_subdir_data_cache_stays_unfiltered(
     policy_before = ExcludeNewerPolicy.from_values("2h", {}, now=NOW)
     policy_after = ExcludeNewerPolicy.from_values("2h", {}, now=NOW + 3 * 3600)
 
-    assert "new-pkg" not in {record.name for record in policy_before.filter_records(records)}
+    assert "new-pkg" not in {
+        record.name for record in policy_before.filter_records(records)
+    }
     assert "new-pkg" in {record.name for record in policy_after.filter_records(records)}
 
 
