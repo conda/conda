@@ -108,6 +108,7 @@ def exclude_newer_channel(tmp_path: Path) -> tuple[Path, Channel]:
     "value, expected_duration",
     [
         pytest.param("3600", 3600, id="plain-seconds"),
+        pytest.param("20260401", 20260401, id="date-like-plain-seconds"),
         pytest.param("30s", 30, id="seconds"),
         pytest.param("5m", 300, id="minutes"),
         pytest.param("24h", DAY, id="hours"),
