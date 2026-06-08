@@ -4,12 +4,16 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
 from time import time
 from typing import TYPE_CHECKING
 
+from ..common.datetime import (
+    normalize_timestamp_seconds,
+    parse_date_to_next_utc_day_timestamp,
+    parse_duration_seconds,
+    parse_iso_datetime_to_timestamp,
+)
 from ..exceptions import CondaValueError
 
 if TYPE_CHECKING:
@@ -17,24 +21,6 @@ if TYPE_CHECKING:
     from typing import Any
 
     from ..models.records import PackageRecord
-
-_DURATION_UNITS: dict[str, int] = {
-    "w": 604800,
-    "d": 86400,
-    "h": 3600,
-    "m": 60,
-    "s": 1,
-}
-
-_COMPACT_DURATION_RE = re.compile(r"(\d+)\s*([wdhms])", re.IGNORECASE)
-_ISO8601_DURATION_RE = re.compile(
-    r"^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$",
-    re.IGNORECASE,
-)
-_DATE_ONLY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-# Year 9999 in seconds. Larger repodata timestamps are treated as milliseconds.
-_MAX_SECONDS_TIMESTAMP = 253402300799
 
 
 @dataclass(frozen=True)
@@ -49,7 +35,7 @@ class _CutoffParser:
             isinstance(value, str) and value.strip().casefold() == "false"
         )
 
-    def optional_cutoff(self, value: str | int | float | None) -> float | None:
+    def optional_cutoff(self, value: str | int | float | bool | None) -> float | None:
         if value is None:
             return None
         if isinstance(value, str) and not value.strip():
@@ -76,36 +62,22 @@ class _CutoffParser:
             )
 
         try:
-            return self.duration_cutoff(float(int(raw_value)), raw_value)
-        except ValueError:
-            pass
+            duration = parse_duration_seconds(raw_value)
+        except ValueError as exc:
+            raise self.invalid(raw_value) from exc
+        if duration is not None:
+            return self.duration_cutoff(duration, raw_value)
 
-        if _DATE_ONLY_RE.match(raw_value):
-            try:
-                day = datetime.fromisoformat(raw_value).replace(tzinfo=timezone.utc)
-            except ValueError as exc:
-                raise self.invalid(raw_value) from exc
-            return (day + timedelta(days=1)).timestamp()
-
-        normalized = (
-            raw_value.replace("Z", "+00:00") if raw_value.endswith("Z") else raw_value
-        )
         try:
-            timestamp = datetime.fromisoformat(normalized)
-        except ValueError:
-            pass
-        else:
-            if timestamp.tzinfo is None:
-                timestamp = timestamp.replace(tzinfo=timezone.utc)
-            return timestamp.timestamp()
+            date_cutoff = parse_date_to_next_utc_day_timestamp(raw_value)
+        except ValueError as exc:
+            raise self.invalid(raw_value) from exc
+        if date_cutoff is not None:
+            return date_cutoff
 
-        duration = self.iso8601_duration(raw_value)
-        if duration is not None:
-            return self.duration_cutoff(duration, raw_value)
-
-        duration = self.compact_duration(raw_value)
-        if duration is not None:
-            return self.duration_cutoff(duration, raw_value)
+        timestamp = parse_iso_datetime_to_timestamp(raw_value)
+        if timestamp is not None:
+            return timestamp
 
         raise self.invalid(raw_value)
 
@@ -116,60 +88,16 @@ class _CutoffParser:
             )
         return self.now - duration_seconds
 
-    def is_disabled_cutoff(self, value: str | int | float) -> bool:
+    def is_disabled_cutoff(self, value: str | int | float | bool) -> bool:
         if isinstance(value, (int, float)):
             return value == 0
 
         raw_value = value.strip()
         try:
-            return int(raw_value) == 0
+            duration = parse_duration_seconds(raw_value)
         except ValueError:
-            pass
-
-        try:
-            duration = self.iso8601_duration(raw_value)
-        except CondaValueError:
-            duration = None
-        if duration == 0:
-            return True
-
-        try:
-            duration = self.compact_duration(raw_value)
-        except CondaValueError:
             duration = None
         return duration == 0
-
-    def iso8601_duration(self, value: str) -> int | None:
-        match = _ISO8601_DURATION_RE.match(value)
-        if not match:
-            return None
-
-        if not any(group is not None for group in match.groups()):
-            raise self.invalid(value)
-
-        weeks, days, hours, minutes, seconds = (
-            int(group) if group else 0 for group in match.groups()
-        )
-        return (
-            weeks * _DURATION_UNITS["w"]
-            + days * _DURATION_UNITS["d"]
-            + hours * _DURATION_UNITS["h"]
-            + minutes * _DURATION_UNITS["m"]
-            + seconds
-        )
-
-    def compact_duration(self, value: str) -> int | None:
-        pairs = _COMPACT_DURATION_RE.findall(value)
-        if not pairs:
-            return None
-
-        consumed = _COMPACT_DURATION_RE.sub("", value).strip()
-        if consumed:
-            raise self.invalid(value)
-
-        return sum(
-            int(amount) * _DURATION_UNITS[unit.lower()] for amount, unit in pairs
-        )
 
     @staticmethod
     def invalid(value: str) -> CondaValueError:
@@ -304,10 +232,7 @@ class ExcludeNewerPolicy:
             return None
 
         try:
-            timestamp = float(value)
+            timestamp = normalize_timestamp_seconds(value)
         except (TypeError, ValueError):
             return None
-
-        if timestamp > _MAX_SECONDS_TIMESTAMP:
-            timestamp /= 1000
         return timestamp
