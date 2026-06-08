@@ -71,12 +71,15 @@ class Solver:
     _r: Resolve | None
 
     supports_exclude_newer_global: ClassVar[bool] = True
+    supports_exclude_newer_channel: ClassVar[bool] = True
     supports_exclude_newer_package: ClassVar[bool] = True
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if "supports_exclude_newer_global" not in cls.__dict__:
             cls.supports_exclude_newer_global = False
+        if "supports_exclude_newer_channel" not in cls.__dict__:
+            cls.supports_exclude_newer_channel = False
         if "supports_exclude_newer_package" not in cls.__dict__:
             cls.supports_exclude_newer_package = False
 
@@ -135,6 +138,8 @@ class Solver:
         unsupported = []
         if policy.has_global_cutoff and not self.supports_exclude_newer_global:
             unsupported.append("global cutoff")
+        if policy.has_channel_overrides and not self.supports_exclude_newer_channel:
+            unsupported.append("channel overrides")
         if policy.has_package_overrides and not self.supports_exclude_newer_package:
             unsupported.append("package overrides")
 

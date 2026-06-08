@@ -405,7 +405,8 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
         "duration (e.g. 7d, 3d12h, 1w) or date (e.g. 2026-04-01, "
         "2026-04-01T12:00:00Z). Date-only values use the start of the next "
         "UTC day. Supply 0 for no delay, using the current time as the cutoff. "
-        "Per-package overrides can be set via exclude_newer_package in .condarc.",
+        "Channel and per-package overrides can be set via channel_settings and "
+        "exclude_newer_package in .condarc.",
     )
     return solver_mode_options
 

@@ -1566,7 +1566,9 @@ class Context(Configuration):
                 """
                 A list of mappings that allows overriding certain settings for a single channel.
                 Each list item should include at least the "channel" key and the setting you would
-                like to override.
+                like to override. The "channel" value may be a channel name, multichannel name,
+                channel URL, or glob-like URL pattern. Supported settings include auth-related
+                plugin settings and exclude_newer.
                 """
             ),
             client_ssl_cert=dals(
@@ -1604,7 +1606,9 @@ class Context(Configuration):
                 day in UTC. Set to 0 for no delay, using the current time as
                 the cutoff. Leave empty to disable (the default).
                 Packages without an indexed_timestamp or timestamp are included
-                for compatibility.
+                for compatibility. Channel-specific cutoffs can be set with
+                exclude_newer entries in channel_settings, and per-package
+                overrides can be set with exclude_newer_package.
                 """
             ),
             exclude_newer_package=dals(
