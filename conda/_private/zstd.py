@@ -15,13 +15,19 @@ import math
 import sys
 
 if sys.version_info >= (3, 14):
-    from compression import zstd
+    import compression.zstd as _zstd
+    from compression.zstd import ZstdError, ZstdFile, compress, decompress
 else:
-    from backports import zstd
+    import backports.zstd as _zstd
+    from backports.zstd import ZstdError, ZstdFile, compress, decompress
 
-ZstdError = zstd.ZstdError  # single symbol for callers to catch
-
-__all__ = ["ZstdError", "capped_decompress", "zstd"]
+__all__ = [
+    "capped_decompress",
+    "compress",
+    "decompress",
+    "ZstdError",
+    "ZstdFile",
+]
 
 
 def capped_decompress(data: bytes, max_output_size: int) -> bytes:
@@ -31,8 +37,8 @@ def capped_decompress(data: bytes, max_output_size: int) -> bytes:
     ``ZstdDecompressor(max_window_size=...)`` (window cap was only in subset.py).
     """
     window_log_max = max(10, math.ceil(math.log2(max(max_output_size, 1))))
-    dctx = zstd.ZstdDecompressor(
-        options={zstd.DecompressionParameter.window_log_max: window_log_max}
+    dctx = _zstd.ZstdDecompressor(
+        options={_zstd.DecompressionParameter.window_log_max: window_log_max}
     )
     out = dctx.decompress(data, max_length=max_output_size)
     if not dctx.eof and not dctx.needs_input:

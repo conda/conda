@@ -26,6 +26,7 @@ from conda_libmamba_solver.index import (
 from requests import Request, Response
 
 import conda.gateways.repodata
+from conda._private import zstd
 from conda._private.shards import cache as shards_cache
 from conda._private.shards import shards
 from conda._private.shards import subset as shards_subset
@@ -40,7 +41,6 @@ from conda._private.shards.shards import (
     fetch_shards_index,
     shard_mentioned_packages,
 )
-from conda._private.zstd import zstd
 from conda.base.context import context, reset_context
 from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
