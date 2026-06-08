@@ -1536,7 +1536,11 @@ def test_init_condabin(conda_cli: CondaCLIFixture, tmp_path, init_func):
     )
     prefix = tmp_path / "conda"
     condabin_path = str(prefix / "condabin")
-    if on_win and init_func != init_powershell_user:
+    if on_win and init_func == init_xonsh_user:
+        from conda.activate import backslash_to_forwardslash
+
+        condabin_path = backslash_to_forwardslash(condabin_path)
+    elif on_win and init_func != init_powershell_user:
         condabin_path = win_path_to_unix(condabin_path)
     if init_func == init_sh_user:
         kwargs_list = [{"shell": shell} for shell in ("bash", "zsh", "csh")]

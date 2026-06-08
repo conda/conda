@@ -1525,13 +1525,14 @@ def test_xonsh_basic(
             "activate1.bat" if on_win else "activate1.sh",
         )
     )
+    converted_env = activator.path_conversion(str(empty_env))
     assert activate_data == (
         f"{unset_vars}\n"
         f"$PATH = '{activator.pathsep_join(new_path_parts)}'\n"
-        f"$CONDA_PREFIX = '{empty_env}'\n"
+        f"$CONDA_PREFIX = '{converted_env}'\n"
         f"$CONDA_SHLVL = '1'\n"
-        f"$CONDA_DEFAULT_ENV = '{empty_env}'\n"
-        f"$CONDA_PROMPT_MODIFIER = '{get_prompt_modifier(empty_env)}'\n"
+        f"$CONDA_DEFAULT_ENV = '{converted_env}'\n"
+        f"$CONDA_PROMPT_MODIFIER = '{activator.path_conversion(get_prompt_modifier(empty_env))}'\n"
         f"{conda_exe_export}\n"
         f'{sourcer} "{activate1}"\n'
     )
@@ -1575,7 +1576,7 @@ def test_xonsh_basic(
         f"{unset_vars}\n"
         f"$PATH = '{activator.pathsep_join(new_path_parts)}'\n"
         f"$CONDA_SHLVL = '1'\n"
-        f"$CONDA_PROMPT_MODIFIER = '{get_prompt_modifier(empty_env)}'\n"
+        f"$CONDA_PROMPT_MODIFIER = '{activator.path_conversion(get_prompt_modifier(empty_env))}'\n"
         f"{conda_exe_export}\n"
         f'{sourcer} "{activate1}"\n'
     )
@@ -2267,4 +2268,8 @@ def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
     output = activator_cls(["activate"]).execute()
     if activator_cls == CmdExeActivator:
         output = Path(output.strip()).read_text()
-    assert str(tmp_path) in output
+    # XonshActivator emits all path-shaped values through path_conversion to
+    # stay safe inside Python single-quoted literals on Windows; compare in
+    # the same form.
+    expected_path = activator_cls.path_conversion(str(tmp_path))
+    assert expected_path in output

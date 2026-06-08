@@ -986,6 +986,20 @@ class XonshActivator(_Activator):
     def template_path_var(self, key: str, value: str) -> str:
         return self.path_var_tmpl % (key, self.path_conversion(value))
 
+    def template_export_var(self, key: str, value: str) -> str:
+        # The xonsh output is exec'd as Python by `__xonsh__.execer.exec`, so a
+        # path-shaped value containing backslashes — e.g. CONDA_PREFIX on
+        # Windows — turns escapes like `\U`, `\n`, `\t` into the wrong thing
+        # inside the single-quoted literal. `backslash_to_forwardslash` is
+        # None-safe and idempotent on values without backslashes, so apply it
+        # uniformly here instead of only for path_var. Coerce non-strings
+        # (e.g. int CONDA_SHLVL) to str first since path_conversion only
+        # accepts str or iterable-of-str.
+        return self.export_var_tmpl % (key, self.path_conversion(str(value)))
+
+    def template_set_var(self, key: str, value: str) -> str:
+        return self.set_var_tmpl % (key, self.path_conversion(str(value)))
+
 
 class CmdExeActivator(_Activator):
     pathsep_join = ";".join
