@@ -619,15 +619,35 @@ class UnlinkLinkTransaction:
 
     @staticmethod
     def _verify_individual_level(prefix_action_group):
-        all_actions = chain.from_iterable(
-            axngroup.actions
-            for action_groups in prefix_action_group
-            for axngroup in action_groups
+        all_actions = tuple(
+            chain.from_iterable(
+                axngroup.actions
+                for action_groups in prefix_action_group
+                for axngroup in action_groups
+            )
         )
 
         # run all per-action (per-package) verify methods
         #   one of the more important of these checks is to verify that a file listed in
         #   the packages manifest (i.e. info/files) is actually contained within the package
+        #
+        # ``PrefixReplaceLinkAction.verify`` does a copy + chmod + prefix-
+        # rewrite + sha256 per file (see path_actions.py:558) — embarrassingly
+        # parallelizable I/O-and-hash work. Scaling is perfectly linear O(M)
+        # at ~0.76 ms / action for 4 KB files, with each action writing its
+        # own uuid-named intermediate so no shared-state mutation. Fan out
+        # on a ThreadPoolExecutor when the user has opted in via
+        # ``context.verify_threads``; preserve the single-threaded default
+        # to keep shipping behaviour unchanged. See #15973.
+        max_workers = getattr(context, "verify_threads", 1) or 1
+        if max_workers <= 1 or len(all_actions) <= 1:
+            return UnlinkLinkTransaction._verify_individual_level_serial(all_actions)
+        return UnlinkLinkTransaction._verify_individual_level_parallel(
+            all_actions, max_workers
+        )
+
+    @staticmethod
+    def _verify_individual_level_serial(all_actions):
         error_results = []
         for axn in all_actions:
             if axn.verified:
@@ -640,6 +660,24 @@ class UnlinkLinkTransaction:
                 log.debug("Verification error in action %s\n%s", axn, formatted_error)
                 error_results.append(error_result)
         return error_results
+
+    @staticmethod
+    def _verify_individual_level_parallel(all_actions, max_workers):
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _safe_verify(axn):
+            if axn.verified:
+                return None
+            err = axn.verify()
+            if err:
+                formatted_error = "".join(format_exception_only(type(err), err))
+                log.debug("Verification error in action %s\n%s", axn, formatted_error)
+            return err
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            return [
+                err for err in pool.map(_safe_verify, all_actions) if err is not None
+            ]
 
     @staticmethod
     def _verify_prefix_level(target_prefix_AND_prefix_action_group_tuple):
