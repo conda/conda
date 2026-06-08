@@ -49,6 +49,7 @@ def epilog() -> str:
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from ..common.constants import NULL
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_default_packages,
@@ -89,13 +90,14 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "-f",
         "--file",
-        action="store",
+        nargs='*',
+        # action="store",
         help=(
             "Environment definition file (default: environment.yml). Standard "
             "filenames registered by the installed format plugins are "
             "auto-detected. Custom filenames require --format."
         ),
-        default="environment.yml",
+        default=["environment.yml"],
     )
 
     # Add name and prefix args
@@ -112,7 +114,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_solver(p)
     add_parser_platform(p)
 
-    p.set_defaults(func="conda.cli.main_env_create.execute")
+    p.set_defaults(
+        func="conda.cli.main_create.execute",
+        clone=False,
+        override_channels=False,
+        use_local=NULL,
+        packages=[],
+        repodata_fns=None,
+        yes=True
+    )
 
     return p
 
