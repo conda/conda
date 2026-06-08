@@ -334,7 +334,15 @@ class Resolve:
         bad_deps.extend(
             (spec,)
             for spec in non_tf_specs
-            if (not spec.optional and not self.find_matches(spec))
+            # Virtual packages (e.g. __cuda) model host state; an unmatchable
+            # virtual spec is a system-compatibility conflict, not a missing
+            # package. Let it flow into SAT/conflict analysis instead of raising
+            # ResolvePackageNotFound here (conda/conda#10803).
+            if (
+                not spec.optional
+                and not spec.name.startswith("__")
+                and not self.find_matches(spec)
+            )
         )
         if bad_deps:
             raise ResolvePackageNotFound(bad_deps)
@@ -481,15 +489,29 @@ class Resolve:
             parent_node = path[-1]
             matches = self.find_matches(parent_node)
             for mat in matches:
-                if len(mat.depends) > 0:
-                    for i in mat.depends:
-                        new_node = MatchSpec(i)
-                        sub_graph.update({new_node: {}})
-                        all_deps.add(new_node)
-                        new_path = list(path)
-                        new_path.append(new_node)
-                        if len(new_path) <= context.unsatisfiable_hints_check_depth:
-                            queue.append(new_path)
+                # Walk hard dependencies, plus any constrains that reference a
+                # virtual package (__-prefixed). Virtual packages are always
+                # present, so a constrain against one behaves like a real
+                # dependency and must surface in conflict explanations.
+                # (combined_depends is the canonical depends+constrains merge,
+                # but it includes *all* constrains; here we keep only virtual
+                # ones to avoid flooding the conflict graph.)
+                deps = [
+                    *mat.depends,
+                    *(
+                        ms
+                        for spec in (mat.constrains or ())
+                        if (ms := MatchSpec(spec)).name.startswith("__")
+                    ),
+                ]
+                for i in deps:
+                    new_node = MatchSpec(i)
+                    sub_graph.update({new_node: {}})
+                    all_deps.add(new_node)
+                    new_path = list(path)
+                    new_path.append(new_node)
+                    if len(new_path) <= context.unsatisfiable_hints_check_depth:
+                        queue.append(new_path)
         return dep_graph, all_deps
 
     def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
@@ -1062,13 +1084,17 @@ class Resolve:
             # the negation of the group variable, is true
             C.Require(C.ExactlyOne, group + [C.Not(m)])
 
-        # If a package is installed, its dependencies must be as well
+        # If a package is installed, its dependencies must be too — including
+        # specs on virtual packages (e.g. a `constrains` on __cuda), which are
+        # real index records. Skip a __-spec only when that virtual package is
+        # absent from this index (e.g. bad_installed's installed-only index), so
+        # a missing __cuda doesn't reject a package that legitimately needs it.
         for prec in self.index.values():
             nkey = C.Not(self.to_sat_name(prec))
             for ms in self.ms_depends(prec):
-                # Virtual packages can't be installed, we ignore them
-                if not ms.name.startswith("__"):
-                    C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
+                if ms.name.startswith("__") and ms.name not in self.groups:
+                    continue
+                C.Require(C.Or, nkey, self.push_MatchSpec(C, ms))
 
         if log.isEnabledFor(DEBUG):
             log.debug(
