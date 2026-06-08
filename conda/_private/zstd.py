@@ -1,6 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""compression.zstd (stdlib or backports.zstd) bindings for conda."""
+"""Internal zstd backend selector.
+
+Import ``zstd`` for library API (``zstd.ZstdFile``, ``zstd.compress``, …).
+Import ``ZstdError`` for exception handling.
+Import ``capped_decompress`` for bounded one-shot decompression of untrusted data (mimics
+         ``zstandard.decompress(..., max_output_size=...)`` and
+         ``ZstdDecompressor(max_window_size=...)``).
+"""
 
 from __future__ import annotations
 
