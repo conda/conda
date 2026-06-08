@@ -41,10 +41,21 @@ _COMPACT_DATE_ONLY_RE = re.compile(r"^\d{8}$")
 
 def parse_duration(value: str) -> timedelta | None:
     """Parse plain, compact, or ISO 8601 duration strings."""
-    seconds = _parse_duration_seconds(value)
-    if seconds is None:
-        return None
-    return timedelta(seconds=seconds)
+    value = value.strip()
+    try:
+        return timedelta(seconds=int(value))
+    except ValueError:
+        pass
+
+    seconds = _parse_iso8601_duration_seconds(value)
+    if seconds is not None:
+        return timedelta(seconds=seconds)
+
+    seconds = _parse_compact_duration_seconds(value)
+    if seconds is not None:
+        return timedelta(seconds=seconds)
+
+    return None
 
 
 def parse_datetime_to_timestamp(
@@ -87,20 +98,6 @@ def normalize_timestamp_seconds(value: str | int | float) -> float:
     if timestamp > MAX_SECONDS_TIMESTAMP:
         timestamp /= 1000
     return timestamp
-
-
-def _parse_duration_seconds(value: str) -> int | None:
-    value = value.strip()
-    try:
-        return int(value)
-    except ValueError:
-        pass
-
-    duration = _parse_iso8601_duration_seconds(value)
-    if duration is not None:
-        return duration
-
-    return _parse_compact_duration_seconds(value)
 
 
 def _parse_iso8601_duration_seconds(value: str) -> int | None:
