@@ -64,8 +64,8 @@ import msgpack
 
 import conda.gateways.repodata
 from conda.base.context import context
-from ..zstd import capped_decompress
 
+from ..zstd import capped_decompress
 from . import cache
 from .cache import AnnotatedRawShard
 from .misc import (

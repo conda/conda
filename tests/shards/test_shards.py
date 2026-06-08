@@ -40,8 +40,8 @@ from conda._private.shards.shards import (
     fetch_shards_index,
     shard_mentioned_packages,
 )
-from conda.base.context import context, reset_context
 from conda._private.zstd import zstd
+from conda.base.context import context, reset_context
 from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
 

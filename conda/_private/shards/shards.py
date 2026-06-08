@@ -20,7 +20,6 @@ import conda.exceptions
 import conda.gateways.repodata
 from conda.base.constants import REPODATA_SHARDS_FN
 from conda.base.context import context
-from ..zstd import capped_decompress
 from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import get_session
 from conda.gateways.repodata import (
@@ -29,6 +28,7 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 
+from ..zstd import capped_decompress
 from . import cache
 from .misc import (
     _is_http_error_most_400_codes,
