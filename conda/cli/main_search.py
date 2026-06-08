@@ -181,10 +181,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..cli.common import stdout_json
     from ..core.envs_manager import query_all_prefixes
-    from ..core.subdir_data import SubdirData
+    from ..core.subdir_data import query_all
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
-    from ..models.version import VersionOrder
     from ..reporters import get_spinner
 
     spec = MatchSpec(args.match_spec)
@@ -252,20 +251,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     with get_spinner("Loading channels"):
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
+        if not channel_urls:
+            from ..exceptions import NoChannelsConfiguredError
 
-        matches = sorted(
-            SubdirData.query_all(spec, channel_urls, subdirs),
-            key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
-        )
+            raise NoChannelsConfiguredError(
+                packages=[spec.name] if spec.get_exact_value("name") else [],
+            )
+        matches = query_all(spec, channel_urls, subdirs)
     if not matches and not args.skip_flexible_search and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name=f"*{spec.name}*")
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
-        matches = sorted(
-            SubdirData.query_all(flex_spec, channel_urls, subdirs),
-            key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
-        )
-
+        matches = query_all(flex_spec, channel_urls, subdirs)
     if not matches:
         from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls

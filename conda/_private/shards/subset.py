@@ -162,6 +162,7 @@ class RepodataSubset:
         shardlikes: Iterable[ShardBase],
         spec_to_package_name: Callable[[str], str] = spec_to_package_name,
         repodata_version: int = 1,
+        depth: int = sys.maxsize,
     ):
         self._nodes = {}
         self.shardlikes = list(shardlikes)
@@ -169,6 +170,7 @@ class RepodataSubset:
         self._add_pip_as_python_dependency = context.add_pip_as_python_dependency
         self._spec_to_package_name = spec_to_package_name
         self._repodata_version = repodata_version
+        self.depth = depth
 
     @property
     def node_count(self) -> int:
@@ -295,7 +297,9 @@ class RepodataSubset:
                 node.visited = True
 
                 for next_node, _ in self._outgoing(node):
-                    if not next_node.visited:  # pragma: no branch
+                    if (
+                        not next_node.visited and next_node.distance <= self.depth
+                    ):  # pragma: no branch
                         node_queue.append(next_node)
 
     def reachable_pipelined(self, root_packages):
@@ -509,6 +513,8 @@ class RepodataSubset:
         # algorithm, and a separate visit for ShardBase which means "include
         # this package in the output repodata".
         for package in mentioned_packages:
+            if parent_node.distance > self.depth:
+                continue
             for shardlike in self.shardlikes:
                 if package in shardlike:
                     new_node_id = NodeId(
@@ -557,6 +563,7 @@ def build_repodata_subset(
     algorithm: Literal["bfs", "pipelined"] = RepodataSubset.DEFAULT_STRATEGY,
     spec_to_package_name_func: Callable[[str], str] = spec_to_package_name,
     repodata_version: int = 1,
+    depth: int = sys.maxsize,
 ) -> dict[str, ShardBase] | None:
     """
     Retrieve all necessary information to build a repodata subset.
@@ -571,6 +578,8 @@ def build_repodata_subset(
         spec_to_package_name_func: callable to convert package specs to names.
                                    Defaults to the standard spec_to_package_name.
         repodata_version: repodata format version (1 = classic, 3 = v3).
+        depth: the maximum depth of dependant packages to include in the repodata
+               subset.
     Return:
         None if there are no shards available, or a mapping of channel URL's to
         ShardBase objects where build_repodata() returns the computed subset.
@@ -581,6 +590,7 @@ def build_repodata_subset(
             (*channel_data.values(),),
             spec_to_package_name=spec_to_package_name_func,
             repodata_version=repodata_version,
+            depth=depth,
         )
         subset.reachable(root_packages, strategy=algorithm)
         log.debug("%d (channel, package) nodes discovered", subset.node_count)

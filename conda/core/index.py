@@ -288,25 +288,13 @@ class Index(UserDict):
         for prefix_record in self.prefix_data.iter_records():
             if prefix_record in self._data:
                 current_record = self._data[prefix_record]
-                if current_record.channel == prefix_record.channel:
-                    # The downloaded repodata takes priority, so we do not overwrite.
-                    # We do, however, copy the link information so that the solver (i.e. resolve)
-                    # knows this package is installed.
-                    link = prefix_record.get("link") or EMPTY_LINK
-                    self._data[prefix_record] = PrefixRecord.from_objects(
-                        current_record, prefix_record, link=link
-                    )
-                else:
-                    # If the local packages channel information does not agree with
-                    # the channel information in the index then they are most
-                    # likely referring to different packages.  This can occur if a
-                    # multi-channel changes configuration, e.g. defaults with and
-                    # without the free channel. In this case we need to fake the
-                    # channel data for the existing package.
-                    prefix_channel = prefix_record.channel
-                    prefix_channel._Channel__canonical_name = prefix_channel.url()
-                    del prefix_record._PackageRecord__pkey
-                    self._data[prefix_record] = prefix_record
+                # The downloaded repodata takes priority, so we do not overwrite.
+                # We do, however, copy the link information so that the solver (i.e. resolve)
+                # knows this package is installed.
+                link = prefix_record.get("link") or EMPTY_LINK
+                self._data[prefix_record] = PrefixRecord.from_objects(
+                    current_record, prefix_record, link=link
+                )
             else:
                 # If the package is not in the repodata, use the local data.
                 # If the channel is known but the package is not in the index, it
@@ -373,14 +361,8 @@ class Index(UserDict):
         prefix_prec = self.prefix_data.get(key.name, None) if self.prefix_data else None
         if prefix_prec and prefix_prec == prec:
             if prec:
-                if prec.channel == prefix_prec.channel:
-                    link = prefix_prec.get("link") or EMPTY_LINK
-                    prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
-                else:
-                    prefix_channel = prefix_prec.channel
-                    prefix_channel._Channel__canonical_name = prefix_channel.url()
-                    del prefix_prec._PackageRecord__pkey
-                    prec = prefix_prec
+                link = prefix_prec.get("link") or EMPTY_LINK
+                prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
             else:
                 prec = prefix_prec
         return prec

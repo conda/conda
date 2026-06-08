@@ -730,3 +730,122 @@ class SubdirData(metaclass=SubdirDataType):
         if with_credentials:
             return self.url_w_credentials
         return self.url_w_subdir
+
+
+def _search_package_via_shards(
+    spec: MatchSpec,
+    channel_urls: tuple[str, ...] | list[str],
+    subdirs: tuple[str, ...] | list[str],
+) -> tuple[PackageRecord, ...]:
+    from .._private.shards.shards import fetch_channels
+    from .._private.shards.subset import RepodataSubset
+    from ..base.context import context
+    from ..models.channel import Channel, all_channel_urls
+    from ..models.records import PackageRecord
+
+    if channel_urls is None:
+        channel_urls = context.channels
+    channel_urls = all_channel_urls(channel_urls, subdirs=subdirs)
+    channels = {
+        channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
+    }
+
+    subset_dict = fetch_channels(channels)
+    if subset_dict is None:
+        return _search_package(spec, channel_urls, subdirs)
+
+    if not spec.get_exact_value("name"):
+        # Needed if MatchSpec() includes a wildcard, otherwise root_packages =
+        # [spec.name] would be sufficient. Adds about 1s on conda-forge compared
+        # to exact-name shortcut.
+        packages: set[str] = set()
+        for shard_base in subset_dict.values():
+            if shard_base is not None:
+                packages.update(shard_base.package_names)
+
+        # MatchSpec.match(dict) does create a new PackageRecord(), match against
+        # name only to defer version etc. filter until later.
+        raw_name = spec.get_raw_value("name")
+        if raw_name == "*":  # Refuse instead of fetching all shards
+            from ..exceptions import CondaValueError
+
+            raise CondaValueError(
+                "Cannot search for bare '*'. Please include package name in search."
+            )  # TODO improve error message
+        name_only = MatchSpec(raw_name)  # type: ignore[assign]
+        root_packages = [
+            name
+            for name in packages
+            if name_only.match(
+                {
+                    "name": name,
+                    "version": "",
+                    "build": "",
+                    "build_number": 0,
+                }
+            )
+        ]
+    else:
+        root_packages = [spec.name]
+
+    subset = RepodataSubset((*subset_dict.values(),), repodata_version=3, depth=0)
+    subset.reachable(root_packages)
+
+    records = []
+    for channel, shard in subset_dict.items():
+        for section_tuple, record in shard.iter_records_v3():
+            # If conda if only using tar_bz2 packages, skip any sections that
+            # are not called "packages"
+            if context.use_only_tar_bz2 and section_tuple[1] != "packages":
+                continue
+
+            # Inject the fn into package records if available. For repodata v1,
+            # the filename is associated with the key of the section tuple. For
+            # repodata v3 it is not.
+            if section_tuple[1] in ["packages", "packages.conda"]:
+                rec = PackageRecord(channel=channel, fn=section_tuple[0], **record)
+            else:
+                rec = PackageRecord(channel=channel, **record)
+            if spec.match(rec):
+                records.append(rec)
+    return records
+
+
+def _search_package(
+    spec: MatchSpec,
+    channel_urls: tuple[str, ...] | list[str],
+    subdirs: tuple[str, ...] | list[str],
+    repodata_fn: str = REPODATA_FN,
+) -> tuple[PackageRecord, ...]:
+    from ..core.subdir_data import SubdirData
+    from ..models.version import VersionOrder
+
+    return sorted(
+        SubdirData.query_all(spec, channel_urls, subdirs, repodata_fn),
+        key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
+    )
+
+
+def query_all(
+    match_spec: MatchSpec,
+    channels: Iterable[Channel | str] | None = None,
+    subdirs: Iterable[str] | None = None,
+    repodata_fn: str = REPODATA_FN,
+) -> tuple[PackageRecord, ...]:
+    """
+    Execute a query against all repodata instances in the channel/subdir
+    matrix. Will try to load data from shards if conda is configured to use
+    shards and the channel provides sharded repodata. If not, will fall back
+    to providing data from monolithic repodata.
+
+    :param match_spec: A `MatchSpec` query object.
+    :param channels: An iterable of urls for channels or `Channel` objects.
+        If None, will fall back to `context.channels`.
+    :param subdirs: If None, will fall back to context.subdirs.
+    :param repodata_fn: The filename of the repodata.
+    :return: A tuple of `PackageRecord` objects.
+    """
+    if context.repodata_use_shards:
+        return _search_package_via_shards(match_spec, channels, subdirs)
+    else:
+        return _search_package(match_spec, channels, subdirs, repodata_fn)
