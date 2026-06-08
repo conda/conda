@@ -3,15 +3,16 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from conda.common.datetime import (
+    COMPACT_DURATION_UNITS,
+    DateOnlyBehavior,
     normalize_timestamp_seconds,
-    parse_date_to_next_utc_day_timestamp,
-    parse_duration_seconds,
-    parse_iso_datetime_to_timestamp,
+    parse_datetime_to_timestamp,
+    parse_duration,
 )
 
 
@@ -32,41 +33,53 @@ from conda.common.datetime import (
         pytest.param("P0D", 0, id="zero-iso"),
     ],
 )
-def test_parse_duration_seconds(value: str, expected: int) -> None:
-    assert parse_duration_seconds(value) == expected
+def test_parse_duration(value: str, expected: int) -> None:
+    assert parse_duration(value) == timedelta(seconds=expected)
 
 
 @pytest.mark.parametrize("value", ["P", "7d2x"])
-def test_parse_duration_seconds_rejects_malformed_duration(value: str) -> None:
+def test_parse_duration_rejects_malformed_duration(value: str) -> None:
     with pytest.raises(ValueError):
-        parse_duration_seconds(value)
+        parse_duration(value)
 
 
-def test_parse_duration_seconds_returns_none_for_non_duration() -> None:
-    assert parse_duration_seconds("not-a-duration") is None
+def test_parse_duration_returns_none_for_non_duration() -> None:
+    assert parse_duration("not-a-duration") is None
 
 
-def test_parse_date_to_next_utc_day_timestamp() -> None:
+def test_parse_datetime_to_timestamp_handles_date_only_when_requested() -> None:
     expected = datetime(2026, 4, 2, tzinfo=timezone.utc).timestamp()
-    assert parse_date_to_next_utc_day_timestamp("2026-04-01") == expected
+    assert (
+        parse_datetime_to_timestamp(
+            "2026-04-01",
+            date_only=DateOnlyBehavior.NEXT_UTC_DAY,
+        )
+        == expected
+    )
 
 
-def test_parse_iso_datetime_to_timestamp_treats_naive_values_as_utc() -> None:
+def test_parse_datetime_to_timestamp_treats_naive_values_as_utc() -> None:
     expected = datetime(2026, 4, 1, 12, 0, tzinfo=timezone.utc).timestamp()
-    assert parse_iso_datetime_to_timestamp("2026-04-01T12:00:00") == expected
+    assert parse_datetime_to_timestamp("2026-04-01T12:00:00") == expected
 
 
-def test_parse_iso_datetime_to_timestamp_honors_z_suffix_and_offsets() -> None:
+def test_parse_datetime_to_timestamp_honors_z_suffix_and_offsets() -> None:
     expected = datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc).timestamp()
-    assert parse_iso_datetime_to_timestamp("2026-04-01T10:00:00Z") == expected
-    assert parse_iso_datetime_to_timestamp("2026-04-01T12:00:00+02:00") == expected
+    assert parse_datetime_to_timestamp("2026-04-01T10:00:00Z") == expected
+    assert parse_datetime_to_timestamp("2026-04-01T12:00:00+02:00") == expected
 
 
 @pytest.mark.parametrize("value", ["2026-04-01", "20260401"])
-def test_parse_iso_datetime_to_timestamp_leaves_date_only_to_callers(
+def test_parse_datetime_to_timestamp_rejects_date_only_by_default(
     value: str,
 ) -> None:
-    assert parse_iso_datetime_to_timestamp(value) is None
+    assert parse_datetime_to_timestamp(value) is None
+
+
+def test_compact_duration_units_are_public_and_read_only() -> None:
+    assert COMPACT_DURATION_UNITS["d"] == 86400
+    with pytest.raises(TypeError):
+        COMPACT_DURATION_UNITS["x"] = 1
 
 
 def test_normalize_timestamp_seconds() -> None:

@@ -168,6 +168,12 @@ def test_exclude_newer_policy_rejects_invalid_values(value: str) -> None:
         ExcludeNewerPolicy.from_values(value, {}, now=NOW)
 
 
+@pytest.mark.parametrize("value", [True, False])
+def test_exclude_newer_policy_rejects_bool_values(value: bool) -> None:
+    with pytest.raises(CondaValueError, match="Invalid exclude_newer value"):
+        ExcludeNewerPolicy.from_values(value, {}, now=NOW)
+
+
 def test_exclude_newer_policy_filters_records() -> None:
     policy = ExcludeNewerPolicy.from_values("1d", {}, now=NOW)
 
