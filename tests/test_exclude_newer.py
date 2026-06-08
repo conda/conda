@@ -49,6 +49,7 @@ PKG_BASE = {
 def _record(
     name: str,
     *,
+    channel: str | Channel = "https://example.test/conda",
     timestamp: int | float | None = None,
     indexed_timestamp: int | float | None = None,
     date: str | None = None,
@@ -56,7 +57,7 @@ def _record(
     kwargs = {
         **PKG_BASE,
         "name": name,
-        "channel": Channel("https://example.test/conda"),
+        "channel": Channel(channel),
         "fn": f"{name}-1.0-0.tar.bz2",
     }
     if timestamp is not None:
@@ -241,6 +242,138 @@ def test_exclude_newer_policy_allows_package_only_cutoff() -> None:
     assert not policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
 
 
+def test_exclude_newer_policy_allows_channel_only_cutoff() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "",
+        {},
+        channel_settings=(
+            {"channel": "https://example.test/conda", "exclude_newer": "3d"},
+        ),
+        now=NOW,
+    )
+
+    assert not policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
+    assert policy.should_include(
+        _record(
+            "numpy",
+            channel="https://other.example.test/conda",
+            timestamp=NOW - 2 * DAY,
+        )
+    )
+
+
+def test_exclude_newer_policy_channel_cutoff_overrides_global_cutoff() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "1d",
+        {},
+        channel_settings=(
+            {"channel": "https://example.test/conda", "exclude_newer": "3d"},
+        ),
+        now=NOW,
+    )
+
+    assert not policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
+    assert policy.should_include(
+        _record(
+            "numpy",
+            channel="https://other.example.test/conda",
+            timestamp=NOW - 2 * DAY,
+        )
+    )
+
+
+def test_exclude_newer_policy_package_cutoff_overrides_channel_cutoff() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "",
+        {"openssl": "false", "numpy": "1d"},
+        channel_settings=(
+            {"channel": "https://example.test/conda", "exclude_newer": "3d"},
+        ),
+        now=NOW,
+    )
+
+    assert policy.should_include(_record("openssl", timestamp=NOW - 60))
+    assert policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
+    assert not policy.should_include(_record("scipy", timestamp=NOW - 2 * DAY))
+
+
+def test_exclude_newer_policy_last_matching_channel_setting_wins() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "",
+        {},
+        channel_settings=(
+            {"channel": "https://example.test/conda", "exclude_newer": "3d"},
+            {"channel": "https://example.test/conda", "exclude_newer": "1d"},
+        ),
+        now=NOW,
+    )
+
+    assert policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
+
+
+def test_exclude_newer_policy_channel_setting_can_exempt_channel() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "1d",
+        {},
+        channel_settings=(
+            {"channel": "https://example.test/conda", "exclude_newer": "false"},
+        ),
+        now=NOW,
+    )
+
+    assert policy.should_include(_record("numpy", timestamp=NOW - 60))
+    assert not policy.should_include(
+        _record(
+            "numpy",
+            channel="https://other.example.test/conda",
+            timestamp=NOW - 60,
+        )
+    )
+
+
+def test_exclude_newer_policy_channel_setting_matches_url_glob() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "",
+        {},
+        channel_settings=(
+            {"channel": "https://repo.example.test/partner/*", "exclude_newer": "3d"},
+        ),
+        now=NOW,
+    )
+
+    assert not policy.should_include(
+        _record(
+            "numpy",
+            channel="https://repo.example.test/partner/team",
+            timestamp=NOW - 2 * DAY,
+        )
+    )
+    assert policy.should_include(
+        _record(
+            "numpy",
+            channel="https://repo.example.test/public/team",
+            timestamp=NOW - 2 * DAY,
+        )
+    )
+
+
+def test_exclude_newer_policy_multichannel_setting_matches_member_channel() -> None:
+    policy = ExcludeNewerPolicy.from_values(
+        "",
+        {},
+        channel_settings=({"channel": "defaults", "exclude_newer": "3d"},),
+        now=NOW,
+    )
+
+    assert not policy.should_include(
+        _record(
+            "numpy",
+            channel="https://repo.anaconda.com/pkgs/main/linux-64",
+            timestamp=NOW - 2 * DAY,
+        )
+    )
+
+
 def test_subdir_data_cache_stays_unfiltered(
     exclude_newer_channel: tuple[Path, Channel],
 ) -> None:
@@ -336,6 +469,24 @@ def test_solver_global_only_subclass_fails_for_package_overrides(
 
     with pytest.raises(CondaError, match="package overrides"):
         GlobalOnlySolver(prefix=str(tmp_path))
+
+
+def test_solver_global_and_package_subclass_fails_for_channel_overrides(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    class NoChannelSolver(Solver):
+        supports_exclude_newer_global = True
+        supports_exclude_newer_package = True
+
+    reset_context()
+    monkeypatch.setattr(
+        context,
+        "channel_settings",
+        ({"channel": "conda-forge", "exclude_newer": "1d"},),
+    )
+
+    with pytest.raises(CondaError, match="channel overrides"):
+        NoChannelSolver(prefix=str(tmp_path))
 
 
 def test_post_solve_guard_rejects_newer_link_prec(
