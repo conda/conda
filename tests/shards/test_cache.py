@@ -11,7 +11,7 @@ import pytest
 
 from conda._private.shards.cache import AnnotatedRawShard, ShardCache
 from conda.common.compat import on_mac
-from conda.common.compression_zstd import zstd
+from conda._private.zstd import zstd
 
 
 class TestCacheWALMode:

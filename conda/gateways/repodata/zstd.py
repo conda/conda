@@ -88,7 +88,7 @@ def download_repodata(
     if response.status_code == 200:
         with dest_path.open("wb") as repodata:
             if is_zst:
-                from ...common.compression_zstd import zstd
+                from ..._private.zstd import zstd
 
                 # Content-Encoding could be present so we need to decode it before
                 # decompressing the response payload.  No op if absent.
@@ -141,7 +141,7 @@ def request_url_zstd_state(
     """
     json_path = cache.cache_path_json
 
-    from ...common.compression_zstd import ZstdError
+    from ..._private.zstd import ZstdError
 
     is_fallback = False
     with timeme(f"Download complete {url} "):

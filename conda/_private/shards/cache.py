@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import msgpack
 
-from conda.common.compression_zstd import capped_decompress
+from ..zstd import capped_decompress
 
 if TYPE_CHECKING:
     from pathlib import Path

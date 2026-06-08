@@ -20,7 +20,7 @@ import conda.exceptions
 import conda.gateways.repodata
 from conda.base.constants import REPODATA_SHARDS_FN
 from conda.base.context import context
-from conda.common.compression_zstd import capped_decompress
+from ..zstd import capped_decompress
 from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import get_session
 from conda.gateways.repodata import (
