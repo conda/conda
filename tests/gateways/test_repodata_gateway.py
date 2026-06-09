@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from socket import socket
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
 
 def test_save(tmp_path):
@@ -81,9 +82,11 @@ def test_save(tmp_path):
     assert state3 == state2
 
 
-def test_stale(tmp_path):
+def test_stale(tmp_path, mocker: MockerFixture):
     """RepodataCache should understand cache-control and modified time versus now."""
     TEST_DATA = "{}"
+    now_ns = 1_800_000_000 * 10**9
+    mocker.patch("conda.gateways.repodata.time.time_ns", return_value=now_ns)
     cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
     last_modified = "Thu, 26 Jan 2023 19:34:01 GMT"
     cache.state.mod = last_modified
@@ -95,27 +98,30 @@ def test_stale(tmp_path):
 
     cache.load()
     assert not cache.stale()
-    assert (
-        29 < cache.timeout() < 30.1
-    )  # time difference between record and save timestamp
+    assert cache.timeout() == 30
 
     # backdate
-    cache.state["refresh_ns"] = time.time_ns() - (60 * 10**9)  # type: ignore
+    cache.state["refresh_ns"] = now_ns - (60 * 10**9)  # type: ignore
     cache.cache_path_state.write_text(json.dumps(dict(cache.state)))
     assert cache.load() == TEST_DATA
     assert cache.stale()
+    assert cache.timeout() == -30
 
     # lesser backdate.
     # excercise stale paths.
     original_ttl = context.local_repodata_ttl
     try:
-        cache.state["refresh_ns"] = time.time_ns() - (31 * 10**9)  # type: ignore
-        for ttl, expected in ((0, True), (1, True), (60, False)):
+        cache.state["refresh_ns"] = now_ns - (31 * 10**9)  # type: ignore
+        for ttl, expected, timeout in (
+            (0, True, -31),
+            (1, True, -1),
+            (60, False, 29),
+        ):
             # < 1 means max-age: 0; 1 means use cache header; >1 means use
             # local_repodata_ttl
             context.local_repodata_ttl = ttl  # type: ignore
             assert cache.stale() is expected
-            cache.timeout()
+            assert cache.timeout() == timeout
     finally:
         context.local_repodata_ttl = original_ttl
 
