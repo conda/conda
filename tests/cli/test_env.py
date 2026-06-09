@@ -270,14 +270,14 @@ def test_create_valid_env_with_variables(
 
 @pytest.mark.integration
 def test_conda_env_create_empty_file(
-    conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+    conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture, tmp_path: Path,
 ):
     """Test the environment.yaml format, `conda env create --file=file_name.yml` where file_name.yml is empty."""
     tmp_file = path_factory(suffix=".yml")
     tmp_file.touch()
 
     with pytest.raises(EnvironmentSpecPluginSelectionError):
-        conda_cli("env", "create", "--format=cep-24", f"--file={tmp_file}")
+        conda_cli("env", "create", "--prefix", tmp_path, "--format=cep-24", f"--file={tmp_file}")
 
 
 @pytest.mark.integration
