@@ -186,6 +186,53 @@ FAKE_SHARD = shard_for_name(FAKE_REPODATA, "foo")
 FAKE_SHARD_2 = shard_for_name(FAKE_REPODATA, "bar")
 
 
+def write_shards_repository(shards_repository: Path) -> None:
+    shards_repository.mkdir(parents=True, exist_ok=True)
+    noarch = shards_repository / "noarch"
+    noarch.mkdir(exist_ok=True)
+
+    foo_shard = zstandard.compress(msgpack.dumps(FAKE_SHARD))  # type: ignore
+    foo_shard_digest = hashlib.sha256(foo_shard).digest()
+    (noarch / f"{foo_shard_digest.hex()}.msgpack.zst").write_bytes(foo_shard)
+
+    bar_shard = zstandard.compress(msgpack.dumps(FAKE_SHARD_2))  # type: ignore
+    bar_shard_digest = hashlib.sha256(bar_shard).digest()
+    (noarch / f"{bar_shard_digest.hex()}.msgpack.zst").write_bytes(bar_shard)
+
+    # Create fake malformed shards to test error handling
+    malformed = {"follows_schema": False}
+    bad_schema = zstandard.compress(msgpack.dumps(malformed))  # type: ignore
+    malformed_digest = hashlib.sha256(bad_schema).digest()
+    (noarch / f"{malformed_digest.hex()}.msgpack.zst").write_bytes(bad_schema)
+
+    not_zstd = b"not zstd"
+    (noarch / f"{hashlib.sha256(not_zstd).digest().hex()}.msgpack.zst").write_bytes(
+        not_zstd
+    )
+
+    not_msgpack = zstandard.compress(b"not msgpack")
+    (noarch / f"{hashlib.sha256(not_msgpack).digest().hex()}.msgpack.zst").write_bytes(
+        not_msgpack
+    )
+
+    # Create fake repodata_shards.msgpack.zst index
+    fake_shards: ShardsIndexDict = {
+        "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
+        "version": 1,
+        "shards": {
+            "foo": foo_shard_digest,
+            "bar": bar_shard_digest,
+            "wrong_package_name": foo_shard_digest,
+            "fake_package": b"",
+            "malformed": malformed_digest,
+            "not_zstd": hashlib.sha256(not_zstd).digest(),
+            "not_msgpack": hashlib.sha256(not_msgpack).digest(),
+        },
+    }
+    index_data = zstandard.compress(msgpack.dumps(fake_shards))  # type: ignore
+    (noarch / "repodata_shards.msgpack.zst").write_bytes(index_data)
+
+
 def _run_test_server(
     directory: str, finish_request_action: Callable | None = None
 ) -> http.server.ThreadingHTTPServer:
@@ -283,50 +330,7 @@ class ShardFactory:
         :return: The URL of the http server serving the shards.
         """
         shards_repository = self.root / dir_name / "sharded_repo"
-        shards_repository.mkdir(parents=True, exist_ok=True)
-        noarch = shards_repository / "noarch"
-        noarch.mkdir(exist_ok=True)
-
-        foo_shard = zstandard.compress(msgpack.dumps(FAKE_SHARD))  # type: ignore
-        foo_shard_digest = hashlib.sha256(foo_shard).digest()
-        (noarch / f"{foo_shard_digest.hex()}.msgpack.zst").write_bytes(foo_shard)
-
-        bar_shard = zstandard.compress(msgpack.dumps(FAKE_SHARD_2))  # type: ignore
-        bar_shard_digest = hashlib.sha256(bar_shard).digest()
-        (noarch / f"{bar_shard_digest.hex()}.msgpack.zst").write_bytes(bar_shard)
-
-        # Create fake malformed shards to test error handling
-        malformed = {"follows_schema": False}
-        bad_schema = zstandard.compress(msgpack.dumps(malformed))  # type: ignore
-        malformed_digest = hashlib.sha256(bad_schema).digest()
-        (noarch / f"{malformed_digest.hex()}.msgpack.zst").write_bytes(bad_schema)
-
-        not_zstd = b"not zstd"
-        (noarch / f"{hashlib.sha256(not_zstd).digest().hex()}.msgpack.zst").write_bytes(
-            not_zstd
-        )
-
-        not_msgpack = zstandard.compress(b"not msgpack")
-        (
-            noarch / f"{hashlib.sha256(not_msgpack).digest().hex()}.msgpack.zst"
-        ).write_bytes(not_msgpack)
-
-        # Create fake repodata_shards.msgpack.zst index
-        fake_shards: ShardsIndexDict = {
-            "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
-            "version": 1,
-            "shards": {
-                "foo": foo_shard_digest,
-                "bar": bar_shard_digest,
-                "wrong_package_name": foo_shard_digest,
-                "fake_package": b"",
-                "malformed": malformed_digest,
-                "not_zstd": hashlib.sha256(not_zstd).digest(),
-                "not_msgpack": hashlib.sha256(not_msgpack).digest(),
-            },
-        }
-        index_data = zstandard.compress(msgpack.dumps(fake_shards))  # type: ignore
-        (noarch / "repodata_shards.msgpack.zst").write_bytes(index_data)
+        write_shards_repository(shards_repository)
 
         httpd = _run_test_server(
             str(shards_repository), finish_request_action=finish_request_action

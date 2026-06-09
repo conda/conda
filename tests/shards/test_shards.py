@@ -361,14 +361,29 @@ def test_fetch_shards_index_mark_unavailable(monkeypatch, tmp_path, error_code):
     # load json directly due to issues with repo_cache API, also
     # fetch_shards_index gets a different repo_cache instance:
     repo_cache.state.update(json.loads(repo_cache.cache_path_state.read_text()))
-    assert repo_cache.state.should_check_format("shards") == expect_should_check_shards
+    # Always check for shards if json has not been cached:
+    assert repo_cache.state.should_check_format("shards") == (
+        expect_should_check_shards or not repo_cache.cache_path_json.exists()
+    )
     assert mock_session.get_count == 1
 
-    # assert that retry skips over shards without trying to GET
+    # Without classic repodata cache, retry should still check shards before
+    # falling back to a cache path that is not available.
     get_count = mock_session.get_count
     second_try = fetch_shards_index(subdir_data)
     assert second_try is None
-    assert mock_session.get_count == get_count + expect_should_check_shards
+    assert mock_session.get_count == get_count + 1
+
+    if not expect_should_check_shards:
+        repo_cache.state.update(json.loads(repo_cache.cache_path_state.read_text()))
+        repo_cache.save("{}")
+
+        # With classic repodata cache available, cached negative shard state can
+        # safely skip the shard check.
+        get_count = mock_session.get_count
+        third_try = fetch_shards_index(subdir_data)
+        assert third_try is None
+        assert mock_session.get_count == get_count
 
 
 def test_fetch_shards_error(http_server_shards, empty_shards_cache):
@@ -953,7 +968,11 @@ def test_shardlike():
 
 def test_iter_records_classic():
     shardlike = ShardLike(
-        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
     )
     shardlike.visit_shard(
         "mypkg",
@@ -969,7 +988,11 @@ def test_iter_records_classic():
 
 def test_iter_records_v3():
     shardlike = ShardLike(
-        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
     )
     shardlike.visit_shard(
         "mypkg",
