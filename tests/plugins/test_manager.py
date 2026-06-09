@@ -18,7 +18,7 @@ from conda.base.context import reset_context
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
-from conda.plugins import virtual_packages
+from conda.plugins import solvers, virtual_packages
 from conda.plugins.types import CondaPlugin
 
 if TYPE_CHECKING:
@@ -118,13 +118,19 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
             yield plugins.types.CondaVirtualPackage("archspec", "", None)
 
     plugin_manager.register(SecondArchspec)
+    second_archspec_source = re.escape(
+        f"{__name__}.test_get_hook_results.<locals>.SecondArchspec"
+    )
     with pytest.raises(
         PluginError,
         match=(
             r"Conflicting plugins found for `virtual_packages`:\n\n"
             r"  - 'archspec' provided by:\n"
-            r"    - \S.*\n"
-            r"    - \S"
+            r"    - conda\.plugins\.virtual_packages\.archspec\n"
+            rf"    - {second_archspec_source}\n\n"
+            r"Multiple conda plugins are registered via the "
+            r"`conda_virtual_packages` hook\. Please make sure that you don't have any "
+            r"incompatible plugins installed\."
         ),
     ):
         plugin_manager.get_hook_results(name)
@@ -234,7 +240,7 @@ def test_solver_with_repodata_subset(
 
 def test_get_canonical_name_object(plugin_manager: CondaPluginManager):
     canonical_name = plugin_manager.get_canonical_name(object())
-    assert re.match(r"<unknown_module>.object\[\d+\]", canonical_name), canonical_name
+    assert re.match(r"builtins.object\[\d+\]", canonical_name), canonical_name
 
 
 def test_get_canonical_name_module(plugin_manager: CondaPluginManager):
@@ -252,6 +258,47 @@ def test_get_canonical_name_instance(plugin_manager: CondaPluginManager):
         rf"{__name__}.VerboseSolverPlugin\[\d+\]",
         canonical_name,
     )
+
+
+def test_conflicting_plugin_error_names_registered_instances(
+    plugin_manager: CondaPluginManager,
+) -> None:
+    class IntruderSolver:
+        hide_module = True
+
+        def __dir__(self):
+            return [name for name in super().__dir__() if name != "__module__"]
+
+        def __getattribute__(self, name):
+            if name == "__module__" and self.hide_module:
+                raise AttributeError(name)
+            return super().__getattribute__(name)
+
+        @plugins.hookimpl
+        def conda_solvers(self):
+            yield plugins.types.CondaSolver(name="classic", backend=object)
+
+    intruder_solver_source = re.escape(
+        f"{__name__}."
+        "test_conflicting_plugin_error_names_registered_instances."
+        "<locals>.IntruderSolver"
+    )
+    plugin_manager.load_plugins(solvers)
+    intruder_solver = IntruderSolver()
+    plugin_manager.register(intruder_solver)
+
+    with pytest.raises(
+        PluginError,
+        match=(
+            r"Conflicting plugins found for `solvers`:\n\n"
+            r"  - 'classic' provided by:\n"
+            r"    - conda\.plugins\.solvers\n"
+            rf"    - {intruder_solver_source}\[\d+\]\n\n"
+            r"Multiple conda plugins are registered via the `conda_solvers` hook\. "
+            r"Please make sure that you don't have any incompatible plugins installed\."
+        ),
+    ):
+        plugin_manager.get_hook_results("solvers")
 
 
 @pytest.mark.parametrize("plugin", [this_module, VerboseSolverPlugin])

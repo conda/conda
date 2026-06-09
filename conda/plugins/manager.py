@@ -158,27 +158,33 @@ class CondaPluginManager(pluggy.PluginManager):
         self.get_cached_request_headers = functools.cache(self.get_request_headers)
 
     def get_canonical_name(self, plugin: object) -> str:
-        # Detect the fully qualified module name. Prefer`__spec__.name
+        def module_name(module, fallback: str | None = None) -> str:
+            if module is not None:
+                return (module.__spec__ and module.__spec__.name) or module.__name__
+            return fallback or "<unknown_module>"
+
+        # Detect the fully qualified module name. Prefer `__spec__.name`
         # which is set for normally-imported modules, including editable
-        # installations, and fall back to module.__name__ and to
-        # plugin.__module__ if getmodule couldn't locate source module
+        # installations, and fall back to the plugin class module for instances.
         module = getmodule(plugin)
-        if module is not None:
-            prefix = (module.__spec__ and module.__spec__.name) or module.__name__
-        else:
-            prefix = getattr(plugin, "__module__", None) or "<unknown_module>"
 
         # return the fully qualified name for modules
         if module is plugin:
-            return prefix
+            return module_name(module)
 
         # return the fully qualified name for classes
         elif isclass(plugin):
-            return f"{prefix}.{plugin.__qualname__}"
+            return f"{module_name(module, plugin.__module__)}.{plugin.__qualname__}"
 
         # return the fully qualified name for instances
         else:
-            return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
+            plugin_class = plugin.__class__
+            if module is None:
+                module = getmodule(plugin_class)
+            return (
+                f"{module_name(module, plugin_class.__module__)}."
+                f"{plugin_class.__qualname__}[{id(plugin)}]"
+            )
 
     def get_plugin_source(self, plugin: object) -> str | None:
         """Return a human-readable source for a registered plugin,
@@ -261,6 +267,9 @@ class CondaPluginManager(pluggy.PluginManager):
                     continue
 
                 if self.register(plugin):
+                    # Mirror pluggy's load_setuptools_entrypoints() bookkeeping
+                    # so list_plugin_distinfo() can report distributions for
+                    # conda's custom entry point loader.
                     self._plugin_distinfo.append((plugin, DistFacade(dist)))
                     count += 1
         return count

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Improve the error message for conflicting plugins to list all conflicting parties by distribution name and version. (#16166)
+* Improve conflicting plugin errors to list each provider by distribution name and version when available. (#16166)
 
 ### Bug fixes
 
