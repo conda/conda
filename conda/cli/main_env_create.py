@@ -115,7 +115,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_platform(p)
 
     p.set_defaults(
-        func="conda.cli.main_create.execute",
+        func="conda.cli.main_env_create.execute",
         clone=False,
         override_channels=False,
         use_local=NULL,
@@ -123,138 +123,16 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         repodata_fns=None,
         yes=True
     )
-
     return p
 
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..auxlib.ish import dals
-    from ..base.context import context, determine_target_prefix
-    from ..common.serialize import json
-    from ..core.prefix_data import PrefixData
-    from ..env.env import print_result
-    from ..env.installers.base import get_installer
-    from ..env.pip_util import get_pip_workdir
-    from ..exceptions import (
-        CondaEnvException,
-        InvalidInstaller,
-        PlatformMismatchError,
-    )
-    from ..gateways.disk.delete import rm_rf
-    from .common import validate_file_exists
+    from .main_create import execute as create_execute
+    from ..common.constants import NULL
+    from ..exceptions import DryRunExit
 
-    # validate incoming arguments
-    validate_file_exists(args.file)
-
-    # detect the file format and get the env representation
-    spec_hook = context.plugin_manager.get_environment_specifier(
-        source=args.file,
-        name=context.environment_specifier,
-    )
-    spec = spec_hook.environment_spec(args.file)
-    if context.subdir not in spec.available_platforms:
-        raise PlatformMismatchError(
-            [(args.file, spec.available_platforms)], context.subdir
-        )
-    env = spec.env_for(context.subdir)
-
-    # FIXME conda code currently requires args to have a name or prefix
-    # don't overwrite name if it's given. gh-254
-    if args.prefix is None and args.name is None:
-        if env.name is None:  # requirements.txt won't populate Environment.name
-            msg = dals(
-                """
-                Unable to create environment
-                Please re-run this command with one of the following options:
-                * Provide an environment name via --name or -n
-                * Provide a path on disk via --prefix or -p
-                """
-            )
-            raise CondaEnvException(msg)
-        args.name = env.name
-
-    prefix = determine_target_prefix(context, args)
-    prefix_data = PrefixData(prefix)
-
-    if args.yes and not prefix_data.is_base() and prefix_data.exists():
-        rm_rf(prefix)
-
-    prefix_data.validate_path()
-    prefix_data.validate_name()
-
-    # TODO, add capability
-    # common.ensure_override_channels_requires_channel(args)
-    # channel_urls = args.channel or ()
-
-    result = {"conda": None, "pip": None}
-
-    args_packages = (
-        context.create_default_packages if not args.no_default_packages else []
-    )
-
-    if args.dry_run:
-        installer_type = "conda"
-        installer = get_installer(installer_type)
-
-        pkg_specs = [*env.requested_packages, *args_packages]
-
-        solved_env = installer.dry_run(pkg_specs, args, env)
-        if args.json:
-            print(json.dumps(solved_env.to_dict()))
-        else:
-            print(solved_env.to_yaml(), end="")
-
-    else:
-        if args_packages:
-            installer_type = "conda"
-            installer = get_installer(installer_type)
-            result[installer_type] = installer.install(prefix, args_packages, args, env)
-
-        # install conda packages
-        installer_type = "conda"
-        installer = get_installer(installer_type)
-        result[installer_type] = installer.install(
-            prefix, env.requested_packages, args, env
-        )
-
-        # install all other external packages
-        for installer_type, pkg_specs in env.external_packages.items():
-            try:
-                installer = get_installer(installer_type)
-                if installer_type == "pip":
-                    workdir = get_pip_workdir(args.file)
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env, workdir=workdir
-                    )
-                else:
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env
-                    )
-            except InvalidInstaller:
-                raise CondaError(
-                    dals(
-                        f"""
-                        Unable to install package for {installer_type}.
-
-                        Please double check and ensure your dependencies file has
-                        the correct spelling. You might also try installing the
-                        conda-env-{installer_type} package to see if provides
-                        the required installer.
-                        """
-                    )
-                )
-
-        if context.subdir != context._native_subdir():
-            set_keys(
-                ("subdir", context.subdir),
-                path=Path(prefix, DEFAULT_CONDARC_FILENAME),
-            )
-
-        if env.variables:
-            prefix_data.set_environment_env_vars(env.variables)
-
-        prefix_data.set_nonadmin()
-        print_result(args, prefix, result)
-
-    return 0
+    try:
+        return create_execute(args, parser)
+    except DryRunExit as e:
+        return 0
