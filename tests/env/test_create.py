@@ -215,7 +215,7 @@ def test_create_env_no_default_packages(
 
     conda_cli(
         *("env", "create"),
-        *("--name", env_name),
+        *("--prefix", prefix),
         *("--file", support_file("env_with_dependencies.yml")),
         "--no-default-packages",
     )
@@ -347,7 +347,7 @@ def test_create_env_from_non_existent_plugin(
             conda_cli(
                 "env",
                 "create",
-                f"--prefix={prefix}/envs",
+                f"--prefix={prefix}",
                 "--file",
                 support_file("example/environment_pinned.yml"),
             )
