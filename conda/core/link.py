@@ -855,8 +855,10 @@ class UnlinkLinkTransaction:
                                     "hint_code": "use_non_base_env",
                                 },
                                 {
-                                    "text": "If you mix pip and conda, reinstall "
-                                    "affected packages with conda so conda can track them.",
+                                    "text": (
+                                        "If you mix pip and conda, reinstall affected "
+                                        "packages with conda so conda can track them."
+                                    ),
                                     "hint_code": "pip_conda_mix",
                                 },
                             ],
