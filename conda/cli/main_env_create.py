@@ -10,11 +10,7 @@ from argparse import (
     Namespace,
     _SubParsersAction,
 )
-from pathlib import Path
 
-from .. import CondaError
-from ..cli.main_config import set_keys
-from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
 
 
@@ -90,7 +86,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     p.add_argument(
         "-f",
         "--file",
-        nargs='*',
+        nargs="*",
         # action="store",
         help=(
             "Environment definition file (default: environment.yml). Standard "
@@ -121,18 +117,17 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         use_local=NULL,
         packages=[],
         repodata_fns=None,
-        yes=True
+        yes=True,
     )
     return p
 
 
 @notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from .main_create import execute as create_execute
-    from ..common.constants import NULL
     from ..exceptions import DryRunExit
+    from .main_create import execute as create_execute
 
     try:
         return create_execute(args, parser)
-    except DryRunExit as e:
+    except DryRunExit:
         return 0
