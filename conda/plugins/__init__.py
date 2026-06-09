@@ -34,6 +34,13 @@ __all__ = ["hookimpl", "types"]
 deprecated.constant(
     "26.3",
     "26.9",
+    "CondaNotice",
+    types.CondaNotice,
+    addendum="Use `conda.plugins.types.CondaNotice` instead.",
+)
+deprecated.constant(
+    "26.3",
+    "26.9",
     "CondaAuthHandler",
     types.CondaAuthHandler,
     addendum="Use `conda.plugins.types.CondaAuthHandler` instead.",

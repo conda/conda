@@ -43,6 +43,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     add_parser_channels(p)
     add_parser_json(p)
+    p.add_argument(
+        "--plugin",
+        action="store_true",
+        default=False,
+        help="Show only plugin-sourced notices.",
+    )
 
     p.set_defaults(func="conda.cli.main_notices.execute")
 
@@ -51,14 +57,37 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     """Command that retrieves channel notifications, caches them and displays them."""
+    from ..base.context import context
     from ..exceptions import CondaError
+    from ..models.channel import get_channel_objs
     from ..notices import core as notices
+    from ..notices.dispatch import NoticeBus
+
+    NoticeBus.clear()
+    notices.broadcast_plugin_notices()
 
     try:
-        channel_notice_set = notices.retrieve_notices()
+        from ..notices import cache as notices_cache
+
+        # Validate cache access before fetching — also triggers early
+        # PermissionError / OSError when the cache dir/file can't be created
+        # (e.g. unwritable filesystem), mirroring the pre-bus behaviour.
+        notices_cache.get_notices_cache_file()
+
+        if not args.plugin:
+            channel_name_urls = notices.get_channel_name_and_urls(
+                get_channel_objs(context),
+            )
+            notices.broadcast_channel_notices(
+                channel_name_urls, silent=False, force=True
+            )
+
+        notices._display_notices(
+            NoticeBus.consume(),
+            always_show_viewed=True,
+        )
+        NoticeBus.commit_channel_fetch_interval()
     except OSError as exc:
         raise CondaError(f"Unable to retrieve notices: {exc}")
-
-    notices.display_notices(channel_notice_set)
 
     return 0

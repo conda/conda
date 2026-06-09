@@ -1,0 +1,9 @@
+### Enhancements
+
+* Introduce `NoticeBus` (class-level broadcast bus) for channel and plugin notices. Channel notices are now broadcast as a side effect of `SubdirData` loading repodata, and the `@notices` decorator simply consumes and renders whatever was broadcast during command execution. Plugin notices are collected separately and are not subject to the channel-notice fetch interval. (#14157)
+
+### Deprecations
+
+* Deprecate `conda.notices.retrieve_notices` (pending removal in 27.9). Use `broadcast_channel_notices()`, `broadcast_plugin_notices()`, and `NoticeBus` directly. (#14157)
+* Deprecate `conda.notices.display_notices` (pending removal in 27.9). Use `_display_notices()` instead. (#14157)
+* Deprecate `conda.notices.ChannelNoticeResultSet` (pending removal in 27.9). (#14157)

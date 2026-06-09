@@ -26,6 +26,7 @@ if TYPE_CHECKING:
         CondaEnvironmentSpecifier,
         CondaExceptionObserver,
         CondaHealthCheck,
+        CondaNotice,
         CondaPackageExtractor,
         CondaPostCommand,
         CondaPostSolve,
@@ -860,5 +861,44 @@ class CondaSpecs:
                 )
 
         :return: An iterable of :class:`~conda.plugins.types.CondaExceptionObserver` entries.
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_notices(self) -> Iterable[CondaNotice]:
+        """
+        Yield notice messages from plugins.
+
+        Notices yielded by this hook are merged into conda's notice pipeline
+        alongside channel notices. They inherit deduplication via viewed-ID
+        tracking and structured output. Plugin notices are collected on every
+        decorated command; the 24-hour channel-notice fetch interval applies
+        only to ``notices.json`` HTTP fetches, not to this hook.
+
+        The ``name`` field (inherited from :class:`~conda.plugins.types.CondaPlugin`)
+        is the notice identifier for deduplication. Plugins can use a static
+        identifier (displayed once) or a dynamic one (re-displayed when the
+        value changes).
+
+        **Example:**
+
+        .. code-block:: python
+
+            from datetime import datetime, timezone
+
+            from conda import plugins
+            from conda.base.constants import NoticeLevel
+
+
+            @plugins.hookimpl
+            def conda_notices():
+                yield plugins.types.CondaNotice(
+                    name="my-plugin-deprecation-v1",
+                    message="This is an important message from my plugin.",
+                    level=NoticeLevel.WARNING,
+                    created_at=datetime.now(timezone.utc),
+                )
+
+        :return: An iterable of :class:`~conda.plugins.types.CondaNotice` entries.
         """
         yield from ()

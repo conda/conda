@@ -422,6 +422,7 @@ class SubdirData(metaclass=SubdirDataType):
         try:
             fetcher = self.repo_fetch
             repodata, state = fetcher.fetch_latest_parsed()
+            self._broadcast_channel_notices()
             return self._process_raw_repodata(repodata, state)
         except UnavailableInvalidChannel:
             if self.repodata_fn != REPODATA_FN:
@@ -429,6 +430,22 @@ class SubdirData(metaclass=SubdirDataType):
                 return self._load()
             else:
                 raise
+
+    def _broadcast_channel_notices(self) -> None:
+        """Fetch notices.json for this subdir and broadcast to the bus.
+
+        Errors are logged but not re-raised — notices are best-effort and
+        should never block a command from completing.
+        """
+        try:
+            from ..base.constants import NOTICES_FN
+            from ..notices.core import broadcast_channel_notices
+
+            notice_url = f"{self.url_w_subdir}/{NOTICES_FN}"
+            channel_name = self.channel.name or self.channel.location
+            broadcast_channel_notices([(notice_url, channel_name)])
+        except OSError as exc:
+            log.debug("Unable to fetch channel notices: %s", exc)
 
     def _pickle_me(self) -> None:
         """
