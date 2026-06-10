@@ -1,0 +1,20 @@
+### Enhancements
+
+* pip related actions are included in output when `--json` output is specified for install related commands. (#16210)
+
+### Bug fixes
+
+* `conda env create` enforces not creating environments inside existing prefix's. (#16210)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Make `conda env create` an alias of `conda create`. (#15576 via #16210)
+* Make `conda env create --dry-run` and `conda create --dry-run` outputs consistent. (#16210)
