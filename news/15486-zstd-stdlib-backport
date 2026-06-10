@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Replace runtime dependency on `zstandard` with `compression.zstd` (Python ≥3.14) and `backports.zstd` (Python 3.10–3.13) for repodata and sharded repodata decompression. (#15486 via #16191)
+* Replace runtime dependency on `zstandard` with `compression.zstd` (Python >=3.14) and `backports.zstd` (Python 3.10–3.13) for repodata and sharded repodata decompression. (#15486 via #16191)
 
 ### Bug fixes
 
