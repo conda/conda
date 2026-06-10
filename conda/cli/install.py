@@ -14,6 +14,7 @@ import os
 from logging import getLogger
 from os.path import abspath
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..base.constants import (
     REPODATA_FN,
@@ -61,6 +62,10 @@ from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
 
 log = getLogger(__name__)
 deprecated.constant(
@@ -135,7 +140,7 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
-def get_index_args(args) -> dict[str, any]:
+def get_index_args(args) -> dict[str, Any]:
     """Returns a dict of args required for fetching an index
 
     Args:
@@ -392,37 +397,53 @@ def install(args, parser, command="install"):
                     raise CondaImportError(str(e))
                 raise e
 
-    handle_txn(unlink_link_transaction, prefix, args, newenv)
+    def follow_up_pip_actions() -> dict[str, Any]:
+        results = {}
+        if env.external_packages and not context.dry_run and not context.download_only:
+            from .. import CondaError
+            from ..env.installers.base import get_installer
+            from ..env.pip_util import get_pip_workdir
 
-    if env.external_packages and not context.dry_run and not context.download_only:
-        from .. import CondaError
-        from ..env.installers.base import get_installer
-        from ..env.pip_util import get_pip_workdir
-
-        external_envs = [
-            (fpath, file_env)
-            for fpath, file_env in fpath_envs_map.items()
-            if file_env.external_packages
-        ]
-        for fpath, file_env in external_envs:
-            for installer_type, pkg_specs in file_env.external_packages.items():
-                try:
-                    installer = get_installer(installer_type)
-                    if installer_type == "pip":
-                        workdir = get_pip_workdir(fpath)
-                        installer.install(
-                            prefix, list(pkg_specs), args, file_env, workdir=workdir
+            external_envs = [
+                (fpath, file_env)
+                for fpath, file_env in fpath_envs_map.items()
+                if file_env.external_packages
+            ]
+            results = {}
+            for fpath, file_env in external_envs:
+                for installer_type, pkg_specs in file_env.external_packages.items():
+                    try:
+                        installer = get_installer(installer_type)
+                        if installer_type == "pip":
+                            workdir = get_pip_workdir(fpath)
+                            results["PIP"] = installer.install(
+                                prefix, list(pkg_specs), args, file_env, workdir=workdir
+                            )
+                        else:
+                            results[installer_type] = installer.install(
+                                prefix, list(pkg_specs), args, file_env
+                            )
+                    except InvalidInstaller:
+                        raise CondaError(
+                            f"Unable to install package for {installer_type} from environment file {fpath}. "
+                            "Please ensure your dependencies file has the correct spelling."
                         )
-                    else:
-                        installer.install(prefix, list(pkg_specs), args, file_env)
-                except InvalidInstaller:
-                    raise CondaError(
-                        f"Unable to install package for {installer_type} from environment file {fpath}. "
-                        "Please ensure your dependencies file has the correct spelling."
-                    )
+        return results
 
-    if env.variables:
-        PrefixData(prefix).set_environment_env_vars(env.variables)
+    def follow_up_env_vars_actions() -> dict:
+        if env.variables:
+            PrefixData(prefix).set_environment_env_vars(env.variables)
+        return {}
+
+    follow_up_actions = [follow_up_pip_actions, follow_up_env_vars_actions]
+
+    handle_txn(
+        unlink_link_transaction,
+        prefix,
+        args,
+        newenv,
+        follow_up_actions=follow_up_actions,
+    )
 
 
 def install_clone(args, parser):
@@ -530,7 +551,31 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
     return UnlinkLinkTransaction(setup)
 
 
-def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
+def handle_txn(
+    unlink_link_transaction,
+    prefix,
+    args,
+    newenv,
+    remove_op=False,
+    follow_up_actions: list[Callable] = [],
+):
+    """
+    Handles executing an unlint_link_transaction, follow up install steps and
+    outputting to the user.
+
+    :param unlink_link_transaction: transaction to execute, output from the solver
+    :param prefix: prefix to execute the transaction on
+    :param args: cli args
+    :param newenv: boolean noting that the environment is being created for the first time
+    :param remove_op: defaults to false, boolean noting that the user is requesting to remove
+                      a package from the environment
+    :param follow_up_actions: defaults to an empty list, a list of callable functions that
+                              represent follow up steps to run after the unlink_link_transaction
+                              has been executed. For example, installing other packages, or
+                              exporting environment variables. This callable should receive
+                              no arguments and it should return a dict representing the result
+                              of the actions it has taken.
+    """
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
@@ -572,6 +617,12 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
                 path=Path(prefix, DEFAULT_CONDARC_FILENAME),
             )
 
+    follow_up_action_results = {}
+    for action in follow_up_actions:
+        result = action()
+        follow_up_action_results.update(result)
+
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
+        actions.update(follow_up_action_results)
         common.stdout_json_success(prefix=prefix, actions=actions)
