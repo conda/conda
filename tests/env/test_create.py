@@ -14,7 +14,11 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError, EnvironmentSpecPluginSelectionError
+from conda.exceptions import (
+    CondaValueError,
+    DryRunExit,
+    EnvironmentSpecPluginSelectionError,
+)
 from conda.testing.integration import package_is_installed
 
 from . import remote_support_file, support_file
@@ -501,14 +505,15 @@ def test_export_and_recreate_environment(
 
         # recreate the environment
         recreate_prefix = path_factory()
-        _, stderr, rc = conda_cli(
-            "env",
-            "create",
-            f"--prefix={recreate_prefix}",
-            f"--format={target_format}",
-            f"--file={env_file_path}",
-            "--dry-run",
-        )
-        assert rc == 0, (
-            f"conda env create --dry-run failed ({target_format=}): {stderr}"
-        )
+        with pytest.raises(DryRunExit):
+            _, stderr, rc = conda_cli(
+                "env",
+                "create",
+                f"--prefix={recreate_prefix}",
+                f"--format={target_format}",
+                f"--file={env_file_path}",
+                "--dry-run",
+            )
+            assert rc == 0, (
+                f"conda env create --dry-run failed ({target_format=}): {stderr}"
+            )

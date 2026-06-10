@@ -7,11 +7,8 @@ Creates new conda environments with the specified packages.
 
 from argparse import (
     ArgumentParser,
-    Namespace,
     _SubParsersAction,
 )
-
-from ..notices import notices
 
 
 def epilog() -> str:
@@ -111,7 +108,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_platform(p)
 
     p.set_defaults(
-        func="conda.cli.main_env_create.execute",
+        func="conda.cli.main_create.execute",
         clone=False,
         override_channels=False,
         use_local=NULL,
@@ -120,14 +117,3 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         yes=True,
     )
     return p
-
-
-@notices
-def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..exceptions import DryRunExit
-    from .main_create import execute as create_execute
-
-    try:
-        return create_execute(args, parser)
-    except DryRunExit:
-        return 0
