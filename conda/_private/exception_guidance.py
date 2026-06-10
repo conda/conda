@@ -69,6 +69,12 @@ class ErrorGuidance:
     cause: str | None = None
     hints: tuple[GuidanceHint, ...] = ()
 
+    def __post_init__(self) -> None:
+        if not self.summary and not self.cause and not self.hints:
+            raise ValueError(
+                "at least one of summary, cause, or hints must be provided"
+            )
+
     @property
     def hint_codes(self) -> tuple[str, ...]:
         """Hint codes extracted from :attr:`hints` for JSON serialization."""

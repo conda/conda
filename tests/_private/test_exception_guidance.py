@@ -19,10 +19,15 @@ def test_GuidanceHint() -> None:
 
 
 def test_ErrorGuidance_defaults() -> None:
-    g = ErrorGuidance()
-    assert g.summary is None
+    g = ErrorGuidance(summary="S")
+    assert g.summary == "S"
     assert g.cause is None
     assert g.hints == ()
+
+
+def test_ErrorGuidance_requires_at_least_one_field() -> None:
+    with pytest.raises(ValueError, match="at least one of summary, cause, or hints"):
+        ErrorGuidance()
 
 
 def test_ErrorGuidance_full() -> None:
@@ -53,9 +58,10 @@ def test_format_guidance_summary_only() -> None:
 
 
 def test_format_guidance_no_summary_uses_message() -> None:
-    g = ErrorGuidance()
+    g = ErrorGuidance(cause="Root cause.")
     result = format_guidance(g, "default message")
-    assert result == "default message"
+    assert "default message" in result
+    assert "Root cause." in result
 
 
 def test_format_guidance_with_cause() -> None:
@@ -135,7 +141,7 @@ def test_ErrorGuidance_hint_codes_property() -> None:
 
 
 def test_ErrorGuidance_hint_codes_empty() -> None:
-    g = ErrorGuidance()
+    g = ErrorGuidance(summary="S")
     assert g.hint_codes == ()
 
 
