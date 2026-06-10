@@ -104,11 +104,12 @@ class ErrorGuidance:
         if isinstance(value, dict):
             if not value:
                 return None
-            hints = tuple(GuidanceHint(**h) for h in value.get("hints") or ())
             return cls(
-                summary=value.get("summary"),
-                cause=value.get("cause"),
-                hints=hints,
+                # reject unknown keys and coerce hints to GuidanceHint
+                **{
+                    **value,
+                    "hints": tuple(GuidanceHint(**h) for h in value.get("hints") or ()),
+                }
             )
         raise TypeError(
             f"guidance must be dict or ErrorGuidance, not {type(value).__name__}"
