@@ -105,6 +105,22 @@ def suppress_resource_warning():
     warnings.filterwarnings("ignore", category=ResourceWarning)
 
 
+@pytest.fixture(autouse=True)
+def suppress_pytest_bencher_deprecation_warning():
+    """
+    Suppress `PendingDeprecationWarning: FileType is deprecated. Simply open files after parsing arguments.`
+
+    Raised from pytest-bencher.
+
+    xref: https://github.com/ionelmc/pytest-benchmark/issues/283
+    """
+    warnings.filterwarnings(
+        "ignore",
+        message="FileType is deprecated. Simply open files after parsing arguments.",
+        category=PendingDeprecationWarning,
+    )
+
+
 @pytest.fixture(scope="function")
 def tmpdir(tmpdir, request):
     tmpdir = TemporaryDirectory(dir=str(tmpdir))
