@@ -2152,9 +2152,13 @@ def test_use_index_cache(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
 ):
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "false")
+    reset_context()
 
     # pretend the cache is always stale
     mocker.patch(
