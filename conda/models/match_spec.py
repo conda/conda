@@ -750,6 +750,11 @@ def _parse_channel(channel_val):
     if not channel_val:
         return None, None
     chn = Channel(channel_val)
+    if is_url(channel_val) and chn.location not in (
+        context.channel_alias.location,
+        *(alias.location for alias in context.migrated_channel_aliases),
+    ):
+        return chn.base_url or chn.canonical_name, chn.subdir
     return chn.canonical_name, chn.subdir
 
 
