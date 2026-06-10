@@ -88,9 +88,9 @@ class CondaError(Exception):
         self._caused_by = caused_by
         self._guidance = None
         if guidance:
-            from ._private.exception_guidance import _coerce_guidance
+            from ._private.exception_guidance import ErrorGuidance
 
-            self._guidance = _coerce_guidance(guidance)
+            self._guidance = ErrorGuidance.coerce(guidance)
         super().__init__(message)
 
     @property

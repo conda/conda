@@ -1745,16 +1745,9 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
 
         guidance = getattr(exc_val, "_guidance", None)
         if guidance is not None:
-            stderr(f"\n{_format_guidance_repr(exc_val, guidance)}\n")
+            stderr(f"\n{guidance.format(exc_val)}\n")
         else:
             stderr(f"\n{exc_val!r}\n")
-
-
-def _format_guidance_repr(exc_val: CondaError, guidance: ErrorGuidance) -> str:
-    """Format an exception with guidance for terminal output."""
-    from ._private.exception_guidance import format_guidance
-
-    return f"{exc_val.__class__.__name__}: {format_guidance(guidance, str(exc_val))}"
 
 
 def _format_exc(

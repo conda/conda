@@ -23,6 +23,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import Any, NotRequired, TypedDict
 
+    from .. import CondaError
+
     class GuidanceHintTypedDict(TypedDict):
         text: str
         hint_code: str
@@ -86,52 +88,47 @@ class ErrorGuidance:
         result["hint_codes"] = self.hint_codes
         return {k: v for k, v in result.items() if v}
 
+    @classmethod
+    def coerce(cls, value: Any) -> ErrorGuidance | None:
+        """Coerce a raw ``guidance`` value into :class:`ErrorGuidance` or ``None``.
 
-def format_guidance(guidance: ErrorGuidance, message: str) -> str:
-    """Format :class:`ErrorGuidance` for terminal output.
-
-    ``message`` is used as the headline unless ``guidance.summary`` is set.
-    """
-    lines = []
-    lines.append(guidance.summary.rstrip() if guidance.summary else message.rstrip())
-    if guidance.cause or guidance.hints:
-        lines.append("")
-    if guidance.cause:
-        lines.append(f"Cause: {guidance.cause.rstrip()}")
-    if guidance.hints:
-        hint_items = [
-            f"({hint.hint_code}) {hint.text}".rstrip() for hint in guidance.hints
-        ]
-        lines.append(f"Next steps:{dashlist(hint_items, indent=2)}")
-    return "\n".join(lines)
-
-
-def _coerce_guidance(value: Any) -> ErrorGuidance | None:
-    """Coerce a raw ``guidance`` value into :class:`ErrorGuidance` or ``None``.
-
-    Accepts:
-    * ``None`` → ``None``
-    * ``ErrorGuidance`` → passthrough
-    * ``dict`` → coerced via :func:`_guidance_from_dict`
-      (empty ``dict`` → ``None``)
-    """
-    if value is None:
-        return None
-    if isinstance(value, ErrorGuidance):
-        return value
-    if isinstance(value, dict):
-        if not value:
+        Accepts:
+        * ``None`` → ``None``
+        * ``ErrorGuidance`` → passthrough
+        * ``dict`` → coerced (empty ``dict`` → ``None``)
+        """
+        if value is None:
             return None
-        return _guidance_from_dict(value)
-    raise TypeError(
-        f"guidance must be dict or ErrorGuidance, not {type(value).__name__}"
-    )
+        if isinstance(value, ErrorGuidance):
+            return value
+        if isinstance(value, dict):
+            if not value:
+                return None
+            hints = tuple(GuidanceHint(**h) for h in value.get("hints") or ())
+            return cls(
+                summary=value.get("summary"),
+                cause=value.get("cause"),
+                hints=hints,
+            )
+        raise TypeError(
+            f"guidance must be dict or ErrorGuidance, not {type(value).__name__}"
+        )
 
+    def format(self, exception: CondaError) -> str:
+        """Format this guidance for terminal output.
 
-def _guidance_from_dict(value: dict[str, Any]) -> ErrorGuidance:
-    """Coerce a plain dict into an :class:`ErrorGuidance` instance."""
-    return ErrorGuidance(
-        summary=value.get("summary"),
-        cause=value.get("cause"),
-        hints=tuple(GuidanceHint(**hint) for hint in value.get("hints") or ()),
-    )
+        ``str(exception)`` is used as the headline unless ``summary`` is set.
+        """
+        message = str(exception)
+        headline = self.summary.rstrip() if self.summary else message.rstrip()
+        lines = [f"{exception.__class__.__name__}: {headline}"]
+        if self.cause or self.hints:
+            lines.append("")
+        if self.cause:
+            lines.append(f"Cause: {self.cause.rstrip()}")
+        if self.hints:
+            hint_items = [
+                f"({hint.hint_code}) {hint.text}".rstrip() for hint in self.hints
+            ]
+            lines.append(f"Next steps:{dashlist(hint_items, indent=2)}")
+        return "\n".join(lines)

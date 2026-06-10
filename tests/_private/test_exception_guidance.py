@@ -4,12 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from conda._private.exception_guidance import (
-    ErrorGuidance,
-    GuidanceHint,
-    _coerce_guidance,
-    format_guidance,
-)
+from conda import CondaError
+from conda._private.exception_guidance import ErrorGuidance, GuidanceHint
 
 
 def test_GuidanceHint() -> None:
@@ -53,21 +49,21 @@ def test_ErrorGuidance_frozen() -> None:
 
 def test_format_guidance_summary_only() -> None:
     g = ErrorGuidance(summary="Failed.")
-    result = format_guidance(g, "fallback message")
-    assert result == "Failed."
+    result = g.format(CondaError("fallback"))
+    assert result == "CondaError: Failed."
 
 
 def test_format_guidance_no_summary_uses_message() -> None:
     g = ErrorGuidance(cause="Root cause.")
-    result = format_guidance(g, "default message")
-    assert "default message" in result
+    result = g.format(CondaError("default message"))
+    assert "CondaError: default message" in result
     assert "Root cause." in result
 
 
 def test_format_guidance_with_cause() -> None:
     g = ErrorGuidance(summary="Failed.", cause="Root cause.")
-    result = format_guidance(g, "fallback")
-    assert "Failed." in result
+    result = g.format(CondaError("fallback"))
+    assert "CondaError: Failed." in result
     assert "Cause: Root cause." in result
 
 
@@ -79,9 +75,9 @@ def test_format_guidance_with_hints() -> None:
             GuidanceHint("Do B", "do_b"),
         ),
     )
-    result = format_guidance(g, "fallback").splitlines()
+    result = g.format(CondaError("fallback")).splitlines()
     assert result == [
-        "Failed.",
+        "CondaError: Failed.",
         "",
         "Next steps:",
         "  - (do_a) Do A",
@@ -100,9 +96,9 @@ def test_format_guidance_multiline_command_hint() -> None:
             ),
         ),
     )
-    result = format_guidance(g, "fallback").splitlines()
+    result = g.format(CondaError("fallback")).splitlines()
     assert result == [
-        "Failed.",
+        "CondaError: Failed.",
         "",
         "Next steps:",
         "  - (install_conda_version) Install a specific conda version first, for example:",
@@ -119,9 +115,9 @@ def test_format_guidance_full() -> None:
             GuidanceHint("Try Z.", "try_z"),
         ),
     )
-    result = format_guidance(g, "fallback").splitlines()
+    result = g.format(CondaError("fallback")).splitlines()
     assert result == [
-        "Failed.",
+        "CondaError: Failed.",
         "",
         "Cause: Because of X.",
         "Next steps:",
@@ -172,16 +168,16 @@ def test_ErrorGuidance_json_no_hints() -> None:
 
 
 def test_coerce_guidance_none() -> None:
-    assert _coerce_guidance(None) is None
+    assert ErrorGuidance.coerce(None) is None
 
 
 def test_coerce_guidance_passthrough() -> None:
     g = ErrorGuidance(summary="Hello.")
-    assert _coerce_guidance(g) is g
+    assert ErrorGuidance.coerce(g) is g
 
 
 def test_coerce_guidance_dict_minimal() -> None:
-    g = _coerce_guidance({"summary": "Hello."})
+    g = ErrorGuidance.coerce({"summary": "Hello."})
     assert isinstance(g, ErrorGuidance)
     assert g.summary == "Hello."
     assert g.cause is None
@@ -189,7 +185,7 @@ def test_coerce_guidance_dict_minimal() -> None:
 
 
 def test_coerce_guidance_dict_full() -> None:
-    g = _coerce_guidance(
+    g = ErrorGuidance.coerce(
         {
             "summary": "S",
             "cause": "C",
@@ -208,16 +204,15 @@ def test_coerce_guidance_dict_full() -> None:
 
 
 def test_coerce_guidance_dict_unknown_keys_ignored() -> None:
-    g = _coerce_guidance(
+    g = ErrorGuidance.coerce(
         {
             "summary": "S",
             "unknown_key": "should be ignored",
         }
     )
     assert g.summary == "S"
-    # unknown_key is simply ignored by the dict parsing
 
 
 def test_coerce_guidance_invalid_type() -> None:
     with pytest.raises(TypeError, match="guidance must be dict or ErrorGuidance"):
-        _coerce_guidance("not a dict or ErrorGuidance")  # type: ignore[arg-type]
+        ErrorGuidance.coerce("not a dict or ErrorGuidance")  # type: ignore[arg-type]
