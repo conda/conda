@@ -14,6 +14,7 @@ import os
 from logging import getLogger
 from os.path import abspath
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..base.constants import (
     REPODATA_FN,
@@ -61,6 +62,10 @@ from ..reporters import confirm_yn, get_spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import Any
 
 log = getLogger(__name__)
 deprecated.constant(
@@ -135,7 +140,7 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
-def get_index_args(args) -> dict[str, any]:
+def get_index_args(args) -> dict[str, Any]:
     """Returns a dict of args required for fetching an index
 
     Args:
@@ -607,6 +612,11 @@ def handle_txn(
                 ("subdir", context.subdir),
                 path=Path(prefix, DEFAULT_CONDARC_FILENAME),
             )
+
+    follow_up_action_results = {}
+    for action in follow_up_actions:
+        result = action()
+        follow_up_action_results.update(result)
 
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
