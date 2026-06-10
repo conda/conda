@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from dataclasses import asdict
-
 import pytest
 
 from conda._private.exception_guidance import (
@@ -126,9 +124,8 @@ def test_format_guidance_full() -> None:
     ]
 
 
-def test_ErrorGuidance_hint_codes_computed() -> None:
+def test_ErrorGuidance_hint_codes_property() -> None:
     g = ErrorGuidance(
-        summary="S",
         hints=(
             GuidanceHint("h1", "code1"),
             GuidanceHint("h2", "code2"),
@@ -142,22 +139,30 @@ def test_ErrorGuidance_hint_codes_empty() -> None:
     assert g.hint_codes == ()
 
 
-def test_ErrorGuidance_asdict_includes_hint_codes() -> None:
+def test_ErrorGuidance_json() -> None:
     g = ErrorGuidance(
         summary="S",
+        cause="C",
         hints=(
             GuidanceHint("h1", "code1"),
             GuidanceHint("h2", "code2"),
         ),
     )
-    d = asdict(g)
-    assert d["hint_codes"] == ("code1", "code2")
-    assert d["hints"] == (
-        {"text": "h1", "hint_code": "code1"},
-        {"text": "h2", "hint_code": "code2"},
-    )
-    assert d["summary"] == "S"
-    assert d["cause"] is None
+    j = g.__json__()
+    assert j == {
+        "summary": "S",
+        "cause": "C",
+        "hints": (
+            {"text": "h1", "hint_code": "code1"},
+            {"text": "h2", "hint_code": "code2"},
+        ),
+        "hint_codes": ("code1", "code2"),
+    }
+
+
+def test_ErrorGuidance_json_no_hints() -> None:
+    g = ErrorGuidance(summary="S")
+    assert g.__json__() == {"summary": "S"}
 
 
 def test_coerce_guidance_none() -> None:

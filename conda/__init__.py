@@ -134,9 +134,7 @@ class CondaError(Exception):
             **self._kwargs,
         )
         if self._guidance is not None:
-            from dataclasses import asdict
-
-            result["guidance"] = asdict(self._guidance)
+            result["guidance"] = self._guidance.__json__()
         return result
 
 

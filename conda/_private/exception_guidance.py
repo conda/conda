@@ -14,7 +14,7 @@ The public re-exports in ``conda.exceptions`` are the stable surface.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
 from ..common.io import dashlist
@@ -68,10 +68,17 @@ class ErrorGuidance:
     summary: str | None = None
     cause: str | None = None
     hints: tuple[GuidanceHint, ...] = ()
-    hint_codes: tuple[str, ...] = field(init=False, repr=False)
 
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "hint_codes", tuple(h.hint_code for h in self.hints))
+    @property
+    def hint_codes(self) -> tuple[str, ...]:
+        """Hint codes extracted from :attr:`hints` for JSON serialization."""
+        return tuple(hint.hint_code for hint in self.hints)
+
+    def __json__(self) -> dict[str, object]:
+        """Serialize for :meth:`conda.CondaError.dump_map`."""
+        result = asdict(self)
+        result["hint_codes"] = self.hint_codes
+        return {k: v for k, v in result.items() if v}
 
 
 def format_guidance(guidance: ErrorGuidance, message: str) -> str:
