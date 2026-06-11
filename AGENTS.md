@@ -16,24 +16,7 @@ Bootstrap and set up an environment for **development and testing** from the rep
 
 - Org-wide Python style policies (imports, docstrings, typing, etc.) are summarized in the **[Conda Style Guide](https://github.com/conda/infrastructure/blob/main/STYLEGUIDE.md)** (`conda/infrastructure` on GitHub).
 - **This repo** configures formatting and lint with **[Ruff](https://docs.astral.sh/ruff/)** in **`pyproject.toml`** and **`.pre-commit-config.yaml`** (`ruff format`, `ruff check`). Hooks are **[prek](https://prek.j178.dev/)**-compatible (drop-in for **[pre-commit](https://pre-commit.com/)**); assume **prek** / **pre-commit** is already set up locally—this document does not cover installing or enabling hooks. CI enforces the same checks if a change bypasses hooks.
-- **Docstrings** use **Google-style** sections (`Args:`, `Returns:`, `Raises:`) — Napoleon in the Sphinx build chain renders these natively. Do **not** repeat types in docstrings (type annotations in signatures are the source of truth). Keep docstrings short; longer prose belongs in guides under `docs/source/dev-guide/`.
-  ```python
-  def dashlist(iterable: Iterable[Any], indent: int = 2) -> str:
-      """Format an iterable as a dashed list with optional indentation.
-
-      Args:
-          iterable: Items to format.
-          indent: Number of spaces for indentation.
-
-      Returns:
-          Formatted string with each item on a new line prefixed by ``- ``.
-      """
-  ```
-  - Module-level docstrings (`__init__.py` or top of module): one-liner or short paragraph describing the module's purpose.
-  - Class docstrings: brief description of the class's role. Do **not** put `Returns:` on a class docstring — document return values on the callable that produces them (e.g. metaclass `__call__`, factory functions).
-  - Dataclasses: prefer trailing docstrings on individual fields — Sphinx autoapi picks these up natively. A class-level `Args:` block is fine for hook return types and other structured contracts where fields are documented together (see `conda/plugins/types.py`). Do **not** use `Attributes:` sections.
-  - Private functions (`_`-prefixed): docstring only when behavior isn't obvious from the name.
-  - Module constants: trailing docstring on the line after the definition when a short note is needed.
+- **Docstrings** use **Google-style** (`Args:`, `Returns:`, `Raises:`). Napoleon renders these natively. Do **not** repeat types (annotations are the source of truth). Keep docstrings short. See the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for reference.
 
 ## Changelog (`news/`)
 
