@@ -51,6 +51,15 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 class SubdirDataType(type):
     def __call__(cls, channel: Channel, repodata_fn: str = REPODATA_FN) -> SubdirData:
+        """Return a cached or newly constructed ``SubdirData`` instance.
+
+        Args:
+            channel: The channel object.
+            repodata_fn: The name of the repodata file. Defaults to REPODATA_FN.
+
+        Returns:
+            A SubdirData instance.
+        """
         if not channel.subdir:
             raise ValueError("SubdirData requires a subdir-aware Channel.")
         if channel.package_filename:
@@ -118,18 +127,7 @@ class PackageRecordList(UserList):
 
 
 class SubdirData(metaclass=SubdirDataType):
-    """
-    A class representing the SubdirData.
-
-    This class provides functionality for managing and caching SubdirData instances.
-
-    Args:
-        channel: The channel object.
-        repodata_fn: The name of the repodata file. Defaults to REPODATA_FN.
-
-    Returns:
-        A SubdirData instance.
-    """
+    """Repodata for a channel subdir, with instance caching via ``SubdirDataType``."""
 
     _cache_: dict[tuple[str, str], PackageRecordList | SubdirData] = {}
 

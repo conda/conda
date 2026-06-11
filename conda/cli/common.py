@@ -320,8 +320,8 @@ def validate_file_exists(filename: str):
     Otherwise, it expands the given path and verifies its existence. If the file
     does not exist, an ``EnvironmentFileNotFound`` exception is raised.
 
-    Parameters:
-        filename (str): The path or URL of the environment file to validate.
+    Args:
+        filename: The path or URL of the environment file to validate.
 
     Raises:
         EnvironmentFileNotFound: If the file does not exist and is not a valid URL.

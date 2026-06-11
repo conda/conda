@@ -8,10 +8,13 @@ from ...exceptions import InvalidInstaller
 
 
 def get_installer(name):
-    """
-        Gets the installer for the given environment.
+    """Load the environment installer module for the given name.
 
-    Raises: InvalidInstaller if unable to load installer
+    Args:
+        name: Installer name (e.g., ``conda`` or ``pip``).
+
+    Raises:
+        InvalidInstaller: If no installer module can be imported for ``name``.
     """
     try:
         return importlib.import_module(f"conda.env.installers.{name}")

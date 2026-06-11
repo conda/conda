@@ -2296,8 +2296,11 @@ def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> Path
         ctx: the context of conda
         args: the argparse args from the command line
 
-    Returns: the prefix
-    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
+    Returns:
+        Path to the target environment prefix.
+
+    Raises:
+        CondaEnvironmentNotFoundError: If the prefix is invalid.
     """
     argparse_args = args or ctx._argparse_args
     try:

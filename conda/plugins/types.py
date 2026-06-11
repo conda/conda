@@ -541,7 +541,7 @@ class CondaReporterBackend(CondaPlugin):
 
     Args:
         name: name of the reporter backend (e.g., ``email_reporter``)
-            This is how the reporter backend with be references in configuration files.
+            This is how the reporter backend will be referenced in configuration files.
         description: short description of what the reporter handler does
         renderer: implementation of ``ReporterRendererBase`` that will be used as the
             reporter renderer

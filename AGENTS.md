@@ -30,9 +30,10 @@ Bootstrap and set up an environment for **development and testing** from the rep
       """
   ```
   - Module-level docstrings (`__init__.py` or top of module): one-liner or short paragraph describing the module's purpose.
-  - Class docstrings: brief description of the class's role. Dataclass fields use trailing docstrings instead of `Attributes:` sections.
+  - Class docstrings: brief description of the class's role. Do **not** put `Returns:` on a class docstring — document return values on the callable that produces them (e.g. metaclass `__call__`, factory functions).
+  - Dataclasses: prefer trailing docstrings on individual fields — Sphinx autoapi picks these up natively. A class-level `Args:` block is fine for hook return types and other structured contracts where fields are documented together (see `conda/plugins/types.py`). Do **not** use `Attributes:` sections.
   - Private functions (`_`-prefixed): docstring only when behavior isn't obvious from the name.
-  - Module constants and dataclass fields: trailing docstring on the line after the definition — Sphinx autoapi picks this up natively.
+  - Module constants: trailing docstring on the line after the definition when a short note is needed.
 
 ## Changelog (`news/`)
 
