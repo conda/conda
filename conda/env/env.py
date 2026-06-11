@@ -148,8 +148,11 @@ def get_schema_errors(data: dict) -> list[EnvironmentFileInvalid]:
       * all required fields are present
       * all fields contain valid data
 
-    :param dict data: The contents of the environment.yaml
-    :returns errors: A list of EnvironmentFileInvalid exceptions that occurred during validation
+    Args:
+        data: The contents of the environment.yaml
+
+    Returns:
+        errors: A list of EnvironmentFileInvalid exceptions that occurred during validation
     """
     errors = []
     # Ensure all required keys are present
@@ -271,10 +274,13 @@ def from_environment(
 def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
     """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string
 
-    :param yamlstr: The contents of the environment.yaml
-    :param raise_validation_errors: Indicates if an error should be raised if the yamlstr
-        is found to be invalid
-    :returns EnvironmentYaml: A representation of the environment file
+    Args:
+        yamlstr: The contents of the environment.yaml
+        raise_validation_errors: Indicates if an error should be raised if the yamlstr
+            is found to be invalid
+
+    Returns:
+        A representation of the environment file
     """
     data = yaml.loads(yamlstr)
     filename = kwargs.get("filename")

@@ -49,8 +49,9 @@ class DirectDownloadAdapter(Protocol):
     ) -> None:
         """Download directly to a file object.
 
-        :param url: URL to download from
-        :param fileobj: File object to write to (binary write mode)
-        :param progress_callback: Optional callback(fraction) where fraction is 0.0-1.0
-        :param size: Content length (required for progress reporting)
+        Args:
+            url: URL to download from
+            fileobj: File object to write to (binary write mode)
+            progress_callback: Optional callback(fraction) where fraction is 0.0-1.0
+            size: Content length (required for progress reporting)
         """

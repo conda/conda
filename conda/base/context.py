@@ -1255,7 +1255,8 @@ class Context(Configuration):
         If the default_activation_env is an environment name, get the corresponding
         prefix; otherwise it is already a prefix, so just return it.
 
-        :return: Prefix of the default_activation_env
+        Returns:
+            Prefix of the default_activation_env
         """
         from ..exceptions import EnvironmentNameNotFound
 
@@ -2253,9 +2254,12 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
     Validate if the given channel URLs are allowed based on the context's allowlist
     and denylist configurations.
 
-    :param channels: A list of channels (either URLs or names) to validate.
-    :raises ChannelNotAllowed: If any URL is not in the allowlist.
-    :raises ChannelDenied: If any URL is in the denylist.
+    Args:
+        channels: A list of channels (either URLs or names) to validate.
+
+    Raises:
+        ChannelNotAllowed: If any URL is not in the allowlist.
+        ChannelDenied: If any URL is in the denylist.
     """
     from ..exceptions import ChannelDenied, ChannelNotAllowed
     from ..models.channel import Channel

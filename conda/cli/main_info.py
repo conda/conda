@@ -96,7 +96,8 @@ def get_user_site() -> list[str]:  # pragma: no cover
     """
     Method used to populate ``site_dirs`` in ``conda info``.
 
-    :returns: List of directories.
+    Returns:
+        List of directories.
     """
 
     from ..common.compat import on_win
@@ -143,8 +144,11 @@ def dump_record(prec: PackageRecord) -> dict[str, Any]:
     """
     Returns a dictionary of key/value pairs from ``prec``.  Keys included in ``IGNORE_FIELDS`` are not returned.
 
-    :param prec: A ``PackageRecord`` object.
-    :returns: A dictionary of elements dumped from ``prec``
+    Args:
+        prec: A ``PackageRecord`` object.
+
+    Returns:
+        A dictionary of elements dumped from ``prec``
     """
     return {k: v for k, v in prec.dump().items() if k not in IGNORE_FIELDS}
 
@@ -153,7 +157,8 @@ def pretty_package(prec: PackageRecord) -> None:
     """
     Pretty prints contents of a ``PackageRecord``
 
-    :param prec: A ``PackageRecord``
+    Args:
+        prec: A ``PackageRecord``
     """
 
     from ..utils import human_bytes
@@ -186,7 +191,8 @@ def get_info_dict() -> dict[str, Any]:
     """
     Returns a dictionary of contextual information.
 
-    :returns:  Dictionary of conda information to be sent to stdout.
+    Returns:
+        Dictionary of conda information to be sent to stdout.
     """
 
     from .. import CONDA_PACKAGE_ROOT
@@ -314,8 +320,11 @@ def get_env_vars_str(info_dict: dict[str, Any]) -> str:
     """
     Returns a printable string representing environment variables from the dictionary returned by ``get_info_dict``.
 
-    :param info_dict:  The returned dictionary from ``get_info_dict()``.
-    :returns:  String to print.
+    Args:
+        info_dict: The returned dictionary from ``get_info_dict()``.
+
+    Returns:
+        String to print.
     """
 
     builder = []
@@ -389,8 +398,11 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
     """
     Returns a printable string of the contents of ``info_dict``.
 
-    :param info_dict:  The output of ``get_info_dict()``.
-    :returns:  String to print.
+    Args:
+        info_dict: The output of ``get_info_dict()``.
+
+    Returns:
+        String to print.
     """
     display_info = get_main_info_display(info_dict)
 
@@ -547,9 +559,12 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
     """
     Determine which components to display.
 
-    :param args: The parsed command line arguments.
-    :param context: The conda context.
-    :returns: An iterable of components to display.
+    Args:
+        args: The parsed command line arguments.
+        context: The conda context.
+
+    Returns:
+        An iterable of components to display.
     """
     if args.base:
         yield "base"

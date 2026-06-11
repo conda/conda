@@ -399,8 +399,9 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike[str] | Path) -> Non
     """
     Set multiple configuration keys in a file.
 
-    :param args: Variable number of (key, value) tuples to set.
-    :param path: Path to the configuration file.
+    Args:
+        args: Variable number of (key, value) tuples to set.
+        path: Path to the configuration file.
     """
     config = ConfigurationFile(path)
     for key, value in args:
@@ -415,8 +416,9 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     Handles various config subcommands including show, show-sources, describe,
     validate, write-default, and modification operations (add, set, remove, etc.).
 
-    :param args: Parsed command line arguments.
-    :param parser: Argument parser instance.
+    Args:
+        args: Parsed command line arguments.
+        parser: Argument parser instance.
     """
     from .. import CondaError
     from ..base.context import (

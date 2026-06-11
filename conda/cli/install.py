@@ -76,9 +76,11 @@ def reinstall_packages(args, specs: list[str], **kwargs) -> int:
     """Reinstall packages using conda install.
 
     Helper for health fixes that need to reinstall packages.
-    :param args: Parsed arguments namespace
-    :param specs: Package specs to reinstall
-    :param kwargs: Override default install options (e.g., force_reinstall=True)
+
+    Args:
+        args: Parsed arguments namespace
+        specs: Package specs to reinstall
+        kwargs: Override default install options (e.g., force_reinstall=True)
     """
     args.packages = specs
     args.channel = kwargs.get("channel", None)
@@ -135,8 +137,12 @@ def get_revision(arg, json=False):
 
 def get_index_args(args) -> dict[str, any]:
     """Returns a dict of args required for fetching an index
-    :param args: The args provided by the cli
-    :returns: dict of index args
+
+    Args:
+        args: The args provided by the cli
+
+    Returns:
+        dict of index args
     """
     return {
         # TODO: deprecate --use-index-cache
@@ -229,9 +235,12 @@ def validate_install_command(prefix: str, command: str = "install"):
       * ensuring the user in not an admin
       * ensure the user is not forcing 32bit installs in the root prefix
 
-    :param prefix: The prefix where the environment will be created
-    :param command: Type of operation being performed
-    :raises: error if the configuration for the install is bad
+    Args:
+        prefix: The prefix where the environment will be created
+        command: Type of operation being performed
+
+    Raises:
+        error if the configuration for the install is bad
     """
     context.validate_configuration()
     check_non_admin()
@@ -257,10 +266,13 @@ def validate_install_command(prefix: str, command: str = "install"):
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
     """Checks that each spec that is requested as an update exists in the prefix
 
-    :param prefix: The target install prefix
-    :param specs: List of specs to be updated
-    :raises CondaError: if there is an invalid spec provided
-    :raises PackageNotInstalledError: if the requested specs to install don't exist in the prefix
+    Args:
+        prefix: The target install prefix
+        specs: List of specs to be updated
+
+    Raises:
+        CondaError: if there is an invalid spec provided
+        PackageNotInstalledError: if the requested specs to install don't exist in the prefix
     """
     prefix_data = PrefixData(prefix)
     for spec in specs:

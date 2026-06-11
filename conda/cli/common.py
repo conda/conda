@@ -207,8 +207,9 @@ def validate_subdir_config():
     the native system is only allowed if it comes from the global configuration, or
     from an environment variable.
 
-    :raises OperationNotAllowed: Active environment is not allowed to request
-                                 non-native platform packages
+    Raises:
+        OperationNotAllowed: Active environment is not allowed to request
+                             non-native platform packages
     """
     if context.subdir != context._native_subdir():
         # We will only allow a different subdir if it's specified by global
@@ -293,7 +294,8 @@ def validate_environment_files_consistency(files: list[str]) -> None:
     using the conda plugin system's environment specifiers. It prevents mixing different
     environment file formats (e.g., YAML, explicit package lists, requirements.txt).
 
-    :raises EnvironmentFileTypeMismatchError: When files with different formats are found
+    Raises:
+        EnvironmentFileTypeMismatchError: When files with different formats are found
     """
     if not files or len(files) <= 1:
         return  # Nothing to validate if there are 0 or 1 files

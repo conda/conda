@@ -189,17 +189,18 @@ class ActionGroup(NamedTuple):
 class PrefixActionGroup:
     """A container for groups of actions carried out during an UnlinkLinkTransaction.
 
-    :param remove_menu_action_groups: Actions which remove menu items
-    :param unlink_action_groups: Actions which unlink files
-    :param unregister_action_groups: Actions which unregister environment locations
-    :param link_action_groups: Actions which link files
-    :param register_action_groups: Actions which register environment locations
-    :param compile_action_groups: Actions which compile pyc files
-    :param make_menu_action_groups: Actions which create menu items
-    :param entry_point_action_groups: Actions which create python entry points
-    :param prefix_record_groups: Actions which create package json files in ``conda-meta/``
-    :param initial_action_groups: User-defined actions which run before all other actions
-    :param final_action_groups: User-defined actions which run after all other actions
+    Args:
+        remove_menu_action_groups: Actions which remove menu items.
+        unlink_action_groups: Actions which unlink files.
+        unregister_action_groups: Actions which unregister environment locations.
+        link_action_groups: Actions which link files.
+        register_action_groups: Actions which register environment locations.
+        compile_action_groups: Actions which compile pyc files.
+        make_menu_action_groups: Actions which create menu items.
+        entry_point_action_groups: Actions which create python entry points.
+        prefix_record_groups: Actions which create package json files in ``conda-meta/``.
+        initial_action_groups: User-defined actions which run before all other actions.
+        final_action_groups: User-defined actions which run after all other actions.
     """
 
     remove_menu_action_groups: Iterable[ActionGroup]
