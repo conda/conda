@@ -162,7 +162,7 @@ class CondaSubcommand(CondaPlugin):
         self.configure_parser = configure_parser
         self.aliases = ()
         if isinstance(aliases, str):
-            raise PluginError(f"Invalid plugin aliases for {self!r}")
+            raise PluginError(f"Invalid plugin aliases for {self!r}. Expected a tuple of strings, received a string.")
         try:
             self.aliases = tuple(
                 dict.fromkeys(alias.lower().strip() for alias in aliases)
