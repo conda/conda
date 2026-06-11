@@ -203,14 +203,9 @@ def test_coerce_guidance_dict_full() -> None:
     assert g.hints[0].hint_code == "code1"
 
 
-def test_coerce_guidance_dict_unknown_keys_ignored() -> None:
-    g = ErrorGuidance.coerce(
-        {
-            "summary": "S",
-            "unknown_key": "should be ignored",
-        }
-    )
-    assert g.summary == "S"
+def test_coerce_guidance_dict_unknown_keys_rejected() -> None:
+    with pytest.raises(TypeError, match="unknown_key"):
+        ErrorGuidance.coerce({"unknown_key": "should be ignored"})
 
 
 def test_coerce_guidance_invalid_type() -> None:
