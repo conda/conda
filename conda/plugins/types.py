@@ -170,7 +170,7 @@ class CondaSubcommand(CondaPlugin):
         except (AttributeError, TypeError):
             raise PluginError(f"Invalid plugin aliases for {self!r}")
         if any(not alias or alias == self.name for alias in self.aliases):
-            raise PluginError(f"Invalid plugin aliases for {self!r}")
+            raise PluginError(f"Invalid plugin aliases for {self!r}. Expected a tuple of strings, received a string.")
 
 
 @dataclass
