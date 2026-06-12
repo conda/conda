@@ -90,7 +90,8 @@ class CondaSpecs:
                     backend=VerboseSolver,
                 )
 
-        :return: An iterable of solver entries.
+        Returns:
+            An iterable of solver entries.
         """
         yield from ()
 
@@ -119,7 +120,8 @@ class CondaSpecs:
                     action=example_command,
                 )
 
-        :return: An iterable of subcommand entries.
+        Returns:
+            An iterable of subcommand entries.
         """
         yield from ()
 
@@ -143,7 +145,8 @@ class CondaSpecs:
                     build="x86_64",
                 )
 
-        :return: An iterable of virtual package entries.
+        Returns:
+            An iterable of virtual package entries.
         """
         yield from ()
 
@@ -295,7 +298,8 @@ class CondaSpecs:
                     fix="Repair detected issues",
                 )
 
-        :return: An iterable of health check entries.
+        Returns:
+            An iterable of health check entries.
         """
         yield from ()
 
@@ -806,7 +810,8 @@ class CondaSpecs:
                     extract=extract_custom,
                 )
 
-        :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
         """
         yield from ()
 
@@ -860,6 +865,7 @@ class CondaSpecs:
                     watch_for={"PackagesNotFoundInChannelsError"},
                 )
 
-        :return: An iterable of :class:`~conda.plugins.types.CondaExceptionObserver` entries.
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaExceptionObserver` entries.
         """
         yield from ()

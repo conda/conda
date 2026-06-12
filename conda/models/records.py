@@ -527,10 +527,13 @@ class PackageRecord(DictSafeMixin, Entity):
         """
         Create a virtual package record.
 
-        :param name: The name of the virtual package.
-        :param version: The version of the virtual package, defaults to "0".
-        :param build_string: The build string of the virtual package, defaults to "0".
-        :return: A PackageRecord representing the virtual package.
+        Args:
+            name: The name of the virtual package.
+            version: The version of the virtual package, defaults to "0".
+            build_string: The build string of the virtual package, defaults to "0".
+
+        Returns:
+            A PackageRecord representing the virtual package.
         """
         return cls(
             package_type=PackageType.VIRTUAL_SYSTEM,
@@ -713,7 +716,8 @@ class PrefixRecord(SolvedRecord):
         and stats the files on disk if size_in_bytes is missing and for the
         package's conda-meta JSON manifest.
 
-        :returns: Total size in bytes of all files installed by this package.
+        Returns:
+            Total size in bytes of all files installed by this package.
         """
         total_size = 0
 
