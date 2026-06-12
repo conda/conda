@@ -2,14 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Structured error guidance for user-facing error messages.
 
-Plugin authors and core code can attach :class:`ErrorGuidance` to
-:class:`conda.CondaError` via the ``guidance`` keyword argument so that terminal
-and JSON output share the same logical cause / hint structure.
-
-Guidance enforcement
---------------------
-This module lives in ``conda._private`` to signal that its API is not yet stable.
-The public re-exports in ``conda.exceptions`` are the stable surface.
+``ErrorGuidance`` can be attached to ``conda.CondaError`` via the ``guidance`` keyword
+so that terminal and `--json` output share the same logical cause / hint structure.
 """
 
 from __future__ import annotations
@@ -17,13 +11,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING
 
+from .. import CondaError
 from ..common.io import dashlist
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import Any, NotRequired, TypedDict
-
-    from .. import CondaError
 
     class GuidanceHintTypedDict(TypedDict):
         text: str
@@ -37,39 +30,28 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class GuidanceHint:
-    """A single actionable hint with a stable machine-readable code.
-
-    ``hint_code`` is treated as a stable API identifier — ``--json`` consumers
-    can rely on it not changing between releases. Use snake_case.
-    """
+    """A single actionable hint with a stable ``hint_code``."""
 
     text: str
+    """Human-readable description of the action to take."""
     hint_code: str
+    """Stable machine-readable identifier. Use snake_case."""
 
 
 @dataclass(frozen=True)
 class ErrorGuidance:
     """Structured guidance for solution-oriented error messages.
 
-    When attached to a :class:`conda.CondaError`, the display layer renders the
-    cause and hints alongside the exception's ``message``.
-
-    .. attribute:: summary
-       An optional short headline that overrides the exception's ``message``
-       for user-facing output. When ``None``, the exception's ``message`` is
-       used as the headline.
-
-    .. attribute:: cause
-       An explanation of what went wrong, distinct from the raw error text.
-
-    .. attribute:: hints
-       An ordered list of :class:`GuidanceHint` objects with actionable next
-       steps. Hints are rendered in order.
+    When attached to a ``CondaError``, the display layer renders the cause
+    and hints alongside the exception's ``message``.
     """
 
     summary: str | None = None
+    """Optional headline overriding ``message`` for user-facing output."""
     cause: str | None = None
+    """Explanation of what went wrong, distinct from the raw error text."""
     hints: tuple[GuidanceHint, ...] = ()
+    """Ordered list of actionable next steps. Rendered in order."""
 
     def __post_init__(self) -> None:
         if not self.summary and not self.cause and not self.hints:
@@ -79,23 +61,26 @@ class ErrorGuidance:
 
     @property
     def hint_codes(self) -> tuple[str, ...]:
-        """Hint codes extracted from :attr:`hints` for JSON serialization."""
+        """Hint codes extracted from ``hints`` for JSON serialization."""
         return tuple(hint.hint_code for hint in self.hints)
 
     def __json__(self) -> dict[str, object]:
-        """Serialize for :meth:`conda.CondaError.dump_map`."""
+        """Serialize for ``CondaError.dump_map``."""
         result = asdict(self)
         result["hint_codes"] = self.hint_codes
         return {k: v for k, v in result.items() if v}
 
     @classmethod
     def coerce(cls, value: Any) -> ErrorGuidance | None:
-        """Coerce a raw ``guidance`` value into :class:`ErrorGuidance` or ``None``.
+        """Coerce *value* to ``ErrorGuidance`` or ``None``.
 
-        Accepts:
-        * ``None`` → ``None``
-        * ``ErrorGuidance`` → passthrough
-        * ``dict`` → coerced (empty ``dict`` → ``None``)
+        Args:
+            value: ``None`` returns ``None``, ``ErrorGuidance`` passes
+                through, a ``dict`` is coerced (empty ``dict`` returns
+                ``None``).
+
+        Returns:
+            ``None`` or an ``ErrorGuidance`` instance.
         """
         if value is None:
             return None
@@ -118,18 +103,23 @@ class ErrorGuidance:
     def format(self, exception: CondaError) -> str:
         """Format this guidance for terminal output.
 
-        ``str(exception)`` is used as the headline unless ``summary`` is set.
+        Args:
+            exception: ``str(exception)`` is used as the headline unless
+                ``summary`` is set.
+
+        Returns:
+            Formatted string including the exception class name, cause,
+            and actionable hints.
         """
-        message = str(exception)
-        headline = self.summary.rstrip() if self.summary else message.rstrip()
+        if not isinstance(exception, CondaError):
+            raise ValueError(f"expected CondaError, got {type(exception).__name__}")
+        headline = (self.summary if self.summary else exception.message).rstrip()
         lines = [f"{exception.__class__.__name__}: {headline}"]
         if self.cause or self.hints:
             lines.append("")
         if self.cause:
             lines.append(f"Cause: {self.cause.rstrip()}")
         if self.hints:
-            hint_items = [
-                f"({hint.hint_code}) {hint.text}".rstrip() for hint in self.hints
-            ]
-            lines.append(f"Next steps:{dashlist(hint_items, indent=2)}")
+            hints = (f"({hint.hint_code}) {hint.text}".rstrip() for hint in self.hints)
+            lines.append(f"Next steps:{dashlist(hints, indent=2)}")
         return "\n".join(lines)
