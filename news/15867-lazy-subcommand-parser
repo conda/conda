@@ -1,0 +1,8 @@
+### Enhancements
+
+* Defer loading of subcommand parser modules until the subcommand is actually invoked, reducing the number of modules imported at startup and improving `conda` startup latency.
+
+### Deprecations
+
+* `conda.cli.conda_argparse.configure_parser_*` functions are pending deprecation. Import `configure_parser` directly from the relevant `conda.cli.main_*` module instead.
+* `conda.cli.conda_argparse.user_rc_path`, `sys_rc_path`, `escaped_user_rc_path`, and `escaped_sys_rc_path` are pending deprecation. Use `conda.base.context.user_rc_path` / `sys_rc_path` instead.
