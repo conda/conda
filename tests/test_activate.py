@@ -693,6 +693,31 @@ def test_build_activate_shlvl_1(
     }
 
 
+def test_build_activate_raises_when_shlvl_set_but_prefix_unset(
+    monkeypatch: MonkeyPatch,
+    env_activate: tuple[str, str, str],
+):
+    """Regression test for the TypeError from `_get_deactivate_scripts(None)`.
+
+    With ``CONDA_SHLVL >= 1`` but ``CONDA_PREFIX`` unset, _build_activate_stack
+    used to fall through to ``self._get_deactivate_scripts(old_conda_prefix)``
+    on the ``not stack`` branch, which crashes inside ``ntpath.join(None, …)``
+    with ``TypeError: expected str, bytes or os.PathLike object, not NoneType``.
+    Reported via xonsh on Windows where conflicting init blocks (cmd.exe +
+    xonsh) leave the env partially activated — see xonsh/xonsh#3676.
+    """
+    prefix, _, _ = env_activate
+    monkeypatch.setenv("CONDA_SHLVL", "1")
+    monkeypatch.delenv("CONDA_PREFIX", raising=False)
+
+    activator = PosixActivator()
+    with pytest.raises(
+        ValueError,
+        match=r"CONDA_SHLVL is 1 but CONDA_PREFIX is empty",
+    ):
+        activator.build_activate(prefix)
+
+
 @skip_unsupported_posix_path
 def test_build_stack_shlvl_1(
     monkeypatch: MonkeyPatch,
