@@ -65,6 +65,21 @@ class DummyVirtualPackagePlugin:
         yield DummyVirtualPackage
 
 
+def test_get_plugin_source_registered_plugin(plugin_manager: CondaPluginManager):
+    plugin_manager.register(VerboseSolverPlugin)
+    assert plugin_manager.get_plugin_source(VerboseSolverPlugin).endswith(
+        ".VerboseSolverPlugin"
+    )
+
+
+def test_get_plugin_source_entrypoint_distribution(
+    plugin_manager: CondaPluginManager,
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    plugin = next(iter(plugin_manager.get_plugins()))
+    assert plugin_manager.get_plugin_source(plugin) == "conda-test-plugin 1.0"
+
+
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_plugins() == 0
 
@@ -104,7 +119,13 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
 
     plugin_manager.register(SecondArchspec)
     with pytest.raises(
-        PluginError, match="Conflicting plugins found for `virtual_packages`"
+        PluginError,
+        match=(
+            r"Conflicting plugins found for `virtual_packages`:\n\n"
+            r"  - 'archspec' provided by:\n"
+            r"    - \S.*\n"
+            r"    - \S"
+        ),
     ):
         plugin_manager.get_hook_results(name)
 
