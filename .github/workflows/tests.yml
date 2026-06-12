@@ -134,6 +134,11 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
+
       - name: Conda Install
         run: >
           conda install
@@ -279,6 +284,11 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
+
       - name: Conda Install
         run: >
           conda install
@@ -393,6 +403,11 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
+
       - name: Conda Install
         run: >
           conda install
@@ -481,6 +496,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         run: >
@@ -639,6 +659,11 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
+
       - name: Conda Install
         run: >
           conda install
@@ -739,6 +764,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         run: >
@@ -919,6 +949,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         working-directory: conda
