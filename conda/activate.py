@@ -124,12 +124,14 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def get_export_unset_vars(self, export_metavars=True, **kwargs):
         """
-        :param export_metavars: whether to export `conda_exe_vars` meta variables.
-        :param kwargs: environment variables to export.
-            .. if you pass and set any other variable to None, then it
-            emits it to the dict with a value of None.
+        Args:
+            export_metavars: whether to export `conda_exe_vars` meta variables.
+            kwargs: environment variables to export.
+                .. if you pass and set any other variable to None, then it
+                emits it to the dict with a value of None.
 
-        :return: A dict of env vars to export ordered the same way as kwargs.
+        Returns:
+            A dict of env vars to export ordered the same way as kwargs.
             And a list of env vars to unset.
         """
         unset_vars = []

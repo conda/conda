@@ -216,7 +216,7 @@ ignore = [
   "E731",  # do not assign a lambda expression, use a def
   "UP031",  # do not fix printf-style string formatting
 ]
-pydocstyle = {convention = "pep257"}
+pydocstyle = {convention = "google"}
 # see https://docs.astral.sh/ruff/rules/
 select = [
   # Enable ANN locally for type hints linting

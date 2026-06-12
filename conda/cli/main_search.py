@@ -357,6 +357,7 @@ def pretty_record(record: PackageRecord, print=print) -> None:
     """
     Pretty prints a `PackageRecord`.
 
-    :param record:  The `PackageRecord` object to print.
+    Args:
+        record: The `PackageRecord` object to print.
     """
     print(_pretty_record_format(record))

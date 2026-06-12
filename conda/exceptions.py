@@ -896,10 +896,6 @@ class UnsatisfiableError(CondaError):
         chains: (optional) if True, the tuples are interpreted as chains
             of dependencies, from top level to bottom. If False, the tuples
             are interpreted as simple lists of conflicting specs.
-
-    Returns:
-        Raises an exception with a formatted message detailing the
-        unsatisfiable specifications.
     """
 
     def _format_chain_str(self, bad_deps: Iterable[Iterable[MatchSpec]]):
