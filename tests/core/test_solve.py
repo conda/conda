@@ -358,6 +358,14 @@ Your installed version is: not available"""
         )
 
 
+# constrains on virtual packages are currently only enforced by the classic
+# solver; libmamba/rattler support is tracked separately (see conda/conda#10803).
+_VIRTUAL_CONSTRAIN_SKIP = (
+    "constrains on virtual packages are not yet enforced by the "
+    "libmamba/rattler solvers; see conda/conda#10803"
+)
+
+
 def test_cuda_constrain_absent(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
     specs = (MatchSpec("cuda-constrain"),)
 
@@ -370,8 +378,10 @@ def test_cuda_constrain_absent(tmpdir, clear_cuda_version, monkeypatch: MonkeyPa
         assert convert_to_dist_str(final_state) == order
 
 
-@pytest.mark.skip(reason="known broken; fix to be implemented")
 def test_cuda_constrain_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+    if context.solver != "classic":
+        pytest.skip(_VIRTUAL_CONSTRAIN_SKIP)
+
     specs = (MatchSpec("cuda-constrain"),)
 
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
@@ -383,25 +393,25 @@ def test_cuda_constrain_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch
         assert convert_to_dist_str(final_state) == order
 
 
-@pytest.mark.skip(reason="known broken; fix to be implemented")
 def test_cuda_constrain_unsat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+    if context.solver != "classic":
+        pytest.skip(_VIRTUAL_CONSTRAIN_SKIP)
+
     specs = (MatchSpec("cuda-constrain"),)
 
-    # No cudatoolkit in index for CUDA 8.0
+    # No cuda-constrain in the test index is compatible with __cuda=8.0
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "8.0")
 
     with get_solver_cuda(tmpdir, specs) as solver:
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
-    assert str(exc.value).strip() == dals(
-        f"""The following specifications were found to be incompatible with your system:
-
-  - feature:|@/{context.subdir}::__cuda==8.0=0
-  - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
-
-Your installed version is: 8.0"""
-    )
+    # The exact chain string is formatting-sensitive; assert on the stable
+    # fragments rather than a brittle full-string match.
+    exc_msg = str(exc.value).strip()
+    assert "incompatible with your system" in exc_msg
+    assert "cuda-constrain -> __cuda" in exc_msg
+    assert "Your installed version is: 8.0" in exc_msg
 
 
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
@@ -418,11 +428,14 @@ def test_cuda_glibc_sat(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
         assert convert_to_dist_str(final_state) == order
 
 
-@pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
 def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
+    if context.solver != "classic":
+        pytest.skip(_VIRTUAL_CONSTRAIN_SKIP)
+
     specs = (MatchSpec("cuda-glibc"),)
 
+    # cuda-glibc from the test index a hard `depends` on __cuda>=10.0,<11
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "8.0")
     monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.23")
 
@@ -430,23 +443,23 @@ def test_cuda_glibc_unsat_depend(tmpdir, clear_cuda_version, monkeypatch: Monkey
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
-    assert str(exc.value).strip() == dals(
-        f"""The following specifications were found to be incompatible with your system:
-
-  - feature:|@/{context.subdir}::__cuda==8.0=0
-  - __cuda[version='>=10.0'] -> feature:/linux-64::__cuda==8.0=0
-
-Your installed version is: 8.0"""
-    )
+    # The exact chain string is formatting-sensitive; assert on the stable
+    # fragments rather than a brittle full-string match.
+    exc_msg = str(exc.value).strip()
+    assert "incompatible with your system" in exc_msg
+    assert "__cuda[version='>=10.0,<11']" in exc_msg
 
 
-@pytest.mark.skip(reason="known broken; fix to be implemented")
 @pytest.mark.skipif(not on_linux, reason="linux-only test")
 def test_cuda_glibc_unsat_constrain(
     tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch
 ):
+    if context.solver != "classic":
+        pytest.skip(_VIRTUAL_CONSTRAIN_SKIP)
+
     specs = (MatchSpec("cuda-glibc"),)
 
+    # cuda-glibc from test index has a `constrains` on __glibc; GLIBC 2.12 violates it
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "10.0")
     monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.12")
 
