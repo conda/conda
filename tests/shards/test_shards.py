@@ -484,13 +484,15 @@ def test_shards_base_url():
 
 
 def test_shard_mentioned_packages_2():
-    assert set(shard_mentioned_packages(FAKE_SHARD)) == set((
-        "bar",
-        "baz",
-        "quux",
-        # "splat", # omit constrains
-        "warble",
-    ))
+    assert set(shard_mentioned_packages(FAKE_SHARD)) == set(
+        (
+            "bar",
+            "baz",
+            "quux",
+            # "splat", # omit constrains
+            "warble",
+        )
+    )
 
     # check that the bytes hash was converted to hex
     assert (
@@ -524,13 +526,15 @@ def _v3_shard(groups: dict) -> dict:
 
 
 def test_shard_mentioned_packages_v3_depends():
-    shard = _v3_shard({
-        "conda": {
-            "cpython-3.12.0-0": {
-                "depends": ["openssl >=3", "libffi >=3.4"],
-            },
+    shard = _v3_shard(
+        {
+            "conda": {
+                "cpython-3.12.0-0": {
+                    "depends": ["openssl >=3", "libffi >=3.4"],
+                },
+            }
         }
-    })
+    )
     names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert "openssl" in names
     assert "libffi" in names
@@ -538,12 +542,14 @@ def test_shard_mentioned_packages_v3_depends():
 
 def test_shard_mentioned_packages_v3_deduplication_within_v3():
     # two records in the same v3 group share a dep spec
-    shard = _v3_shard({
-        "whl": {
-            "pkgA-1.0-py3_none_any_0": {"depends": ["openssl >=3"]},
-            "pkgA-2.0-py3_none_any_0": {"depends": ["openssl >=3"]},
+    shard = _v3_shard(
+        {
+            "whl": {
+                "pkgA-1.0-py3_none_any_0": {"depends": ["openssl >=3"]},
+                "pkgA-2.0-py3_none_any_0": {"depends": ["openssl >=3"]},
+            }
         }
-    })
+    )
     names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert names.count("openssl") == 1
 
@@ -939,11 +945,13 @@ def test_shardlike():
 
 
 def test_iter_records_classic():
-    shardlike = ShardLike({
-        "packages": {},
-        "packages.conda": {},
-        "info": {"base_url": ""},
-    })
+    shardlike = ShardLike(
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
+    )
     shardlike.visit_shard(
         "mypkg",
         {
@@ -957,11 +965,13 @@ def test_iter_records_classic():
 
 
 def test_iter_records_v3():
-    shardlike = ShardLike({
-        "packages": {},
-        "packages.conda": {},
-        "info": {"base_url": ""},
-    })
+    shardlike = ShardLike(
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
+    )
     shardlike.visit_shard(
         "mypkg",
         {
@@ -1115,9 +1125,9 @@ def test_shard_cache_multiple_profile(retrieval_type, mock_cache: MockCache):
     `shards_cache.retrieve_multiple should be faster than `shards_cache.retrieve`.
     """
     if retrieval_type == "retrieve_multiple":
-        retrieved = mock_cache.cache.retrieve_multiple([
-            shard.url for shard in mock_cache.shards
-        ])
+        retrieved = mock_cache.cache.retrieve_multiple(
+            [shard.url for shard in mock_cache.shards]
+        )
         assert len(retrieved) == mock_cache.num_shards
 
     elif retrieval_type == "retrieve_single":
