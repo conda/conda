@@ -11,7 +11,11 @@ import pytest
 from conda import plugins
 from conda.auxlib.ish import dals
 from conda.base.context import context
-from conda.cli.conda_argparse import BUILTIN_COMMANDS, generate_parser
+from conda.cli.conda_argparse import (
+    BUILTIN_COMMANDS,
+    find_builtin_commands,
+    generate_parser,
+)
 from conda.plugins.types import CondaSubcommand
 
 if TYPE_CHECKING:
@@ -27,6 +31,7 @@ if TYPE_CHECKING:
 class SubcommandPlugin:
     name: str
     summary: str
+    aliases: tuple[str, ...] = ()
     configure_parser: Callable | None = None
 
     def custom_command(self, args):
@@ -39,7 +44,25 @@ class SubcommandPlugin:
             summary=self.summary,
             action=self.custom_command,
             configure_parser=self.configure_parser,
+            aliases=self.aliases,
         )
+
+
+@pytest.fixture
+def alias_overlap_log_call(mocker):
+    def log_call(plugin_name, aliases):
+        return mocker.call(
+            dals(
+                f"""
+                The plugin '{plugin_name}' is trying to register aliases that overlap
+                with existing conda commands: {aliases}
+
+                Please uninstall the plugin to stop seeing this error message.
+                """
+            )
+        )
+
+    return log_call
 
 
 def test_invoked(plugin_manager, conda_cli: CondaCLIFixture, mocker: MockerFixture):
@@ -57,6 +80,20 @@ def test_invoked(plugin_manager, conda_cli: CondaCLIFixture, mocker: MockerFixtu
     mocked.assert_called_with(("some-arg", "some-other-arg"))
 
 
+def test_alias_invoked(
+    plugin_manager, conda_cli: CondaCLIFixture, mocker: MockerFixture
+):
+    """Ensure plugin subcommand aliases invoke the command."""
+    mocked = mocker.patch.object(SubcommandPlugin, "custom_command")
+    plugin_manager.register(
+        SubcommandPlugin(name="custom", summary="Summary.", aliases=("alternate",))
+    )
+
+    conda_cli("alternate", "some-arg")
+
+    mocked.assert_called_with(("some-arg",))
+
+
 def test_help(plugin_manager, conda_cli: CondaCLIFixture, capsys: CaptureFixture):
     """Ensures the command appears on the help page."""
     # setup
@@ -70,6 +107,34 @@ def test_help(plugin_manager, conda_cli: CondaCLIFixture, capsys: CaptureFixture
 
     # assertions; make sure our command appears with the help blurb
     assert re.search(r"custom\s+Summary.", stdout) is not None
+    assert not stderr
+
+
+def test_alias_help(plugin_manager, conda_cli: CondaCLIFixture, capsys: CaptureFixture):
+    """Ensures aliases appear on the help page."""
+    plugin_manager.register(
+        SubcommandPlugin(name="custom", summary="Summary.", aliases=("alternate",))
+    )
+
+    with pytest.raises(SystemExit, match="0"):
+        conda_cli("--help")
+
+    stdout, stderr = capsys.readouterr()
+
+    assert re.search(r"custom \(alternate\)\s+Summary.", stdout) is not None
+    assert not stderr
+
+
+def test_alias_commands(plugin_manager, conda_cli: CondaCLIFixture):
+    """Ensures aliases appear in the command discovery output."""
+    plugin_manager.register(
+        SubcommandPlugin(name="custom", summary="Summary.", aliases=("alternate",))
+    )
+
+    stdout, stderr, code = conda_cli("commands")
+
+    assert code == 0, f"conda commands failed ({code}): {stderr}"
+    assert {"custom", "alternate"}.issubset(stdout.splitlines())
     assert not stderr
 
 
@@ -120,6 +185,80 @@ def test_cannot_override_builtin_commands(command, plugin_manager, mocker, conda
     ]
 
     assert mocked.mock_calls == []
+
+
+@pytest.mark.parametrize("command", BUILTIN_COMMANDS)
+def test_alias_cannot_override_builtin_commands(
+    command, plugin_manager, mocker, alias_overlap_log_call
+):
+    """Ensures plugin subcommand aliases do not override built-in commands."""
+    mock_log = mocker.patch("conda.cli.conda_argparse.log")
+    plugin_manager.register(
+        SubcommandPlugin(name="custom", summary="Summary.", aliases=(command,))
+    )
+
+    parser = generate_parser()
+
+    assert "custom" not in find_builtin_commands(parser)
+    assert mock_log.error.mock_calls == [alias_overlap_log_call("custom", command)]
+
+
+@pytest.mark.parametrize(
+    ("subcommand_plugins", "registered_commands", "expected_log_calls"),
+    (
+        pytest.param(
+            (
+                SubcommandPlugin(
+                    name="custom",
+                    summary="Summary.",
+                    aliases=("other",),
+                ),
+                SubcommandPlugin(name="other", summary="Other summary."),
+            ),
+            {"other"},
+            (("custom", "other"),),
+            id="alias-matches-plugin-subcommand",
+        ),
+        pytest.param(
+            (
+                SubcommandPlugin(
+                    name="custom",
+                    summary="Summary.",
+                    aliases=("alternate",),
+                ),
+                SubcommandPlugin(
+                    name="other",
+                    summary="Other summary.",
+                    aliases=("alternate",),
+                ),
+            ),
+            set(),
+            (("custom", "alternate"), ("other", "alternate")),
+            id="shared-alias",
+        ),
+    ),
+)
+def test_alias_cannot_overlap_plugin_subcommands(
+    subcommand_plugins,
+    registered_commands,
+    expected_log_calls,
+    plugin_manager,
+    mocker,
+    alias_overlap_log_call,
+):
+    """Ensures aliases do not overlap with plugin subcommands or aliases."""
+    mock_log = mocker.patch("conda.cli.conda_argparse.log")
+    for subcommand_plugin in subcommand_plugins:
+        plugin_manager.register(subcommand_plugin)
+
+    parser = generate_parser()
+    commands = set(find_builtin_commands(parser))
+
+    assert commands & {"custom", "other"} == registered_commands
+    assert mock_log.error.mock_calls == [
+        alias_overlap_log_call(plugin_name, aliases)
+        for plugin_name, aliases in expected_log_calls
+    ]
 
 
 def test_parser_no_plugins(plugin_manager):
@@ -194,3 +333,34 @@ def test_custom_plugin_extend_parser(
 
     with pytest.raises(SystemExit, match="0"):
         conda_cli("custom", "--help")
+
+
+def test_custom_plugin_extend_parser_alias(
+    plugin_manager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+):
+    def configure_parser(subparser):
+        subparser.add_argument("--flag", action="store_true")
+
+    mocked = mocker.patch.object(SubcommandPlugin, "custom_command")
+    subcommand_plugin = SubcommandPlugin(
+        name="custom",
+        summary="Summary.",
+        aliases=("alternate",),
+        configure_parser=configure_parser,
+    )
+    assert plugin_manager.load_plugins(subcommand_plugin) == 1
+    assert plugin_manager.is_registered(subcommand_plugin)
+
+    mocker.patch(
+        "conda.base.context.Context.plugin_manager",
+        return_value=plugin_manager,
+        new_callable=mocker.PropertyMock,
+    )
+    assert context.plugin_manager is plugin_manager
+
+    conda_cli("alternate", "--flag")
+
+    args = mocked.call_args.args[0]
+    assert args.flag is True
