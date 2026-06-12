@@ -43,11 +43,15 @@ if TYPE_CHECKING:
 
     import requests
 
-    from conda.base.context import Context
-    from conda.common.path import PathType
-    from conda.models.match_spec import MatchSpec
-    from conda.models.records import PackageRecord
-    from conda.plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
+    from ._private.exception_guidance import (
+        ErrorGuidance,
+        ErrorGuidanceTypedDict,
+    )
+    from .base.context import Context
+    from .common.path import PathType
+    from .models.match_spec import MatchSpec
+    from .models.records import PackageRecord
+    from .plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
 
 log = getLogger(__name__)
 
@@ -777,12 +781,50 @@ class PackagesNotFoundError(CondaError):
             packages_formatted = dashlist(packages)
             channels_formatted = ""
 
+        guidance = None
+        if channel_urls and len(self.packages) >= 5:
+            guidance = {
+                "summary": (
+                    "Many packages are unavailable at once. The cause is often "
+                    "channel configuration, an incomplete package index, or a "
+                    "platform mismatch."
+                ),
+                "cause": (
+                    "All %(count)d requested packages were not found in the "
+                    "configured channels."
+                )
+                % {"count": len(self.packages)},
+                "hints": [
+                    {
+                        "text": (
+                            "Verify the expected channels are listed:\n"
+                            "      conda config --show channels"
+                        ),
+                        "hint_code": "check_channel_config",
+                    },
+                    {
+                        "text": (
+                            "Confirm the platform (subdir) matches your system:\n"
+                            "      conda info"
+                        ),
+                        "hint_code": "check_platform_subdir",
+                    },
+                    {
+                        "text": (
+                            "Clear the index cache, then retry:\n      conda clean -i"
+                        ),
+                        "hint_code": "clear_index_cache",
+                    },
+                ],
+            }
+
         super().__init__(
             message,
             packages=self.packages,
             packages_formatted=packages_formatted,
             channel_urls=list(self.channel_urls),
             channels_formatted=channels_formatted,
+            guidance=guidance,
         )
 
 
@@ -1034,13 +1076,116 @@ conda config --set unsatisfiable_hints True
                 "packages required for satisfiability."
             )
 
-        super().__init__(msg)
+        guidance = _build_unsatisfiable_guidance(bad_deps, strict)
+
+        super().__init__(msg, guidance=guidance)
+
+
+def _build_unsatisfiable_guidance(
+    bad_deps: Any,
+    strict: bool = False,
+) -> ErrorGuidanceTypedDict | None:
+    """Build guidance dict for :class:`UnsatisfiableError`, or ``None``."""
+    has_python = False
+    has_history = False
+    has_virtual = False
+    has_direct = False
+    had_empty = len(bad_deps) == 0
+
+    if not had_empty:
+        for class_name in bad_deps:
+            if class_name == "python":
+                has_python = True
+            elif class_name == "request_conflict_with_history":
+                has_history = True
+            elif class_name == "virtual_package":
+                has_virtual = True
+            elif class_name == "direct":
+                has_direct = True
+
+    cause_parts = []
+    if has_direct:
+        cause_parts.append(
+            "Some requested packages have conflicting version constraints"
+        )
+    if has_python:
+        cause_parts.append(
+            "Some packages are incompatible with the current Python version"
+        )
+    if has_history:
+        cause_parts.append(
+            "The operation conflicts with a past explicit install specification"
+        )
+    if has_virtual:
+        cause_parts.append(
+            "Some packages are not available for the current system platform"
+        )
+    if had_empty:
+        cause_parts.append("Enable unsatisfiable hints for more detail")
+
+    cause = "; ".join(cause_parts) if cause_parts else None
+
+    hints = []
+    if had_empty:
+        hints.append(
+            {
+                "text": (
+                    "Enable unsatisfiable hints for more detail:\n"
+                    "      conda config --set unsatisfiable_hints True"
+                ),
+                "hint_code": "enable_unsatisfiable_hints",
+            }
+        )
+    else:
+        hints.append(
+            {
+                "text": (
+                    "Review the conflicting specifications above and adjust version "
+                    "ranges or package names."
+                ),
+                "hint_code": "review_conflicting_specs",
+            }
+        )
+    if strict:
+        hints.append(
+            {
+                "text": (
+                    "Strict channel priority is enabled. Try flexible priority:\n"
+                    "      conda config --set channel_priority flexible"
+                ),
+                "hint_code": "channel_priority_flexible",
+            }
+        )
+    hints.append(
+        {
+            "text": (
+                "Check for pinned packages:\n      conda config --show pinned_packages"
+            ),
+            "hint_code": "check_pinned_packages",
+        }
+    )
+    hints.append(
+        {
+            "text": "Update conda and try again:\n      conda update conda",
+            "hint_code": "update_conda",
+        }
+    )
+
+    return {
+        "summary": "Conda could not find a compatible set of packages to satisfy the requested specifications.",
+        "cause": cause,
+        "hints": hints,
+    }
 
 
 class RemoveError(CondaError):
-    def __init__(self, message: str):
-        msg = f"{message}"
-        super().__init__(msg)
+    def __init__(
+        self,
+        message: str,
+        *,
+        guidance: ErrorGuidance | ErrorGuidanceTypedDict | None = None,
+    ):
+        super().__init__(f"{message}", guidance=guidance)
 
 
 class DisallowedPackageError(CondaError):
@@ -1598,11 +1743,11 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
     else:
         from .gateways.streams import stderr
 
-        stderr(f"\n{exc_val!r}\n")
-        # An alternative which would allow us not to reload sys with newly setdefaultencoding()
-        # is to not use `%r`, e.g.:
-        # Still, not being able to use `%r` seems too great a price to pay.
-        # stderrlog.error("\n" + exc_val.__repr__() + \n")
+        guidance = getattr(exc_val, "_guidance", None)
+        if guidance is not None:
+            stderr(f"\n{guidance.format(exc_val)}\n")
+        else:
+            stderr(f"\n{exc_val!r}\n")
 
 
 def _format_exc(
