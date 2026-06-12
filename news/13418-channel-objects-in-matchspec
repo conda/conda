@@ -1,0 +1,19 @@
+### Enhancements
+
+- Preserve the full identity of a channel in `MatchSpec` when a spec is built from a non-`channel_alias` URL, such as `file:///path/to/distr::pkg` or `https://repo.anaconda.com/pkgs/free::pkg`. `_parse_channel` now stores the `canonical_name` of the channel, rather than collapsing it to `Channel.name`, so a spec like `file:///path/to/distr::pkg` round-trips back to the same local channel instead of resolving to the remote `distr` channel via `channel_alias`. (#16176 via #13418)
+
+### Bug fixes
+
+- <news item>
+
+### Deprecations
+
+- <news item>
+
+### Docs
+
+- <news item>
+
+### Other
+
+- <news item>

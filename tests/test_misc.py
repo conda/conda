@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import re
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
@@ -124,9 +125,12 @@ def test_explicit_missing_cache_entries(
     # Note that we cannot monkeypatch context.dry_run, because explicit() would exit early with that.
     mocker.patch("conda.misc.ProgressiveFetchExtract")
 
+    channel_url = test_recipes_channel.as_uri()
     with pytest.raises(
         SpecNotFoundInPackageCache,
-        match="Missing package cache records for: test-recipes/noarch::missing==1.0.0=0",
+        match=re.escape(
+            f"Missing package cache records for: {channel_url}/noarch::missing==1.0.0=0"
+        ),
     ):
         schema = "file:///" if on_win else "file://"
         noarch = test_recipes_channel / "noarch"
