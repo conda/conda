@@ -1,0 +1,22 @@
+### Enhancements
+
+* Skip plugin loading on the shell activate fast path (`conda shell.* activate | deactivate | reactivate | hook`).
+  Plugin `pre_commands` / `post_commands` hooks are only invoked when the plugin manager was already initialized
+  by another code path. Saves ~430 imports and ~240 ms on every terminal prompt. Plugin authors should not rely
+  on these hooks firing on activation; see the note in `conda.plugins.hookspec`. (#15867)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
