@@ -1,0 +1,19 @@
+### Enhancements
+
+* Lower default `EXTRACT_THREADS` from `min(cpu, 3)` to `2`. The previous cap regressed package extraction by 28–40% on modern Linux filesystems versus serial extraction; 2 is optimal on both macOS and Linux. (#15974)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
