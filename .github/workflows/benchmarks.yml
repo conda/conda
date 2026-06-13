@@ -62,7 +62,7 @@ jobs:
           steps.artifact.outputs.found == 'true'
           && env.BENCHER_API_TOKEN != ''
           && env.BENCHER_PROJECT_SLUG != ''
-        uses: bencherdev/bencher@0f8f620172ccd6225d40a7590598eb7b41718af8 # v0.6.2
+        uses: bencherdev/bencher@50fb1e138651a46d2fb704fab1adab38c181552e # v0.6.6
 
       - name: Track base branch benchmarks with Bencher
         if: >-
@@ -157,7 +157,7 @@ jobs:
           steps.artifacts.outputs.found == 'true'
           && env.BENCHER_API_TOKEN != ''
           && env.BENCHER_PROJECT_SLUG != ''
-        uses: bencherdev/bencher@0f8f620172ccd6225d40a7590598eb7b41718af8 # v0.6.2
+        uses: bencherdev/bencher@50fb1e138651a46d2fb704fab1adab38c181552e # v0.6.6
 
       - name: Track PR benchmarks with Bencher
         if: >-
