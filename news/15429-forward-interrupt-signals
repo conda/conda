@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Forward interrupt signals (SIGINT, SIGTERM, etc.) to subprocess groups, to ensure proper cleanup and termination of child processes with `conda run`. (#15428)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
