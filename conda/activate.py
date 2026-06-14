@@ -1087,6 +1087,30 @@ class PowerShellActivator(_Activator):
         return "Remove-Variable CondaModuleArgs"
 
 
+class ElvishActivator(_Activator):
+    pathsep_join = ':'.join
+    sep = '/'
+    path_conversion = staticmethod(win_path_to_unix if on_win else _path_identity)
+    script_extension = '.elv'
+    tempfile_extension = None  # output to stdout
+    command_join = "\n"
+
+    unset_var_tmpl = 'del E:%s'
+    export_var_tmpl = 'set E:%s = "%s"'
+    path_var_tmpl = 'set E:%s = (cygpath "%s")' if on_win else export_var_tmpl
+    set_var_tmpl = 'var %s = "%s"'
+    run_script_tmpl = 'eval(slurp < "%s")'
+
+    hook_source_path = Path(
+        CONDA_PACKAGE_ROOT,
+        "shell",
+        "etc",
+        "elvish",
+        "conda.elv",
+    )
+    inline_hook_source = True
+
+
 class JSONFormatMixin(_Activator):
     """Returns the necessary values for activation as JSON, so that tools can use them."""
 
@@ -1151,6 +1175,7 @@ activator_map: dict[str, type[_Activator]] = {
     "cmd.exe": CmdExeActivator,
     "fish": FishActivator,
     "powershell": PowerShellActivator,
+    "elvish": ElvishActivator,
 }
 
 formatter_map = {

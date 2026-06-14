@@ -41,10 +41,16 @@ Add conda binary to $PATH, if not yet added::
 
       fish_add_path <conda-install-location>/condabin
 
-
 Configure fish-shell::
 
       conda init fish
+
+Using with Elvish
+=================
+
+To use conda with the Elvish shell, run the following in your terminal:
+
+``conda init elvish``
 
 Installing in silent mode
 =========================

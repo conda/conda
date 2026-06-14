@@ -37,6 +37,7 @@ from conda.core.initialize import (
     initialize_dev,
     install,
     install_conda_csh,
+    install_conda_elvish,
     install_conda_fish,
     install_conda_sh,
     install_conda_xsh,
@@ -196,6 +197,13 @@ def test_make_install_plan(verbose, mocker):
                 },
             },
             {
+                "function": "install_conda_elvish",
+                "kwargs": {
+                    "conda_prefix": "/darwin",
+                    "target_path": "/darwin\\etc\\elvish\\conda.elv",
+                },
+            },
+            {
                 "function": "install_conda_fish",
                 "kwargs": {
                     "conda_prefix": "/darwin",
@@ -270,6 +278,13 @@ def test_make_install_plan(verbose, mocker):
                 "kwargs": {
                     "conda_prefix": "/darwin",
                     "target_path": "/darwin/etc/profile.d/conda.sh",
+                },
+            },
+            {
+                "function": "install_conda_elvish",
+                "kwargs": {
+                    "conda_prefix": "/darwin",
+                    "target_path": "/darwin/etc/elvish/conda.elv",
                 },
             },
             {
@@ -451,6 +466,41 @@ def test_install_conda_sh(verbose):
         assert remainder == original_contents
 
         result = install_conda_sh(target_path, conda_prefix)
+        assert result == Result.NO_CHANGE
+
+
+def test_install_conda_elvish(verbose):
+    with tempdir() as conda_temp_prefix:
+        target_path = join(conda_temp_prefix, "etc", "elvish", "conda.elv")
+        result = install_conda_elvish(target_path, context.conda_prefix)
+        assert result == Result.MODIFIED
+
+        with open_utf8(target_path) as fh:
+            created_file_contents = fh.read()
+
+        *lines, remainder = created_file_contents.split("\n", 4)
+        if on_win:
+            assert lines == [
+                f'E:CONDA_EXE = (cygpath "{context.conda_exe_vars_dict["CONDA_EXE"]}")',
+                f'var -conda-root = (cygpath "{context.conda_prefix}")',
+                f'var -conda-exe~ = (external (cygpath "{context.conda_exe_vars_dict["CONDA_EXE"]}"))',
+                f'E:CONDA_PYTHON_EXE = (cygpath "{sys.executable}")',
+            ]
+        else:
+            assert lines == [
+                f'E:CONDA_EXE = "{context.conda_exe_vars_dict["CONDA_EXE"]}"',
+                f'var -conda-root = "{context.conda_prefix}"',
+                f'var -conda-exe~ = (external "{context.conda_exe_vars_dict["CONDA_EXE"]}")',
+                f'E:CONDA_PYTHON_EXE = "{sys.executable}"',
+            ]
+
+        with open_utf8(
+            join(CONDA_PACKAGE_ROOT, "shell", "etc", "elvish", "conda.elv")
+        ) as fh:
+            original_contents = fh.read()
+        assert remainder == original_contents
+
+        result = install_conda_elvish(target_path, context.conda_prefix)
         assert result == Result.NO_CHANGE
 
 
@@ -743,6 +793,7 @@ def test_install_1(verbose, monkeypatch: MonkeyPatch, capsys):
             "activate",
             "deactivate",
             "conda.sh",
+            "conda.elv",
             "conda.fish",
             "Conda.psm1",
             "conda-hook.ps1",
@@ -755,6 +806,7 @@ def test_install_1(verbose, monkeypatch: MonkeyPatch, capsys):
             "activate",
             "deactivate",
             "conda.sh",
+            "conda.elv",
             "conda.fish",
             "Conda.psm1",
             "conda-hook.ps1",
@@ -818,6 +870,7 @@ def test_initialize_dev_bash(verbose, monkeypatch: MonkeyPatch, capsys):
             "activate",
             "deactivate",
             "conda.sh",
+            "conda.elv"
             "conda.fish",
             "Conda.psm1",
             "conda-hook.ps1",
@@ -835,6 +888,7 @@ def test_initialize_dev_bash(verbose, monkeypatch: MonkeyPatch, capsys):
             "activate",
             "deactivate",
             "conda.sh",
+            "conda.elv",
             "conda.fish",
             "Conda.psm1",
             "conda-hook.ps1",
@@ -897,6 +951,7 @@ def test_initialize_dev_cmd_exe(verbose, monkeypatch: MonkeyPatch, capsys):
             "activate",
             "deactivate",
             "conda.sh",
+            "conda.elv",
             "conda.fish",
             "Conda.psm1",
             "conda-hook.ps1",
@@ -914,6 +969,7 @@ def test_initialize_dev_cmd_exe(verbose, monkeypatch: MonkeyPatch, capsys):
             "activate",
             "deactivate",
             "conda.sh",
+            "conda.elv",
             "conda.fish",
             "Conda.psm1",
             "conda-hook.ps1",
