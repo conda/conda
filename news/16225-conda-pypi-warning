@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Add warning to new features page about removing environments with `conda-pypi` packages before uninstalling Miniconda. (#16225)
+
+### Other
+
+* <news item>
