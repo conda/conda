@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Replace deprecated `JasonEtco/create-an-issue` GitHub Action (Node.js 20) with native `gh issue create` / `gh issue comment` shell commands in `tests.yml` and `build.yml`, eliminating the impending Node.js 24 forced-default breakage. Remove the now-unused `WORKFLOW_FAILURE_REPORT_TEMPLATE.md`. (#16230)

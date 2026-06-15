@@ -838,29 +838,22 @@ jobs:
           jobs: ${{ toJSON(needs) }}
 
       # Skip creating an issue on reruns (run_attempt > 1 for the same scheduled workflow run)
-      - name: Checkout our source
-        if: >-
-          always()
-          && github.event_name == 'schedule'
-          && steps.alls-green.outputs.result == 'failure'
-          && github.run_attempt == 1
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
       - name: Report failures
         if: >-
           always()
           && github.event_name == 'schedule'
           && steps.alls-green.outputs.result == 'failure'
           && github.run_attempt == 1
-        uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5 # v2.9.2
         env:
-          GITHUB_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-          TITLE: Tests failed
-        with:
-          filename: .github/WORKFLOW_FAILURE_REPORT_TEMPLATE.md
-          update_existing: false
+          GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "Tests failed ($(date -u '+%Y-%m-%d'))" \
+            --body "The Tests workflow failed on $(date -u '+%Y-%m-%d %H:%M') UTC
+
+          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --label "¡blocking!,type::bug,type::testing,source::auto"
 
   # check conda-build imports
   downstream:
