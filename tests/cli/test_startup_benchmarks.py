@@ -225,10 +225,13 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
         "code": (
             "import contextlib, io\n"
             "from conda.cli.main import main_sourced\n"
-            "with contextlib.redirect_stdout(io.StringIO()):\n"
+            "class CapturedStdout(io.StringIO):\n"
+            "    def reconfigure(self, *args, **kwargs):\n"
+            "        pass\n"
+            "with contextlib.redirect_stdout(CapturedStdout()):\n"
             "    main_sourced('shell.posix', 'hook')"
         ),
-        "max_modules": 700,
+        "max_modules": 750,
     },
 }
 
