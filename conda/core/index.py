@@ -482,7 +482,8 @@ class ReducedIndex(Index):
             """
             Add a package name or track feature from a MatchSpec to the pending set.
 
-            :param spec: The MatchSpec to process.
+            Args:
+                spec: The MatchSpec to process.
             """
             for spec in map(MatchSpec, specs):
                 name = spec.get_raw_value("name")
@@ -498,7 +499,8 @@ class ReducedIndex(Index):
             """
             Process a package record to collect its dependencies and features.
 
-            :param record: The package record to process.
+            Args:
+                record: The package record to process.
             """
             for record in records:
                 try:
@@ -569,9 +571,12 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     """
     Check if a distribution string matches any package in the index.
 
-    :param index: The package index.
-    :param dist_str: The distribution string to match against the index.
-    :return: True if there is a match; False otherwise.
+    Args:
+        index: The package index.
+        dist_str: The distribution string to match against the index.
+
+    Returns:
+        True if there is a match; False otherwise.
     """
     match_spec = MatchSpec.from_dist_str(dist_str)
     return any(match_spec.match(prec) for prec in index.values())
@@ -581,7 +586,8 @@ def get_archspec_name() -> str | None:
     """
     Determine the architecture specification name for the current environment.
 
-    :return: The architecture name if available, otherwise None.
+    Returns:
+        The architecture name if available, otherwise None.
     """
     from ..base.context import _arch_names, non_x86_machines
 
@@ -620,11 +626,14 @@ def calculate_channel_urls(
     """
     Calculate the full list of channel URLs to use based on the given parameters.
 
-    :param channel_urls: Initial list of channel URLs.
-    :param prepend: Whether to prepend default channels to the list.
-    :param platform: The target platform for the channels.
-    :param use_local: Whether to include the local channel.
-    :return: The calculated list of channel URLs.
+    Args:
+        channel_urls: Initial list of channel URLs.
+        prepend: Whether to prepend default channels to the list.
+        platform: The target platform for the channels.
+        use_local: Whether to include the local channel.
+
+    Returns:
+        The calculated list of channel URLs.
     """
     if use_local:
         channel_urls = ["local"] + list(channel_urls)

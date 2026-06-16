@@ -153,16 +153,30 @@ jobs:
       && !startsWith(github.event.workflow_run.head_branch, 'feature/')
     runs-on: ubuntu-slim
     steps:
-      - name: Checkout our source
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
       - name: Report canary failure
-        uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5 # v2.9.2
         env:
-          GITHUB_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-          TITLE: Canary Builds failed `${{ github.event.workflow_run.head_branch }}`
-        with:
-          filename: .github/WORKFLOW_FAILURE_REPORT_TEMPLATE.md
-          update_existing: true
+          GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          TITLE="${{ github.workflow }} failed \`${BRANCH}\`"
+          BODY="The ${{ github.workflow }} workflow failed on ${BRANCH} at $(date -u '+%Y-%m-%d %H:%M') UTC
+
+          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          existing=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --search "\"${TITLE}\" in:title label:source::auto sort:created-desc" \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" \
+              --repo "${{ github.repository }}" \
+              --body "$BODY"
+          else
+            gh issue create \
+              --repo "${{ github.repository }}" \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label "¡blocking!,type::bug,type::testing,source::auto"
+          fi

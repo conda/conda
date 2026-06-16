@@ -15,7 +15,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import msgpack
-import zstandard
 
 import conda.exceptions
 import conda.gateways.repodata
@@ -29,6 +28,7 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 
+from ..zstd import capped_decompress
 from . import cache
 from .misc import (
     _is_http_error_most_400_codes,
@@ -172,7 +172,7 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            zstandard.decompress(
+            capped_decompress(
                 fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
             )
         )
@@ -698,7 +698,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         if shards_data:
             # basic parse (move into caller?)
             shards_index: ShardsIndexDict = msgpack.loads(
-                zstandard.decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
+                capped_decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
             )  # type: ignore
             shards = Shards(shards_index, shards_index_url)
             return shards

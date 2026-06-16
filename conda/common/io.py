@@ -66,8 +66,9 @@ class DeltaSecondsFormatter(Formatter):
     ) -> None:
         """Initialize the formatter with optional format strings.
 
-        :param fmt: Log message format string.
-        :param datefmt: Date format string.
+        Args:
+            fmt: Log message format string.
+            datefmt: Date format string.
         """
         self.prev_time = time()
         super().__init__(fmt=fmt, datefmt=datefmt)
@@ -95,9 +96,12 @@ else:
 def dashlist(iterable: Iterable[Any], indent: int = 2) -> str:
     """Format an iterable as a dashed list with optional indentation.
 
-    :param iterable: Items to format.
-    :param indent: Number of spaces for indentation.
-    :returns: Formatted string with each item on a new line prefixed by ``- ``.
+    Args:
+        iterable: Items to format.
+        indent: Number of spaces for indentation.
+
+    Returns:
+        Formatted string with each item on a new line prefixed by ``- ``.
     """
     return "".join("\n" + " " * indent + "- " + str(x) for x in iterable)
 
@@ -161,9 +165,10 @@ def env_vars(
 ) -> Generator[None, None, None]:
     """Temporarily set environment variables.
 
-    :param var_map: Dictionary of environment variable names to values.
-    :param callback: Optional callback invoked when entering and exiting the context.
-    :param stack_callback: Optional callback invoked with True when entering, False when exiting.
+    Args:
+        var_map: Dictionary of environment variable names to values.
+        callback: Optional callback invoked when entering and exiting the context.
+        stack_callback: Optional callback invoked with True when entering, False when exiting.
     """
     if var_map is None:
         var_map = {}
@@ -201,10 +206,11 @@ def env_var(
 ) -> Generator[None, None, None]:
     """Temporarily set a single environment variable.
 
-    :param name: Environment variable name.
-    :param value: Environment variable value.
-    :param callback: Optional callback invoked when entering and exiting the context.
-    :param stack_callback: Optional callback invoked with True when entering, False when exiting.
+    Args:
+        name: Environment variable name.
+        value: Environment variable value.
+        callback: Optional callback invoked when entering and exiting the context.
+        stack_callback: Optional callback invoked with True when entering, False when exiting.
     """
     d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
@@ -218,7 +224,8 @@ def env_unmodified(
 ) -> Generator[None, None, None]:
     """Context manager that ensures environment variables are not modified.
 
-    :param callback: Optional callback invoked when entering and exiting the context.
+    Args:
+        callback: Optional callback invoked when entering and exiting the context.
     """
     with env_vars(callback=callback) as es:
         yield es
@@ -326,7 +333,8 @@ def captured(
 def argv(args_list: list[str]) -> Generator[None, None, None]:
     """Temporarily replace sys.argv with the given list.
 
-    :param args_list: List of arguments to use as sys.argv.
+    Args:
+        args_list: List of arguments to use as sys.argv.
     """
     saved_args = sys.argv
     sys.argv = args_list
@@ -340,7 +348,8 @@ def argv(args_list: list[str]) -> Generator[None, None, None]:
 def disable_logger(logger_name: str) -> Generator[None, None, None]:
     """Temporarily disable a logger by setting its level above CRITICAL.
 
-    :param logger_name: Name of the logger to disable.
+    Args:
+        logger_name: Name of the logger to disable.
     """
     logr = getLogger(logger_name)
     _lvl, _dsbld, _prpgt = logr.level, logr.disabled, logr.propagate
@@ -365,8 +374,9 @@ def stderr_log_level(
 ) -> Generator[None, None, None]:
     """Temporarily set a logger to output to stderr at the given level.
 
-    :param level: Logging level (e.g., :const:`logging.INFO`).
-    :param logger_name: Name of the logger; if None, uses the root logger.
+    Args:
+        level: Logging level (e.g., :const:`logging.INFO`).
+        logger_name: Name of the logger; if None, uses the root logger.
     """
     logr = getLogger(logger_name)
     _hndlrs, _lvl, _dsbld, _prpgt = (
@@ -448,12 +458,15 @@ def timeout(
 
     Not yet implemented on Windows.
 
-    :param timeout_secs: Maximum seconds to allow the callable to run.
-    :param func: Callable to execute.
-    :param args: Positional arguments to pass to the callable.
-    :param default_return: Value to return if timeout or KeyboardInterrupt occurs.
-    :param kwargs: Keyword arguments to pass to the callable.
-    :returns: Return value of the callable, or ``default_return`` on timeout/interrupt.
+    Args:
+        timeout_secs: Maximum seconds to allow the callable to run.
+        func: Callable to execute.
+        args: Positional arguments to pass to the callable.
+        default_return: Value to return if timeout or KeyboardInterrupt occurs.
+        kwargs: Keyword arguments to pass to the callable.
+
+    Returns:
+        Return value of the callable, or ``default_return`` on timeout/interrupt.
     """
     if on_win:
         # Why does Windows have to be so difficult all the time? Kind of gets old.
@@ -545,7 +558,8 @@ as_completed = as_completed
 def get_instrumentation_record_file() -> str:
     """Return the path to the instrumentation record file.
 
-    :returns: Expanded path from ``CONDA_INSTRUMENTATION_RECORD_FILE`` or default location.
+    Returns:
+        Expanded path from ``CONDA_INSTRUMENTATION_RECORD_FILE`` or default location.
     """
     default_record_file = join("~", ".conda", "instrumentation-record.csv")
     return expand(

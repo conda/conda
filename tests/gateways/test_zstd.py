@@ -10,10 +10,10 @@ from socket import socket
 
 import pytest
 import requests
-import zstandard
 from pytest import MonkeyPatch
 
 import conda.gateways.repodata
+from conda._private import zstd
 from conda.base.context import reset_context
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import CondaHTTPError
@@ -86,7 +86,7 @@ def test_download_repodata(
     assert destination.read_text() == t
 
     (package_repository_base / "osx-64" / "repodata.json.zst").write_bytes(
-        zstandard.ZstdCompressor().compress(
+        zstd.compress(
             (package_repository_base / "osx-64" / "repodata.json").read_bytes()
         )
     )

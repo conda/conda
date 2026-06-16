@@ -1211,10 +1211,9 @@ def interpret(marker, execution_context=None):
     """
     Interpret a marker and return a result depending on environment.
 
-    :param marker: The marker to interpret.
-    :type marker: str
-    :param execution_context: The context used for name lookup.
-    :type execution_context: mapping
+    Args:
+        marker: The marker to interpret.
+        execution_context: The context used for name lookup.
     """
     try:
         expr, rest = parse_marker(marker)
