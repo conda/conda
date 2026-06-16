@@ -11,6 +11,7 @@ import pytest
 import requests
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
+from conda.common.io import dashlist
 
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PathConflict
@@ -946,19 +947,22 @@ def test_RemoveError_with_guidance() -> None:
     exc = RemoveError(
         "legacy message",
         guidance={
-            "summary": "Guidance summary.",
-            "cause": "Root cause.",
+            "summary": (summary := "Guidance summary."),
+            "cause": (cause := "Root cause."),
             "hints": [
-                {"text": "Do the thing.", "hint_code": "do_the_thing"},
+                {
+                    "text": (text := "Do the thing."),
+                    "hint_code": (hint_code := "do_the_thing"),
+                },
             ],
         },
     )
     assert exc.guidance is not None
-    assert exc.guidance.summary == "Guidance summary."
-    assert exc.guidance.cause == "Root cause."
+    assert exc.guidance.summary == summary
+    assert exc.guidance.cause == cause
     assert len(exc.guidance.hints) == 1
-    assert exc.guidance.hints[0].text == "Do the thing."
-    assert exc.guidance.hints[0].hint_code == "do_the_thing"
+    assert exc.guidance.hints[0].text == text
+    assert exc.guidance.hints[0].hint_code == hint_code
 
 
 def test_RemoveError_without_guidance() -> None:
@@ -970,35 +974,36 @@ def test_RemoveError_guidance_in_dump_map() -> None:
     exc = RemoveError(
         "legacy message",
         guidance={
-            "summary": "S",
-            "cause": "C",
-            "hints": [{"text": "H", "hint_code": "h"}],
+            "summary": (summary := "Guidance summary."),
+            "cause": (cause := "Root cause."),
+            "hints": [
+                {
+                    "text": (text := "Do the thing."),
+                    "hint_code": (hint_code := "do_the_thing"),
+                },
+            ],
         },
     )
     assert exc.dump_map()["guidance"] == {
-        "summary": "S",
-        "cause": "C",
-        "hints": ({"text": "H", "hint_code": "h"},),
-        "hint_codes": ("h",),
+        "summary": summary,
+        "cause": cause,
+        "hints": ({"text": text, "hint_code": hint_code},),
+        "hint_codes": (hint_code,),
     }
 
 
 def test_RemoveError_without_guidance_dump_map_no_key() -> None:
     exc = RemoveError("legacy message")
-    dm = exc.dump_map()
-    assert "guidance" not in dm
+    assert "guidance" not in exc.dump_map()
 
 
 def test_RemoveError_str_unchanged_with_guidance() -> None:
     """__str__ should remain the legacy message, not the guidance."""
     exc = RemoveError(
-        "legacy message",
-        guidance={
-            "summary": "Guidance summary.",
-            "hints": [{"text": "Do the thing.", "hint_code": "do_the_thing"}],
-        },
+        (message := "legacy message"),
+        guidance={"summary": "Guidance summary."},
     )
-    assert str(exc) == "legacy message"
+    assert str(exc) == message
 
 
 def test_print_conda_exception_with_guidance(
@@ -1007,21 +1012,19 @@ def test_print_conda_exception_with_guidance(
 ) -> None:
     monkeypatch.setenv("CONDA_JSON", "no")
     reset_context()
+    assert not context.json
+
     exc = RemoveError(
         "legacy message",
         guidance={
-            "summary": "Guidance summary.",
-            "cause": "Root cause.",
-            "hints": [{"text": "Do the thing.", "hint_code": "do_the_thing"}],
+            "summary": (summary := "Guidance summary."),
+            "cause": (cause := "Root cause."),
+            "hints": [{"text": (text := "Do the thing."), "hint_code": (hint_code := "do_the_thing"),}],
         },
     )
     print_conda_exception(exc)
     err = capsys.readouterr().err
-    assert "Guidance summary." in err
-    assert "Root cause." in err
-    assert "Do the thing." in err
-    assert "do_the_thing" in err
-    assert "RemoveError" in err
+    assert err == f"\nRemoveError: {summary}\n\nCause: {cause}\nNext steps:\n  - ({hint_code}) {text}\n\n"
 
 
 def test_print_conda_exception_without_guidance(
@@ -1030,11 +1033,13 @@ def test_print_conda_exception_without_guidance(
 ) -> None:
     monkeypatch.setenv("CONDA_JSON", "no")
     reset_context()
-    exc = RemoveError("legacy message")
+    assert not context.json
+
+    exc = RemoveError(message := "legacy message")
     # Use a context manager to avoid issues with the exception_handler
     print_conda_exception(exc)
     err = capsys.readouterr().err
-    assert "RemoveError: legacy message" in err
+    assert err == f"\nRemoveError: {message}\n\n"
 
 
 def test_PackagesNotFoundError_guidance_for_bulk_missing(
@@ -1042,6 +1047,8 @@ def test_PackagesNotFoundError_guidance_for_bulk_missing(
 ) -> None:
     monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
     reset_context()
+    assert not context.use_only_tar_bz2
+
     pkgs = [f"pkg{i}" for i in range(5)]
     exc = PackagesNotFoundError(
         pkgs,
@@ -1057,6 +1064,8 @@ def test_PackagesNotFoundError_no_guidance_for_few_packages(
 ) -> None:
     monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
     reset_context()
+    assert not context.use_only_tar_bz2
+
     exc = PackagesNotFoundError(
         ["single-pkg"],
         channel_urls=["https://repo.anaconda.org/pkgs/main"],
@@ -1067,7 +1076,7 @@ def test_PackagesNotFoundError_no_guidance_for_few_packages(
 def test_UnsatisfiableError_guidance() -> None:
     exc = UnsatisfiableError({})
     assert exc.guidance is not None
-    assert "could not find a compatible set" in exc.guidance.summary.lower()
+    assert "could not find a compatible set" in exc.guidance.summary
 
 
 @pytest.mark.parametrize("use_only_tar_bz2", [True, False])
