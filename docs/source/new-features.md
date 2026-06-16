@@ -44,6 +44,14 @@ But with `conda-pypi` enabled, you only need one command:
 conda install pandas scikit-learn some-pypi-package
 ```
 
+:::{warning}
+Prior to uninstalling Miniconda, you must manually remove any environments where you have used the `conda-pypi` channel.
+
+```bash
+conda remove --name <ENV-NAME> --all
+```
+:::
+
 ### What's next
 We want to hear what works, what doesn't, and what should come next. Open an issue or join the discussion below.
 

@@ -20,9 +20,6 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import msgpack
 import pytest
-from conda_libmamba_solver.index import (
-    _is_sharded_repodata_enabled,
-)
 from requests import Request, Response
 
 import conda.gateways.repodata
@@ -73,17 +70,15 @@ def package_names(shard: shards_cache.ShardDict):
 @pytest.fixture
 def prepare_shards_test(monkeypatch: pytest.MonkeyPatch):
     """
-    Reset token to avoid being logged in. e.g. the testing channel doesn't understand them.
-    Enable shards.
+    Reset token to avoid being logged in. e.g. the testing channel doesn't
+    understand them. Enable shards.
     """
     logging.basicConfig(level=logging.INFO)
     for module in (shards, shards_cache, shards_subset):
         module.log.setLevel(logging.DEBUG)
 
     monkeypatch.setenv("CONDA_TOKEN", "")
-    monkeypatch.setenv("CONDA_PLUGINS_USE_SHARDED_REPODATA", "1")
     reset_context()
-    assert _is_sharded_repodata_enabled()
 
 
 @pytest.fixture
