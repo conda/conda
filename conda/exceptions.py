@@ -990,55 +990,54 @@ class UnsatisfiableError(CondaError):
         messages = {
             "python": dals(
                 """
+                The following specifications were found
+                to be incompatible with the existing python installation in your environment:
 
-The following specifications were found
-to be incompatible with the existing python installation in your environment:
+                Specifications:
+                {specs}
 
-Specifications:\n{specs}
+                Your python: {ref}
 
-Your python: {ref}
-
-If python is on the left-most side of the chain, that's the version you've asked for.
-When python appears to the right, that indicates that the thing on the left is somehow
-not available for the python version you are constrained to. Note that conda will not
-change your python version to a different minor version unless you explicitly specify
-that.
-
-        """
+                If python is on the left-most side of the chain, that's the version you've asked for.
+                When python appears to the right, that indicates that the thing on the left is somehow
+                not available for the python version you are constrained to. Note that conda will not
+                change your python version to a different minor version unless you explicitly specify
+                that.
+                """
             ),
             "request_conflict_with_history": dals(
                 """
-
-The following specifications were found to be incompatible with a past
-explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
-
-                    """
+                The following specifications were found to be incompatible with a past
+                explicit spec that is not an explicit spec in this operation ({ref}):
+                {specs}
+                """
             ),
             "direct": dals(
                 """
-
-The following specifications were found to be incompatible with each other:
-                    """
+                The following specifications were found to be incompatible with each other:
+                """
             ),
             "virtual_package": dals(
                 """
+                The following specifications were found to be incompatible with your system:
+                {specs}
 
-The following specifications were found to be incompatible with your system:\n{specs}
-
-Your installed version is: {ref}
-"""
+                Your installed version is: {ref}
+                """
             ),
         }
 
         msg = ""
         self.unsatisfiable = []
         if len(bad_deps) == 0:
-            msg += """
-Did not find conflicting dependencies. If you would like to know which
-packages conflict ensure that you have enabled unsatisfiable hints.
+            msg += dals(
+                """
+                Did not find conflicting dependencies. If you would like to know which
+                packages conflict ensure that you have enabled unsatisfiable hints.
 
-conda config --set unsatisfiable_hints True
-            """
+                conda config --set unsatisfiable_hints True
+                """
+            )
         else:
             for class_name, dep_class in bad_deps.items():
                 if dep_class:
