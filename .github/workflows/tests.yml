@@ -837,30 +837,37 @@ jobs:
           allowed-skips: ${{ toJSON(needs) }}
           jobs: ${{ toJSON(needs) }}
 
-      # Skip creating an issue on reruns (run_attempt > 1 for the same scheduled workflow run)
-      - name: Checkout our source
-        if: >-
-          always()
-          && github.event_name == 'schedule'
-          && steps.alls-green.outputs.result == 'failure'
-          && github.run_attempt == 1
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
       - name: Report failures
         if: >-
           always()
           && github.event_name == 'schedule'
           && steps.alls-green.outputs.result == 'failure'
-          && github.run_attempt == 1
-        uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5 # v2.9.2
         env:
-          GITHUB_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-          TITLE: Tests failed
-        with:
-          filename: .github/WORKFLOW_FAILURE_REPORT_TEMPLATE.md
-          update_existing: false
+          GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
+        run: |
+          DAY=$(date -u '+%Y-%m-%d')
+          TITLE="${{ github.workflow }} failed (${DAY})"
+          BODY="The ${{ github.workflow }} workflow failed at $(date -u '+%Y-%m-%d %H:%M') UTC
+
+          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          existing=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --search "\"${TITLE}\" in:title label:source::auto sort:created-desc" \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" \
+              --repo "${{ github.repository }}" \
+              --body "$BODY"
+          else
+            gh issue create \
+              --repo "${{ github.repository }}" \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label "¡blocking!,type::bug,type::testing,source::auto"
+          fi
 
   # check conda-build imports
   downstream:
