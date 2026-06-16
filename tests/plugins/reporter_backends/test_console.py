@@ -350,3 +350,164 @@ def test_spinner_tty_returns_animated_spinner(monkeypatch):
     renderer = ConsoleReporterRenderer()
     spinner = renderer.spinner("test")
     assert isinstance(spinner, Spinner)
+
+
+# ---------------------------------------------------------------------------
+# render_* event method tests
+# ---------------------------------------------------------------------------
+
+
+from unittest.mock import MagicMock, patch
+
+from conda.plugins.reporter_backends.console import (
+    _QuietProgressBar,
+    _TQDMProgressBar,
+)
+from conda.plugins.reporter_backends.events import (
+    DetailViewEvent,
+    FetchSectionEndEvent,
+    FetchSectionStartEvent,
+    FetchTaskEndEvent,
+    FetchTaskProgressEvent,
+    FetchTaskStartEvent,
+    RenderDataEvent,
+    SpinnerEndEvent,
+    SpinnerStartEvent,
+)
+
+
+def _tty_context(monkeypatch, *, tty: bool, quiet: bool = False, dumb: bool = False):
+    monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: tty)
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.term_dumb", lambda: dumb
+    )
+    monkeypatch.setattr(
+        "conda.plugins.reporter_backends.console.context",
+        SimpleNamespace(quiet=quiet, verbose=False, json=False, active_prefix=None),
+    )
+
+
+def test_render_data(capsys, monkeypatch):
+    _tty_context(monkeypatch, tty=True)
+    renderer = ConsoleReporterRenderer()
+    renderer.render_data(RenderDataEvent(data="hello"))
+    out, _ = capsys.readouterr()
+    assert out == "hello\n"
+
+
+def test_render_data_already_has_newline(capsys, monkeypatch):
+    _tty_context(monkeypatch, tty=True)
+    renderer = ConsoleReporterRenderer()
+    renderer.render_data(RenderDataEvent(data="hello\n"))
+    out, _ = capsys.readouterr()
+    assert out == "hello\n"
+
+
+def test_render_detail_view(capsys, monkeypatch):
+    _tty_context(monkeypatch, tty=True)
+    renderer = ConsoleReporterRenderer()
+    renderer.render_detail_view(DetailViewEvent(data={"key": "val"}))
+    out, _ = capsys.readouterr()
+    assert "key" in out
+    assert "val" in out
+
+
+def test_render_spinner_start_end_quiet(capsys, monkeypatch):
+    _tty_context(monkeypatch, tty=False)
+    renderer = ConsoleReporterRenderer()
+    renderer.render_spinner_start(SpinnerStartEvent(message="Working"))
+    renderer.render_spinner_end(SpinnerEndEvent(message="Working", success=True))
+    out, _ = capsys.readouterr()
+    assert "Working" in out
+    assert "done" in out
+
+
+def test_render_spinner_end_failure_quiet(capsys, monkeypatch):
+    _tty_context(monkeypatch, tty=False)
+    renderer = ConsoleReporterRenderer()
+    renderer.render_spinner_start(
+        SpinnerStartEvent(message="Op", fail_message="oops\n")
+    )
+    renderer.render_spinner_end(SpinnerEndEvent(message="Op", success=False))
+    out, _ = capsys.readouterr()
+    assert "oops" in out
+
+
+def test_render_fetch_section_start_no_tty(capsys, monkeypatch):
+    _tty_context(monkeypatch, tty=False)
+    renderer = ConsoleReporterRenderer()
+    renderer.render_fetch_section_start(FetchSectionStartEvent())
+    out, _ = capsys.readouterr()
+    assert "Downloading" in out
+    assert "working" in out
+
+
+def test_render_fetch_section_start_tty(capsys, monkeypatch):
+    _tty_context(monkeypatch, tty=True)
+    renderer = ConsoleReporterRenderer()
+    renderer.render_fetch_section_start(FetchSectionStartEvent())
+    out, _ = capsys.readouterr()
+    assert "Downloading" in out
+
+
+def test_render_fetch_section_start_quiet(capsys, monkeypatch):
+    _tty_context(monkeypatch, tty=True, quiet=True)
+    renderer = ConsoleReporterRenderer()
+    renderer.render_fetch_section_start(FetchSectionStartEvent())
+    out, _ = capsys.readouterr()
+    assert out == ""
+
+
+def test_render_fetch_task_start_creates_bar_tty(monkeypatch):
+    _tty_context(monkeypatch, tty=True)
+    renderer = ConsoleReporterRenderer()
+    event = FetchTaskStartEvent(task_id=1, name="numpy", version="1.26", size=None)
+    with patch.object(_TQDMProgressBar, "_tqdm"):
+        renderer.render_fetch_task_start(event)
+    assert 1 in renderer._fetch_bars
+
+
+def test_render_fetch_task_start_creates_quiet_bar_no_tty(monkeypatch):
+    _tty_context(monkeypatch, tty=False)
+    renderer = ConsoleReporterRenderer()
+    event = FetchTaskStartEvent(task_id=2, name="scipy", version="1.0", size=100)
+    renderer.render_fetch_task_start(event)
+    assert isinstance(renderer._fetch_bars[2], _QuietProgressBar)
+
+
+def test_render_fetch_task_progress(monkeypatch):
+    _tty_context(monkeypatch, tty=False)
+    renderer = ConsoleReporterRenderer()
+    renderer._fetch_bars[5] = MagicMock()
+    renderer.render_fetch_task_progress(FetchTaskProgressEvent(task_id=5, fraction=0.4))
+    renderer._fetch_bars[5].update_to.assert_called_once_with(0.4)
+
+
+def test_render_fetch_task_end(monkeypatch):
+    _tty_context(monkeypatch, tty=False)
+    renderer = ConsoleReporterRenderer()
+    renderer._fetch_bars[3] = MagicMock()
+    renderer.render_fetch_task_end(FetchTaskEndEvent(task_id=3, success=True))
+    renderer._fetch_bars[3].finish.assert_called_once()
+    renderer._fetch_bars[3].refresh.assert_called_once()
+
+
+def test_render_fetch_section_end_closes_bars(monkeypatch, capsys):
+    _tty_context(monkeypatch, tty=False)
+    renderer = ConsoleReporterRenderer()
+    bar1 = MagicMock()
+    bar2 = MagicMock()
+    renderer._fetch_bars = {1: bar1, 2: bar2}
+    renderer.render_fetch_section_end(FetchSectionEndEvent(success=True))
+    bar1.close.assert_called_once()
+    bar2.close.assert_called_once()
+    assert renderer._fetch_bars == {}
+
+
+def test_render_fetch_task_progress_unknown_task_noop(monkeypatch):
+    _tty_context(monkeypatch, tty=False)
+    renderer = ConsoleReporterRenderer()
+    # Should not raise when task_id is not registered
+    renderer.render_fetch_task_progress(
+        FetchTaskProgressEvent(task_id=999, fraction=0.5)
+    )

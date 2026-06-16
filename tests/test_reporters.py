@@ -10,12 +10,14 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.exceptions import CondaSystemExit, DryRunExit
-from conda.plugins.reporter_backends.console import TQDMProgressBar
 from conda.reporters import (
     confirm_yn,
     get_progress_bar,
     get_progress_bar_context_manager,
+    get_reporter,
+    get_spinner,
     render,
+    reset_reporter,
 )
 
 if TYPE_CHECKING:
@@ -26,6 +28,8 @@ def test_render(capsys: CaptureFixture):
     """
     Ensure basic coverage of the :func:`~conda.reporters.render` function.
     """
+    reset_reporter()
+
     # Test simple rendering of object
     render("test-string")
 
@@ -33,41 +37,46 @@ def test_render(capsys: CaptureFixture):
     assert stdout == "test-string\n"
     assert not stderr
 
-    # Test rendering of object with a style
-    render(["test-string"], style="envs_list")
-
+    # Test rendering with an unknown style falls back to RenderDataEvent
+    render({"test": "data"}, style="non_existent_view")
     stdout, stderr = capsys.readouterr()
-    assert "conda environments" in stdout
-    assert "test-string" in stdout
+    assert "test" in stdout
     assert not stderr
-
-    # Test error when style cannot be found
-    with pytest.raises(
-        AttributeError,
-        match="'non_existent_view' is not a valid reporter backend style",
-    ):
-        render({"test": "data"}, style="non_existent_view")
 
 
 def test_get_progress_bar(monkeypatch):
     """
     Ensure basic coverage of the :func:`~conda.reporters.get_progress_bar~` function
+    (deprecated path — exercises the legacy factory via the new deprecated shim).
     """
+    import warnings
+
     monkeypatch.setattr("conda.plugins.reporter_backends.console.is_tty", lambda: True)
     monkeypatch.setattr(
         "conda.plugins.reporter_backends.console.term_dumb", lambda: False
     )
-    progress_bar_manager = get_progress_bar("test")
+    reset_reporter()
+    from conda.plugins.reporter_backends.console import _TQDMProgressBar
 
-    assert isinstance(progress_bar_manager, TQDMProgressBar)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        progress_bar_manager = get_progress_bar("test")
+
+    assert isinstance(progress_bar_manager, _TQDMProgressBar)
 
 
 def test_get_progress_bar_context_managers():
     """
     Ensure basic coverage of the
     :func:`~conda.reporters.get_progress_bar_context_manager~` function
+    (deprecated path).
     """
-    progress_bar_context_manager = get_progress_bar_context_manager()
+    import warnings
+
+    reset_reporter()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        progress_bar_context_manager = get_progress_bar_context_manager()
 
     assert isinstance(progress_bar_context_manager, nullcontext)
 
@@ -117,3 +126,21 @@ def test_confirm_yn_no(monkeypatch: MonkeyPatch):
         assert not context.dry_run
 
         confirm_yn()
+
+
+def test_get_reporter_returns_conda_reporter():
+    """get_reporter() returns a CondaReporter instance."""
+    from conda.reporters import CondaReporter
+
+    reset_reporter()
+    reporter = get_reporter()
+    assert isinstance(reporter, CondaReporter)
+
+
+def test_get_spinner_is_context_manager(capsys):
+    """get_spinner() returns a context manager that emits spinner events."""
+    reset_reporter()
+    with get_spinner("TestOp"):
+        pass
+    out, _ = capsys.readouterr()
+    assert "TestOp" in out

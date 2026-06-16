@@ -2080,14 +2080,14 @@ def reset_context(
 
     # need to import here to avoid circular dependency
 
-    # clear function cache
-    from ..reporters import _get_render_func
+    # reset the reporter singleton so it is re-created with the new context
+    from ..reporters import reset_reporter
 
     # reload plugin config params
     with suppress(AttributeError):
         del context.plugins
 
-    _get_render_func.cache_clear()
+    reset_reporter()
 
     return context
 
