@@ -156,18 +156,16 @@ jobs:
       - name: Report canary failure
         env:
           GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
-          TITLE: Canary Builds failed `${{ github.event.workflow_run.head_branch }}`
-          BODY: |
-            The Build workflow failed on ${{ github.event.workflow_run.head_branch }}
-
-            Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          # Replicate update_existing: true — comment on an existing open issue
-          # with the same title, or create a new one if none exists.
+          TITLE="${{ github.workflow }} failed \`${BRANCH}\`"
+          BODY="The ${{ github.workflow }} workflow failed on ${BRANCH} at $(date -u '+%Y-%m-%d %H:%M') UTC
+
+          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           existing=$(gh issue list \
             --repo "${{ github.repository }}" \
             --state open \
-            --search "$TITLE" \
+            --search "\"${TITLE}\" in:title label:source::auto" \
             --json number \
             --jq '.[0].number')
           if [ -n "$existing" ]; then

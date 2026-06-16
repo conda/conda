@@ -847,13 +847,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
         run: |
-          gh issue create \
-            --repo "${{ github.repository }}" \
-            --title "Tests failed ($(date -u '+%Y-%m-%d'))" \
-            --body "The Tests workflow failed on $(date -u '+%Y-%m-%d %H:%M') UTC
+          DAY=$(date -u '+%Y-%m-%d')
+          TITLE="${{ github.workflow }} failed (${DAY})"
+          BODY="The ${{ github.workflow }} workflow failed at $(date -u '+%Y-%m-%d %H:%M') UTC
 
-          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --label "¡blocking!,type::bug,type::testing,source::auto"
+          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          existing=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --search "\"${TITLE}\" in:title label:source::auto" \
+            --json number \
+            --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" \
+              --repo "${{ github.repository }}" \
+              --body "$BODY"
+          else
+            gh issue create \
+              --repo "${{ github.repository }}" \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label "¡blocking!,type::bug,type::testing,source::auto"
+          fi
 
   # check conda-build imports
   downstream:
