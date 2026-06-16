@@ -564,6 +564,60 @@ To avoid updating only specific packages in an environment, a
 better option may be to pin them. For more information, see
 :ref:`pinning-packages`.
 
+.. _exclude-newer:
+
+``exclude_newer``: Exclude newer packages
+-----------------------------------------
+
+.. versionadded:: 26.7.0
+
+Exclude packages published more recently than the configured cutoff. This can
+reduce exposure to newly uploaded packages while allowing older package records
+to remain available to the solver. The same value can be provided for one
+command with the ``--exclude-newer`` option.
+
+Values may be compact durations such as ``7d``, ``3d12h``, or ``1w``,
+ISO 8601 durations such as ``P7D``, RFC 3339 timestamps such as
+``2026-04-01T12:00:00Z``, ISO 8601 dates such as ``2026-04-01``, or a
+plain number of seconds. Date-only values are interpreted as the start of the
+next day in UTC. Set this value to ``0`` for no delay, using the current time as
+the cutoff. Leave it empty to disable the policy, which is the default.
+
+Packages without an ``indexed_timestamp`` or ``timestamp`` value are included
+for compatibility.
+
+**Example:**
+
+.. code-block:: yaml
+
+  exclude_newer: 7d
+
+Channel-specific cutoffs can be set with ``exclude_newer`` entries in
+:ref:`channel_settings <channel-settings>`, and per-package overrides can be set
+with :ref:`exclude_newer_package <exclude-newer-package>`. Package-specific
+overrides take precedence over channel-specific cutoffs, and channel-specific
+cutoffs take precedence over the global ``exclude_newer`` value.
+
+.. _exclude-newer-package:
+
+``exclude_newer_package``: Exclude newer packages by package name
+-----------------------------------------------------------------
+
+.. versionadded:: 26.7.0
+
+Override the ``exclude_newer`` policy for individual package names. Values may
+use the same duration, timestamp, date, or seconds formats as
+``exclude_newer``. Set a package value to ``false`` to exempt that package from
+the policy.
+
+**Example:**
+
+.. code-block:: yaml
+
+  exclude_newer_package:
+    openssl: false
+    numpy: 30d
+
 .. _disallow-install:
 
 ``disallow``: Disallow installation of specific packages
