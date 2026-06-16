@@ -853,9 +853,10 @@ jobs:
           existing=$(gh issue list \
             --repo "${{ github.repository }}" \
             --state open \
-            --search "\"${TITLE}\" in:title label:source::auto" \
+            --search "\"${TITLE}\" in:title label:source::auto sort:created-desc" \
+            --limit 1 \
             --json number \
-            --jq '.[0].number')
+            --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" \
               --repo "${{ github.repository }}" \
