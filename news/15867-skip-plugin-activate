@@ -1,0 +1,21 @@
+### Enhancements
+
+* Skip plugin loading for shell activation commands (`conda shell.* activate | deactivate | reactivate | hook`),
+  avoiding ~430 imports when the plugin manager has not already been initialized. Plugin authors should not rely
+  on `pre_commands` / `post_commands` hooks running for these commands. (#15867)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
