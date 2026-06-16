@@ -221,6 +221,15 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
         ),
         "max_modules": 1000,
     },
+    "shell_hook": {
+        "code": (
+            "import contextlib, io\n"
+            "from conda.cli.main import main_sourced\n"
+            "with contextlib.redirect_stdout(io.StringIO()):\n"
+            "    main_sourced('shell.posix', 'hook')"
+        ),
+        "max_modules": 700,
+    },
 }
 
 

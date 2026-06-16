@@ -221,16 +221,15 @@ class _Activator(metaclass=abc.ABCMeta):
         # return value meant to be written to stdout
         self._parse_and_set_args()
 
-        # Only invoke plugin hooks when the plugin manager has already been
-        # loaded by another code path.  On the fast shell activate path
-        # (conda shell.posix activate) nothing else triggers plugin loading,
-        # so we avoid importing ~430 modules (~240 ms) that are never used.
+        # Avoid loading plugins solely to run activation hooks. If another
+        # code path has already initialized the plugin manager, preserve the
+        # existing pre/post hook behavior.
         from .plugins.manager import get_plugin_manager
 
         try:
             plugins_loaded = get_plugin_manager.cache_info().currsize > 0
         except (AttributeError, TypeError):
-            # Patched in tests — assume loaded so hooks still fire.
+            # Tests may patch the cached factory; keep hooks enabled then.
             plugins_loaded = True
 
         if plugins_loaded:
