@@ -53,6 +53,12 @@ if TYPE_CHECKING:
     from .models.records import PackageRecord
     from .plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
 
+    UnsatisfiableConflictEntry = tuple[tuple[MatchSpec, ...], str]
+    UnsatisfiableConflictClass = (
+        set[UnsatisfiableConflictEntry] | list[UnsatisfiableConflictEntry]
+    )
+    UnsatisfiableConflictMap = dict[str, UnsatisfiableConflictClass]
+
 log = getLogger(__name__)
 
 
@@ -931,21 +937,20 @@ class NoChannelsConfiguredError(CondaError):
 
 
 class UnsatisfiableError(CondaError):
-    """An exception to report unsatisfiable dependencies.
+    """Raised when dependency constraints cannot be satisfied.
 
     Args:
-        bad_deps: a list of tuples of objects (likely MatchSpecs).
-        chains: (optional) if True, the tuples are interpreted as chains
-            of dependencies, from top level to bottom. If False, the tuples
-            are interpreted as simple lists of conflicting specs.
+        bad_deps: Classified resolver conflicts, or empty when hints are off.
+        chains: Unused; retained for call-site compatibility.
+        strict: Whether strict channel priority was in effect.
     """
 
-    def _format_chain_str(self, bad_deps: Iterable[Iterable[MatchSpec]]):
-        chains = {}
+    def _format_chain_str(self, bad_deps: list[list[str]]) -> list[str]:
+        chains: dict[tuple[str, ...], list[set[str]]] = {}
         for dep in sorted(bad_deps, key=len, reverse=True):
             dep1 = [s.partition(" ") for s in dep[1:]]
-            key = (dep[0],) + tuple(v[0] for v in dep1)
-            vals = ("",) + tuple(v[2] for v in dep1)
+            key: tuple[str, ...] = (dep[0],) + tuple(v[0] for v in dep1)
+            vals: tuple[str, ...] = ("",) + tuple(v[2] for v in dep1)
             found = False
             for key2, csets in chains.items():
                 if key2[: len(key)] == key:
@@ -954,6 +959,8 @@ class UnsatisfiableError(CondaError):
                     found = True
             if not found:
                 chains[key] = [{val} for val in vals]
+
+        fchains: dict[tuple[str, ...], str] = {}
         for key, csets in chains.items():
             deps = []
             for name, cset in zip(key, csets):
@@ -969,12 +976,12 @@ class UnsatisfiableError(CondaError):
                 deps.append(
                     "{} {}".format(name, "|".join(sorted(cset))) if cset else name
                 )
-            chains[key] = " -> ".join(deps)
-        return [chains[key] for key in sorted(chains.keys())]
+            fchains[key] = " -> ".join(deps)
+        return [fchains[key] for key in sorted(fchains.keys())]
 
     def __init__(
         self,
-        bad_deps: Iterable[Iterable[MatchSpec]],
+        bad_deps: UnsatisfiableConflictMap,
         chains: bool = True,
         strict: bool = False,
     ):
@@ -1035,7 +1042,6 @@ conda config --set unsatisfiable_hints True
         else:
             for class_name, dep_class in bad_deps.items():
                 if dep_class:
-                    _chains = []
                     if class_name == "direct":
                         msg += messages["direct"]
                         last_dep_entry = {d[0][-1].name for d in dep_class}
@@ -1056,6 +1062,7 @@ conda config --set unsatisfiable_hints True
                                     tuple(entries) for entries in chain
                                 ]
                     else:
+                        _chains: list[list[str]] = []
                         for dep_chain, installed_blocker in dep_class:
                             # Remove any target values from the MatchSpecs, convert to strings
                             dep_chain = [
@@ -1064,11 +1071,11 @@ conda config --set unsatisfiable_hints True
                             _chains.append(dep_chain)
 
                         if _chains:
-                            _chains = self._format_chain_str(_chains)
+                            _fchains = self._format_chain_str(_chains)
                         else:
-                            _chains = [", ".join(c) for c in _chains]
+                            _fchains = [", ".join(c) for c in _chains]
                         msg += messages[class_name].format(
-                            specs=dashlist(_chains), ref=installed_blocker
+                            specs=dashlist(_fchains), ref=installed_blocker
                         )
         if strict:
             msg += (
@@ -1076,106 +1083,107 @@ conda config --set unsatisfiable_hints True
                 "packages required for satisfiability."
             )
 
-        guidance = _build_unsatisfiable_guidance(bad_deps, strict)
+        guidance = self._build_unsatisfiable_guidance(bad_deps, strict)
 
         super().__init__(msg, guidance=guidance)
 
+    def _build_unsatisfiable_guidance(
+        self,
+        bad_deps: UnsatisfiableConflictMap,
+        strict: bool = False,
+    ) -> ErrorGuidanceTypedDict | None:
+        """Build guidance dict for :class:`UnsatisfiableError`, or ``None``."""
+        has_python = False
+        has_history = False
+        has_virtual = False
+        has_direct = False
+        had_empty = len(bad_deps) == 0
 
-def _build_unsatisfiable_guidance(
-    bad_deps: Any,
-    strict: bool = False,
-) -> ErrorGuidanceTypedDict | None:
-    """Build guidance dict for :class:`UnsatisfiableError`, or ``None``."""
-    has_python = False
-    has_history = False
-    has_virtual = False
-    has_direct = False
-    had_empty = len(bad_deps) == 0
+        if not had_empty:
+            for class_name in bad_deps:
+                if class_name == "python":
+                    has_python = True
+                elif class_name == "request_conflict_with_history":
+                    has_history = True
+                elif class_name == "virtual_package":
+                    has_virtual = True
+                elif class_name == "direct":
+                    has_direct = True
 
-    if not had_empty:
-        for class_name in bad_deps:
-            if class_name == "python":
-                has_python = True
-            elif class_name == "request_conflict_with_history":
-                has_history = True
-            elif class_name == "virtual_package":
-                has_virtual = True
-            elif class_name == "direct":
-                has_direct = True
+        cause_parts = []
+        if has_direct:
+            cause_parts.append(
+                "Some requested packages have conflicting version constraints"
+            )
+        if has_python:
+            cause_parts.append(
+                "Some packages are incompatible with the current Python version"
+            )
+        if has_history:
+            cause_parts.append(
+                "The operation conflicts with a past explicit install specification"
+            )
+        if has_virtual:
+            cause_parts.append(
+                "Some packages are not available for the current system platform"
+            )
+        if had_empty:
+            cause_parts.append("Enable unsatisfiable hints for more detail")
 
-    cause_parts = []
-    if has_direct:
-        cause_parts.append(
-            "Some requested packages have conflicting version constraints"
-        )
-    if has_python:
-        cause_parts.append(
-            "Some packages are incompatible with the current Python version"
-        )
-    if has_history:
-        cause_parts.append(
-            "The operation conflicts with a past explicit install specification"
-        )
-    if has_virtual:
-        cause_parts.append(
-            "Some packages are not available for the current system platform"
-        )
-    if had_empty:
-        cause_parts.append("Enable unsatisfiable hints for more detail")
+        cause = "; ".join(cause_parts) if cause_parts else None
 
-    cause = "; ".join(cause_parts) if cause_parts else None
-
-    hints = []
-    if had_empty:
+        hints = []
+        if had_empty:
+            hints.append(
+                {
+                    "text": (
+                        "Enable unsatisfiable hints for more detail:\n"
+                        "      conda config --set unsatisfiable_hints True"
+                    ),
+                    "hint_code": "enable_unsatisfiable_hints",
+                }
+            )
+        else:
+            hints.append(
+                {
+                    "text": (
+                        "Review the conflicting specifications above and adjust version "
+                        "ranges or package names."
+                    ),
+                    "hint_code": "review_conflicting_specs",
+                }
+            )
+        if strict:
+            hints.append(
+                {
+                    "text": (
+                        "Strict channel priority is enabled. Try flexible priority:\n"
+                        "      conda config --set channel_priority flexible"
+                    ),
+                    "hint_code": "channel_priority_flexible",
+                }
+            )
         hints.append(
             {
                 "text": (
-                    "Enable unsatisfiable hints for more detail:\n"
-                    "      conda config --set unsatisfiable_hints True"
+                    "Check for pinned packages:\n      conda config --show pinned_packages"
                 ),
-                "hint_code": "enable_unsatisfiable_hints",
+                "hint_code": "check_pinned_packages",
             }
         )
-    else:
         hints.append(
             {
-                "text": (
-                    "Review the conflicting specifications above and adjust version "
-                    "ranges or package names."
-                ),
-                "hint_code": "review_conflicting_specs",
+                "text": "Update conda and try again:\n      conda update conda",
+                "hint_code": "update_conda",
             }
         )
-    if strict:
-        hints.append(
-            {
-                "text": (
-                    "Strict channel priority is enabled. Try flexible priority:\n"
-                    "      conda config --set channel_priority flexible"
-                ),
-                "hint_code": "channel_priority_flexible",
-            }
-        )
-    hints.append(
-        {
-            "text": (
-                "Check for pinned packages:\n      conda config --show pinned_packages"
-            ),
-            "hint_code": "check_pinned_packages",
+
+        return {
+            "summary": "Conda could not find a compatible set of packages to satisfy the requested specifications.",
+            "cause": cause,
+            "hints": hints,
         }
-    )
-    hints.append(
-        {
-            "text": "Update conda and try again:\n      conda update conda",
-            "hint_code": "update_conda",
-        }
-    )
 
-    return {
-        "summary": "Conda could not find a compatible set of packages to satisfy the requested specifications.",
-        "cause": cause,
-        "hints": hints,
-    }
 
 
 class RemoveError(CondaError):
