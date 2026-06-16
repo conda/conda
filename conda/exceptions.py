@@ -1185,7 +1185,6 @@ class UnsatisfiableError(CondaError):
         }
 
 
-
 class RemoveError(CondaError):
     def __init__(
         self,
