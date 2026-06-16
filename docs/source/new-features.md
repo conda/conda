@@ -45,7 +45,7 @@ conda install pandas scikit-learn some-pypi-package
 ```
 
 :::{warning}
-Prior to uninstalling Miniconda, you must manually remove any environments where you have used the `conda-pypi` channel.
+Prior to uninstalling Miniconda or Anaconda Distribution, you must manually remove any environments where you have used the `conda-pypi` channel.
 
 ```bash
 conda remove --name <ENV-NAME> --all
