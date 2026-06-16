@@ -1069,6 +1069,7 @@ class UnsatisfiableError(CondaError):
                             ]
                             _chains.append(dep_chain)
 
+                        _fchains: list[str]
                         if _chains:
                             _fchains = self._format_chain_str(_chains)
                         else:
