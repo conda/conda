@@ -568,9 +568,14 @@ class UnavailableInvalidChannel(ChannelError):
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
-            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # RFC 9457 'detail' is preferred over 'message' for
+            # application/problem+json responses.
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail") or message
+            content_type = getattr(response, "headers", {}).get("content-type", "")
+            if "application/problem+json" in content_type:
+                detail = body.get("detail")
+                if isinstance(detail, str):
+                    message = detail
 
         # standardize arguments
         status_code = status_code or "000"
@@ -664,9 +669,14 @@ class CondaHTTPError(CondaError):
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
-            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # RFC 9457 'detail' is preferred over 'message' for
+            # application/problem+json responses.
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail") or message
+            content_type = getattr(response, "headers", {}).get("content-type", "")
+            if "application/problem+json" in content_type:
+                detail = body.get("detail")
+                if isinstance(detail, str):
+                    message = detail
 
         # standardize arguments
         url = maybe_unquote(url)
@@ -886,10 +896,6 @@ class UnsatisfiableError(CondaError):
         chains: (optional) if True, the tuples are interpreted as chains
             of dependencies, from top level to bottom. If False, the tuples
             are interpreted as simple lists of conflicting specs.
-
-    Returns:
-        Raises an exception with a formatted message detailing the
-        unsatisfiable specifications.
     """
 
     def _format_chain_str(self, bad_deps: Iterable[Iterable[MatchSpec]]):

@@ -90,7 +90,8 @@ class CondaSpecs:
                     backend=VerboseSolver,
                 )
 
-        :return: An iterable of solver entries.
+        Returns:
+            An iterable of solver entries.
         """
         yield from ()
 
@@ -118,7 +119,8 @@ class CondaSpecs:
                     action=example_command,
                 )
 
-        :return: An iterable of subcommand entries.
+        Returns:
+            An iterable of subcommand entries.
         """
         yield from ()
 
@@ -142,7 +144,8 @@ class CondaSpecs:
                     build="x86_64",
                 )
 
-        :return: An iterable of virtual package entries.
+        Returns:
+            An iterable of virtual package entries.
         """
         yield from ()
 
@@ -150,6 +153,11 @@ class CondaSpecs:
     def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
         """
         Register pre-command functions in conda.
+
+        Shell activation commands avoid loading the plugin manager for startup
+        performance. These hooks run for ``conda shell.* activate``,
+        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
+        was already loaded by another code path.
 
         **Example:**
 
@@ -176,6 +184,11 @@ class CondaSpecs:
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
         """
         Register post-command functions in conda.
+
+        Shell activation commands avoid loading the plugin manager for startup
+        performance. These hooks run for ``conda shell.* activate``,
+        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
+        was already loaded by another code path.
 
         **Example:**
 
@@ -294,7 +307,8 @@ class CondaSpecs:
                     fix="Repair detected issues",
                 )
 
-        :return: An iterable of health check entries.
+        Returns:
+            An iterable of health check entries.
         """
         yield from ()
 
@@ -805,7 +819,8 @@ class CondaSpecs:
                     extract=extract_custom,
                 )
 
-        :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
         """
         yield from ()
 
@@ -859,6 +874,7 @@ class CondaSpecs:
                     watch_for={"PackagesNotFoundInChannelsError"},
                 )
 
-        :return: An iterable of :class:`~conda.plugins.types.CondaExceptionObserver` entries.
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaExceptionObserver` entries.
         """
         yield from ()

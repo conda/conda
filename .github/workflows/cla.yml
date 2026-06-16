@@ -6,8 +6,16 @@ on:
       - created
   pull_request_target:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   check:
+    name: Check CLA
     if: >-
       !github.event.repository.fork
       && (
@@ -16,6 +24,10 @@ jobs:
         || github.event_name == 'pull_request_target'
       )
     runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      pull-requests: write  # Required to update labels and comments on pull requests.
+      statuses: write  # Required to publish the CLA commit status.
     steps:
       - name: Check CLA
         uses: conda/actions/check-cla@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0

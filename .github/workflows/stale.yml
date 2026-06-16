@@ -14,14 +14,21 @@ on:
   schedule:
     - cron: 0 4 * * *
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.repository }}
+  cancel-in-progress: true
+
 permissions:
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   stale:
+    name: Mark stale threads
     if: '!github.event.repository.fork'
     runs-on: ubuntu-slim
+    permissions:
+      issues: write  # Required to mark and close stale issues.
+      pull-requests: write  # Required to mark and close stale pull requests.
     strategy:
       matrix:
         include:
@@ -38,7 +45,7 @@ jobs:
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
 
-      - uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
+      - uses: actions/stale@eb5cf3af3ac0a1aa4c9c45633dd1ae542a27a899 # v10.3.0
         id: stale
         with:
           # Only issues with these labels are checked whether they are stale

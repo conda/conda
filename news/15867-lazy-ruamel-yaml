@@ -1,0 +1,19 @@
+### Enhancements
+
+* Defer `ruamel.yaml` import in `common/serialize/yaml.py` so it only loads when YAML parsing/writing is first needed. (#15867)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.common.serialize.yaml.CondaYAMLRepresenter` as pending deprecation (removal in 27.3). The class is still importable via a lazy module-level `__getattr__` but accessing it now emits a `PendingDeprecationWarning`. External consumers should use `conda.common.serialize.yaml.write`/`read` or subclass `ruamel.yaml.representer.RoundTripRepresenter` directly. (#15867)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

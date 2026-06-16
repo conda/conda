@@ -2152,9 +2152,13 @@ def test_use_index_cache(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
 ):
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "false")
+    reset_context()
 
     # pretend the cache is always stale
     mocker.patch(
@@ -2366,6 +2370,11 @@ def test_dont_remove_conda_3(
     upgrades a dependency) it could produce spurious RemoveError, blocking
     further use of conda.
     """
+    if context.solver != "libmamba" or context.solver != "classic":
+        pytest.skip(
+            "This test can only be run with solvers that come shipped with conda"
+        )
+
     with tmp_env("conda", "conda-pypi") as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         monkeypatch.setenv("CONDA_PREFIX", str(prefix))
