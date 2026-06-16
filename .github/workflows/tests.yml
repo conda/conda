@@ -837,13 +837,11 @@ jobs:
           allowed-skips: ${{ toJSON(needs) }}
           jobs: ${{ toJSON(needs) }}
 
-      # Skip creating an issue on reruns (run_attempt > 1 for the same scheduled workflow run)
       - name: Report failures
         if: >-
           always()
           && github.event_name == 'schedule'
           && steps.alls-green.outputs.result == 'failure'
-          && github.run_attempt == 1
         env:
           GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
         run: |
