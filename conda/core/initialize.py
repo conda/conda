@@ -1490,7 +1490,7 @@ def init_elvish_user(
     target_path, 
     conda_prefix, 
     reverse = False,
-    content_type = ContentTypeOptions = "initialize",
+    content_type: ContentTypeOptions = "initialize",
 ):
     # target_path: ~/.config/elvish/rc.elv
     user_rc_path = target_path

@@ -13,6 +13,8 @@
 #   attributes can be separated by spaces, e.g. "red bold". See
 #   https://elv.sh/ref/builtin.html#styled for documentation of style
 #   transformers.
+# - E:CONDA_NO_PROMPT - if the variable exists (regardless of value), the
+#   indicator is not displayed, or left to another script.
 
 use path
 use str
@@ -31,17 +33,17 @@ set paths = [$-conda-root/condabin $@paths]
 # Entry point for conda command
 fn conda {|@args|
   if (eq $args []) {
-    -conda-exe
+    $E:CONDA_EXE
   } else {
     var cmd = $args[0]
     var cmd-args = $args[1..]
     if (has-value [activate deactivate reactivate] $cmd) {
-      eval (-conda-exe shell.elvish $cmd $@cmd-args | slurp)
+      eval ($E:CONDA_EXE shell.elvish $cmd $@cmd-args | slurp)
     } elif (has-value [install update upgrade remove uninstall config] $cmd) {
-      -conda-exe $cmd $@cmd-args
+      $E:CONDA_EXE $cmd $@cmd-args
       conda reactivate
     } else {
-      -conda-exe $cmd $@cmd-args
+      $E:CONDA_EXE $cmd $@cmd-args
     }
   }
 }
@@ -71,20 +73,22 @@ edit:add-var conda-prompt-indicator~ $conda-prompt-indicator~
 var -conda-original-prompt-fn~ = $edit:prompt
 var -conda-original-rprompt-fn~ = $edit:rprompt
 
+if (not (has-env CONDA_NO_PROMPT)) {
 # Redefine them to include the conda indicator based on the value of
 # CONDA_LEFT_PROMPT (default is to show in the right prompt).
-set edit:prompt = {
-  if (has-env CONDA_LEFT_PROMPT) {
-    conda-prompt-indicator
+  set edit:prompt = {
+    if (has-env CONDA_LEFT_PROMPT) {
+      conda-prompt-indicator
+    }
+    -conda-original-prompt-fn
   }
-  -conda-original-prompt-fn
-}
 
-set edit:rprompt = {
-  if (not (has-env CONDA_LEFT_PROMPT)) {
-    conda-prompt-indicator
+  set edit:rprompt = {
+    if (not (has-env CONDA_LEFT_PROMPT)) {
+      conda-prompt-indicator
+    }
+    -conda-original-rprompt-fn
   }
-  -conda-original-rprompt-fn
 }
 
 ###########################################################################
@@ -328,7 +332,7 @@ fn init-conda-commands {
   if (not $conda-commands) {
     # `activate` and `deactivate` are not in the commands output so we add them
     # by hand.
-    set conda-commands = [(conda shell.elvish commands) activate deactivate]
+    set conda-commands = [(conda commands) activate deactivate]
   }
 }
 
@@ -510,7 +514,7 @@ fn path-in {|obj path &default=$nil|
   each {|k|
     try {
       set obj = $obj[$k]
-    } except {
+    } catch e {
       set obj = $default
       break
     }
