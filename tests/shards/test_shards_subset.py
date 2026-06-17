@@ -46,9 +46,11 @@ from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
     FAKE_REPODATA,
     ROOT_PACKAGES,
+    _run_test_server,
     _timer,
     ensure_hex_hash,
     expand_channels,
+    write_shards_repository,
 )
 
 if TYPE_CHECKING:
@@ -191,6 +193,124 @@ def test_build_repodata_subset_no_shards(http_server_shards):
     """
     channels = expand_channels([Channel(http_server_shards + "/notfound")])
     assert build_repodata_subset([], channels) is None
+
+
+@pytest.mark.parametrize(
+    "has_classic_cache",
+    [False, True],
+    ids=["without-classic-cache", "with-classic-cache"],
+)
+def test_fetch_channels_rechecks_shards_when_needed(
+    monkeypatch, tmp_path, has_classic_cache
+):
+    """
+    A cached `has_shards: false` result should only be honored when there is
+    classic repodata cache to fall back to.
+    """
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-arm64")
+    reset_context()
+
+    channel_root = tmp_path / "channel"
+    channel_root.mkdir()
+    httpd = _run_test_server(str(channel_root))
+    try:
+        host, port = httpd.socket.getsockname()[:2]
+        url_host = f"[{host}]" if ":" in host else host
+        channel_url = f"http://{url_host}:{port}/"
+        channels = expand_channels(
+            [Channel(channel_url)], subdirs=("osx-arm64", "noarch")
+        )
+        noarch_url = next(url for url in channels if url.endswith("/noarch"))
+        noarch_cache = SubdirData(Channel(noarch_url)).repo_cache
+
+        assert fetch_channels(channels) is None
+        assert not noarch_cache.cache_path_json.exists()
+        with noarch_cache.lock("r+") as state_file:
+            noarch_cache_state = json.load(state_file)
+            assert noarch_cache_state["has_shards"]["value"] is False
+
+        if has_classic_cache:
+            noarch_cache.state.update(noarch_cache_state)
+            noarch_cache.save(
+                json.dumps(
+                    {
+                        "info": {"subdir": "noarch"},
+                        "packages": {},
+                        "packages.conda": {},
+                        "repodata_version": 2,
+                    }
+                )
+            )
+
+        write_shards_repository(channel_root)
+
+        channel_data = fetch_channels(channels)
+        if has_classic_cache:
+            assert channel_data is None
+        else:
+            assert channel_data is not None
+            assert isinstance(channel_data[noarch_url], Shards)
+    finally:
+        httpd.shutdown()
+
+
+def test_fetch_channels_rechecks_stale_shards_in_mixed_channels(monkeypatch, tmp_path):
+    """
+    A stale negative shard result should be rechecked even when another channel
+    already has shards.
+    """
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-arm64")
+    reset_context()
+
+    stale_channel_root = tmp_path / "stale-channel"
+    other_channel_root = tmp_path / "other-channel"
+    stale_channel_root.mkdir()
+    other_channel_root.mkdir()
+
+    stale_httpd = _run_test_server(str(stale_channel_root))
+    other_httpd = _run_test_server(str(other_channel_root))
+    try:
+
+        def channel_url(httpd):
+            host, port = httpd.socket.getsockname()[:2]
+            url_host = f"[{host}]" if ":" in host else host
+            return f"http://{url_host}:{port}/"
+
+        stale_channel_url = channel_url(stale_httpd)
+        stale_channels = expand_channels(
+            [Channel(stale_channel_url)], subdirs=("osx-arm64", "noarch")
+        )
+        assert fetch_channels(stale_channels) is None
+
+        write_shards_repository(stale_channel_root)
+        write_shards_repository(other_channel_root)
+
+        other_channel_url = channel_url(other_httpd)
+        channels = expand_channels(
+            [Channel(stale_channel_url), Channel(other_channel_url)],
+            subdirs=("osx-arm64", "noarch"),
+        )
+        stale_noarch_url = next(
+            url
+            for url in channels
+            if url.startswith(stale_channel_url.rstrip("/")) and url.endswith("/noarch")
+        )
+        other_noarch_url = next(
+            url
+            for url in channels
+            if url.startswith(other_channel_url.rstrip("/")) and url.endswith("/noarch")
+        )
+
+        channel_data = fetch_channels(channels)
+
+        assert channel_data is not None
+        assert isinstance(channel_data[stale_noarch_url], Shards)
+        assert isinstance(channel_data[other_noarch_url], Shards)
+    finally:
+        stale_httpd.shutdown()
+        other_httpd.shutdown()
 
 
 @pytest.mark.integration
