@@ -423,6 +423,43 @@ def test_channel_matching():
     assert str(MatchSpec("defaults::*")) == "defaults::*"
 
 
+def test_channel_matching_strict_for_non_alias_urls(tmp_path):
+    """
+    ChannelMatch.match uses strict Channel equality, matching the
+    location, name, and the platform, when the spec's channel was
+    constructed from a URL whose location is not channel_alias or
+    a migrated alias. This stops URL-form specs from cross-matching
+    same-named channels at different locations. For example, a local
+    "file:///path/to/distr" does not match the remote "distr" channel
+    via "Channel.name".
+    """
+    distr_url = (tmp_path / "a" / "distr").as_uri()
+    sibling_distr_url = (tmp_path / "b" / "distr").as_uri()
+
+    # same URL: matches
+    assert ChannelMatch(distr_url).match(distr_url)
+    # different URL, same basename: does not match
+    assert not ChannelMatch(distr_url).match(sibling_distr_url)
+    # URL-form distr does not match the bare name one (remote via alias)
+    assert not ChannelMatch(distr_url).match("distr")
+
+    # The short-form distr still uses the lossy name-based match, in
+    # light of patterns like `conda install -c /path/to/distr distr::pkg`
+    # See https://anaconda.org/distr.
+    assert ChannelMatch("distr").match(distr_url)
+
+    # A URL-form member of a multichannel such as pkgs/main matches itself
+    # exactly. Channel("pkgs/main") resolves to the same `location` as
+    # the URL form, so it also matches as they are the same channel under
+    # the hood). However, Channel("defaults") is the multichannel name with
+    # a different identity, so strict equality rejects it.
+    pkgs_main_url = "https://repo.anaconda.com/pkgs/main"
+    assert ChannelMatch(pkgs_main_url).match(pkgs_main_url)
+    assert ChannelMatch(pkgs_main_url).match("pkgs/main")
+    assert not ChannelMatch(pkgs_main_url).match("defaults")
+    assert not ChannelMatch(pkgs_main_url).match("conda-forge")
+
+
 def test_channel_matching_preserves_full_url_for_local_channel(tmp_path):
     distr = (tmp_path / "distr").as_uri()
     spec = MatchSpec(f"{distr}::test-package")
@@ -431,6 +468,25 @@ def test_channel_matching_preserves_full_url_for_local_channel(tmp_path):
 
     # channel_alias channels still stringify to their short name.
     assert str(MatchSpec("conda-forge::python")) == "conda-forge::python"
+
+
+def test_parse_channel_preserves_url_for_multichannel_members():
+    """
+    Non-alias URL-form channels are stored as their base_url rather
+    than collapsing into the multichannel canonical_name. So, for example,
+    "https://repo.anaconda.com/pkgs/main" is preserved as the full URL in
+    the parsed spec, and not flattened to "defaults".
+    """
+    parsed = _parse_spec_str("https://repo.anaconda.com/pkgs/main::numpy")
+    assert parsed == {
+        "_original_spec_str": "https://repo.anaconda.com/pkgs/main::numpy",
+        "channel": "https://repo.anaconda.com/pkgs/main",
+        "name": "numpy",
+    }
+    # The short form still collapses, since "pkgs/main" resolves via
+    # channel_alias and its canonical_name is "defaults".
+    parsed = _parse_spec_str("pkgs/main::numpy")
+    assert parsed["channel"] == "defaults"
 
 
 def test_matchspec_errors():
