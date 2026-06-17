@@ -494,6 +494,12 @@ def test_parse_channel_preserves_url_for_multichannel_members():
     parsed = _parse_spec_str("pkgs/main::numpy")
     assert parsed["channel"] == "defaults"
 
+    # An unrelated host that happens to share a multichannel member's path
+    # must not collapse: "https://example.com/pkgs/main" has nothing to do
+    # with defaults and must stay as the full URL.
+    parsed = _parse_spec_str("https://example.com/pkgs/main::numpy")
+    assert parsed["channel"] == "https://example.com/pkgs/main"
+
 
 def test_matchspec_str_preserves_url_for_multichannel_members():
     url = "https://repo.anaconda.com/pkgs/main"
