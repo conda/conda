@@ -22,8 +22,9 @@ class ExplicitSpec(EnvironmentSpecBase):
     def __init__(self, filename: str | None = None, **kwargs) -> None:
         """Initialize the explicit specification.
 
-        :param filename: Path to the requirements file
-        :param kwargs: Additional arguments
+        Args:
+            filename: Path to the requirements file
+            kwargs: Additional arguments
         """
         self.filename = filename
 
@@ -34,7 +35,8 @@ class ExplicitSpec(EnvironmentSpecBase):
             * a filename was provided
             * the file has the "@EXPLICIT" marker
 
-        :return: True if the file can be handled, False otherwise
+        Returns:
+            True if the file can be handled, False otherwise
         """
         # Return early if no filename was provided
         if self.filename is None:
@@ -54,8 +56,11 @@ class ExplicitSpec(EnvironmentSpecBase):
         """
         Build an environment from the explicit file.
 
-        :return: An Environment object containing the package specifications
-        :raises ValueError: If the file cannot be read
+        Returns:
+            An Environment object containing the package specifications
+
+        Raises:
+            ValueError: If the file cannot be read
         """
         if not self.filename:
             raise CondaValueError("No filename provided")

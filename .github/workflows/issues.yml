@@ -6,9 +6,12 @@ on:
   issue_comment:
     types: [created]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
-  issues: write
 
 env:
   FEEDBACK_LBL: pending::feedback
@@ -19,12 +22,16 @@ jobs:
   # TODO: create conda-issue-sorting team and modify this to toggle label based on
   # whether a non-issue-sorting engineer commented
   pending_support:
+    name: Update pending support label
     # if [pending::feedback] and anyone responds
     if: >-
       !github.event.repository.fork
       && !github.event.issue.pull_request
       && contains(github.event.issue.labels.*.name, 'pending::feedback')
     runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      issues: write  # Required to remove and add issue triage labels.
     steps:
       # remove [pending::feedback]
       - uses: actions-ecosystem/action-remove-labels@2ce5d41b4b6aa8503e285553f75ed56e0a40bae0 # v1.3.0

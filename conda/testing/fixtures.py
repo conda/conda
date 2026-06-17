@@ -105,6 +105,22 @@ def suppress_resource_warning():
     warnings.filterwarnings("ignore", category=ResourceWarning)
 
 
+@pytest.fixture(autouse=True)
+def suppress_pytest_bencher_deprecation_warning():
+    """
+    Suppress `PendingDeprecationWarning: FileType is deprecated. Simply open files after parsing arguments.`
+
+    Raised from pytest-bencher.
+
+    xref: https://github.com/ionelmc/pytest-benchmark/issues/283
+    """
+    warnings.filterwarnings(
+        "ignore",
+        message="FileType is deprecated. Simply open files after parsing arguments.",
+        category=PendingDeprecationWarning,
+    )
+
+
 @pytest.fixture(scope="function")
 def tmpdir(tmpdir, request):
     tmpdir = TemporaryDirectory(dir=str(tmpdir))
@@ -242,10 +258,13 @@ class CondaCLIFixture:
 
         `conda ...` == `conda_cli(...)`
 
-        :param argv: Arguments to parse.
-        :param raises: Expected exception to intercept. If provided, the raised exception
-            will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
-        :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
+        Args:
+            argv: Arguments to parse.
+            raises: Expected exception to intercept. If provided, the raised exception
+                will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
+
+        Returns:
+            Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
         """
         # clear output
         if self.capsys:
@@ -321,11 +340,14 @@ class PipCLIFixture:
 
         `pip ...` in environment == `pip_cli(..., prefix=env_path)`
 
-        :param argv: Arguments to pass to pip.
-        :param prefix: Path to the conda environment containing pip.
-        :param raises: Expected exception to intercept. If provided, the raised exception
-            will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
-        :return: Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
+        Args:
+            argv: Arguments to pass to pip.
+            prefix: Path to the conda environment containing pip.
+            raises: Expected exception to intercept. If provided, the raised exception
+                will be returned instead of exit code (see pytest.raises and pytest.ExceptionInfo).
+
+        Returns:
+            Command results (stdout, stderr, exit code or pytest.ExceptionInfo).
         """
         # build command using python -m pip (more reliable than finding pip executable)
         prefix_path = Path(prefix)
@@ -402,11 +424,14 @@ class PathFactoryFixture:
            ``path_factory(infix="!")`` → ``tmp_path/ab12!ef56``
            ``path_factory(suffix=".yml")`` → ``tmp_path/ab12cd34.yml``
 
-        :param name: Complete path name (mutually exclusive with prefix/infix/suffix)
-        :param prefix: Prefix for generated name (mutually exclusive with name param)
-        :param infix: Infix for generated name (mutually exclusive with name param)
-        :param suffix: Suffix for generated name (mutually exclusive with name param)
-        :return: A new unique path
+        Args:
+            name: Complete path name (mutually exclusive with prefix/infix/suffix)
+            prefix: Prefix for generated name (mutually exclusive with name param)
+            infix: Infix for generated name (mutually exclusive with name param)
+            suffix: Suffix for generated name (mutually exclusive with name param)
+
+        Returns:
+            A new unique path
         """
         if name and (prefix or infix or suffix):
             raise ValueError(
@@ -485,14 +510,17 @@ class TmpEnvFixture:
         4. Parts mode: Customize path name generation (useful for special char testing).
            ``tmp_env(path_infix="!")`` → ``tmp_path/ab12!ef56``
 
-        :param args: Arguments to pass to conda create (e.g., packages, flags)
-        :param prefix: Exact prefix path (mutually exclusive with name/path_* params)
-        :param name: Env name (mutually exclusive with prefix/path_* params)
-        :param path_prefix: Prefix for path name (mutually exclusive with prefix/name params)
-        :param path_infix: Infix for path name (mutually exclusive with prefix/name params)
-        :param path_suffix: Suffix for path name (mutually exclusive with prefix/name params)
-        :param shallow: If True, create env on disk only without conda create
-        :return: The conda environment's prefix
+        Args:
+            args: Arguments to pass to conda create (e.g., packages, flags)
+            prefix: Exact prefix path (mutually exclusive with name/path_* params)
+            name: Env name (mutually exclusive with prefix/path_* params)
+            path_prefix: Prefix for path name (mutually exclusive with prefix/name params)
+            path_infix: Infix for path name (mutually exclusive with prefix/name params)
+            path_suffix: Suffix for path name (mutually exclusive with prefix/name params)
+            shallow: If True, create env on disk only without conda create
+
+        Returns:
+            The conda environment's prefix
         """
         if shallow and args:
             raise ValueError("shallow=True cannot be used with any arguments")
@@ -773,8 +801,11 @@ class HttpTestServerFixture:
         """
         Get full URL for a given path on the server.
 
-        :param path: Relative path on the server (e.g., "subdir/package.tar.bz2")
-        :return: Full URL
+        Args:
+            path: Relative path on the server (e.g., "subdir/package.tar.bz2")
+
+        Returns:
+            Full URL
         """
         path = path.lstrip("/")
         return f"{self.url}/{path}" if path else self.url
@@ -809,10 +840,15 @@ def http_test_server(
     Use ``None`` in parametrize to mix pre-existing directories with dynamic content:
         @pytest.mark.parametrize("http_test_server", ["tests/data", None], indirect=True)
 
-    :param request: pytest fixture request object
-    :param path_factory: path_factory fixture for creating unique temp directories
-    :return: HttpTestServerFixture with server, host, port, url, and directory attributes
-    :raises ValueError: If parametrized directory is invalid
+    Args:
+        request: pytest fixture request object
+        path_factory: path_factory fixture for creating unique temp directories
+
+    Returns:
+        HttpTestServerFixture with server, host, port, url, and directory attributes
+
+    Raises:
+        ValueError: If parametrized directory is invalid
     """
     from . import http_test_server as http_server_module
 

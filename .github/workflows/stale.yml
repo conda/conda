@@ -14,14 +14,21 @@ on:
   schedule:
     - cron: 0 4 * * *
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.repository }}
+  cancel-in-progress: true
+
 permissions:
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   stale:
+    name: Mark stale threads
     if: '!github.event.repository.fork'
     runs-on: ubuntu-slim
+    permissions:
+      issues: write  # Required to mark and close stale issues.
+      pull-requests: write  # Required to mark and close stale pull requests.
     strategy:
       matrix:
         include:

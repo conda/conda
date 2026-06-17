@@ -5,11 +5,16 @@ on:
     types:
       - opened
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   add_to_project:
+    name: Add pull request to project
     if: '!github.event.repository.fork'
     runs-on: ubuntu-slim
     steps:

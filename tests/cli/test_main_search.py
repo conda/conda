@@ -70,6 +70,34 @@ def test_search_1(conda_cli: CondaCLIFixture):
     assert not err
 
 
+@pytest.mark.flaky(reruns=5)
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
+def test_search_1_conda_forge(
+    sharded: str, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
+    stdout, stderr, err = conda_cli(
+        "search",
+        "ipython",
+        "--json",
+        "--override-channels",
+        "--channel",
+        "conda-forge",
+    )
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+    assert not stderr
+    assert not err
+
+
 @pytest.mark.parametrize(
     "package",
     [
@@ -117,7 +145,16 @@ def test_search_3(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.flaky(reruns=1)
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
 def test_search_4(
+    sharded: str,
+    monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     test_recipes_channel: Path,  # use test channel
     tmp_pkgs_dir: Path,  # empty cache
@@ -125,6 +162,9 @@ def test_search_4(
     """
     Show error when --use-index-cache is used but index cache is empty.
     """
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
     with pytest.raises(PackagesNotFoundError):
         conda_cli(
             "search",
@@ -236,19 +276,40 @@ def test_rpy_search(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, subdir
     assert "rpy2" in json.loads(stdout)
 
 
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
 def test_current_platform_package_missing(
-    test_recipes_channel: Path,
-    conda_cli: CondaCLIFixture,
-):
-    with pytest.raises(PackagesNotFoundError):
-        conda_cli("search", "arch-package", "--json")
-
-
-def test_mocked_platform_package_found(
+    sharded: str,
     monkeypatch: MonkeyPatch,
     test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
 ):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "arch-package", "--json")
+
+
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
+def test_mocked_platform_package_found(
+    sharded: str,
+    monkeypatch: MonkeyPatch,
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
     # mock a different subdir
     monkeypatch.setenv("CONDA_SUBDIR", "linux-fake")
     reset_context()
@@ -262,10 +323,22 @@ def test_mocked_platform_package_found(
     assert not err
 
 
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
 def test_different_platform_package_found(
+    sharded: str,
+    monkeypatch: MonkeyPatch,
     test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
 ):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
     stdout, stderr, err = conda_cli(
         "search",
         "--platform=linux-fake",
@@ -279,10 +352,22 @@ def test_different_platform_package_found(
     assert not err
 
 
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
 def test_unknown_platform_package_missing(
+    sharded: str,
+    monkeypatch: MonkeyPatch,
     test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
 ):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
     with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--platform=linux-unknown", "arch-package", "--json")
 
