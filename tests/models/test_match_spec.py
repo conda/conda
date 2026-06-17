@@ -1250,6 +1250,9 @@ def test_dist_str():
 
         pref = DPkg(f"anaconda::python-3.6.6-0{ext}")
         pref.url = f"https://someurl.org/anaconda/{context.subdir}"
+        # URL-form specs (m3, m5) require strict Channel equality against
+        # the record's channel, so the record needs the URL-form Channel here
+        pref.channel = Channel("https://someurl.org/anaconda")
 
         assert m1.match(pref)
         assert m2.match(pref)
@@ -1262,7 +1265,7 @@ def test_dist_str():
             "version": "3.6.6",
             "build": "0",
             "build_number": 0,
-            "channel": Channel("anaconda"),
+            "channel": Channel("https://someurl.org/anaconda"),
             "fn": f"python-3.6.6-0{ext}",
             "md5": "012345789",
             "url": "https://someurl.org/anaconda",
