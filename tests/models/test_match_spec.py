@@ -459,6 +459,12 @@ def test_channel_matching_strict_for_non_alias_urls(tmp_path):
     assert not ChannelMatch(pkgs_main_url).match("defaults")
     assert not ChannelMatch(pkgs_main_url).match("conda-forge")
 
+    # Same path on different hosts must not cross-match.
+    host_a_url = "https://software.repos.intel.com/python/conda"
+    host_b_url = "https://other.example.com/python/conda"
+    assert not ChannelMatch(host_a_url).match(host_b_url)
+    assert not ChannelMatch(host_b_url).match(host_a_url)
+
 
 def test_channel_matching_preserves_full_url_for_local_channel(tmp_path):
     distr = (tmp_path / "distr").as_uri()
