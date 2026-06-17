@@ -26,8 +26,9 @@ class RequirementsSpec(EnvironmentSpecBase):
     def __init__(self, filename: str | None = None, **kwargs) -> None:
         """Initialize the requirements specification.
 
-        :param filename: Path to the requirements file
-        :param kwargs: Additional arguments
+        Args:
+            filename: Path to the requirements file
+            kwargs: Additional arguments
         """
         self.filename = filename
 
@@ -39,7 +40,8 @@ class RequirementsSpec(EnvironmentSpecBase):
             * the file exists
             * the file content is valid for this specifier type
 
-        :return: True if the file can be handled, False otherwise
+        Returns:
+            True if the file can be handled, False otherwise
         """
         # Return early if no filename was provided
         if self.filename is None:
@@ -73,8 +75,11 @@ class RequirementsSpec(EnvironmentSpecBase):
         """
         Build an environment from the requirements file.
 
-        :return: An Environment object containing the package specifications
-        :raises ValueError: If the file cannot be read
+        Returns:
+            An Environment object containing the package specifications
+
+        Raises:
+            ValueError: If the file cannot be read
         """
         if not self.filename:
             raise ValueError("No filename provided")

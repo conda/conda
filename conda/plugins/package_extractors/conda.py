@@ -28,8 +28,9 @@ def extract_conda_or_tarball(
     """
     Extract a .conda or .tar.bz2 package to the specified destination.
 
-    :param tarball_full_path: Path to the package archive.
-    :param destination_directory: Directory to extract the package contents to.
+    Args:
+        tarball_full_path: Path to the package archive.
+        destination_directory: Directory to extract the package contents to.
     """
     import conda_package_handling.api
 
