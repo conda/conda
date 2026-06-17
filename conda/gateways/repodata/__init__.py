@@ -718,7 +718,7 @@ class RepodataCache:
         max_age *= 10**9  # nanoseconds
         now = time.time_ns()
         refresh = self.state.get("refresh_ns", 0)
-        return ((now - refresh) + max_age) / 1e9
+        return (max_age - (now - refresh)) / 1e9
 
 
 class RepodataFetch:
