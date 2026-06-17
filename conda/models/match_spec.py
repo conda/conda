@@ -1635,6 +1635,12 @@ class ChannelMatch(GlobStrMatch):
 
     def __str__(self):
         if isinstance(self._raw_value, Channel):
+            # We mirror _parse_channel: for non-alias URL channels, we
+            # prefer base_url, so that URL-form multichannel members like
+            # "https://repo.anaconda.com/pkgs/main" don't collapse to the
+            # multichannel name ("defaults") via canonical_name.
+            if _is_non_alias_url_channel(self._raw_value):
+                return self._raw_value.base_url or self._raw_value.canonical_name
             return self._raw_value.canonical_name
         return f"{self._raw_value}"
 
