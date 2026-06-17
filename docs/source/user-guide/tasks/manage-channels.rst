@@ -115,7 +115,7 @@ Anaconda recommends the following approach:
    need a package from a channel that isn't in your global config,
    use one of the following install options.
 
-   * The ``<channel>::<package>`` syntax installs only the named 
+   * The ``<channel>::<package>`` syntax installs only the named
      package from the specified channel.
 
      .. code-block:: shell
@@ -123,8 +123,8 @@ Anaconda recommends the following approach:
          conda install conda-forge::numpy
 
    * The ``--channel`` flag installs the named package and all its
-     dependencies from the specified channel. Add ``--override-channels`` 
-     to ignore any channels configured in your ``.condarc``, 
+     dependencies from the specified channel. Add ``--override-channels``
+     to ignore any channels configured in your ``.condarc``,
      using only the specified channel.
 
      .. code-block:: shell
@@ -133,7 +133,7 @@ Anaconda recommends the following approach:
 
 3. **Use strict channel priority only if you must mix channels.**
    If your workflow requires both ``defaults`` and ``conda-forge`` in
-   your channel list, set your channel priority to ``strict`` 
+   your channel list, set your channel priority to ``strict``
    to reduce the risk of incompatible mixed-channel environments:
 
    .. code-block:: shell
