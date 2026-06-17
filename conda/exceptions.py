@@ -1100,7 +1100,9 @@ class UnsatisfiableError(CondaError):
         had_empty = len(bad_deps) == 0
 
         if not had_empty:
-            for class_name in bad_deps:
+            for class_name, dep_class in bad_deps.items():
+                if not dep_class:
+                    continue
                 if class_name == "python":
                     has_python = True
                 elif class_name == "request_conflict_with_history":

@@ -113,7 +113,7 @@ class ErrorGuidance:
         """
         if not isinstance(exception, CondaError):
             raise ValueError(f"expected CondaError, got {type(exception).__name__}")
-        headline = (self.summary if self.summary else exception.message).rstrip()
+        headline = (self.summary or str(exception)).rstrip()
         lines = [f"{exception.__class__.__name__}: {headline}"]
         if self.cause or self.hints:
             lines.append("")
