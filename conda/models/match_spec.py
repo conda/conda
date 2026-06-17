@@ -746,14 +746,30 @@ def _parse_legacy_dist(dist_str):
     return name, version, build
 
 
+def _is_non_alias_url_channel(chn: Channel) -> bool:
+    """Return ``True`` if ``chn`` was constructed from a URL whose location
+    is not ``channel_alias`` (or a migrated alias).
+
+    This is used to decide whether to preserve the explicit URL (``base_url``)
+    of a channel rather than collapsing it through ``canonical_name``.
+    The latter flattens URL-form multichannel members such as
+    "https://repo.anaconda.com/pkgs/main" into the multichannel
+    name ("defaults").
+    """
+    if not chn.location:
+        return False
+    alias_locations = (
+        context.channel_alias.location,
+        *(alias.location for alias in context.migrated_channel_aliases),
+    )
+    return chn.location not in alias_locations
+
+
 def _parse_channel(channel_val):
     if not channel_val:
         return None, None
     chn = Channel(channel_val)
-    if is_url(channel_val) and chn.location not in (
-        context.channel_alias.location,
-        *(alias.location for alias in context.migrated_channel_aliases),
-    ):
+    if is_url(channel_val) and _is_non_alias_url_channel(chn):
         return chn.base_url or chn.canonical_name, chn.subdir
     return chn.canonical_name, chn.subdir
 
@@ -1607,10 +1623,7 @@ class ChannelMatch(GlobStrMatch):
         else:
             # assert ChannelMatch('pkgs/free').match('defaults') is False
             # assert ChannelMatch('defaults').match('pkgs/free') is True
-            if self._raw_value.location and self._raw_value.location not in (
-                context.channel_alias.location,
-                *(alias.location for alias in context.migrated_channel_aliases),
-            ):
+            if _is_non_alias_url_channel(self._raw_value):
                 return self._raw_value == _other_val
 
             # This should have been the following
