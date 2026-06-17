@@ -489,6 +489,12 @@ def test_parse_channel_preserves_url_for_multichannel_members():
     assert parsed["channel"] == "defaults"
 
 
+def test_matchspec_str_preserves_url_for_multichannel_members():
+    url = "https://repo.anaconda.com/pkgs/main"
+    assert str(MatchSpec(f"{url}::numpy")) == f"{url}::numpy"
+    assert str(MatchSpec("pkgs/main::numpy")) == "defaults::numpy"
+
+
 def test_matchspec_errors():
     with pytest.raises(InvalidSpec):
         MatchSpec("blas [optional")
