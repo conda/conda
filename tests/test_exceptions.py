@@ -11,7 +11,6 @@ import pytest
 import requests
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
-from conda.common.io import dashlist
 
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PathConflict
@@ -1019,12 +1018,28 @@ def test_print_conda_exception_with_guidance(
         guidance={
             "summary": (summary := "Guidance summary."),
             "cause": (cause := "Root cause."),
-            "hints": [{"text": (text := "Do the thing."), "hint_code": (hint_code := "do_the_thing"),}],
+            "hints": [
+                {
+                    "text": (text := "Do the thing."),
+                    "hint_code": (hint_code := "do_the_thing"),
+                }
+            ],
         },
     )
     print_conda_exception(exc)
-    err = capsys.readouterr().err
-    assert err == f"\nRemoveError: {summary}\n\nCause: {cause}\nNext steps:\n  - ({hint_code}) {text}\n\n"
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            f"RemoveError: {summary}",
+            "",
+            f"Cause: {cause}",
+            "Next steps:",
+            f"  - ({hint_code}) {text}",
+            "",
+            "",
+        )
+    )
 
 
 def test_print_conda_exception_without_guidance(
@@ -1038,8 +1053,15 @@ def test_print_conda_exception_without_guidance(
     exc = RemoveError(message := "legacy message")
     # Use a context manager to avoid issues with the exception_handler
     print_conda_exception(exc)
-    err = capsys.readouterr().err
-    assert err == f"\nRemoveError: {message}\n\n"
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            f"RemoveError: {message}",
+            "",
+            "",
+        )
+    )
 
 
 def test_PackagesNotFoundError_guidance_for_bulk_missing(
