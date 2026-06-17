@@ -54,9 +54,7 @@ if TYPE_CHECKING:
     from .plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
 
     UnsatisfiableConflictEntry = tuple[tuple[MatchSpec, ...], str]
-    UnsatisfiableConflictClass = (
-        set[UnsatisfiableConflictEntry] | list[UnsatisfiableConflictEntry]
-    )
+    UnsatisfiableConflictClass = set[UnsatisfiableConflictEntry]
     UnsatisfiableConflictMap = dict[str, UnsatisfiableConflictClass]
 
 log = getLogger(__name__)
@@ -1083,59 +1081,34 @@ class UnsatisfiableError(CondaError):
                 "packages required for satisfiability."
             )
 
-        guidance = self._build_unsatisfiable_guidance(bad_deps, strict)
+        guidance = self._get_guidance(bad_deps, strict)
 
         super().__init__(msg, guidance=guidance)
 
-    def _build_unsatisfiable_guidance(
+    def _get_guidance(
         self,
         bad_deps: UnsatisfiableConflictMap,
         strict: bool = False,
     ) -> ErrorGuidanceTypedDict | None:
         """Build guidance dict for :class:`UnsatisfiableError`, or ``None``."""
-        has_python = False
-        has_history = False
-        has_virtual = False
-        has_direct = False
-        had_empty = len(bad_deps) == 0
-
-        if not had_empty:
-            for class_name, dep_class in bad_deps.items():
-                if not dep_class:
-                    continue
-                if class_name == "python":
-                    has_python = True
-                elif class_name == "request_conflict_with_history":
-                    has_history = True
-                elif class_name == "virtual_package":
-                    has_virtual = True
-                elif class_name == "direct":
-                    has_direct = True
-
-        cause_parts = []
-        if has_direct:
-            cause_parts.append(
-                "Some requested packages have conflicting version constraints"
-            )
-        if has_python:
-            cause_parts.append(
+        cause = []
+        if bad_deps.get("direct"):
+            cause.append("Some requested packages have conflicting version constraints")
+        if bad_deps.get("python"):
+            cause.append(
                 "Some packages are incompatible with the current Python version"
             )
-        if has_history:
-            cause_parts.append(
+        if bad_deps.get("request_conflict_with_history"):
+            cause.append(
                 "The operation conflicts with a past explicit install specification"
             )
-        if has_virtual:
-            cause_parts.append(
+        if bad_deps.get("virtual_package"):
+            cause.append(
                 "Some packages are not available for the current system platform"
             )
-        if had_empty:
-            cause_parts.append("Enable unsatisfiable hints for more detail")
-
-        cause = "; ".join(cause_parts) if cause_parts else None
 
         hints = []
-        if had_empty:
+        if not bad_deps:
             hints.append(
                 {
                     "text": (
@@ -1182,7 +1155,7 @@ class UnsatisfiableError(CondaError):
 
         return {
             "summary": "Conda could not find a compatible set of packages to satisfy the requested specifications.",
-            "cause": cause,
+            "cause": "; ".join(cause) if cause else None,
             "hints": hints,
         }
 
