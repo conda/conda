@@ -1607,13 +1607,9 @@ class ChannelMatch(GlobStrMatch):
         else:
             # assert ChannelMatch('pkgs/free').match('defaults') is False
             # assert ChannelMatch('defaults').match('pkgs/free') is True
-            if (
-                self._raw_value.location
-                and self._raw_value.location
-                not in (
-                    context.channel_alias.location,
-                    *(alias.location for alias in context.migrated_channel_aliases),
-                )
+            if self._raw_value.location and self._raw_value.location not in (
+                context.channel_alias.location,
+                *(alias.location for alias in context.migrated_channel_aliases),
             ):
                 return self._raw_value == _other_val
 
