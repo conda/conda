@@ -1489,9 +1489,8 @@ class Resolve:
             if not_found_packages:
                 raise ResolvePackageNotFound(not_found_packages)
             elif wrong_version_packages:
-                raise UnsatisfiableError(
-                    [[d] for d in wrong_version_packages], chains=False
-                )
+                bad_deps = self.build_conflict_map(wrong_version_packages)
+                raise UnsatisfiableError(bad_deps, chains=False)
             if should_retry_solve:
                 # We don't want to call find_conflicts until our last try.
                 # This jumps back out to conda/cli/install.py, where the
