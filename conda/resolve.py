@@ -512,7 +512,7 @@ class Resolve:
             It is assumed that the specs conflict.
 
         Returns:
-            bad_deps: A list of lists of bad deps
+            Classified conflict map for :class:`~conda.exceptions.UnsatisfiableError`.
 
         Strategy:
             If we're here, we know that the specs conflict. This could be because:
@@ -1466,7 +1466,7 @@ class Resolve:
             log.debug("Solving for: %s", dlist)
 
         if not specs:
-            return ()
+            return []
 
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
@@ -1489,8 +1489,7 @@ class Resolve:
             if not_found_packages:
                 raise ResolvePackageNotFound(not_found_packages)
             elif wrong_version_packages:
-                bad_deps = self.build_conflict_map(wrong_version_packages)
-                raise UnsatisfiableError(bad_deps, chains=False)
+                self.find_conflicts(wrong_version_packages, specs_to_add, history_specs)
             if should_retry_solve:
                 # We don't want to call find_conflicts until our last try.
                 # This jumps back out to conda/cli/install.py, where the

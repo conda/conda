@@ -1101,6 +1101,24 @@ def test_UnsatisfiableError_guidance() -> None:
     assert "could not find a compatible set" in exc.guidance.summary
 
 
+def test_UnsatisfiableError_bad_deps_requires_conflict_map() -> None:
+    from conda.models.match_spec import MatchSpec
+
+    with pytest.raises(AttributeError, match="items"):
+        UnsatisfiableError([[MatchSpec("foo=99")]])
+
+
+def test_UnsatisfiableError_bad_deps_accepts_conflict_map() -> None:
+    UnsatisfiableError(
+        {
+            "python": set(),
+            "request_conflict_with_history": set(),
+            "direct": set(),
+            "virtual_package": set(),
+        }
+    )
+
+
 @pytest.mark.parametrize("use_only_tar_bz2", [True, False])
 def test_PackagesNotFoundError_use_only_tar_bz2(
     monkeypatch: MonkeyPatch,
