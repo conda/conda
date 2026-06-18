@@ -39,6 +39,7 @@ from conda.exceptions import (
     conda_exception_handler,
     print_conda_exception,
 )
+from conda.models.match_spec import MatchSpec
 
 
 def _raise_helper(exception):
@@ -942,7 +943,7 @@ def test_BinaryPrefixReplacementError(
     )
 
 
-def test_RemoveError_with_guidance() -> None:
+def test_remove_error_with_guidance() -> None:
     exc = RemoveError(
         "legacy message",
         guidance={
@@ -964,12 +965,12 @@ def test_RemoveError_with_guidance() -> None:
     assert exc.guidance.hints[0].hint_code == hint_code
 
 
-def test_RemoveError_without_guidance() -> None:
+def test_remove_error_without_guidance() -> None:
     exc = RemoveError("legacy message")
     assert exc.guidance is None
 
 
-def test_RemoveError_guidance_in_dump_map() -> None:
+def test_remove_error_guidance_in_dump_map() -> None:
     exc = RemoveError(
         "legacy message",
         guidance={
@@ -991,12 +992,12 @@ def test_RemoveError_guidance_in_dump_map() -> None:
     }
 
 
-def test_RemoveError_without_guidance_dump_map_no_key() -> None:
+def test_remove_error_without_guidance_dump_map_no_key() -> None:
     exc = RemoveError("legacy message")
     assert "guidance" not in exc.dump_map()
 
 
-def test_RemoveError_str_unchanged_with_guidance() -> None:
+def test_remove_error_str_unchanged_with_guidance() -> None:
     """__str__ should remain the legacy message, not the guidance."""
     exc = RemoveError(
         (message := "legacy message"),
@@ -1064,59 +1065,61 @@ def test_print_conda_exception_without_guidance(
     )
 
 
-def test_PackagesNotFoundError_guidance_for_bulk_missing(
+@pytest.mark.parametrize(
+    "packages, has_guidance",
+    (
+        pytest.param([f"pkg{i}" for i in range(5)], True, id="bulk-missing"),
+        pytest.param(["single-pkg"], False, id="few-missing"),
+    ),
+)
+def test_packages_not_found_error_guidance(
     monkeypatch: MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
-    reset_context()
-    assert not context.use_only_tar_bz2
-
-    pkgs = [f"pkg{i}" for i in range(5)]
-    exc = PackagesNotFoundError(
-        pkgs,
-        channel_urls=["https://repo.anaconda.org/pkgs/main"],
-    )
-    assert exc.guidance is not None
-    assert "Many packages are unavailable" in exc.guidance.summary
-    assert exc.guidance.hints[0].hint_code == "check_channel_config"
-
-
-def test_PackagesNotFoundError_no_guidance_for_few_packages(
-    monkeypatch: MonkeyPatch,
+    packages: list[str],
+    has_guidance: bool,
 ) -> None:
     monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
     reset_context()
     assert not context.use_only_tar_bz2
 
     exc = PackagesNotFoundError(
-        ["single-pkg"],
+        packages,
         channel_urls=["https://repo.anaconda.org/pkgs/main"],
     )
-    assert exc.guidance is None
+    assert (exc.guidance is not None) is has_guidance
+    if has_guidance:
+        assert "Many packages are unavailable" in exc.guidance.summary
+        assert exc.guidance.hints[0].hint_code == "check_channel_config"
 
 
-def test_UnsatisfiableError_guidance() -> None:
+def test_unsatisfiable_error_guidance() -> None:
     exc = UnsatisfiableError({})
     assert exc.guidance is not None
     assert "could not find a compatible set" in exc.guidance.summary
 
 
-def test_UnsatisfiableError_bad_deps_requires_conflict_map() -> None:
-    from conda.models.match_spec import MatchSpec
-
-    with pytest.raises(AttributeError, match="items"):
-        UnsatisfiableError([[MatchSpec("foo=99")]])
-
-
-def test_UnsatisfiableError_bad_deps_accepts_conflict_map() -> None:
-    UnsatisfiableError(
-        {
-            "python": set(),
-            "request_conflict_with_history": set(),
-            "direct": set(),
-            "virtual_package": set(),
-        }
-    )
+@pytest.mark.parametrize(
+    "bad_deps, raises",
+    (
+        pytest.param([[MatchSpec("foo=99")]], AttributeError, id="list"),
+        pytest.param(
+            {
+                "python": set(),
+                "request_conflict_with_history": set(),
+                "direct": set(),
+                "virtual_package": set(),
+            },
+            None,
+            id="conflict-map",
+        ),
+    ),
+)
+def test_unsatisfiable_error_bad_deps_shape(
+    bad_deps: object,
+    raises: type[Exception] | None,
+) -> None:
+    raises_context = pytest.raises(raises, match="items") if raises else nullcontext()
+    with raises_context:
+        UnsatisfiableError(bad_deps)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("use_only_tar_bz2", [True, False])

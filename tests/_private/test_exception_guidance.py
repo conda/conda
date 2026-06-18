@@ -8,25 +8,25 @@ from conda import CondaError
 from conda._private.exception_guidance import ErrorGuidance, GuidanceHint
 
 
-def test_GuidanceHint() -> None:
+def test_guidance_hint() -> None:
     hint = GuidanceHint("Do the thing.", "do_the_thing")
     assert hint.text == "Do the thing."
     assert hint.hint_code == "do_the_thing"
 
 
-def test_ErrorGuidance_defaults() -> None:
+def test_error_guidance_defaults() -> None:
     g = ErrorGuidance(summary="S")
     assert g.summary == "S"
     assert g.cause is None
     assert g.hints == ()
 
 
-def test_ErrorGuidance_requires_at_least_one_field() -> None:
+def test_error_guidance_requires_at_least_one_field() -> None:
     with pytest.raises(ValueError, match="at least one of summary, cause, or hints"):
         ErrorGuidance()
 
 
-def test_ErrorGuidance_full() -> None:
+def test_error_guidance_full() -> None:
     g = ErrorGuidance(
         summary="Something went wrong.",
         cause="Because of reasons.",
@@ -40,7 +40,7 @@ def test_ErrorGuidance_full() -> None:
     assert len(g.hints) == 2
 
 
-def test_ErrorGuidance_frozen() -> None:
+def test_error_guidance_frozen() -> None:
     g = ErrorGuidance(summary="Test.")
 
     with pytest.raises(AttributeError):
@@ -126,7 +126,7 @@ def test_format_guidance_full() -> None:
     ]
 
 
-def test_ErrorGuidance_hint_codes_property() -> None:
+def test_error_guidance_hint_codes_property() -> None:
     g = ErrorGuidance(
         hints=(
             GuidanceHint("h1", "code1"),
@@ -136,12 +136,12 @@ def test_ErrorGuidance_hint_codes_property() -> None:
     assert g.hint_codes == ("code1", "code2")
 
 
-def test_ErrorGuidance_hint_codes_empty() -> None:
+def test_error_guidance_hint_codes_empty() -> None:
     g = ErrorGuidance(summary="S")
     assert g.hint_codes == ()
 
 
-def test_ErrorGuidance_json() -> None:
+def test_error_guidance_json() -> None:
     g = ErrorGuidance(
         summary="S",
         cause="C",
@@ -162,7 +162,7 @@ def test_ErrorGuidance_json() -> None:
     }
 
 
-def test_ErrorGuidance_json_no_hints() -> None:
+def test_error_guidance_json_no_hints() -> None:
     g = ErrorGuidance(summary="S")
     assert g.__json__() == {"summary": "S"}
 

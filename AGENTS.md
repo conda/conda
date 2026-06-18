@@ -41,7 +41,7 @@ Common uses: **`deprecated(...)`** (functions, methods, classes), **`.argument`*
 
 ## Tests
 
-- Prefer **clear names** and **small, focused** tests; the body should read as the spec.
+- Prefer **clear, snake_case names** and **small, focused** tests; the body should read as the spec.
 - Keep **docstrings short**; long prose drifts from the code.
 - Avoid **`assert expr, "message"`** when the message only repeats static explanation—use a **`#` comment** above the line if a reader needs a hint.
 - **Exit codes / subprocess output:** Bare **`assert rc == 0`** (or similar) is often too terse for CI; include **stderr** in the message (e.g. **`assert rc == 0, f"conda {subcommand} failed ({rc}): {stderr}"`**, or the same shape for **`pip install`** / **`python`** subprocess probes) so failures stay actionable.
