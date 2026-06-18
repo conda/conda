@@ -81,14 +81,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
+        # test staged libsolv against defaults
         python-version: ['3.10', '3.14']
-        default-channel: [defaults, conda-forge]
+        default-channel: [defaults]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - default-channel: conda-forge
-            python-version: '3.10'
           - test-type: unit
             test-group: 3
     env:
@@ -224,21 +222,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
+        # test staged libsolv against defaults
         runs-on:
           - ubuntu-latest  # linux-64
           - ubuntu-24.04-arm  # linux-aarch64
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
-        default-channel: [defaults, conda-forge]
+        default-channel: [defaults]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.10'
-            default-channel: conda-forge
-          - python-version: '3.11'
-            default-channel: conda-forge
-          - python-version: '3.12'
-            default-channel: conda-forge
           - test-type: unit
             test-group: 3
           - runs-on: ubuntu-24.04-arm
@@ -595,7 +587,6 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           python=${{ matrix.python-version }}
-          ${{ env.LIBSOLV_STAGING_SPEC }}
           && conda activate test
           && python -m conda info --verbose
           && conda config --show-sources
@@ -690,29 +681,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & defaults & integration tests)
+        # test staged libsolv against defaults
         runs-on:
-          - macos-15-intel  # osx-64
           - macos-latest  # osx-arm64
-        python-version: ['3.10', '3.14']
-        default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
+        python-version: ['3.14']
+        default-channel: [defaults]
+        test-type: [integration]
         test-group: [1, 2, 3]
-        exclude:
-          - runs-on: macos-15-intel
-            python-version: '3.14'
-          - runs-on: macos-15-intel
-            default-channel: defaults
-          - runs-on: macos-15-intel
-            test-type: integration
-          - runs-on: macos-latest
-            python-version: '3.10'
-          - runs-on: macos-latest
-            default-channel: conda-forge
-          - runs-on: macos-latest
-            test-type: unit
-          - test-type: unit
-            test-group: 3
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
