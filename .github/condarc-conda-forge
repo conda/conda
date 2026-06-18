@@ -1,3 +1,4 @@
 channels:
+  - https://staging.continuum.io/pbp/fs/libsolv-feedstock/pr12/b8fe701
   - conda-forge
 anaconda_anon_usage: false
