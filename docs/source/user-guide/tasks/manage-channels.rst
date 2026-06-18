@@ -22,10 +22,10 @@ channels in your channel list that host the same package.
 
 By default, conda prefers packages from a higher priority
 channel over any version from a lower priority channel.
-Therefore, you can now safely put channels at the bottom of your
+Therefore, you can put channels at the bottom of your
 channel list to provide additional packages that are not in the
-default channels and still be confident that these channels will
-not override the core package set.
+default channels. However, it is not recommended to mix channels
+in a single environment.
 
 Conda collects all of the packages with the same name across all
 listed channels and processes them as follows:
@@ -103,7 +103,7 @@ Channel configuration best practices
 ====================================
 
 To avoid channel conflicts and ensure environment reproducibility,
-Anaconda recommends the following approach:
+we recommend the following approach:
 
 1. **Use a single channel as your default.** Configure either
    ``defaults`` or ``conda-forge`` in your ``.condarc``, but not both.
@@ -111,16 +111,11 @@ Anaconda recommends the following approach:
    mixed-channel environments with incompatible packages and can
    introduce hard-to-debug dependency conflicts.
 
-2. **Install from a specific channel per-command when needed.** If you
+2. **Install from a specific channel with a single command when needed.** If you
    need a package from a channel that isn't in your global config,
-   use one of the following install options.
-
-   * The ``<channel>::<package>`` syntax installs only the named
-     package from the specified channel.
-
-     .. code-block:: shell
-
-         conda install conda-forge::numpy
+   you can target that channel with a single command using the options below.
+   Note that mixing packages from different channels in this way might result in
+   dependency issues if the channels are not fully compatible.
 
    * The ``--channel`` flag installs the named package and all its
      dependencies from the specified channel. Add ``--override-channels``
@@ -130,6 +125,21 @@ Anaconda recommends the following approach:
      .. code-block:: shell
 
          conda install --channel conda-forge --override-channels numpy
+
+   * The ``<channel>::<package>`` syntax installs only the named
+     package from the specified channel, with dependencies resolved
+     from your configured channels.
+
+     .. warning::
+
+        If the channel you specify and your configured channels are not
+        fully compatible, this approach can result in binary 
+        incompatibilities that can cause hard-to-debug runtime errors, 
+        also known as "ABI incompatibility".
+
+     .. code-block:: shell
+
+         conda install conda-forge::numpy
 
 3. **Use strict channel priority only if you must mix channels.**
    If your workflow requires both ``defaults`` and ``conda-forge`` in
@@ -145,7 +155,6 @@ Anaconda recommends the following approach:
       Strict channel priority can make some environments unsatisfiable.
       It also prevents fallback to lower-priority channels when a package
       with the same name exists in a higher-priority channel. This includes
-      `conda-pypi <https://conda.github.io/conda-pypi/>`_ and other wheels
       channels that supply packages not available as conda packages.
 
 .. _`default channel`: https://repo.anaconda.com/pkgs/
