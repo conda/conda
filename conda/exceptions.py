@@ -43,11 +43,19 @@ if TYPE_CHECKING:
 
     import requests
 
-    from conda.base.context import Context
-    from conda.common.path import PathType
-    from conda.models.match_spec import MatchSpec
-    from conda.models.records import PackageRecord
-    from conda.plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
+    from ._private.exception_guidance import (
+        ErrorGuidance,
+        ErrorGuidanceTypedDict,
+    )
+    from .base.context import Context
+    from .common.path import PathType
+    from .models.match_spec import MatchSpec
+    from .models.records import PackageRecord
+    from .plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
+
+    UnsatisfiableConflictEntry = tuple[tuple[MatchSpec, ...], str]
+    UnsatisfiableConflictClass = set[UnsatisfiableConflictEntry]
+    UnsatisfiableConflictMap = dict[str, UnsatisfiableConflictClass]
 
 log = getLogger(__name__)
 
@@ -777,12 +785,50 @@ class PackagesNotFoundError(CondaError):
             packages_formatted = dashlist(packages)
             channels_formatted = ""
 
+        guidance = None
+        if channel_urls and len(self.packages) >= 5:
+            guidance = {
+                "summary": (
+                    "Many packages are unavailable at once. The cause is often "
+                    "channel configuration, an incomplete package index, or a "
+                    "platform mismatch."
+                ),
+                "cause": (
+                    "All %(count)d requested packages were not found in the "
+                    "configured channels."
+                )
+                % {"count": len(self.packages)},
+                "hints": [
+                    {
+                        "text": (
+                            "Verify the expected channels are listed:\n"
+                            "      conda config --show channels"
+                        ),
+                        "hint_code": "check_channel_config",
+                    },
+                    {
+                        "text": (
+                            "Confirm the platform (subdir) matches your system:\n"
+                            "      conda info"
+                        ),
+                        "hint_code": "check_platform_subdir",
+                    },
+                    {
+                        "text": (
+                            "Clear the index cache, then retry:\n      conda clean -i"
+                        ),
+                        "hint_code": "clear_index_cache",
+                    },
+                ],
+            }
+
         super().__init__(
             message,
             packages=self.packages,
             packages_formatted=packages_formatted,
             channel_urls=list(self.channel_urls),
             channels_formatted=channels_formatted,
+            guidance=guidance,
         )
 
 
@@ -889,21 +935,20 @@ class NoChannelsConfiguredError(CondaError):
 
 
 class UnsatisfiableError(CondaError):
-    """An exception to report unsatisfiable dependencies.
+    """Raised when dependency constraints cannot be satisfied.
 
     Args:
-        bad_deps: a list of tuples of objects (likely MatchSpecs).
-        chains: (optional) if True, the tuples are interpreted as chains
-            of dependencies, from top level to bottom. If False, the tuples
-            are interpreted as simple lists of conflicting specs.
+        bad_deps: Classified resolver conflicts, or empty when hints are off.
+        chains: Unused; retained for call-site compatibility.
+        strict: Whether strict channel priority was in effect.
     """
 
-    def _format_chain_str(self, bad_deps: Iterable[Iterable[MatchSpec]]):
-        chains = {}
+    def _format_chain_str(self, bad_deps: list[list[str]]) -> list[str]:
+        chains: dict[tuple[str, ...], list[set[str]]] = {}
         for dep in sorted(bad_deps, key=len, reverse=True):
             dep1 = [s.partition(" ") for s in dep[1:]]
-            key = (dep[0],) + tuple(v[0] for v in dep1)
-            vals = ("",) + tuple(v[2] for v in dep1)
+            key: tuple[str, ...] = (dep[0],) + tuple(v[0] for v in dep1)
+            vals: tuple[str, ...] = ("",) + tuple(v[2] for v in dep1)
             found = False
             for key2, csets in chains.items():
                 if key2[: len(key)] == key:
@@ -912,6 +957,8 @@ class UnsatisfiableError(CondaError):
                     found = True
             if not found:
                 chains[key] = [{val} for val in vals]
+
+        fchains: dict[tuple[str, ...], str] = {}
         for key, csets in chains.items():
             deps = []
             for name, cset in zip(key, csets):
@@ -927,12 +974,12 @@ class UnsatisfiableError(CondaError):
                 deps.append(
                     "{} {}".format(name, "|".join(sorted(cset))) if cset else name
                 )
-            chains[key] = " -> ".join(deps)
-        return [chains[key] for key in sorted(chains.keys())]
+            fchains[key] = " -> ".join(deps)
+        return [fchains[key] for key in sorted(fchains.keys())]
 
     def __init__(
         self,
-        bad_deps: Iterable[Iterable[MatchSpec]],
+        bad_deps: UnsatisfiableConflictMap,
         chains: bool = True,
         strict: bool = False,
     ):
@@ -941,59 +988,57 @@ class UnsatisfiableError(CondaError):
         messages = {
             "python": dals(
                 """
+                The following specifications were found
+                to be incompatible with the existing python installation in your environment:
 
-The following specifications were found
-to be incompatible with the existing python installation in your environment:
+                Specifications:
+                {specs}
 
-Specifications:\n{specs}
+                Your python: {ref}
 
-Your python: {ref}
-
-If python is on the left-most side of the chain, that's the version you've asked for.
-When python appears to the right, that indicates that the thing on the left is somehow
-not available for the python version you are constrained to. Note that conda will not
-change your python version to a different minor version unless you explicitly specify
-that.
-
-        """
+                If python is on the left-most side of the chain, that's the version you've asked for.
+                When python appears to the right, that indicates that the thing on the left is somehow
+                not available for the python version you are constrained to. Note that conda will not
+                change your python version to a different minor version unless you explicitly specify
+                that.
+                """
             ),
             "request_conflict_with_history": dals(
                 """
-
-The following specifications were found to be incompatible with a past
-explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
-
-                    """
+                The following specifications were found to be incompatible with a past
+                explicit spec that is not an explicit spec in this operation ({ref}):
+                {specs}
+                """
             ),
             "direct": dals(
                 """
-
-The following specifications were found to be incompatible with each other:
-                    """
+                The following specifications were found to be incompatible with each other:
+                """
             ),
             "virtual_package": dals(
                 """
+                The following specifications were found to be incompatible with your system:
+                {specs}
 
-The following specifications were found to be incompatible with your system:\n{specs}
-
-Your installed version is: {ref}
-"""
+                Your installed version is: {ref}
+                """
             ),
         }
 
         msg = ""
         self.unsatisfiable = []
         if len(bad_deps) == 0:
-            msg += """
-Did not find conflicting dependencies. If you would like to know which
-packages conflict ensure that you have enabled unsatisfiable hints.
+            msg += dals(
+                """
+                Did not find conflicting dependencies. If you would like to know which
+                packages conflict ensure that you have enabled unsatisfiable hints.
 
-conda config --set unsatisfiable_hints True
-            """
+                conda config --set unsatisfiable_hints True
+                """
+            )
         else:
             for class_name, dep_class in bad_deps.items():
                 if dep_class:
-                    _chains = []
                     if class_name == "direct":
                         msg += messages["direct"]
                         last_dep_entry = {d[0][-1].name for d in dep_class}
@@ -1014,6 +1059,7 @@ conda config --set unsatisfiable_hints True
                                     tuple(entries) for entries in chain
                                 ]
                     else:
+                        _chains: list[list[str]] = []
                         for dep_chain, installed_blocker in dep_class:
                             # Remove any target values from the MatchSpecs, convert to strings
                             dep_chain = [
@@ -1021,12 +1067,13 @@ conda config --set unsatisfiable_hints True
                             ]
                             _chains.append(dep_chain)
 
+                        _fchains: list[str]
                         if _chains:
-                            _chains = self._format_chain_str(_chains)
+                            _fchains = self._format_chain_str(_chains)
                         else:
-                            _chains = [", ".join(c) for c in _chains]
+                            _fchains = [", ".join(c) for c in _chains]
                         msg += messages[class_name].format(
-                            specs=dashlist(_chains), ref=installed_blocker
+                            specs=dashlist(_fchains), ref=installed_blocker
                         )
         if strict:
             msg += (
@@ -1034,13 +1081,93 @@ conda config --set unsatisfiable_hints True
                 "packages required for satisfiability."
             )
 
-        super().__init__(msg)
+        guidance = self._get_guidance(bad_deps, strict)
+
+        super().__init__(msg, guidance=guidance)
+
+    def _get_guidance(
+        self,
+        bad_deps: UnsatisfiableConflictMap,
+        strict: bool = False,
+    ) -> ErrorGuidanceTypedDict | None:
+        """Build guidance dict for :class:`UnsatisfiableError`, or ``None``."""
+        cause = []
+        if bad_deps.get("direct"):
+            cause.append("Some requested packages have conflicting version constraints")
+        if bad_deps.get("python"):
+            cause.append(
+                "Some packages are incompatible with the current Python version"
+            )
+        if bad_deps.get("request_conflict_with_history"):
+            cause.append(
+                "The operation conflicts with a past explicit install specification"
+            )
+        if bad_deps.get("virtual_package"):
+            cause.append(
+                "Some packages are not available for the current system platform"
+            )
+
+        hints = []
+        if not bad_deps:
+            hints.append(
+                {
+                    "text": (
+                        "Enable unsatisfiable hints for more detail:\n"
+                        "      conda config --set unsatisfiable_hints True"
+                    ),
+                    "hint_code": "enable_unsatisfiable_hints",
+                }
+            )
+        else:
+            hints.append(
+                {
+                    "text": (
+                        "Review the conflicting specifications above and adjust version "
+                        "ranges or package names."
+                    ),
+                    "hint_code": "review_conflicting_specs",
+                }
+            )
+        if strict:
+            hints.append(
+                {
+                    "text": (
+                        "Strict channel priority is enabled. Try flexible priority:\n"
+                        "      conda config --set channel_priority flexible"
+                    ),
+                    "hint_code": "channel_priority_flexible",
+                }
+            )
+        hints.append(
+            {
+                "text": (
+                    "Check for pinned packages:\n      conda config --show pinned_packages"
+                ),
+                "hint_code": "check_pinned_packages",
+            }
+        )
+        hints.append(
+            {
+                "text": "Update conda and try again:\n      conda update conda",
+                "hint_code": "update_conda",
+            }
+        )
+
+        return {
+            "summary": "Conda could not find a compatible set of packages to satisfy the requested specifications.",
+            "cause": "; ".join(cause) if cause else None,
+            "hints": hints,
+        }
 
 
 class RemoveError(CondaError):
-    def __init__(self, message: str):
-        msg = f"{message}"
-        super().__init__(msg)
+    def __init__(
+        self,
+        message: str,
+        *,
+        guidance: ErrorGuidance | ErrorGuidanceTypedDict | None = None,
+    ):
+        super().__init__(f"{message}", guidance=guidance)
 
 
 class DisallowedPackageError(CondaError):
@@ -1598,11 +1725,11 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
     else:
         from .gateways.streams import stderr
 
-        stderr(f"\n{exc_val!r}\n")
-        # An alternative which would allow us not to reload sys with newly setdefaultencoding()
-        # is to not use `%r`, e.g.:
-        # Still, not being able to use `%r` seems too great a price to pay.
-        # stderrlog.error("\n" + exc_val.__repr__() + \n")
+        guidance = getattr(exc_val, "_guidance", None)
+        if guidance is not None:
+            stderr(f"\n{guidance.format(exc_val)}\n")
+        else:
+            stderr(f"\n{exc_val!r}\n")
 
 
 def _format_exc(
