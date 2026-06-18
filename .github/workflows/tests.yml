@@ -36,6 +36,7 @@ env:
   CONDA_PLUGINS_USE_SHARDED_REPODATA: false
   CONDA_REPODATA_USE_SHARDS: false
   CONDA_REPODATA_USE_ZST: false
+  LIBSOLV_STAGING_CHANNEL: https://staging.continuum.io/pbp/fs/libsolv-feedstock/pr12/b8fe701
   LIBSOLV_STAGING_SPEC: libsolv=0.7.39
   # focused testing or any needed pytest arguments, default empty
   PYTEST_EXTRA: ''
@@ -135,12 +136,15 @@ jobs:
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
-        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
+        run: conda install -n base --yes --override-channels --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}" --channel defaults "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
 
       - name: Conda Install
         run: >
           conda install
           --yes
+          --override-channels
+          --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}"
+          --channel defaults
           --file tests\requirements.txt
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
@@ -275,12 +279,15 @@ jobs:
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
-        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
+        run: conda install -n base --yes --override-channels --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}" --channel defaults "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
 
       - name: Conda Install
         run: >
           conda install
           --yes
+          --override-channels
+          --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}"
+          --channel defaults
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
@@ -390,12 +397,15 @@ jobs:
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
-        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
+        run: conda install -n base --yes --override-channels --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}" --channel defaults "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
 
       - name: Conda Install
         run: >
           conda install
           --yes
+          --override-channels
+          --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}"
+          --channel defaults
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
@@ -480,12 +490,15 @@ jobs:
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
-        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
+        run: conda install -n base --yes --override-channels --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}" --channel defaults "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
 
       - name: Conda Install
         run: >
           conda install
           --yes
+          --override-channels
+          --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}"
+          --channel defaults
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
@@ -638,12 +651,16 @@ jobs:
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
-        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
+        run: conda install -n base --yes --override-channels --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}" --channel defaults "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
 
       - name: Conda Install
         run: >
           conda install
           --yes
+          --override-channels
+          --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}"
+          --channel defaults
+          --channel conda-forge
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
@@ -724,12 +741,15 @@ jobs:
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
-        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
+        run: conda install -n base --yes --override-channels --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}" --channel defaults "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
 
       - name: Conda Install
         run: >
           conda install
           --yes
+          --override-channels
+          --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}"
+          --channel defaults
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
@@ -912,13 +932,16 @@ jobs:
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
-        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
+        run: conda install -n base --yes --override-channels --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}" --channel defaults "conda-libmamba-solver>=26.4.1" "${{ env.LIBSOLV_STAGING_SPEC }}"
 
       - name: Conda Install
         working-directory: conda
         run: >
           conda install
           --yes
+          --override-channels
+          --channel "${{ env.LIBSOLV_STAGING_CHANNEL }}"
+          --channel defaults
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
