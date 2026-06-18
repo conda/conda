@@ -69,7 +69,7 @@ To use the PyPy builds you can do the following::
     conda activate pypy
 
 .. warning::
-    
+
    Using strict channel priority can make some environments unsatisfiable
    because it prevents fallback to lower-priority channels when a package
    with the same name exists in a higher-priority channel.

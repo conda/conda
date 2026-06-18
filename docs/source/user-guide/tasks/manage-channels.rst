@@ -133,8 +133,8 @@ we recommend the following approach:
      .. warning::
 
         If the channel you specify and your configured channels are not
-        fully compatible, this approach can result in binary 
-        incompatibilities that can cause hard-to-debug runtime errors, 
+        fully compatible, this approach can result in binary
+        incompatibilities that can cause hard-to-debug runtime errors,
         also known as "ABI incompatibility".
 
      .. code-block:: shell
