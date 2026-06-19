@@ -36,10 +36,6 @@ Historically, additional loggers were used for user-facing CLI text to stdout/st
 
 The `auxlib` logger a remnant from before the auxlib code was completely absorbed into conda.
 
-## Potential effect on other loggers
-
-There are three other functions that use {func}`logging.getLogger` and hence might affect other loggers. They are {func}`conda.gateways.logging.set_file_logging` that is never used in the code base and the context managers {func}`conda.common.io.disable_logger` and {func}`conda.common.io.stderr_log_level`, which are only used in testing.
-
 ## Root logger in auxlib
 
 In {mod}`conda.auxlib.logz`, the root logger is modified.

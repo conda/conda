@@ -7,23 +7,25 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
+from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.common.io import (
-    CaptureTarget,
-    ThreadLimitedThreadPoolExecutor,
-    attach_stderr_handler,
-    captured,
-)
+from conda.common.io import ThreadLimitedThreadPoolExecutor, attach_stderr_handler
+
+if TYPE_CHECKING:
+    from pytest import CaptureFixture
 
 
 def test_captured():
+    with pytest.deprecated_call():
+        from conda.common.io import CaptureTarget, captured
+
     stdout_text = "stdout text"
     stderr_text = "stderr text"
 
     def print_captured(*args, **kwargs):
-        with captured(*args, **kwargs) as c:
+        with pytest.deprecated_call(), captured(*args, **kwargs) as c:
             print(stdout_text, end="")
             print(stderr_text, end="", file=sys.stderr)
         return c
@@ -48,7 +50,7 @@ def test_captured():
     assert caller_stdout.getvalue() == stdout_text
     assert caller_stderr.getvalue() == stderr_text
 
-    with captured() as outer_c:
+    with pytest.deprecated_call(), captured() as outer_c:
         inner_c = print_captured(None, None)
     assert inner_c.stdout is None
     assert inner_c.stderr is None
@@ -56,7 +58,7 @@ def test_captured():
     assert outer_c.stderr == stderr_text
 
 
-def test_attach_stderr_handler():
+def test_attach_stderr_handler(capsys: CaptureFixture):
     name = "abbacadabba"
     logr = getLogger(name)
     assert len(logr.handlers) == 0
@@ -64,34 +66,34 @@ def test_attach_stderr_handler():
 
     debug_message = "debug message 1329-485"
 
-    with captured() as c:
-        attach_stderr_handler(WARN, name)
-        logr.warning("test message")
-        logr.debug(debug_message)
+    attach_stderr_handler(WARN, name)
+    logr.warning("test message")
+    logr.debug(debug_message)
+    stdout, stderr = capsys.readouterr()
 
     assert len(logr.handlers) == 1
     assert logr.handlers[0].name == "stderr"
     assert logr.handlers[0].level is WARN
     assert logr.level is NOTSET
     assert logr.getEffectiveLevel() is WARN
-    assert c.stdout == ""
-    assert "test message" in c.stderr
-    assert debug_message not in c.stderr
+    assert stdout == ""
+    assert "test message" in stderr
+    assert debug_message not in stderr
 
     # round two, with debug
-    with captured() as c:
-        attach_stderr_handler(DEBUG, name)
-        logr.warning("test message")
-        logr.debug(debug_message)
-        logr.info("info message")
+    attach_stderr_handler(DEBUG, name)
+    logr.warning("test message")
+    logr.debug(debug_message)
+    logr.info("info message")
+    stdout, stderr = capsys.readouterr()
 
     assert len(logr.handlers) == 1
     assert logr.handlers[0].name == "stderr"
     assert logr.handlers[0].level is DEBUG
     assert logr.level is DEBUG
-    assert c.stdout == ""
-    assert "test message" in c.stderr
-    assert debug_message in c.stderr
+    assert stdout == ""
+    assert "test message" in stderr
+    assert debug_message in stderr
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,25 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.common.io.CaptureTarget` as pending deprecation for removal in 27.3. (#16004)
+* Mark `conda.common.io.captured` as pending deprecation for removal in 27.3. (#16004)
+* Mark `conda.common.io.argv` as pending deprecation for removal in 27.3. (#16004)
+* Mark `conda.common.io.disable_logger` as pending deprecation for removal in 27.3. (#16004)
+* Mark `conda.common.io.stderr_log_level` as pending deprecation for removal in 27.3. (#16004)
+* Mark `conda.testing.helpers.captured` as pending deprecation for removal in 27.3. In tests, prefer pytest's `capsys` fixture instead. (#16004)
+* Mark `conda.gateways.logging.set_file_logging` as pending deprecation for removal in 27.3. (#16004)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
