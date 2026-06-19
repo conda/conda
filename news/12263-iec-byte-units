@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Use IEC binary prefixes (KiB, MiB, GiB) instead of incorrect SI-like prefixes (KB, MB, GB) in `human_bytes()`, since the calculation uses base-2 (powers of 1024). (#12263)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
