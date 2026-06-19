@@ -119,7 +119,8 @@ def rmtree(path):
                     out = check_output(
                         [
                             rsync,
-                            "-a",
+                            "--recursive",
+                            "--links",
                             "--force",
                             "--delete",
                             join(os.getcwd(), ".empty") + "/",
