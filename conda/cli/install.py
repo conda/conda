@@ -392,13 +392,18 @@ def install(args, parser, command="install"):
                     raise CondaImportError(str(e))
                 raise e
 
-    handle_txn(unlink_link_transaction, prefix, args, newenv)
+    defer_json = context.json and bool(env.external_packages)
+
+    conda_actions = handle_txn(
+        unlink_link_transaction, prefix, args, newenv, defer_json_success=defer_json
+    )
 
     if env.external_packages and not context.dry_run and not context.download_only:
         from .. import CondaError
         from ..env.installers.base import get_installer
         from ..env.pip_util import get_pip_workdir
 
+        installer_results = {}
         external_envs = [
             (fpath, file_env)
             for fpath, file_env in fpath_envs_map.items()
@@ -410,19 +415,28 @@ def install(args, parser, command="install"):
                     installer = get_installer(installer_type)
                     if installer_type == "pip":
                         workdir = get_pip_workdir(fpath)
-                        installer.install(
+                        result = installer.install(
                             prefix, list(pkg_specs), args, file_env, workdir=workdir
                         )
                     else:
-                        installer.install(prefix, list(pkg_specs), args, file_env)
+                        result = installer.install(
+                            prefix, list(pkg_specs), args, file_env
+                        )
+                    if result is not None:
+                        installer_results[installer_type.upper()] = result
                 except InvalidInstaller:
                     raise CondaError(
                         f"Unable to install package for {installer_type} from environment file {fpath}. "
                         "Please ensure your dependencies file has the correct spelling."
                     )
 
+            conda_actions.update(installer_results)
+
     if env.variables:
         PrefixData(prefix).set_environment_env_vars(env.variables)
+
+    if defer_json:
+        common.stdout_json_success(prefix=prefix, actions=conda_actions)
 
 
 def install_clone(args, parser):
@@ -530,19 +544,41 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
     return UnlinkLinkTransaction(setup)
 
 
-def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
+def handle_txn(
+    unlink_link_transaction,
+    prefix,
+    args,
+    newenv,
+    remove_op=False,
+    defer_json_success=False,
+) -> dict | None:
+    """
+    Handles executing an unlink_link_transaction, and reporting changes. If `defer_json_success`
+    argument is provided, will return a dict of actions that have been taken as part of the
+    transaction.
+
+    :param unlink_link_transaction: transaction to execute, output from the solver
+    :param prefix: prefix to execute the transaction on
+    :param args: cli args
+    :param newenv: boolean noting that the environment is being created for the first time
+    :param remove_op: defaults to false, boolean noting that the user is requesting to remove
+                      a package from the environment
+    :param defer_json_success: when true, will return the set of actions executed in dict form
+    """
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
             raise PackagesNotFoundInPrefixError(args.package_names, prefix=prefix)
         elif not newenv:
             if context.json:
+                if defer_json_success:
+                    return {}
                 common.stdout_json_success(
                     message="All requested packages already installed."
                 )
             else:
                 print("\n# All requested packages already installed.\n")
-            return
+            return None
 
     if not context.json:
         unlink_link_transaction.print_transaction_summary()
@@ -574,4 +610,6 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
+        if defer_json_success:
+            return actions
         common.stdout_json_success(prefix=prefix, actions=actions)
