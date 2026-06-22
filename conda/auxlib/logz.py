@@ -164,7 +164,7 @@ def stringify(obj, content_max_len=0):
                 if len(text) > content_max_len:
                     content = text
                 else:
-                    resp = json().loads(text)
+                    resp = _json().loads(text)
                     resp = dict(islice(resp.items(), content_max_len))
                     content = json.dumps(resp)
                 content = content[:content_max_len] if len(content) > content_max_len else content
