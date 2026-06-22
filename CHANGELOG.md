@@ -1,5 +1,22 @@
 [//]: # (current developments)
 
+## 26.5.3 (2026-06-16)
+
+### Bug fixes
+
+* If shards were not found on a channel, conda would cache the not-found response, which can break shards-only channels. Instead, always check for sharded repodata if classic repodata has not been cached. (#16183)
+
+### Other
+
+* Fix `get_shortcut_dir()` test helper to use the supplied prefix when detecting `.nonadmin` on Windows, aligning with menuinst 2.5 shortcut path behavior. (#16207)
+
+### Contributors
+
+* @danyeaw
+* @jezdez
+
+
+
 ## 26.5.2 (2026-06-01)
 
 ### Bug fixes
