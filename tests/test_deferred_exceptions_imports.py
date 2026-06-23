@@ -21,6 +21,8 @@ import pytest
         "conda.models.channel",
         "conda.auxlib.logz",
         "conda.common.iterators",
+        "conda.common.io",
+        "conda.common.serialize.json",
     ],
 )
 def test_exceptions_does_not_eagerly_import(module: str) -> None:
