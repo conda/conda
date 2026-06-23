@@ -1,4 +1,4 @@
-# Sharded repodata implementation
+# Sharded repodata
 
 This document provides an overview on how `conda` implements
 [CEP-16 Sharded Repodata](https://conda.org/learn/ceps/cep-0016).
@@ -10,10 +10,11 @@ contents, they can be cached without having to check the server for freshness.
 Individual shards only need to change when an individual package has changed, so
 only the much smaller index has to be re-fetched often.
 
-## Sharded Repodata in conda-libmamba-solver
+## Sharded Repodata in conda
 
-For `conda-libmamba-solver`, we wanted a way to implement sharded repodata in
-Python without having to touch the C++ `libmamba`.
+For `conda` and `conda-libmamba-solver`, which contained the sharsd
+implementation later ported to `conda`, we wanted a way to implement sharded
+repodata in Python that was independent of compiled solver code.
 
 We do this by treating all repodata as if it was sharded repodata. Starting with
 a list of installed packages and to-be-installed packages, we gather all
@@ -64,28 +65,28 @@ threads communicate to each other via the following queues:
 
 ## Source code
 
-The shard handling code is split into `shards.py`, `shards_cache.py`,
-`shards_subset.py` and `shards_typing.py` in `conda_libmamba_solver/`.
-Additional code in `conda_libmamba_solver/index.py` calls
+The shard handling code is split into `conda/_private/shards/shards.py`, `conda/_private/shards/cache.py`,
+`conda/_private/shards/subset.py`, `conda/_private/shards/typing.py`, and `conda/_private/shards/misc.py` in `conda/_private/`.
+Additional code in `conda/_private/index.py` calls
 `build_repodata_subset()` and converts the resulting repodata to `libmamba`
 objects.
 
-### `shards.py`
+### `conda/_private/shards/shards.py`
 
-`shards.py` provides an interface to treat sharded repodata and monolithic
+`conda/_private/shards/shards.py` provides an interface to treat sharded repodata and monolithic
 `repodata.json` in the same way. It checks a channel for sharded repodata,
 returning an object that implements the `ShardLike` interface.
 
-### `shards_subset.py`
+### `conda/_private/shards/subset.py`
 
-`shards_subset.py` accepts a list of `ShardLike` instances and a list of initial
+`conda/_private/shards/subset.py` accepts a list of `ShardLike` instances and a list of initial
 packages to compute a repodata subset. The traversal is simplified thanks to the
 `ShardLike` interface, so the algorithm doesn't have to worry too much about the
 type of each channel.
 
-### `shards_cache.py`
+### `conda/_private/shards/cache.py`
 
-`shards_cache.py` implements a sqlite3 cache used to store individual shards.
+`conda/_private/shards/cache.py` implements a sqlite3 cache used to store individual shards.
 When traversing shards, the cache is checked before making a network request.
 The shards cache is a single database for all channels in
 `$CONDA_PREFIX/pkgs/cache/repodata_shards.db`.
@@ -106,16 +107,16 @@ whether a channel provides `repodata.json.zst`, and stores `ETag` and
 },
 ```
 
-### `shards_typing.py`
+### `conda/_private/shards/typing.py`
 
-`shards_typing.py` provides type hints for data structures used in sharded
+`conda/_private/shards/typing.py` provides type hints for data structures used in sharded
 repodata, but it is not normative; it only includes fields used by the sharded
 repodata system.
 
 ### `tests/test_shards.py`
 
 The sharded repodata tests maintain 100% code coverage of the shards-related code
-`shards*.py`.
+in `conda/_private/shards/*.py`.
 
 ## Example dependency graph for Python
 
@@ -129,11 +130,13 @@ traversal quickly determine that these packages don't appear in any channel by
 checking the `repodata_shards.msgpack.zst` index. The solver will let us know if
 these missing packages are a problem, virtual or no.
 
-The first draft of sharded repodata in `conda-libmamba-solver` literally
-generated classic `repodata.json` with package subsets to load into the solver,
-but now we convert each record into `libmamba` `PackageInfo` objects in memory.
+The first draft of sharded repodata in `conda` literally generated classic
+`repodata.json` with package subsets to load into the solver, but now the solver
+gets a subset that yields individual package records, so that it can convert
+each record into solver objects in memory.
 
-By giving `libmamba` every possible dependency for a specific request, it has
-enough information to produce a solution.
+The subset gives the solver every possible dependency for a specific request.
+The transfer and parsing saved by not processing the full repodata makes up for
+the time spent generating a subset.
 
 :::{mermaid} shards_python.mmd
