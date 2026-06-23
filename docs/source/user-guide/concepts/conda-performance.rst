@@ -96,7 +96,7 @@ This section goes over some of the best practices we recommend for addressing pe
 
    .. warning::
 
-      Strict channel priority can make some environments unsatisfiable and blocks fallback to lower-priority channels when a package with the same name exists in a higher-priority channel. It is not recommended if you rely on a wheels channel as a fallback source. To learn more about strict channel priority and channel configuration, see :ref:`channel configuration best practices <strict>`.
+      Strict channel priority can make some environments unsatisfiable and blocks fallback to lower-priority channels when a package with the same name exists in a higher-priority channel. To learn more about strict channel priority and channel configuration, see :ref:`channel configuration best practices <strict>`.
 
    .. figure:: ../../img/strict-disabled.png
        :width: 50%
