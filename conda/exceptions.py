@@ -38,16 +38,16 @@ if TYPE_CHECKING:
 
     import requests
 
-    from conda._private.exception_guidance import (
+    from ._private.exception_guidance import (
         ErrorGuidance,
         ErrorGuidanceTypedDict,
     )
-    from conda.base.context import Context
-    from conda.common.path import PathType
-    from conda.models.channel import Channel
-    from conda.models.match_spec import MatchSpec
-    from conda.models.records import PackageRecord
-    from conda.plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
+    from .base.context import Context
+    from .common.path import PathType
+    from .models.channel import Channel
+    from .models.match_spec import MatchSpec
+    from .models.records import PackageRecord
+    from .plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
 
     UnsatisfiableConflictEntry = tuple[tuple[MatchSpec, ...], str]
     UnsatisfiableConflictClass = set[UnsatisfiableConflictEntry]
