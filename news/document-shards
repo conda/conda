@@ -13,7 +13,7 @@
 ### Docs
 
 * Include shards documentation from `conda-libmamba-solver` in
-  `conda`, to accompany the ported implementation.
+  `conda` to accompany the ported implementation. (#16267)
 
 ### Other
 
