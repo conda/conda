@@ -102,14 +102,14 @@ class Action(ABC):
         4. ``cleanup``
 
 
-    :param transaction_context: Mapping between target prefixes and PrefixActionGroup
-        instances
-    :param target_prefix: Target prefix for the action
-    :param unlink_precs: Package records to be unlinked
-    :param link_precs: Package records to link
-    :param remove_specs: Specs to be removed
-    :param update_specs: Specs to be updated
-    :param neutered_specs: Specs to be neutered
+    Args:
+        transaction_context: Mapping between target prefixes and PrefixActionGroup instances.
+        target_prefix: Target prefix for the action.
+        unlink_precs: Package records to be unlinked.
+        link_precs: Package records to link.
+        remove_specs: Specs to be removed.
+        update_specs: Specs to be updated.
+        neutered_specs: Specs to be neutered.
     """
 
     _verified = False
@@ -138,9 +138,10 @@ class Action(ABC):
 
         Should set self._verified = True upon success.
 
-        :return: On failure, this function should return (not raise!) an exception
-        object. At the end of the verification run, all errors will be raised as a
-        CondaMultiError.
+        Returns:
+            On failure, this function should return (not raise!) an exception
+            object. At the end of the verification run, all errors will be raised as a
+            CondaMultiError.
         """
 
     @abstractmethod

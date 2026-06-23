@@ -184,8 +184,11 @@ def strip_pkg_extension(path: str) -> tuple[str, str | None]:
     Package extensions are determined dynamically from registered plugins.
     Repodata extensions (.json, .json.zst) are also recognized.
 
-    :param path: Path to split.
-    :return: Tuple of (base_path, extension) where extension is None if not found.
+    Args:
+        path: Path to split.
+
+    Returns:
+        Tuple of (base_path, extension) where extension is None if not found.
 
     Examples:
         >>> strip_pkg_extension("/path/_license-1.1-py27_1.tar.bz2")

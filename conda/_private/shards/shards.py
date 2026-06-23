@@ -15,7 +15,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import msgpack
-import zstandard
 
 import conda.exceptions
 import conda.gateways.repodata
@@ -29,6 +28,7 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 
+from ..zstd import capped_decompress
 from . import cache
 from .misc import (
     _is_http_error_most_400_codes,
@@ -172,7 +172,7 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            zstandard.decompress(
+            capped_decompress(
                 fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
             )
         )
@@ -698,7 +698,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         if shards_data:
             # basic parse (move into caller?)
             shards_index: ShardsIndexDict = msgpack.loads(
-                zstandard.decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
+                capped_decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
             )  # type: ignore
             shards = Shards(shards_index, shards_index_url)
             return shards
@@ -783,11 +783,13 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=_shards_connections()
     ) as executor:
+        subdir_data = {
+            channel_url: SubdirData(Channel(channel_url))
+            for channel_url in url_to_channel
+        }
         futures = {
-            executor.submit(
-                fetch_shards_index, SubdirData(Channel(channel_url))
-            ): channel_url
-            for (channel_url, _) in url_to_channel.items()
+            executor.submit(fetch_shards_index, sd): channel_url
+            for channel_url, sd in subdir_data.items()
         }
         futures_non_sharded = {}
 
@@ -799,7 +801,6 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        # If all are None then don't do ShardLike.
         if all(value is None for value in channel_data.values()):
             return None  # caller should interpret this as falling back to the older code path
 
