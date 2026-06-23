@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from ._private.exception_guidance import (
         ErrorGuidance,
         ErrorGuidanceTypedDict,
+        GuidanceHintTypedDict,
     )
     from .base.context import Context
     from .common.path import PathType
@@ -1746,10 +1747,36 @@ def _format_exc(
     return "".join(formatted_exception)
 
 
-class InvalidInstaller(Exception):
-    def __init__(self, name: str):
+class InvalidInstaller(CondaError):
+    def __init__(self, name: str, *, file: str | None = None):
         msg = f"Unable to load installer for {name}"
-        super().__init__(msg)
+        hints: list[GuidanceHintTypedDict] = [
+            {
+                "text": "Please ensure your dependencies file has the correct spelling.",
+                "hint_code": "check_env_file_spelling",
+            },
+        ]
+        if file:
+            summary = (
+                f"Unable to install package for {name} from environment file {file}."
+            )
+        else:
+            summary = f"Unable to install package for {name}."
+            hints.append(
+                {
+                    "text": (
+                        f"You might also try installing the conda-env-{name} package "
+                        "to see if provides the required installer."
+                    ),
+                    "hint_code": "install_conda_env_plugin",
+                },
+            )
+        super().__init__(
+            msg,
+            name=name,
+            file=file,
+            guidance={"summary": summary, "hints": hints},
+        )
 
 
 class OfflineError(CondaError, RuntimeError):

@@ -25,6 +25,7 @@ from conda.exceptions import (
     CondaValueError,
     DirectoryNotFoundError,
     ExceptionHandler,
+    InvalidInstaller,
     KnownPackageClobberError,
     PackagesNotFoundError,
     PathNotFoundError,
@@ -1058,6 +1059,53 @@ def test_print_conda_exception_without_guidance(
         (
             "",
             f"RemoveError: {message}",
+            "",
+            "",
+        )
+    )
+
+
+def test_InvalidInstaller_with_file_guidance(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    exc = InvalidInstaller("pip", file="/tmp/environment.yml")
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            "InvalidInstaller: Unable to install package for pip from environment file /tmp/environment.yml.",
+            "",
+            "Next steps:",
+            "  - (check_env_file_spelling) Please ensure your dependencies file has the correct spelling.",
+            "",
+            "",
+        )
+    )
+
+
+def test_InvalidInstaller_without_file_guidance(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    exc = InvalidInstaller("npm")
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            "InvalidInstaller: Unable to install package for npm.",
+            "",
+            "Next steps:",
+            "  - (check_env_file_spelling) Please ensure your dependencies file has the correct spelling.",
+            "  - (install_conda_env_plugin) You might also try installing the conda-env-npm package to see if provides the required installer.",
             "",
             "",
         )

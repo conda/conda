@@ -12,7 +12,6 @@ from argparse import (
 )
 from pathlib import Path
 
-from .. import CondaError
 from ..cli.main_config import set_keys
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..notices import notices
@@ -128,7 +127,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.pip_util import get_pip_workdir
     from ..exceptions import (
         CondaEnvException,
-        InvalidInstaller,
         PlatformMismatchError,
     )
     from ..gateways.disk.delete import rm_rf
@@ -210,30 +208,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
         # install all other external packages
         for installer_type, pkg_specs in env.external_packages.items():
-            try:
-                installer = get_installer(installer_type)
-                if installer_type == "pip":
-                    workdir = get_pip_workdir(args.file)
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env, workdir=workdir
-                    )
-                else:
-                    result[installer_type] = installer.install(
-                        prefix, pkg_specs, args, env
-                    )
-            except InvalidInstaller:
-                raise CondaError(
-                    dals(
-                        f"""
-                        Unable to install package for {installer_type}.
-
-                        Please double check and ensure your dependencies file has
-                        the correct spelling. You might also try installing the
-                        conda-env-{installer_type} package to see if provides
-                        the required installer.
-                        """
-                    )
+            installer = get_installer(installer_type)
+            if installer_type == "pip":
+                workdir = get_pip_workdir(args.file)
+                result[installer_type] = installer.install(
+                    prefix, pkg_specs, args, env, workdir=workdir
                 )
+            else:
+                result[installer_type] = installer.install(prefix, pkg_specs, args, env)
 
         if context.subdir != context._native_subdir():
             set_keys(

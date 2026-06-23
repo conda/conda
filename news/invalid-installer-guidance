@@ -1,0 +1,7 @@
+### Enhancements
+
+* Rework `InvalidInstaller` as a `CondaError` with structured guidance, removing redundant CLI try/except wrappers.
+
+### Bug fixes
+
+* Fix `conda env update` reporting a literal `{0}` placeholder when an external installer is unavailable.
