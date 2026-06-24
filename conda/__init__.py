@@ -107,6 +107,8 @@ class CondaError(Exception):
         return f"{self.__class__.__name__}: {self}"
 
     def __str__(self) -> str:
+        if not self._kwargs:
+            return str(self.message)
         try:
             return str(self.message) % self._kwargs
         except Exception:
