@@ -4,11 +4,11 @@ Installing on Linux
 
 #. Download the installer:
 
-   * `Miniconda installer for Linux <https://docs.anaconda.com/miniconda/>`__.
+   * `Miniconda installer for Linux <https://www.anaconda.com/download/success>`__.
 
-   * `Anaconda Distribution installer for Linux <https://www.anaconda.com/download/>`__.
+   * `Anaconda Distribution installer for Linux <https://www.anaconda.com/download>`__.
 
-   * `Miniforge installer for Linux <https://conda-forge.org/download/>`_.
+   * `Miniforge installer for Linux <https://conda-forge.org/download>`_.
 
 #. :ref:`Verify your installer hashes <hash-verification>`.
 
