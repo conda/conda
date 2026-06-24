@@ -1081,7 +1081,7 @@ def test_InvalidInstaller_with_file_guidance(
             "InvalidInstaller: Unable to install package for pip from environment file /tmp/environment.yml.",
             "",
             "Next steps:",
-            "  - (check_env_file_spelling) Please ensure your dependencies file has the correct spelling.",
+            "  - (check_available_installer) Please ensure you are requesting an available installer.",
             "",
             "",
         )
@@ -1104,8 +1104,7 @@ def test_InvalidInstaller_without_file_guidance(
             "InvalidInstaller: Unable to install package for npm.",
             "",
             "Next steps:",
-            "  - (check_env_file_spelling) Please ensure your dependencies file has the correct spelling.",
-            "  - (install_conda_env_plugin) You might also try installing the conda-env-npm package to see if provides the required installer.",
+            "  - (check_available_installer) Please ensure you are requesting an available installer.",
             "",
             "",
         )

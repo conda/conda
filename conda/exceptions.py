@@ -1753,7 +1753,7 @@ class InvalidInstaller(CondaError):
         hints: list[GuidanceHintTypedDict] = [
             {
                 "text": "Please ensure you are requesting an available installer.",
-                "hint_code": "check_env_file_spelling",
+                "hint_code": "check_available_installer",
             },
         ]
         if file:
@@ -1762,7 +1762,7 @@ class InvalidInstaller(CondaError):
             )
         else:
             summary = f"Unable to install package for {name}."
-            
+
         super().__init__(
             msg,
             name=name,
