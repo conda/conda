@@ -1620,19 +1620,20 @@ class ChannelMatch(GlobStrMatch):
 
         if self._re_match:
             return self._re_match(_other_val.canonical_name)
-        else:
-            # assert ChannelMatch('pkgs/free').match('defaults') is False
-            # assert ChannelMatch('defaults').match('pkgs/free') is True
-            if _is_non_alias_url_channel(self._raw_value):
-                # Compare by base_url rather than Channel.__eq__, because
-                # there are cases where we can have a spec whose channel has
-                # no platform, such as one extracted by the URL parser when
-                # a subdir is also present. For example, a spec extracted
-                # from a URL like "file:///.../channel/noarch/pkg-...tar.bz2"
-                # still matches a cached record whose channel retained the
-                # platform.
-                return self._raw_value.base_url == _other_val.base_url
 
+        # assert ChannelMatch('pkgs/free').match('defaults') is False
+        # assert ChannelMatch('defaults').match('pkgs/free') is True
+        elif _is_non_alias_url_channel(self._raw_value):
+            # Compare by base_url rather than Channel.__eq__, because
+            # there are cases where we can have a spec whose channel has
+            # no platform, such as one extracted by the URL parser when
+            # a subdir is also present. For example, a spec extracted
+            # from a URL like "file:///.../channel/noarch/pkg-...tar.bz2"
+            # still matches a cached record whose channel retained the
+            # platform.
+            return self._raw_value.base_url == _other_val.base_url
+
+        else:
             # This should have been the following
             # self._raw_value.name == _other_val.canonical_name or self._raw_value == _other_val
             # but users may rely on this exact behaviour.
