@@ -12,9 +12,9 @@ only the much smaller index has to be re-fetched often.
 
 ## Sharded Repodata in conda
 
-For `conda` and `conda-libmamba-solver`, which contained the sharsd
-implementation later ported to `conda`, we wanted a way to implement sharded
-repodata in Python that was independent of compiled solver code.
+Originally developed in `conda-libmamba-solver` and later ported into `conda`,
+we wanted a way to implement sharded repodata in Python that was independent of
+compiled solver code.
 
 We do this by treating all repodata as if it was sharded repodata. Starting with
 a list of installed packages and to-be-installed packages, we gather all
@@ -67,9 +67,14 @@ threads communicate to each other via the following queues:
 
 The shard handling code is split into `conda/_private/shards/shards.py`, `conda/_private/shards/cache.py`,
 `conda/_private/shards/subset.py`, `conda/_private/shards/typing.py`, and `conda/_private/shards/misc.py` in `conda/_private/`.
-Additional code in `conda/_private/index.py` calls
-`build_repodata_subset()` and converts the resulting repodata to `libmamba`
-objects.
+`conda/gateways/shards/` re-exports `build_repodata_subset()`. When
+`context.repodata_use_shards` is enabled, `conda/plugins/manager.py` injects it
+into solver backends that accept a `build_repodata_subset` constructor parameter.
+Solver plugins such as `conda-libmamba-solver` pass the injected callable to
+their index helper, which calls it and converts the resulting repodata to solver
+objects in memory. If no channel provides sharded repodata,
+`build_repodata_subset()` returns `None` and the solver falls back to classic
+`repodata.json` loading.
 
 ### `conda/_private/shards/shards.py`
 
@@ -113,10 +118,15 @@ whether a channel provides `repodata.json.zst`, and stores `ETag` and
 repodata, but it is not normative; it only includes fields used by the sharded
 repodata system.
 
-### `tests/test_shards.py`
+### `conda/_private/shards/misc.py`
 
-The sharded repodata tests maintain 100% code coverage of the shards-related code
-in `conda/_private/shards/*.py`.
+`conda/_private/shards/misc.py` provides URL helpers, batching utilities, and
+connection-pool configuration used by the other shards modules.
+
+### `tests/shards/`
+
+Tests under `tests/shards/` cover the shards-related code in
+`conda/_private/shards/*.py`.
 
 ## Example dependency graph for Python
 
@@ -126,7 +136,7 @@ If sharded repodata is asked to install Python, we look for `python` in every
 active channel. The `python` shard(s) tells us we can fetch `bzip2`, `libffi`,
 `...` in parallel, discovering a third layer including `icu`, `ca-certificates`,
 and others. `ca-certificates` also depends on some virtual packages, but the
-traversal quickly determine that these packages don't appear in any channel by
+traversal quickly determines that these packages don't appear in any channel by
 checking the `repodata_shards.msgpack.zst` index. The solver will let us know if
 these missing packages are a problem, virtual or no.
 
@@ -140,3 +150,4 @@ The transfer and parsing saved by not processing the full repodata makes up for
 the time spent generating a subset.
 
 :::{mermaid} shards_python.mmd
+:::
