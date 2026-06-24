@@ -149,7 +149,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # Ensure we have all the right external package installers before starting
     # to install anything.
     for installer_type in env.external_packages:
-        installers[installer_type] = get_installer(installer_type)
+        installers[installer_type] = get_installer(installer_type, file=args.file)
 
     result = {"conda": None, "pip": None}
     # install conda packages

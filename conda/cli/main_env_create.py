@@ -208,7 +208,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
         # install all other external packages
         for installer_type, pkg_specs in env.external_packages.items():
-            installer = get_installer(installer_type)
+            installer = get_installer(installer_type, file=args.file)
             if installer_type == "pip":
                 workdir = get_pip_workdir(args.file)
                 result[installer_type] = installer.install(
