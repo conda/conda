@@ -1,0 +1,5 @@
+### Enhancements
+
+* Add structured `ErrorGuidance` model to `CondaError` for attaching summary, cause, and actionable hints to exceptions, with terminal guidance rendering in `print_conda_exception` and `guidance` key in `--json` output via `dump_map`. (#16036)
+* Add `ErrorGuidance` and `GuidanceHint` dataclasses with dict coercion support in new `conda._private.exception_guidance` module. (#16036)
+* Attach guidance to `RemoveError` in `conda.core.link` (conda self-removal, dependency removal), `PackagesNotFoundError` (when 5+ packages missing from channels), and `UnsatisfiableError`. (#16036)

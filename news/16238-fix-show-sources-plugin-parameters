@@ -1,0 +1,18 @@
+### Enhancements
+
+* `conda config --show-sources` now supports displaying plugin parameter values. (#16238 via #16246)
+
+### Bug fixes
+
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

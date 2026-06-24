@@ -442,19 +442,24 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     json_warnings = []
 
     if args.show_sources:
+        all_sources = context.collect_all()
+        plugin_sources = context.plugins.collect_all()
+
+        # Merge plugin settings into each source, nested under "plugins"
+        for source, plugin_reprs in plugin_sources.items():
+            if plugin_reprs:
+                all_sources.setdefault(source, {})["plugins"] = plugin_reprs
+
         if context.json:
             stdout_write(
                 json.dumps(
-                    {
-                        str(source): values
-                        for source, values in context.collect_all().items()
-                    },
+                    {str(source): values for source, values in all_sources.items()},
                     sort_keys=True,
                 )
             )
         else:
             lines = []
-            for source, reprs in context.collect_all().items():
+            for source, reprs in all_sources.items():
                 lines.append(f"==> {source} <==")
                 lines.extend(format_dict(reprs))
                 lines.append("")
