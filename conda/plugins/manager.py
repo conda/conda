@@ -408,7 +408,7 @@ class CondaPluginManager(pluggy.PluginManager):
         ]
         if invalid:
             plugin_names = (
-                f"{repr(plugin)} ({self.get_plugin_source(plugin.impl.plugin)})"
+                f"{repr(plugin)} ({self.get_plugin_source(plugin)})"
                 for plugin in invalid
             )
             raise PluginError(
@@ -422,7 +422,7 @@ class CondaPluginManager(pluggy.PluginManager):
             plugin_name: sorted(
                 source
                 for plugin in conflicting
-                if (source := self.get_plugin_source(plugin.impl.plugin)) is not None
+                if (source := self.get_plugin_source(plugin)) is not None
             )
             for plugin_name, conflicting in sorted(
                 groupby_to_dict(lambda plugin: plugin.name, plugins).items()
