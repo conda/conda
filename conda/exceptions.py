@@ -1752,7 +1752,7 @@ class InvalidInstaller(CondaError):
         msg = f"Unable to load installer for {name}"
         hints: list[GuidanceHintTypedDict] = [
             {
-                "text": "Please ensure your dependencies file has the correct spelling.",
+                "text": "Please ensure you are requesting an available installer.",
                 "hint_code": "check_env_file_spelling",
             },
         ]
@@ -1762,15 +1762,7 @@ class InvalidInstaller(CondaError):
             )
         else:
             summary = f"Unable to install package for {name}."
-            hints.append(
-                {
-                    "text": (
-                        f"You might also try installing the conda-env-{name} package "
-                        "to see if provides the required installer."
-                    ),
-                    "hint_code": "install_conda_env_plugin",
-                },
-            )
+            
         super().__init__(
             msg,
             name=name,
