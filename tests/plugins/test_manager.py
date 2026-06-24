@@ -67,17 +67,18 @@ class DummyVirtualPackagePlugin:
 
 def test_get_plugin_source_registered_plugin(plugin_manager: CondaPluginManager):
     plugin_manager.register(VerboseSolverPlugin)
-    assert plugin_manager.get_plugin_source(VerboseSolverPlugin).endswith(
-        ".VerboseSolverPlugin"
-    )
+    solvers_list = [p for ps in plugin_manager.hook.conda_solvers() for p in ps]
+    solver = next(p for p in solvers_list if p.name == "verbose-classic")
+    assert plugin_manager.get_plugin_source(solver).endswith(".VerboseSolverPlugin")
 
 
 def test_get_plugin_source_entrypoint_distribution(
     plugin_manager: CondaPluginManager,
 ):
     assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
-    plugin = next(iter(plugin_manager.get_plugins()))
-    assert plugin_manager.get_plugin_source(plugin) == "conda-test-plugin 1.0"
+    solvers_list = [p for ps in plugin_manager.hook.conda_solvers() for p in ps]
+    solver = next(p for p in solvers_list if p.name == "test")
+    assert plugin_manager.get_plugin_source(solver) == "conda-test-plugin 1.0"
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
