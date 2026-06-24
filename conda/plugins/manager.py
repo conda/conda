@@ -76,6 +76,7 @@ if TYPE_CHECKING:
         CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
+        CondaPlugin,
         CondaPluginWithAliases,
         CondaPostCommand,
         CondaPostSolve,
@@ -186,10 +187,11 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"{plugin_class.__qualname__}[{id(plugin)}]"
             )
 
-    def get_plugin_source(self, plugin: object) -> str | None:
+    def get_plugin_source(self, conda_plugin: CondaPlugin) -> str | None:
         """Return a human-readable source for a registered plugin,
         or ``None`` if ``plugin`` is ``None``.
         """
+        plugin = getattr(getattr(conda_plugin, "impl", None), "plugin", None)
         if plugin is None:
             return None
         for registered_plugin, dist in self.list_plugin_distinfo():
