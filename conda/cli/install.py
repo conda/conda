@@ -64,7 +64,6 @@ from .common import check_non_admin
 from .main_config import set_keys
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from typing import Any
 
 log = getLogger(__name__)
@@ -401,7 +400,7 @@ def install(args, parser, command="install"):
 
     conda_actions = handle_txn(
         unlink_link_transaction, prefix, args, newenv, defer_json_success=defer_json
-    )
+    ) or {}
 
     if env.external_packages and not context.dry_run and not context.download_only:
         from .. import CondaError
@@ -612,11 +611,6 @@ def handle_txn(
                 ("subdir", context.subdir),
                 path=Path(prefix, DEFAULT_CONDARC_FILENAME),
             )
-
-    follow_up_action_results = {}
-    for action in follow_up_actions:
-        result = action()
-        follow_up_action_results.update(result)
 
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]

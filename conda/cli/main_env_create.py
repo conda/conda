@@ -84,7 +84,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "-f",
         "--file",
         nargs="*",
-        # action="store",
         help=(
             "Environment definition file (default: environment.yml). Standard "
             "filenames registered by the installed format plugins are "
