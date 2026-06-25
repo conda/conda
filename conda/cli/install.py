@@ -398,9 +398,12 @@ def install(args, parser, command="install"):
 
     defer_json = context.json and bool(env.external_packages)
 
-    conda_actions = handle_txn(
-        unlink_link_transaction, prefix, args, newenv, defer_json_success=defer_json
-    ) or {}
+    conda_actions = (
+        handle_txn(
+            unlink_link_transaction, prefix, args, newenv, defer_json_success=defer_json
+        )
+        or {}
+    )
 
     if env.external_packages and not context.dry_run and not context.download_only:
         from .. import CondaError
