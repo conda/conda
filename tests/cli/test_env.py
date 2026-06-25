@@ -371,6 +371,31 @@ def test_create_valid_env_with_conda_and_pip_json_output(
 
 
 @pytest.mark.integration
+def test_conda_create_with_pip_json_output(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture, tmp_path: Path
+):
+    """
+    `conda create --json` with a conda+pip env file should include a "PIP" key in
+    actions, matching the output of `conda env create --json`.
+    """
+    prefix = path_factory()
+    env_file = tmp_path / "environment.yml"
+    create_env(ENVIRONMENT_PIP_CLICK, filename=str(env_file))
+    stdout, _, _ = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        f"--file={env_file}",
+        "--quiet",
+        "--json",
+        "--yes",
+    )
+    output = json.loads(stdout)
+    assert output["success"] is True
+    assert len(output["actions"]["LINK"]) > 0
+    assert output["actions"]["PIP"][0].startswith("click")
+
+
+@pytest.mark.integration
 def test_update_env_json_output(
     path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
 ):
