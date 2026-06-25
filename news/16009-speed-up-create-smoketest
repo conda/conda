@@ -1,0 +1,3 @@
+### Other
+
+* Speed up `test_create_install_update_remove_smoketest` by serving local test-recipes over HTTP instead of remote python/flask solves. (#16009)
