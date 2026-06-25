@@ -10,7 +10,7 @@ Installing on macOS
 
 #. Download the installer:
 
-   * `Miniconda installer for macOS <https://www.anaconda.com/download/success>`__.
+   * `Miniconda installer for macOS <https://www.anaconda.com/download>`__.
 
    * `Anaconda Distribution installer for macOS <https://www.anaconda.com/download>`__.
 

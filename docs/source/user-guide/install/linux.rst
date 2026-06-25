@@ -4,7 +4,7 @@ Installing on Linux
 
 #. Download the installer:
 
-   * `Miniconda installer for Linux <https://www.anaconda.com/download/success>`__.
+   * `Miniconda installer for Linux <https://www.anaconda.com/download>`__.
 
    * `Anaconda Distribution installer for Linux <https://www.anaconda.com/download>`__.
 
