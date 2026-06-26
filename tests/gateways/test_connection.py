@@ -19,6 +19,7 @@ from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero, OfflineError, PluginError
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
+from conda.gateways.connection.adapters.http import HTTPAdapter
 from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
     CondaHttpAuth,
@@ -685,8 +686,6 @@ def test_ssl_context_adapter_forwards_to_proxy_manager():
     not see the kwargs passed to ``init_poolmanager``; without an explicit
     override the custom truststore context is dropped on proxied connections.
     """
-    from conda.gateways.connection.adapters.http import HTTPAdapter
-
     sentinel = object()
     adapter = HTTPAdapter(ssl_context=sentinel)
 
@@ -698,8 +697,6 @@ def test_ssl_context_adapter_forwards_to_proxy_manager():
 
 def test_ssl_context_adapter_omits_proxy_ssl_context_when_unset():
     """The default ``ssl_verify: True`` path must not inject an ssl_context key."""
-    from conda.gateways.connection.adapters.http import HTTPAdapter
-
     adapter = HTTPAdapter()
 
     assert "ssl_context" not in adapter.poolmanager.connection_pool_kw
