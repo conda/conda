@@ -42,10 +42,12 @@ conda/infrastructure:
   # [optional] dependabot — pick ONE variant
   # - src: templates/dependabot/github-actions.yml
   #   dst: .github/dependabot.yml
-  - src: templates/dependabot/github-actions-with-pre-commit.yml
-    dst: .github/dependabot.yml
+  # - src: templates/dependabot/github-actions-with-pre-commit.yml
+  #   dst: .github/dependabot.yml
   # - src: templates/dependabot/github-actions-with-docs-pip.yml
   #   dst: .github/dependabot.yml
+  - src: templates/dependabot/github-actions-with-pre-commit-docs-conda.yml
+    dst: .github/dependabot.yml
   # - src: templates/dependabot/github-actions-full.yml
   #   dst: .github/dependabot.yml
 

@@ -6,12 +6,22 @@ on:
     types:
       - labeled
 
-  # Build canaries from successful Tests runs on main, feature/*, or *.x branches.
+  # Build canaries immediately on push to release branches (*.x).
+  push:
+    branches:
+      - '[0-9].*.x'  # e.g., 4.14.x
+      - '[0-9][0-9].*.x'  # e.g., 23.3.x
+
+  # Build canaries after a successful Tests run on main or feature/* branches.
   workflow_run:
     workflows:
       - Tests
     types:
       - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   remove-build-label:
@@ -43,25 +53,30 @@ jobs:
             }
 
   build:
-    # Run canaries from PR label build::review or from a successful non-PR Tests run on an allowed branch.
+    # PR label build::review, push to *.x release branches, or successful Tests on main/feature/*.
     if: >-
       !github.event.repository.fork
       && (
-        github.event.label.name == 'build::review'
-        || (
-          github.event.workflow_run.conclusion == 'success'
+        (
+          github.event_name == 'pull_request'
+          && github.event.label.name == 'build::review'
+        ) || (
+          github.event_name == 'push'
+          && endsWith(github.ref_name, '.x')
+        ) || (
+          github.event_name == 'workflow_run'
           && github.event.workflow_run.event != 'pull_request'
+          && github.event.workflow_run.conclusion == 'success'
           && (
             github.event.workflow_run.head_branch == 'main'
             || startsWith(github.event.workflow_run.head_branch, 'feature/')
-            || endsWith(github.event.workflow_run.head_branch, '.x')
           )
         )
       )
     env:
-      # Prefer workflow_run.head_branch/head_sha; fallback to github.ref_name/ref for this job.
+      # Prefer workflow_run head; fallback to push/PR ref.
       REF_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
-      REF: ${{ github.event.workflow_run.head_sha || github.ref }}
+      REF: ${{ github.event.workflow_run.head_sha || github.sha }}
     strategy:
       matrix:
         include:
@@ -148,15 +163,22 @@ jobs:
     if: >-
       always()
       && !github.event.repository.fork
-      && github.event_name == 'workflow_run'
       && needs.build.result == 'failure'
-      && !startsWith(github.event.workflow_run.head_branch, 'feature/')
+      && (
+        (
+          github.event_name == 'workflow_run'
+          && !startsWith(github.event.workflow_run.head_branch, 'feature/')
+        ) || (
+          github.event_name == 'push'
+          && endsWith(github.ref_name, '.x')
+        )
+      )
     runs-on: ubuntu-slim
     steps:
       - name: Report canary failure
         env:
           GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
-          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
         run: |
           TITLE="${{ github.workflow }} failed \`${BRANCH}\`"
           BODY="The ${{ github.workflow }} workflow failed on ${BRANCH} at $(date -u '+%Y-%m-%d %H:%M') UTC

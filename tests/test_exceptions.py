@@ -12,6 +12,7 @@ import requests
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
+from conda import CondaError
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
@@ -1260,3 +1261,11 @@ def test_platform_mismatch_error_message(
     message = str(PlatformMismatchError(sources, subdir))
     for fragment in expected_fragments:
         assert fragment in message
+
+
+def test_CondaError_interpolation_no_kwargs() -> None:
+    """__str__ should not raise if trying to interpolate a string with no kwargs."""
+    message = "a message with %T"
+    exc = CondaError(message=message)
+    assert str(exc) == message
+    assert repr(exc) == "CondaError: " + message

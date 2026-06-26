@@ -381,6 +381,46 @@ def test_fetch_shards_index_mark_unavailable(monkeypatch, tmp_path, error_code):
         assert mock_session.get_count == get_count
 
 
+def test_fetch_shards_index_uses_credentials(monkeypatch, tmp_path):
+    """
+    Regression test: fetch_shards_index must include credentials in the request
+    if provided in the channel url. This way, auth tokens are included in the
+    request URL for sharded repodata.
+    """
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    captured_urls = []
+
+    class MockSession:
+        proxies = None
+
+        def __call__(self, *args):
+            return self
+
+        def get(self, url, *args, **kwargs):
+            captured_urls.append(url)
+            request = Request("GET", url).prepare()
+            response = Response()
+            response.request = request
+            response.url = url
+            response.status_code = 404
+            return response
+
+    monkeypatch.setattr(shards, "get_session", MockSession())
+
+    # Channel with a token embedded in the URL
+    channel = Channel("http://token:mytoken@localhost/mock/noarch")
+    subdir_data = SubdirData(channel)
+
+    assert "mytoken" in subdir_data.url_w_credentials
+
+    fetch_shards_index(subdir_data)
+
+    assert len(captured_urls) == 1
+    assert "mytoken" in captured_urls[0]
+
+
 def test_fetch_shards_error(http_server_shards, empty_shards_cache):
     channel = Channel.from_url(f"{http_server_shards}/noarch")
     subdir_data = SubdirData(channel)
