@@ -97,6 +97,9 @@ sort = "Miss"
 relative_files = true
 
 [tool.hatch.build]
+exclude = [
+  "tests/**",
+]
 include = ["conda"]
 
 [tool.hatch.build.hooks.vcs]

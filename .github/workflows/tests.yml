@@ -47,7 +47,7 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
     steps:
       - name: Checkout Source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         # dorny/paths-filter needs git clone for non-PR events
         # https://github.com/dorny/paths-filter#supported-workflows
         if: github.event_name != 'pull_request'
@@ -94,7 +94,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -133,6 +133,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         run: >
@@ -248,7 +253,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -278,6 +283,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         run: >
@@ -364,7 +374,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -392,6 +402,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         run: >
@@ -453,7 +468,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -481,6 +496,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         run: >
@@ -559,7 +579,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -610,7 +630,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -638,6 +658,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         run: >
@@ -709,7 +734,7 @@ jobs:
 
     steps:
       - name: Checkout Source
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -739,6 +764,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         run: >
@@ -889,14 +919,14 @@ jobs:
 
     steps:
       - name: Checkout conda/conda
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
           repository: conda/conda
           path: conda
 
       - name: Checkout conda/conda-build
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
           repository: conda/conda-build
@@ -926,6 +956,11 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      # conda currently ships with conda-pypi 0.9.0. Pull in 0.10.1 to pull in required fixes.
+      # This should be removed next conda release.
+      - name: Upgrade conda-pypi
+        run: conda install --yes "conda-pypi>=0.10.1" -c conda-forge --override-channels
 
       - name: Conda Install
         working-directory: conda

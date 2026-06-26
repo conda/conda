@@ -16,4 +16,4 @@
 
 ### Other
 
-* Enable infrastructure-managed Dependabot configuration via conda/infrastructure templates. (#16251)
+* Enable infrastructure-managed Dependabot configuration via conda/infrastructure templates. (#16251, #16271)
