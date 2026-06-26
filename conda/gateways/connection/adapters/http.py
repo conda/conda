@@ -81,11 +81,7 @@ class _SSLContextAdapterMixin:
         )
 
     def proxy_manager_for(self, proxy: str, **proxy_kwargs: Any) -> ProxyManager:
-        # requests' proxy_manager_for builds a separate ProxyManager that does
-        # not receive the pool kwargs passed to init_poolmanager, so the custom
-        # ssl_context (e.g. the truststore backend) must be forwarded here too.
-        # Otherwise ``ssl_verify: truststore`` is silently ignored whenever a
-        # proxy is configured.
+        # requests' ProxyManager does not inherit init_poolmanager kwargs (#16252).
         if self._ssl_context is not None:
             proxy_kwargs.setdefault("ssl_context", self._ssl_context)
         return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
