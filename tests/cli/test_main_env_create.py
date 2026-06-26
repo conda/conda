@@ -72,7 +72,7 @@ def test_env_create_help(conda_cli: CondaCLIFixture) -> None:
 
 
 class DummyExternalPackagesEnvSpecPlugin:
-    class CustomExternalPackagesEnvironmentSpec(EnvironmentSpecBase):
+    class CustomEnvironmentSpec(EnvironmentSpecBase):
         def __init__(self, filename: str | None = None, **kwargs):
             self.filename = filename
 
@@ -90,7 +90,7 @@ class DummyExternalPackagesEnvSpecPlugin:
     def conda_environment_specifiers(self):
         yield CondaEnvironmentSpecifier(
             name="custom",
-            environment_spec=self.CustomExternalPackagesEnvironmentSpec,
+            environment_spec=self.CustomEnvironmentSpec,
             default_filenames=("invalid.yml",),
         )
 
