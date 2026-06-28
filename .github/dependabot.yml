@@ -20,3 +20,11 @@ updates:
       pre-commit:
         patterns:
           - '*'
+  - package-ecosystem: conda
+    directory: /docs/
+    schedule:
+      interval: monthly
+    groups:
+      docs:
+        patterns:
+          - '*'
