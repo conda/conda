@@ -193,8 +193,6 @@ def test_create_install_update_remove_smoketest(
     request: pytest.FixtureRequest,
 ):
     """Create/install/update/remove/revision smoketest over local HTTP test-recipes."""
-    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
-        return
     mock_channels.append(http_test_server.url)
     with tmp_env("versioned=1.0") as prefix:
         assert package_is_installed(prefix, "versioned=1.0")
