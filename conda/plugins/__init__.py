@@ -27,7 +27,6 @@ as well as conda's internal implementations of plugins.
 
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 from ..deprecations import deprecated
@@ -36,31 +35,15 @@ from .hookspec import hookimpl
 if TYPE_CHECKING:
     from types import ModuleType
 
-__all__ = ["hookimpl", "types"]
+__all__ = ["hookimpl"]
 
 
 def _load_types() -> ModuleType:
-    # ``__import__`` avoids recursing through this module's own
-    # ``__getattr__`` via ``_handle_fromlist``.
     return __import__("conda.plugins.types", fromlist=["types"])
 
 
-def __getattr__(
-    name: str,
-    # Default-arg capture keeps sys.is_finalizing reachable during
-    # interpreter shutdown, when module globals get cleared.
-    _finalizing=sys.is_finalizing,
-) -> object:
-    if _finalizing():
-        raise AttributeError(name)
-    if name == "types":
-        return _load_types()
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-# ``deprecated.constant`` installs its own registry as ``__getattr__`` and
-# chains to the one defined above as its fallback, so ``conda.plugins.types``
-# resolves lazily while the 16 deprecated re-exports still warn on access.
+# ``deprecated.constant`` installs its own registry as module ``__getattr__``,
+# so the 16 deprecated re-exports still warn on access.
 for name in (
     "CondaAuthHandler",
     "CondaEnvironmentSpecifier",

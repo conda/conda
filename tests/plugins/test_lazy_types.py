@@ -50,19 +50,30 @@ def test_plugins_types_not_imported_on_plugins_import() -> None:
     assert result.stdout.strip() == "False", result.stdout
 
 
-def test_plugins_types_attribute_loads_lazily_without_warning() -> None:
-    """``conda.plugins.types`` attribute access loads the submodule, no warning."""
-    import conda.plugins
+def test_plugins_types_requires_explicit_import() -> None:
+    """``conda.plugins.types`` is available only after explicit import."""
+    script = textwrap.dedent("""
+        import conda.plugins
 
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        types_module = conda.plugins.types
+        try:
+            conda.plugins.types
+        except AttributeError:
+            print("missing")
+        else:
+            raise SystemExit("conda.plugins.types should require explicit import")
 
-    assert types_module is sys.modules["conda.plugins.types"]
-    assert not any(
-        issubclass(w.category, (DeprecationWarning, PendingDeprecationWarning))
-        for w in caught
-    ), [str(w.message) for w in caught]
+        import conda.plugins.types
+        print(conda.plugins.types.__name__)
+    """)
+    env = {k: v for k, v in os.environ.items() if k != "EAGER_IMPORT"}
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["missing", "conda.plugins.types"]
 
 
 @pytest.mark.parametrize("name", _DEPRECATED_NAMES)
