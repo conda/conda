@@ -20,10 +20,12 @@ from ..deprecations import deprecated
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from .. import CondaError
     from .types import (
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaErrorHint,
         CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
@@ -625,6 +627,42 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
+    def conda_error_hints(self, error: CondaError) -> Iterable[CondaErrorHint]:
+        """
+        Register user-facing hints for expected conda errors.
+
+        This hook is invoked while rendering a :class:`conda.CondaError`.
+        Plugins receive the current error and yield structured
+        :class:`~conda.plugins.types.CondaErrorHint` objects that conda appends
+        to the error's existing guidance. Plugins should not print directly from
+        this hook.
+
+        Use this hook for user-facing next steps. Use
+        :meth:`~conda.plugins.hookspec.CondaSpecs.conda_exception_observers`
+        for telemetry, logging, demand tracking, or other side effects.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.exceptions import PackagesNotFoundInChannelsError
+
+
+            @plugins.hookimpl
+            def conda_error_hints(error):
+                if isinstance(error, PackagesNotFoundInChannelsError):
+                    yield plugins.types.CondaErrorHint(
+                        text="Check whether the package exists on your expected channel.",
+                        hint_code="check_expected_channel",
+                    )
+
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaErrorHint` entries.
+        """
+        yield from ()
+
+    @_hookspec
     def conda_prefix_data_loaders() -> Iterable[CondaPrefixDataLoader]:
         """
         Register new loaders for PrefixData
@@ -858,12 +896,16 @@ class CondaSpecs:
 
         .. code-block:: python
 
+            import logging
+
             from conda import plugins
+
+            log = logging.getLogger(__name__)
 
 
             def report_missing(event):
-                print(f"Missing packages: {event.exc_value.packages}")
-                print(f"Command was: {' '.join(event.argv)}")
+                log.info("Missing packages: %s", event.exc_value.packages)
+                log.info("Command was: %s", " ".join(event.argv))
 
 
             @plugins.hookimpl

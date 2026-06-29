@@ -1738,17 +1738,38 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
     rc = getattr(exc_val, "return_code", None)
     if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
-    elif context.json:
+        return
+
+    if context.json:
         if isinstance(exc_val, DryRunExit):
             return
+
+    guidance = exc_val.guidance
+    try:
+        plugin_hints = context.plugin_manager.get_error_hints(exc_val)
+    except BaseException:
+        log.debug("Failed to collect error hint plugins", exc_info=True)
+        plugin_hints = ()
+    if guidance is not None:
+        guidance = guidance.with_hints(plugin_hints)
+    elif plugin_hints:
+        from ._private.exception_guidance import ErrorGuidance
+
+        guidance = ErrorGuidance.from_hints(plugin_hints)
+
+    if context.json:
         from .gateways.streams import stderr, stdout
 
-        exc_json = json_dumps(exc_val.dump_map(), sort_keys=True)
+        error_map = exc_val.dump_map()
+        if guidance is not None:
+            error_map["guidance"] = guidance.__json__()
+        else:
+            error_map.pop("guidance", None)
+        exc_json = json_dumps(error_map, sort_keys=True)
         (stdout if rc else stderr)(f"{exc_json}\n")
     else:
         from .gateways.streams import stderr
 
-        guidance = getattr(exc_val, "_guidance", None)
         if guidance is not None:
             stderr(f"\n{guidance.format(exc_val)}\n")
         else:

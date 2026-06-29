@@ -71,6 +71,31 @@ class ErrorGuidance:
         return {k: v for k, v in result.items() if v}
 
     @classmethod
+    def from_hints(cls, hints: Iterable[GuidanceHint]) -> ErrorGuidance | None:
+        """Create guidance from hints, deduplicating by ``hint_code``."""
+        merged_hints = []
+        seen_hint_codes = set()
+        for hint in hints:
+            if hint.hint_code in seen_hint_codes:
+                continue
+            seen_hint_codes.add(hint.hint_code)
+            merged_hints.append(hint)
+        if not merged_hints:
+            return None
+        return cls(hints=tuple(merged_hints))
+
+    def with_hints(self, hints: Iterable[GuidanceHint]) -> ErrorGuidance:
+        """Return this guidance with additional hints appended."""
+        guidance = ErrorGuidance.from_hints((*self.hints, *tuple(hints)))
+        if guidance is None or len(guidance.hints) == len(self.hints):
+            return self
+        return ErrorGuidance(
+            summary=self.summary,
+            cause=self.cause,
+            hints=guidance.hints,
+        )
+
+    @classmethod
     def coerce(cls, value: Any) -> ErrorGuidance | None:
         """Coerce *value* to ``ErrorGuidance`` or ``None``.
 
