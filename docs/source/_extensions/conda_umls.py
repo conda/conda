@@ -86,6 +86,10 @@ def generate_pumls(app=None, config=None):
             f"--project={package}",
             f"--output-directory={output_path}",
             "--all-associated",
+            # Causes an EmptyNode AttributeError: https://github.com/pylint-dev/pylint/issues/10767
+            # This allows more of the inheritance hierarchy to be shown, however the Level 4 C4
+            # diagram is already too detailed.
+            # "--all-ancestors",
         ]
         # Run pyreverse to create the files first
         exit_code = Run(args).run()
