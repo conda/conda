@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from ._private.exception_guidance import (
         ErrorGuidance,
         ErrorGuidanceTypedDict,
+        GuidanceHintTypedDict,
     )
     from .base.context import Context
     from .common.path import PathType
@@ -1768,10 +1769,28 @@ def _format_exc(
     return "".join(formatted_exception)
 
 
-class InvalidInstaller(Exception):
-    def __init__(self, name: str):
+class InvalidInstaller(CondaError):
+    def __init__(self, name: str, *, file: str | None = None):
         msg = f"Unable to load installer for {name}"
-        super().__init__(msg)
+        hints: list[GuidanceHintTypedDict] = [
+            {
+                "text": "Please ensure you are requesting an available installer.",
+                "hint_code": "check_available_installer",
+            },
+        ]
+        if file:
+            summary = (
+                f"Unable to install package for {name} from environment file {file}."
+            )
+        else:
+            summary = f"Unable to install package for {name}."
+
+        super().__init__(
+            msg,
+            name=name,
+            file=file,
+            guidance={"summary": summary, "hints": hints},
+        )
 
 
 class OfflineError(CondaError, RuntimeError):

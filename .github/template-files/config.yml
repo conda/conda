@@ -16,6 +16,16 @@ conda/infrastructure:
   - .github/workflows/stale.yml
   - .github/workflows/lock.yml
 
+  # [optional] canary build workflow
+  - src: templates/workflows/build.yml
+    dst: .github/workflows/build.yml
+  # For noarch packages, add:
+  #   with:
+  #     noarch: true
+  # For repos whose test workflow is not named "Tests", add:
+  #   with:
+  #     tests_workflow: Test
+
   # [optional] general processes for the conda org
   - src: templates/HOW_WE_USE_GITHUB.md
     dst: HOW_WE_USE_GITHUB.md
