@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Clear SIGALRM in ``finally`` block in ``timeout()`` function to prevent the alarm from firing unexpectedly when the wrapped function raises an unexpected exception.
