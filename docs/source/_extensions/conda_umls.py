@@ -86,15 +86,11 @@ def generate_pumls(app=None, config=None):
             f"--project={package}",
             f"--output-directory={output_path}",
             "--all-associated",
-            "--all-ancestors",
         ]
         # Run pyreverse to create the files first
-        try:
-            Run(args)
-        except SystemExit as err:
-            # ignore sys.exit() call from pyreverse.Run if the exit code is 0
-            if err.code:
-                raise
+        exit_code = Run(args).run()
+        if exit_code:
+            raise SystemExit(exit_code)
         # Then post-process the generated files to fix some things.
         post_process(files, output_path)
         sys.stdout.write("Done generating PlantUML files.\n")
