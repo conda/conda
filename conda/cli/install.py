@@ -37,7 +37,6 @@ from ..exceptions import (
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DryRunExit,
-    InvalidInstaller,
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -406,7 +405,6 @@ def install(args, parser, command="install"):
     )
 
     if env.external_packages and not context.dry_run and not context.download_only:
-        from .. import CondaError
         from ..env.installers.base import get_installer
         from ..env.pip_util import get_pip_workdir
 
@@ -418,24 +416,16 @@ def install(args, parser, command="install"):
         ]
         for fpath, file_env in external_envs:
             for installer_type, pkg_specs in file_env.external_packages.items():
-                try:
-                    installer = get_installer(installer_type)
-                    if installer_type == "pip":
-                        workdir = get_pip_workdir(fpath)
-                        result = installer.install(
-                            prefix, list(pkg_specs), args, file_env, workdir=workdir
-                        )
-                    else:
-                        result = installer.install(
-                            prefix, list(pkg_specs), args, file_env
-                        )
-                    if result is not None:
-                        installer_results[installer_type.upper()] = result
-                except InvalidInstaller:
-                    raise CondaError(
-                        f"Unable to install package for {installer_type} from environment file {fpath}. "
-                        "Please ensure your dependencies file has the correct spelling."
+                installer = get_installer(installer_type, file=fpath)
+                if installer_type == "pip":
+                    workdir = get_pip_workdir(fpath)
+                    result = installer.install(
+                        prefix, list(pkg_specs), args, file_env, workdir=workdir
                     )
+                else:
+                    result = installer.install(prefix, list(pkg_specs), args, file_env)
+                if result is not None:
+                    installer_results[installer_type.upper()] = result
 
             conda_actions.update(installer_results)
 
