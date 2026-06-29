@@ -47,21 +47,28 @@ def test_subcommand_aliases_normalized_and_deduplicated():
     assert subcommand.aliases == ("alternate", "other")
 
 
+def test_subcommand_aliases_accept_single_string():
+    subcommand = CondaSubcommand(
+        name="custom",
+        summary="Custom command.",
+        action=noop_action,
+        aliases=" Alternate ",
+    )
+
+    assert subcommand.aliases == ("alternate",)
+
+
 @pytest.mark.parametrize(
     ("aliases", "message"),
     [
         pytest.param(("",), "Aliases must not be empty strings", id="empty-alias"),
+        pytest.param("", "Aliases must not be empty strings", id="empty-string-alias"),
         pytest.param(
             ("custom",),
             "Aliases must not match the plugin name",
             id="alias-matches-name",
         ),
         pytest.param((None,), "Invalid plugin aliases", id="non-string-alias"),
-        pytest.param(
-            "alternate",
-            "Expected a tuple of strings, received a string",
-            id="aliases-is-string",
-        ),
     ],
 )
 def test_subcommand_invalid_aliases_raise_plugin_error(aliases, message):

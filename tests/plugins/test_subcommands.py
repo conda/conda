@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 class SubcommandPlugin:
     name: str
     summary: str
-    aliases: tuple[str, ...] = ()
+    aliases: str | tuple[str, ...] = ()
     configure_parser: Callable | None = None
 
     def custom_command(self, args):
@@ -80,13 +80,21 @@ def test_invoked(plugin_manager, conda_cli: CondaCLIFixture, mocker: MockerFixtu
     mocked.assert_called_with(("some-arg", "some-other-arg"))
 
 
+@pytest.mark.parametrize(
+    "aliases",
+    (("alternate",), "alternate"),
+    ids=("tuple-alias", "string-alias"),
+)
 def test_alias_invoked(
-    plugin_manager, conda_cli: CondaCLIFixture, mocker: MockerFixture
+    aliases,
+    plugin_manager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
 ):
     """Ensure plugin subcommand aliases invoke the command."""
     mocked = mocker.patch.object(SubcommandPlugin, "custom_command")
     plugin_manager.register(
-        SubcommandPlugin(name="custom", summary="Summary.", aliases=("alternate",))
+        SubcommandPlugin(name="custom", summary="Summary.", aliases=aliases)
     )
 
     conda_cli("alternate", "some-arg")
