@@ -23,6 +23,7 @@ from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
+from pluggy._manager import DistFacade
 
 from .. import __version__
 from ..auxlib import NULL
@@ -75,6 +76,7 @@ if TYPE_CHECKING:
         CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
+        CondaPlugin,
         CondaPluginWithAliases,
         CondaPostCommand,
         CondaPostSolve,
@@ -157,22 +159,47 @@ class CondaPluginManager(pluggy.PluginManager):
         self.get_cached_request_headers = functools.cache(self.get_request_headers)
 
     def get_canonical_name(self, plugin: object) -> str:
-        # detect the fully qualified module name
-        prefix = "<unknown_module>"
-        if (module := getmodule(plugin)) and module.__spec__:
-            prefix = module.__spec__.name
+        def module_name(module, fallback: str | None = None) -> str:
+            if module is not None:
+                return (module.__spec__ and module.__spec__.name) or module.__name__
+            return fallback or "<unknown_module>"
+
+        # Detect the fully qualified module name. Prefer `__spec__.name`
+        # which is set for normally-imported modules, including editable
+        # installations, and fall back to the plugin class module for instances.
+        module = getmodule(plugin)
 
         # return the fully qualified name for modules
         if module is plugin:
-            return prefix
+            return module_name(module)
 
         # return the fully qualified name for classes
         elif isclass(plugin):
-            return f"{prefix}.{plugin.__qualname__}"
+            return f"{module_name(module, plugin.__module__)}.{plugin.__qualname__}"
 
         # return the fully qualified name for instances
         else:
-            return f"{prefix}.{plugin.__class__.__qualname__}[{id(plugin)}]"
+            plugin_class = plugin.__class__
+            if module is None:
+                module = getmodule(plugin_class)
+            return (
+                f"{module_name(module, plugin_class.__module__)}."
+                f"{plugin_class.__qualname__}[{id(plugin)}]"
+            )
+
+    def get_plugin_source(self, conda_plugin: CondaPlugin) -> str | None:
+        """Return a human-readable source for a registered plugin,
+        or ``None`` if ``plugin`` is ``None``.
+        """
+        plugin = getattr(getattr(conda_plugin, "impl", None), "plugin", None)
+        if plugin is None:
+            return None
+        for registered_plugin, dist in self.list_plugin_distinfo():
+            if registered_plugin is plugin:
+                version = getattr(dist, "version", "")
+                return f"{dist.project_name} {version}".strip()
+
+        return self.get_name(plugin) or self.get_canonical_name(plugin)
 
     def register(self, plugin, name: str | None = None) -> str | None:
         """
@@ -244,6 +271,10 @@ class CondaPluginManager(pluggy.PluginManager):
                     continue
 
                 if self.register(plugin):
+                    # Mirror pluggy's load_setuptools_entrypoints() bookkeeping
+                    # so list_plugin_distinfo() can report distributions for
+                    # conda's custom entry point loader.
+                    self._plugin_distinfo.append((plugin, DistFacade(dist)))
                     count += 1
         return count
 
@@ -377,7 +408,8 @@ class CondaPluginManager(pluggy.PluginManager):
         ]
         if invalid:
             plugin_names = (
-                f"{repr(plugin)} ({plugin.impl.plugin_name})" for plugin in invalid
+                f"{repr(plugin)} ({self.get_plugin_source(plugin)})"
+                for plugin in invalid
             )
             raise PluginError(
                 f"Invalid plugin names found for `{name}`:\n"
@@ -386,21 +418,25 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"Please report this issue to the plugin author(s)."
             )
 
-        # Check for conflicts since no two plugins can have the same name
-        conflicts = [
-            plugin
-            for plugins in groupby_to_dict(lambda plugin: plugin.name, plugins).values()
-            if len(plugins) > 1
-            for plugin in plugins
-        ]
-        if conflicts:
-            plugin_names = (
-                f"{plugin.__class__.__name__}(name={plugin.name}) (source: {plugin.impl.plugin_name})"
-                for plugin in conflicts
+        conflict_groups = {
+            plugin_name: sorted(
+                source
+                for plugin in conflicting
+                if (source := self.get_plugin_source(plugin)) is not None
             )
+            for plugin_name, conflicting in sorted(
+                groupby_to_dict(lambda plugin: plugin.name, plugins).items()
+            )
+            if len(conflicting) > 1
+        }
+        if conflict_groups:
+            lines = []
+            for conflict_name, conflicting in conflict_groups.items():
+                providers = dashlist(conflicting, indent=4)
+                lines.append(f"{conflict_name!r} provided by:{providers}")
             raise PluginError(
                 f"Conflicting plugins found for `{name}`:\n"
-                f"{dashlist(plugin_names)}\n"
+                f"{dashlist(lines)}\n"
                 f"\n"
                 f"Multiple conda plugins are registered via the `{specname}` hook. "
                 f"Please make sure that you don't have any incompatible plugins installed."
