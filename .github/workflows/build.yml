@@ -1,3 +1,5 @@
+# edit this in https://github.com/conda/infrastructure/blob/main/templates/workflows/build.yml
+
 name: Canary Builds
 
 on:
@@ -12,7 +14,7 @@ on:
       - '[0-9].*.x'  # e.g., 4.14.x
       - '[0-9][0-9].*.x'  # e.g., 23.3.x
 
-  # Build canaries after a successful Tests run on main or feature/* branches.
+  # Build canaries after a successful test workflow run on main or feature/* branches.
   workflow_run:
     workflows:
       - Tests
@@ -53,7 +55,7 @@ jobs:
             }
 
   build:
-    # PR label build::review, push to *.x release branches, or successful Tests on main/feature/*.
+    # PR label build::review, push to *.x release branches, or successful test workflow on main/feature/*.
     if: >-
       !github.event.repository.fork
       && (
@@ -91,7 +93,8 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     steps:
       # Clean checkout of specific git ref needed for package metadata version
-      # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
+      # which needs env vars GIT_DESCRIBE_TAG, GIT_DESCRIBE_NUMBER, GIT_DESCRIBE_HASH,
+      # and optional VERSION_OVERRIDE:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ env.REF }}
@@ -145,7 +148,6 @@ jobs:
       - name: Create & Upload
         uses: conda/actions/canary-release@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
         env:
-          # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
         with:
           package-name: ${{ github.event.repository.name }}
