@@ -172,10 +172,7 @@ def resolve_channel(val: Any, record: PackageRecord) -> Channel | None:
         if isinstance(val, Channel):
             return val
         return Channel(val)
-    url = record.url
-    if url:
-        return Channel(url)
-    return None
+    return Channel(record.url)
 
 
 def resolve_subdir(val: Any, record: PackageRecord) -> str | None:
