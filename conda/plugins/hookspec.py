@@ -115,6 +115,7 @@ class CondaSpecs:
             def conda_subcommands():
                 yield plugins.types.CondaSubcommand(
                     name="example",
+                    aliases=("example-alias",),
                     summary="example command",
                     action=example_command,
                 )
