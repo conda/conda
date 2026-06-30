@@ -343,7 +343,10 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
 def find_builtin_commands(parser: ArgumentParserBase) -> tuple[str, ...]:
     # ArgumentParser doesn't have an API for getting back what subparsers
     # exist, so we need to use internal properties to do so.
-    return tuple(parser._subparsers._group_actions[0].choices.keys())
+    subparser_action = parser._subparsers._group_actions[0]
+    if isinstance(subparser_action, _LazySubParsersAction):
+        subparser_action._ensure_plugins_loaded()
+    return tuple(subparser_action.choices.keys())
 
 
 class ArgumentParser(ArgumentParserBase):

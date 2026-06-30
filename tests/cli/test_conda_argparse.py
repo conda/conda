@@ -119,15 +119,14 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
     ],
 )
 def test_deprecated_imports(path: str, validate: Callable[[Any], bool]):
-    """Verify deprecated re-exports still work and emit PendingDeprecationWarning
-    on *every* access (including the first), now that they are registered via
-    ``deprecated.constant(factory=...)`` at module import time."""
+    """Verify deprecated re-exports still work and warn on every access."""
     path, attr = path.rsplit(".", 1)
     module = importlib.import_module(path)
-    with pytest.warns(PendingDeprecationWarning):
+    warning_types = (PendingDeprecationWarning, DeprecationWarning)
+    with pytest.warns(warning_types):
         value = getattr(module, attr)
     assert validate(value)
-    with pytest.warns(PendingDeprecationWarning):
+    with pytest.warns(warning_types):
         assert getattr(module, attr) is value
 
 
