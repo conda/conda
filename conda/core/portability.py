@@ -8,6 +8,7 @@ import os
 import re
 import struct
 import subprocess
+import threading
 from logging import getLogger
 from os.path import basename, realpath
 
@@ -123,9 +124,53 @@ def update_prefix(
     updated = update_file_in_place_as_binary(realpath(path), _update_prefix)
 
     if updated and mode == FileMode.binary and subdir == "osx-arm64" and on_mac:
-        # Apple arm64 needs signed executables
+        # Apple arm64 needs signed executables. Historically we spawned a
+        # codesign subprocess per file here — for a fresh scientific-Python
+        # install that's ~190 codesign invocations, each paying a
+        # fork/exec/startup cost (profiling shows ~9 s of wall time from
+        # 186 subprocess calls in the W2 workload). ``codesign`` accepts
+        # multiple paths in a single invocation, so instead of running one
+        # per file we queue the paths here and flush them as a batch at
+        # the end of the verify phase. See #15975.
+        _enqueue_codesign(realpath(path))
+
+
+_pending_codesign_paths: list[str] = []
+_pending_codesign_lock = threading.Lock()
+
+
+def _enqueue_codesign(path: str) -> None:
+    """Queue a path for the next :func:`flush_pending_codesign` call."""
+    with _pending_codesign_lock:
+        _pending_codesign_paths.append(path)
+
+
+def flush_pending_codesign() -> None:
+    """Run ``codesign`` on all paths queued by :func:`update_prefix`.
+
+    ``codesign`` accepts multiple paths per invocation, so a
+    whole-transaction's worth of osx-arm64 binary rewrites can be
+    re-signed with a single fork/exec instead of one per file.
+    Called at the end of ``_verify_individual_level`` so the signatures
+    are in place before ``execute()`` links the intermediates.
+
+    Chunks the file list to stay safely under the kernel's
+    ``MAX_ARG_STRLEN`` / ``ARG_MAX`` limits. Failures (non-zero exit)
+    are ignored, matching the per-file behaviour this replaced.
+    """
+    with _pending_codesign_lock:
+        paths = list(_pending_codesign_paths)
+        _pending_codesign_paths.clear()
+    if not paths:
+        return
+    # macOS Darwin has ARG_MAX ~ 1 MB; per-path cost is typically
+    # 100-200 bytes of fully-qualified realpath. 500-path chunks stay
+    # well under the cap.
+    chunk_size = 500
+    for i in range(0, len(paths), chunk_size):
         subprocess.run(
-            ["/usr/bin/codesign", "-s", "-", "-f", realpath(path)], capture_output=True
+            ["/usr/bin/codesign", "-s", "-", "-f", *paths[i : i + chunk_size]],
+            capture_output=True,
         )
 
 
