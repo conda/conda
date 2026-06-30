@@ -18,9 +18,9 @@ Strategy:
    native implementations (measured in S18).
 3. Cache parsed ``rattler.MatchSpec`` by dep string within a single
    call: real prefixes have significant dep-string repetition.
-4. Sort topologically with ``rattler.PackageRecord.sort_topologically``
-   on the rattler record list, then re-key the adjacency dict into
-   that order before returning.
+4. Return the unsorted conda-shaped adjacency dict and let
+   ``PrefixGraph._toposort()`` keep conda's stable ordering and
+   special-case edge handling.
 5. Spec matching (the ``specs`` argument of PrefixGraph) uses conda's
    ``MatchSpec`` because callers hand us conda ``MatchSpec`` instances
    built from sources we don't control, which may use conda grammar
@@ -102,19 +102,12 @@ def try_build_graph(
 
     # Pre-convert every record. Abort to the fallback if any conversion
     # fails so we don't produce a partial result.
-    rattler_recs: list = []
     rec_to_rattler: dict[int, Any] = {}
-    rattler_to_conda: dict[tuple, Any] = {}
     for rec in records:
         rrec = _to_rattler_record(rec)
         if rrec is None:
             return None
-        rattler_recs.append(rrec)
         rec_to_rattler[id(rec)] = rrec
-        # ``sort_topologically`` returns fresh ``PackageRecord`` instances
-        # so ``id(rrec)`` doesn't round-trip. Key the back-map by the
-        # identifying tuple which is unique within a prefix.
-        rattler_to_conda[_rec_identity(rrec)] = rec
 
     by_name: dict[str, list[Any]] = {}
     for rec in records:
@@ -158,33 +151,7 @@ def try_build_graph(
             if matching:
                 unsorted_spec_matches[node] = matching
 
-    try:
-        sorted_rattler = _rattler.PackageRecord.sort_topologically(rattler_recs)
-    except (ValueError, RuntimeError):
-        return None
-    sorted_graph: dict[Any, dict[Any, None]] = {}
-    for rrec in sorted_rattler:
-        conda_rec = rattler_to_conda.get(_rec_identity(rrec))
-        if conda_rec is None:
-            return None
-        sorted_graph[conda_rec] = graph[conda_rec]
-
-    return sorted_graph, unsorted_spec_matches
-
-
-def _rec_identity(rrec) -> tuple:
-    """Identity tuple used to round-trip a rattler record back to the
-    original conda record after ``sort_topologically`` returns fresh
-    instances. Unique within a prefix."""
-    name = rrec.name
-    name_str = getattr(name, "normalized", None) or str(name)
-    return (
-        name_str,
-        str(rrec.version),
-        rrec.build,
-        rrec.build_number,
-        rrec.subdir,
-    )
+    return graph, unsorted_spec_matches
 
 
 def _matchspec_name(spec) -> str:

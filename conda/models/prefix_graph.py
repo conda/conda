@@ -53,8 +53,8 @@ class PrefixGraph:
         self.spec_matches: dict[PrefixRecord, dict[MatchSpec, None]]
         self.spec_matches = spec_matches = {}
 
-        # Optional py-rattler fast path. Delegates adjacency build and
-        # toposort to rattler's Rust implementation when available.
+        # Optional py-rattler fast path. Delegates dependency parsing
+        # and parent matching to rattler's Rust implementation when available.
         # Returns None if rattler is missing, can't parse a spec, or
         # hits an edge case; in every such case we fall through to the
         # pure-Python loop below.
@@ -63,6 +63,7 @@ class PrefixGraph:
         fast = try_build_graph(records, specs)
         if fast is not None:
             self.graph, self.spec_matches = fast
+            self._toposort()
             return
 
         # Index records by package name so the parent-match inner loop

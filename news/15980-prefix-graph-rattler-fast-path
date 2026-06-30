@@ -1,6 +1,6 @@
 ### Enhancements
 
-* When `py-rattler` is installed, `PrefixGraph.__init__` delegates its adjacency build and topological sort to rattler's Rust implementation. Falls back to the existing pure-Python name-indexed loop when rattler isn't present, so the behaviour is unchanged for installs that don't have it. Saves several minutes on `conda install` / `conda update` against very large prefixes (~30× speedup at 50 000 installed records). (#15980)
+* When `py-rattler` is installed, `PrefixGraph.__init__` delegates dependency parsing and parent matching to rattler's Rust implementation while preserving conda's existing topological ordering. Falls back to the existing pure-Python name-indexed loop when rattler isn't present. (#15980)
 
 ### Bug fixes
 
