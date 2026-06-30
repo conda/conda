@@ -115,6 +115,7 @@ class CondaSpecs:
             def conda_subcommands():
                 yield plugins.types.CondaSubcommand(
                     name="example",
+                    aliases=("example-alias",),
                     summary="example command",
                     action=example_command,
                 )
@@ -154,6 +155,11 @@ class CondaSpecs:
         """
         Register pre-command functions in conda.
 
+        Shell activation commands avoid loading the plugin manager for startup
+        performance. These hooks run for ``conda shell.* activate``,
+        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
+        was already loaded by another code path.
+
         **Example:**
 
         .. code-block:: python
@@ -179,6 +185,11 @@ class CondaSpecs:
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
         """
         Register post-command functions in conda.
+
+        Shell activation commands avoid loading the plugin manager for startup
+        performance. These hooks run for ``conda shell.* activate``,
+        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
+        was already loaded by another code path.
 
         **Example:**
 

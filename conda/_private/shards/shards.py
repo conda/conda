@@ -657,7 +657,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
     if cache_state.should_check_format("shards"):
         # look for shards index
         shards_data = None
-        shards_index_url = f"{sd.url_w_subdir}/{REPODATA_SHARDS_FN}"
+        shards_index_url = f"{sd.url_w_credentials}/{REPODATA_SHARDS_FN}"
 
         if not repo_cache.cache_path_shards.exists():
             # avoid 304 not modified if we don't have the file
@@ -783,11 +783,13 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=_shards_connections()
     ) as executor:
+        subdir_data = {
+            channel_url: SubdirData(Channel(channel_url))
+            for channel_url in url_to_channel
+        }
         futures = {
-            executor.submit(
-                fetch_shards_index, SubdirData(Channel(channel_url))
-            ): channel_url
-            for (channel_url, _) in url_to_channel.items()
+            executor.submit(fetch_shards_index, sd): channel_url
+            for channel_url, sd in subdir_data.items()
         }
         futures_non_sharded = {}
 
@@ -799,7 +801,6 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        # If all are None then don't do ShardLike.
         if all(value is None for value in channel_data.values()):
             return None  # caller should interpret this as falling back to the older code path
 

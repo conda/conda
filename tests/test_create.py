@@ -93,6 +93,7 @@ if TYPE_CHECKING:
 
     from conda.testing.fixtures import (
         CondaCLIFixture,
+        HttpTestServerFixture,
         PathFactoryFixture,
         PipCLIFixture,
         TmpChannelFixture,
@@ -179,40 +180,45 @@ def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixt
         assert not code
 
 
-@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
+@pytest.mark.parametrize(
+    "http_test_server",
+    [Path(__file__).parent / "data" / "test-recipes"],
+    indirect=True,
+)
 def test_create_install_update_remove_smoketest(
+    http_test_server: HttpTestServerFixture,
+    mock_channels: list[str],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
 ):
-    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
-        return
-    with tmp_env(PYTHON_SPEC) as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "python=3")
+    """Create/install/update/remove/revision smoketest over local HTTP test-recipes."""
+    mock_channels.append(http_test_server.url)
+    with tmp_env("versioned=1.0") as prefix:
+        assert package_is_installed(prefix, "versioned=1.0")
 
-        conda_cli("install", f"--prefix={prefix}", "flask=2.0.1", "--yes")
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        conda_cli("install", f"--prefix={prefix}", "buildstring", "--yes")
+        assert package_is_installed(prefix, "buildstring")
+        assert package_is_installed(prefix, "versioned=1.0", reload_records=False)
 
         conda_cli(
             "install",
             f"--prefix={prefix}",
             "--force-reinstall",
-            "flask=2.0.1",
+            "buildstring",
             "--yes",
         )
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        assert package_is_installed(prefix, "buildstring")
+        assert package_is_installed(prefix, "versioned=1.0", reload_records=False)
 
-        conda_cli("update", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "flask", reload_records=False)
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        conda_cli("install", f"--prefix={prefix}", "versioned=2.0", "--yes")
+        assert not package_is_installed(prefix, "versioned=1.0")
+        assert package_is_installed(prefix, "versioned=2.0", reload_records=False)
+        assert package_is_installed(prefix, "buildstring", reload_records=False)
 
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        conda_cli("remove", f"--prefix={prefix}", "buildstring", "--yes")
+        assert not package_is_installed(prefix, "buildstring")
+        assert package_is_installed(prefix, "versioned=2.0", reload_records=False)
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}", "--revisions")
         assert not stderr
@@ -220,8 +226,8 @@ def test_create_install_update_remove_smoketest(
         assert " (rev 5)\n" not in stdout
 
         conda_cli("install", f"--prefix={prefix}", "--revision", "0", "--yes")
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        assert not package_is_installed(prefix, "buildstring")
+        assert package_is_installed(prefix, "versioned=1.0", reload_records=False)
 
 
 def test_install_broken_post_install_keeps_existing_folders(
