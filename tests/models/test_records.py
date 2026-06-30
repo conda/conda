@@ -372,6 +372,17 @@ def test_alias_filename() -> None:
     assert rec.fn == "test-1-0.conda"
 
 
+def test_missing_channel_falls_back_to_unknown_channel() -> None:
+    rec = PackageRecord(
+        name="t",
+        version="1",
+        build="0",
+        build_number=0,
+    )
+    assert isinstance(rec.channel, Channel)
+    assert rec.channel.name == "<unknown>"
+
+
 def test_noarch_coercion() -> None:
     rec = PackageRecord(
         name="t",
