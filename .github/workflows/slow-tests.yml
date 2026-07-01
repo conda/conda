@@ -1,3 +1,5 @@
+# edit this in https://github.com/conda/infrastructure/blob/main/templates/workflows/slow-tests.yml
+
 name: Slow Test Review
 
 on:
@@ -26,7 +28,6 @@ env:
   GH_REPO: ${{ github.repository }}
   # Base URL for issue links
   ISSUES_URL: ${{ github.server_url }}/${{ github.repository }}/issues
-  # TODO: Replace with the actual epic issue number
   EPIC_NUMBER: '15637'
   # Maximum number of incomplete sub-issues before we stop adding more
   # Override via repository variable SLOW_TESTS_MAX_INCOMPLETE
