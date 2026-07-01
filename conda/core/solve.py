@@ -300,19 +300,19 @@ class BaseSolver:
                     dedent(
                         f"""
 
-                ==> WARNING: A newer version of conda exists. <==
-                  current version: {CONDA_VERSION}
-                  latest version: {latest_version}
+                        ==> WARNING: A newer version of conda exists. <==
+                        current version: {CONDA_VERSION}
+                        latest version: {latest_version}
 
-                Please update conda by running
+                        Please update conda by running
 
-                    $ conda update -n base -c {channel_name} conda
+                            $ conda update -n base -c {channel_name} conda
 
-                Or to minimize the number of packages updated during conda update use
+                        Or to minimize the number of packages updated during conda update use
 
-                     conda install conda={latest_version}
+                            conda install conda={latest_version}
 
-                """
+                        """
                     ),
                     file=sys.stderr,
                 )
