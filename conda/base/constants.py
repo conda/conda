@@ -186,6 +186,7 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
+CONDA_PACKAGE_EXTRACTOR_NAME: Final = "conda-package"
 
 PARTIAL_EXTENSION: Final = ".partial"
 """Suffix appended to package filenames during incomplete downloads."""
