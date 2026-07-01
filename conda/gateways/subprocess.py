@@ -134,6 +134,7 @@ def subprocess_call(
     return Response(stdout, stderr, int(rc))
 
 
+@deprecated("27.3", "27.9")
 def _subprocess_clean_env(env, clean_python=True, clean_conda=True):
     dels = []
     if clean_python:
