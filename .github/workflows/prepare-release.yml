@@ -1,0 +1,30 @@
+name: Prepare release notes
+
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+    branches:
+      - '[0-9].*.x'
+      - '[0-9][0-9].*.x'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    if: >-
+      github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare Release Notes
+        uses: conda/actions/prepare-release@85d4128bba308734e876575a6ebee245c586884d
+        with:
+          news-directory: news
+          changelog-path: CHANGELOG.md
+          release-branch-pattern: |
+            [0-9].*.x
+            [0-9][0-9].*.x
