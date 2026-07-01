@@ -466,6 +466,30 @@ def test_no_tokens_dumped(empty_env: Path, remove_auth: bool):
         assert "/t/some-fake-token/" in json_content
 
 
+def test_insert_and_remove_unknown_extension(empty_env: Path):
+    """Packages with unrecognized extensions (e.g. .whl from conda-pypi) can
+    be inserted and removed without raising."""
+    pkg_record = PrefixRecord(
+        name="httpx",
+        version="1.0",
+        build="py3_none_any_0",
+        build_number=0,
+        depends=[],
+        channel="conda-pypi",
+        fn="httpx-1.0-py3_none_any_0.whl",
+        url="https://repo.anaconda.cloud/repo/conda-pypi/noarch/httpx-1.0-py3_none_any_0.whl",
+    )
+    pd = PrefixData(empty_env)
+    pd.insert(pkg_record)
+
+    json_path = empty_env / "conda-meta" / "httpx-1.0-py3_none_any_0.json"
+    assert json_path.exists()
+    assert pd.get("httpx") == pkg_record
+
+    pd.remove("httpx")
+    assert not json_path.exists()
+
+
 @pytest.mark.parametrize(
     "prefix1,prefix2,equals",
     [
