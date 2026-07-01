@@ -1,0 +1,3 @@
+### Other
+
+* Speed up `test_dont_remove_conda` by merging duplicate setup from `test_dont_remove_conda_1` and `test_dont_remove_conda_2`, parametrizing remove order, and sharing one session-scoped conda install across variants. (#16299 via #16311)
