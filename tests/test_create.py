@@ -2352,6 +2352,56 @@ def test_dont_remove_conda(
     assert package_is_installed(root_prefix_with_conda, "pycosat")
 
 
+def test_dont_remove_conda_dependency_with_dependent_packages(
+    root_prefix_with_conda: Path,
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+):
+    """Removing a conda dependency is blocked even when dependents would be unlinked."""
+    assert test_recipes_channel.is_dir()
+    conda_cli(
+        "install",
+        f"--prefix={root_prefix_with_conda}",
+        "another_dependent",
+        "--yes",
+    )
+    assert package_is_installed(root_prefix_with_conda, "dependency")
+    assert package_is_installed(root_prefix_with_conda, "dependent")
+    assert package_is_installed(root_prefix_with_conda, "another_dependent")
+
+    # Model a conda dependency that also has installed reverse dependencies.
+    conda_prec = PrefixData(root_prefix_with_conda).reload().get("conda")
+    conda_meta = (
+        root_prefix_with_conda
+        / "conda-meta"
+        / f"{conda_prec.name}-{conda_prec.version}-{conda_prec.build}.json"
+    )
+    assert conda_meta.is_file()
+    conda_record = json.loads(conda_meta.read_text())
+    original_depends = conda_record["depends"]
+    conda_record["depends"] = [*original_depends, "dependency"]
+    conda_meta.write_text(json.dumps(conda_record))
+    PrefixData._cache_.clear()
+
+    try:
+        with pytest.raises(CondaMultiError) as exc:
+            conda_cli(
+                "remove",
+                f"--prefix={root_prefix_with_conda}",
+                "dependency",
+                "--yes",
+            )
+
+        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+        assert package_is_installed(root_prefix_with_conda, "dependency")
+        assert package_is_installed(root_prefix_with_conda, "dependent")
+        assert package_is_installed(root_prefix_with_conda, "another_dependent")
+    finally:
+        conda_record["depends"] = original_depends
+        conda_meta.write_text(json.dumps(conda_record))
+        PrefixData._cache_.clear()
+
+
 def test_dont_remove_conda_3(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
