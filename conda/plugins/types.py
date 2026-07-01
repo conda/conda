@@ -21,6 +21,7 @@ from requests.auth import AuthBase  # noqa: TID253
 from ..auxlib import NULL
 from ..auxlib.type_coercion import maybecall
 from ..base.constants import APP_NAME
+from ..deprecations import deprecated
 from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
@@ -39,6 +40,18 @@ if TYPE_CHECKING:
     from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
+    from .reporter_backends.events import (
+        DetailViewEvent,
+        EnvsListEvent,
+        FetchSectionEndEvent,
+        FetchSectionStartEvent,
+        FetchTaskEndEvent,
+        FetchTaskProgressEvent,
+        FetchTaskStartEvent,
+        RenderDataEvent,
+        SpinnerEndEvent,
+        SpinnerStartEvent,
+    )
 
     CondaPrefixDataLoaderCallable: TypeAlias = Callable[
         [PathType, dict[str, PrefixRecord]],
@@ -460,6 +473,14 @@ class CondaSetting(CondaPlugin):
     aliases: tuple[str, ...] = tuple()
 
 
+@deprecated(
+    "25.3",
+    "27.9",
+    addendum=(
+        "Renderer implementations should use the ``render_fetch_task_*`` "
+        "event methods on ``ReporterRendererBase`` instead."
+    ),
+)
 class ProgressBarBase(ABC):
     def __init__(
         self,
@@ -485,6 +506,14 @@ class ProgressBarBase(ABC):
         pass
 
 
+@deprecated(
+    "25.3",
+    "27.9",
+    addendum=(
+        "Renderer implementations should use the ``render_spinner_*`` "
+        "event methods on ``ReporterRendererBase`` instead."
+    ),
+)
 class SpinnerBase(ABC):
     def __init__(self, message: str, fail_message: str = "failed\n"):
         self.message = message
@@ -500,48 +529,55 @@ class SpinnerBase(ABC):
 class ReporterRendererBase(ABC):
     """
     Base class for all reporter renderers.
+
+    Renderer implementations should override the ``render_*`` methods to
+    respond to events dispatched by :class:`~conda.reporters.CondaReporter`.
+    All ``render_*`` methods have no-op defaults so that existing third-party
+    renderers continue to work during the migration window.
+
+    The legacy factory methods (``render``, ``detail_view``, ``envs_list``,
+    ``progress_bar``, ``spinner``, ``progress_bar_context_manager``) are
+    pending deprecation and will be removed in a future release.
     """
 
-    def render(self, data: Any, **kwargs) -> str:
-        return str(data)
+    # ------------------------------------------------------------------
+    # New event-driven render_* methods (no-op defaults, not abstract).
+    # Renderers override whichever events they care about.
+    # ------------------------------------------------------------------
 
-    @abstractmethod
-    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
-        """
-        Render the output in a "tabular" format.
-        """
+    def render_data(self, event: RenderDataEvent) -> None:
+        """Render generic data to the output stream."""
 
-    @abstractmethod
-    def envs_list(
-        self, data: Iterable[str] | dict[str, dict[str, str | bool | None]], **kwargs
-    ) -> str:
-        """
-        Render a list of environments
-        """
+    def render_detail_view(self, event: DetailViewEvent) -> None:
+        """Render a key/value mapping as a tabular detail view."""
 
-    @abstractmethod
-    def progress_bar(
-        self,
-        description: str,
-        **kwargs,
-    ) -> ProgressBarBase:
-        """
-        Return a :class:`~conda.plugins.types.ProgressBarBase~` object to use as a progress bar
-        """
+    def render_envs_list(self, event: EnvsListEvent) -> None:
+        """Render a list of conda environments."""
 
-    @classmethod
-    def progress_bar_context_manager(cls) -> AbstractContextManager:
-        """
-        Returns a null context by default but allows plugins to define their own if necessary
-        """
-        return nullcontext()
+    def render_spinner_start(self, event: SpinnerStartEvent) -> None:
+        """Start a spinner (indeterminate progress indicator)."""
 
-    @abstractmethod
-    def spinner(self, message, failed_message) -> SpinnerBase:
-        """
-        Return a :class:`~conda.plugins.types.SpinnerBase~` object to use as a spinner (i.e.
-        loading dialog)
-        """
+    def render_spinner_end(self, event: SpinnerEndEvent) -> None:
+        """Stop the active spinner."""
+
+    def render_fetch_section_start(self, event: FetchSectionStartEvent) -> None:
+        """Prepare the renderer for an upcoming fetch-and-extract section."""
+
+    def render_fetch_task_start(self, event: FetchTaskStartEvent) -> None:
+        """Register and display a new fetch task."""
+
+    def render_fetch_task_progress(self, event: FetchTaskProgressEvent) -> None:
+        """Update the displayed progress of an in-flight fetch task."""
+
+    def render_fetch_task_end(self, event: FetchTaskEndEvent) -> None:
+        """Mark a fetch task as complete."""
+
+    def render_fetch_section_end(self, event: FetchSectionEndEvent) -> None:
+        """Tear down any shared layout context after a fetch section."""
+
+    # ------------------------------------------------------------------
+    # Synchronous query — not an event; retained as-is.
+    # ------------------------------------------------------------------
 
     @abstractmethod
     def prompt(
@@ -552,6 +588,81 @@ class ReporterRendererBase(ABC):
     ) -> str:
         """
         Allows for defining an implementation of a "yes/no" confirmation function
+        """
+
+    # ------------------------------------------------------------------
+    # Legacy factory methods — pending deprecation (remove in 27.9).
+    # ------------------------------------------------------------------
+
+    @deprecated(
+        "25.3",
+        "27.9",
+        addendum="Implement ``render_data`` instead.",
+    )
+    def render(self, data: Any, **kwargs) -> str:
+        return str(data)
+
+    @deprecated(
+        "25.3",
+        "27.9",
+        addendum="Implement ``render_detail_view`` instead.",
+    )
+    @abstractmethod
+    def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
+        """
+        Render the output in a "tabular" format.
+        """
+
+    @deprecated(
+        "25.3",
+        "27.9",
+        addendum="Implement ``render_envs_list`` instead.",
+    )
+    @abstractmethod
+    def envs_list(
+        self, data: Iterable[str] | dict[str, dict[str, str | bool | None]], **kwargs
+    ) -> str:
+        """
+        Render a list of environments
+        """
+
+    @deprecated(
+        "25.3",
+        "27.9",
+        addendum="Implement ``render_fetch_task_*`` event methods instead.",
+    )
+    @abstractmethod
+    def progress_bar(
+        self,
+        description: str,
+        **kwargs,
+    ) -> ProgressBarBase:
+        """
+        Return a :class:`~conda.plugins.types.ProgressBarBase~` object to use as a progress bar
+        """
+
+    @deprecated(
+        "25.3",
+        "27.9",
+        addendum="Implement ``render_fetch_section_*`` event methods instead.",
+    )
+    @classmethod
+    def progress_bar_context_manager(cls) -> AbstractContextManager:
+        """
+        Returns a null context by default but allows plugins to define their own if necessary
+        """
+        return nullcontext()
+
+    @deprecated(
+        "25.3",
+        "27.9",
+        addendum="Implement ``render_spinner_*`` event methods instead.",
+    )
+    @abstractmethod
+    def spinner(self, message, failed_message) -> SpinnerBase:
+        """
+        Return a :class:`~conda.plugins.types.SpinnerBase~` object to use as a spinner (i.e.
+        loading dialog)
         """
 
 
