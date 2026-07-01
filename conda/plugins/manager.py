@@ -54,7 +54,7 @@ from . import (
 from .config import PluginConfig
 from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
-from .types import CondaExceptionEvent
+from .types import CondaErrorHint, CondaExceptionEvent
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -64,6 +64,8 @@ if TYPE_CHECKING:
     from pluggy import HookImpl
     from requests.auth import AuthBase
 
+    from .. import CondaError
+    from .._private.exception_guidance import GuidanceHint
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
@@ -687,6 +689,51 @@ class CondaPluginManager(pluggy.PluginManager):
             hook.name: hook.value
             for hook in self.get_hook_results("request_headers", host=host, path=path)
         }
+
+    def get_error_hints(self, error: CondaError) -> tuple[GuidanceHint, ...]:
+        """
+        Return plugin-provided guidance hints for a conda error.
+
+        Each hook implementation is invoked independently so a faulty plugin
+        cannot prevent other plugins from contributing hints during error
+        rendering.
+        """
+        from .._private.exception_guidance import GuidanceHint
+
+        hook = self.hook.conda_error_hints
+        hints = []
+        for hookimpl in hook.get_hookimpls():
+            if hookimpl.hookwrapper or hookimpl.wrapper:
+                log.debug(
+                    "Skipping wrapper implementation for `conda_error_hints`: %r",
+                    hookimpl.plugin_name,
+                )
+                continue
+
+            try:
+                kwargs = {"error": error} if "error" in hookimpl.argnames else {}
+                hook_result = hookimpl.function(**kwargs)
+                if hook_result is None:
+                    continue
+                for hint in hook_result:
+                    if isinstance(hint, CondaErrorHint):
+                        hints.append(
+                            GuidanceHint(text=hint.text, hint_code=hint.hint_code)
+                        )
+                    else:
+                        log.debug(
+                            "Invalid error hint from plugin %r: expected "
+                            "CondaErrorHint, got %s",
+                            hookimpl.plugin_name,
+                            type(hint).__name__,
+                        )
+            except BaseException:
+                log.debug(
+                    "Error hints plugin %r failed",
+                    hookimpl.plugin_name,
+                    exc_info=True,
+                )
+        return tuple(hints)
 
     def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
         for hook in self.get_hook_results("prefix_data_loaders"):
