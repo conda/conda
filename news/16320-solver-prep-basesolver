@@ -1,0 +1,19 @@
+### Enhancements
+
+* Introduce `conda.core.solve.BaseSolver` as the solver plugin base class. (#16320)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.exports.Solver` as pending deprecation to be removed in 27.3. Use `conda.core.solve.Solver` instead. (#16320)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
