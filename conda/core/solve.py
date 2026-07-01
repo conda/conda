@@ -37,6 +37,7 @@ from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..reporters import get_spinner
 from ..resolve import Resolve
+from .exclude_newer import ExcludeNewerPolicy
 from .index import Index, ReducedIndex
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -49,6 +50,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
+    from typing import ClassVar
 
     from ..models.records import PackageRecord
 
@@ -67,6 +69,19 @@ class Solver:
 
     _index: ReducedIndex | None
     _r: Resolve | None
+
+    supports_exclude_newer_global: ClassVar[bool] = True
+    supports_exclude_newer_channel: ClassVar[bool] = True
+    supports_exclude_newer_package: ClassVar[bool] = True
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if "supports_exclude_newer_global" not in cls.__dict__:
+            cls.supports_exclude_newer_global = False
+        if "supports_exclude_newer_channel" not in cls.__dict__:
+            cls.supports_exclude_newer_channel = False
+        if "supports_exclude_newer_package" not in cls.__dict__:
+            cls.supports_exclude_newer_package = False
 
     def __init__(
         self,
@@ -112,6 +127,40 @@ class Solver:
         self._r = None
         self._prepared = False
         self._pool_cache = {}
+        self.exclude_newer_policy = ExcludeNewerPolicy.from_context()
+        self._validate_exclude_newer_support()
+
+    def _validate_exclude_newer_support(self) -> None:
+        policy = self.exclude_newer_policy
+        if not policy.active:
+            return
+
+        unsupported = []
+        if policy.has_global_cutoff and not self.supports_exclude_newer_global:
+            unsupported.append("global cutoff")
+        if policy.has_channel_overrides and not self.supports_exclude_newer_channel:
+            unsupported.append("channel overrides")
+        if policy.has_package_overrides and not self.supports_exclude_newer_package:
+            unsupported.append("package overrides")
+
+        if unsupported:
+            raise CondaError(
+                f"The {context.solver} solver does not support "
+                f"--exclude-newer {' and '.join(unsupported)}. "
+                "Choose a solver that supports this policy or disable the setting."
+            )
+
+    def _validate_exclude_newer_link_precs(
+        self, link_precs: tuple[PackageRecord, ...]
+    ) -> None:
+        excluded = self.exclude_newer_policy.excluded_records(link_precs)
+        if not excluded:
+            return
+
+        raise CondaError(
+            "--exclude-newer prevented this operation because the solver returned "
+            f"package(s) newer than the configured cutoff:{dashlist(sorted(prec.dist_str() for prec in excluded))}"
+        )
 
     def solve_for_transaction(
         self,
@@ -170,6 +219,7 @@ class Solver:
             force_reinstall,
             should_retry_solve,
         )
+        self._validate_exclude_newer_link_precs(link_precs)
         # TODO: Only explicitly requested remove and update specs are being included in
         #   History right now. Do we need to include other categories from the solve?
 
@@ -1317,6 +1367,7 @@ class Solver:
                 prefix=self.prefix,
                 repodata_fn=self._repodata_fn,
                 use_system=True,
+                exclude_newer_policy=self.exclude_newer_policy,
             )
             self._r = Resolve(reduced_index, channels=self.channels)
 

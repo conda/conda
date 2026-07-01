@@ -396,6 +396,18 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
         default=NULL,
         help="Ignore pinned file.",
     )
+    solver_mode_options.add_argument(
+        "--exclude-newer",
+        dest="exclude_newer",
+        default=NULL,
+        metavar="DURATION_OR_DATE",
+        help="Exclude packages published more recently than the given "
+        "duration (e.g. 7d, 3d12h, 1w) or date (e.g. 2026-04-01, "
+        "2026-04-01T12:00:00Z). Date-only values use the start of the next "
+        "UTC day. Supply 0 for no delay, using the current time as the cutoff. "
+        "Channel and per-package overrides can be set via channel_settings and "
+        "exclude_newer_package in .condarc.",
+    )
     return solver_mode_options
 
 
