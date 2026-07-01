@@ -8,7 +8,7 @@ so that terminal and `--json` output share the same logical cause / hint structu
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import TYPE_CHECKING
 
 from .. import CondaError
@@ -69,6 +69,22 @@ class ErrorGuidance:
         result = asdict(self)
         result["hint_codes"] = self.hint_codes
         return {k: v for k, v in result.items() if v}
+
+    def with_hint(self, text: str, hint_code: str) -> ErrorGuidance:
+        """Return a new instance with an additional hint appended.
+
+        When ``hint_code`` already exists, the new hint replaces the previous
+        one.
+        """
+        new_hints = tuple(
+            {
+                hint.hint_code: hint
+                for hint in (*self.hints, GuidanceHint(text, hint_code))
+            }.values()
+        )
+        if new_hints == self.hints:
+            return self
+        return replace(self, hints=new_hints)
 
     @classmethod
     def coerce(cls, value: Any) -> ErrorGuidance | None:
