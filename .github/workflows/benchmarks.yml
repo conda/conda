@@ -17,7 +17,10 @@ jobs:
   track-base-branch:
     if: >-
       !github.event.repository.fork
-      && github.event.workflow_run.conclusion == 'success'
+      && (
+        github.event.workflow_run.conclusion == 'success'
+        || github.event.workflow_run.conclusion == 'failure'
+      )
       && github.event.workflow_run.event == 'push'
       && (
         github.event.workflow_run.head_branch == 'main'
@@ -91,7 +94,10 @@ jobs:
   track-pull-request:
     if: >-
       !github.event.repository.fork
-      && github.event.workflow_run.conclusion == 'success'
+      && (
+        github.event.workflow_run.conclusion == 'success'
+        || github.event.workflow_run.conclusion == 'failure'
+      )
       && github.event.workflow_run.event == 'pull_request'
 
     runs-on: ubuntu-latest
@@ -175,11 +181,8 @@ jobs:
             --start-point-clone-thresholds \
             --start-point-reset \
             --testbed "$TESTBED" \
-            --threshold-measure latency \
-            --threshold-test t_test \
-            --threshold-max-sample-size 64 \
-            --threshold-upper-boundary 0.99 \
             --ci-only-thresholds \
+            --ci-only-on-alert \
             --err \
             --adapter python_pytest \
             --github-actions "$GH_TOKEN" \
