@@ -4,9 +4,15 @@
 
 from __future__ import annotations
 
+import multiprocessing
 import os
 from collections import defaultdict
-from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
+from concurrent.futures import (
+    CancelledError,
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    as_completed,
+)
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
@@ -18,12 +24,14 @@ from tarfile import ReadError
 from typing import TYPE_CHECKING
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
+from .._private.extract import extract_conda_package_archive
 from ..auxlib.collection import first
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.entity import ValidationError
 from ..base.constants import (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
+    CONDA_PACKAGE_EXTRACTOR_NAME,
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
@@ -35,7 +43,7 @@ from ..common.serialize import json
 from ..common.signals import signal_handler
 from ..common.terminal import is_tty, term_dumb
 from ..common.url import path_to_url
-from ..exceptions import NotWritableError, NoWritablePkgsDirError
+from ..exceptions import NotWritableError, NoWritablePkgsDirError, PluginError
 from ..gateways.disk.create import (
     create_package_cache_directory,
     write_as_json_to_file,
@@ -71,8 +79,15 @@ try:
     from conda_package_handling.api import THREADSAFE_EXTRACT
 except ImportError:
     THREADSAFE_EXTRACT = False
-# On the machines we tested, extraction doesn't get any faster after 3 threads
-EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
+# The fallback thread pool is used for non-standard package extractor plugins
+# and debug mode. Built-in .conda/.tar.bz2 extraction normally runs in a
+# process pool below to avoid zstd's GIL bottleneck. See #15974.
+EXTRACT_THREADS = 2 if THREADSAFE_EXTRACT else 1
+EXTRACT_PROCESSES = min(os.cpu_count() or 1, 4) if THREADSAFE_EXTRACT else 1
+EXTRACT_PROCESS_EXTENSIONS = (
+    CONDA_PACKAGE_EXTENSION_V1,
+    CONDA_PACKAGE_EXTENSION_V2,
+)
 
 
 class PackageCacheType(type):
@@ -827,6 +842,39 @@ class ProgressiveFetchExtract:
             exceptions = []
             progress_bars = {}
             futures: list[Future] = []
+            extract_futures = {}
+            extract_actions = self.extract_actions
+            use_process_pool = (
+                bool(extract_actions) and EXTRACT_PROCESSES > 1 and not context.debug
+            )
+            if use_process_pool:
+                # Only bypass the plugin manager when every action resolves to
+                # conda's built-in extractor.
+                for extract_action in extract_actions:
+                    source_full_path = os.fspath(extract_action.source_full_path)
+                    if not source_full_path.lower().endswith(
+                        EXTRACT_PROCESS_EXTENSIONS
+                    ):
+                        use_process_pool = False
+                        break
+                    try:
+                        extractor = context.plugin_manager.get_package_extractor(
+                            source_full_path
+                        )
+                    except PluginError:
+                        use_process_pool = False
+                        break
+                    if extractor.name != CONDA_PACKAGE_EXTRACTOR_NAME:
+                        use_process_pool = False
+                        break
+
+            if use_process_pool:
+                extract_executor = ProcessPoolExecutor(
+                    max_workers=EXTRACT_PROCESSES,
+                    mp_context=multiprocessing.get_context("spawn"),
+                )
+            else:
+                extract_executor = ThreadPoolExecutor(EXTRACT_THREADS)
 
             cancelled_flag = False
 
@@ -841,7 +889,7 @@ class ProgressiveFetchExtract:
                 signal_handler(conda_signal_handler),
                 time_recorder("fetch_extract_execute"),
                 ThreadPoolExecutor(context.fetch_threads) as fetch_executor,
-                ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor,
+                extract_executor,
             ):
                 for prec_or_spec, (
                     cache_action,
@@ -882,21 +930,58 @@ class ProgressiveFetchExtract:
                         prec_or_spec = completed_future.result()
 
                         cache_action, extract_action = self.paired_actions[prec_or_spec]
-                        extract_future = extract_executor.submit(
-                            do_extract_action,
-                            prec_or_spec,
-                            extract_action,
-                            progress_bars[prec_or_spec],
-                        )
-                        extract_future.add_done_callback(
-                            partial(
-                                done_callback,
-                                actions=(cache_action, extract_action),
-                                exceptions=exceptions,
-                                progress_bar=progress_bars[prec_or_spec],
-                                finish=True,
+                        progress_bar = progress_bars[prec_or_spec]
+                        actions = (cache_action, extract_action)
+                        if not extract_action:
+                            do_cleanup(actions)
+                            progress_bar.finish()
+                            progress_bar.refresh()
+                        elif use_process_pool:
+                            try:
+                                extract_action.verify()
+                                extract_action.prepare_extract()
+                                extract_future = extract_executor.submit(
+                                    extract_conda_package_archive,
+                                    extract_action.source_full_path,
+                                    extract_action.target_full_path,
+                                )
+                            except Exception as e:
+                                do_reverse(reversed(actions))
+                                exceptions.append(e)
+                            else:
+                                extract_futures[extract_future] = (
+                                    actions,
+                                    extract_action,
+                                    progress_bar,
+                                )
+                        else:
+                            extract_future = extract_executor.submit(
+                                do_extract_action,
+                                prec_or_spec,
+                                extract_action,
+                                progress_bar,
                             )
-                        )
+                            extract_futures[extract_future] = (
+                                actions,
+                                None,
+                                progress_bar,
+                            )
+                    for extract_future in as_completed(extract_futures):
+                        actions, process_extract_action, progress_bar = extract_futures[
+                            extract_future
+                        ]
+                        try:
+                            extract_future.result()
+                            if process_extract_action:
+                                process_extract_action.finish_extract()
+                                progress_bar.update_to(1.0)
+                        except Exception as e:
+                            do_reverse(reversed(actions))
+                            exceptions.append(e)
+                        else:
+                            do_cleanup(actions)
+                            progress_bar.finish()
+                            progress_bar.refresh()
                 except BaseException as e:
                     # We are interested in KeyboardInterrupt delivered to
                     # as_completed() while waiting, or any exception raised from
