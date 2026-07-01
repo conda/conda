@@ -26,6 +26,17 @@ conda/infrastructure:
   #   with:
   #     tests_workflow: Test
 
+  # [optional] slow test review workflow (requires durations/ from combine-durations)
+  - src: templates/workflows/slow-tests.yml
+    dst: .github/workflows/slow-tests.yml
+    with:
+      epic_number: 15637
+  # For repos with a subset of platforms, add:
+  #   with:
+  #     epic_number: '<epic issue number>'
+  #     platforms:
+  #       - Linux
+
   # [optional] general processes for the conda org
   - src: templates/HOW_WE_USE_GITHUB.md
     dst: HOW_WE_USE_GITHUB.md
