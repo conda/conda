@@ -40,39 +40,28 @@ def get_windows_launcher_stub_path(
         ) from exc
 
     for prefix in (*prefixes, context.conda_prefix):
-        if launcher_path := _get_conda_launchers_file(prefix, launcher_short_path):
+        try:
+            record = PrefixData(prefix).get(CONDA_LAUNCHERS_PACKAGE_NAME, None)
+        except OSError:
+            log.debug("Could not read prefix metadata for %s", prefix, exc_info=True)
+            continue
+
+        if record is None:
+            continue
+
+        package_paths = set(record.files or ())
+        if paths_data := getattr(record, "paths_data", None):
+            package_paths.update(path_data.path for path_data in paths_data.paths)
+        if launcher_short_path.replace("\\", "/") not in {
+            path.replace("\\", "/") for path in package_paths
+        }:
+            continue
+
+        launcher_path = join(prefix, launcher_short_path)
+        if isfile(launcher_path):
             return launcher_path
 
     raise FileNotFoundError(
         f"Could not find Windows entry point stub for subdir {subdir!r}: "
         f"{launcher_short_path!r} from {CONDA_LAUNCHERS_PACKAGE_NAME!r}."
     )
-
-
-def _get_conda_launchers_file(
-    prefix: str | PathLike[str],
-    launcher_short_path: str,
-) -> str | None:
-    try:
-        record = PrefixData(prefix).get(CONDA_LAUNCHERS_PACKAGE_NAME, None)
-    except OSError:
-        log.debug("Could not read prefix metadata for %s", prefix, exc_info=True)
-        return None
-
-    if record is None:
-        return None
-
-    package_paths = set(record.files or ())
-    if paths_data := getattr(record, "paths_data", None):
-        package_paths.update(path_data.path for path_data in paths_data.paths)
-    if _normalize_path(launcher_short_path) not in {
-        _normalize_path(path) for path in package_paths
-    }:
-        return None
-
-    launcher_path = join(prefix, launcher_short_path)
-    return launcher_path if isfile(launcher_path) else None
-
-
-def _normalize_path(path: str) -> str:
-    return path.replace("\\", "/")

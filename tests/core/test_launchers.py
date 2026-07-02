@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-def test_get_conda_launchers_file_from_package_record(tmp_path: Path):
+def test_get_windows_launcher_stub_path_uses_package_record(tmp_path: Path):
     pytest.importorskip("conda_launchers")
     launcher_short_path = "Scripts/cli-64.exe"
     launcher_path = tmp_path / launcher_short_path
