@@ -303,7 +303,13 @@ def wrap_subprocess_call(
                 # still, if that were to change this would prevent breakage.
                 fh.write("{}\n".format(" ".join(arguments)))
             else:
-                fh.write(f"{quote_for_shell(*arguments)}\n")
+                if not dev_mode and arguments and arguments[0] == "conda":
+                    # The POSIX hook defines `conda` as a shell function. `command`
+                    # skips functions and resolves the executable from the activated PATH.
+                    command_args = ("command", *arguments)
+                else:
+                    command_args = arguments
+                fh.write(f"{quote_for_shell(*command_args)}\n")
             # Capture the return code of the user's command in a variable
             # before deactivating. We don't need to unset this per se, because
             # the shell process will terminate and clean it up afterwards.

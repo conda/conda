@@ -124,6 +124,31 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
         conda_cli("run", f"--prefix={tmp_path}", "echo", "hello")
 
 
+@pytest.mark.skipif(on_win, reason="POSIX shell function regression test")
+def test_run_uses_target_prefix_conda_executable(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env() as prefix:
+        conda_exe = prefix / "bin" / "conda"
+        conda_exe.parent.mkdir(parents=True, exist_ok=True)
+        conda_exe.write_text('#!/bin/sh\nprintf "target-prefix-conda %s\\n" "$1"\n')
+        conda_exe.chmod(
+            conda_exe.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+        )
+
+        stdout, stderr, err = conda_cli(
+            "run",
+            f"--prefix={prefix}",
+            "conda",
+            "sentinel",
+        )
+
+        assert stdout.strip() == "target-prefix-conda sentinel"
+        assert not stderr
+        assert err == 0
+
+
 def test_multiline_run_command(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
