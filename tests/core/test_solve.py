@@ -10,6 +10,7 @@ from pprint import pprint
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
+import archspec.cpu
 import pytest
 
 from conda.auxlib.ish import dals
@@ -468,11 +469,12 @@ def test_archspec_call(
     # Remove CONDA_OVERRIDE_ARCHSPEC if it exists.
     monkeypatch.delenv("CONDA_OVERRIDE_ARCHSPEC", raising=False)
     reset_context()
-
-    with patch("archspec.cpu.host") as archspec:
+    archspec_value = archspec.cpu.host()
+    with patch("archspec.cpu.host") as patched_archspec:
+        patched_archspec.return_value = archspec_value
         with get_solver_cuda(tmpdir, specs) as solver:
             solver.solve_final_state()
-            archspec.assert_called()
+            patched_archspec.assert_called()
 
 
 def test_prune_1(tmpdir, request):
