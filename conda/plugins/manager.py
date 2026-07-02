@@ -663,8 +663,6 @@ class CondaPluginManager(pluggy.PluginManager):
         rendering. Implementations are invoked in deterministic plugin-name
         order, while preserving the hint order yielded by each plugin.
         """
-        from .._private.exception_guidance import GuidanceHint
-
         hook = self.hook.conda_error_hints
         hints = []
         for hookimpl in sorted(
@@ -685,7 +683,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     continue
                 for hint in hook_result:
                     if isinstance(hint, CondaErrorHint):
-                        hints.append(GuidanceHint(text=hint.text, hint_code=hint.name))
+                        hints.append(hint)
                     else:
                         log.debug(
                             "Invalid error hint from plugin %r: expected "

@@ -1055,12 +1055,12 @@ def test_print_conda_exception_with_plugin_hints(
         def conda_error_hints(self, error):
             if isinstance(error, RemoveError):
                 yield plugins.types.CondaErrorHint(
-                    name="do_the_thing",
                     text="Duplicate.",
+                    hint_code="do_the_thing",
                 )
                 yield plugins.types.CondaErrorHint(
-                    name="plugin_step",
                     text="Plugin step.",
+                    hint_code="plugin_step",
                 )
 
     plugin_manager.register(PluginHints())
@@ -1111,8 +1111,8 @@ def test_print_conda_exception_with_plugin_hints_json(
         def conda_error_hints(self, error):
             if isinstance(error, RemoveError):
                 yield plugins.types.CondaErrorHint(
-                    name="plugin_step",
                     text="Plugin step.",
+                    hint_code="plugin_step",
                 )
 
     plugin_manager.register(PluginHints())
@@ -1160,8 +1160,8 @@ def test_PackagesNotFoundInChannelsError_plugin_hint(
                 assert error.packages == ("missing-pkg",)
                 assert error.channel_urls == ("https://repo.example.com",)
                 yield plugins.types.CondaErrorHint(
-                    name="anaconda_channel_suggestion",
                     text="Try installing from the recommended channel.",
+                    hint_code="anaconda_channel_suggestion",
                 )
 
     plugin_manager.register(ChannelGuidePlugin())
@@ -1202,8 +1202,8 @@ def test_exception_observers_do_not_contribute_error_hints(
         def conda_exception_observers(self):
             def observer(event):
                 return plugins.types.CondaErrorHint(
-                    name="observer_hint",
                     text="Observer hint.",
+                    hint_code="observer_hint",
                 )
 
             yield plugins.types.CondaExceptionObserver(

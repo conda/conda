@@ -23,8 +23,8 @@ Example
    def conda_error_hints(error):
        if isinstance(error, PackagesNotFoundInChannelsError):
            yield plugins.types.CondaErrorHint(
-               name="check_expected_channel",
                text="Check whether the package exists on your expected channel.",
+               hint_code="check_expected_channel",
            )
 
 With that plugin installed, conda appends the hint to the normal terminal
@@ -67,8 +67,6 @@ preserves the order yielded by each implementation, and appends plugin hints
 after core guidance hints. If two hints use the same ``hint_code``, the first
 hint wins, so core guidance takes priority over plugin guidance. Hook wrappers
 are skipped for this hook so conda can isolate failures per implementation.
-The hint object's ``name`` is rendered as ``guidance.hints[].hint_code`` in
-``--json`` output.
 
 Error hints vs. exception observers
 -----------------------------------

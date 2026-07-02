@@ -25,12 +25,12 @@ class ErrorHintsPlugin:
     ) -> Iterator[plugins.types.CondaErrorHint]:
         self.calls.append(error)
         yield plugins.types.CondaErrorHint(
-            name="first_hint",
             text="First hint.",
+            hint_code="first_hint",
         )
         yield plugins.types.CondaErrorHint(
-            name="second_hint",
             text="Second hint.",
+            hint_code="second_hint",
         )
 
 
@@ -42,8 +42,8 @@ class InvalidHintPlugin:
     def conda_error_hints(self, error: CondaError):
         yield self.invalid_hint
         yield plugins.types.CondaErrorHint(
-            name="still_valid",
             text="Still valid.",
+            hint_code="still_valid",
         )
 
 
@@ -52,8 +52,8 @@ class ExplodingHintPlugin:
     def conda_error_hints(self, error: CondaError):
         raise RuntimeError("plugin bug")
         yield plugins.types.CondaErrorHint(
-            name="unreachable",
             text="unreachable",
+            hint_code="unreachable",
         )
 
 
@@ -65,8 +65,8 @@ class NamedErrorHintPlugin:
     @plugins.hookimpl
     def conda_error_hints(self, error: CondaError):
         yield plugins.types.CondaErrorHint(
-            name=self.hint_code,
             text=self.text,
+            hint_code=self.hint_code,
         )
 
 
@@ -76,20 +76,21 @@ def test_get_error_hints(plugin_manager: CondaPluginManager):
     plugin_manager.register(plugin)
 
     assert plugin_manager.get_error_hints(error) == (
-        GuidanceHint("First hint.", "first_hint"),
-        GuidanceHint("Second hint.", "second_hint"),
+        plugins.types.CondaErrorHint("First hint.", "first_hint"),
+        plugins.types.CondaErrorHint("Second hint.", "second_hint"),
     )
     assert plugin.calls == [error]
 
 
-def test_CondaErrorHint_uses_name_as_hint_code() -> None:
+def test_CondaErrorHint_reuses_guidance_hint() -> None:
     hint = plugins.types.CondaErrorHint(
-        name="  MY_HINT  ",
         text="Do the thing.",
+        hint_code="do_the_thing",
     )
 
-    assert hint.name == "my_hint"
-    assert hint.hint_code == "my_hint"
+    assert isinstance(hint, GuidanceHint)
+    assert not isinstance(hint, plugins.types.CondaPlugin)
+    assert hint.hint_code == "do_the_thing"
 
 
 def test_get_error_hints_orders_plugins_by_plugin_name(
@@ -105,8 +106,8 @@ def test_get_error_hints_orders_plugins_by_plugin_name(
     )
 
     assert plugin_manager.get_error_hints(CondaError("boom")) == (
-        GuidanceHint("First plugin.", "first_plugin"),
-        GuidanceHint("Second plugin.", "second_plugin"),
+        plugins.types.CondaErrorHint("First plugin.", "first_plugin"),
+        plugins.types.CondaErrorHint("Second plugin.", "second_plugin"),
     )
 
 
@@ -125,7 +126,7 @@ def test_get_error_hints_ignores_invalid_hints(
     plugin_manager.register(InvalidHintPlugin(invalid_hint))
 
     assert plugin_manager.get_error_hints(CondaError("boom")) == (
-        GuidanceHint("Still valid.", "still_valid"),
+        plugins.types.CondaErrorHint("Still valid.", "still_valid"),
     )
 
 
@@ -136,6 +137,6 @@ def test_get_error_hints_swallow_plugin_failures(
     plugin_manager.register(ErrorHintsPlugin())
 
     assert plugin_manager.get_error_hints(CondaError("boom")) == (
-        GuidanceHint("First hint.", "first_hint"),
-        GuidanceHint("Second hint.", "second_hint"),
+        plugins.types.CondaErrorHint("First hint.", "first_hint"),
+        plugins.types.CondaErrorHint("Second hint.", "second_hint"),
     )
