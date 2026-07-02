@@ -8,7 +8,7 @@ so that terminal and `--json` output share the same logical cause / hint structu
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import TYPE_CHECKING
 
 from .. import CondaError
@@ -70,9 +70,11 @@ class ErrorGuidance:
         result["hint_codes"] = self.hint_codes
         return {k: v for k, v in result.items() if v}
 
-    @classmethod
-    def from_hints(cls, hints: Iterable[GuidanceHint]) -> ErrorGuidance | None:
-        """Create guidance from hints, deduplicating by ``hint_code``."""
+    @staticmethod
+    def _deduplicate_hints(
+        hints: Iterable[GuidanceHint],
+    ) -> tuple[GuidanceHint, ...]:
+        """Deduplicate hints by ``hint_code`` while preserving first wins order."""
         merged_hints = []
         seen_hint_codes = set()
         for hint in hints:
@@ -80,20 +82,28 @@ class ErrorGuidance:
                 continue
             seen_hint_codes.add(hint.hint_code)
             merged_hints.append(hint)
+        return tuple(merged_hints)
+
+    @classmethod
+    def from_hints(cls, hints: Iterable[GuidanceHint]) -> ErrorGuidance | None:
+        """Create guidance from hints, deduplicating by ``hint_code``."""
+        merged_hints = cls._deduplicate_hints(hints)
         if not merged_hints:
             return None
-        return cls(hints=tuple(merged_hints))
+        return cls(hints=merged_hints)
 
     def with_hints(self, hints: Iterable[GuidanceHint]) -> ErrorGuidance:
-        """Return this guidance with additional hints appended."""
-        guidance = ErrorGuidance.from_hints((*self.hints, *tuple(hints)))
-        if guidance is None or len(guidance.hints) == len(self.hints):
+        """Return this guidance with additional hints appended.
+
+        Existing hints keep priority when ``hint_code`` values collide.
+        """
+        hints = tuple(hints)
+        if not hints:
             return self
-        return ErrorGuidance(
-            summary=self.summary,
-            cause=self.cause,
-            hints=guidance.hints,
-        )
+        new_hints = self._deduplicate_hints((*self.hints, *hints))
+        if new_hints == self.hints:
+            return self
+        return replace(self, hints=new_hints)
 
     @classmethod
     def coerce(cls, value: Any) -> ErrorGuidance | None:

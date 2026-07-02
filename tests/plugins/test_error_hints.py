@@ -45,6 +45,16 @@ class ExplodingHintPlugin:
         yield plugins.types.CondaErrorHint("unreachable", "unreachable")
 
 
+class NamedErrorHintPlugin:
+    def __init__(self, text: str, hint_code: str):
+        self.text = text
+        self.hint_code = hint_code
+
+    @plugins.hookimpl
+    def conda_error_hints(self, error: CondaError):
+        yield plugins.types.CondaErrorHint(self.text, self.hint_code)
+
+
 def test_get_error_hints(plugin_manager: CondaPluginManager):
     plugin = ErrorHintsPlugin()
     error = CondaError("boom")
@@ -55,6 +65,24 @@ def test_get_error_hints(plugin_manager: CondaPluginManager):
         GuidanceHint("Second hint.", "second_hint"),
     )
     assert plugin.calls == [error]
+
+
+def test_get_error_hints_orders_plugins_by_plugin_name(
+    plugin_manager: CondaPluginManager,
+):
+    plugin_manager.register(
+        NamedErrorHintPlugin("Second plugin.", "second_plugin"),
+        name="z-plugin",
+    )
+    plugin_manager.register(
+        NamedErrorHintPlugin("First plugin.", "first_plugin"),
+        name="a-plugin",
+    )
+
+    assert plugin_manager.get_error_hints(CondaError("boom")) == (
+        GuidanceHint("First plugin.", "first_plugin"),
+        GuidanceHint("Second plugin.", "second_plugin"),
+    )
 
 
 @pytest.mark.parametrize(

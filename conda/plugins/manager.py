@@ -660,13 +660,17 @@ class CondaPluginManager(pluggy.PluginManager):
 
         Each hook implementation is invoked independently so a faulty plugin
         cannot prevent other plugins from contributing hints during error
-        rendering.
+        rendering. Implementations are invoked in deterministic plugin-name
+        order, while preserving the hint order yielded by each plugin.
         """
         from .._private.exception_guidance import GuidanceHint
 
         hook = self.hook.conda_error_hints
         hints = []
-        for hookimpl in hook.get_hookimpls():
+        for hookimpl in sorted(
+            hook.get_hookimpls(),
+            key=lambda hookimpl: str(hookimpl.plugin_name),
+        ):
             if hookimpl.hookwrapper or hookimpl.wrapper:
                 log.debug(
                     "Skipping wrapper implementation for `conda_error_hints`: %r",

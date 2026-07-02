@@ -637,6 +637,11 @@ class CondaSpecs:
         to the error's existing guidance. Plugins should not print directly from
         this hook.
 
+        Conda invokes implementations in deterministic plugin-name order and
+        preserves the hint order yielded by each plugin. Existing core guidance
+        hints win when a plugin yields the same ``hint_code``. Hook wrappers are
+        skipped so conda can isolate failures per implementation.
+
         Use this hook for user-facing next steps. Use
         :meth:`~conda.plugins.hookspec.CondaSpecs.conda_exception_observers`
         for telemetry, logging, demand tracking, or other side effects.

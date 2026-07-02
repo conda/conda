@@ -62,6 +62,12 @@ rendering expected errors. If one plugin raises or yields an invalid hint,
 conda logs the plugin failure at DEBUG level and continues rendering the
 original error plus any other valid hints.
 
+Hint order is deterministic: conda invokes implementations by plugin name,
+preserves the order yielded by each implementation, and appends plugin hints
+after core guidance hints. If two hints use the same ``hint_code``, the first
+hint wins, so core guidance takes priority over plugin guidance. Hook wrappers
+are skipped for this hook so conda can isolate failures per implementation.
+
 Error hints vs. exception observers
 -----------------------------------
 

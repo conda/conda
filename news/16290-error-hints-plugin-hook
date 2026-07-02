@@ -1,11 +1,3 @@
 ### Enhancements
 
 * Add a ``conda_error_hints`` plugin hook for appending structured guidance hints to ``CondaError`` output. (#16290)
-
-### Bug fixes
-
-### Deprecations
-
-### Docs
-
-### Other
