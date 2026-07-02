@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import CondaCLIFixture
 
@@ -406,6 +407,25 @@ def test_make_entry_point_exe(verbose, tmp_path: Path):
         assert target_path.is_file()
 
         assert make_entry_point_exe(target_path, CONDA_PACKAGE_ROOT) == Result.NO_CHANGE
+
+
+def test_make_entry_point_exe_uses_conda_launchers(
+    verbose, tmp_path: Path, mocker: MockerFixture
+):
+    source_path = tmp_path / "source" / "cli-64.exe"
+    source_path.parent.mkdir()
+    source_path.write_bytes(b"launcher")
+    get_launcher = mocker.patch(
+        "conda.core.initialize.get_windows_launcher_stub_path",
+        return_value=str(source_path),
+    )
+    conda_prefix = tmp_path / "prefix"
+    target_path = conda_prefix / "Scripts" / "conda.exe"
+
+    assert make_entry_point_exe(target_path, conda_prefix) == Result.MODIFIED
+
+    get_launcher.assert_called_once_with(prefixes=(conda_prefix,))
+    assert target_path.read_bytes() == b"launcher"
 
 
 def test_install_conda_sh(verbose):

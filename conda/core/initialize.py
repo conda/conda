@@ -53,7 +53,6 @@ from ..activate import (
 )
 from ..auxlib.compat import Utf8NamedTemporaryFile
 from ..auxlib.ish import dals
-from ..base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from ..base.context import context
 from ..common.compat import (
     ensure_binary,
@@ -63,7 +62,6 @@ from ..common.compat import (
     on_win,
     open_utf8,
 )
-from ..common.io import dashlist
 from ..common.path import (
     BIN_DIRECTORY,
     expand,
@@ -79,6 +77,7 @@ from ..gateways.disk.link import lexists
 from ..gateways.disk.permissions import make_executable
 from ..gateways.disk.read import compute_sum
 from ..gateways.subprocess import subprocess_call
+from .launchers import get_windows_launcher_stub_path
 from .portability import generate_shebang_for_entry_point
 
 if on_win:  # pragma: no cover
@@ -1183,15 +1182,8 @@ def make_entry_point(target_path, conda_prefix, module, func):
 
 def make_entry_point_exe(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
-    if context.subdir not in WINDOWS_LAUNCHER_STUB_PATH:
-        raise NotImplementedError(
-            f"Windows entry point stub not available for subdir {context.subdir!r}. "
-            f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
-        )
     exe_path = target_path
-    source_exe_path = join(
-        CONDA_PACKAGE_ROOT, WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
-    )
+    source_exe_path = get_windows_launcher_stub_path(prefixes=(conda_prefix,))
     if isfile(exe_path):
         if compute_sum(exe_path, "md5") == compute_sum(source_exe_path, "md5"):
             return Result.NO_CHANGE
