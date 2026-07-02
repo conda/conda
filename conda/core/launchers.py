@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from os import PathLike
 
+    from ..models.package_info import PackageInfo
+
 log = getLogger(__name__)
 
 CONDA_LAUNCHERS_PACKAGE_NAME = "conda-launchers"
@@ -25,6 +27,7 @@ def get_windows_launcher_stub_path(
     subdir: str | None = None,
     *,
     source_prefixes: Iterable[str | PathLike[str]],
+    source_package_infos: Iterable[PackageInfo] = (),
 ) -> str:
     """Return the source path for a Windows Python entry point launcher."""
     # Import lazily so non-Windows imports of conda do not need the Windows-only
@@ -41,6 +44,23 @@ def get_windows_launcher_stub_path(
             f"Windows entry point stub not available for subdir {subdir!r}. "
             f"Supported: {dashlist(supported_subdirs)}."
         ) from exc
+
+    for package_info in source_package_infos:
+        if package_info.repodata_record.name != CONDA_LAUNCHERS_PACKAGE_NAME:
+            continue
+
+        # A package being linked does not have prefix metadata yet; use the
+        # extracted package manifest instead.
+        package_paths = {
+            path_data.path.replace("\\", "/")
+            for path_data in package_info.paths_data.paths
+        }
+        if launcher_short_path.replace("\\", "/") not in package_paths:
+            continue
+
+        launcher_path = join(package_info.extracted_package_dir, launcher_short_path)
+        if isfile(launcher_path):
+            return launcher_path
 
     # Only search explicit source prefixes; the target prefix is not a source
     # unless the caller intentionally passes it.

@@ -364,9 +364,11 @@ class LinkPathAction(CreateInPrefixPathAction):
         target_prefix,
         requested_link_type,
         entry_point_def,
+        source_package_infos=(),
     ):
         source_exe_path = get_windows_launcher_stub_path(
-            source_prefixes=(context.conda_prefix,)
+            source_prefixes=(context.conda_prefix,),
+            source_package_infos=source_package_infos,
         )
         source_directory = dirname(source_exe_path)
         source_short_path = basename(source_exe_path)
@@ -828,7 +830,12 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
     @classmethod
     def create_actions(
-        cls, transaction_context, package_info, target_prefix, requested_link_type
+        cls,
+        transaction_context,
+        package_info,
+        target_prefix,
+        requested_link_type,
+        source_package_infos=(),
     ):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
@@ -862,6 +869,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                         target_prefix,
                         requested_link_type,
                         ep_def,
+                        source_package_infos=source_package_infos,
                     )
                     for ep_def in noarch.entry_points or ()
                 )

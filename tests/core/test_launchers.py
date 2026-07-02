@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -52,6 +53,31 @@ def test_get_windows_launcher_stub_path_prefers_conda_launchers(tmp_path: Path):
     assert launchers.get_windows_launcher_stub_path(
         "win-arm64", source_prefixes=(tmp_path,)
     ) == str(launcher_path)
+
+
+def test_get_windows_launcher_stub_path_uses_linked_package(
+    tmp_path: Path, mocker: MockerFixture
+):
+    pytest.importorskip("conda_launchers")
+    launcher_short_path = "Scripts/cli-64.exe"
+    extracted_package_dir = tmp_path / "conda-launchers-26.7.0-h0_0"
+    launcher_path = extracted_package_dir / launcher_short_path
+    launcher_path.parent.mkdir(parents=True)
+    launcher_path.write_bytes(b"launcher")
+    package_info = SimpleNamespace(
+        extracted_package_dir=str(extracted_package_dir),
+        repodata_record=SimpleNamespace(name="conda-launchers"),
+        paths_data=SimpleNamespace(paths=(SimpleNamespace(path=launcher_short_path),)),
+    )
+    prefix_data = mocker.patch("conda.core.launchers.PrefixData")
+
+    assert launchers.get_windows_launcher_stub_path(
+        "win-64",
+        source_prefixes=("missing-prefix",),
+        source_package_infos=(package_info,),
+    ) == str(launcher_path)
+
+    prefix_data.assert_not_called()
 
 
 def test_get_windows_launcher_stub_path_uses_conda_launchers_api(

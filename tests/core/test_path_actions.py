@@ -502,9 +502,13 @@ def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
         tmp_path / "target",
         LinkType.copy,
         "command=some.module:main",
+        source_package_infos=("conda-launchers-package-info",),
     )
 
-    get_launcher.assert_called_once_with(source_prefixes=(context.conda_prefix,))
+    get_launcher.assert_called_once_with(
+        source_prefixes=(context.conda_prefix,),
+        source_package_infos=("conda-launchers-package-info",),
+    )
     assert axn.source_full_path == str(source_path)
     assert axn.target_short_path == "Scripts/command.exe"
 
