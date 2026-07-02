@@ -2358,7 +2358,6 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
     conda_cli: CondaCLIFixture,
 ):
     """Removing a conda dependency is blocked even when dependents would be unlinked."""
-    assert test_recipes_channel.is_dir()
     conda_cli(
         "install",
         f"--prefix={root_prefix_with_conda}",
@@ -2393,6 +2392,7 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
             )
 
         assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+        assert package_is_installed(root_prefix_with_conda, "conda")
         assert package_is_installed(root_prefix_with_conda, "dependency")
         assert package_is_installed(root_prefix_with_conda, "dependent")
         assert package_is_installed(root_prefix_with_conda, "another_dependent")
@@ -2400,6 +2400,18 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
         conda_record["depends"] = original_depends
         conda_meta.write_text(json.dumps(conda_record))
         PrefixData._cache_.clear()
+        cleanup_packages = [
+            package
+            for package in ("another_dependent", "dependent", "dependency")
+            if package_is_installed(root_prefix_with_conda, package)
+        ]
+        if cleanup_packages:
+            conda_cli(
+                "remove",
+                f"--prefix={root_prefix_with_conda}",
+                *cleanup_packages,
+                "--yes",
+            )
 
 
 def test_dont_remove_conda_3(
