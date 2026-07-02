@@ -27,9 +27,12 @@ def get_windows_launcher_stub_path(
     source_prefixes: Iterable[str | PathLike[str]],
 ) -> str:
     """Return the source path for a Windows Python entry point launcher."""
+    # Import lazily so non-Windows imports of conda do not need the Windows-only
+    # conda-launchers package.
     import conda_launchers
 
     subdir = subdir or context.subdir
+    # Let conda-launchers own the subdir-to-filename mapping.
     supported_subdirs = conda_launchers.get_supported_subdirs()
     try:
         launcher_short_path = conda_launchers.get_launcher_short_path(subdir)
@@ -39,6 +42,8 @@ def get_windows_launcher_stub_path(
             f"Supported: {dashlist(supported_subdirs)}."
         ) from exc
 
+    # Only search explicit source prefixes; the target prefix is not a source
+    # unless the caller intentionally passes it.
     for prefix in source_prefixes:
         try:
             record = PrefixData(prefix).get(CONDA_LAUNCHERS_PACKAGE_NAME, None)
@@ -49,15 +54,18 @@ def get_windows_launcher_stub_path(
         if record is None:
             continue
 
+        # Prefix metadata proves package ownership; it does not choose the path.
         package_paths = set(record.files or ())
         if paths_data := getattr(record, "paths_data", None):
             package_paths.update(path_data.path for path_data in paths_data.paths)
+        # Conda package records use POSIX separators, but normalize defensively.
         if launcher_short_path.replace("\\", "/") not in {
             path.replace("\\", "/") for path in package_paths
         }:
             continue
 
         launcher_path = join(prefix, launcher_short_path)
+        # Ownership is not enough if the file was removed after linking.
         if isfile(launcher_path):
             return launcher_path
 
