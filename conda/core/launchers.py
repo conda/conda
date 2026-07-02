@@ -8,16 +8,9 @@ from logging import getLogger
 from os.path import isfile, join
 from typing import TYPE_CHECKING
 
-from .. import CONDA_PACKAGE_ROOT
-from ..base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from ..base.context import context
 from ..common.io import dashlist
 from .prefix_data import PrefixData
-
-try:
-    import conda_launchers
-except ImportError:  # pragma: no cover - exercised through fallback tests
-    conda_launchers = None
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -26,11 +19,6 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 CONDA_LAUNCHERS_PACKAGE_NAME = "conda-launchers"
-FALLBACK_CONDA_LAUNCHERS_WINDOWS_STUB_PATH = {
-    "win-32": "Scripts/cli-32.exe",
-    "win-64": "Scripts/cli-64.exe",
-    "win-arm64": "Scripts/cli-arm64.exe",
-}
 
 
 def get_windows_launcher_stub_path(
@@ -39,15 +27,13 @@ def get_windows_launcher_stub_path(
     prefixes: Iterable[str | PathLike[str]] = (),
 ) -> str:
     """Return the best source path for a Windows Python entry point launcher."""
+    import conda_launchers
+
     subdir = subdir or context.subdir
+    supported_subdirs = conda_launchers.get_supported_subdirs()
     try:
-        if conda_launchers:
-            supported_subdirs = conda_launchers.get_supported_subdirs()
-            launcher_short_path = conda_launchers.get_launcher_short_path(subdir)
-        else:
-            supported_subdirs = tuple(FALLBACK_CONDA_LAUNCHERS_WINDOWS_STUB_PATH)
-            launcher_short_path = FALLBACK_CONDA_LAUNCHERS_WINDOWS_STUB_PATH[subdir]
-    except (KeyError, ValueError) as exc:
+        launcher_short_path = conda_launchers.get_launcher_short_path(subdir)
+    except ValueError as exc:
         raise NotImplementedError(
             f"Windows entry point stub not available for subdir {subdir!r}. "
             f"Supported: {dashlist(supported_subdirs)}."
@@ -57,16 +43,9 @@ def get_windows_launcher_stub_path(
         if launcher_path := _get_conda_launchers_file(prefix, launcher_short_path):
             return launcher_path
 
-    fallback_short_path = WINDOWS_LAUNCHER_STUB_PATH.get(subdir)
-    if fallback_short_path:
-        fallback_path = join(CONDA_PACKAGE_ROOT, fallback_short_path)
-        if isfile(fallback_path):
-            return fallback_path
-
     raise FileNotFoundError(
         f"Could not find Windows entry point stub for subdir {subdir!r}: "
-        f"{launcher_short_path!r} from {CONDA_LAUNCHERS_PACKAGE_NAME!r} or "
-        f"{fallback_short_path or 'no bundled fallback'} under conda."
+        f"{launcher_short_path!r} from {CONDA_LAUNCHERS_PACKAGE_NAME!r}."
     )
 
 

@@ -29,7 +29,7 @@ requirements:
     - pip
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
-    - conda-launchers >=24.7.1  # [win]
+    - conda-launchers >=26.7.0  # [win]
     # for `conda init` in build/script above
     - boltons >=23.0.0
     - frozendict >=2.4.2
@@ -43,7 +43,7 @@ requirements:
     - backports.zstd >=1.3.0       # [py<314]
     - boltons >=23.0.0
     - charset-normalizer
-    - conda-launchers >=24.7.1  # [win]
+    - conda-launchers >=26.7.0  # [win]
     - conda-package-handling >=2.2.0
     - distro >=1.5.0
     - frozendict >=2.4.2

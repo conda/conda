@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 def test_get_conda_launchers_file_from_package_record(tmp_path: Path):
+    pytest.importorskip("conda_launchers")
     launcher_short_path = "Scripts/cli-64.exe"
     launcher_path = tmp_path / launcher_short_path
     launcher_path.parent.mkdir(parents=True)
@@ -29,19 +30,26 @@ def test_get_conda_launchers_file_from_package_record(tmp_path: Path):
     ) == str(launcher_path)
 
 
-def test_get_windows_launcher_stub_path_ignores_unowned_file(tmp_path: Path):
+def test_get_windows_launcher_stub_path_ignores_unowned_file(
+    tmp_path: Path, mocker: MockerFixture
+):
+    pytest.importorskip("conda_launchers")
     launcher_short_path = "Scripts/cli-64.exe"
     launcher_path = tmp_path / launcher_short_path
     launcher_path.parent.mkdir(parents=True)
     launcher_path.write_bytes(b"launcher")
     write_prefix_record(tmp_path, files=["Scripts/cli-32.exe"])
+    mocker.patch(
+        "conda.core.launchers.context",
+        SimpleNamespace(conda_prefix=str(tmp_path / "empty")),
+    )
 
-    assert launchers.get_windows_launcher_stub_path(
-        "win-64", prefixes=(tmp_path,)
-    ).endswith("conda/shell/cli-64.exe")
+    with pytest.raises(FileNotFoundError, match="Scripts/cli-64.exe"):
+        launchers.get_windows_launcher_stub_path("win-64", prefixes=(tmp_path,))
 
 
 def test_get_windows_launcher_stub_path_prefers_conda_launchers(tmp_path: Path):
+    pytest.importorskip("conda_launchers")
     launcher_short_path = "Scripts/cli-arm64.exe"
     launcher_path = tmp_path / launcher_short_path
     launcher_path.parent.mkdir(parents=True)
@@ -56,44 +64,33 @@ def test_get_windows_launcher_stub_path_prefers_conda_launchers(tmp_path: Path):
 def test_get_windows_launcher_stub_path_uses_conda_launchers_api(
     tmp_path: Path, mocker: MockerFixture
 ):
+    conda_launchers = pytest.importorskip("conda_launchers")
     launcher_short_path = "Scripts/cli-64.exe"
     launcher_path = tmp_path / launcher_short_path
     launcher_path.parent.mkdir(parents=True)
     launcher_path.write_bytes(b"launcher")
     write_prefix_record(tmp_path, files=[launcher_short_path])
-    conda_launchers = SimpleNamespace(
-        get_launcher_short_path=mocker.Mock(return_value=launcher_short_path),
-        get_supported_subdirs=mocker.Mock(return_value=("win-64",)),
-    )
-    mocker.patch("conda.core.launchers.conda_launchers", conda_launchers)
+    get_launcher_short_path = mocker.spy(conda_launchers, "get_launcher_short_path")
 
     assert launchers.get_windows_launcher_stub_path(
         "win-64", prefixes=(tmp_path,)
     ) == str(launcher_path)
 
-    conda_launchers.get_launcher_short_path.assert_called_once_with("win-64")
+    get_launcher_short_path.assert_called_once_with("win-64")
 
 
-def test_get_windows_launcher_stub_path_falls_back_to_bundled(mocker: MockerFixture):
-    mocker.patch("conda.core.launchers._get_conda_launchers_file", return_value=None)
-
-    assert launchers.get_windows_launcher_stub_path("win-64").endswith(
-        "conda/shell/cli-64.exe"
-    )
-
-
-def test_get_windows_launcher_stub_path_reports_missing_conda_launchers_only_stub(
+def test_get_windows_launcher_stub_path_reports_missing_conda_launchers_package(
     mocker: MockerFixture,
 ):
+    pytest.importorskip("conda_launchers")
     mocker.patch("conda.core.launchers.PrefixData", side_effect=OSError)
-    mocker.patch.dict(launchers.WINDOWS_LAUNCHER_STUB_PATH, {}, clear=True)
-    mocker.patch("conda.core.launchers.conda_launchers", None)
 
-    with pytest.raises(FileNotFoundError, match="no bundled fallback"):
+    with pytest.raises(FileNotFoundError, match="conda-launchers"):
         launchers.get_windows_launcher_stub_path("win-arm64")
 
 
 def test_get_windows_launcher_stub_path_rejects_unsupported_subdir():
+    pytest.importorskip("conda_launchers")
     with pytest.raises(
         NotImplementedError, match="Windows entry point stub not available"
     ):
@@ -105,13 +102,13 @@ def write_prefix_record(prefix: Path, files: list[str]) -> None:
     conda_meta.mkdir()
     record = PrefixRecord(
         name="conda-launchers",
-        version="24.7.1",
-        build="h0_5",
-        build_number=5,
+        version="26.7.0",
+        build="h0_0",
+        build_number=0,
         subdir="win-64",
         files=files,
     )
-    (conda_meta / "conda-launchers-24.7.1-h0_5.json").write_text(
+    (conda_meta / "conda-launchers-26.7.0-h0_0.json").write_text(
         json.dumps(record.dump()),
         encoding="utf-8",
     )

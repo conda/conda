@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Use Windows entry point launchers from the installed `conda-launchers` package when available, falling back to conda's bundled launchers for source and non-conda installs. (#16293)
+* Use Windows entry point launchers from the installed `conda-launchers` package and stop bundling launcher executables in conda. (#16293)
 
 ### Bug fixes
 
