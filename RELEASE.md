@@ -130,14 +130,17 @@ Once the release PRs are filed, successful canary builds will be available on `h
 > [!NOTE]
 > You do not need to apply the `build::review` label for release PRs; every commit to the release branch builds and uploads canary builds to the respective `rc-` label.
 
-## 4. Ensure `rever.xsh` and `news/TEMPLATE` are up to date.
+## 4. Ensure `rever.xsh`, `news/TEMPLATE`, and release workflows are up to date.
 
-These are synced from [`conda/infrastructure`][infrastructure].
+These are synced from [`conda/infrastructure`][infrastructure]. `rever` remains responsible for authorship and mailmap maintenance; news validation uses `conda/actions/check-news`; release-note generation uses `conda/actions/prepare-release`.
 
 <details>
-<summary><h2>5. Run rever. (ideally done on the Monday of release week)</h2></summary>
+<summary><h2>5. Run rever for authorship and prepare release notes. (ideally done on the Monday of release week)</h2></summary>
 
-Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from a builtin circular dependency (_i.e._, to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
+The release flow is split into two pieces:
+
+- `rever` is still used to update `.authors.yml`, `.mailmap`, and `AUTHORS.md`.
+- News snippets are aggregated into `CHANGELOG.md` by the `Prepare release notes` workflow after `Tests` succeeds on the release branch.
 
 1. Install [`rever`][rever docs] and activate the environment:
 
@@ -150,7 +153,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 2. Clone and `cd` into the repository if you haven't done so already:
 
     ```bash
-    (rever) $ git clone git@github.com:/conda.git
+    (rever) $ git clone git@github.com:conda/conda.git
     (rever) $ cd conda
     ```
 
@@ -161,10 +164,10 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     (rever) $ git checkout YY.MM.x
     ```
 
-2. Create a versioned branch, this is where rever will make its changes:
+2. Create a versioned branch for the authorship, mailmap, and news updates:
 
     ```bash
-    (rever) $ git checkout -b changelog-YY.MM.MICRO
+    (rever) $ git checkout -b authorship-news-YY.MM.MICRO
     ```
 
 2. Run `rever --activities authors <VERSION>`:
@@ -247,7 +250,6 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         ```
 
-
 4. Review news snippets (ensure they are all using the correct Markdown format, **not** reStructuredText) and add additional snippets for undocumented PRs/changes as necessary.
 
     > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
@@ -256,7 +258,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     > We've also found that we like to include the PR #s inline with the text itself, e.g.:
     >
     > ```markdown
-    > ## Enhancements
+    > ### Enhancements
     >
     > * Add `win-arm64` as a known platform (subdir). (#11778)
     > ```
@@ -281,80 +283,13 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
         ```
 
-5. Run `rever --activities changelog`:
-
-    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
-    > This has previously been a notoriously fickle step (likely due to incorrect regex patterns in the `rever.xsh` config file and missing `github` keys in `.authors.yml`) so beware of potential hiccups. If this fails, it's highly likely to be an innocent issue.
+5. Push this versioned branch.
 
     ```bash
-    (rever) $ rever --activities changelog --force <VERSION>
+    (rever) $ git push -u upstream authorship-news-YY.MM.MICRO
     ```
 
-    - Any necessary modifications to `.authors.yml`, `.mailmap`, or the news snippets themselves should be amended to the previous commits.
-
-    - Once you have successfully run `rever --activities changelog` with no errors simply revert the last commit (see the next step for why):
-
-        ```bash
-        # undo commit (and discard changes)
-        (rever) $ git reset --hard HEAD~1
-        ```
-
-    - After completing this, you will have at most three commits on your release branch:
-
-        ```bash
-        (rever) $ git cherry -v <release branch>
-        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        ```
-
-6. Now that we have successfully run the activities separately, we wish to run both together. This will ensure that the contributor list, a side-effect of the authors activity, is included in the changelog activity.
-
-    ```bash
-    (rever) $ rever --force <VERSION>
-    ```
-
-    - After completing this, you will have at most five commits on your release branch:
-
-        ```bash
-        (rever) $ git cherry -v <release branch>
-        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.MM.MICRO
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.MM.MICRO
-        ```
-
-7. Since rever does not include stats on first-time contributors, we will need to add this manually.
-
-    - Use [GitHub's auto-generated release notes][new release] to get a list of all new contributors (and their first PR) and manually merge this list with the contributor list in `CHANGELOG.md`. See [GitHub docs][release docs] for how to auto-generate the release notes.
-
-    - Commit these final changes:
-
-        ```bash
-        (rever) $ git add .
-        (rever) $ git commit -m "Add first-time contributions"
-        ```
-
-    - After completing this, you will have at most six commits on your release branch:
-
-        ```bash
-        (rever) $ git cherry -v <release branch>
-        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.MM.MICRO
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.MM.MICRO
-        + 93fdf029fd4cf235872c12cab12a1f7e8f95a755 Add first-time contributions
-        ```
-
-8. Push this versioned branch.
-
-    ```bash
-    (rever) $ git push -u upstream changelog-YY.MM.MICRO
-    ```
-
-9. Open the Release PR targeting the `YY.MM.x` branch.
+6. Open the authorship and news PR targeting the `YY.MM.x` branch.
 
     <details>
     <summary>GitHub PR Template</summary>
@@ -362,19 +297,42 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     ```markdown
     ## Description
 
-    ✂️ snip snip ✂️ the making of a new release.
+    Update release authorship metadata, mailmap, and news snippets for YY.MM.MICRO.
 
     Xref #<RELEASE ISSUE>
     ```
 
     </details>
 
-10. Update release issue to include a link to the release PR.
+7. Update the release issue to include a link to the authorship and news PR.
 
-11. [Create][new release] the release and **SAVE AS A DRAFT** with the following values:
+8. Merge the authorship and news PR after review.
+
+9. Wait for `Tests` to pass on the `YY.MM.x` release branch.
+
+    The `Prepare release notes` workflow runs from that successful `workflow_run`, validates that it came from a trusted push to this repository, and opens or updates a `release-notes-YY.MM.MICRO` PR targeting `YY.MM.x`.
+
+10. Review the generated release-notes PR.
+
+    - The PR should modify only `CHANGELOG.md` and consumed `news/` snippets.
+    - The PR body should describe the generated release-notes update.
+    - The changelog should preserve the news text under `Enhancements`, `Bug fixes`, `Deprecations`, `Docs`, and `Other`.
+    - The consumed `news/` snippets should be deleted from the generated branch.
+
+11. Add first-time contributor information if the project includes contributor notes in `CHANGELOG.md`.
+
+    - Use [GitHub's auto-generated release notes][new release] to get a list of all new contributors (and their first PR). See [GitHub docs][release docs] for how to auto-generate the release notes.
+
+    - Manually merge this list into `CHANGELOG.md` on the generated release-notes PR branch.
+
+12. If the changelog needs wording changes, edit the generated release-notes PR branch and rerun checks.
+
+13. Update the release issue to include a link to the release-notes PR.
+
+14. [Create][new release] the release and **SAVE AS A DRAFT** with the following values:
 
     > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
-    > Only publish the release after the release PR is merged, until then always **save as draft**.
+    > Only publish the release after the release PRs are merged, until then always **save as draft**.
 
     | Field | Value |
     |---|---|
@@ -384,9 +342,9 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
 </details>
 
-## 6. Wait for review and approval of release PR.
+## 6. Wait for review and approval of release PRs.
 
-## 7. Merge release PR and publish release.
+## 7. Merge release PRs and publish release.
 
 To publish the release, go to the project's release page (e.g., https://github.com/conda/conda/releases) and add the release notes from `CHANGELOG.md` to the draft release you created earlier. Then publish the release.
 
