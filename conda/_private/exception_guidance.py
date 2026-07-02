@@ -70,11 +70,9 @@ class ErrorGuidance:
         result["hint_codes"] = self.hint_codes
         return {k: v for k, v in result.items() if v}
 
-    @staticmethod
-    def _deduplicate_hints(
-        hints: Iterable[GuidanceHint],
-    ) -> tuple[GuidanceHint, ...]:
-        """Deduplicate hints by ``hint_code`` while preserving first wins order."""
+    @classmethod
+    def from_hints(cls, hints: Iterable[GuidanceHint]) -> ErrorGuidance | None:
+        """Create guidance from hints, deduplicating by ``hint_code``."""
         merged_hints = []
         seen_hint_codes = set()
         for hint in hints:
@@ -82,15 +80,9 @@ class ErrorGuidance:
                 continue
             seen_hint_codes.add(hint.hint_code)
             merged_hints.append(hint)
-        return tuple(merged_hints)
-
-    @classmethod
-    def from_hints(cls, hints: Iterable[GuidanceHint]) -> ErrorGuidance | None:
-        """Create guidance from hints, deduplicating by ``hint_code``."""
-        merged_hints = cls._deduplicate_hints(hints)
         if not merged_hints:
             return None
-        return cls(hints=merged_hints)
+        return cls(hints=tuple(merged_hints))
 
     def with_hints(self, hints: Iterable[GuidanceHint]) -> ErrorGuidance:
         """Return this guidance with additional hints appended.
@@ -100,10 +92,10 @@ class ErrorGuidance:
         hints = tuple(hints)
         if not hints:
             return self
-        new_hints = self._deduplicate_hints((*self.hints, *hints))
-        if new_hints == self.hints:
+        guidance = ErrorGuidance.from_hints((*self.hints, *hints))
+        if guidance is None or guidance.hints == self.hints:
             return self
-        return replace(self, hints=new_hints)
+        return replace(self, hints=guidance.hints)
 
     @classmethod
     def coerce(cls, value: Any) -> ErrorGuidance | None:
