@@ -1,9 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from pathlib import Path
+
+from conda.base.context import reset_context
 from conda.core import link
 from conda.core.path_actions import RemoveLinkedPackageRecordAction
-from conda.models.records import PackageRecord, PrefixRecord
+from conda.models.channel import Channel
+from conda.models.enums import FileMode, PathEnum
+from conda.models.package_info import PackageInfo
+from conda.models.records import PackageRecord, PathDataV1, PathsData, PrefixRecord
 
 
 def test_make_unlink_actions_uses_prefix_record_json_filename_for_conda_meta():
@@ -31,6 +37,87 @@ def test_make_unlink_actions_uses_prefix_record_json_filename_for_conda_meta():
         remove_record_action.target_short_path
         == "conda-meta/idna-3.10-py3_none_any_0.json"
     )
+
+
+def test_verify_uses_parallel_prefix_rewrite_actions(tmp_path, mocker, monkeypatch):
+    source_dir = tmp_path / "pkgs"
+    prefix_placeholder = "/" + "placeholder" * 30
+    path_data = []
+    (source_dir / "info").mkdir(parents=True)
+    (source_dir / "info" / "index.json").write_text("{}", encoding="utf-8")
+    for index in range(4):
+        source_short_path = f"bin/tool-{index}"
+        source_path = source_dir / "bin" / f"tool-{index}"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(
+            b"\x7fELF..." + prefix_placeholder.encode() + b"/bin/python\0"
+        )
+        path_data.append(
+            PathDataV1(
+                _path=source_short_path,
+                path_type=PathEnum.hardlink,
+                prefix_placeholder=prefix_placeholder,
+                file_mode=FileMode.binary,
+            )
+        )
+    repodata_record = PackageRecord(
+        build=0,
+        build_number=0,
+        name="test-prefix-replace",
+        version=0,
+        channel="defaults",
+        subdir="linux-64",
+        fn="test-prefix-replace-0-0.conda",
+        md5="0123456789",
+    )
+    package_info = PackageInfo(
+        extracted_package_dir=str(source_dir),
+        package_tarball_full_path=str(source_dir / "test-prefix-replace-0-0.conda"),
+        channel=Channel("defaults"),
+        repodata_record=repodata_record,
+        url="https://example.invalid/test-prefix-replace-0-0.conda",
+        package_metadata=None,
+        paths_data=PathsData(paths_version=1, paths=path_data),
+    )
+    target_prefix = str(tmp_path / "prefix")
+    link_prec = package_info.repodata_record
+    setup = link.PrefixSetup(
+        target_prefix,
+        (),
+        (link_prec,),
+        (),
+        (),
+        (),
+    )
+    mocker.patch(
+        "conda.core.link.PackageCacheData.get_entry_to_link", return_value=object()
+    )
+    mocker.patch("conda.core.package_cache_data.ProgressiveFetchExtract.execute")
+    mocker.patch("conda.core.link.read_package_info", return_value=package_info)
+    monkeypatch.setenv("CONDA_VERIFY_THREADS", "2")
+    reset_context()
+
+    transaction = link.UnlinkLinkTransaction(setup)
+
+    transaction.verify()
+
+    link_actions = tuple(
+        action
+        for action_group in transaction.prefix_action_groups[
+            target_prefix
+        ].link_action_groups
+        for action in action_group.actions
+        if getattr(action, "prefix_placeholder", None)
+    )
+    assert len(link_actions) == 4
+    for action in link_actions:
+        assert action.verified
+        assert action.prefix_path_data.file_mode == FileMode.binary
+        assert Path(action.intermediate_path).exists()
+        assert (
+            bytes(target_prefix, encoding="utf-8")
+            in Path(action.intermediate_path).read_bytes()
+        )
 
 
 def test_calculate_change_report_revised_variant():
