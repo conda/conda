@@ -658,8 +658,8 @@ class CondaSpecs:
             def conda_error_hints(error):
                 if isinstance(error, PackagesNotFoundInChannelsError):
                     yield plugins.types.CondaErrorHint(
+                        name="check_expected_channel",
                         text="Check whether the package exists on your expected channel.",
-                        hint_code="check_expected_channel",
                     )
 
         Returns:

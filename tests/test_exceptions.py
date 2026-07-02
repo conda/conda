@@ -1054,8 +1054,14 @@ def test_print_conda_exception_with_plugin_hints(
         @plugins.hookimpl
         def conda_error_hints(self, error):
             if isinstance(error, RemoveError):
-                yield plugins.types.CondaErrorHint("Duplicate.", "do_the_thing")
-                yield plugins.types.CondaErrorHint("Plugin step.", "plugin_step")
+                yield plugins.types.CondaErrorHint(
+                    name="do_the_thing",
+                    text="Duplicate.",
+                )
+                yield plugins.types.CondaErrorHint(
+                    name="plugin_step",
+                    text="Plugin step.",
+                )
 
     plugin_manager.register(PluginHints())
     monkeypatch.setenv("CONDA_JSON", "no")
@@ -1104,7 +1110,10 @@ def test_print_conda_exception_with_plugin_hints_json(
         @plugins.hookimpl
         def conda_error_hints(self, error):
             if isinstance(error, RemoveError):
-                yield plugins.types.CondaErrorHint("Plugin step.", "plugin_step")
+                yield plugins.types.CondaErrorHint(
+                    name="plugin_step",
+                    text="Plugin step.",
+                )
 
     plugin_manager.register(PluginHints())
     monkeypatch.setenv("CONDA_JSON", "yes")
@@ -1151,8 +1160,8 @@ def test_PackagesNotFoundInChannelsError_plugin_hint(
                 assert error.packages == ("missing-pkg",)
                 assert error.channel_urls == ("https://repo.example.com",)
                 yield plugins.types.CondaErrorHint(
-                    "Try installing from the recommended channel.",
-                    "anaconda_channel_suggestion",
+                    name="anaconda_channel_suggestion",
+                    text="Try installing from the recommended channel.",
                 )
 
     plugin_manager.register(ChannelGuidePlugin())
@@ -1193,8 +1202,8 @@ def test_exception_observers_do_not_contribute_error_hints(
         def conda_exception_observers(self):
             def observer(event):
                 return plugins.types.CondaErrorHint(
-                    "Observer hint.",
-                    "observer_hint",
+                    name="observer_hint",
+                    text="Observer hint.",
                 )
 
             yield plugins.types.CondaExceptionObserver(

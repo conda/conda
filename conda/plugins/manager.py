@@ -685,9 +685,7 @@ class CondaPluginManager(pluggy.PluginManager):
                     continue
                 for hint in hook_result:
                     if isinstance(hint, CondaErrorHint):
-                        hints.append(
-                            GuidanceHint(text=hint.text, hint_code=hint.hint_code)
-                        )
+                        hints.append(GuidanceHint(text=hint.text, hint_code=hint.name))
                     else:
                         log.debug(
                             "Invalid error hint from plugin %r: expected "

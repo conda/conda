@@ -24,8 +24,14 @@ class ErrorHintsPlugin:
         self, error: CondaError
     ) -> Iterator[plugins.types.CondaErrorHint]:
         self.calls.append(error)
-        yield plugins.types.CondaErrorHint("First hint.", "first_hint")
-        yield plugins.types.CondaErrorHint("Second hint.", "second_hint")
+        yield plugins.types.CondaErrorHint(
+            name="first_hint",
+            text="First hint.",
+        )
+        yield plugins.types.CondaErrorHint(
+            name="second_hint",
+            text="Second hint.",
+        )
 
 
 class InvalidHintPlugin:
@@ -35,14 +41,20 @@ class InvalidHintPlugin:
     @plugins.hookimpl
     def conda_error_hints(self, error: CondaError):
         yield self.invalid_hint
-        yield plugins.types.CondaErrorHint("Still valid.", "still_valid")
+        yield plugins.types.CondaErrorHint(
+            name="still_valid",
+            text="Still valid.",
+        )
 
 
 class ExplodingHintPlugin:
     @plugins.hookimpl
     def conda_error_hints(self, error: CondaError):
         raise RuntimeError("plugin bug")
-        yield plugins.types.CondaErrorHint("unreachable", "unreachable")
+        yield plugins.types.CondaErrorHint(
+            name="unreachable",
+            text="unreachable",
+        )
 
 
 class NamedErrorHintPlugin:
@@ -52,7 +64,10 @@ class NamedErrorHintPlugin:
 
     @plugins.hookimpl
     def conda_error_hints(self, error: CondaError):
-        yield plugins.types.CondaErrorHint(self.text, self.hint_code)
+        yield plugins.types.CondaErrorHint(
+            name=self.hint_code,
+            text=self.text,
+        )
 
 
 def test_get_error_hints(plugin_manager: CondaPluginManager):
@@ -65,6 +80,16 @@ def test_get_error_hints(plugin_manager: CondaPluginManager):
         GuidanceHint("Second hint.", "second_hint"),
     )
     assert plugin.calls == [error]
+
+
+def test_CondaErrorHint_uses_name_as_hint_code() -> None:
+    hint = plugins.types.CondaErrorHint(
+        name="  MY_HINT  ",
+        text="Do the thing.",
+    )
+
+    assert hint.name == "my_hint"
+    assert hint.hint_code == "my_hint"
 
 
 def test_get_error_hints_orders_plugins_by_plugin_name(

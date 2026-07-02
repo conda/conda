@@ -570,8 +570,8 @@ class CondaRequestHeader(CondaPlugin):
     value: str
 
 
-@dataclass(frozen=True)
-class CondaErrorHint:
+@dataclass
+class CondaErrorHint(CondaPlugin):
     """
     Return type to use when defining a conda error hints plugin hook.
 
@@ -579,12 +579,17 @@ class CondaErrorHint:
     :meth:`~conda.plugins.hookspec.CondaSpecs.conda_error_hints`.
 
     Args:
+        name: Stable machine-readable hint code. Use snake_case.
         text: Human-readable description of the action to take.
-        hint_code: Stable machine-readable identifier. Use snake_case.
     """
 
+    name: str
     text: str
-    hint_code: str
+
+    @property
+    def hint_code(self) -> str:
+        """Alias for ``name`` used by structured guidance output."""
+        return self.name
 
 
 @dataclass
