@@ -15,15 +15,9 @@ from ..common.io import dashlist
 from .prefix_data import PrefixData
 
 try:
-    from conda_launchers import (
-        get_launcher_short_path as _conda_launchers_get_launcher_short_path,
-    )
-    from conda_launchers import (
-        get_supported_subdirs as _conda_launchers_get_supported_subdirs,
-    )
+    import conda_launchers
 except ImportError:  # pragma: no cover - exercised through fallback tests
-    _conda_launchers_get_launcher_short_path = None
-    _conda_launchers_get_supported_subdirs = None
+    conda_launchers = None
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -32,7 +26,7 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 CONDA_LAUNCHERS_PACKAGE_NAME = "conda-launchers"
-_CONDA_LAUNCHERS_WINDOWS_STUB_PATH = {
+FALLBACK_CONDA_LAUNCHERS_WINDOWS_STUB_PATH = {
     "win-32": "Scripts/cli-32.exe",
     "win-64": "Scripts/cli-64.exe",
     "win-arm64": "Scripts/cli-arm64.exe",
@@ -46,7 +40,19 @@ def get_windows_launcher_stub_path(
 ) -> str:
     """Return the best source path for a Windows Python entry point launcher."""
     subdir = subdir or context.subdir
-    launcher_short_path = _get_conda_launchers_launcher_short_path(subdir)
+    try:
+        if conda_launchers:
+            supported_subdirs = conda_launchers.get_supported_subdirs()
+            launcher_short_path = conda_launchers.get_launcher_short_path(subdir)
+        else:
+            supported_subdirs = tuple(FALLBACK_CONDA_LAUNCHERS_WINDOWS_STUB_PATH)
+            launcher_short_path = FALLBACK_CONDA_LAUNCHERS_WINDOWS_STUB_PATH[subdir]
+    except (KeyError, ValueError) as exc:
+        raise NotImplementedError(
+            f"Windows entry point stub not available for subdir {subdir!r}. "
+            f"Supported: {dashlist(supported_subdirs)}."
+        ) from exc
+
     for prefix in (*prefixes, context.conda_prefix):
         if launcher_path := _get_conda_launchers_file(prefix, launcher_short_path):
             return launcher_path
@@ -91,21 +97,3 @@ def _get_conda_launchers_file(
 
 def _normalize_path(path: str) -> str:
     return path.replace("\\", "/")
-
-
-def _get_conda_launchers_launcher_short_path(subdir: str) -> str:
-    try:
-        if _conda_launchers_get_launcher_short_path:
-            return _conda_launchers_get_launcher_short_path(subdir)
-        return _CONDA_LAUNCHERS_WINDOWS_STUB_PATH[subdir]
-    except (KeyError, ValueError) as exc:
-        raise NotImplementedError(
-            f"Windows entry point stub not available for subdir {subdir!r}. "
-            f"Supported: {dashlist(_get_supported_conda_launchers_subdirs())}."
-        ) from exc
-
-
-def _get_supported_conda_launchers_subdirs() -> tuple[str, ...]:
-    if _conda_launchers_get_supported_subdirs:
-        return _conda_launchers_get_supported_subdirs()
-    return tuple(_CONDA_LAUNCHERS_WINDOWS_STUB_PATH)

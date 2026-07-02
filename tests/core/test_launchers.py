@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -23,19 +24,21 @@ def test_get_conda_launchers_file_from_package_record(tmp_path: Path):
     launcher_path.write_bytes(b"launcher")
     write_prefix_record(tmp_path, files=[launcher_short_path])
 
-    assert launchers._get_conda_launchers_file(tmp_path, launcher_short_path) == str(
-        launcher_path
-    )
+    assert launchers.get_windows_launcher_stub_path(
+        "win-64", prefixes=(tmp_path,)
+    ) == str(launcher_path)
 
 
-def test_get_conda_launchers_file_ignores_unowned_file(tmp_path: Path):
+def test_get_windows_launcher_stub_path_ignores_unowned_file(tmp_path: Path):
     launcher_short_path = "Scripts/cli-64.exe"
     launcher_path = tmp_path / launcher_short_path
     launcher_path.parent.mkdir(parents=True)
     launcher_path.write_bytes(b"launcher")
     write_prefix_record(tmp_path, files=["Scripts/cli-32.exe"])
 
-    assert launchers._get_conda_launchers_file(tmp_path, launcher_short_path) is None
+    assert launchers.get_windows_launcher_stub_path(
+        "win-64", prefixes=(tmp_path,)
+    ).endswith("conda/shell/cli-64.exe")
 
 
 def test_get_windows_launcher_stub_path_prefers_conda_launchers(tmp_path: Path):
@@ -58,16 +61,17 @@ def test_get_windows_launcher_stub_path_uses_conda_launchers_api(
     launcher_path.parent.mkdir(parents=True)
     launcher_path.write_bytes(b"launcher")
     write_prefix_record(tmp_path, files=[launcher_short_path])
-    get_launcher_short_path = mocker.patch(
-        "conda.core.launchers._conda_launchers_get_launcher_short_path",
-        return_value=launcher_short_path,
+    conda_launchers = SimpleNamespace(
+        get_launcher_short_path=mocker.Mock(return_value=launcher_short_path),
+        get_supported_subdirs=mocker.Mock(return_value=("win-64",)),
     )
+    mocker.patch("conda.core.launchers.conda_launchers", conda_launchers)
 
     assert launchers.get_windows_launcher_stub_path(
         "win-64", prefixes=(tmp_path,)
     ) == str(launcher_path)
 
-    get_launcher_short_path.assert_called_once_with("win-64")
+    conda_launchers.get_launcher_short_path.assert_called_once_with("win-64")
 
 
 def test_get_windows_launcher_stub_path_falls_back_to_bundled(mocker: MockerFixture):
@@ -81,9 +85,9 @@ def test_get_windows_launcher_stub_path_falls_back_to_bundled(mocker: MockerFixt
 def test_get_windows_launcher_stub_path_reports_missing_conda_launchers_only_stub(
     mocker: MockerFixture,
 ):
-    mocker.patch("conda.core.launchers._get_conda_launchers_file", return_value=None)
+    mocker.patch("conda.core.launchers.PrefixData", side_effect=OSError)
     mocker.patch.dict(launchers.WINDOWS_LAUNCHER_STUB_PATH, {}, clear=True)
-    mocker.patch("conda.core.launchers._conda_launchers_get_launcher_short_path", None)
+    mocker.patch("conda.core.launchers.conda_launchers", None)
 
     with pytest.raises(FileNotFoundError, match="no bundled fallback"):
         launchers.get_windows_launcher_stub_path("win-arm64")
