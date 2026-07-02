@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix windows `AttributeError` at runtime for for `.splitext` method. Use `os.path.splitext` to get the filename from strings instead. (#15760 via #16315)
+* Fix Windows runtime `AttributeError` from calling `.splitext` on strings. Use `os.path.splitext` instead. (#15760 via #16315)
 
 ### Deprecations
 
