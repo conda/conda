@@ -35,3 +35,12 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(constants, function)()
+
+
+def test_windows_launcher_stub_path_deprecated() -> None:
+    with pytest.deprecated_call(match="WINDOWS_LAUNCHER_STUB_PATH"):
+        assert constants.WINDOWS_LAUNCHER_STUB_PATH == {
+            "win-32": "Scripts/cli-32.exe",
+            "win-64": "Scripts/cli-64.exe",
+            "win-arm64": "Scripts/cli-arm64.exe",
+        }

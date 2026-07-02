@@ -107,6 +107,18 @@ PLATFORMS: Final = (
 KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "WINDOWS_LAUNCHER_STUB_PATH",
+    {
+        "win-32": "Scripts/cli-32.exe",
+        "win-64": "Scripts/cli-64.exe",
+        "win-arm64": "Scripts/cli-arm64.exe",
+    },
+    addendum="Use `conda_launchers.get_launcher_short_paths()` instead.",
+)
+
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
 
 
