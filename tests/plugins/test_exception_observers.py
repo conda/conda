@@ -18,6 +18,7 @@ from conda.plugins.types import CondaExceptionObserver
 if TYPE_CHECKING:
     from pytest import CaptureFixture, MonkeyPatch
 
+    from conda.plugins.manager import CondaPluginManager
     from conda.plugins.types import CondaExceptionEvent
 
 
@@ -133,6 +134,32 @@ def system_exit_plugin(plugin_manager):
     p = SystemExitPlugin()
     plugin_manager.register(p)
     return p
+
+
+class AddHintObserver:
+    TEXT = "Plugin step."
+    HINT_CODE = "plugin_step"
+
+    def add_hints(self, event: CondaExceptionEvent) -> None:
+        error = event.exc_value
+        if isinstance(error, RemoveError):
+            error.append_hint(self.TEXT, self.HINT_CODE)
+
+    @plugins.hookimpl
+    def conda_exception_observers(self):
+        yield CondaExceptionObserver(
+            name="hint-adder",
+            hook=self.add_hints,
+            watch_for={"RemoveError"},
+        )
+
+
+@pytest.fixture
+def plugin_manager_with_hint_adder(
+    plugin_manager: CondaPluginManager,
+) -> CondaPluginManager:
+    plugin_manager.register(AddHintObserver())
+    return plugin_manager
 
 
 def test_catch_all_receives_conda_error(catch_all_plugin, plugin_manager):
@@ -386,42 +413,25 @@ def test_combined_watch_for_scopes(plugin_manager):
 def test_observer_append_hint_terminal(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
-    plugin_manager,
+    plugin_manager_with_hint_adder: CondaPluginManager,
 ) -> None:
-    class HintAddingObserver:
-        @plugins.hookimpl
-        def conda_exception_observers(self):
-            def add_hints(event: CondaExceptionEvent) -> None:
-                error = event.exc_value
-                if isinstance(error, RemoveError):
-                    error.append_hint("Plugin step.", "plugin_step")
-
-            yield CondaExceptionObserver(
-                name="hint-adder",
-                hook=add_hints,
-                watch_for={"RemoveError"},
-            )
-
-    plugin_manager.register(HintAddingObserver())
     monkeypatch.setenv("CONDA_JSON", "no")
     reset_context()
     assert not context.json
 
-    exc = RemoveError(
-        "legacy message",
-        guidance={
-            "summary": (summary := "Guidance summary."),
-            "cause": (cause := "Root cause."),
-            "hints": [
-                {
-                    "text": (text := "Do the thing."),
-                    "hint_code": "do_the_thing",
-                }
-            ],
-        },
-    )
+    summary = "Guidance summary."
+    cause = "Root cause."
+    text = "Do the thing."
+    hint_code = "do_the_thing"
     try:
-        raise exc
+        raise RemoveError(
+            "legacy message",
+            guidance={
+                "summary": summary,
+                "cause": cause,
+                "hints": [{"text": text, "hint_code": hint_code}],
+            },
+        )
     except RemoveError:
         _, exc_val, exc_tb = sys.exc_info()
         ExceptionHandler().handle_exception(exc_val, exc_tb)
@@ -434,8 +444,8 @@ def test_observer_append_hint_terminal(
             "",
             f"Cause: {cause}",
             "Next steps:",
-            f"  - (do_the_thing) {text}",
-            "  - (plugin_step) Plugin step.",
+            f"  - ({hint_code}) {text}",
+            f"  - ({AddHintObserver.HINT_CODE}) {AddHintObserver.TEXT}",
             "",
             "",
         )
@@ -445,41 +455,22 @@ def test_observer_append_hint_terminal(
 def test_observer_append_hint_json(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
-    plugin_manager,
+    plugin_manager_with_hint_adder: CondaPluginManager,
 ) -> None:
-    class HintAddingObserver:
-        @plugins.hookimpl
-        def conda_exception_observers(self):
-            def add_hints(event: CondaExceptionEvent) -> None:
-                error = event.exc_value
-                if isinstance(error, RemoveError):
-                    error.append_hint("Plugin step.", "plugin_step")
-
-            yield CondaExceptionObserver(
-                name="hint-adder",
-                hook=add_hints,
-                watch_for={"RemoveError"},
-            )
-
-    plugin_manager.register(HintAddingObserver())
     monkeypatch.setenv("CONDA_JSON", "yes")
     reset_context()
     assert context.json
 
-    exc = RemoveError(
-        "legacy message",
-        guidance={
-            "summary": "Guidance summary.",
-            "hints": [
-                {
-                    "text": "Do the thing.",
-                    "hint_code": "do_the_thing",
-                }
-            ],
-        },
-    )
+    text = "Do the thing."
+    hint_code = "do_the_thing"
     try:
-        raise exc
+        raise RemoveError(
+            "legacy message",
+            guidance={
+                "summary": "Guidance summary.",
+                "hints": [{"text": text, "hint_code": hint_code}],
+            },
+        )
     except RemoveError:
         _, exc_val, exc_tb = sys.exc_info()
         ExceptionHandler().handle_exception(exc_val, exc_tb)
@@ -488,7 +479,7 @@ def test_observer_append_hint_json(
     json_obj = json.loads(stdout)
     assert not stderr
     assert json_obj["guidance"]["hints"] == [
-        {"text": "Do the thing.", "hint_code": "do_the_thing"},
-        {"text": "Plugin step.", "hint_code": "plugin_step"},
+        {"text": text, "hint_code": hint_code},
+        {"text": AddHintObserver.TEXT, "hint_code": AddHintObserver.HINT_CODE},
     ]
-    assert json_obj["guidance"]["hint_codes"] == ["do_the_thing", "plugin_step"]
+    assert json_obj["guidance"]["hint_codes"] == [hint_code, AddHintObserver.HINT_CODE]
