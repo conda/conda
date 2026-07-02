@@ -64,7 +64,7 @@ from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
-from .portability import flush_pending_codesign
+from .portability import batch_codesign_calls
 from .path_actions import (
     AggregateCompileMultiPycAction,
     CompileMultiPycAction,
@@ -626,27 +626,23 @@ class UnlinkLinkTransaction:
             for axngroup in action_groups
         )
 
-        # run all per-action (per-package) verify methods
-        #   one of the more important of these checks is to verify that a file listed in
-        #   the packages manifest (i.e. info/files) is actually contained within the package
         error_results = []
-        for axn in all_actions:
-            if axn.verified:
-                continue
-            error_result = axn.verify()
-            if error_result:
-                formatted_error = "".join(
-                    format_exception_only(type(error_result), error_result)
-                )
-                log.debug("Verification error in action %s\n%s", axn, formatted_error)
-                error_results.append(error_result)
-
-        # Any osx-arm64 binary rewrites done in update_prefix() queued
-        # a codesign request rather than spawning a subprocess inline.
-        # Flush them all in one batched ``codesign`` invocation now, before
-        # execute() links the intermediates to their final paths. See
-        # #15975.
-        flush_pending_codesign()
+        with batch_codesign_calls():
+            # run all per-action (per-package) verify methods
+            #   one of the more important of these checks is to verify that a file listed in
+            #   the packages manifest (i.e. info/files) is actually contained within the package
+            for axn in all_actions:
+                if axn.verified:
+                    continue
+                error_result = axn.verify()
+                if error_result:
+                    formatted_error = "".join(
+                        format_exception_only(type(error_result), error_result)
+                    )
+                    log.debug(
+                        "Verification error in action %s\n%s", axn, formatted_error
+                    )
+                    error_results.append(error_result)
         return error_results
 
     @staticmethod
