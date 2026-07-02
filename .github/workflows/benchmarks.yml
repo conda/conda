@@ -17,10 +17,7 @@ jobs:
   track-base-branch:
     if: >-
       !github.event.repository.fork
-      && (
-        github.event.workflow_run.conclusion == 'success'
-        || github.event.workflow_run.conclusion == 'failure'
-      )
+      && contains(['success', 'failure'], github.event.workflow_run.conclusion)
       && github.event.workflow_run.event == 'push'
       && (
         github.event.workflow_run.head_branch == 'main'
