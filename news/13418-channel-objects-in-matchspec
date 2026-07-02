@@ -1,0 +1,20 @@
+### Enhancements
+
+- <news item>
+
+### Bug fixes
+
+- Fixed `MatchSpec` incorrectly collapsing URL-form channel specs through `channel_alias`, causing `file:///path/to/distr::pkg` to resolve to the remote `distr` channel instead of the local one, and `https://repo.anaconda.com/pkgs/free::numpy` to lose its explicit host. URL-form specs now round-trip through `str(MatchSpec(...))` with their identity preserved. (#16176 via #13418)
+- Fixed `ChannelMatch` incorrectly matching URL-form channel specs against channels at a different host with the same path (e.g., `https://software.repos.intel.com/python/conda` no longer matches records from `https://other.example.com/python/conda`). (#16176)
+
+### Deprecations
+
+- <news item>
+
+### Docs
+
+- <news item>
+
+### Other
+
+- <news item>

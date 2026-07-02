@@ -1,0 +1,187 @@
+name: Track Benchmarks
+
+on:
+  workflow_run:
+    workflows:
+      - Tests
+    types:
+      - completed
+
+env:
+  BENCHMARK_RESULTS: benchmark_results.json
+  BENCHMARK_RESULTS_ARTIFACT: benchmark-results
+  PR_EVENT_ARTIFACT: benchmark-event
+  TESTBED: ubuntu-22.04
+
+jobs:
+  track-base-branch:
+    if: >-
+      !github.event.repository.fork
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && (
+        github.event.workflow_run.head_branch == 'main'
+        || startsWith(github.event.workflow_run.head_branch, 'feature/')
+        || endsWith(github.event.workflow_run.head_branch, '.x')
+      )
+
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: write
+
+    env:
+      BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+      BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Locate Benchmark Results
+        id: artifact
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          ARTIFACT_NAME: ${{ env.BENCHMARK_RESULTS_ARTIFACT }}
+        with:
+          script: |
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...context.repo,
+              run_id: context.payload.workflow_run.id,
+            })
+            core.setOutput("found", artifacts.some(artifact => artifact.name === process.env.ARTIFACT_NAME))
+
+      - name: Download Benchmark Results
+        if: steps.artifact.outputs.found == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.BENCHMARK_RESULTS_ARTIFACT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Install Bencher CLI
+        if: >-
+          steps.artifact.outputs.found == 'true'
+          && env.BENCHER_API_TOKEN != ''
+          && env.BENCHER_PROJECT_SLUG != ''
+        uses: bencherdev/bencher@5f9d4cf890255c35e0354af1ed325108a6a0babd # v0.6.8
+
+      - name: Track base branch benchmarks with Bencher
+        if: >-
+          steps.artifact.outputs.found == 'true'
+          && env.BENCHER_API_TOKEN != ''
+          && env.BENCHER_PROJECT_SLUG != ''
+        env:
+          BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          bencher run \
+            --project "$BENCHER_PROJECT_SLUG" \
+            --token "$BENCHER_API_TOKEN" \
+            --branch "$BRANCH_NAME" \
+            --hash "${{ github.event.workflow_run.head_sha }}" \
+            --testbed "$TESTBED" \
+            --threshold-measure latency \
+            --threshold-test t_test \
+            --threshold-max-sample-size 64 \
+            --threshold-upper-boundary 0.99 \
+            --thresholds-reset \
+            --err \
+            --adapter python_pytest \
+            --github-actions "$GH_TOKEN" \
+            --file "$BENCHMARK_RESULTS"
+
+  track-pull-request:
+    if: >-
+      !github.event.repository.fork
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'pull_request'
+
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+
+    env:
+      BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
+      BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Locate Benchmark Artifacts
+        id: artifacts
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          BENCHMARK_RESULTS_ARTIFACT: ${{ env.BENCHMARK_RESULTS_ARTIFACT }}
+          PR_EVENT_ARTIFACT: ${{ env.PR_EVENT_ARTIFACT }}
+        with:
+          script: |
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...context.repo,
+              run_id: context.payload.workflow_run.id,
+            })
+            const names = new Set(artifacts.map(artifact => artifact.name))
+            core.setOutput("found", (
+              names.has(process.env.BENCHMARK_RESULTS_ARTIFACT)
+              && names.has(process.env.PR_EVENT_ARTIFACT)
+            ))
+
+      - name: Download Benchmark Results
+        if: steps.artifacts.outputs.found == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.BENCHMARK_RESULTS_ARTIFACT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Download PR Event
+        if: steps.artifacts.outputs.found == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ env.PR_EVENT_ARTIFACT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Export PR Event Data
+        if: steps.artifacts.outputs.found == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const fs = require("fs")
+            const prEvent = JSON.parse(fs.readFileSync("event.json", { encoding: "utf8" }))
+            core.exportVariable("PR_HEAD", prEvent.pull_request.head.ref)
+            core.exportVariable("PR_HEAD_SHA", prEvent.pull_request.head.sha)
+            core.exportVariable("PR_BASE", prEvent.pull_request.base.ref)
+            core.exportVariable("PR_BASE_SHA", prEvent.pull_request.base.sha)
+            core.exportVariable("PR_NUMBER", prEvent.number)
+
+      - name: Install Bencher CLI
+        if: >-
+          steps.artifacts.outputs.found == 'true'
+          && env.BENCHER_API_TOKEN != ''
+          && env.BENCHER_PROJECT_SLUG != ''
+        uses: bencherdev/bencher@5f9d4cf890255c35e0354af1ed325108a6a0babd # v0.6.8
+
+      - name: Track PR benchmarks with Bencher
+        if: >-
+          steps.artifacts.outputs.found == 'true'
+          && env.BENCHER_API_TOKEN != ''
+          && env.BENCHER_PROJECT_SLUG != ''
+        run: |
+          bencher run \
+            --project "$BENCHER_PROJECT_SLUG" \
+            --token "$BENCHER_API_TOKEN" \
+            --branch "$PR_HEAD" \
+            --hash "$PR_HEAD_SHA" \
+            --start-point "$PR_BASE" \
+            --start-point-hash "$PR_BASE_SHA" \
+            --start-point-clone-thresholds \
+            --start-point-reset \
+            --testbed "$TESTBED" \
+            --threshold-measure latency \
+            --threshold-test t_test \
+            --threshold-max-sample-size 64 \
+            --threshold-upper-boundary 0.99 \
+            --ci-only-thresholds \
+            --err \
+            --adapter python_pytest \
+            --github-actions "$GH_TOKEN" \
+            --ci-number "$PR_NUMBER" \
+            --file "$BENCHMARK_RESULTS"

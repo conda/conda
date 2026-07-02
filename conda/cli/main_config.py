@@ -399,8 +399,9 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike[str] | Path) -> Non
     """
     Set multiple configuration keys in a file.
 
-    :param args: Variable number of (key, value) tuples to set.
-    :param path: Path to the configuration file.
+    Args:
+        args: Variable number of (key, value) tuples to set.
+        path: Path to the configuration file.
     """
     config = ConfigurationFile(path)
     for key, value in args:
@@ -415,8 +416,9 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     Handles various config subcommands including show, show-sources, describe,
     validate, write-default, and modification operations (add, set, remove, etc.).
 
-    :param args: Parsed command line arguments.
-    :param parser: Argument parser instance.
+    Args:
+        args: Parsed command line arguments.
+        parser: Argument parser instance.
     """
     from .. import CondaError
     from ..base.context import (
@@ -440,19 +442,24 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     json_warnings = []
 
     if args.show_sources:
+        all_sources = context.collect_all()
+        plugin_sources = context.plugins.collect_all()
+
+        # Merge plugin settings into each source, nested under "plugins"
+        for source, plugin_reprs in plugin_sources.items():
+            if plugin_reprs:
+                all_sources.setdefault(source, {})["plugins"] = plugin_reprs
+
         if context.json:
             stdout_write(
                 json.dumps(
-                    {
-                        str(source): values
-                        for source, values in context.collect_all().items()
-                    },
+                    {str(source): values for source, values in all_sources.items()},
                     sort_keys=True,
                 )
             )
         else:
             lines = []
-            for source, reprs in context.collect_all().items():
+            for source, reprs in all_sources.items():
                 lines.append(f"==> {source} <==")
                 lines.extend(format_dict(reprs))
                 lines.append("")

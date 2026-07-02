@@ -18,6 +18,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import encode_environment, isiterable
 from ..common.constants import TRACE
+from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
 
@@ -133,6 +134,7 @@ def subprocess_call(
     return Response(stdout, stderr, int(rc))
 
 
+@deprecated("27.3", "27.9")
 def _subprocess_clean_env(env, clean_python=True, clean_conda=True):
     dels = []
     if clean_python:
@@ -146,6 +148,11 @@ def _subprocess_clean_env(env, clean_python=True, clean_conda=True):
             del env[key]
 
 
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use `subprocess_call` with a cleaned copy of `os.environ` instead.",
+)
 def subprocess_call_with_clean_env(
     command,
     path=None,

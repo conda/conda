@@ -189,17 +189,18 @@ class ActionGroup(NamedTuple):
 class PrefixActionGroup:
     """A container for groups of actions carried out during an UnlinkLinkTransaction.
 
-    :param remove_menu_action_groups: Actions which remove menu items
-    :param unlink_action_groups: Actions which unlink files
-    :param unregister_action_groups: Actions which unregister environment locations
-    :param link_action_groups: Actions which link files
-    :param register_action_groups: Actions which register environment locations
-    :param compile_action_groups: Actions which compile pyc files
-    :param make_menu_action_groups: Actions which create menu items
-    :param entry_point_action_groups: Actions which create python entry points
-    :param prefix_record_groups: Actions which create package json files in ``conda-meta/``
-    :param initial_action_groups: User-defined actions which run before all other actions
-    :param final_action_groups: User-defined actions which run after all other actions
+    Args:
+        remove_menu_action_groups: Actions which remove menu items.
+        unlink_action_groups: Actions which unlink files.
+        unregister_action_groups: Actions which unregister environment locations.
+        link_action_groups: Actions which link files.
+        register_action_groups: Actions which register environment locations.
+        compile_action_groups: Actions which compile pyc files.
+        make_menu_action_groups: Actions which create menu items.
+        entry_point_action_groups: Actions which create python entry points.
+        prefix_record_groups: Actions which create package json files in ``conda-meta/``.
+        initial_action_groups: User-defined actions which run before all other actions.
+        final_action_groups: User-defined actions which run after all other actions.
     """
 
     remove_menu_action_groups: Iterable[ActionGroup]
@@ -776,7 +777,28 @@ class UnlinkLinkTransaction:
             # this should never be able to be skipped, even with --force
             yield RemoveError(
                 "This operation will remove conda without replacing it with\n"
-                "another version of conda."
+                "another version of conda.",
+                guidance={
+                    "summary": "Conda cannot remove itself.",
+                    "cause": (
+                        "The planned transaction would uninstall the conda package "
+                        "without linking a replacement."
+                    ),
+                    "hints": [
+                        {
+                            "text": (
+                                "Install a specific conda version first, for example:\n"
+                                "      conda install conda=<version>"
+                            ),
+                            "hint_code": "install_conda_version",
+                        },
+                        {
+                            "text": "Use a separate environment for other packages "
+                            "instead of changing the base environment where conda runs.",
+                            "hint_code": "use_non_base_env",
+                        },
+                    ],
+                },
             )
 
         if conda_final_setup is None:
@@ -812,7 +834,35 @@ class UnlinkLinkTransaction:
                 ):
                     yield RemoveError(
                         f"'{dep_name}' is a dependency of conda and cannot be removed from\n"
-                        "conda's operating environment."
+                        "conda's operating environment.",
+                        guidance={
+                            "summary": (
+                                f"'{dep_name}' is required by conda and cannot be "
+                                "removed from this environment."
+                            ),
+                            "cause": (
+                                "The solver planned a change that would remove this "
+                                "package from the environment that runs conda."
+                            ),
+                            "hints": [
+                                {
+                                    "text": (
+                                        "Create a new environment for your work "
+                                        "instead of installing everything in base, "
+                                        "for example:\n"
+                                        "      conda create -n myenv python=..."
+                                    ),
+                                    "hint_code": "use_non_base_env",
+                                },
+                                {
+                                    "text": (
+                                        "If you mix pip and conda, reinstall affected "
+                                        "packages with conda so conda can track them."
+                                    ),
+                                    "hint_code": "pip_conda_mix",
+                                },
+                            ],
+                        },
                     )
 
         # Verification 3. enforce disallowed_packages

@@ -1,8 +1,15 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
+
+if TYPE_CHECKING:
+    from pytest_benchmark.fixture import BenchmarkFixture
 from conda.base.context import context
 from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
@@ -50,50 +57,55 @@ def DPkg(s, **kwargs):
 
 
 @pytest.mark.benchmark
-def test_match_1():
-    for spec, result in (
-        ("numpy 1.7*", True),
-        ("numpy 1.7.1", True),
-        ("numpy 1.7", False),
-        ("numpy 1.5*", False),
-        ("numpy >=1.5", True),
-        ("numpy >=1.5,<2", True),
-        ("numpy >=1.8,<1.9", False),
-        ("numpy >1.5,<2,!=1.7.1", False),
-        ("numpy >1.8,<2|==1.7", False),
-        ("numpy >1.8,<2|>=1.7.1", True),
-        ("numpy >=1.8|1.7*", True),
-        ("numpy ==1.7", False),
-        ("numpy >=1.5,>1.6", True),
-        ("numpy ==1.7.1", True),
-        ("numpy ==1.7.1.0", True),
-        ("numpy==1.7.1.0.0", True),
-        ("numpy >=1,*.7.*", True),
-        ("numpy *.7.*,>=1", True),
-        ("numpy >=1,*.8.*", False),
-        ("numpy >=2,*.7.*", False),
-        ("numpy 1.6*|1.7*", True),
-        ("numpy 1.6*|1.8*", False),
-        ("numpy 1.6.2|1.7*", True),
-        ("numpy 1.6.2|1.7.1", True),
-        ("numpy 1.6.2|1.7.0", False),
-        ("numpy 1.7.1 py27_0", True),
-        ("numpy 1.7.1 py26_0", False),
-        ("numpy >1.7.1a", True),
-        ("python", False),
-    ):
-        m = MatchSpec(spec)
-        assert m.match(DPkg("numpy-1.7.1-py27_0.tar.bz2")) == result
-        assert "name" in m
-        assert m.name == "python" or "version" in m
+def test_match_1(benchmark: BenchmarkFixture):
+    def run():
+        for spec, result in (
+            ("numpy 1.7*", True),
+            ("numpy 1.7.1", True),
+            ("numpy 1.7", False),
+            ("numpy 1.5*", False),
+            ("numpy >=1.5", True),
+            ("numpy >=1.5,<2", True),
+            ("numpy >=1.8,<1.9", False),
+            ("numpy >1.5,<2,!=1.7.1", False),
+            ("numpy >1.8,<2|==1.7", False),
+            ("numpy >1.8,<2|>=1.7.1", True),
+            ("numpy >=1.8|1.7*", True),
+            ("numpy ==1.7", False),
+            ("numpy >=1.5,>1.6", True),
+            ("numpy ==1.7.1", True),
+            ("numpy ==1.7.1.0", True),
+            ("numpy==1.7.1.0.0", True),
+            ("numpy >=1,*.7.*", True),
+            ("numpy *.7.*,>=1", True),
+            ("numpy >=1,*.8.*", False),
+            ("numpy >=2,*.7.*", False),
+            ("numpy 1.6*|1.7*", True),
+            ("numpy 1.6*|1.8*", False),
+            ("numpy 1.6.2|1.7*", True),
+            ("numpy 1.6.2|1.7.1", True),
+            ("numpy 1.6.2|1.7.0", False),
+            ("numpy 1.7.1 py27_0", True),
+            ("numpy 1.7.1 py26_0", False),
+            ("numpy >1.7.1a", True),
+            ("python", False),
+        ):
+            m = MatchSpec(spec)
+            assert m.match(DPkg("numpy-1.7.1-py27_0.tar.bz2")) == result
+            assert "name" in m
+            assert m.name == "python" or "version" in m
 
-    # both version numbers conforming to PEP 440
-    assert not MatchSpec("numpy >=1.0.1").match(DPkg("numpy-1.0.1a-0.tar.bz2"))
-    # both version numbers non-conforming to PEP 440
-    assert not MatchSpec("numpy >=1.0.1.vc11").match(
-        DPkg("numpy-1.0.1a.vc11-0.tar.bz2")
-    )
-    assert MatchSpec("numpy >=1.0.1*.vc11").match(DPkg("numpy-1.0.1a.vc11-0.tar.bz2"))
+        # both version numbers conforming to PEP 440
+        assert not MatchSpec("numpy >=1.0.1").match(DPkg("numpy-1.0.1a-0.tar.bz2"))
+        # both version numbers non-conforming to PEP 440
+        assert not MatchSpec("numpy >=1.0.1.vc11").match(
+            DPkg("numpy-1.0.1a.vc11-0.tar.bz2")
+        )
+        assert MatchSpec("numpy >=1.0.1*.vc11").match(
+            DPkg("numpy-1.0.1a.vc11-0.tar.bz2")
+        )
+
+    benchmark(run)
     # one conforming, other non-conforming to PEP 440
     assert MatchSpec("numpy <1.0.1").match(DPkg("numpy-1.0.1.vc11-0.tar.bz2"))
     assert MatchSpec("numpy <1.0.1").match(DPkg("numpy-1.0.1a.vc11-0.tar.bz2"))
@@ -188,8 +200,14 @@ def test_canonical_string_forms():
     assert m("numpy=1.7=py3*_2") == "numpy==1.7[build=py3*_2]"
     assert m("numpy=1.7.*=py3*_2") == "numpy=1.7[build=py3*_2]"
 
-    assert m("https://repo.anaconda.com/pkgs/free::numpy") == "pkgs/free::numpy"
-    assert m("numpy[channel=https://repo.anaconda.com/pkgs/free]") == "pkgs/free::numpy"
+    assert (
+        m("https://repo.anaconda.com/pkgs/free::numpy")
+        == "https://repo.anaconda.com/pkgs/free::numpy"
+    )
+    assert (
+        m("numpy[channel=https://repo.anaconda.com/pkgs/free]")
+        == "https://repo.anaconda.com/pkgs/free::numpy"
+    )
     assert m("defaults::numpy") == "defaults::numpy"
     assert m("numpy[channel=defaults]") == "defaults::numpy"
     assert m("conda-forge::numpy") == "conda-forge::numpy"
@@ -198,15 +216,15 @@ def test_canonical_string_forms():
     assert m("numpy[channel=defaults,subdir=osx-64]") == "defaults/osx-64::numpy"
     assert (
         m("numpy[channel=https://repo.anaconda.com/pkgs/free/osx-64, subdir=linux-64]")
-        == "pkgs/free/linux-64::numpy"
+        == "https://repo.anaconda.com/pkgs/free/linux-64::numpy"
     )
     assert (
         m("https://repo.anaconda.com/pkgs/free/win-32::numpy")
-        == "pkgs/free/win-32::numpy"
+        == "https://repo.anaconda.com/pkgs/free/win-32::numpy"
     )
     assert (
         m("numpy[channel=https://repo.anaconda.com/pkgs/free/osx-64]")
-        == "pkgs/free/osx-64::numpy"
+        == "https://repo.anaconda.com/pkgs/free/osx-64::numpy"
     )
     assert m("defaults/win-32::numpy") == "defaults/win-32::numpy"
     assert m("conda-forge/linux-64::numpy") == "conda-forge/linux-64::numpy"
@@ -219,11 +237,11 @@ def test_canonical_string_forms():
     # TODO: should the result in these example pull out subdir?
     assert (
         m("https://repo.anaconda.com/pkgs/free/linux-32::numpy")
-        == "pkgs/free/linux-32::numpy"
+        == "https://repo.anaconda.com/pkgs/free/linux-32::numpy"
     )
     assert (
         m("numpy[channel=https://repo.anaconda.com/pkgs/free/linux-32]")
-        == "pkgs/free/linux-32::numpy"
+        == "https://repo.anaconda.com/pkgs/free/linux-32::numpy"
     )
 
     assert m("numpy=1.10=py38_0") == "numpy==1.10=py38_0"
@@ -401,8 +419,92 @@ def test_channel_matching():
 
     assert not ChannelMatch("https://repo.anaconda.com/pkgs/main").match("conda-forge")
 
-    assert str(MatchSpec("pkgs/main::*")) == "pkgs/main::*"
+    assert str(MatchSpec("pkgs/main::*")) == "defaults::*"
     assert str(MatchSpec("defaults::*")) == "defaults::*"
+
+
+def test_channel_matching_strict_for_non_alias_urls(tmp_path):
+    """
+    ChannelMatch.match uses strict Channel equality, matching the
+    location, name, and the platform, when the spec's channel was
+    constructed from a URL whose location is not channel_alias or
+    a migrated alias. This stops URL-form specs from cross-matching
+    same-named channels at different locations. For example, a local
+    "file:///path/to/distr" does not match the remote "distr" channel
+    via "Channel.name".
+    """
+    distr_url = (tmp_path / "a" / "distr").as_uri()
+    sibling_distr_url = (tmp_path / "b" / "distr").as_uri()
+
+    # same URL: matches
+    assert ChannelMatch(distr_url).match(distr_url)
+    # different URL, same basename: does not match
+    assert not ChannelMatch(distr_url).match(sibling_distr_url)
+    # URL-form distr does not match the bare name one (remote via alias)
+    assert not ChannelMatch(distr_url).match("distr")
+
+    # The short-form distr still uses the lossy name-based match, in
+    # light of patterns like `conda install -c /path/to/distr distr::pkg`
+    # See https://anaconda.org/distr.
+    assert ChannelMatch("distr").match(distr_url)
+
+    # A URL-form member of a multichannel such as pkgs/main matches itself
+    # exactly. Channel("pkgs/main") resolves to the same `location` as
+    # the URL form, so it also matches as they are the same channel under
+    # the hood). However, Channel("defaults") is the multichannel name with
+    # a different identity, so strict equality rejects it.
+    pkgs_main_url = "https://repo.anaconda.com/pkgs/main"
+    assert ChannelMatch(pkgs_main_url).match(pkgs_main_url)
+    assert ChannelMatch(pkgs_main_url).match("pkgs/main")
+    assert not ChannelMatch(pkgs_main_url).match("defaults")
+    assert not ChannelMatch(pkgs_main_url).match("conda-forge")
+
+    # Same path on different hosts must not cross-match.
+    host_a_url = "https://software.repos.intel.com/python/conda"
+    host_b_url = "https://other.example.com/python/conda"
+    assert not ChannelMatch(host_a_url).match(host_b_url)
+    assert not ChannelMatch(host_b_url).match(host_a_url)
+
+
+def test_channel_matching_preserves_full_url_for_local_channel(tmp_path):
+    distr = (tmp_path / "distr").as_uri()
+    spec = MatchSpec(f"{distr}::test-package")
+    assert str(spec) == f"{distr}::test-package"
+    assert spec.get("channel").canonical_name == distr
+
+    # channel_alias channels still stringify to their short name.
+    assert str(MatchSpec("conda-forge::python")) == "conda-forge::python"
+
+
+def test_parse_channel_preserves_url_for_multichannel_members():
+    """
+    Non-alias URL-form channels are stored as their base_url rather
+    than collapsing into the multichannel canonical_name. So, for example,
+    "https://repo.anaconda.com/pkgs/main" is preserved as the full URL in
+    the parsed spec, and not flattened to "defaults".
+    """
+    parsed = _parse_spec_str("https://repo.anaconda.com/pkgs/main::numpy")
+    assert parsed == {
+        "_original_spec_str": "https://repo.anaconda.com/pkgs/main::numpy",
+        "channel": "https://repo.anaconda.com/pkgs/main",
+        "name": "numpy",
+    }
+    # The short form still collapses, since "pkgs/main" resolves via
+    # channel_alias and its canonical_name is "defaults".
+    parsed = _parse_spec_str("pkgs/main::numpy")
+    assert parsed["channel"] == "defaults"
+
+    # An unrelated host that happens to share a multichannel member's path
+    # must not collapse: "https://example.com/pkgs/main" has nothing to do
+    # with defaults and must stay as the full URL.
+    parsed = _parse_spec_str("https://example.com/pkgs/main::numpy")
+    assert parsed["channel"] == "https://example.com/pkgs/main"
+
+
+def test_matchspec_str_preserves_url_for_multichannel_members():
+    url = "https://repo.anaconda.com/pkgs/main"
+    assert str(MatchSpec(f"{url}::numpy")) == f"{url}::numpy"
+    assert str(MatchSpec("pkgs/main::numpy")) == "defaults::numpy"
 
 
 def test_matchspec_errors():
@@ -807,7 +909,7 @@ def test_parse_spec_str_no_brackets():
     }
     assert _parse_spec_str("https://repo.anaconda.com/pkgs/free::numpy") == {
         "_original_spec_str": "https://repo.anaconda.com/pkgs/free::numpy",
-        "channel": "pkgs/free",
+        "channel": "https://repo.anaconda.com/pkgs/free",
         "name": "numpy",
     }
     assert _parse_spec_str("defaults::numpy=1.8") == {
@@ -1148,6 +1250,9 @@ def test_dist_str():
 
         pref = DPkg(f"anaconda::python-3.6.6-0{ext}")
         pref.url = f"https://someurl.org/anaconda/{context.subdir}"
+        # URL-form specs (m3, m5) require strict Channel equality against
+        # the record's channel, so the record needs the URL-form Channel here
+        pref.channel = Channel("https://someurl.org/anaconda")
 
         assert m1.match(pref)
         assert m2.match(pref)
@@ -1160,7 +1265,7 @@ def test_dist_str():
             "version": "3.6.6",
             "build": "0",
             "build_number": 0,
-            "channel": Channel("anaconda"),
+            "channel": Channel("https://someurl.org/anaconda"),
             "fn": f"python-3.6.6-0{ext}",
             "md5": "012345789",
             "url": "https://someurl.org/anaconda",
@@ -1255,15 +1360,20 @@ def test_merge_multiple_name():
 
 
 def test_channel_merge():
-    specs = (MatchSpec("pkgs/main::python"), MatchSpec("defaults::python"))
+    specs = (MatchSpec("conda-forge::python"), MatchSpec("defaults::python"))
     with pytest.raises(ValueError):
         MatchSpec.merge(specs)
 
-    specs = (MatchSpec("defaults::python"), MatchSpec("pkgs/main::python"))
+    specs = (MatchSpec("defaults::python"), MatchSpec("conda-forge::python"))
     with pytest.raises(ValueError):
         MatchSpec.merge(specs)
 
     specs = (MatchSpec("defaults::python"), MatchSpec("defaults::python 1.2.3"))
+    merged = MatchSpec.merge(specs)
+    assert len(merged) == 1
+    assert str(merged[0]) == "defaults::python==1.2.3"
+
+    specs = (MatchSpec("pkgs/main::python"), MatchSpec("defaults::python 1.2.3"))
     merged = MatchSpec.merge(specs)
     assert len(merged) == 1
     assert str(merged[0]) == "defaults::python==1.2.3"

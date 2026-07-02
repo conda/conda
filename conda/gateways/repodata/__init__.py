@@ -760,7 +760,8 @@ class RepodataFetch:
         Retrieve parsed latest or latest-cached repodata as a dict; update
         cache.
 
-        :return: (repodata contents, state including cache headers)
+        Returns:
+            Repodata contents, state including cache headers
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
@@ -779,7 +780,8 @@ class RepodataFetch:
         """
         Retrieve latest or latest-cached repodata; update cache.
 
-        :return: (pathlib.Path to uncompressed repodata contents, RepodataState)
+        Returns:
+            Path to uncompressed repodata contents, RepodataState
         """
         _, state = self.fetch_latest()
         return self.cache_path_json, state

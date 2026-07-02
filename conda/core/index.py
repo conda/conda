@@ -288,25 +288,13 @@ class Index(UserDict):
         for prefix_record in self.prefix_data.iter_records():
             if prefix_record in self._data:
                 current_record = self._data[prefix_record]
-                if current_record.channel == prefix_record.channel:
-                    # The downloaded repodata takes priority, so we do not overwrite.
-                    # We do, however, copy the link information so that the solver (i.e. resolve)
-                    # knows this package is installed.
-                    link = prefix_record.get("link") or EMPTY_LINK
-                    self._data[prefix_record] = PrefixRecord.from_objects(
-                        current_record, prefix_record, link=link
-                    )
-                else:
-                    # If the local packages channel information does not agree with
-                    # the channel information in the index then they are most
-                    # likely referring to different packages.  This can occur if a
-                    # multi-channel changes configuration, e.g. defaults with and
-                    # without the free channel. In this case we need to fake the
-                    # channel data for the existing package.
-                    prefix_channel = prefix_record.channel
-                    prefix_channel._Channel__canonical_name = prefix_channel.url()
-                    del prefix_record._PackageRecord__pkey
-                    self._data[prefix_record] = prefix_record
+                # The downloaded repodata takes priority, so we do not overwrite.
+                # We do, however, copy the link information so that the solver (i.e. resolve)
+                # knows this package is installed.
+                link = prefix_record.get("link") or EMPTY_LINK
+                self._data[prefix_record] = PrefixRecord.from_objects(
+                    current_record, prefix_record, link=link
+                )
             else:
                 # If the package is not in the repodata, use the local data.
                 # If the channel is known but the package is not in the index, it
@@ -373,14 +361,8 @@ class Index(UserDict):
         prefix_prec = self.prefix_data.get(key.name, None) if self.prefix_data else None
         if prefix_prec and prefix_prec == prec:
             if prec:
-                if prec.channel == prefix_prec.channel:
-                    link = prefix_prec.get("link") or EMPTY_LINK
-                    prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
-                else:
-                    prefix_channel = prefix_prec.channel
-                    prefix_channel._Channel__canonical_name = prefix_channel.url()
-                    del prefix_prec._PackageRecord__pkey
-                    prec = prefix_prec
+                link = prefix_prec.get("link") or EMPTY_LINK
+                prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
             else:
                 prec = prefix_prec
         return prec
@@ -500,7 +482,8 @@ class ReducedIndex(Index):
             """
             Add a package name or track feature from a MatchSpec to the pending set.
 
-            :param spec: The MatchSpec to process.
+            Args:
+                spec: The MatchSpec to process.
             """
             for spec in map(MatchSpec, specs):
                 name = spec.get_raw_value("name")
@@ -516,7 +499,8 @@ class ReducedIndex(Index):
             """
             Process a package record to collect its dependencies and features.
 
-            :param record: The package record to process.
+            Args:
+                record: The package record to process.
             """
             for record in records:
                 try:
@@ -587,9 +571,12 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     """
     Check if a distribution string matches any package in the index.
 
-    :param index: The package index.
-    :param dist_str: The distribution string to match against the index.
-    :return: True if there is a match; False otherwise.
+    Args:
+        index: The package index.
+        dist_str: The distribution string to match against the index.
+
+    Returns:
+        True if there is a match; False otherwise.
     """
     match_spec = MatchSpec.from_dist_str(dist_str)
     return any(match_spec.match(prec) for prec in index.values())
@@ -599,7 +586,8 @@ def get_archspec_name() -> str | None:
     """
     Determine the architecture specification name for the current environment.
 
-    :return: The architecture name if available, otherwise None.
+    Returns:
+        The architecture name if available, otherwise None.
     """
     from ..base.context import _arch_names, non_x86_machines
 
@@ -638,11 +626,14 @@ def calculate_channel_urls(
     """
     Calculate the full list of channel URLs to use based on the given parameters.
 
-    :param channel_urls: Initial list of channel URLs.
-    :param prepend: Whether to prepend default channels to the list.
-    :param platform: The target platform for the channels.
-    :param use_local: Whether to include the local channel.
-    :return: The calculated list of channel URLs.
+    Args:
+        channel_urls: Initial list of channel URLs.
+        prepend: Whether to prepend default channels to the list.
+        platform: The target platform for the channels.
+        use_local: Whether to include the local channel.
+
+    Returns:
+        The calculated list of channel URLs.
     """
     if use_local:
         channel_urls = ["local"] + list(channel_urls)
