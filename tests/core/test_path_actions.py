@@ -504,7 +504,7 @@ def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
         "command=some.module:main",
     )
 
-    get_launcher.assert_called_once_with()
+    get_launcher.assert_called_once_with(source_prefixes=(context.conda_prefix,))
     assert axn.source_full_path == str(source_path)
     assert axn.target_short_path == "Scripts/command.exe"
 

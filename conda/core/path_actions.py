@@ -365,7 +365,9 @@ class LinkPathAction(CreateInPrefixPathAction):
         requested_link_type,
         entry_point_def,
     ):
-        source_exe_path = get_windows_launcher_stub_path()
+        source_exe_path = get_windows_launcher_stub_path(
+            source_prefixes=(context.conda_prefix,)
+        )
         source_directory = dirname(source_exe_path)
         source_short_path = basename(source_exe_path)
         command, _, _ = parse_entry_point_def(entry_point_def)

@@ -424,7 +424,7 @@ def test_make_entry_point_exe_uses_conda_launchers(
 
     assert make_entry_point_exe(target_path, conda_prefix) == Result.MODIFIED
 
-    get_launcher.assert_called_once_with(prefixes=(conda_prefix,))
+    get_launcher.assert_called_once_with(source_prefixes=(conda_prefix,))
     assert target_path.read_bytes() == b"launcher"
 
 

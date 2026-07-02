@@ -24,9 +24,9 @@ CONDA_LAUNCHERS_PACKAGE_NAME = "conda-launchers"
 def get_windows_launcher_stub_path(
     subdir: str | None = None,
     *,
-    prefixes: Iterable[str | PathLike[str]] = (),
+    source_prefixes: Iterable[str | PathLike[str]],
 ) -> str:
-    """Return the best source path for a Windows Python entry point launcher."""
+    """Return the source path for a Windows Python entry point launcher."""
     import conda_launchers
 
     subdir = subdir or context.subdir
@@ -39,7 +39,7 @@ def get_windows_launcher_stub_path(
             f"Supported: {dashlist(supported_subdirs)}."
         ) from exc
 
-    for prefix in (*prefixes, context.conda_prefix):
+    for prefix in source_prefixes:
         try:
             record = PrefixData(prefix).get(CONDA_LAUNCHERS_PACKAGE_NAME, None)
         except OSError:

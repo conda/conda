@@ -1183,7 +1183,7 @@ def make_entry_point(target_path, conda_prefix, module, func):
 def make_entry_point_exe(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
     exe_path = target_path
-    source_exe_path = get_windows_launcher_stub_path(prefixes=(conda_prefix,))
+    source_exe_path = get_windows_launcher_stub_path(source_prefixes=(conda_prefix,))
     if isfile(exe_path):
         if compute_sum(exe_path, "md5") == compute_sum(source_exe_path, "md5"):
             return Result.NO_CHANGE
