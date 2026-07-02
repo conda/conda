@@ -2314,7 +2314,7 @@ def test_disallowed_packages(
 def _conda_root_prefix_env(
     session_tmp_env: TmpEnvFixture,
 ) -> Iterator[Path]:
-    """Session-scoped conda env shared across parametrized remove-order variants."""
+    """Session-scoped conda env shared by the don't-remove-conda tests."""
     with session_tmp_env("conda") as prefix:
         yield prefix
 
@@ -2324,7 +2324,7 @@ def root_prefix_with_conda(
     monkeypatch: MonkeyPatch,
     _conda_root_prefix_env: Path,
 ) -> Path:
-    """Root prefix with conda installed; shared across parametrized remove-order variants."""
+    """Root prefix with conda installed; local to the don't-remove-conda tests."""
     monkeypatch.setenv("CONDA_ROOT_PREFIX", str(_conda_root_prefix_env))
     reset_context()
     assert context.root_prefix == str(_conda_root_prefix_env)
@@ -2358,6 +2358,8 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
     conda_cli: CondaCLIFixture,
 ):
     """Removing a conda dependency is blocked even when dependents would be unlinked."""
+    # The session-scoped prefix is local to this test group, so these lightweight
+    # packages can remain installed for later parametrized runs.
     conda_cli(
         "install",
         f"--prefix={root_prefix_with_conda}",
@@ -2400,18 +2402,6 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
         conda_record["depends"] = original_depends
         conda_meta.write_text(json.dumps(conda_record))
         PrefixData._cache_.clear()
-        cleanup_packages = [
-            package
-            for package in ("another_dependent", "dependent", "dependency")
-            if package_is_installed(root_prefix_with_conda, package)
-        ]
-        if cleanup_packages:
-            conda_cli(
-                "remove",
-                f"--prefix={root_prefix_with_conda}",
-                *cleanup_packages,
-                "--yes",
-            )
 
 
 def test_dont_remove_conda_3(
