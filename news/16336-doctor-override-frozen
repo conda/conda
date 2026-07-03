@@ -1,0 +1,11 @@
+### Enhancements
+
+### Bug fixes
+
+* Allow `conda doctor --fix --override-frozen` to run fixers against frozen environments. (#16336)
+
+### Deprecations
+
+### Docs
+
+### Other

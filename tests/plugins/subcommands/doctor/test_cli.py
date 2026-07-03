@@ -7,10 +7,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.base.context import context
 from conda.exceptions import EnvironmentLocationNotFound
 
 if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from tests.plugins.subcommands.conftest import EnvFixture
 
 
 def test_conda_doctor_happy_path(conda_cli: CondaCLIFixture):
@@ -35,6 +39,16 @@ def test_conda_doctor_happy_path_show_help(conda_cli: CondaCLIFixture):
     """Make sure that we are able to run ``conda doctor`` command with the --help flag"""
     with pytest.raises(SystemExit, match="0"):  # 0 is the return code ¯\_(ツ)_/¯
         conda_cli("doctor", "--help")
+
+
+def test_conda_doctor_help_shows_override_frozen(conda_cli: CondaCLIFixture):
+    with pytest.raises(SystemExit, match="0"):
+        conda_cli("doctor", "--help")
+
+    out, err = conda_cli.capsys.readouterr()
+
+    assert "--override-frozen" in out
+    assert not err
 
 
 def test_conda_doctor_with_test_environment(
@@ -129,3 +143,39 @@ def test_conda_doctor_fix_yes(
         # Should complete without prompting
         assert not err
         assert not code
+
+
+def test_conda_doctor_fix_accepts_override_frozen(
+    conda_cli: CondaCLIFixture,
+    env_missing_files: EnvFixture,
+    mocker: MockerFixture,
+):
+    """Make sure --fix can bypass frozen environment protection."""
+    (env_missing_files.prefix / "conda-meta" / "history").touch()
+    (env_missing_files.prefix / "conda-meta" / "frozen").touch()
+
+    def reinstall_packages(args, specs, force_reinstall=False):
+        assert context.protect_frozen_envs is False
+        assert specs == [env_missing_files.package]
+        assert force_reinstall is True
+        return 0
+
+    mock_reinstall = mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.missing_files.reinstall_packages",
+        side_effect=reinstall_packages,
+    )
+
+    out, err, code = conda_cli(
+        "doctor",
+        "missing-files",
+        "--fix",
+        "--yes",
+        "--prefix",
+        env_missing_files.prefix,
+        "--override-frozen",
+    )
+
+    assert "Running fixes" in out
+    assert not err
+    assert code == 0
+    mock_reinstall.assert_called_once()
