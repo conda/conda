@@ -26,6 +26,7 @@ from conda.exceptions import (
     CondaValueError,
     DirectoryNotFoundError,
     ExceptionHandler,
+    InvalidInstaller,
     KnownPackageClobberError,
     PackagesNotFoundError,
     PathNotFoundError,
@@ -1059,6 +1060,52 @@ def test_print_conda_exception_without_guidance(
         (
             "",
             f"RemoveError: {message}",
+            "",
+            "",
+        )
+    )
+
+
+def test_InvalidInstaller_with_file_guidance(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    exc = InvalidInstaller("pip", file="/tmp/environment.yml")
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            "InvalidInstaller: Unable to install package for pip from environment file /tmp/environment.yml.",
+            "",
+            "Next steps:",
+            "  - (check_available_installer) Please ensure you are requesting an available installer.",
+            "",
+            "",
+        )
+    )
+
+
+def test_InvalidInstaller_without_file_guidance(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    exc = InvalidInstaller("npm")
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            "InvalidInstaller: Unable to install package for npm.",
+            "",
+            "Next steps:",
+            "  - (check_available_installer) Please ensure you are requesting an available installer.",
             "",
             "",
         )

@@ -299,6 +299,12 @@ def configure_parser_plugins(sub_parsers) -> None:
     with the newly created subcommand specific argument parser.
     """
     plugin_subcommands = context.plugin_manager.get_subcommands()
+    plugin_names = frozenset(plugin_subcommands)
+    alias_to_plugin_names: dict[str, set[str]] = {}
+    for plugin_name, plugin_subcommand in plugin_subcommands.items():
+        for alias in plugin_subcommand.aliases:
+            alias_to_plugin_names.setdefault(alias, set()).add(plugin_name)
+
     for name, plugin_subcommand in plugin_subcommands.items():
         # if the name of the plugin-based subcommand overlaps a built-in
         # subcommand and isn't a preview, we print an error
@@ -316,12 +322,46 @@ def configure_parser_plugins(sub_parsers) -> None:
             )
             continue
 
+        builtin_alias_overrides = tuple(
+            alias for alias in plugin_subcommand.aliases if alias in BUILTIN_COMMANDS
+        )
+        plugin_alias_overrides = tuple(
+            alias for alias in plugin_subcommand.aliases if alias in plugin_names
+        )
+        shared_aliases = tuple(
+            alias
+            for alias in plugin_subcommand.aliases
+            if len(alias_to_plugin_names[alias]) > 1
+        )
+        overlapping_aliases = tuple(
+            dict.fromkeys(
+                (
+                    *builtin_alias_overrides,
+                    *plugin_alias_overrides,
+                    *shared_aliases,
+                )
+            )
+        )
+        if overlapping_aliases:
+            log.error(
+                dals(
+                    f"""
+                    The plugin '{name}' is trying to register aliases that overlap
+                    with existing conda commands: {", ".join(overlapping_aliases)}
+
+                    Please uninstall the plugin to stop seeing this error message.
+                    """
+                )
+            )
+            continue
+
         # create the parser for the subcommand
         if preview and name in BUILTIN_COMMAND_PARSERS:
             parser = BUILTIN_COMMAND_PARSERS[name](sub_parsers)
         else:
             parser = sub_parsers.add_parser(
                 name,
+                aliases=plugin_subcommand.aliases,
                 description=plugin_subcommand.summary,
                 help=plugin_subcommand.summary,
                 add_help=False,  # defer to subcommand's help processing

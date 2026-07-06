@@ -1,3 +1,5 @@
+# edit this in https://github.com/conda/infrastructure/blob/main/templates/workflows/build.yml
+
 name: Canary Builds
 
 on:
@@ -6,12 +8,22 @@ on:
     types:
       - labeled
 
-  # Build canaries from successful Tests runs on main, feature/*, or *.x branches.
+  # Build canaries immediately on push to release branches (*.x).
+  push:
+    branches:
+      - '[0-9].*.x'  # e.g., 4.14.x
+      - '[0-9][0-9].*.x'  # e.g., 23.3.x
+
+  # Build canaries after a successful test workflow run on main or feature/* branches.
   workflow_run:
     workflows:
       - Tests
     types:
       - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   remove-build-label:
@@ -43,25 +55,30 @@ jobs:
             }
 
   build:
-    # Run canaries from PR label build::review or from a successful non-PR Tests run on an allowed branch.
+    # PR label build::review, push to *.x release branches, or successful test workflow on main/feature/*.
     if: >-
       !github.event.repository.fork
       && (
-        github.event.label.name == 'build::review'
-        || (
-          github.event.workflow_run.conclusion == 'success'
+        (
+          github.event_name == 'pull_request'
+          && github.event.label.name == 'build::review'
+        ) || (
+          github.event_name == 'push'
+          && endsWith(github.ref_name, '.x')
+        ) || (
+          github.event_name == 'workflow_run'
           && github.event.workflow_run.event != 'pull_request'
+          && github.event.workflow_run.conclusion == 'success'
           && (
             github.event.workflow_run.head_branch == 'main'
             || startsWith(github.event.workflow_run.head_branch, 'feature/')
-            || endsWith(github.event.workflow_run.head_branch, '.x')
           )
         )
       )
     env:
-      # Prefer workflow_run.head_branch/head_sha; fallback to github.ref_name/ref for this job.
+      # Prefer workflow_run head; fallback to push/PR ref.
       REF_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
-      REF: ${{ github.event.workflow_run.head_sha || github.ref }}
+      REF: ${{ github.event.workflow_run.head_sha || github.sha }}
     strategy:
       matrix:
         include:
@@ -76,7 +93,8 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     steps:
       # Clean checkout of specific git ref needed for package metadata version
-      # which needs env vars GIT_DESCRIBE_TAG and GIT_BUILD_STR:
+      # which needs env vars GIT_DESCRIBE_TAG, GIT_DESCRIBE_NUMBER, GIT_DESCRIBE_HASH,
+      # and optional VERSION_OVERRIDE:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ env.REF }}
@@ -130,7 +148,6 @@ jobs:
       - name: Create & Upload
         uses: conda/actions/canary-release@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
         env:
-          # Run conda-build in isolated activation to properly package conda
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
         with:
           package-name: ${{ github.event.repository.name }}
@@ -148,15 +165,22 @@ jobs:
     if: >-
       always()
       && !github.event.repository.fork
-      && github.event_name == 'workflow_run'
       && needs.build.result == 'failure'
-      && !startsWith(github.event.workflow_run.head_branch, 'feature/')
+      && (
+        (
+          github.event_name == 'workflow_run'
+          && !startsWith(github.event.workflow_run.head_branch, 'feature/')
+        ) || (
+          github.event_name == 'push'
+          && endsWith(github.ref_name, '.x')
+        )
+      )
     runs-on: ubuntu-slim
     steps:
       - name: Report canary failure
         env:
           GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
-          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
         run: |
           TITLE="${{ github.workflow }} failed \`${BRANCH}\`"
           BODY="The ${{ github.workflow }} workflow failed on ${BRANCH} at $(date -u '+%Y-%m-%d %H:%M') UTC
