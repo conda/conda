@@ -13,13 +13,15 @@ from ..types import CondaCleanPath
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from ...common.path import PathType
 
-def find_notices_cache_paths(_target_prefix: str) -> Iterable[str]:
+
+def find_notices_cache_paths(_target_prefix: str) -> Iterable[PathType]:
     """Return cached notice files that can be removed."""
     cache_dir = get_notices_cache_dir()
     for path in cache_dir.iterdir():
         if path.is_file():
-            yield str(path)
+            yield path
 
 
 @hookimpl

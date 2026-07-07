@@ -53,7 +53,7 @@ if TYPE_CHECKING:
     SinglePlatformEnvironmentExport = Callable[[Environment], str]
     MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
 
-    CondaCleanPathCallable: TypeAlias = Callable[[str], Iterable[str]]
+    CondaCleanPathCallable: TypeAlias = Callable[[str], Iterable[PathType]]
 
     # Callback type for health check fixer confirmation prompts.
     # Raises CondaSystemExit if user declines, or DryRunExit in dry-run mode.
@@ -883,7 +883,8 @@ class CondaCleanPath(CondaPlugin):
     Args:
         name: Clean target identifier (e.g., ``notices-cache``).
         find: Callable that discovers removable paths:
-            ``find(target_prefix) -> paths``.
+            ``find(target_prefix) -> paths`` where each path is a
+            :data:`~conda.common.path.PathType`.
         summary: Short description of what the clean target removes
             (shown in ``conda clean --help`` as the flag help text).
     """

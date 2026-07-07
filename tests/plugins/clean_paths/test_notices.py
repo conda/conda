@@ -22,7 +22,7 @@ def test_find_notices_cache_paths(notices_cache_dir: Path):
 
     paths = set(find_notices_cache_paths("/unused/prefix"))
 
-    assert paths == {str(channel_cache), str(notices_cache_file)}
+    assert paths == {channel_cache, notices_cache_file}
 
 
 def test_clean_notices_cache(
