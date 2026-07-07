@@ -7,9 +7,8 @@ from __future__ import annotations
 import os
 import pickle
 
-# This module is imported in each spawned extraction worker. Keep imports here
-# limited to the standard library; importing conda runtime state defeats the
-# process pool's startup benefit.
+# This module is imported in each spawned extraction worker. Keep top-level
+# imports limited to the standard library so loading the worker stays cheap.
 
 
 def extract_conda_package_archive(
@@ -18,7 +17,7 @@ def extract_conda_package_archive(
     *,
     ensure_picklable_errors: bool = False,
 ) -> None:
-    """Extract a conda package archive without importing conda runtime state.
+    """Extract a conda package archive with standard file-operation retries.
 
     Args:
         source_full_path: Package archive to extract.
@@ -28,8 +27,11 @@ def extract_conda_package_archive(
     """
     import conda_package_handling.api
 
+    from ..gateways.disk import exp_backoff_fn
+
     try:
-        conda_package_handling.api.extract(
+        exp_backoff_fn(
+            conda_package_handling.api.extract,
             os.fspath(source_full_path),
             dest_dir=os.fspath(destination_directory),
         )
