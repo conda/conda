@@ -1,4 +1,4 @@
-# edit this in https://github.com/conda/infrastructure/blob/main/templates/workflows/build.yml
+# edit this in https://github.com/conda/infrastructure
 
 name: Canary Builds
 
