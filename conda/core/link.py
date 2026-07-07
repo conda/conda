@@ -66,6 +66,7 @@ from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
 from .path_actions import (
     AggregateCompileMultiPycAction,
+    BulkHardLinkPathAction,
     CompileMultiPycAction,
     CreatePrefixRecordAction,
     CreatePythonEntryPointAction,
@@ -558,6 +559,9 @@ class UnlinkLinkTransaction:
                     specs,
                     all_link_path_actions,
                 )
+            )
+            link_action_groups[-1] = link_ag._replace(
+                actions=cls._aggregate_link_actions(link_ag.actions)
             )
 
         prefix_record_groups = [ActionGroup("record", None, record_axns, target_prefix)]
@@ -1266,6 +1270,32 @@ class UnlinkLinkTransaction:
             *create_directory_actions,
             *file_link_actions,
         )
+
+    @staticmethod
+    def _aggregate_link_actions(actions):
+        bulkable_actions = []
+        aggregate_actions = []
+        for action in actions:
+            # Only exact LinkPathAction instances are plain file links. Subclasses
+            # such as PrefixReplaceLinkAction carry extra side effects and must
+            # stay in the normal action stream.
+            plain_link_action = type(action) is LinkPathAction
+            if plain_link_action and action.link_type == LinkType.hardlink:
+                bulkable_actions.append(action)
+                continue
+
+            if len(bulkable_actions) > 1:
+                aggregate_actions.append(BulkHardLinkPathAction(*bulkable_actions))
+            else:
+                aggregate_actions.extend(bulkable_actions)
+            bulkable_actions = []
+            aggregate_actions.append(action)
+
+        if len(bulkable_actions) > 1:
+            aggregate_actions.append(BulkHardLinkPathAction(*bulkable_actions))
+        else:
+            aggregate_actions.extend(bulkable_actions)
+        return tuple(aggregate_actions)
 
     @staticmethod
     def _make_entry_point_actions(

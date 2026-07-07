@@ -270,3 +270,104 @@ def test_do_copy_windows_copyfile_path(
     assert copy_calls == ([(str(source), str(target), True)] if on_win else [])
     assert bool(python_copy_calls) is expects_python_copy
     assert removed == ([str(target)] if expects_removed_target else [])
+
+
+def test_hard_link_path_executor_uses_dir_fds(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+):
+    source_dir = tmp_path / "source"
+    target_dir = tmp_path / "target"
+    source_dir.mkdir()
+    target_dir.mkdir()
+    source = source_dir / "file"
+    target = target_dir / "file"
+    source.write_text("contents")
+    opened = {}
+    closed = []
+    link_calls = []
+
+    def fake_open(path, flags):
+        fd = len(opened) + 10
+        opened[str(path)] = fd
+        return fd
+
+    def fake_link(src, dst, *, src_dir_fd, dst_dir_fd):
+        link_calls.append((src, dst, src_dir_fd, dst_dir_fd))
+
+    monkeypatch.setattr(create, "on_win", False)
+    monkeypatch.setattr(create.os, "open", fake_open)
+    monkeypatch.setattr(create.os, "close", lambda fd: closed.append(fd))
+    monkeypatch.setattr(create.os, "link", fake_link)
+    monkeypatch.setattr(create.os, "supports_dir_fd", {fake_link})
+    monkeypatch.setattr(
+        create,
+        "create_link",
+        lambda *args, **kwargs: pytest.fail("dir-fd link should not fall back"),
+    )
+
+    with create.HardLinkPathExecutor() as link_executor:
+        link_executor.link_or_copy(str(source), str(target))
+
+    assert link_calls == [
+        ("file", "file", opened[str(source_dir)], opened[str(target_dir)])
+    ]
+    assert sorted(closed) == sorted(opened.values())
+
+
+def test_hard_link_path_executor_uses_windows_direct_link(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.write_text("contents")
+    link_calls = []
+
+    def direct_link(src, dst):
+        link_calls.append((src, dst))
+
+    monkeypatch.setattr(create, "on_win", True)
+    monkeypatch.setattr(create, "link", direct_link)
+    monkeypatch.setattr(
+        create,
+        "create_link",
+        lambda *args, **kwargs: pytest.fail("direct Windows link should not fall back"),
+    )
+
+    with create.HardLinkPathExecutor() as link_executor:
+        link_executor.link_or_copy(str(source), str(target))
+
+    assert link_calls == [(str(source), str(target))]
+
+
+def test_hard_link_path_executor_falls_back_after_windows_direct_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+):
+    source = tmp_path / "source"
+    source_two = tmp_path / "source-two"
+    target = tmp_path / "target"
+    target_two = tmp_path / "target-two"
+    source.write_text("contents")
+    source_two.write_text("contents")
+    link_calls = []
+    fallback_calls = []
+
+    def direct_link(src, dst):
+        link_calls.append((src, dst))
+        raise OSError(errno.EPERM, "direct hardlink failed")
+
+    def create_link(src, dst, link_type, force=False):
+        fallback_calls.append((src, dst, link_type, force))
+
+    monkeypatch.setattr(create, "on_win", True)
+    monkeypatch.setattr(create, "link", direct_link)
+    monkeypatch.setattr(create, "create_link", create_link)
+
+    with create.HardLinkPathExecutor() as link_executor:
+        link_executor.link_or_copy(str(source), str(target))
+        link_executor.link_or_copy(str(source_two), str(target_two))
+
+    assert link_calls == [(str(source), str(target))]
+    assert fallback_calls == [
+        (str(source), str(target), create.LinkType.hardlink, False),
+        (str(source_two), str(target_two), create.LinkType.hardlink, False),
+    ]

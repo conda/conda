@@ -7,10 +7,11 @@ import os
 import sys
 import tempfile
 import warnings as _warnings
+from collections import OrderedDict
 from ctypes import CDLL, c_char_p, c_int, get_errno
 from errno import EACCES, EINVAL, ENOSYS, EPERM, EROFS, EXDEV
 from logging import getLogger
-from os.path import dirname, isdir, isfile, join, splitext
+from os.path import basename, dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 from stat import S_ISREG
 
@@ -526,6 +527,69 @@ def _win_copy_file(src, dst):
     if lexists(dst):
         rm_rf(dst)
     return False
+
+
+class HardLinkPathExecutor:
+    def __init__(self, force=False):
+        self._force = force
+        self._dir_fds = OrderedDict()
+        # Reusing dir_fd handles avoids repeated absolute path resolution when a
+        # package links many files from the same source and target directories.
+        self._use_dir_fds = not on_win and os.link in os.supports_dir_fd and not force
+        # Windows has no dir_fd support here, but the direct link call still
+        # avoids create_link's per-file fallback scaffolding when it succeeds.
+        self._use_windows_direct = on_win and not force
+        self._windows_direct_failed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        while self._dir_fds:
+            _, fd = self._dir_fds.popitem()
+            os.close(fd)
+
+    def _get_dir_fd(self, directory):
+        directory = directory or "."
+        try:
+            fd = self._dir_fds.pop(directory)
+        except KeyError:
+            if len(self._dir_fds) >= 64:
+                _, old_fd = self._dir_fds.popitem(last=False)
+                os.close(old_fd)
+            fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        self._dir_fds[directory] = fd
+        return fd
+
+    def link_or_copy(self, src, dst):
+        if self._use_windows_direct and not isdir(src):
+            if not self._windows_direct_failed:
+                try:
+                    log.log(TRACE, "hard linking %s => %s", src, dst)
+                    link(src, dst)
+                    return
+                except OSError as e:
+                    log.debug("%r", e)
+                    self._windows_direct_failed = True
+            # One direct Windows failure does not prove every file must be
+            # copied. Keep conda's normal hardlink-then-copy fallback per file.
+            create_link(src, dst, LinkType.hardlink, force=self._force)
+            return
+
+        if self._use_dir_fds and not isdir(src):
+            try:
+                log.log(TRACE, "hard linking %s => %s", src, dst)
+                os.link(
+                    basename(src),
+                    basename(dst),
+                    src_dir_fd=self._get_dir_fd(dirname(src)),
+                    dst_dir_fd=self._get_dir_fd(dirname(dst)),
+                )
+                return
+            except OSError as e:
+                log.debug("%r", e)
+
+        create_link(src, dst, LinkType.hardlink, force=self._force)
 
 
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):

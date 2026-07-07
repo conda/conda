@@ -1,0 +1,3 @@
+### Enhancements
+
+* Batch simple hardlink path actions during install transaction execution. (#15969)

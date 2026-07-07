@@ -42,6 +42,7 @@ from ..exceptions import (
 )
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (
+    HardLinkPathExecutor,
     compile_multiple_pyc,
     copy,
     create_hard_link_or_copy,
@@ -529,6 +530,55 @@ class LinkPathAction(CreateInPrefixPathAction):
             log.log(TRACE, "reversing link creation %s", self.target_prefix)
             if not isdir(self.target_full_path):
                 rm_rf(self.target_full_path, clean_empty_parents=True)
+
+
+class BulkHardLinkPathAction(MultiPathAction):
+    def __init__(self, *link_path_actions):
+        self._link_path_actions = link_path_actions
+        self.transaction_context = link_path_actions[0].transaction_context
+        self.package_info = link_path_actions[0].package_info
+        self.target_prefix = link_path_actions[0].target_prefix
+        self.target_short_paths = tuple(
+            action.target_short_path for action in link_path_actions
+        )
+        self._execute_successful = False
+
+    @property
+    def target_full_paths(self):
+        return tuple(action.target_full_path for action in self._link_path_actions)
+
+    def verify(self):
+        for action in self._link_path_actions:
+            if action.verified:
+                continue
+            error = action.verify()
+            if error:
+                return error
+        self._verified = True
+
+    def execute(self):
+        log.log(TRACE, "bulk hard linking %d paths", len(self._link_path_actions))
+        with HardLinkPathExecutor(force=context.force) as link_executor:
+            for action in self._link_path_actions:
+                # The wrapped LinkPathAction still owns verification, rollback,
+                # cleanup, and conda-meta path data. The bulk action only reuses
+                # filesystem setup across adjacent hardlink operations.
+                link_executor.link_or_copy(
+                    action.source_full_path,
+                    action.target_full_path,
+                )
+                action._execute_successful = True
+        self._execute_successful = True
+
+    def reverse(self):
+        if any(action._execute_successful for action in self._link_path_actions):
+            log.log(TRACE, "reversing bulk hard link creation %s", self.target_prefix)
+            for action in reversed(self._link_path_actions):
+                action.reverse()
+
+    def cleanup(self):
+        for action in self._link_path_actions:
+            action.cleanup()
 
 
 class PrefixReplaceLinkAction(LinkPathAction):

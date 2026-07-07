@@ -27,6 +27,7 @@ from conda.common.path import (
     win_path_ok,
 )
 from conda.core.path_actions import (
+    BulkHardLinkPathAction,
     CompileMultiPycAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
@@ -481,6 +482,38 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     axn.reverse()
     assert not lexists(axn.target_full_path)
+
+
+def test_BulkHardLinkPathAction_hardlink(prefix: Path, pkgs_dir: Path):
+    actions = []
+    for path in ("bin/one", "bin/two"):
+        source = pkgs_dir / path
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text(path)
+        (prefix / path).parent.mkdir(parents=True, exist_ok=True)
+        action = LinkPathAction(
+            {},
+            None,
+            pkgs_dir,
+            path,
+            prefix,
+            path,
+            LinkType.hardlink,
+            PathDataV1(_path=path, path_type=PathEnum.hardlink),
+        )
+        actions.append(action)
+
+    bulk = BulkHardLinkPathAction(*actions)
+    bulk.execute()
+
+    for action in actions:
+        assert isfile(action.target_full_path)
+        assert action._execute_successful
+
+    bulk.reverse()
+
+    for action in actions:
+        assert not lexists(action.target_full_path)
 
 
 def test_create_file_link_actions(tmp_path):
