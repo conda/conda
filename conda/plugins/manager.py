@@ -40,6 +40,7 @@ from ..exceptions import (
     PluginError,
 )
 from . import (
+    clean_paths,
     environment_exporters,
     environment_specifiers,
     package_extractors,
@@ -1312,6 +1313,7 @@ def get_plugin_manager() -> CondaPluginManager:
         *virtual_packages.plugins,
         *subcommands.plugins,
         *health_checks.plugins,
+        *clean_paths.plugins,
         *post_solves.plugins,
         *reporter_backends.plugins,
         *package_extractors.plugins,

@@ -1,3 +1,3 @@
 ### Enhancements
 
-* Add `conda_clean_paths` plugin hook so third-party plugins can register file and directory paths removed via dedicated `conda clean --<name>` flags. (#TBD)
+* Add `conda_clean_paths` plugin hook so third-party plugins can register file and directory paths removed via dedicated `conda clean --<name>` flags. Register a built-in `notices-cache` clean target. (#TBD)
