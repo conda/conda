@@ -125,9 +125,17 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
 
 
 @pytest.mark.skipif(on_win, reason="POSIX shell function regression test")
+@pytest.mark.parametrize(
+    "command",
+    [
+        pytest.param(("conda", "sentinel"), id="direct"),
+        pytest.param(("time", "conda", "sentinel"), id="time"),
+    ],
+)
 def test_run_uses_target_prefix_conda_executable(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    command: tuple[str, ...],
 ):
     with tmp_env() as prefix:
         conda_exe = prefix / "bin" / "conda"
@@ -140,13 +148,11 @@ def test_run_uses_target_prefix_conda_executable(
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
-            "conda",
-            "sentinel",
+            *command,
         )
 
+        assert err == 0, f"conda run failed ({err}): {stderr}"
         assert stdout.strip() == "target-prefix-conda sentinel"
-        assert not stderr
-        assert err == 0
 
 
 def test_multiline_run_command(
