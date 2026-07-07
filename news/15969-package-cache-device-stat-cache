@@ -1,0 +1,3 @@
+### Enhancements
+
+* Cache repeated package-cache and target-prefix device checks during install transaction setup. (#15969)
