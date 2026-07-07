@@ -299,25 +299,12 @@ def wrap_subprocess_call(
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
             if not dev_mode:
-                # The POSIX hook defines `conda` as a shell function backed by
-                # the caller's CONDA_EXE. Keep shell-state commands working, but
-                # resolve normal `conda` calls from the activated PATH.
+                # Keep the hook's `conda()` function, but make its command
+                # runner resolve `conda` from the activated PATH.
                 fh.write(
-                    r"""conda() {
-    \local cmd="${1-__missing__}"
-    case "$cmd" in
-        activate|deactivate)
-            __conda_activate "$@"
-            ;;
-        install|update|upgrade|remove|uninstall)
-            command conda "$@" || \return
-            __conda_activate reactivate
-            ;;
-        *)
-            command conda "$@"
-            ;;
-    esac
-}
+                    r"""__conda_exe() (
+    command conda "$@"
+)
 """
                 )
             if multiline:
