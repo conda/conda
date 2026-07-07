@@ -1,0 +1,3 @@
+### Enhancements
+
+* Retry Windows package-cache extraction longer to tolerate transient file-handle contention. (#15969)
