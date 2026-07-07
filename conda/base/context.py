@@ -2329,7 +2329,13 @@ def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> Path
     else:
         from ..core.prefix_data import PrefixData
 
-        return str(PrefixData.from_name(prefix_name).prefix_path)
+        return str(
+            PrefixData.from_name(
+                prefix_name,
+                reject_active_envs_dir=getattr(argparse_args, "func", None)
+                == "conda.cli.main_create.execute",
+            ).prefix_path
+        )
 
 
 try:
