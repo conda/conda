@@ -44,6 +44,7 @@ DETAIL_KEYS = {
     "conda_version",
     "envs_dirs",
     "pkgs_dirs",
+    "notices_cache_dir",
     "channels",
     "config_files",
     "offline",
@@ -148,6 +149,7 @@ def test_info_detail(conda_cli: CondaCLIFixture):
     assert "conda version" in stdout
     assert "envs directories" in stdout
     assert "package cache" in stdout
+    assert "notices cache" in stdout
     assert "channel URLs" in stdout
     assert "config file" in stdout
     assert "offline mode" in stdout
@@ -195,6 +197,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "envs_details",
         "envs_dirs",
         "pkgs_dirs",
+        "notices_cache_dir",
         "platform",
         "python_version",
         "rc_path",

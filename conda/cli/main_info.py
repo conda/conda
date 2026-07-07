@@ -202,6 +202,7 @@ def get_info_dict() -> dict[str, Any]:
     from ..common.url import mask_anaconda_token
     from ..core.index import Index
     from ..models.channel import all_channel_urls, offline_keep
+    from ..notices.cache import get_notices_cache_dir
 
     try:
         from conda_build import __version__ as conda_build_version
@@ -246,6 +247,7 @@ def get_info_dict() -> dict[str, Any]:
         av_metadata_url_base=context.signing_metadata_url_base,
         root_writable=context.root_writable,
         pkgs_dirs=context.pkgs_dirs,
+        notices_cache_dir=get_notices_cache_dir(),
         envs_dirs=context.envs_dirs,
         default_prefix=context.default_prefix,
         active_prefix=context.active_prefix,
@@ -369,6 +371,7 @@ def get_main_info_display(info_dict: dict[str, Any]) -> dict[str, str]:
         yield ("conda av metadata url", info_dict["av_metadata_url_base"])
         yield ("channel URLs", flatten(info_dict["channels"]))
         yield ("package cache", flatten(info_dict["pkgs_dirs"]))
+        yield ("notices cache", str(info_dict["notices_cache_dir"]))
         yield ("envs directories", flatten(info_dict["envs_dirs"]))
         yield ("temporary directory", info_dict["tmp_dir"])
         yield ("platform", info_dict["platform"])
