@@ -3,8 +3,8 @@
 """Notice broadcast bus -- like logging, not a global singleton.
 
 Modules broadcast notices via ``NoticeBus.broadcast()`` during command
-execution. The ``@notices`` decorator (or ``conda notices``) consumes
-and renders them after the fact.
+execution. ``conda.cli.conda_argparse.do_call()`` wraps subcommands in the
+notices lifecycle and consumes/renders afterward.
 """
 
 from __future__ import annotations

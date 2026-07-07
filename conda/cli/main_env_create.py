@@ -15,7 +15,6 @@ from pathlib import Path
 from .. import CondaError
 from ..cli.main_config import set_keys
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
-from ..notices import notices
 
 
 def epilog() -> str:
@@ -117,7 +116,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-@notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..auxlib.ish import dals
     from ..base.context import context, determine_target_prefix

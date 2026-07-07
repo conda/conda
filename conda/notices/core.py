@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import logging
 import time
-from functools import wraps
 from typing import TYPE_CHECKING
 
 from ..base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL_NS, NOTICES_FN
@@ -192,57 +191,49 @@ def _display_notices(
     )
 
 
-def notices(func):
+def run_notices_sandwich(func):
+    """Run a nullary callable within the notices pub/sub lifecycle.
+
+    Plugin notices are broadcast first.  ``func`` runs next (during which
+    channel notices may be broadcast via ``SubdirData``).  Accumulated
+    notices are displayed afterward and the channel fetch interval is
+    committed when any channel fetch ran.
+
+    This ordering addresses https://github.com/conda/conda/issues/11847.
     """
-    Wrapper for "execute" entry points for subcommands.
+    NoticeBus._channel_fetches_this_command = False
+    broadcast_plugin_notices()
 
-    Plugin notices are broadcast at the start.  Channel notices are broadcast
-    as a side-effect of ``SubdirData`` loading repodata during ``func``. After
-    the command completes, accumulated notices are displayed and the channel
-    fetch interval is committed when any channel fetch ran.
+    try:
+        from . import cache, views  # noqa: F401
 
-    OSError during broadcast or display is caught and logged — notices are
-    best-effort and must never block a command from completing.
+        result = func()
 
-    This ordering was specifically done to address the following bug report:
-        - https://github.com/conda/conda/issues/11847
+        if not context.json:
+            _display_notices(
+                NoticeBus.consume(),
+                limit=context.number_channel_notices,
+            )
+        else:
+            NoticeBus.consume()
 
-    Args:
-        func: Function to be decorated
-    """
+        NoticeBus.commit_channel_fetch_interval()
+        return result
 
-    @wraps(func)
-    def wrapper(*args, **kwargs):
+    except Exception:
         NoticeBus._channel_fetches_this_command = False
-        broadcast_plugin_notices()
-
         try:
-            from . import cache, views  # noqa: F401
+            from . import cache
 
-            result = func(*args, **kwargs)
+            cache.clear_cache()
+        except OSError:
+            pass
+        raise
 
-            if not context.json:
-                _display_notices(
-                    NoticeBus.consume(),
-                    limit=context.number_channel_notices,
-                )
-            else:
-                NoticeBus.consume()
 
-            NoticeBus.commit_channel_fetch_interval()
-            return result
-
-        except Exception:
-            NoticeBus._channel_fetches_this_command = False
-            try:
-                from . import cache
-
-                cache.clear_cache()
-            except OSError:
-                pass
-            raise
-
-    return wrapper
+def notices(func):
+    """Legacy decorator retained for compatibility; ``do_call()`` wraps subcommands."""
+    return func
 
 
 def get_channel_name_and_urls(
@@ -297,12 +288,12 @@ def filter_notices(
 
 def is_channel_notices_enabled(ctx: Context) -> bool:
     """
-    Determines whether channel notices are enabled and therefore displayed when
-    invoking the `notices` command decorator.
+    Determines whether channel notices are enabled for CLI subcommands.
 
     This only happens when:
      - offline is False
      - number_channel_notices is greater than 0
+     - json output is not requested
 
     Args:
         ctx: The conda context object

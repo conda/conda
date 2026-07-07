@@ -74,11 +74,9 @@ def test_notices_decorator(
     capsys, notices_cache_dir, notices_mock_fetch_get_session, monkeypatch
 ):
     """
-    Create a dummy function to wrap with our notices decorator and test it with
-    two test messages.
+    Exercise the ``do_call`` notices sandwich via ``run_notices_sandwich``.
 
-    Channel notices are broadcast to the bus before the decorated function runs
-    (simulating the SubdirData broadcast during a real command).
+    Channel notices are broadcast during the command (simulating ``SubdirData``).
     """
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
     reset_context()
@@ -87,9 +85,7 @@ def test_notices_decorator(
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
     dummy_mesg = "Dummy mesg"
 
-    @notices.notices
     def dummy(args, parser):
-        # Simulate SubdirData broadcasting notices during command execution
         NoticeBus.clear()
         notices.broadcast_channel_notices(
             notices.get_channel_name_and_urls(
@@ -100,7 +96,7 @@ def test_notices_decorator(
         print(dummy_mesg)
 
     dummy_args = DummyArgs(toves="slithy")
-    dummy(dummy_args, None)
+    notices.run_notices_sandwich(lambda: dummy(dummy_args, None))
 
     captured = capsys.readouterr()
 
@@ -128,7 +124,6 @@ def test__conda_user_story__only_see_once(
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
-    @notices.notices
     def dummy(args, parser):
         NoticeBus.clear()
         notices.broadcast_channel_notices(
@@ -140,7 +135,7 @@ def test__conda_user_story__only_see_once(
         print(dummy_mesg)
 
     dummy_args = DummyArgs()
-    dummy(dummy_args, None)
+    notices.run_notices_sandwich(lambda: dummy(dummy_args, None))
 
     captured = capsys.readouterr()
     notices_decorator_assert_message_in_stdout(
@@ -148,7 +143,7 @@ def test__conda_user_story__only_see_once(
     )
 
     # Second run: notices should not appear again (already viewed)
-    dummy(dummy_args, None)
+    notices.run_notices_sandwich(lambda: dummy(dummy_args, None))
     captured = capsys.readouterr()
     notices_decorator_assert_message_in_stdout(
         captured, messages=messages, dummy_mesg=dummy_mesg, not_in=True
@@ -174,12 +169,11 @@ def test__conda_user_story__disable_notices(
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
-    @notices.notices
     def dummy(args, parser):
         print(dummy_mesg)
 
     dummy_args = DummyArgs()
-    dummy(dummy_args, None)
+    notices.run_notices_sandwich(lambda: dummy(dummy_args, None))
     captured = capsys.readouterr()
 
     notices_decorator_assert_message_in_stdout(
@@ -203,7 +197,6 @@ def test__conda_user_story__more_notices_message(
     messages_json = get_test_notices(messages)
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
-    @notices.notices
     def dummy(args, parser):
         NoticeBus.clear()
         notices.broadcast_channel_notices(
@@ -213,7 +206,7 @@ def test__conda_user_story__more_notices_message(
             force=True,
         )
 
-    dummy(None, None)
+    notices.run_notices_sandwich(lambda: dummy(None, None))
 
     captured = capsys.readouterr()
 

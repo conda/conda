@@ -191,22 +191,32 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
     if plugin_subcommand := getattr(args, "_plugin_subcommand", None):
-        # pass on the rest of the plugin specific args or fall back to
-        # the whole discovered arguments
-        context.plugin_manager.invoke_pre_commands(plugin_subcommand.name)
-        result = plugin_subcommand.action(getattr(args, "_args", args))
-        context.plugin_manager.invoke_post_commands(plugin_subcommand.name)
+        command = plugin_subcommand.name
+        target = plugin_subcommand.action
+
+        def invoke():
+            context.plugin_manager.invoke_pre_commands(command)
+            result = target(getattr(args, "_args", args))
+            context.plugin_manager.invoke_post_commands(command)
+            return result
+
     else:
         # let's call the subcommand the old-fashioned way via the assigned func..
         module_name, func_name = args.func.rsplit(".", 1)
         # func_name should always be 'execute'
         module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
+        target = getattr(module, func_name)
 
-        context.plugin_manager.invoke_pre_commands(command)
-        result = getattr(module, func_name)(args, parser)
-        context.plugin_manager.invoke_post_commands(command)
-    return result
+        def invoke():
+            context.plugin_manager.invoke_pre_commands(command)
+            result = target(args, parser)
+            context.plugin_manager.invoke_post_commands(command)
+            return result
+
+    from ..notices.core import run_notices_sandwich
+
+    return run_notices_sandwich(invoke)
 
 
 def find_builtin_commands(parser: ArgumentParserBase) -> tuple[str, ...]:
