@@ -149,7 +149,7 @@ def replace_prefix(
 
     Args:
         mode: The mode of operation.
-        original_data: The original data to be updated.
+        data: The original data to be updated.
         placeholder: The placeholder to be replaced.
         new_prefix: The new prefix to be used.
         subdir: The subdirectory to be used.

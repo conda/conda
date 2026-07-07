@@ -727,13 +727,14 @@ class SubdirData(metaclass=SubdirDataType):
 
         This method deals with both cases and returns the appropriate value.
 
-        Get the base URL for the given endpoint.
+        Get the base URL for the given repodata.
 
         Args:
-            endpoint: The endpoint for which the base URL is needed.
+            repodata: The parsed repodata.json payload.
+            with_credentials: Whether to include credentials in the returned URL.
 
         Returns:
-            The base URL corresponding to the provided endpoint.
+            The base URL corresponding to the provided repodata.
         """
         maybe_base_url = repodata.get("info", {}).get("base_url")
         if maybe_base_url:  # repodata defines base_url field
