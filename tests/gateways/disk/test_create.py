@@ -139,3 +139,46 @@ def test_private_pyc_compiler_does_not_import_conda():
             imports.add(node.module.partition(".")[0])
 
     assert "conda" not in imports
+
+
+def test_compile_multiple_pyc_parallelizes_pair_files(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+):
+    prefix = tmp_path / "prefix"
+    sources = [prefix / f"lib/python3.12/site-packages/demo{i}.py" for i in range(4)]
+    targets = [
+        prefix / f"lib/python3.12/site-packages/__pycache__/demo{i}.cpython-312.pyc"
+        for i in range(4)
+    ]
+    for source in sources:
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("value = 1")
+    calls = []
+
+    def fake_any_subprocess(command, command_prefix):
+        pairs = json.loads(Path(command[3]).read_text())
+        calls.append((command, command_prefix, pairs))
+        assert Path(command[2]).resolve() == Path(pyc_compiler.__file__).resolve()
+        for _, pyc_rel_path in pairs:
+            pyc_path = prefix / pyc_rel_path
+            pyc_path.parent.mkdir(parents=True, exist_ok=True)
+            pyc_path.write_bytes(b"pyc")
+        return "", "", 0
+
+    monkeypatch.setattr(gateway_subprocess, "any_subprocess", fake_any_subprocess)
+
+    created = create.compile_multiple_pyc(
+        "/prefix/bin/python",
+        [str(source) for source in sources],
+        [str(target) for target in targets],
+        str(prefix),
+        "3.12",
+        pyc_compile_threads=2,
+    )
+
+    assert created == [str(target) for target in targets]
+    assert len(calls) == 2
+    assert [len(call[2]) for call in calls] == [2, 2]
+    assert {pair[1] for _, _, pairs in calls for pair in pairs} == {
+        str(Path(target.relative_to(prefix))) for target in targets
+    }

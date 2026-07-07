@@ -5,6 +5,7 @@
 import os
 import tempfile
 import warnings as _warnings
+from concurrent.futures import ThreadPoolExecutor
 from errno import EACCES, EPERM, EROFS
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, splitext
@@ -397,7 +398,12 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
 
 
 def compile_multiple_pyc(
-    python_exe_full_path, py_full_paths, pyc_full_paths, prefix, py_ver
+    python_exe_full_path,
+    py_full_paths,
+    pyc_full_paths,
+    prefix,
+    py_ver,
+    pyc_compile_threads=None,
 ):
     py_full_paths = tuple(py_full_paths)
     pyc_full_paths = tuple(pyc_full_paths)
@@ -413,24 +419,49 @@ def compile_multiple_pyc(
             )
             for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths)
         )
-        pairs_fd, pairs_filename = tempfile.mkstemp()
-        temp_files.append(pairs_filename)
-        with os.fdopen(pairs_fd, "w", encoding="utf-8") as fh:
-            json.dump(pyc_pairs, fh)
 
-        # This runs with the target prefix's Python, which may not have conda
-        # installed. Execute the stdlib-only helper by file path, not with -m.
-        command = [python_exe_full_path, "-Wi", _PYC_COMPILER_SCRIPT, pairs_filename]
-        # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
-        log.log(TRACE, command)
+        worker_count = pyc_compile_threads
+        if worker_count is None:
+            worker_count = context.pyc_compile_threads
+        if worker_count <= 0:
+            worker_count = min(len(pyc_pairs), os.cpu_count() or 1, 4)
+        worker_count = max(1, min(worker_count, len(pyc_pairs)))
+
+        chunk_size = max(1, (len(pyc_pairs) + worker_count - 1) // worker_count)
+        commands = []
+        for offset in range(0, len(pyc_pairs), chunk_size):
+            pairs_fd, pairs_filename = tempfile.mkstemp()
+            temp_files.append(pairs_filename)
+            with os.fdopen(pairs_fd, "w", encoding="utf-8") as fh:
+                json.dump(pyc_pairs[offset : offset + chunk_size], fh)
+
+            # This runs with the target prefix's Python, which may not have conda
+            # installed. Execute the stdlib-only helper by file path, not with -m.
+            command = [
+                python_exe_full_path,
+                "-Wi",
+                _PYC_COMPILER_SCRIPT,
+                pairs_filename,
+            ]
+            commands.append(command)
+            log.log(TRACE, command)
+
         from ..subprocess import any_subprocess
 
-        # from ...common.io import env_vars
-        # This stack does not maintain its _argparse_args correctly?
-        # from ...base.context import stack_context_default
-        # with env_vars({}, stack_context_default):
-        #     stdout, stderr, rc = run_command(Commands.RUN, *command)
-        stdout, stderr, rc = any_subprocess(command, prefix)
+        if len(commands) == 1:
+            results = [any_subprocess(commands[0], prefix)]
+        else:
+            # Each subprocess runs the target interpreter, preserving bytecode
+            # semantics while letting independent pyc files compile in parallel.
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                futures = [
+                    executor.submit(any_subprocess, command, prefix)
+                    for command in commands
+                ]
+                results = [future.result() for future in futures]
+        stdout = "\n".join(output for output, _, _ in results if output)
+        stderr = "\n".join(output for _, output, _ in results if output)
+        rc = max(result[2] for result in results)
     finally:
         for filename in temp_files:
             try:

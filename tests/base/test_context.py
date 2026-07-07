@@ -347,6 +347,7 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
     assert context.repodata_threads == default_value
     assert context.verify_threads == 1
     assert context.execute_threads == 1
+    assert context.pyc_compile_threads == 0
 
     with monkeypatch.context() as m:
         m.setenv("CONDA_DEFAULT_THREADS", "3")
@@ -355,6 +356,7 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
         assert context.verify_threads == 3
         assert context.repodata_threads == 3
         assert context.execute_threads == 3
+        assert context.pyc_compile_threads == 3
 
     with monkeypatch.context() as m:
         m.setenv("CONDA_VERIFY_THREADS", "3")
@@ -363,6 +365,7 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
         assert context.verify_threads == 3
         assert context.repodata_threads == default_value
         assert context.execute_threads == 1
+        assert context.pyc_compile_threads == 0
 
     with monkeypatch.context() as m:
         m.setenv("CONDA_REPODATA_THREADS", "3")
@@ -371,6 +374,7 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
         assert context.verify_threads == 1
         assert context.repodata_threads == 3
         assert context.execute_threads == 1
+        assert context.pyc_compile_threads == 0
 
     with monkeypatch.context() as m:
         m.setenv("CONDA_EXECUTE_THREADS", "3")
@@ -379,6 +383,16 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
         assert context.verify_threads == 1
         assert context.repodata_threads == default_value
         assert context.execute_threads == 3
+        assert context.pyc_compile_threads == 0
+
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_PYC_COMPILE_THREADS", "2")
+        reset_context()
+        assert context.default_threads == default_value
+        assert context.verify_threads == 1
+        assert context.repodata_threads == default_value
+        assert context.execute_threads == 1
+        assert context.pyc_compile_threads == 2
 
     with monkeypatch.context() as m:
         m.setenv("CONDA_EXECUTE_THREADS", "3")
@@ -388,6 +402,22 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
         assert context.verify_threads == 1
         assert context.repodata_threads == 1
         assert context.execute_threads == 3
+        assert context.pyc_compile_threads == 1
+
+
+def test_compile_pyc(monkeypatch: MonkeyPatch) -> None:
+    assert context.compile_pyc is True
+
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_COMPILE_PYC", "false")
+        reset_context()
+        assert context.compile_pyc is False
+
+    try:
+        reset_context(argparse_args=Namespace(compile_pyc=False))
+        assert context.compile_pyc is False
+    finally:
+        reset_context()
 
 
 def test_channels_empty(context_testdata: None):

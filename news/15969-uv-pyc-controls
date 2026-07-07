@@ -1,0 +1,3 @@
+### Enhancements
+
+* Add uv-style controls for install-time Python bytecode compilation and parallelize the enabled path. (#15969)

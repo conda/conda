@@ -92,6 +92,33 @@ def test_CompileMultiPycAction_generic(prefix: Path):
     assert axns == ()
 
 
+def test_CompileMultiPycAction_disabled(prefix: Path):
+    target_python_version = "%d.%d" % sys.version_info[:2]
+    sp_dir = get_python_site_packages_short_path(target_python_version)
+    transaction_context = {
+        "target_python_version": target_python_version,
+        "target_site_packages_short_path": sp_dir,
+    }
+    package_info = AttrDict(
+        package_metadata=AttrDict(noarch=AttrDict(type=NoarchType.python))
+    )
+    file_link_actions = [
+        AttrDict(
+            source_short_path="site-packages/something.py",
+            target_short_path=get_python_noarch_target_path(
+                "site-packages/something.py", sp_dir
+            ),
+        )
+    ]
+
+    with context._override("compile_pyc", False):
+        axns = CompileMultiPycAction.create_actions(
+            transaction_context, package_info, str(prefix), None, file_link_actions
+        )
+
+    assert axns == ()
+
+
 @pytest.mark.xfail(on_win, reason="pyc compilation need env on windows, see gh #8025")
 def test_CompileMultiPycAction_noarch_python(prefix: Path):
     if not softlink_supported(__file__, prefix) and on_win:

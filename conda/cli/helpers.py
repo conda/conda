@@ -534,6 +534,13 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         help="Install all packages using copies instead of hard- or soft-linking.",
     )
     package_install_options.add_argument(
+        "--no-compile-pyc",
+        action="store_false",
+        default=NULL,
+        dest="compile_pyc",
+        help="Do not compile Python bytecode files during installation.",
+    )
+    package_install_options.add_argument(
         "--shortcuts",
         action="store_true",
         help=SUPPRESS,
