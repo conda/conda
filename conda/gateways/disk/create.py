@@ -3,7 +3,6 @@
 """Disk utility functions for creating new files or directories."""
 
 import os
-import sys
 import tempfile
 import warnings as _warnings
 from errno import EACCES, EPERM, EROFS
@@ -405,20 +404,23 @@ def compile_multiple_pyc(
     if len(py_full_paths) == 0:
         return []
 
-    fd, filename = tempfile.mkstemp()
+    temp_files = []
     try:
-        for f in py_full_paths:
-            f = os.path.relpath(f, prefix)
-            if hasattr(f, "encode"):
-                f = f.encode(sys.getfilesystemencoding(), errors="replace")
-            os.write(fd, f + b"\n")
-        os.close(fd)
-        command = ["-Wi", "-m", "compileall", "-q", "-l", "-i", filename]
-        # if the python version in the prefix is 3.5+, we have some extra args.
-        #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
-        if int(py_ver[0]) >= 3 and int(py_ver.split(".")[1]) > 5:
-            command.extend(["-j", "0"])
-        command[0:0] = [python_exe_full_path]
+        pyc_pairs = tuple(
+            (
+                os.path.relpath(py_full_path, prefix),
+                os.path.relpath(pyc_full_path, prefix),
+            )
+            for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths)
+        )
+        pairs_fd, pairs_filename = tempfile.mkstemp()
+        temp_files.append(pairs_filename)
+        with os.fdopen(pairs_fd, "w", encoding="utf-8") as fh:
+            json.dump(pyc_pairs, fh)
+
+        # This runs with the target prefix's Python, which may not have conda
+        # installed. Execute the stdlib-only helper by file path, not with -m.
+        command = [python_exe_full_path, "-Wi", _PYC_COMPILER_SCRIPT, pairs_filename]
         # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.log(TRACE, command)
         from ..subprocess import any_subprocess
@@ -430,7 +432,11 @@ def compile_multiple_pyc(
         #     stdout, stderr, rc = run_command(Commands.RUN, *command)
         stdout, stderr, rc = any_subprocess(command, prefix)
     finally:
-        os.remove(filename)
+        for filename in temp_files:
+            try:
+                os.remove(filename)
+            except FileNotFoundError:
+                pass
 
     created_pyc_paths = []
     for py_full_path, pyc_full_path in zip(py_full_paths, pyc_full_paths):
@@ -459,6 +465,11 @@ def compile_multiple_pyc(
             created_pyc_paths.append(pyc_full_path)
 
     return created_pyc_paths
+
+
+_PYC_COMPILER_SCRIPT = os.path.abspath(
+    join(dirname(dirname(dirname(__file__))), "_private", "pyc_compiler.py")
+)
 
 
 def create_package_cache_directory(pkgs_dir):

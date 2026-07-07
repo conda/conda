@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Compile noarch Python bytecode through temporary script files so Windows launcher wrappers do not receive newline-containing command arguments. (#15969)
