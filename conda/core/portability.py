@@ -385,15 +385,22 @@ def generate_shebang_for_entry_point(
     """
     shebang = f"#!{executable}\n"
     build_prefix = os.environ.get("PREFIX")
-    if os.environ.get("CONDA_BUILD") == "1" and build_prefix:
-        executable_path = os.path.abspath(executable)
-        build_prefix = os.path.abspath(build_prefix)
-        try:
-            executable_in_prefix = (
-                os.path.commonpath((executable_path, build_prefix)) == build_prefix
-            )
-        except ValueError:
-            executable_in_prefix = False
+    build_prefix_markers = ("_h_env_placehold", "host_env_placehold")
+    executable_has_build_prefix = any(
+        path_part.startswith(build_prefix_markers)
+        for path_part in os.path.abspath(executable).split(os.sep)
+    )
+    if os.environ.get("CONDA_BUILD") == "1" and executable_has_build_prefix:
+        executable_in_prefix = True
+        if build_prefix:
+            executable_path = os.path.abspath(executable)
+            build_prefix = os.path.abspath(build_prefix)
+            try:
+                executable_in_prefix = (
+                    os.path.commonpath((executable_path, build_prefix)) == build_prefix
+                )
+            except ValueError:
+                executable_in_prefix = False
         if executable_in_prefix:
             # The build tool will relocate this prefix at installation time.
             return shebang
