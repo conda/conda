@@ -409,7 +409,7 @@ def test_clean_all_mock_lstat(
 
 # conda clean --example-cache
 def test_clean_plugin_paths(
-    plugin_manager,
+    plugin_manager_with_reporter_backends,
     conda_cli: CondaCLIFixture,
     tmp_path: Path,
 ):
@@ -427,7 +427,7 @@ def test_clean_plugin_paths(
                 find=lambda target_prefix: [str(cache_file)],
             )
 
-    plugin_manager.register(CleanPathPlugin())
+    plugin_manager_with_reporter_backends.register(CleanPathPlugin())
 
     assert cache_file.is_file()
 
