@@ -71,6 +71,7 @@ if TYPE_CHECKING:
     from ..models.records import PackageRecord
     from .types import (
         CondaAuthHandler,
+        CondaCleanPath,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaExceptionObserver,
@@ -386,6 +387,11 @@ class CondaPluginManager(pluggy.PluginManager):
         self, name: Literal["exception_observers"]
     ) -> list[CondaExceptionObserver]: ...
 
+    @overload
+    def get_hook_results(
+        self, name: Literal["clean_paths"]
+    ) -> list[CondaCleanPath]: ...
+
     def get_hook_results(self, name, **kwargs):
         """
         Return results of the plugin hooks with the given name and
@@ -642,6 +648,16 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_health_checks(self) -> dict[str, CondaHealthCheck]:
         """Return a mapping of health check name to health check."""
         return {check.name: check for check in self.get_hook_results("health_checks")}
+
+    def get_clean_paths(self) -> dict[str, CondaCleanPath]:
+        """Return a mapping of clean path target name to clean path plugin."""
+        clean_paths = self.get_hook_results("clean_paths")
+        return {
+            clean_path.name: clean_path
+            for clean_path in sorted(
+                clean_paths, key=lambda clean_path: clean_path.name
+            )
+        }
 
     def get_reporter_backends(self) -> tuple[CondaReporterBackend, ...]:
         return tuple(self.get_hook_results("reporter_backends"))

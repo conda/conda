@@ -96,6 +96,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help="Remove log files.",
     )
+    from ..base.context import context
+
+    for clean_path in context.plugin_manager.get_clean_paths().values():
+        removal_target_options.add_argument(
+            clean_path.flag,
+            dest=clean_path.dest,
+            action="store_true",
+            help=clean_path.summary or f"Remove {clean_path.name} paths.",
+        )
 
     add_output_and_prompt_options(p)
 
@@ -369,6 +378,13 @@ def _execute(args, parser):
         # package caches
         return json_result
 
+    clean_paths = context.plugin_manager.get_clean_paths()
+    selected_clean_paths = [
+        clean_path
+        for clean_path in clean_paths.values()
+        if getattr(args, clean_path.dest, False)
+    ]
+
     if not (
         args.all
         or args.tarballs
@@ -376,12 +392,21 @@ def _execute(args, parser):
         or args.packages
         or args.tempfiles
         or args.logfiles
+        or selected_clean_paths
     ):
         from ..exceptions import ArgumentError
 
         raise ArgumentError(
             "At least one removal target must be given. See 'conda clean --help'."
         )
+
+    if selected_clean_paths:
+        target_prefix = os.fspath(context.target_prefix)
+        json_result["clean_paths"] = {}
+        for clean_path in selected_clean_paths:
+            paths = list(clean_path.find(target_prefix))
+            json_result["clean_paths"][clean_path.name] = {"files": paths}
+            rm_items(paths, **kwargs, name=f"{clean_path.name} path(s)")
 
     if args.tarballs or args.all:
         json_result["tarballs"] = tars = find_tarballs()

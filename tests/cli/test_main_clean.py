@@ -407,6 +407,36 @@ def test_clean_all_mock_lstat(
     set_log_level(WARN)  # reset verbosity
 
 
+# conda clean --example-cache
+def test_clean_plugin_paths(
+    plugin_manager,
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+):
+    from conda import plugins
+    from conda.plugins.types import CondaCleanPath
+
+    cache_file = tmp_path / "example-cache.txt"
+    cache_file.write_text("cached")
+
+    class CleanPathPlugin:
+        @plugins.hookimpl
+        def conda_clean_paths(self):
+            yield CondaCleanPath(
+                name="example-cache",
+                find=lambda target_prefix: [str(cache_file)],
+            )
+
+    plugin_manager.register(CleanPathPlugin())
+
+    assert cache_file.is_file()
+
+    stdout, _, _ = conda_cli("clean", "--example-cache", "--yes", "--json")
+    result = json.loads(stdout)
+    assert result["clean_paths"]["example-cache"]["files"] == [str(cache_file)]
+    assert not cache_file.exists()
+
+
 # _get_size unittest, valid file
 def test_get_size(tmp_path: Path):
     warnings: list[str] = []
