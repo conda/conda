@@ -45,6 +45,8 @@ from conda.models.records import PackageRecord, PathDataV1, PathsData
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from pytest_mock import MockerFixture
+
     from conda.testing.fixtures import PathFactoryFixture
 
 log = getLogger(__name__)
@@ -481,6 +483,34 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     axn.reverse()
     assert not lexists(axn.target_full_path)
+
+
+def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
+    tmp_path: Path, mocker: MockerFixture
+):
+    source_path = tmp_path / "source" / "cli-64.exe"
+    source_path.parent.mkdir()
+    source_path.write_bytes(b"launcher")
+    get_launcher = mocker.patch(
+        "conda.core.path_actions.get_windows_launcher_stub_path",
+        return_value=str(source_path),
+    )
+
+    axn = LinkPathAction.create_python_entry_point_windows_exe_action(
+        {},
+        None,
+        tmp_path / "target",
+        LinkType.copy,
+        "command=some.module:main",
+        source_package_infos=("conda-launchers-package-info",),
+    )
+
+    get_launcher.assert_called_once_with(
+        source_prefixes=(context.conda_prefix,),
+        source_package_infos=("conda-launchers-package-info",),
+    )
+    assert axn.source_full_path == str(source_path)
+    assert axn.target_short_path == "Scripts/command.exe"
 
 
 def test_create_file_link_actions(tmp_path):

@@ -1,0 +1,13 @@
+### Enhancements
+
+* Use Windows entry point launchers from the installed `conda-launchers` package and stop bundling launcher executables in conda. (#16293)
+
+### Bug fixes
+
+### Deprecations
+
+* Mark `conda.base.constants.WINDOWS_LAUNCHER_STUB_PATH` as pending deprecation, with removal in 27.3. Use `conda_launchers.get_launcher_short_paths()` instead. (#16293)
+
+### Docs
+
+### Other

@@ -14,13 +14,12 @@ from os.path import basename, dirname, getsize, isdir, isfile, join, normpath
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from .. import CONDA_PACKAGE_ROOT, CondaError
+from .. import CondaError
 from ..auxlib.ish import dals
-from ..base.constants import CONDA_TEMP_EXTENSION, WINDOWS_LAUNCHER_STUB_PATH
+from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
-from ..common.io import dashlist
 from ..common.path import (
     BIN_DIRECTORY,
     get_leaf_directories,
@@ -68,6 +67,7 @@ from ..models.records import (
     PrefixRecord,
 )
 from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
+from .launchers import get_windows_launcher_stub_path
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 
@@ -364,14 +364,14 @@ class LinkPathAction(CreateInPrefixPathAction):
         target_prefix,
         requested_link_type,
         entry_point_def,
+        source_package_infos=(),
     ):
-        if context.subdir not in WINDOWS_LAUNCHER_STUB_PATH:
-            raise NotImplementedError(
-                f"Windows entry point stub not available for subdir {context.subdir!r}. "
-                f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
-            )
-        source_directory = CONDA_PACKAGE_ROOT
-        source_short_path = WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
+        source_exe_path = get_windows_launcher_stub_path(
+            source_prefixes=(context.conda_prefix,),
+            source_package_infos=source_package_infos,
+        )
+        source_directory = dirname(source_exe_path)
+        source_short_path = basename(source_exe_path)
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = f"Scripts/{command}.exe"
         if not normpath(target_short_path).startswith("Scripts" + os.sep):
@@ -830,7 +830,12 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
     @classmethod
     def create_actions(
-        cls, transaction_context, package_info, target_prefix, requested_link_type
+        cls,
+        transaction_context,
+        package_info,
+        target_prefix,
+        requested_link_type,
+        source_package_infos=(),
     ):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
@@ -864,6 +869,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                         target_prefix,
                         requested_link_type,
                         ep_def,
+                        source_package_infos=source_package_infos,
                     )
                     for ep_def in noarch.entry_points or ()
                 )
