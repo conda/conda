@@ -59,7 +59,7 @@ from .types import CondaErrorHint, CondaExceptionEvent
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from types import TracebackType
-    from typing import Any, Literal, TypeVar, cast
+    from typing import Any, Literal, TypedDict, TypeVar, cast
 
     from pluggy import HookImpl
     from requests.auth import AuthBase
@@ -98,6 +98,14 @@ if TYPE_CHECKING:
     )
 
     P = TypeVar("P", bound=CondaPluginWithAliases)
+
+    class PluginInfo(TypedDict):
+        name: str
+        version: str
+        canonical_name: str
+        status: str
+        hooks: list[str]
+
 
 log = logging.getLogger(__name__)
 
@@ -202,6 +210,35 @@ class CondaPluginManager(pluggy.PluginManager):
                 return f"{dist.project_name} {version}".strip()
 
         return self.get_name(plugin) or self.get_canonical_name(plugin)
+
+    def get_plugin_hook_names(self, plugin: object) -> list[str]:
+        """Return short hook names implemented by a registered plugin."""
+        hook_prefix = f"{self.project_name}_"
+        hook_names: list[str] = []
+        for hook_caller in self.get_hookcallers(plugin) or ():
+            hook_name = hook_caller.name
+            if hook_name.startswith(hook_prefix):
+                hook_names.append(hook_name[len(hook_prefix) :])
+
+        return sorted(hook_names)
+
+    def get_installed_plugins(self) -> list[PluginInfo]:
+        """Return metadata for installed entry-point conda plugins."""
+        installed: dict[str, PluginInfo] = {}
+        for plugin, dist in self.list_plugin_distinfo():
+            canonical_name = self.get_name(plugin)
+            if canonical_name is None or canonical_name in installed:
+                continue
+
+            installed[canonical_name] = {
+                "name": dist.project_name,
+                "version": dist.version,
+                "canonical_name": canonical_name,
+                "status": "disabled" if self.is_blocked(canonical_name) else "active",
+                "hooks": self.get_plugin_hook_names(plugin),
+            }
+
+        return sorted(installed.values(), key=lambda plugin: plugin["canonical_name"])
 
     def register(self, plugin, name: str | None = None) -> str | None:
         """
