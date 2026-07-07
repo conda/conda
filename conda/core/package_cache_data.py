@@ -58,7 +58,7 @@ from ..gateways.disk.read import (
     read_index_json_from_tarball,
     read_repodata_json,
 )
-from ..gateways.disk.test import file_path_is_writable
+from ..gateways.disk.test import file_path_is_writable, paths_on_same_device
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
 from ..reporters import get_progress_bar, get_progress_bar_context_manager
@@ -274,11 +274,23 @@ class PackageCacheData(metaclass=PackageCacheType):
         )
 
     @classmethod
-    def get_entry_to_link(cls, package_ref):
-        pc_entry = next(
-            (pcrec for pcrec in cls.query_all(package_ref) if pcrec.is_extracted), None
+    def get_entry_to_link(cls, package_ref, target_prefix=None):
+        extracted_entries = tuple(
+            pcrec for pcrec in cls.query_all(package_ref) if pcrec.is_extracted
         )
-        if pc_entry is not None:
+        if target_prefix is not None:
+            # Cache roots share devices with their extracted package directories.
+            if (
+                pc_entry := first(
+                    extracted_entries,
+                    key=lambda pcrec: paths_on_same_device(
+                        dirname(pcrec.extracted_package_dir), target_prefix
+                    ),
+                )
+            ) is not None:
+                return pc_entry
+
+        if (pc_entry := next(iter(extracted_entries), None)) is not None:
             return pc_entry
 
         # this can happen with `conda install path/to/package.tar.bz2`
