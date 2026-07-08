@@ -303,7 +303,7 @@ class Context(Configuration):
         aliases=("cooldown",),
     )
     exclude_newer_package = ParameterLoader(
-        MapParameter(PrimitiveParameter(None, element_type=(str, bool, NoneType))),
+        MapParameter(PrimitiveParameter(None, element_type=(str, NoneType))),
         aliases=("cooldown_exclude",),
     )
     disallowed_packages = ParameterLoader(

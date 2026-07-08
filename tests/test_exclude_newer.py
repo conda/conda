@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import CondaError
-from conda.base.context import context, reset_context
+from conda.base.context import Context, context, reset_context
 from conda.common.serialize import json
 from conda.core.exclude_newer import ExcludeNewerPolicy
 from conda.core.index import ReducedIndex
@@ -233,6 +233,34 @@ def test_exclude_newer_policy_honors_package_custom_cutoff() -> None:
 
     assert policy.should_include(_record("scipy", timestamp=NOW - 2 * DAY))
     assert not policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
+
+
+def test_exclude_newer_package_loads_from_condarc(tmp_path: Path) -> None:
+    condarc = tmp_path / "condarc"
+    condarc.write_text(
+        """
+exclude_newer: 7d
+exclude_newer_package:
+  openssl: false
+  numpy: 30d
+"""
+    )
+
+    condarc_context = Context(search_path=(str(condarc),))
+    assert condarc_context.exclude_newer_package == {
+        "openssl": "False",
+        "numpy": "30d",
+    }
+
+    policy = ExcludeNewerPolicy.from_values(
+        condarc_context.exclude_newer,
+        condarc_context.exclude_newer_package,
+        channel_settings=condarc_context.channel_settings,
+        now=NOW,
+    )
+    assert policy.should_include(_record("openssl", timestamp=NOW - 60))
+    assert not policy.should_include(_record("numpy", timestamp=NOW - 10 * DAY))
+    assert not policy.should_include(_record("scipy", timestamp=NOW - 60))
 
 
 def test_exclude_newer_policy_allows_package_only_cutoff() -> None:
