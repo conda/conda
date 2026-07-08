@@ -1273,6 +1273,11 @@ class UnlinkLinkTransaction:
 
     @staticmethod
     def _aggregate_link_actions(actions):
+        if context.extra_safety_checks:
+            # Extra safety checks intentionally report payload corruption in
+            # conda's original per-path order, so avoid grouped verification.
+            return actions
+
         bulkable_actions = []
         aggregate_actions = []
         for action in actions:

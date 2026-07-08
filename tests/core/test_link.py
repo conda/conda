@@ -1,6 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from conda.base.context import reset_context
 from conda.core import link
 from conda.models.enums import LinkType
 from conda.models.records import PackageRecord
@@ -42,6 +43,23 @@ def test_aggregate_link_actions_keeps_link_path_subclasses_individual():
     )
 
     assert actions == (first, special, second)
+
+
+def test_aggregate_link_actions_keeps_safety_check_order(monkeypatch):
+    first = object.__new__(link.LinkPathAction)
+    first.link_type = LinkType.hardlink
+    second = object.__new__(link.LinkPathAction)
+    second.link_type = LinkType.hardlink
+
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    reset_context()
+    try:
+        actions = link.UnlinkLinkTransaction._aggregate_link_actions((first, second))
+    finally:
+        monkeypatch.delenv("CONDA_EXTRA_SAFETY_CHECKS")
+        reset_context()
+
+    assert actions == (first, second)
 
 
 def test_calculate_change_report_revised_variant():
