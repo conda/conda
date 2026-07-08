@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Increase the maximum zstd decompress limit to allow for decompressing larger shards index's. (#16285 via #16383)
+* Increase the decompressed size limit of `repodata_shards.msgpack.zst` to allow for channels with a very large number of packages. (#16285 via #16383)
 
 ### Deprecations
 
