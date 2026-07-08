@@ -82,14 +82,9 @@ def test_deprecated_plugin_type_access_warns(name: str) -> None:
     import conda.plugins
     import conda.plugins.types as types_mod
 
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
+    with pytest.deprecated_call():
         value = getattr(conda.plugins, name)
 
-    assert any(
-        issubclass(w.category, (DeprecationWarning, PendingDeprecationWarning))
-        for w in caught
-    ), f"expected a (Pending)DeprecationWarning for conda.plugins.{name}"
     assert value is getattr(types_mod, name)
 
 
