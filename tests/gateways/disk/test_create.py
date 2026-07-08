@@ -207,7 +207,7 @@ def test_do_copy_windows_copyfile_path(
     monkeypatch.setattr(create, "copyfileobj", copyfileobj_spy)
     monkeypatch.setattr(create, "rm_rf", remove)
 
-    create._do_copy(str(source), str(target))
+    create._do_copy(source, target)
 
     assert target.read_text() == "contents"
     assert copy_calls == ([(str(source), str(target), True)] if on_win else [])
