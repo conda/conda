@@ -424,6 +424,10 @@ def _win_copy_file(src, dst):
     if not on_win:
         return False
 
+    # ctypes does not coerce PathLike objects for the CopyFileW wide strings.
+    src = os.fspath(src)
+    dst = os.fspath(dst)
+
     global _WIN_COPYFILE
     if _WIN_COPYFILE is _WIN_COPYFILE_UNAVAILABLE:
         return False
