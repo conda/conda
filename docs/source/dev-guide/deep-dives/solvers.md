@@ -56,6 +56,23 @@ So the solver takes `MatchSpec` objects, queries the index for the best match an
 requested conda channels in a single entity. For more information, check
 [](install.md#fetching-the-index).
 
+### Excluding newer package records
+
+The `exclude_newer` policy is not represented as a `MatchSpec`. Instead, it limits the candidate
+`PackageRecord` objects that may be considered by the solver. A record is included when its
+`indexed_timestamp`, or its `timestamp` if no `indexed_timestamp` is present, is at or before the
+effective cutoff. Records without either timestamp are kept for compatibility.
+
+Different solver backends collect and reduce package records through different code paths, so this
+policy is part of the `Solver` API contract instead of only a `SubdirData` filter. A solver backend
+declares whether it supports global cutoffs, channel overrides, and package overrides. Conda raises
+an error before solving when the configured policy asks for a level that the selected backend does
+not support.
+
+After solving, conda also validates the records that would be linked into the target prefix. This
+keeps the policy enforced even if a solver backend returns a package newer than the configured
+cutoff.
+
 ## Local state: the prefix and context
 
 When you do `conda install numpy`, do you think the solver will just see something like
