@@ -47,15 +47,37 @@ def parse_duration(value: str) -> timedelta | None:
     except ValueError:
         pass
 
-    seconds = _parse_iso8601_duration_seconds(value)
-    if seconds is not None:
-        return timedelta(seconds=seconds)
+    match = _ISO8601_DURATION_RE.match(value)
+    if match:
+        if not any(group is not None for group in match.groups()):
+            raise ValueError(f"Invalid ISO 8601 duration {value!r}")
 
-    seconds = _parse_compact_duration_seconds(value)
-    if seconds is not None:
-        return timedelta(seconds=seconds)
+        weeks, days, hours, minutes, seconds = (
+            int(group) if group else 0 for group in match.groups()
+        )
+        return timedelta(
+            seconds=(
+                weeks * COMPACT_DURATION_UNITS["w"]
+                + days * COMPACT_DURATION_UNITS["d"]
+                + hours * COMPACT_DURATION_UNITS["h"]
+                + minutes * COMPACT_DURATION_UNITS["m"]
+                + seconds
+            )
+        )
 
-    return None
+    pairs = _COMPACT_DURATION_RE.findall(value)
+    if not pairs:
+        return None
+
+    consumed = _COMPACT_DURATION_RE.sub("", value).strip()
+    if consumed:
+        raise ValueError(f"Invalid compact duration {value!r}")
+
+    return timedelta(
+        seconds=sum(
+            int(amount) * COMPACT_DURATION_UNITS[unit.lower()] for amount, unit in pairs
+        )
+    )
 
 
 def parse_datetime_to_timestamp(
@@ -98,37 +120,3 @@ def normalize_timestamp_seconds(value: str | int | float) -> float:
     if timestamp > MAX_SECONDS_TIMESTAMP:
         timestamp /= 1000
     return timestamp
-
-
-def _parse_iso8601_duration_seconds(value: str) -> int | None:
-    match = _ISO8601_DURATION_RE.match(value)
-    if not match:
-        return None
-
-    if not any(group is not None for group in match.groups()):
-        raise ValueError(f"Invalid ISO 8601 duration {value!r}")
-
-    weeks, days, hours, minutes, seconds = (
-        int(group) if group else 0 for group in match.groups()
-    )
-    return (
-        weeks * COMPACT_DURATION_UNITS["w"]
-        + days * COMPACT_DURATION_UNITS["d"]
-        + hours * COMPACT_DURATION_UNITS["h"]
-        + minutes * COMPACT_DURATION_UNITS["m"]
-        + seconds
-    )
-
-
-def _parse_compact_duration_seconds(value: str) -> int | None:
-    pairs = _COMPACT_DURATION_RE.findall(value)
-    if not pairs:
-        return None
-
-    consumed = _COMPACT_DURATION_RE.sub("", value).strip()
-    if consumed:
-        raise ValueError(f"Invalid compact duration {value!r}")
-
-    return sum(
-        int(amount) * COMPACT_DURATION_UNITS[unit.lower()] for amount, unit in pairs
-    )
