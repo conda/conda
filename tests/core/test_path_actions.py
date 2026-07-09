@@ -312,6 +312,10 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
             ("command1", "some.module", "SomeClass.method"),
         ),
         (
+            'command1 = "some.module:main"',
+            ("command1", "some.module", "main"),
+        ),
+        (
             "../bin/python=some.module:main",
             (ValueError, "simple file name"),
         ),
