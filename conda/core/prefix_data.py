@@ -33,7 +33,7 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_mac, on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
-from ..common.path import expand, paths_equal, strip_pkg_extension
+from ..common.path import expand, paths_equal
 from ..common.serialize import json
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
@@ -489,16 +489,9 @@ class PrefixData(metaclass=PrefixDataType):
         return self
 
     def _get_json_fn(self, prefix_record: PrefixRecord) -> str:
-        fn = prefix_record.fn
-        # Check package extensions (dynamic) or .dist-info (pip-installed)
-        stripped, ext = strip_pkg_extension(fn)
-        if not ext and fn.endswith(".dist-info"):
-            stripped = fn[: -len(".dist-info")]
-        elif not ext:
-            raise ValueError(
-                f"Attempted to make prefix record for unknown package type: {fn}"
-            )
-        return stripped + ".json"
+        if not isinstance(prefix_record, PrefixRecord):
+            prefix_record = PrefixRecord.from_objects(prefix_record)
+        return prefix_record._get_json_fn()
 
     def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
         if prefix_record.name in self._prefix_records:

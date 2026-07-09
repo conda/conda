@@ -708,6 +708,9 @@ class PrefixRecord(SolvedRecord):
     auth = StringField(required=False, nullable=True)
     """Authentication information."""
 
+    def _get_json_fn(self) -> str:
+        return f"{self.name}-{self.version}-{self.build}.json"
+
     def package_size(self, prefix_path: Path) -> int:
         """
         Compute the installed size of this package within a prefix.
@@ -721,9 +724,7 @@ class PrefixRecord(SolvedRecord):
         """
         total_size = 0
 
-        meta_file = (
-            prefix_path / "conda-meta" / f"{self.name}-{self.version}-{self.build}.json"
-        )
+        meta_file = prefix_path / "conda-meta" / self._get_json_fn()
         try:
             total_size += meta_file.stat().st_size
         except OSError:
