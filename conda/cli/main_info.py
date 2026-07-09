@@ -208,6 +208,7 @@ def get_info_dict() -> dict[str, Any]:
     from ..common.url import mask_anaconda_token
     from ..core.index import Index
     from ..models.channel import all_channel_urls, offline_keep
+    from ..notices.cache import get_notices_cache_dir
 
     try:
         from conda_build import __version__ as conda_build_version
@@ -273,6 +274,7 @@ def get_info_dict() -> dict[str, Any]:
         virtual_pkgs=virtual_pkgs,
         solver=solver,
         tmp_dir=gettempdir(),
+        notices_cache_dir=str(get_notices_cache_dir()),
     )
     if on_win:
         from ..common._os.windows import is_admin_on_windows
@@ -378,6 +380,7 @@ def get_main_info_display(info_dict: dict[str, Any]) -> dict[str, str]:
         yield ("conda av metadata url", info_dict["av_metadata_url_base"])
         yield ("channel URLs", flatten(info_dict["channels"]))
         yield ("package cache", flatten(info_dict["pkgs_dirs"]))
+        yield ("notices cache", info_dict["notices_cache_dir"])
         yield ("envs directories", flatten(info_dict["envs_dirs"]))
         yield ("temporary directory", info_dict["tmp_dir"])
         yield ("platform", info_dict["platform"])
