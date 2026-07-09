@@ -36,11 +36,12 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
         "verbosity": pre_args.verbosity,
     }
 
+    disabled_plugins = pre_args.disabled_plugins
     context.__init__(argparse_args=pre_args)
-    if context.no_plugins:
+    if context.no_plugins or disabled_plugins is None:
         context.plugin_manager.disable_external_plugins()
-    elif context.no_plugin:
-        context.plugin_manager.disable_plugins(context.no_plugin)
+    elif disabled_plugins:
+        context.plugin_manager.disable_plugins(disabled_plugins)
 
     parser = generate_parser(add_help=True)
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)

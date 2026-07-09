@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add `--no-plugin=<name>` flag to selectively disable individual plugins at runtime, complementing the existing `--no-plugins` flag. (#15914 via #15915)
+* Extend `--no-plugins` to selectively disable comma-separated plugins at runtime. (#15914 via #15915)
 
 ### Bug fixes
 

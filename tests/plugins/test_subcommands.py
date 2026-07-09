@@ -294,7 +294,7 @@ def test_parser_no_plugins(plugin_manager):
 
 
 def test_parser_no_plugin_specific(plugin_manager):
-    """--no-plugin disables a specific plugin while leaving others intact."""
+    """Disabling a specific plugin leaves others intact."""
     plugin_a = SubcommandPlugin(name="alpha", summary="Alpha.")
     plugin_b = SubcommandPlugin(name="beta", summary="Beta.")
     assert plugin_manager.load_plugins(plugin_a) == 1

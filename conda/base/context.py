@@ -542,9 +542,6 @@ class Context(Configuration):
     ####################################################
 
     no_plugins = ParameterLoader(PrimitiveParameter(NO_PLUGINS))
-    no_plugin = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", element_type=str))
-    )
 
     def __init__(
         self,
@@ -1428,7 +1425,7 @@ class Context(Configuration):
             "protect_frozen_envs",
             # prevent modifications to envs marked with conda-meta/frozen
         ),
-        "Plugin Configuration": ("no_plugins", "no_plugin"),
+        "Plugin Configuration": ("no_plugins",),
         "Experimental": ("environment_specifier",),
     }
 
@@ -1772,11 +1769,6 @@ class Context(Configuration):
             no_plugins=dals(
                 """
                 Disable all currently-registered plugins, except built-in conda plugins.
-                """
-            ),
-            no_plugin=dals(
-                """
-                Disable specific plugins by name. Can be repeated.
                 """
             ),
             non_admin_enabled=dals(
