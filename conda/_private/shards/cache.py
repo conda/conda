@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 import msgpack
 
 from ..zstd import capped_decompress
+from .shards import ZSTD_MAX_SHARD_SIZE
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -24,9 +25,6 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 SHARD_CACHE_NAME = "repodata_shards.db"
-ZSTD_MAX_SHARD_SIZE = (
-    2**20 * 16
-)  # maximum size necessary when compresed data has no size header
 
 
 @dataclass
