@@ -93,11 +93,13 @@ see :doc:`../troubleshooting`.
 Installing packages with an upload cutoff
 =========================================
 
+.. versionadded:: 26.7.0
+
 Use ``--exclude-newer`` to ignore package records published after a
 configured cutoff for one ``conda create``, ``conda install``, or
 ``conda update`` command. This can reduce exposure to packages that were
 uploaded very recently while still allowing older package records to be
-selected. This option is available starting with the July 2026 release.
+selected.
 
 To install a package while ignoring package records uploaded in the last
 7 days:
