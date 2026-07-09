@@ -489,16 +489,10 @@ class PrefixData(metaclass=PrefixDataType):
         return self
 
     def _get_json_fn(self, prefix_record: PrefixRecord) -> str:
-        fn = prefix_record.fn
-        # Check package extensions (dynamic) or .dist-info (pip-installed)
-        stripped, ext = strip_pkg_extension(fn)
-        if not ext and fn.endswith(".dist-info"):
-            stripped = fn[: -len(".dist-info")]
-        elif not ext:
-            raise ValueError(
-                f"Attempted to make prefix record for unknown package type: {fn}"
-            )
-        return stripped + ".json"
+        name = prefix_record.name
+        version = prefix_record.version
+        build = prefix_record.build
+        return f"{name}-{version}-{build}.json"
 
     def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
         if prefix_record.name in self._prefix_records:
