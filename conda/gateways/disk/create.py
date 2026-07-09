@@ -370,12 +370,12 @@ def copy(src, dst):
 
 
 def _clone_file(src, dst):
-    if on_linux:
-        return _clone_file_linux(src, dst)
     if islink(src) or lexists(dst):
         return False
     if on_mac:
         return _clone_file_macos(src, dst)
+    if on_linux:
+        return _clone_file_linux(src, dst)
     return False
 
 
