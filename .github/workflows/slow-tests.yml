@@ -1,4 +1,4 @@
-# edit this in https://github.com/conda/infrastructure/blob/main/templates/workflows/slow-tests.yml
+# edit this in https://github.com/conda/infrastructure
 
 name: Slow Test Review
 
