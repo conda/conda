@@ -19,7 +19,6 @@ from ..exceptions import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
-from .exclude_newer import ExcludeNewerPolicy
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     from typing import Any, Self
 
     from ..common.path import PathType
+    from .exclude_newer import ExcludeNewerPolicy
 
 
 log = getLogger(__name__)
@@ -144,6 +144,8 @@ class Index(UserDict):
             self.prefix_data = PrefixData(prefix)
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.use_system = use_system
+        from .exclude_newer import ExcludeNewerPolicy
+
         self.exclude_newer_policy = (
             exclude_newer_policy or ExcludeNewerPolicy.disabled()
         )
@@ -247,6 +249,8 @@ class Index(UserDict):
           a reduced index with the same sources as this index, but limited to ``specs``
           and their dependency graph.
         """
+        from .exclude_newer import ExcludeNewerPolicy
+
         return ReducedIndex(
             specs=specs,
             channels=self._channels,
@@ -466,6 +470,8 @@ class ReducedIndex(Index):
           specs: the collection of specifications that span the subset of packages.
           all other args: see :class:`Index`.
         """
+        from .exclude_newer import ExcludeNewerPolicy
+
         super().__init__(
             channels,
             prepend,

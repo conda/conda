@@ -37,7 +37,6 @@ from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..reporters import get_spinner
 from ..resolve import Resolve
-from .exclude_newer import ExcludeNewerPolicy
 from .index import Index, ReducedIndex
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -127,6 +126,8 @@ class Solver:
         self._r = None
         self._prepared = False
         self._pool_cache = {}
+        from .exclude_newer import ExcludeNewerPolicy
+
         self.exclude_newer_policy = ExcludeNewerPolicy.from_context()
         self._validate_exclude_newer_support()
 
