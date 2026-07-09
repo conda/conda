@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import datetime
 import json
+from concurrent.futures import ThreadPoolExecutor
 from os.path import abspath, basename, dirname, join
 from pathlib import Path
+from threading import Event
+from types import SimpleNamespace
 
 import pytest
 from pytest import MonkeyPatch
@@ -83,6 +86,60 @@ def fresh_zlib_records():
         PackageRecord.from_objects(zlib_tar_bz2_prec),
         PackageRecord.from_objects(zlib_conda_prec),
     )
+
+
+def test_process_extract_finishes_when_later_fetch_fails(mocker):
+    extracted = Event()
+    good = PackageRecord(name="good", version="1", build="0", build_number=0)
+    bad = PackageRecord(name="bad", version="1", build="0", build_number=0)
+    good_cache = mocker.MagicMock()
+    bad_cache = mocker.MagicMock()
+    good_extract = mocker.MagicMock(
+        source_full_path="/tmp/good.conda",
+        target_full_path="/tmp/good",
+    )
+    bad_extract = mocker.MagicMock(
+        source_full_path="/tmp/bad.conda",
+        target_full_path="/tmp/bad",
+    )
+    pfe = ProgressiveFetchExtract(())
+    pfe.paired_actions = {
+        good: (good_cache, good_extract),
+        bad: (bad_cache, bad_extract),
+    }
+    pfe._prepared = True
+
+    def cache_action(record, *args, **kwargs):
+        if record == bad:
+            assert extracted.wait(timeout=5)
+            raise OSError("fetch failed")
+        return record
+
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    mocker.patch.object(package_cache_data, "do_cache_action", side_effect=cache_action)
+    mocker.patch.object(
+        package_cache_data,
+        "extract_conda_package_archive",
+        side_effect=lambda *args: extracted.set(),
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "ProcessPoolExecutor",
+        side_effect=lambda **kwargs: ThreadPoolExecutor(kwargs["max_workers"]),
+    )
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_extractor",
+        return_value=SimpleNamespace(name="conda-package"),
+    )
+    mocker.patch.object(pfe, "_progress_bar", return_value=mocker.MagicMock())
+
+    with pytest.raises(CondaMultiError, match="fetch failed"):
+        pfe.execute()
+
+    good_extract.finish_extract.assert_called_once_with()
+    good_extract.cleanup.assert_called_once_with()
+    bad_extract.finish_extract.assert_not_called()
 
 
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):
