@@ -495,8 +495,10 @@ class PrefixData(metaclass=PrefixDataType):
         if not ext and fn.endswith(".dist-info"):
             stripped = fn[: -len(".dist-info")]
         elif not ext:
-            raise ValueError(
-                f"Attempted to make prefix record for unknown package type: {fn}"
+            # Unknown extension (e.g. .whl from conda-pypi without the plugin loaded).
+            # Fall back to the name-version-build convention used by _load_single_record.
+            stripped = (
+                f"{prefix_record.name}-{prefix_record.version}-{prefix_record.build}"
             )
         return stripped + ".json"
 
