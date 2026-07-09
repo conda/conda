@@ -44,6 +44,7 @@ from .helpers import (  # noqa: F401
     add_parser_solver_mode,
     add_parser_update_modifiers,
     add_parser_verbose,
+    comma_separated_stripped,
 )
 from .main_clean import configure_parser as configure_parser_clean
 from .main_commands import configure_parser as configure_parser_commands
@@ -143,7 +144,7 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
         const=None,
         default=NULL,
         metavar="PLUGIN[,PLUGIN...]",
-        type=lambda value: value.split(","),
+        type=comma_separated_stripped,
         help="Disable all external plugins, or the comma-separated plugins listed.",
     )
 

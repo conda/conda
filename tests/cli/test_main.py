@@ -76,7 +76,7 @@ def test_main_subshell_no_plugins_names(monkeypatch) -> None:
     )
 
     with pytest.raises(SystemExit):
-        main_subshell("--no-plugins=plugin-a,plugin-b", "--help")
+        main_subshell("--no-plugins=plugin-a, plugin-b", "--help")
 
     assert disabled == ["plugin-a", "plugin-b"]
 
