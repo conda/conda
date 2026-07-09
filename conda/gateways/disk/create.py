@@ -12,6 +12,7 @@ from errno import EACCES, EINVAL, ENOSYS, EPERM, EROFS, EXDEV
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
+from stat import S_ISREG
 
 from ... import CondaError
 from ...auxlib.ish import dals
@@ -119,6 +120,7 @@ _FICLONE_UNSUPPORTED_ERRNOS = frozenset(
     if error is not None
 )
 _FICLONE = 0x40049409
+_FICLONE_MIN_FILE_SIZE = 64 * 1024
 _FICLONE_UNSUPPORTED_DEVICES: set[tuple[int, int]] = set()
 _FICLONE_UNAVAILABLE = object()
 _FICLONE_IOCTL = None
@@ -373,12 +375,12 @@ def _clone_file(src, dst):
     Returns:
         True when cloning succeeds, or False to use the normal copy fallback.
     """
+    if on_linux:
+        return _clone_file_linux(src, dst)
     if islink(src) or lexists(dst):
         return False
     if on_mac:
         return _clone_file_macos(src, dst)
-    if on_linux:
-        return _clone_file_linux(src, dst)
     return False
 
 
@@ -421,13 +423,24 @@ def _clone_file_macos(src, dst):
 
 
 def _clone_file_linux(src, dst):
-    if not isfile(src):
+    try:
+        src_stat = os.stat(src)
+    except OSError:
+        return False
+    if not S_ISREG(src_stat.st_mode):
+        return False
+    # The ioctl is slower than a buffered copy for tiny files on btrfs, so keep
+    # those on conda's normal copy path and reserve reflinks for files that can
+    # actually avoid meaningful byte-copy work.
+    if src_stat.st_size < _FICLONE_MIN_FILE_SIZE:
+        return False
+    if islink(src) or lexists(dst):
         return False
     try:
-        src_dev = os.stat(src).st_dev
         dst_dev = os.stat(dirname(dst) or ".").st_dev
     except OSError:
         return False
+    src_dev = src_stat.st_dev
     device_pair = (src_dev, dst_dev)
 
     global _FICLONE_IOCTL

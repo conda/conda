@@ -126,22 +126,29 @@ def test_copy_over_existing_target_skips_clonefile(
 
 
 @pytest.mark.parametrize(
-    "ioctl_errno,target_names,expected_copy_calls",
+    "ioctl_errno,source_size,target_names,expected_ioctl_calls,expected_copy_calls",
     (
-        (None, ("target",), 0),
-        (errno.ENOTTY, ("target-one", "target-two"), 2),
+        (None, 64 * 1024, ("target",), 1, 0),
+        (None, 1024, ("target",), 0, 1),
+        (errno.ENOTTY, 64 * 1024, ("target-one", "target-two"), 1, 2),
     ),
-    ids=("linux-ficlone", "linux-ficlone-unsupported-cache"),
+    ids=(
+        "linux-ficlone",
+        "linux-ficlone-skips-tiny-file",
+        "linux-ficlone-unsupported-cache",
+    ),
 )
 def test_copy_linux_ficlone_path(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path,
     ioctl_errno,
+    source_size,
     target_names,
+    expected_ioctl_calls,
     expected_copy_calls,
 ):
     source = tmp_path / "source"
-    source.write_text("contents")
+    source.write_bytes(b"x" * source_size)
     ioctl_calls = []
     copy_calls = []
 
@@ -150,7 +157,7 @@ def test_copy_linux_ficlone_path(
         if ioctl_errno is not None:
             raise OSError(ioctl_errno, "unsupported")
         os.lseek(src_fd, 0, os.SEEK_SET)
-        os.write(dst_fd, os.read(src_fd, 1024))
+        os.write(dst_fd, os.read(src_fd, source_size))
 
     def copy_fallback(src, dst):
         copy_calls.append((src, dst))
@@ -168,8 +175,8 @@ def test_copy_linux_ficlone_path(
         create.copy(str(source), str(tmp_path / target_name))
 
     for target_name in target_names:
-        assert (tmp_path / target_name).read_text() == "contents"
-    assert len(ioctl_calls) == 1
+        assert (tmp_path / target_name).read_bytes() == source.read_bytes()
+    assert len(ioctl_calls) == expected_ioctl_calls
     assert all(call[1] == create._FICLONE for call in ioctl_calls)
     assert len(copy_calls) == expected_copy_calls
 
