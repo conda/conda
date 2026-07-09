@@ -573,8 +573,11 @@ better option may be to pin them. For more information, see
 
 Exclude packages published more recently than the configured cutoff. This can
 reduce exposure to newly uploaded packages while allowing older package records
-to remain available to the solver. The same value can be provided for one
-command with the ``--exclude-newer`` option.
+to remain available to the solver. This setting is available starting with the
+July 2026 release. For a one-off solve, the same value can be
+provided with the ``--exclude-newer`` option for ``conda create``,
+``conda install``, or ``conda update``. A configured ``exclude_newer`` policy
+also filters ``conda search`` results.
 
 Values may be compact durations such as ``7d``, ``3d12h``, or ``1w``,
 ISO 8601 durations such as ``P7D``, RFC 3339 timestamps such as
@@ -596,7 +599,9 @@ Channel-specific cutoffs can be set with ``exclude_newer`` entries in
 :ref:`channel_settings <channel-settings>`, and per-package overrides can be set
 with :ref:`exclude_newer_package <exclude-newer-package>`. Package-specific
 overrides take precedence over channel-specific cutoffs, and channel-specific
-cutoffs take precedence over the global ``exclude_newer`` value.
+cutoffs take precedence over the global ``exclude_newer`` value. Channel and
+package-specific overrides are configured in ``.condarc`` only; the
+``--exclude-newer`` command option sets a global cutoff for that command.
 
 .. _exclude-newer-package:
 
