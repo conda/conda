@@ -1,0 +1,11 @@
+### Enhancements
+
+### Bug fixes
+
+* Fix conda-meta JSON paths for wheel package records by deriving them from package record name, version, and build instead of the package filename or extracted package directory. (#16235, #16265)
+
+### Deprecations
+
+### Docs
+
+### Other

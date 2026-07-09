@@ -12,7 +12,7 @@ import warnings
 from collections import defaultdict
 from itertools import chain
 from logging import getLogger
-from os.path import basename, dirname, isdir, join
+from os.path import dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
@@ -110,18 +110,7 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
         for trgt in prefix_record.files
     )
 
-    try:
-        extracted_package_dir = basename(prefix_record.extracted_package_dir)
-    except AttributeError:
-        try:
-            extracted_package_dir = basename(prefix_record.link.source)
-        except AttributeError:
-            # for backward compatibility only
-            extracted_package_dir = (
-                f"{prefix_record.name}-{prefix_record.version}-{prefix_record.build}"
-            )
-
-    meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")
+    meta_short_path = f"conda-meta/{prefix_record._get_json_fn()}"
     remove_conda_meta_actions = (
         RemoveLinkedPackageRecordAction(
             transaction_context, prefix_record, target_prefix, meta_short_path
