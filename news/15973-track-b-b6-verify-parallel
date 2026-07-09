@@ -1,6 +1,6 @@
 ### Enhancements
 
-* `_verify_individual_level()` now parallelises across `CONDA_VERIFY_THREADS` workers when the user sets it above 1 (default unchanged). On fast disks this roughly halves the verify phase for packages with many prefix-replaced files. (#15973)
+* Verify individual transaction actions across the shared `verify_threads` executor when configured above 1. (#15969 via #15973)
 
 ### Bug fixes
 

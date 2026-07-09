@@ -25,7 +25,7 @@ from ..models.enums import FileMode
 log = getLogger(__name__)
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterable, Iterator
 
 
 # three capture groups: whole_shebang, executable, options
@@ -135,7 +135,9 @@ def update_prefix(
 _codesign_batch_state = threading.local()
 
 
-def _run_codesign(paths: list[str]) -> None:
+def codesign_paths(paths: Iterable[str]) -> None:
+    """Ad-hoc sign paths in command-line-sized batches."""
+    paths = list(paths)
     if not paths:
         return
 
@@ -154,26 +156,27 @@ def _run_codesign(paths: list[str]) -> None:
 def _codesign_or_enqueue(path: str) -> None:
     paths = getattr(_codesign_batch_state, "paths", None)
     if paths is None:
-        _run_codesign([path])
+        codesign_paths([path])
     else:
         paths.append(path)
 
 
 @contextmanager
-def batch_codesign_calls() -> Iterator[None]:
+def batch_codesign_calls(*, flush: bool = True) -> Iterator[list[str]]:
     """Batch osx-arm64 ``codesign`` calls made by :func:`update_prefix`.
 
     Direct ``update_prefix`` callers keep the old immediate-signing behavior.
     Transaction verification wraps prefix rewrites in this context so the
     rewritten intermediates can be signed with fewer subprocesses before they
-    are linked into the target prefix. See #15975.
+    are linked into the target prefix. Executor workers can disable flushing
+    and return their collected paths to the parent thread. See #15975.
     """
     parent_paths = getattr(_codesign_batch_state, "paths", None)
     paths: list[str] = []
     _codesign_batch_state.paths = paths
     succeeded = False
     try:
-        yield
+        yield paths
         succeeded = True
     finally:
         if parent_paths is None:
@@ -182,7 +185,8 @@ def batch_codesign_calls() -> Iterator[None]:
             _codesign_batch_state.paths = parent_paths
         if succeeded:
             if parent_paths is None:
-                _run_codesign(paths)
+                if flush:
+                    codesign_paths(paths)
             else:
                 parent_paths.extend(paths)
 

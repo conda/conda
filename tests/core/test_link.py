@@ -2,10 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from pathlib import Path
+from threading import Lock, get_ident
+from time import sleep
 
 from conda.base.context import reset_context
 from conda.core import link
-from conda.core.path_actions import RemoveLinkedPackageRecordAction
+from conda.core.path_actions import (
+    PrefixReplaceLinkAction,
+    RemoveLinkedPackageRecordAction,
+)
 from conda.models.channel import Channel
 from conda.models.enums import FileMode, PathEnum
 from conda.models.package_info import PackageInfo
@@ -40,6 +45,16 @@ def test_make_unlink_actions_uses_prefix_record_json_filename_for_conda_meta():
 
 
 def test_verify_uses_parallel_prefix_rewrite_actions(tmp_path, mocker, monkeypatch):
+    worker_threads = set()
+    worker_threads_lock = Lock()
+    original_verify = PrefixReplaceLinkAction.verify
+
+    def tracked_verify(action):
+        with worker_threads_lock:
+            worker_threads.add(get_ident())
+        sleep(0.05)
+        return original_verify(action)
+
     source_dir = tmp_path / "pkgs"
     prefix_placeholder = "/" + "placeholder" * 30
     path_data = []
@@ -66,7 +81,7 @@ def test_verify_uses_parallel_prefix_rewrite_actions(tmp_path, mocker, monkeypat
         name="test-prefix-replace",
         version=0,
         channel="defaults",
-        subdir="linux-64",
+        subdir="osx-arm64",
         fn="test-prefix-replace-0-0.conda",
         md5="0123456789",
     )
@@ -94,6 +109,15 @@ def test_verify_uses_parallel_prefix_rewrite_actions(tmp_path, mocker, monkeypat
     )
     mocker.patch("conda.core.package_cache_data.ProgressiveFetchExtract.execute")
     mocker.patch("conda.core.link.read_package_info", return_value=package_info)
+    mocker.patch.object(
+        PrefixReplaceLinkAction,
+        "verify",
+        autospec=True,
+        side_effect=tracked_verify,
+    )
+    monkeypatch.setattr("conda.core.portability.on_mac", True)
+    immediate_codesign = mocker.patch("conda.core.portability.codesign_paths")
+    batched_codesign = mocker.patch("conda.core.link.codesign_paths")
     monkeypatch.setenv("CONDA_VERIFY_THREADS", "2")
     reset_context()
 
@@ -110,6 +134,11 @@ def test_verify_uses_parallel_prefix_rewrite_actions(tmp_path, mocker, monkeypat
         if getattr(action, "prefix_placeholder", None)
     )
     assert len(link_actions) == 4
+    assert len(worker_threads) == 2
+    immediate_codesign.assert_not_called()
+    batched_codesign.assert_called_once_with(
+        [str(Path(action.intermediate_path).resolve()) for action in link_actions]
+    )
     for action in link_actions:
         assert action.verified
         assert action.prefix_path_data.file_mode == FileMode.binary

@@ -64,7 +64,7 @@ from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
-from .portability import batch_codesign_calls
+from .portability import batch_codesign_calls, codesign_paths
 from .path_actions import (
     AggregateCompileMultiPycAction,
     CompileMultiPycAction,
@@ -609,31 +609,9 @@ class UnlinkLinkTransaction:
         )
 
     @staticmethod
-    def _verify_individual_level(prefix_action_group):
-        all_actions = chain.from_iterable(
-            axngroup.actions
-            for action_groups in prefix_action_group
-            for axngroup in action_groups
-        )
-
-        error_results = []
-        with batch_codesign_calls():
-            # run all per-action (per-package) verify methods
-            #   one of the more important of these checks is to verify that a file listed in
-            #   the packages manifest (i.e. info/files) is actually contained within the package
-            for axn in all_actions:
-                if axn.verified:
-                    continue
-                error_result = axn.verify()
-                if error_result:
-                    formatted_error = "".join(
-                        format_exception_only(type(error_result), error_result)
-                    )
-                    log.debug(
-                        "Verification error in action %s\n%s", axn, formatted_error
-                    )
-                    error_results.append(error_result)
-        return error_results
+    def _verify_action(action):
+        with batch_codesign_calls(flush=False) as action_codesign_paths:
+            return action.verify(), action_codesign_paths
 
     @staticmethod
     def _verify_prefix_level(target_prefix_AND_prefix_action_group_tuple):
@@ -892,13 +870,28 @@ class UnlinkLinkTransaction:
         if transaction_exceptions:
             return transaction_exceptions
 
+        actions = tuple(
+            action
+            for prefix_action_group in prefix_action_groups.values()
+            for action_groups in prefix_action_group
+            for action_group in action_groups
+            for action in action_group.actions
+            if not action.verified
+        )
         exceptions = []
-        for exc in self.verify_executor.map(
-            UnlinkLinkTransaction._verify_individual_level,
-            prefix_action_groups.values(),
+        pending_codesign_paths = []
+        for action, (exc, action_codesign_paths) in zip(
+            actions,
+            self.verify_executor.map(UnlinkLinkTransaction._verify_action, actions),
         ):
+            pending_codesign_paths.extend(action_codesign_paths)
             if exc:
-                exceptions.extend(exc)
+                formatted_error = "".join(format_exception_only(type(exc), exc))
+                log.debug(
+                    "Verification error in action %s\n%s", action, formatted_error
+                )
+                exceptions.append(exc)
+        codesign_paths(pending_codesign_paths)
         for exc in self.verify_executor.map(
             UnlinkLinkTransaction._verify_prefix_level, prefix_action_groups.items()
         ):
