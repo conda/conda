@@ -573,11 +573,10 @@ better option may be to pin them. For more information, see
 
 Exclude packages published more recently than the configured cutoff. This can
 reduce exposure to newly uploaded packages while allowing older package records
-to remain available to the solver. This setting is available starting with the
-July 2026 release. For a one-off solve, the same value can be
-provided with the ``--exclude-newer`` option for ``conda create``,
-``conda install``, or ``conda update``. A configured ``exclude_newer`` policy
-also filters ``conda search`` results.
+to remain available to the solver. For a one-off solve, the same value can be
+provided with the ``--exclude-newer`` option for ``conda create``, ``conda
+install``, or ``conda update``. A configured ``exclude_newer`` policy also
+filters ``conda search`` results.
 
 Values may be compact durations such as ``7d``, ``3d12h``, or ``1w``,
 ISO 8601 durations such as ``P7D``, RFC 3339 timestamps such as
