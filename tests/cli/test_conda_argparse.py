@@ -59,6 +59,15 @@ def test_console_rejects_unknown_backend(capsys: CaptureFixture):
     assert "invalid choice: 'does-not-exist'" in capsys.readouterr().err
 
 
+def test_parse_no_compile_pyc(subtests: Subtests):
+    parser = generate_parser()
+
+    for command in ["create", "install", "update"]:
+        with subtests.test(command):
+            args = parser.parse_args([command, "--no-compile-pyc"])
+            assert args.compile_pyc is False
+
+
 def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
     stdout, stderr, err = conda_cli("config", "--show", "add_anaconda_token")
     assert stdout
