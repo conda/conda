@@ -368,7 +368,7 @@ class CondaHealthCheck(CondaPlugin):
     - In dry-run mode: Raises ``DryRunExit`` (handled by the framework).
     - If user declines: Raises ``CondaSystemExit`` (handled by the framework).
 
-    Example::
+    Example:
 
         from conda.plugins.types import ConfirmCallback
 
@@ -719,7 +719,7 @@ class EnvironmentSpecBase(ABC):
         ``Environment`` directly from the parsed input file without
         constructing one per platform.
 
-        To iterate every platform a spec covers::
+        To iterate every platform a spec covers:
 
             envs = (spec.env_for(p) for p in spec.available_platforms)
         """

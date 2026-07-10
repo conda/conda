@@ -25,7 +25,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     epilog = dals(
         """
-        Examples::
+        Examples:
 
             conda notices
 

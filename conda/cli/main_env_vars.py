@@ -27,7 +27,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     var_description = var_summary
     var_epilog = dals(
         """
-        Examples::
+        Examples:
 
             conda env config vars list -n my_env
             conda env config vars set MY_VAR=something OTHER_THING=ohhhhya
@@ -49,7 +49,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     list_description = list_summary
     list_epilog = dals(
         """
-        Example::
+        Example:
 
             conda env config vars list -n my_env
 
@@ -70,7 +70,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     set_description = set_summary
     set_epilog = dals(
         """
-        Example::
+        Example:
 
             conda env config vars set MY_VAR=weee
 
@@ -97,7 +97,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     unset_description = unset_summary
     unset_epilog = dals(
         """
-        Example::
+        Example:
 
             conda env config vars unset MY_VAR
 
