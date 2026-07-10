@@ -86,6 +86,7 @@ if TYPE_CHECKING:
     from typing import Any, ClassVar, Literal
 
     from ..common.path import PathsType, PathType
+    from ..core.exclude_newer import ExcludeNewerPolicy
     from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
     from ..plugins.config import PluginConfig
@@ -605,6 +606,17 @@ class Context(Configuration):
         """
         self.plugin_manager.load_settings()
         return self.plugin_manager.get_config(self.raw_data)
+
+    @cached_property
+    def exclude_newer_policy(self) -> ExcludeNewerPolicy:
+        """Resolved policy for excluding newly indexed package records."""
+        from ..core.exclude_newer import ExcludeNewerPolicy
+
+        return ExcludeNewerPolicy.from_values(
+            self.exclude_newer,
+            self.exclude_newer_package,
+            channel_settings=self.channel_settings,
+        )
 
     @property
     @deprecated(
@@ -2122,6 +2134,8 @@ def reset_context(
     # reload plugin config params
     with suppress(AttributeError):
         del context.plugins
+    with suppress(AttributeError):
+        del context.exclude_newer_policy
 
     _get_render_func.cache_clear()
 

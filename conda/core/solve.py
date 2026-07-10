@@ -126,9 +126,7 @@ class Solver:
         self._r = None
         self._prepared = False
         self._pool_cache = {}
-        from .exclude_newer import ExcludeNewerPolicy
-
-        self.exclude_newer_policy = ExcludeNewerPolicy.from_context()
+        self.exclude_newer_policy = context.exclude_newer_policy
         self._validate_exclude_newer_support()
 
     def _validate_exclude_newer_support(self) -> None:

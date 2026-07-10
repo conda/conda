@@ -218,13 +218,13 @@ def test_exclude_newer_policy_does_not_use_date_as_indexed_timestamp() -> None:
     assert policy.should_include(record)
 
 
-def test_exclude_newer_policy_honors_package_false_exemption() -> None:
-    policy = ExcludeNewerPolicy.from_values(
-        "1d", {"openssl": False, "ca-certificates": "false"}, now=NOW
-    )
+@pytest.mark.parametrize("value", [False, 0, "0", "false", "off", "no", "none", ""])
+def test_exclude_newer_policy_honors_falsey_package_exemption(
+    value: bool | int | str,
+) -> None:
+    policy = ExcludeNewerPolicy.from_values("1d", {"openssl": value}, now=NOW)
 
     assert policy.should_include(_record("openssl", timestamp=NOW - 60))
-    assert policy.should_include(_record("ca-certificates", timestamp=NOW - 60))
     assert not policy.should_include(_record("new-pkg", timestamp=NOW - 60))
 
 
@@ -339,12 +339,15 @@ def test_exclude_newer_policy_last_matching_channel_setting_wins() -> None:
     assert policy.should_include(_record("numpy", timestamp=NOW - 2 * DAY))
 
 
-def test_exclude_newer_policy_channel_setting_can_exempt_channel() -> None:
+@pytest.mark.parametrize("value", [False, 0, "off"])
+def test_exclude_newer_policy_channel_setting_can_exempt_channel(
+    value: bool | int | str,
+) -> None:
     policy = ExcludeNewerPolicy.from_values(
         "1d",
         {},
         channel_settings=(
-            {"channel": "https://example.test/conda", "exclude_newer": "false"},
+            {"channel": "https://example.test/conda", "exclude_newer": value},
         ),
         now=NOW,
     )
@@ -383,6 +386,21 @@ def test_exclude_newer_policy_channel_setting_matches_url_glob() -> None:
             timestamp=NOW - 2 * DAY,
         )
     )
+
+
+def test_context_caches_exclude_newer_policy(monkeypatch: MonkeyPatch) -> None:
+    with monkeypatch.context() as context_monkeypatch:
+        context_monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "1d")
+        reset_context()
+        policy = context.exclude_newer_policy
+
+        assert policy.active
+        assert policy is context.exclude_newer_policy
+
+        reset_context()
+        assert context.exclude_newer_policy is not policy
+
+    reset_context()
 
 
 def test_exclude_newer_policy_multichannel_setting_matches_member_channel() -> None:
