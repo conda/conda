@@ -1,0 +1,3 @@
+### Enhancements
+
+* Prefer APFS copy-on-write directory clones when installing packages. (#15969 via #16376)
