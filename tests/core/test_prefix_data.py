@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from conda.common.path.python import get_python_site_packages_short_path
 import pytest
 
 from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
@@ -294,7 +295,8 @@ def test_pypi_loader_removes_clobbered_record_json_by_prefix_record_name(
     empty_env: Path, mocker: MockerFixture
 ) -> None:
     rm_rf = mocker.patch("conda.plugins.prefix_data_loaders.pypi.rm_rf")
-    site_packages = empty_env / "lib/python3.11/site-packages"
+    site_packages_path = get_python_site_packages_short_path("3.11")
+    site_packages = empty_env / site_packages_path
     site_packages.mkdir(parents=True)
     records = {
         "python": PrefixRecord(
@@ -317,7 +319,7 @@ def test_pypi_loader_removes_clobbered_record_json_by_prefix_record_name(
             fn="pyqplot-0.7.2-py3-none-any.whl",
             url="https://pypi.org/pyqplot-0.7.2-py3-none-any.whl",
             package_type=PackageType.VIRTUAL_PYTHON_WHEEL,
-            files=("lib/python3.11/site-packages/pyqplot-0.7.2.dist-info/RECORD",),
+            files=(f"{site_packages_path}/pyqplot-0.7.2.dist-info/RECORD",),
             depends=("python >=3.11",),
         ),
     }
