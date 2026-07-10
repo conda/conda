@@ -7,6 +7,9 @@ import os
 import sys
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, lexists
+from pathlib import Path
+from shutil import copyfile, copytree
+from stat import S_IMODE
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -27,9 +30,11 @@ from conda.common.path import (
     win_path_ok,
 )
 from conda.core.path_actions import (
+    BulkClonePathAction,
     CompileMultiPycAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
+    PrefixReplaceLinkAction,
 )
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -38,13 +43,11 @@ from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.channel import Channel
-from conda.models.enums import LinkType, NoarchType, PathEnum
+from conda.models.enums import FileMode, LinkType, NoarchType, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathDataV1, PathsData
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from conda.testing.fixtures import PathFactoryFixture
 
 log = getLogger(__name__)
@@ -55,6 +58,26 @@ def make_test_file(target_dir: Path) -> str:
     path = target_dir / uuid4().hex
     path.write_text(uuid4().hex)
     return str(path)
+
+
+def make_copy_action(package_info, prefix: Path, short_path: str):
+    source_path = Path(package_info.extracted_package_dir) / short_path
+    source_path_data = PathDataV1(
+        _path=short_path,
+        path_type=PathEnum.hardlink,
+        sha256=compute_sum(source_path, "sha256"),
+        size_in_bytes=getsize(source_path),
+    )
+    return LinkPathAction(
+        {},
+        package_info,
+        package_info.extracted_package_dir,
+        short_path,
+        prefix,
+        short_path,
+        LinkType.copy,
+        source_path_data,
+    )
 
 
 def load_python_file(py_file_full_path):
@@ -481,6 +504,156 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     axn.reverse()
     assert not lexists(axn.target_full_path)
+
+
+def test_BulkClonePathAction_clones_missing_subtree_and_preserves_directory_state(
+    monkeypatch: pytest.MonkeyPatch, prefix: Path, pkgs_dir: Path
+):
+    package_dir = pkgs_dir / "package"
+    source_dir = package_dir / "lib/python3.12/site-packages/demo"
+    source_dir.mkdir(parents=True)
+    for name in ("one.py", "two.py"):
+        (source_dir / name).write_text("contents")
+    source_dir.chmod(0o700)
+    os.utime(source_dir, (1_600_000_000, 1_600_000_000))
+
+    site_packages = prefix / "lib/python3.12/site-packages"
+    site_packages.mkdir(parents=True)
+    (site_packages / "existing.py").write_text("existing")
+    control = site_packages / "control"
+    control.mkdir()
+    expected_mode = S_IMODE(control.stat().st_mode)
+    control.rmdir()
+
+    package_info = AttrDict(extracted_package_dir=str(package_dir))
+    directory_action = LinkPathAction(
+        {},
+        package_info,
+        None,
+        None,
+        prefix,
+        "lib/python3.12/site-packages/demo",
+        LinkType.directory,
+        None,
+    )
+    file_actions = tuple(
+        make_copy_action(
+            package_info, prefix, f"lib/python3.12/site-packages/demo/{name}"
+        )
+        for name in ("one.py", "two.py")
+    )
+    clone_calls = []
+
+    def clone_directory(source, target):
+        clone_calls.append((source, target))
+        copytree(source, target)
+        return True
+
+    monkeypatch.setattr("conda.core.path_actions.clone_directory", clone_directory)
+    action = BulkClonePathAction(directory_action, *file_actions)
+    action.verify()
+    action.execute()
+
+    target_dir = site_packages / "demo"
+    assert clone_calls == [(str(source_dir), str(target_dir))]
+    assert S_IMODE(target_dir.stat().st_mode) == expected_mode
+    assert target_dir.stat().st_mtime > 1_600_000_000
+    assert all(file_action._execute_successful for file_action in file_actions)
+
+    action.reverse()
+    assert not target_dir.exists()
+    assert (site_packages / "existing.py").exists()
+
+
+def test_BulkClonePathAction_reprocesses_prefix_files(
+    monkeypatch: pytest.MonkeyPatch, prefix: Path, pkgs_dir: Path
+):
+    placeholder = "/opt/anaconda1anaconda2anaconda3"
+    package_dir = pkgs_dir / "package"
+    source_dir = package_dir / "bin"
+    source_dir.mkdir(parents=True)
+    (source_dir / "plain").write_text("plain")
+    tool = source_dir / "tool"
+    tool.write_text(f"prefix={placeholder}\n")
+    package_info = AttrDict(
+        extracted_package_dir=str(package_dir),
+        repodata_record=AttrDict(subdir="osx-64"),
+    )
+    plain_action = make_copy_action(package_info, prefix, "bin/plain")
+    source_path_data = PathDataV1(
+        _path="bin/tool",
+        path_type=PathEnum.hardlink,
+        prefix_placeholder=placeholder,
+        file_mode=FileMode.text,
+        sha256=compute_sum(tool, "sha256"),
+        size_in_bytes=getsize(tool),
+    )
+    replace_action = PrefixReplaceLinkAction(
+        {"temp_dir": str(pkgs_dir / "transaction-temp")},
+        package_info,
+        str(package_dir),
+        "bin/tool",
+        str(prefix),
+        "bin/tool",
+        LinkType.copy,
+        placeholder,
+        FileMode.text,
+        source_path_data,
+    )
+    monkeypatch.setattr(
+        "conda.core.path_actions.clone_directory",
+        lambda source, target: copytree(source, target) is not None,
+    )
+
+    action = BulkClonePathAction(plain_action, replace_action)
+    action.verify()
+    action.execute()
+
+    installed = (prefix / "bin/tool").read_text()
+    assert placeholder not in installed
+    assert str(prefix) in installed
+
+
+def test_BulkClonePathAction_rejects_untracked_source_files(
+    monkeypatch: pytest.MonkeyPatch, prefix: Path, pkgs_dir: Path
+):
+    package_dir = pkgs_dir / "package"
+    source_dir = package_dir / "lib/demo"
+    source_dir.mkdir(parents=True)
+    (source_dir / "tracked.py").write_text("tracked")
+    (source_dir / "untracked.py").write_text("untracked")
+    package_info = AttrDict(extracted_package_dir=str(package_dir))
+    directory_action = LinkPathAction(
+        {},
+        package_info,
+        None,
+        None,
+        prefix,
+        "lib/demo",
+        LinkType.directory,
+        None,
+    )
+    file_action = make_copy_action(package_info, prefix, "lib/demo/tracked.py")
+
+    monkeypatch.setattr(
+        "conda.core.path_actions.clone_directory",
+        lambda *args: pytest.fail("an untracked file must block directory cloning"),
+    )
+
+    def create_file(source, target, link_type, force=False):
+        if link_type == LinkType.directory:
+            Path(target).mkdir(parents=True, exist_ok=True)
+            return
+        Path(target).parent.mkdir(parents=True, exist_ok=True)
+        copyfile(source, target)
+
+    monkeypatch.setattr("conda.core.path_actions.create_link", create_file)
+    action = BulkClonePathAction(directory_action, file_action)
+    action.verify()
+    action.execute()
+
+    assert (prefix / "lib/demo/tracked.py").read_text() == "tracked"
+    assert not (prefix / "lib/demo/untracked.py").exists()
 
 
 def test_create_file_link_actions(tmp_path):

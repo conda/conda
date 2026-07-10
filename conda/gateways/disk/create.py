@@ -13,6 +13,7 @@ from logging import getLogger
 from os.path import dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
 from stat import S_ISREG
+from uuid import uuid4
 
 from ... import CondaError
 from ...auxlib.ish import dals
@@ -105,6 +106,7 @@ _CLONEFILE_UNSUPPORTED_ERRNOS = frozenset(
     if error is not None
 )
 _CLONEFILE_UNSUPPORTED_DEVICES: set[tuple[int, int]] = set()
+_CLONEFILE_SUPPORTED_DEVICES: set[tuple[int, int]] = set()
 _CLONEFILE_UNAVAILABLE = object()
 _CLONEFILE = None
 _FICLONE_UNSUPPORTED_ERRNOS = frozenset(
@@ -359,7 +361,7 @@ def copy(src, dst):
             symlink(src_points_to, dst)
             return
     # Copy-on-write file clones accelerate normal copy requests while preserving
-    # conda's package-cache hardlink/refcount semantics.
+    # copy semantics and independence from the package cache.
     if _clone_file(src, dst):
         try:
             copystat(src, dst)
@@ -367,6 +369,35 @@ def copy(src, dst):
             log.debug("%r", e)
         return
     _do_copy(src, dst)
+
+
+def clone_file_supported(source_file, dest_dir):
+    """Return whether files can be cloned between these directories."""
+    if not on_mac:
+        return False
+    if not isfile(source_file):
+        raise OSError(f"Path {source_file} is not a file")
+    if not isdir(dest_dir):
+        raise OSError(f"Path {dest_dir} is not a directory")
+
+    device_pair = (os.stat(source_file).st_dev, os.stat(dest_dir).st_dev)
+    if device_pair in _CLONEFILE_SUPPORTED_DEVICES:
+        return True
+    if device_pair in _CLONEFILE_UNSUPPORTED_DEVICES:
+        return False
+
+    test_file = join(dest_dir, f".tmp.clone.{uuid4().hex}")
+    try:
+        return _clone_file_macos(source_file, test_file)
+    finally:
+        rm_rf(test_file)
+
+
+def clone_directory(src, dst):
+    """Atomically clone a validated package subtree when supported."""
+    # clonefile(2) discourages arbitrary directory hierarchies. Callers limit
+    # this to manifest-complete package subtrees and fall back per file.
+    return isdir(src) and not lexists(dst) and _clone_file(src, dst)
 
 
 def _clone_file(src, dst):
@@ -405,6 +436,7 @@ def _clone_file_macos(src, dst):
 
     if _CLONEFILE(os.fsencode(src), os.fsencode(dst), 0) == 0:
         log.log(TRACE, "cloning %s => %s", src, dst)
+        _CLONEFILE_SUPPORTED_DEVICES.add(device_pair)
         return True
     errno = get_errno()
     log.debug("clonefile failed with errno %s for %s => %s", errno, src, dst)
