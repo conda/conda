@@ -6,10 +6,10 @@ from __future__ import annotations
 
 import re
 from datetime import date, datetime, timedelta, timezone
-from enum import Enum
-from types import MappingProxyType
 
-COMPACT_DURATION_UNITS = MappingProxyType(
+from frozendict import frozendict
+
+COMPACT_DURATION_UNITS = frozendict(
     {
         "w": 604800,
         "d": 86400,
@@ -23,17 +23,20 @@ COMPACT_DURATION_UNITS = MappingProxyType(
 MAX_SECONDS_TIMESTAMP = 253402300799
 
 
-class DateOnlyBehavior(Enum):
-    """Behavior for date-only strings passed to ``parse_datetime_to_timestamp``."""
-
-    REJECT = "reject"
-    NEXT_UTC_DAY = "next-utc-day"
-
-
 _COMPACT_DURATION_RE = re.compile(r"(\d+)\s*([wdhms])", re.IGNORECASE)
 _ISO8601_DURATION_RE = re.compile(
-    r"^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$",
-    re.IGNORECASE,
+    r"""
+    ^P             # period/duration designator
+    (?:(\d+)W)?    # number of weeks
+    (?:(\d+)D)?    # number of days
+    (?:T            # time designator
+      (?:(\d+)H)?  # number of hours
+      (?:(\d+)M)?  # number of minutes
+      (?:(\d+)S)?  # number of seconds
+    )?
+    $
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 _DATE_ONLY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _COMPACT_DATE_ONLY_RE = re.compile(r"^\d{8}$")
@@ -42,14 +45,16 @@ _COMPACT_DATE_ONLY_RE = re.compile(r"^\d{8}$")
 def parse_duration(value: str) -> timedelta | None:
     """Parse plain, compact, or ISO 8601 duration strings."""
     value = value.strip()
+    # Try a plain duration in seconds.
     try:
         return timedelta(seconds=int(value))
     except ValueError:
         pass
 
+    # Match an ISO 8601 duration (e.g. P2W, P3D).
     match = _ISO8601_DURATION_RE.match(value)
     if match:
-        if not any(group is not None for group in match.groups()):
+        if all(group is None for group in match.groups()):
             raise ValueError(f"Invalid ISO 8601 duration {value!r}")
 
         weeks, days, hours, minutes, seconds = (
@@ -65,12 +70,14 @@ def parse_duration(value: str) -> timedelta | None:
             )
         )
 
+    # Find compact duration components (e.g. 2w, 3d).
     pairs = _COMPACT_DURATION_RE.findall(value)
     if not pairs:
         return None
 
-    consumed = _COMPACT_DURATION_RE.sub("", value).strip()
-    if consumed:
+    # Reject values with unmatched compact duration content.
+    remainder = _COMPACT_DURATION_RE.sub("", value).strip()
+    if remainder:
         raise ValueError(f"Invalid compact duration {value!r}")
 
     return timedelta(
@@ -80,25 +87,19 @@ def parse_duration(value: str) -> timedelta | None:
     )
 
 
-def parse_datetime_to_timestamp(
-    value: str,
-    *,
-    date_only: DateOnlyBehavior = DateOnlyBehavior.REJECT,
-) -> float | None:
+def parse_datetime_to_timestamp(value: str) -> float | None:
     """Parse an ISO/RFC 3339 datetime into a POSIX timestamp.
 
-    Naive datetimes are interpreted as UTC. Date-only handling is explicit
-    because its semantics vary by feature.
+    Naive datetimes are interpreted as UTC. Date-only values are interpreted
+    as the start of the following UTC day.
     """
     if _DATE_ONLY_RE.match(value):
-        if date_only == DateOnlyBehavior.NEXT_UTC_DAY:
-            day = date.fromisoformat(value) + timedelta(days=1)
-            return datetime.combine(
-                day,
-                datetime.min.time(),
-                tzinfo=timezone.utc,
-            ).timestamp()
-        return None
+        day = date.fromisoformat(value) + timedelta(days=1)
+        return datetime.combine(
+            day,
+            datetime.min.time(),
+            tzinfo=timezone.utc,
+        ).timestamp()
 
     if _COMPACT_DATE_ONLY_RE.match(value):
         return None

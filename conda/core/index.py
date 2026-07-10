@@ -249,8 +249,6 @@ class Index(UserDict):
           a reduced index with the same sources as this index, but limited to ``specs``
           and their dependency graph.
         """
-        from .exclude_newer import ExcludeNewerPolicy
-
         return ReducedIndex(
             specs=specs,
             channels=self._channels,
@@ -264,7 +262,7 @@ class Index(UserDict):
             exclude_newer_policy=(
                 self.exclude_newer_policy
                 if self.exclude_newer_policy.active
-                else ExcludeNewerPolicy.from_context()
+                else context.exclude_newer_policy
             ),
         )
 
@@ -470,8 +468,6 @@ class ReducedIndex(Index):
           specs: the collection of specifications that span the subset of packages.
           all other args: see :class:`Index`.
         """
-        from .exclude_newer import ExcludeNewerPolicy
-
         super().__init__(
             channels,
             prepend,
@@ -482,7 +478,7 @@ class ReducedIndex(Index):
             prefix,
             repodata_fn,
             use_system,
-            exclude_newer_policy or ExcludeNewerPolicy.from_context(),
+            exclude_newer_policy or context.exclude_newer_policy,
         )
         self.specs = specs
         self._derive_reduced_index()

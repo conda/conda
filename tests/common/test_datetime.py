@@ -9,7 +9,6 @@ import pytest
 
 from conda.common.datetime import (
     COMPACT_DURATION_UNITS,
-    DateOnlyBehavior,
     normalize_timestamp_seconds,
     parse_datetime_to_timestamp,
     parse_duration,
@@ -47,15 +46,9 @@ def test_parse_duration_returns_none_for_non_duration() -> None:
     assert parse_duration("not-a-duration") is None
 
 
-def test_parse_datetime_to_timestamp_handles_date_only_when_requested() -> None:
+def test_parse_datetime_to_timestamp_handles_date_only_as_next_utc_day() -> None:
     expected = datetime(2026, 4, 2, tzinfo=timezone.utc).timestamp()
-    assert (
-        parse_datetime_to_timestamp(
-            "2026-04-01",
-            date_only=DateOnlyBehavior.NEXT_UTC_DAY,
-        )
-        == expected
-    )
+    assert parse_datetime_to_timestamp("2026-04-01") == expected
 
 
 def test_parse_datetime_to_timestamp_treats_naive_values_as_utc() -> None:
@@ -69,11 +62,8 @@ def test_parse_datetime_to_timestamp_honors_z_suffix_and_offsets() -> None:
     assert parse_datetime_to_timestamp("2026-04-01T12:00:00+02:00") == expected
 
 
-@pytest.mark.parametrize("value", ["2026-04-01", "20260401"])
-def test_parse_datetime_to_timestamp_rejects_date_only_by_default(
-    value: str,
-) -> None:
-    assert parse_datetime_to_timestamp(value) is None
+def test_parse_datetime_to_timestamp_rejects_compact_date_only() -> None:
+    assert parse_datetime_to_timestamp("20260401") is None
 
 
 def test_compact_duration_units_are_public_and_read_only() -> None:

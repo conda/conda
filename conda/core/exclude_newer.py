@@ -10,8 +10,8 @@ from time import time
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
+from ..auxlib.type_coercion import TypeCoercionError, boolify
 from ..common.datetime import (
-    DateOnlyBehavior,
     normalize_timestamp_seconds,
     parse_datetime_to_timestamp,
     parse_duration,
@@ -33,9 +33,12 @@ class _CutoffParser:
 
     @staticmethod
     def is_false_override(value: object) -> bool:
-        return value is False or (
-            isinstance(value, str) and value.strip().casefold() == "false"
-        )
+        if value is None or value is True:
+            return False
+        try:
+            return not boolify(value)
+        except TypeCoercionError:
+            return False
 
     def optional_cutoff(self, value: str | int | float | bool | None) -> float | None:
         if value is None:
@@ -69,10 +72,7 @@ class _CutoffParser:
             return self.duration_cutoff(duration.total_seconds(), raw_value)
 
         try:
-            timestamp = parse_datetime_to_timestamp(
-                raw_value,
-                date_only=DateOnlyBehavior.NEXT_UTC_DAY,
-            )
+            timestamp = parse_datetime_to_timestamp(raw_value)
         except ValueError as exc:
             raise self.invalid(raw_value) from exc
         if timestamp is not None:
@@ -255,17 +255,6 @@ class ExcludeNewerPolicy:
     @classmethod
     def disabled(cls) -> ExcludeNewerPolicy:
         return cls()
-
-    @classmethod
-    def from_context(cls, now: float | None = None) -> ExcludeNewerPolicy:
-        from ..base.context import context
-
-        return cls.from_values(
-            context.exclude_newer,
-            context.exclude_newer_package,
-            channel_settings=context.channel_settings,
-            now=now,
-        )
 
     @classmethod
     def from_values(
