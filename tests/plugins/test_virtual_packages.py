@@ -92,6 +92,7 @@ def test_duplicated(plugin_manager):
         )
 
 
+@pytest.mark.benchmark
 def test_cuda_detection(benchmark):
     """
     Test, time cuda detection which is done in a subprocess.
