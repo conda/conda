@@ -2,13 +2,19 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Topological sorting implementation."""
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
 from functools import reduce as _reduce
 from logging import getLogger
+from typing import Hashable, Iterator, TypeVar
 
 log = getLogger(__name__)
 
+T = TypeVar("T", bound=Hashable)
 
-def _toposort(data):
+
+def _toposort(data: dict[T, set[T]]) -> Iterator[T]:
     """Dependencies are expressed as a dictionary whose keys are items
     and whose values are a set of dependent items. Output is a list of
     sets in topological order. The first set consists of items with no
@@ -27,7 +33,7 @@ def _toposort(data):
     # Add empty dependences where needed.
     data.update({item: set() for item in extra_items_in_deps})
     while True:
-        ordered = sorted({item for item, dep in data.items() if len(dep) == 0})
+        ordered = sorted({item for item, dep in data.items() if len(dep) == 0})  # type: ignore[type-var]
         if not ordered:
             break
 
@@ -45,7 +51,7 @@ def _toposort(data):
         raise CondaValueError(msg.format(" -> ".join(repr(x) for x in data.keys())))
 
 
-def pop_key(data):
+def pop_key(data: dict[T, set[T]]) -> T:
     """
     Pop an item from the graph that has the fewest dependencies in the case of a tie
     The winners will be sorted alphabetically
@@ -61,7 +67,7 @@ def pop_key(data):
     return key
 
 
-def _safe_toposort(data):
+def _safe_toposort(data: dict[T, set[T]]) -> Iterator[T]:
     """Dependencies are expressed as a dictionary whose keys are items
     and whose values are a set of dependent items. Output is a list of
     sets in topological order. The first set consists of items with no
@@ -93,10 +99,15 @@ def _safe_toposort(data):
             return
 
 
-def toposort(data, safe=True):
-    data = {k: set(v) for k, v in data.items()}
+def toposort(data: Mapping[T, Iterable[T]], safe: bool = True) -> list[T]:
+    """Return a topologically sorted list of items from a dependency graph.
 
-    if "python" in data:
+    Dependencies are expressed as a mapping whose keys are items and
+    whose values are an iterable of dependent items.
+    """
+    graph: dict[T, set[T]] = {k: set(v) for k, v in data.items()}
+
+    if "python" in graph:
         # Special case: Remove circular dependency between python and pip,
         # to ensure python is always installed before anything that needs it.
         # For more details:
@@ -104,9 +115,9 @@ def toposort(data, safe=True):
         # - https://github.com/conda/conda/pull/1154
         # - https://github.com/conda/conda-build/issues/401
         # - https://github.com/conda/conda/pull/1614
-        data["python"].discard("pip")
+        graph["python"].discard("pip")  # type: ignore[index]
 
     if safe:
-        return list(_safe_toposort(data))
+        return list(_safe_toposort(graph))
     else:
-        return list(_toposort(data))
+        return list(_toposort(graph))
