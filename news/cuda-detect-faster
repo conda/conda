@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Speed up CUDA detection by using a lighter Python subprocess.
+* Speed up CUDA detection by using a lighter Python subprocess. (#16392)
 
 ### Bug fixes
 
