@@ -51,6 +51,7 @@ from ..exceptions import (
     maybe_raise,
 )
 from ..gateways.disk import mkdir_p
+from ..gateways.disk.create import clone_file_supported
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import isfile, lexists, read_package_info
 from ..gateways.disk.test import (
@@ -58,7 +59,7 @@ from ..gateways.disk.test import (
     softlink_supported,
 )
 from ..gateways.subprocess import subprocess_call
-from ..models.enums import LinkType
+from ..models.enums import LinkType, NoarchType, PathEnum
 from ..models.version import VersionOrder
 from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
@@ -66,6 +67,7 @@ from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
 from .path_actions import (
     AggregateCompileMultiPycAction,
+    BulkClonePathAction,
     CompileMultiPycAction,
     CreatePrefixRecordAction,
     CreatePythonEntryPointAction,
@@ -96,6 +98,10 @@ def determine_link_type(extracted_package_dir, target_prefix):
         return LinkType.copy
     if context.always_softlink:
         return LinkType.softlink
+    if sys.platform == "darwin" and clone_file_supported(
+        source_test_file, target_prefix
+    ):
+        return LinkType.copy
     if hardlink_supported(source_test_file, target_prefix):
         return LinkType.hardlink
     if context.allow_softlinks and softlink_supported(source_test_file, target_prefix):
@@ -558,6 +564,9 @@ class UnlinkLinkTransaction:
                     specs,
                     all_link_path_actions,
                 )
+            )
+            link_action_groups[-1] = link_ag._replace(
+                actions=cls._aggregate_link_actions(link_ag.actions)
             )
 
         prefix_record_groups = [ActionGroup("record", None, record_axns, target_prefix)]
@@ -1266,6 +1275,36 @@ class UnlinkLinkTransaction:
             *create_directory_actions,
             *file_link_actions,
         )
+
+    @staticmethod
+    def _aggregate_link_actions(actions):
+        copy_action = next(
+            (
+                action
+                for action in actions
+                if type(action) is LinkPathAction
+                and action.link_type == LinkType.copy
+                and getattr(action.source_path_data, "path_type", None)
+                == PathEnum.hardlink
+            ),
+            None,
+        )
+        if copy_action is None:
+            return actions
+
+        package_info = copy_action.package_info
+        noarch = package_info.repodata_record.noarch
+        if noarch is None and package_info.package_metadata is not None:
+            noarch = package_info.package_metadata.noarch
+        if NoarchType.coerce(noarch) == NoarchType.python:
+            return actions
+        if not clone_file_supported(
+            join(package_info.extracted_package_dir, "info", "index.json"),
+            copy_action.target_prefix,
+        ):
+            return actions
+
+        return (BulkClonePathAction(*actions),)
 
     @staticmethod
     def _make_entry_point_actions(

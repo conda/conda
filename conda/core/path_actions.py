@@ -8,9 +8,11 @@ import os
 import re
 import sys
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from itertools import chain
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, normpath
+from stat import S_IMODE
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -42,6 +44,7 @@ from ..exceptions import (
 )
 from ..gateways.connection.download import download
 from ..gateways.disk.create import (
+    clone_directory,
     compile_multiple_pyc,
     copy,
     create_hard_link_or_copy,
@@ -623,6 +626,207 @@ class PrefixReplaceLinkAction(LinkPathAction):
         log.log(TRACE, "linking %s => %s", source_path, self.target_full_path)
         create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True
+
+
+def _path_parts(path):
+    return tuple(part for part in path.replace("\\", "/").split("/") if part)
+
+
+class BulkClonePathAction(MultiPathAction):
+    def __init__(self, *actions):
+        self._actions = actions
+        self._file_actions = tuple(
+            action
+            for action in actions
+            if isinstance(action, LinkPathAction)
+            and action.link_type != LinkType.directory
+        )
+        self.transaction_context = self._file_actions[0].transaction_context
+        self.package_info = self._file_actions[0].package_info
+        self.target_prefix = self._file_actions[0].target_prefix
+        self._verified = False
+        self._execute_successful = False
+
+    @property
+    def target_full_paths(self):
+        return tuple(action.target_full_path for action in self._file_actions)
+
+    def verify(self):
+        for action in self._actions:
+            if action.verified:
+                continue
+            if error := action.verify():
+                return error
+        self._verified = True
+
+    def execute(self):
+        expected_directories, safe_directories, actions_by_directory = (
+            self._build_clone_plan()
+        )
+        directory_mode = None
+        if safe_directories:
+            mode_probe = join(self.target_prefix, f".tmp.clone-mode.{uuid4().hex}")
+            os.mkdir(mode_probe)
+            try:
+                directory_mode = S_IMODE(os.stat(mode_probe).st_mode)
+            finally:
+                os.rmdir(mode_probe)
+
+        cloned_actions = set()
+        for top_level in sorted(expected_directories[()]):
+            self._clone_missing_subtrees(
+                (top_level,),
+                expected_directories,
+                safe_directories,
+                actions_by_directory,
+                cloned_actions,
+                directory_mode,
+            )
+
+        # Mark every file created by a directory clone before running any
+        # fixups so normal per-path rollback remains complete on later failure.
+        for action in cloned_actions:
+            action._execute_successful = True
+
+        for action in self._actions:
+            if action not in cloned_actions:
+                action.execute()
+            elif isinstance(action, PrefixReplaceLinkAction):
+                rm_rf(action.target_full_path)
+                action.execute()
+        self._execute_successful = True
+
+    def reverse(self):
+        for action in reversed(self._actions):
+            action.reverse()
+
+    def cleanup(self):
+        for action in self._actions:
+            action.cleanup()
+
+    def _build_clone_plan(self):
+        expected_directories = defaultdict(set)
+        expected_files = defaultdict(set)
+        seen_paths = set()
+        eligible_paths = set()
+        actions_by_directory = defaultdict(list)
+        duplicate_paths = set()
+
+        for action in self._file_actions:
+            source_parts = _path_parts(action.source_short_path)
+            if not source_parts:
+                continue
+            if source_parts in seen_paths:
+                duplicate_paths.add(source_parts)
+            seen_paths.add(source_parts)
+            for index in range(len(source_parts) - 1):
+                expected_directories[source_parts[:index]].add(source_parts[index])
+            expected_files[source_parts[:-1]].add(source_parts[-1])
+            if (
+                action.source_short_path == action.target_short_path
+                and getattr(action.source_path_data, "path_type", None)
+                == PathEnum.hardlink
+                and action.link_type == LinkType.copy
+            ):
+                eligible_paths.add(source_parts)
+                for index in range(1, len(source_parts)):
+                    actions_by_directory[source_parts[:index]].append(action)
+
+        eligible_paths.difference_update(duplicate_paths)
+        actual_directories = defaultdict(set)
+        actual_files = defaultdict(set)
+        package_dir = self.package_info.extracted_package_dir
+        for root, directories, files in os.walk(package_dir):
+            relative_root = os.path.relpath(root, package_dir)
+            root_parts = () if relative_root == "." else _path_parts(relative_root)
+            expected_children = expected_directories[root_parts]
+            traversable = []
+            for directory in directories:
+                if islink(join(root, directory)):
+                    actual_files[root_parts].add(directory)
+                else:
+                    actual_directories[root_parts].add(directory)
+                    if directory in expected_children:
+                        traversable.append(directory)
+            directories[:] = traversable
+            actual_files[root_parts].update(files)
+
+        all_directories = set(expected_directories) | set(expected_files)
+        all_directories.update(
+            parent + (child,)
+            for parent, children in expected_directories.items()
+            for child in children
+        )
+        safe_directories = set()
+        for directory in sorted(all_directories, key=len, reverse=True):
+            if actual_directories[directory] != expected_directories[directory]:
+                continue
+            if actual_files[directory] != expected_files[directory]:
+                continue
+            if any(
+                directory + (filename,) not in eligible_paths
+                for filename in expected_files[directory]
+            ):
+                continue
+            if any(
+                directory + (child,) not in safe_directories
+                for child in expected_directories[directory]
+            ):
+                continue
+            safe_directories.add(directory)
+
+        return expected_directories, safe_directories, actions_by_directory
+
+    def _clone_missing_subtrees(
+        self,
+        directory,
+        expected_directories,
+        safe_directories,
+        actions_by_directory,
+        cloned_actions,
+        directory_mode,
+    ):
+        relative_path = "/".join(directory)
+        source_dir = join(
+            self.package_info.extracted_package_dir, win_path_ok(relative_path)
+        )
+        target_dir = join(self.target_prefix, win_path_ok(relative_path))
+        clone_actions = actions_by_directory[directory]
+
+        if directory in safe_directories and not lexists(target_dir):
+            mkdir_p(dirname(target_dir))
+            if clone_directory(source_dir, target_dir):
+                try:
+                    for root, _, _ in os.walk(source_dir):
+                        relative_root = os.path.relpath(root, source_dir)
+                        cloned_root = (
+                            target_dir
+                            if relative_root == "."
+                            else join(target_dir, relative_root)
+                        )
+                        os.chmod(cloned_root, directory_mode)
+                        touch(cloned_root)
+                except Exception:
+                    for action in reversed(clone_actions):
+                        rm_rf(action.target_full_path, clean_empty_parents=True)
+                    raise
+                cloned_actions.update(clone_actions)
+                return
+
+        if lexists(target_dir) and not isdir(target_dir):
+            return
+        children = expected_directories[directory]
+        if children:
+            mkdir_p(target_dir)
+            for child in sorted(children):
+                self._clone_missing_subtrees(
+                    directory + (child,),
+                    expected_directories,
+                    safe_directories,
+                    actions_by_directory,
+                    cloned_actions,
+                    directory_mode,
+                )
 
 
 class MakeMenuAction(CreateInPrefixPathAction):

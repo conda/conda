@@ -52,7 +52,8 @@ def test_copy_uses_clonefile_on_macos(monkeypatch: pytest.MonkeyPatch, tmp_path)
         "_do_copy",
         lambda src, dst: pytest.fail("copy fallback should not be used"),
     )
-    create._CLONEFILE_UNSUPPORTED_DEVICES.clear()
+    monkeypatch.setattr(create, "_CLONEFILE_UNSUPPORTED_DEVICES", set())
+    monkeypatch.setattr(create, "_CLONEFILE_SUPPORTED_DEVICES", set())
     monkeypatch.setattr(create, "_CLONEFILE", None)
 
     create.copy(str(source), str(target))
@@ -90,7 +91,8 @@ def test_copy_caches_unsupported_clonefile_device_pair(
     monkeypatch.setattr(create, "CDLL", lambda *args, **kwargs: LibC())
     monkeypatch.setattr(create, "get_errno", lambda: errno.ENOTSUP)
     monkeypatch.setattr(create, "_do_copy", copy_fallback)
-    create._CLONEFILE_UNSUPPORTED_DEVICES.clear()
+    monkeypatch.setattr(create, "_CLONEFILE_UNSUPPORTED_DEVICES", set())
+    monkeypatch.setattr(create, "_CLONEFILE_SUPPORTED_DEVICES", set())
     monkeypatch.setattr(create, "_CLONEFILE", None)
 
     create.copy(str(source), str(target_one))
@@ -103,6 +105,55 @@ def test_copy_caches_unsupported_clonefile_device_pair(
         (str(source), str(target_one)),
         (str(source), str(target_two)),
     ]
+
+
+def test_clone_file_supported_reuses_device_probe(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+):
+    source = tmp_path / "source"
+    source.write_text("contents")
+    clone_calls = []
+
+    class CloneFile:
+        argtypes = None
+        restype = None
+
+        def __call__(self, src, dst, flags):
+            clone_calls.append((src, dst, flags))
+            copyfile(src, dst)
+            return 0
+
+    class LibC:
+        clonefile = CloneFile()
+
+    monkeypatch.setattr(create, "on_mac", True)
+    monkeypatch.setattr(create, "CDLL", lambda *args, **kwargs: LibC())
+    monkeypatch.setattr(create, "_CLONEFILE_UNSUPPORTED_DEVICES", set())
+    monkeypatch.setattr(create, "_CLONEFILE_SUPPORTED_DEVICES", set())
+    monkeypatch.setattr(create, "_CLONEFILE", None)
+
+    assert create.clone_file_supported(str(source), str(tmp_path))
+    assert create.clone_file_supported(str(source), str(tmp_path))
+    assert len(clone_calls) == 1
+
+
+@pytest.mark.skipif(not create.on_mac, reason="clonefile is only available on macOS")
+def test_clone_directory_macos(tmp_path):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    (source / "nested").mkdir(parents=True)
+    source_file = source / "nested/file"
+    source_file.write_text("source")
+
+    if not create.clone_directory(str(source), str(target)):
+        pytest.skip("filesystem does not support recursive clonefile")
+
+    target_file = target / "nested/file"
+    assert target_file.read_text() == "source"
+    assert source_file.stat().st_ino != target_file.stat().st_ino
+
+    target_file.write_text("target")
+    assert source_file.read_text() == "source"
 
 
 def test_copy_over_existing_target_skips_clonefile(
