@@ -42,43 +42,43 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Examples:
 
-        Search for a specific package named 'scikit-learn'::
+        Search for a specific package named 'scikit-learn':
 
             conda search scikit-learn
 
-        Search for packages containing 'scikit' in the package name::
+        Search for packages containing 'scikit' in the package name:
 
             conda search *scikit*
 
         Note that your shell may expand '*' before handing the command over to conda.
-        Therefore, it is sometimes necessary to use single or double quotes around the query::
+        Therefore, it is sometimes necessary to use single or double quotes around the query:
 
             conda search '*scikit'
             conda search "*scikit*"
 
         Search for packages for 64-bit Linux (by default, packages for your current
-        platform are shown)::
+        platform are shown):
 
             conda search numpy[subdir=linux-64]
 
-        Search for a specific version of a package::
+        Search for a specific version of a package:
 
             conda search 'numpy>=1.12'
 
-        Search for a package on a specific channel::
+        Search for a package on a specific channel:
 
             conda search conda-forge::numpy
 
-        Search for a package on a specific channel and platform::
+        Search for a package on a specific channel and platform:
 
             conda search 'numpy[channel=conda-forge, subdir=osx-64]'
 
-        Search for a package with a specific software version and python version::
+        Search for a package with a specific software version and python version:
 
             conda search 'numpy-base=2.4.2=py313*'
             conda search 'numpy-base[version="2.4.2",build=py313*]'
 
-        Search for a package with a specific software version and build string::
+        Search for a package with a specific software version and build string:
 
             conda search 'r-shiny=1.12.0=r45*'
             conda search 'r-shiny[version="1.12.0",build=r45*]'
