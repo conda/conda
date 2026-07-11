@@ -52,12 +52,9 @@ class PrefixGraph:
         self.graph = graph = {}
         self.spec_matches: dict[PrefixRecord, dict[MatchSpec, None]]
         self.spec_matches = spec_matches = {}
-        # Index records by package name so the parent-match inner loop
-        # iterates only the name-matching candidates instead of every
-        # record. MatchSpec(dep).name is always set; any record whose
-        # name doesn't match would have been filtered out by the
-        # original MatchSpec.match() anyway, just at O(N) per dep
-        # rather than O(1). See #15971 for the before/after benchmark.
+        # Index records by package name so exact-name dependencies only
+        # consider name-matching candidates. Non-exact names still scan
+        # every record. See #15971 for the before/after benchmark.
         by_name: dict[str, list[PrefixRecord]] = {}
         for rec in records:
             by_name.setdefault(rec.name, []).append(rec)
@@ -65,7 +62,9 @@ class PrefixGraph:
             parent_nodes: dict[PrefixRecord, None] = {}
             for dep in node.depends:
                 spec = MatchSpec(dep)
-                for candidate in by_name.get(spec.name, ()):
+                name = spec.get_exact_value("name")
+                candidates = records if name is None else by_name.get(name, ())
+                for candidate in candidates:
                     if spec.match(candidate):
                         parent_nodes[candidate] = None
             graph[node] = parent_nodes
