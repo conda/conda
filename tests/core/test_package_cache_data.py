@@ -137,9 +137,9 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
     with pytest.raises(CondaMultiError, match="fetch failed"):
         pfe.execute()
 
-    good_extract.finish_extract.assert_called_once_with()
+    good_extract._finish_extract.assert_called_once_with()
     good_extract.cleanup.assert_called_once_with()
-    bad_extract.finish_extract.assert_not_called()
+    bad_extract._finish_extract.assert_not_called()
 
 
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):

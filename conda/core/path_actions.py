@@ -1466,14 +1466,14 @@ class ExtractPackageAction(PathAction):
         self._verified = True
 
     def execute(self, progress_update_callback=None):
-        self.prepare_extract()
+        self._prepare_extract()
         context.plugin_manager.extract_package(
             self.source_full_path,
             self.target_full_path,
         )
-        self.finish_extract()
+        self._finish_extract()
 
-    def prepare_extract(self):
+    def _prepare_extract(self):
         log.log(
             TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
         )
@@ -1481,7 +1481,7 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-    def finish_extract(self):
+    def _finish_extract(self):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
         # The alternative is passing the the classes to ExtractPackageAction __init__
         from .package_cache_data import PackageCacheData

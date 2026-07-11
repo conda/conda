@@ -6,6 +6,10 @@ from __future__ import annotations
 
 import os
 
+# This module is imported in each spawned extraction worker. Keep imports here
+# limited to the standard library; importing conda runtime state defeats the
+# process pool's startup benefit.
+
 
 def extract_conda_package_archive(
     source_full_path: str | os.PathLike,

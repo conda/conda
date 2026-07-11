@@ -82,7 +82,8 @@ except ImportError:
 # The fallback thread pool is used for non-standard package extractor plugins
 # and debug mode. Built-in .conda/.tar.bz2 extraction normally runs in a
 # process pool below to avoid zstd's GIL bottleneck. See #15974.
-EXTRACT_THREADS = 2 if THREADSAFE_EXTRACT else 1
+# On the machines we tested, extraction doesn't get any faster after 3 threads.
+EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
 EXTRACT_PROCESSES = min(os.cpu_count() or 1, 4) if THREADSAFE_EXTRACT else 1
 EXTRACT_PROCESS_EXTENSIONS = (
     CONDA_PACKAGE_EXTENSION_V1,
@@ -939,7 +940,7 @@ class ProgressiveFetchExtract:
                         elif use_process_pool:
                             try:
                                 extract_action.verify()
-                                extract_action.prepare_extract()
+                                extract_action._prepare_extract()
                                 extract_future = extract_executor.submit(
                                     extract_conda_package_archive,
                                     extract_action.source_full_path,
@@ -987,7 +988,7 @@ class ProgressiveFetchExtract:
                         try:
                             extract_future.result()
                             if process_extract_action:
-                                process_extract_action.finish_extract()
+                                process_extract_action._finish_extract()
                                 progress_bar.update_to(1.0)
                         except Exception as e:
                             do_reverse(reversed(actions))
