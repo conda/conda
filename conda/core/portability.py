@@ -140,7 +140,8 @@ def _run_codesign(paths: list[str]) -> None:
     for i in range(0, len(paths), chunk_size):
         subprocess.run(
             ["/usr/bin/codesign", "-s", "-", "-f", *paths[i : i + chunk_size]],
-            capture_output=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
 

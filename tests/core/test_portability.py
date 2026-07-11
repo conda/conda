@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 import re
+import subprocess
 
 import pytest
 
@@ -174,7 +175,8 @@ def test_update_prefix_batches_osx_arm64_codesign(tmp_path, mocker):
 
     codesign.assert_called_once_with(
         ["/usr/bin/codesign", "-s", "-", "-f", os.path.realpath(direct)],
-        capture_output=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
 
     codesign.reset_mock()
@@ -207,5 +209,6 @@ def test_update_prefix_batches_osx_arm64_codesign(tmp_path, mocker):
             os.path.realpath(first),
             os.path.realpath(second),
         ],
-        capture_output=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
