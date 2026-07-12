@@ -4,9 +4,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from functools import reduce as _reduce
 from logging import getLogger
-from typing import TYPE_CHECKING, Hashable, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Mapping
@@ -17,18 +18,11 @@ T = TypeVar("T", bound=Hashable)
 
 
 def _toposort(data: dict[T, set[T]]) -> Iterator[T]:
-<<<<<<< HEAD
     """Dependencies are expressed as a dictionary whose keys are items
     and whose values are a set of dependent items. Output is a list of
     sets in topological order. The first set consists of items with no
     dependences, each subsequent set consists of items that depend upon
     items in the preceding sets.
-=======
-    """Yields items in topological order.
-
-    Dependencies are expressed as a dictionary whose keys are items
-    and whose values are a set of dependent items.
->>>>>>> 854a08509 (Fix pre-commit: move annotation-only imports to TYPE_CHECKING block)
     """
     # Special case empty input.
     if len(data) == 0:
@@ -42,10 +36,6 @@ def _toposort(data: dict[T, set[T]]) -> Iterator[T]:
     # Add empty dependences where needed.
     data.update({item: set() for item in extra_items_in_deps})
     while True:
-<<<<<<< HEAD
-=======
-        # sorted() gives deterministic output; assumes keys are orderable (strings in practice)
->>>>>>> 854a08509 (Fix pre-commit: move annotation-only imports to TYPE_CHECKING block)
         ordered = sorted({item for item, dep in data.items() if len(dep) == 0})  # type: ignore[type-var]
         if not ordered:
             break
@@ -81,18 +71,11 @@ def pop_key(data: dict[T, set[T]]) -> T:
 
 
 def _safe_toposort(data: dict[T, set[T]]) -> Iterator[T]:
-<<<<<<< HEAD
     """Dependencies are expressed as a dictionary whose keys are items
     and whose values are a set of dependent items. Output is a list of
     sets in topological order. The first set consists of items with no
     dependencies, each subsequent set consists of items that depend upon
     items in the preceding sets.
-=======
-    """Yields items in topological order.
-
-    Dependencies are expressed as a dictionary whose keys are items
-    and whose values are a set of dependent items.
->>>>>>> 854a08509 (Fix pre-commit: move annotation-only imports to TYPE_CHECKING block)
     """
     # Special case empty input.
     if len(data) == 0:
@@ -127,10 +110,6 @@ def toposort(data: Mapping[T, Iterable[T]], safe: bool = True) -> list[T]:
     """
     graph: dict[T, set[T]] = {k: set(v) for k, v in data.items()}
 
-<<<<<<< HEAD
-=======
-    # This special case assumes string keys; the type: ignore below is intentional.
->>>>>>> 854a08509 (Fix pre-commit: move annotation-only imports to TYPE_CHECKING block)
     if "python" in graph:
         # Special case: Remove circular dependency between python and pip,
         # to ensure python is always installed before anything that needs it.
