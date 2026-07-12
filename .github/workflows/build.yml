@@ -17,7 +17,7 @@ on:
   # Build canaries after a successful test workflow run on main or feature/* branches.
   workflow_run:
     workflows:
-      - Tests
+      - 'Tests'
     types:
       - completed
 
@@ -82,6 +82,7 @@ jobs:
     strategy:
       matrix:
         include:
+          # template-files-if
           - runs-on: ubuntu-latest
             subdir: linux-64
           - runs-on: ubuntu-24.04-arm
@@ -90,6 +91,7 @@ jobs:
             subdir: osx-arm64
           - runs-on: windows-latest
             subdir: win-64
+          # template-files-endif
     runs-on: ${{ matrix.runs-on }}
     steps:
       # Clean checkout of specific git ref needed for package metadata version
