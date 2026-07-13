@@ -627,11 +627,8 @@ def test_cover_reverse():
         def reverse(self):
             pass
 
-    class progress:
-        def close(self):
-            pass
-
-        def finish(self):
+    class mock_reporter:
+        def send(self, event):
             pass
 
     def not_cancelled():
@@ -639,9 +636,15 @@ def test_cover_reverse():
 
     exceptions = []
 
-    package_cache_data.done_callback(f(), (action(),), progress(), exceptions)  # type: ignore
-    package_cache_data.do_cache_action("dummy", None, None, cancelled=not_cancelled)
-    package_cache_data.do_extract_action("dummy", None, None)
+    package_cache_data.done_callback(
+        f(), (action(),), task_id=1, reporter=mock_reporter(), exceptions=exceptions
+    )
+    package_cache_data.do_cache_action(
+        "dummy", None, task_id=1, reporter=mock_reporter(), cancelled=not_cancelled
+    )
+    package_cache_data.do_extract_action(
+        "dummy", None, task_id=1, reporter=mock_reporter()
+    )
 
 
 def test_cover_get_entry_to_link(tmp_pkgs_dir: Path):
@@ -710,3 +713,153 @@ def test_cover_extract_bad_package(tmp_path):
     with open(fullpath, "w") as archive:
         archive.write("")
     PackageCacheData.first_writable()._make_single_record(str(fullpath))
+
+
+# ---------------------------------------------------------------------------
+# Event-emission tests for the migrated functions
+# ---------------------------------------------------------------------------
+
+
+from unittest.mock import MagicMock
+
+from conda.plugins.reporter_backends.events import (
+    FetchTaskEndEvent,
+    FetchTaskProgressEvent,
+)
+
+
+def _make_reporter():
+    """Return a mock reporter that records send() calls."""
+    r = MagicMock()
+    r.send = MagicMock()
+    return r
+
+
+def test_do_cache_action_emits_progress_events():
+    """do_cache_action emits FetchTaskProgressEvent during download."""
+    reporter = _make_reporter()
+    task_id = 42
+
+    class FakeAction:
+        url = "http://example.com/pkg"
+
+        def verify(self):
+            pass
+
+        def execute(self, callback):
+            if callback:
+                callback(0.25)
+                callback(0.75)
+                callback(1.0)
+
+    def not_cancelled():
+        return False
+
+    result = package_cache_data.do_cache_action(
+        "prec", FakeAction(), task_id, reporter, cancelled=not_cancelled
+    )
+
+    assert result == "prec"
+    sent_events = [c.args[0] for c in reporter.send.call_args_list]
+    progress_events = [e for e in sent_events if isinstance(e, FetchTaskProgressEvent)]
+    assert len(progress_events) == 3
+    assert progress_events[0].fraction == pytest.approx(0.25)
+    assert progress_events[2].fraction == pytest.approx(1.0)
+    for e in progress_events:
+        assert e.task_id == task_id
+
+
+def test_do_cache_action_file_url_no_progress():
+    """do_cache_action with file:/ URL does not emit progress events."""
+    reporter = _make_reporter()
+
+    class FakeAction:
+        url = "file:/tmp/pkg.conda"
+
+        def verify(self):
+            pass
+
+        def execute(self, callback):
+            assert callback is None
+
+    package_cache_data.do_cache_action(
+        "prec", FakeAction(), 1, reporter, cancelled=lambda: False
+    )
+    reporter.send.assert_not_called()
+
+
+def test_do_extract_action_emits_end_event():
+    """do_extract_action emits FetchTaskEndEvent(success=True)."""
+    reporter = _make_reporter()
+
+    class FakeAction:
+        def verify(self):
+            pass
+
+        def execute(self, callback):
+            pass
+
+    package_cache_data.do_extract_action(
+        "prec", FakeAction(), task_id=7, reporter=reporter
+    )
+
+    reporter.send.assert_called_once()
+    event = reporter.send.call_args.args[0]
+    assert isinstance(event, FetchTaskEndEvent)
+    assert event.task_id == 7
+    assert event.success
+
+
+def test_done_callback_emits_end_event_on_success():
+    """done_callback emits FetchTaskEndEvent when future succeeds."""
+    reporter = _make_reporter()
+
+    class GoodFuture:
+        def result(self):
+            return "prec"
+
+    class FakeAction:
+        def cleanup(self):
+            pass
+
+    exceptions = []
+    package_cache_data.done_callback(
+        GoodFuture(),
+        (FakeAction(),),
+        task_id=99,
+        reporter=reporter,
+        exceptions=exceptions,
+        finish=True,
+    )
+
+    assert not exceptions
+    reporter.send.assert_called_once()
+    event = reporter.send.call_args.args[0]
+    assert isinstance(event, FetchTaskEndEvent)
+    assert event.task_id == 99
+    assert event.success
+
+
+def test_done_callback_no_send_on_no_finish():
+    """done_callback does not emit FetchTaskEndEvent when finish=False."""
+    reporter = _make_reporter()
+
+    class GoodFuture:
+        def result(self):
+            return "prec"
+
+    class FakeAction:
+        def cleanup(self):
+            pass
+
+    exceptions = []
+    package_cache_data.done_callback(
+        GoodFuture(),
+        (FakeAction(),),
+        task_id=5,
+        reporter=reporter,
+        exceptions=exceptions,
+        finish=False,
+    )
+
+    reporter.send.assert_not_called()

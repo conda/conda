@@ -1,0 +1,12 @@
+name: reporters-event-system
+status: in-progress
+artifacts:
+  - id: proposal
+    file: proposal.md
+    status: done
+  - id: design
+    file: design.md
+    status: done
+  - id: tasks
+    file: tasks.md
+    status: done
