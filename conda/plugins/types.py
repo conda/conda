@@ -53,6 +53,8 @@ if TYPE_CHECKING:
     SinglePlatformEnvironmentExport = Callable[[Environment], str]
     MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
 
+    CondaCleanPathCallable: TypeAlias = Callable[[str], Iterable[PathType]]
+
     # Callback type for health check fixer confirmation prompts.
     # Raises CondaSystemExit if user declines, or DryRunExit in dry-run mode.
     ConfirmCallback: TypeAlias = Callable[[str], None]
@@ -864,6 +866,40 @@ class CondaPackageExtractor(CondaPlugin):
     name: str
     extensions: list[str]
     extract: PackageExtract
+
+
+@dataclass
+class CondaCleanPath(CondaPlugin):
+    """
+    Return type to use when defining a conda clean path plugin hook.
+
+    Clean path plugins register file or directory paths that ``conda clean``
+    can offer for removal. Plugins only discover paths; conda handles user
+    confirmation, dry-run, and deletion.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_clean_paths`.
+
+    Args:
+        name: Clean target identifier (e.g., ``notices-cache``).
+        find: Callable that discovers removable paths:
+            ``find(target_prefix) -> paths`` where each path is a
+            :data:`~conda.common.path.PathType`.
+        summary: Short description of what the clean target removes
+            (shown in ``conda clean --help`` as the flag help text).
+    """
+
+    name: str
+    find: CondaCleanPathCallable
+    summary: str | None = None
+
+    @property
+    def flag(self) -> str:
+        return f"--{self.name}"
+
+    @property
+    def dest(self) -> str:
+        return f"clean_{self.name.replace('-', '_')}"
 
 
 @dataclass(frozen=True)

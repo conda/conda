@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
     from .types import (
         CondaAuthHandler,
+        CondaCleanPath,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
         CondaExceptionObserver,
@@ -822,6 +823,44 @@ class CondaSpecs:
 
         Returns:
             An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_clean_paths(self) -> Iterable[CondaCleanPath]:
+        """
+        Register clean path providers for ``conda clean``.
+
+        Each provider is exposed as a dedicated ``--<name>`` flag on
+        ``conda clean``. Providers discover file or directory paths that
+        can be removed. Conda handles user confirmation, dry-run, and
+        deletion.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import os
+
+            from conda import plugins
+
+
+            def find_example_cache(target_prefix: str):
+                cache_dir = f"{target_prefix}/.example-cache"
+                if os.path.isdir(cache_dir):
+                    yield cache_dir
+
+
+            @plugins.hookimpl
+            def conda_clean_paths():
+                yield plugins.types.CondaCleanPath(
+                    name="example-cache",
+                    find=find_example_cache,
+                    summary="Remove example cache files.",
+                )
+
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaCleanPath` entries.
         """
         yield from ()
 
