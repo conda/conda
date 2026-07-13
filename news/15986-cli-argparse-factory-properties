@@ -16,4 +16,4 @@
 
 ### Other
 
-* <news item>
+* `conda.cli.actions.LazyAction.choices` was previously a no-op setter but can now be set (e.g., if only the help text is lazy) or deffered via `choices_factory`. (#15960 via #15986)

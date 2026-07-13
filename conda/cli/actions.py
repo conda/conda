@@ -91,11 +91,11 @@ class LazyAction(Action):
         help_factory: Callable[[], str | None] | None = None,
         **kwargs,
     ):
-        if choices and choices_factory:
+        if choices is not None and choices_factory is not None:
             raise ValueError("choices and choices_factory are mutually exclusive")
         self._choices_factory = choices_factory
 
-        if help and help_factory:
+        if help is not None and help_factory is not None:
             raise ValueError("help and help_factory are mutually exclusive")
         self._help_factory = help_factory
 
