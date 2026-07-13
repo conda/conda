@@ -15,7 +15,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import msgpack
-import zstandard
 
 import conda.exceptions
 import conda.gateways.repodata
@@ -29,6 +28,7 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 
+from ..zstd import capped_decompress
 from . import cache
 from .misc import (
     _is_http_error_most_400_codes,
@@ -52,6 +52,11 @@ if TYPE_CHECKING:
 
 ZSTD_MAX_SHARD_SIZE = (
     2**20 * 16
+)  # maximum size necessary when compressed data has no size header
+
+
+ZSTD_MAX_SHARD_INDEX_SIZE = (
+    2**23 * 16
 )  # maximum size necessary when compressed data has no size header
 
 
@@ -172,7 +177,7 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            zstandard.decompress(
+            capped_decompress(
                 fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
             )
         )
@@ -309,7 +314,9 @@ class ShardBase(abc.ABC):
         """
         Return monolithic repodata including all visited shards.
 
-        Prefer iter_records() over this method.
+        Does not return "v3" repodata.
+
+        Prefer iter_records_v3() over this method.
         """
         repodata: RepodataDict = {
             **self.repodata_no_packages,
@@ -327,14 +334,34 @@ class ShardBase(abc.ABC):
         """
         Yield (filename, record) tuples for all packages in visited shards.
         """
-        repodata = self.build_repodata()
-        for package_group in ("packages", "packages.conda"):
-            yield from repodata.get(package_group, {}).items()
+        for (filename, section), record in self.iter_records_v3():
+            if section not in ("packages", "packages.conda"):
+                continue
+            yield filename, record
+
+    def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
+        """
+        Yield ((key, section), record) tuples for all packages in visited
+        shards.
+
+        Section can be: "packages" for .tar.bz2 packages, "packages.conda"
+        for .conda packages, "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages.
+
+        key is the same as the filename for "packages", "packages.conda" but is
+        different from the filename for v3 packages.
+        """
         for shard in self.visited.values():
             if shard is None:
                 continue
-            for group in shard.get("v3", {}).values():
-                yield from group.items()
+            # Classic packages
+            for package_group in ("packages", "packages.conda"):
+                for key, record in shard.get(package_group, {}).items():
+                    yield (key, package_group), record
+            # v3 packages (iter_records() method depends on these coming last)
+            for section_name, group in shard.get("v3", {}).items():
+                v3_section = f"v3.{section_name}"
+                for key, record in group.items():
+                    yield (key, v3_section), record
 
 
 class ShardLike(ShardBase):
@@ -635,7 +662,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
     if cache_state.should_check_format("shards"):
         # look for shards index
         shards_data = None
-        shards_index_url = f"{sd.url_w_subdir}/{REPODATA_SHARDS_FN}"
+        shards_index_url = f"{sd.url_w_credentials}/{REPODATA_SHARDS_FN}"
 
         if not repo_cache.cache_path_shards.exists():
             # avoid 304 not modified if we don't have the file
@@ -676,7 +703,9 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         if shards_data:
             # basic parse (move into caller?)
             shards_index: ShardsIndexDict = msgpack.loads(
-                zstandard.decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
+                capped_decompress(
+                    shards_data, max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE
+                )
             )  # type: ignore
             shards = Shards(shards_index, shards_index_url)
             return shards
@@ -699,7 +728,11 @@ def batch_retrieve_from_cache(
         for package_name in packages:
             if package_name in shardlike:  # and not package_name in shardlike.visited
                 wanted.append(
-                    (shardlike, package_name, shardlike.shard_url(package_name))
+                    (
+                        shardlike,
+                        package_name,
+                        shardlike.shard_url(package_name),
+                    )
                 )
 
     log.debug("%d shards to fetch", len(wanted))
@@ -757,11 +790,13 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=_shards_connections()
     ) as executor:
+        subdir_data = {
+            channel_url: SubdirData(Channel(channel_url))
+            for channel_url in url_to_channel
+        }
         futures = {
-            executor.submit(
-                fetch_shards_index, SubdirData(Channel(channel_url))
-            ): channel_url
-            for (channel_url, _) in url_to_channel.items()
+            executor.submit(fetch_shards_index, sd): channel_url
+            for channel_url, sd in subdir_data.items()
         }
         futures_non_sharded = {}
 
@@ -773,7 +808,6 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        # If all are None then don't do ShardLike.
         if all(value is None for value in channel_data.values()):
             return None  # caller should interpret this as falling back to the older code path
 

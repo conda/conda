@@ -1,0 +1,7 @@
+### Enhancements
+
+* `conda.plugins` no longer eagerly imports `conda.plugins.types` at module
+  load time. The 756-line submodule loads only via an explicit
+  `import conda.plugins.types`, or when one of the 16 deprecated re-exports
+  (`conda.plugins.CondaSolver` etc.) is referenced through
+  `deprecated.constant(factory=...)`. (#15893)

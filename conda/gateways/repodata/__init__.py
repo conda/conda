@@ -485,12 +485,16 @@ class RepodataState(UserDict):
     def should_check_format(self, format: str) -> bool:
         """Return True if named format should be attempted."""
         has, when = self.has_format(format)
-        return (
+        should_check = (
             has is True
             or isinstance(when, datetime.datetime)
             and datetime.datetime.now(tz=datetime.timezone.utc) - when
             > CHECK_ALTERNATE_FORMAT_INTERVAL
         )
+        # Always check for shards if json has not been cached:
+        if format == "shards" and not should_check:
+            should_check = not self.cache_path_json.exists()
+        return should_check
 
     def __contains__(self, key: str) -> bool:
         key = self._aliased.get(key, key)
@@ -756,7 +760,8 @@ class RepodataFetch:
         Retrieve parsed latest or latest-cached repodata as a dict; update
         cache.
 
-        :return: (repodata contents, state including cache headers)
+        Returns:
+            Repodata contents, state including cache headers
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
@@ -775,7 +780,8 @@ class RepodataFetch:
         """
         Retrieve latest or latest-cached repodata; update cache.
 
-        :return: (pathlib.Path to uncompressed repodata contents, RepodataState)
+        Returns:
+            Path to uncompressed repodata contents, RepodataState
         """
         _, state = self.fetch_latest()
         return self.cache_path_json, state

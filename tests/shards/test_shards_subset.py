@@ -46,9 +46,11 @@ from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
     FAKE_REPODATA,
     ROOT_PACKAGES,
+    _run_test_server,
     _timer,
     ensure_hex_hash,
     expand_channels,
+    write_shards_repository,
 )
 
 if TYPE_CHECKING:
@@ -193,6 +195,124 @@ def test_build_repodata_subset_no_shards(http_server_shards):
     assert build_repodata_subset([], channels) is None
 
 
+@pytest.mark.parametrize(
+    "has_classic_cache",
+    [False, True],
+    ids=["without-classic-cache", "with-classic-cache"],
+)
+def test_fetch_channels_rechecks_shards_when_needed(
+    monkeypatch, tmp_path, has_classic_cache
+):
+    """
+    A cached `has_shards: false` result should only be honored when there is
+    classic repodata cache to fall back to.
+    """
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-arm64")
+    reset_context()
+
+    channel_root = tmp_path / "channel"
+    channel_root.mkdir()
+    httpd = _run_test_server(str(channel_root))
+    try:
+        host, port = httpd.socket.getsockname()[:2]
+        url_host = f"[{host}]" if ":" in host else host
+        channel_url = f"http://{url_host}:{port}/"
+        channels = expand_channels(
+            [Channel(channel_url)], subdirs=("osx-arm64", "noarch")
+        )
+        noarch_url = next(url for url in channels if url.endswith("/noarch"))
+        noarch_cache = SubdirData(Channel(noarch_url)).repo_cache
+
+        assert fetch_channels(channels) is None
+        assert not noarch_cache.cache_path_json.exists()
+        with noarch_cache.lock("r+") as state_file:
+            noarch_cache_state = json.load(state_file)
+            assert noarch_cache_state["has_shards"]["value"] is False
+
+        if has_classic_cache:
+            noarch_cache.state.update(noarch_cache_state)
+            noarch_cache.save(
+                json.dumps(
+                    {
+                        "info": {"subdir": "noarch"},
+                        "packages": {},
+                        "packages.conda": {},
+                        "repodata_version": 2,
+                    }
+                )
+            )
+
+        write_shards_repository(channel_root)
+
+        channel_data = fetch_channels(channels)
+        if has_classic_cache:
+            assert channel_data is None
+        else:
+            assert channel_data is not None
+            assert isinstance(channel_data[noarch_url], Shards)
+    finally:
+        httpd.shutdown()
+
+
+def test_fetch_channels_rechecks_stale_shards_in_mixed_channels(monkeypatch, tmp_path):
+    """
+    A stale negative shard result should be rechecked even when another channel
+    already has shards.
+    """
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    monkeypatch.setenv("CONDA_SUBDIR", "osx-arm64")
+    reset_context()
+
+    stale_channel_root = tmp_path / "stale-channel"
+    other_channel_root = tmp_path / "other-channel"
+    stale_channel_root.mkdir()
+    other_channel_root.mkdir()
+
+    stale_httpd = _run_test_server(str(stale_channel_root))
+    other_httpd = _run_test_server(str(other_channel_root))
+    try:
+
+        def channel_url(httpd):
+            host, port = httpd.socket.getsockname()[:2]
+            url_host = f"[{host}]" if ":" in host else host
+            return f"http://{url_host}:{port}/"
+
+        stale_channel_url = channel_url(stale_httpd)
+        stale_channels = expand_channels(
+            [Channel(stale_channel_url)], subdirs=("osx-arm64", "noarch")
+        )
+        assert fetch_channels(stale_channels) is None
+
+        write_shards_repository(stale_channel_root)
+        write_shards_repository(other_channel_root)
+
+        other_channel_url = channel_url(other_httpd)
+        channels = expand_channels(
+            [Channel(stale_channel_url), Channel(other_channel_url)],
+            subdirs=("osx-arm64", "noarch"),
+        )
+        stale_noarch_url = next(
+            url
+            for url in channels
+            if url.startswith(stale_channel_url.rstrip("/")) and url.endswith("/noarch")
+        )
+        other_noarch_url = next(
+            url
+            for url in channels
+            if url.startswith(other_channel_url.rstrip("/")) and url.endswith("/noarch")
+        )
+
+        channel_data = fetch_channels(channels)
+
+        assert channel_data is not None
+        assert isinstance(channel_data[stale_noarch_url], Shards)
+        assert isinstance(channel_data[other_noarch_url], Shards)
+    finally:
+        stale_httpd.shutdown()
+        other_httpd.shutdown()
+
+
 @pytest.mark.integration
 def test_build_repodata_subset(prepare_shards_test: None, tmp_path):
     """
@@ -231,6 +351,126 @@ def test_build_repodata_subset(prepare_shards_test: None, tmp_path):
         "Channels:",
         ",".join(urllib.parse.urlparse(url).path[1:] for url in channel_data),
     )
+
+
+@pytest.mark.parametrize(
+    "algorithm,depth,root_package,expected_result",
+    [
+        (
+            "bfs",
+            0,
+            "bar",
+            {
+                "bar",
+            },
+        ),
+        (
+            "pipelined",
+            0,
+            "bar",
+            {
+                "bar",
+            },
+        ),
+        (
+            "bfs",
+            1,
+            "bar",
+            {
+                "bar",
+                "foo",
+            },
+        ),
+        ("pipelined", 1, "bar", {"bar", "foo"}),
+        (
+            "bfs",
+            10,
+            "foo",
+            {
+                "bar",
+                "foo",
+            },
+        ),
+        ("pipelined", 10, "foo", {"bar", "foo"}),
+    ],
+)
+def test_build_repodata_subset_with_depth(
+    http_server_shards,
+    algorithm,
+    depth,
+    root_package,
+    expected_result,
+    monkeypatch,
+    tmp_path,
+):
+    """
+    Ensure we can fetch and build a valid repodata subset for different fetch depths from our mock local server.
+    A depth of 0 should just get the root package. Depth of 1 should get just the just the first level dependencies, etc,
+    """
+    # Guarantee clean cache to avoid interference from previous tests
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    channel_data = build_repodata_subset(
+        [root_package], {channel.url() or "": channel}, algorithm=algorithm, depth=depth
+    )
+
+    record_names = []
+    for shardlike in channel_data.values():
+        record_names += [rec.get("name") for _, rec in shardlike.iter_records_v3()]
+    assert set(record_names) == expected_result
+
+
+@pytest.mark.parametrize(
+    "search_spec,should_find_results",
+    [
+        pytest.param("foo", True, id="exact_foo"),
+        pytest.param("bar", True, id="exact_bar"),
+        pytest.param("bar*", True, id="wild_bar*"),
+        pytest.param("bar 1 0_a", True, id="bar_params_match"),
+        pytest.param("bar[sha256=a]", False, id="params_nomatch"),
+        pytest.param("xyz", False, id="exact_no_match"),
+        pytest.param("*", False, id="bare *"),
+    ],
+)
+def test_query_all_sharded_search(
+    http_server_shards,
+    search_spec,
+    should_find_results,
+    monkeypatch,
+    tmp_path,
+):
+    """
+    Test that query_all can search for packages against sharded repodata.
+    """
+    from conda.core.subdir_data import query_all
+    from conda.models.match_spec import MatchSpec
+
+    # Enable shards and clean cache
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    spec = MatchSpec(search_spec)
+
+    if search_spec == "*":
+        with pytest.raises(ValueError, match="bare '*'"):
+            query_all(spec, [channel], subdirs=["noarch"])
+        return
+
+    results = query_all(spec, [channel], subdirs=["noarch"])
+
+    if should_find_results:
+        assert len(results) > 0, f"Expected to find packages for {search_spec}"
+        # Verify all results match the spec
+        for result in results:
+            assert spec.match(result), f"{result.name} doesn't match {spec}"
+    else:
+        assert len(results) == 0, (
+            f"Expected no results for {search_spec}, but found {results}"
+        )
 
 
 class TestAddPipAsPythonDependency:
@@ -338,6 +578,7 @@ def repodata_subset_size(channel_data):
     return repodata_size
 
 
+@pytest.mark.benchmark
 @pytest.mark.integration
 @pytest.mark.parametrize("cache_state", ("cold", "warm"))
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
@@ -533,7 +774,10 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
 
                 # Make sure this is either one of the two packages from above ("foo" or "bar")
                 assert set(shard.get("packages", {}).keys()).intersection(
-                    ("foo.tar.bz2", "bar.tar.bz2")
+                    (
+                        "foo.tar.bz2",
+                        "bar.tar.bz2",
+                    )
                 )
 
                 urls[url] = shard

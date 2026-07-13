@@ -63,12 +63,12 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: fda77690955e9b63c6687d8806bafd56a526e45f  # frozen: 1.20.0
+    rev: dda8db18cfc68df532abf33b185ecd12d5b7b326  # frozen: 1.20.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 5e2fb545eba1ea9dc051f6f962d52fe8f76a9794  # frozen: v0.15.13
+    rev: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56  # frozen: v0.15.20
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
@@ -111,10 +111,12 @@ repos:
           (?x)^(
             .authors.yml |
             recipe/meta.yaml |
+            .github/workflows/build.yml |
+            .github/workflows/slow-tests.yml |
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: f805888065fdb6162e1f800e50bb9460cbd223d6  # frozen: 0.37.2
+    rev: 1a4bb160cab6417b3045e1b37b6b72449243e658  # frozen: 0.37.4
     hooks:
       # verify github syntaxes
       - id: check-github-workflows

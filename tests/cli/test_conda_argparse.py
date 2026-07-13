@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib
-import sys
 from inspect import isclass, isfunction
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -20,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
 
-    from pytest import Subtests
+    from pytest import CaptureFixture, Subtests
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import CondaCLIFixture
@@ -157,7 +156,7 @@ def test_argumentparser_static_description_without_factory():
     assert parser.description == "Fixed title"
 
 
-def test_sorted_commands_in_error(capsys):
+def test_sorted_commands_in_error(capsys: CaptureFixture):
     p = ArgumentParser()
     sp = p.add_subparsers(
         metavar="COMMAND",
@@ -166,26 +165,26 @@ def test_sorted_commands_in_error(capsys):
         required=True,
     )
     # These are added in a non-alphabetical order...
-    sp.add_parser("c")
-    sp.add_parser("a")
-    sp.add_parser("b")
+    sp.add_parser("charlie")
+    sp.add_parser("alpha")
+    sp.add_parser("bravo")
     try:
-        p.parse_args(["d"])
+        p.parse_args(["delta"])
     except SystemExit:
         stderr = capsys.readouterr().err
         # ...but the suggestions here are sorted
 
-        # Linux Python 3.12.3 and possibly other 3.12 builds appear to use the
-        # quoted style:
-        old_style = "invalid choice: 'd' (choose from 'a', 'b', 'c')"
-        new_style = "invalid choice: 'd' (choose from a, b, c)"
-
-        if sys.version_info < (3, 12):
-            # FUTURE: Python 3.12+: remove this test case
-            assert old_style in stderr
-        elif sys.version_info[:2] == (3, 12):
-            assert old_style in stderr or new_style in stderr
-        else:
-            assert new_style in stderr
+        # some Pythons quote the choices:
+        #   invalid choice: 'delta' (choose from 'alpha', 'bravo', 'charlie')
+        # others don't:
+        #   invalid choice: 'delta' (choose from alpha, bravo, charlie)
+        # See https://github.com/python/cpython/pull/144983 for context
+        assert (
+            stderr.index("invalid choice:")
+            < stderr.index("delta")
+            < stderr.index("alpha")
+            < stderr.index("bravo")
+            < stderr.index("charlie")
+        )
     else:
         pytest.fail("Did not raise")

@@ -31,12 +31,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         Examples:
 
         Compare packages in the current environment with respect
-        to 'environment.yml' located in the current working directory::
+        to 'environment.yml' located in the current working directory:
 
             conda compare environment.yml
 
         Compare packages installed into the environment 'myenv' with respect
-        to 'environment.yml' in a different directory::
+        to 'environment.yml' in a different directory:
 
             conda compare -n myenv path/to/file/environment.yml
 

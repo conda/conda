@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Shortcut CUDA detection on unsupported osx-arm64 platform; warn and assume not
+  supported on `PermissionError()` as when operating in a sandbox. (#16388)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

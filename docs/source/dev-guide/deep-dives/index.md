@@ -14,4 +14,5 @@ context
 condarc
 solvers
 logging
+sharded
 ```

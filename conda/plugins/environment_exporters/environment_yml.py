@@ -33,8 +33,11 @@ def to_dict(env: Environment) -> dict[str, Any]:
     This represents the common dictionary structure that both YAML and JSON
     environment formats use.
 
-    :param env: Environment model to convert
-    :return: Dictionary with standard environment fields
+    Args:
+        env: Environment model to convert
+
+    Returns:
+        Dictionary with standard environment fields
     """
     env_dict = {"name": env.name}
 

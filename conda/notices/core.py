@@ -128,6 +128,12 @@ def notices(func):
 
             if channel_notice_set is not None:
                 try:
+                    # Load display deps before the command: upgrading/downgrading base
+                    # python rewrites site-packages under the running interpreter, so
+                    # display_notices() must not be the first import of views.
+                    # see https://github.com/conda/conda/issues/16126
+                    from . import cache, views  # noqa: F401
+
                     return_value = func(*args, **kwargs)
                     display_notices(channel_notice_set)
 

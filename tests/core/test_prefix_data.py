@@ -16,6 +16,7 @@ import pytest
 
 from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
 from conda.common.compat import on_win
+from conda.common.path.python import get_python_site_packages_short_path
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
 from conda.exceptions import CondaError, CondaValueError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
@@ -290,6 +291,47 @@ def test_pip_interop(
     assert set(records) == expected_output
 
 
+def test_pypi_loader_removes_clobbered_record_json_by_prefix_record_name(
+    empty_env: Path, mocker: MockerFixture
+) -> None:
+    rm_rf = mocker.patch("conda.plugins.prefix_data_loaders.pypi.rm_rf")
+    site_packages_path = get_python_site_packages_short_path("3.11")
+    site_packages = empty_env / site_packages_path
+    site_packages.mkdir(parents=True)
+    records = {
+        "python": PrefixRecord(
+            name="python",
+            version="3.11.0",
+            build="h123_0",
+            build_number=0,
+            channel="conda-forge",
+            subdir="osx-arm64",
+            fn="python-3.11.0-h123_0.conda",
+            files=(),
+        ),
+        "pyqplot": PrefixRecord(
+            name="pyqplot",
+            version="0.7.2",
+            build="py3_none_any_0",
+            build_number=0,
+            channel="conda-pypi",
+            subdir="noarch",
+            fn="pyqplot-0.7.2-py3-none-any.whl",
+            url="https://pypi.org/pyqplot-0.7.2-py3-none-any.whl",
+            package_type=PackageType.VIRTUAL_PYTHON_WHEEL,
+            files=(f"{site_packages_path}/pyqplot-0.7.2.dist-info/RECORD",),
+            depends=("python >=3.11",),
+        ),
+    }
+
+    load_site_packages(empty_env, records)
+
+    assert "pyqplot" not in records
+    rm_rf.assert_called_once_with(
+        empty_env / "conda-meta" / "pyqplot-0.7.2-py3_none_any_0.json"
+    )
+
+
 def test_get_conda_anchor_files_and_records():
     @dataclass
     class DummyPythonRecord:
@@ -464,6 +506,35 @@ def test_no_tokens_dumped(empty_env: Path, remove_auth: bool):
         assert "/t/<TOKEN>/" in json_content
     else:
         assert "/t/some-fake-token/" in json_content
+
+
+def test_insert_wheel_style_fn_uses_name_version_build(empty_env: Path) -> None:
+    pkg_record = record(
+        name="pyqplot",
+        version="0.7.2",
+        build="py3_none_any_0",
+        build_number=0,
+        channel="conda-pypi",
+        fn="pyqplot-0.7.2-py3-none-any.whl",
+        url="https://pypi.org/pyqplot-0.7.2-py3-none-any.whl",
+        package_type=PackageType.VIRTUAL_PYTHON_WHEEL,
+    )
+
+    prefix_data = PrefixData(empty_env)
+    prefix_data.insert(pkg_record)
+
+    conda_meta_dir = empty_env / "conda-meta"
+    conda_meta_file = conda_meta_dir / "pyqplot-0.7.2-py3_none_any_0.json"
+    assert conda_meta_file.is_file()
+    assert not (conda_meta_dir / "pyqplot-0.7.2-py3-none-any.json").exists()
+
+    prefix_data.load()
+    reloaded = prefix_data.get("pyqplot")
+    assert reloaded.version == "0.7.2"
+    assert reloaded.build == "py3_none_any_0"
+
+    prefix_data.remove("pyqplot")
+    assert not conda_meta_file.exists()
 
 
 @pytest.mark.parametrize(

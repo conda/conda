@@ -4,12 +4,13 @@
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 from abc import ABC, abstractmethod
 from itertools import chain
 from logging import getLogger
-from os.path import basename, dirname, getsize, isdir, isfile, join
+from os.path import basename, dirname, getsize, isdir, isfile, join, normpath
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -101,14 +102,14 @@ class Action(ABC):
         4. ``cleanup``
 
 
-    :param transaction_context: Mapping between target prefixes and PrefixActionGroup
-        instances
-    :param target_prefix: Target prefix for the action
-    :param unlink_precs: Package records to be unlinked
-    :param link_precs: Package records to link
-    :param remove_specs: Specs to be removed
-    :param update_specs: Specs to be updated
-    :param neutered_specs: Specs to be neutered
+    Args:
+        transaction_context: Mapping between target prefixes and PrefixActionGroup instances.
+        target_prefix: Target prefix for the action.
+        unlink_precs: Package records to be unlinked.
+        link_precs: Package records to link.
+        remove_specs: Specs to be removed.
+        update_specs: Specs to be updated.
+        neutered_specs: Specs to be neutered.
     """
 
     _verified = False
@@ -137,9 +138,10 @@ class Action(ABC):
 
         Should set self._verified = True upon success.
 
-        :return: On failure, this function should return (not raise!) an exception
-        object. At the end of the verification run, all errors will be raised as a
-        CondaMultiError.
+        Returns:
+            On failure, this function should return (not raise!) an exception
+            object. At the end of the verification run, all errors will be raised as a
+            CondaMultiError.
         """
 
     @abstractmethod
@@ -372,6 +374,10 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_short_path = WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = f"Scripts/{command}.exe"
+        if not normpath(target_short_path).startswith("Scripts" + os.sep):
+            raise ValueError(
+                "target_short_path must point to Scripts/: " + target_short_path
+            )
         source_path_data = PathDataV1(
             _path=target_short_path,
             path_type=PathEnum.windows_python_entry_point_exe,
@@ -832,6 +838,10 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
                 target_short_path = f"{BIN_DIRECTORY}/{command}"
+                if not normpath(target_short_path).startswith(BIN_DIRECTORY + os.sep):
+                    raise ValueError(
+                        f"target_short_path must point to {BIN_DIRECTORY}: {target_short_path!r}"
+                    )
                 if on_win:
                     target_short_path += "-script.py"
                 return target_short_path, module, func

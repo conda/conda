@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from subprocess import Popen
     from typing import Any
 
+    from ._private.exception_guidance import ErrorGuidance, ErrorGuidanceTypedDict
+
 try:
     from ._version import __version__
 except ImportError:
@@ -73,16 +75,40 @@ class CondaError(Exception):
     return_code: int = 1
     reportable: bool = False  # Exception may be reported to core maintainers
 
-    def __init__(self, message: str | None, caused_by: Any = None, **kwargs):
+    def __init__(
+        self,
+        message: str | None,
+        caused_by: Any = None,
+        *,
+        guidance: ErrorGuidance | ErrorGuidanceTypedDict | None = None,
+        **kwargs,
+    ):
         self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
+        self._guidance = None
+        if guidance:
+            from ._private.exception_guidance import ErrorGuidance
+
+            self._guidance = ErrorGuidance.coerce(guidance)
         super().__init__(message)
+
+    @property
+    def guidance(self) -> ErrorGuidance | None:
+        """Structured guidance for this exception, if provided.
+
+        Returns an :class:`ErrorGuidance` instance or ``None``.  The result is
+        always the canonical type after dict coercion; callers do not need to
+        handle raw dicts.
+        """
+        return self._guidance
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: {self}"
 
     def __str__(self) -> str:
+        if not self._kwargs:
+            return str(self.message)
         try:
             return str(self.message) % self._kwargs
         except Exception:
@@ -109,6 +135,8 @@ class CondaError(Exception):
             caused_by=repr(self._caused_by),
             **self._kwargs,
         )
+        if self._guidance is not None:
+            result["guidance"] = self._guidance.__json__()
         return result
 
 

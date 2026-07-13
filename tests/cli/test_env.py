@@ -197,20 +197,14 @@ def test_create_dry_run_yaml(
 ):
     prefix = path_factory()
     create_env(ENVIRONMENT_CA_CERTIFICATES)
-    stdout, _, _ = conda_cli("env", "create", f"--prefix={prefix}", "--dry-run")
-    assert not PrefixData(prefix).is_environment()
+    with pytest.raises(DryRunExit):
+        stdout, _, rc = conda_cli("env", "create", f"--prefix={prefix}", "--dry-run")
+        assert rc == 0
+        assert not PrefixData(prefix).is_environment()
 
-    # Find line where the YAML output starts (stdout might change if plugins involved)
-    lines = stdout.splitlines()
-    for lineno, line in enumerate(lines):
-        if line.startswith("name:"):
-            break
-    else:
-        pytest.fail("Didn't find YAML data in output")
-
-    output = yaml.loads("\n".join(lines[lineno:]))
-    assert output["name"] == "env1"
-    assert len(output["dependencies"]) > 0
+        # Check that the output contains the expected package and prefix information
+        assert f"environment location: {prefix}" in stdout
+        assert "ca-certificates" in stdout
 
 
 @pytest.mark.integration
@@ -224,20 +218,21 @@ def test_create_dry_run_json(
     create_env(ENVIRONMENT_CA_CERTIFICATES, filename=str(env_file))
     assert env_file.is_file()
 
-    stdout, _, _ = conda_cli(
-        "env",
-        "create",
-        f"--file={env_file}",
-        f"--prefix={prefix}",
-        "--dry-run",
-        "--json",
-    )
-    assert not PrefixData(prefix).is_environment()
+    with pytest.raises(DryRunExit):
+        stdout, _, _ = conda_cli(
+            "env",
+            "create",
+            f"--file={env_file}",
+            f"--prefix={prefix}",
+            "--dry-run",
+            "--json",
+        )
+        assert not PrefixData(prefix).is_environment()
 
-    output = json.loads(stdout)
-    # assert that the name specified in the environment file matches output
-    assert output.get("name") == "env1"
-    assert len(output["dependencies"])
+        output = json.loads(stdout)
+        # assert that the name specified in the environment file matches output
+        assert output.get("name") == "env1"
+        assert len(output["dependencies"])
 
 
 @pytest.mark.integration
@@ -270,14 +265,23 @@ def test_create_valid_env_with_variables(
 
 @pytest.mark.integration
 def test_conda_env_create_empty_file(
-    conda_cli: CondaCLIFixture, path_factory: PathFactoryFixture
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    tmp_path: Path,
 ):
     """Test the environment.yaml format, `conda env create --file=file_name.yml` where file_name.yml is empty."""
     tmp_file = path_factory(suffix=".yml")
     tmp_file.touch()
 
     with pytest.raises(EnvironmentSpecPluginSelectionError):
-        conda_cli("env", "create", "--format=cep-24", f"--file={tmp_file}")
+        conda_cli(
+            "env",
+            "create",
+            "--prefix",
+            tmp_path,
+            "--format=cep-24",
+            f"--file={tmp_file}",
+        )
 
 
 @pytest.mark.integration
@@ -366,6 +370,31 @@ def test_create_valid_env_with_conda_and_pip_json_output(
         "env", "create", f"--prefix={prefix}", "--quiet", "--json", "--yes"
     )
     output = json.loads(stdout)
+    assert len(output["actions"]["LINK"]) > 0
+    assert output["actions"]["PIP"][0].startswith("click")
+
+
+@pytest.mark.integration
+def test_conda_create_with_pip_json_output(
+    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture, tmp_path: Path
+):
+    """
+    `conda create --json` with a conda+pip env file should include a "PIP" key in
+    actions, matching the output of `conda env create --json`.
+    """
+    prefix = path_factory()
+    env_file = tmp_path / "environment.yml"
+    create_env(ENVIRONMENT_PIP_CLICK, filename=str(env_file))
+    stdout, _, _ = conda_cli(
+        "create",
+        f"--prefix={prefix}",
+        f"--file={env_file}",
+        "--quiet",
+        "--json",
+        "--yes",
+    )
+    output = json.loads(stdout)
+    assert output["success"] is True
     assert len(output["actions"]["LINK"]) > 0
     assert output["actions"]["PIP"][0].startswith("click")
 

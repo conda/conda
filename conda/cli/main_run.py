@@ -22,12 +22,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     description = summary
     epilog = dals(
         """
-        Example::
+        Example:
 
         $ conda create -y -n my-python-env python=3
         $ conda run -n my-python-env python --version
 
-        Use '--' to separate `conda run`'s options from the executable's options::
+        Use '--' to separate `conda run`'s options from the executable's options:
 
         $ conda run -n my-python-env -- python -v
         $ conda run -v -n my-python-env -- tar -tvf file.tar

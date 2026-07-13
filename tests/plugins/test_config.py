@@ -9,6 +9,7 @@ from pathlib import Path
 from conda.auxlib.ish import dals
 from conda.common.configuration import (
     Configuration,
+    EnvRawParameter,
 )
 from conda.plugins.config import PluginConfig
 
@@ -51,23 +52,29 @@ def test_plugin_config_data_env_var_source():
     Test environment variable source of plugin configuration values
     """
     raw_data = {
-        "envvars": {
-            "plugins_option_one": {"_raw_value": "value_one"},
-            "plugins_option_two": {"_raw_value": "value_two"},
+        EnvRawParameter.source: {
+            "plugins_option_one": EnvRawParameter(
+                EnvRawParameter.source, "plugins_option_one", "value_one"
+            ),
+            "plugins_option_two": EnvRawParameter(
+                EnvRawParameter.source, "plugins_option_two", "value_two"
+            ),
         }
     }
 
     plugin_config_data = PluginConfig(raw_data).raw_data
 
-    assert plugin_config_data.get("envvars") is not None
+    assert plugin_config_data.get(EnvRawParameter.source) is not None
 
-    option_one = plugin_config_data.get("envvars").get("option_one")
+    option_one = plugin_config_data.get(EnvRawParameter.source).get("option_one")
     assert option_one is not None
-    assert option_one.get("_raw_value") == "value_one"
+    assert option_one.key == "option_one"
+    assert option_one.value(None) == "value_one"
 
-    option_two = plugin_config_data.get("envvars").get("option_two")
+    option_two = plugin_config_data.get(EnvRawParameter.source).get("option_two")
     assert option_two is not None
-    assert option_two.get("_raw_value") == "value_two"
+    assert option_two.key == "option_two"
+    assert option_two.value(None) == "value_two"
 
 
 def test_plugin_config_data_skip_bad_values():
