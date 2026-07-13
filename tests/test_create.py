@@ -1131,24 +1131,18 @@ def test_channel_usage_replacing_python(
             "--yes",
         )
         PrefixData._cache_.clear()
-        if context.solver == "rattler":
-            # Rattler adjustment: channels change more than expected
-            assert (prec := package_is_installed(prefix, PYTHON_SPEC))
-            assert package_is_installed(prefix, "decorator")
-        else:
-            assert (prec := package_is_installed(prefix, f"conda-forge::{PYTHON_SPEC}"))
-            assert package_is_installed(prefix, "main::decorator")
+        assert package_is_installed(prefix, f"conda-forge::{PYTHON_SPEC}")
+        assert package_is_installed(prefix, "main::decorator")
 
-        with tmp_env(f"--clone={prefix}") as clone:
-            if context.solver == "rattler":
-                # Rattler adjustment: channels change more than expected
-                assert package_is_installed(clone, PYTHON_SPEC)
-                assert package_is_installed(clone, "decorator")
-            else:
-                assert package_is_installed(clone, f"conda-forge::{PYTHON_SPEC}")
-                assert package_is_installed(clone, "main::decorator")
 
-        # Regression test for #2645
+def test_clone_env_missing_channel_metadata(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+):
+    # Regression test for #2645
+    with tmp_env("small-executable") as prefix:
+        assert package_is_installed(prefix, "small-executable")
+        prec = package_is_installed(prefix, "small-executable")
         fn = prefix / "conda-meta" / f"{prec.name}-{prec.version}-{prec.build}.json"
         data = {
             field: value
@@ -1158,14 +1152,8 @@ def test_channel_usage_replacing_python(
         fn.write_text(json.dumps(data))
         PrefixData._cache_.clear()
 
-        with tmp_env("--channel=conda-forge", f"--clone={prefix}") as clone:
-            if context.solver == "rattler":
-                # Rattler adjustment: channels change more than expected
-                assert package_is_installed(clone, PYTHON_SPEC)
-                assert package_is_installed(clone, "decorator")
-            else:
-                assert package_is_installed(clone, f"conda-forge::{PYTHON_SPEC}")
-                assert package_is_installed(clone, "main::decorator")
+        with tmp_env(f"--clone={prefix}") as clone:
+            assert package_is_installed(clone, "small-executable")
 
 
 def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
