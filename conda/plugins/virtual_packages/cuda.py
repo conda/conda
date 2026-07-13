@@ -10,7 +10,9 @@ import platform
 import warnings
 from typing import TYPE_CHECKING
 
-from conda._private.cuda import cuda_driver_version_detector_target
+from conda._private.cuda import (
+    cuda_driver_version_detector_target as _cuda_driver_version_detector_target,
+)
 
 from ...auxlib import NULL
 from .. import hookimpl
@@ -58,7 +60,7 @@ def cuda_version():
 
     # Spawn a subprocess to detect the CUDA version
     detector = context.Process(
-        target=cuda_driver_version_detector_target,
+        target=_cuda_driver_version_detector_target,
         args=(queue,),
         name="CUDA driver version detector",
         daemon=True,
