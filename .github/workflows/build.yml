@@ -1,4 +1,4 @@
-# edit this in https://github.com/conda/infrastructure/blob/main/templates/workflows/build.yml
+# edit this in https://github.com/conda/infrastructure
 
 name: Canary Builds
 
@@ -17,7 +17,7 @@ on:
   # Build canaries after a successful test workflow run on main or feature/* branches.
   workflow_run:
     workflows:
-      - Tests
+      - 'Tests'
     types:
       - completed
 
@@ -82,6 +82,7 @@ jobs:
     strategy:
       matrix:
         include:
+          # template-files-if
           - runs-on: ubuntu-latest
             subdir: linux-64
           - runs-on: ubuntu-24.04-arm
@@ -90,6 +91,7 @@ jobs:
             subdir: osx-arm64
           - runs-on: windows-latest
             subdir: win-64
+          # template-files-endif
     runs-on: ${{ matrix.runs-on }}
     steps:
       # Clean checkout of specific git ref needed for package metadata version
@@ -103,7 +105,7 @@ jobs:
 
       # Explicitly use Python 3.11 since each of the OSes has a different default Python
       - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.11'
 

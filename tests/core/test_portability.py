@@ -2,15 +2,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
 import re
+import subprocess
 
 import pytest
 
 from conda.auxlib.ish import dals
 from conda.base.constants import PREFIX_PLACEHOLDER
-from conda.common.compat import on_win
+from conda.common.compat import on_mac, on_win
 from conda.core.portability import (
     MAX_SHEBANG_LENGTH,
     SHEBANG_REGEX,
+    batch_codesign_calls,
     generate_shebang_for_entry_point,
     replace_long_shebang,
     update_prefix,
@@ -239,3 +241,65 @@ def test_escaped_prefix_replaced_only_shebang(tmp_path):
                 assert line.startswith("#!/usr/bin/env python")
             elif i == 1:
                 assert new_prefix in line
+
+
+@pytest.mark.skipif(not on_mac, reason="codesign is macOS-only")
+def test_update_prefix_batches_osx_arm64_codesign(tmp_path, mocker):
+    placeholder = "/some-placeholder"
+    new_prefix = "/usr/local"
+
+    def write_binary(name):
+        path = tmp_path / name
+        path.write_bytes(b"\x7fMach-O.../some-placeholder/bin/tool\0")
+        return path
+
+    codesign = mocker.patch("conda.core.portability.subprocess.run")
+    direct = write_binary("direct")
+
+    update_prefix(
+        direct,
+        new_prefix,
+        placeholder=placeholder,
+        mode=FileMode.binary,
+        subdir="osx-arm64",
+    )
+
+    codesign.assert_called_once_with(
+        ["/usr/bin/codesign", "-s", "-", "-f", os.path.realpath(direct)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    codesign.reset_mock()
+    first = write_binary("first")
+    second = write_binary("second")
+
+    with batch_codesign_calls():
+        update_prefix(
+            first,
+            new_prefix,
+            placeholder=placeholder,
+            mode=FileMode.binary,
+            subdir="osx-arm64",
+        )
+        update_prefix(
+            second,
+            new_prefix,
+            placeholder=placeholder,
+            mode=FileMode.binary,
+            subdir="osx-arm64",
+        )
+        codesign.assert_not_called()
+
+    codesign.assert_called_once_with(
+        [
+            "/usr/bin/codesign",
+            "-s",
+            "-",
+            "-f",
+            os.path.realpath(first),
+            os.path.realpath(second),
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )

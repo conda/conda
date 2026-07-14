@@ -483,7 +483,7 @@ class ReducedIndex(Index):
             Add a package name or track feature from a MatchSpec to the pending set.
 
             Args:
-                spec: The MatchSpec to process.
+                *specs: The MatchSpecs to process.
             """
             for spec in map(MatchSpec, specs):
                 name = spec.get_raw_value("name")
@@ -497,10 +497,10 @@ class ReducedIndex(Index):
 
         def push_records(*records: PackageRecord) -> None:
             """
-            Process a package record to collect its dependencies and features.
+            Process package records to collect their dependencies and features.
 
             Args:
-                record: The package record to process.
+                *records: The package records to process.
             """
             for record in records:
                 try:
