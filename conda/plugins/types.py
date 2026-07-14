@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, overload
 
 from requests.auth import AuthBase  # noqa: TID253
 
+from .._private.exception_guidance import GuidanceHint as _GuidanceHint
 from ..auxlib import NULL
 from ..auxlib.type_coercion import maybecall
 from ..base.constants import APP_NAME
@@ -592,6 +593,23 @@ class CondaRequestHeader(CondaPlugin):
 
     name: str
     value: str
+
+
+@dataclass(frozen=True)
+class CondaErrorHint(_GuidanceHint):
+    """
+    Return type to use when defining a conda error hints plugin hook.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_error_hints`.
+
+    Args:
+        text: Human-readable description of the action to take.
+        hint_code: Stable machine-readable identifier. Use snake_case.
+    """
+
+    text: str
+    hint_code: str
 
 
 @dataclass
