@@ -148,6 +148,40 @@ def test_generate_shebang_preserves_build_prefix(
     )
 
 
+def test_generate_shebang_does_not_preserve_non_placeholder_long_build_prefix(
+    monkeypatch,
+    tmp_path,
+):
+    build_prefix = tmp_path / ("build_prefix" * 40)
+    executable = build_prefix / "bin" / "python"
+    assert len(f"#!{executable}\n") > MAX_SHEBANG_LENGTH
+
+    monkeypatch.setenv("CONDA_BUILD", "1")
+    monkeypatch.setenv("PREFIX", str(build_prefix))
+
+    assert (
+        generate_shebang_for_entry_point(str(executable), with_usr_bin_env=True)
+        == "#!/usr/bin/env python\n"
+    )
+
+
+def test_generate_shebang_does_not_preserve_non_placeholder_spaced_build_prefix(
+    monkeypatch,
+    tmp_path,
+):
+    build_prefix = tmp_path / "build prefix with spaces"
+    executable = build_prefix / "bin" / "python"
+    assert " " in str(executable)
+
+    monkeypatch.setenv("CONDA_BUILD", "1")
+    monkeypatch.setenv("PREFIX", str(build_prefix))
+
+    assert (
+        generate_shebang_for_entry_point(str(executable), with_usr_bin_env=True)
+        == "#!/usr/bin/env python\n"
+    )
+
+
 def test_generate_shebang_does_not_preserve_outside_build_prefix(
     monkeypatch,
     tmp_path,
