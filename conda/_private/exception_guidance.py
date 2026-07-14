@@ -92,7 +92,7 @@ class ErrorGuidance:
         hints = tuple(hints)
         if not hints:
             return self
-        guidance = ErrorGuidance.from_hints((*self.hints, *hints))
+        guidance = self.from_hints((*self.hints, *hints))
         if guidance is None or guidance.hints == self.hints:
             return self
         return replace(self, hints=guidance.hints)
