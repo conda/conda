@@ -36,14 +36,6 @@ from .path import expand
 
 log = getLogger(__name__)
 
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "IS_INTERACTIVE",
-    hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
-    addendum="Use `conda.common.terminal.is_tty()` instead.",
-)
-
 
 class DeltaSecondsFormatter(Formatter):
     """
@@ -577,6 +569,15 @@ def __getattr__(name: str):
         _load_concurrency()
         return globals()[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "IS_INTERACTIVE",
+    hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
+    addendum="Use `conda.common.terminal.is_tty()` instead.",
+)
 
 
 def get_instrumentation_record_file() -> str:
