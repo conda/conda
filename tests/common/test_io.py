@@ -5,11 +5,13 @@ from __future__ import annotations
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from io import StringIO
 from logging import DEBUG, NOTSET, WARN, getLogger
 
 import pytest
 
+from conda.common import io
 from conda.common.io import (
     CaptureTarget,
     ThreadLimitedThreadPoolExecutor,
@@ -129,3 +131,15 @@ def test_thread_limited_executor_handles_thread_limit(
                 _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
         else:
             _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("IS_INTERACTIVE", TypeError),
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(), raises_context:
+        getattr(io, function)()
