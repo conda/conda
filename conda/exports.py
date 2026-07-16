@@ -35,7 +35,7 @@ from .core.index import (
 )
 from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
-from .core.solve import Solver  # noqa: F401
+from .core.solve import Solver
 from .core.subdir_data import cache_fn_url  # noqa: F401
 from .deprecations import deprecated
 from .exceptions import (
@@ -275,6 +275,15 @@ deprecated.constant(
     addendum="Use `conda.exceptions.UnsatisfiableError` instead.",
 )
 del UnsatisfiableError
+
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "Solver",
+    Solver,
+    addendum="Use `conda.core.solve.Solver` instead.",
+)
+del Solver
 
 
 def get_default_urls():

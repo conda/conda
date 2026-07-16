@@ -36,7 +36,6 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..reporters import get_spinner
-from ..resolve import Resolve
 from .index import Index, ReducedIndex
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -51,11 +50,12 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from ..models.records import PackageRecord
+    from ..resolve import Resolve
 
 log = getLogger(__name__)
 
 
-class Solver:
+class BaseSolver:
     """
     A high-level API to conda's solving logic. Three public methods are provided to access a
     solution in various forms.
@@ -253,6 +253,72 @@ class Solver:
 
         return unlink_precs, link_precs
 
+    def solve_final_state(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        should_retry_solve=False,
+    ) -> tuple[PackageRecord, ...]:
+        """Gives the final, solved state of the environment."""
+        raise NotImplementedError
+
+    def _notify_conda_outdated(self, link_precs):
+        if not context.notify_outdated_conda or context.quiet:
+            return
+        current_conda_prefix_rec = PrefixData(context.conda_prefix).get("conda", None)
+        if current_conda_prefix_rec:
+            channel_name = current_conda_prefix_rec.channel.canonical_name
+            if channel_name == UNKNOWN_CHANNEL:
+                channel_name = "defaults"
+
+            # only look for a newer conda in the channel conda is currently installed from
+            conda_newer_spec = MatchSpec(f"{channel_name}::conda>{CONDA_VERSION}")
+
+            if paths_equal(self.prefix, context.conda_prefix):
+                if any(conda_newer_spec.match(prec) for prec in link_precs):
+                    return
+
+            conda_newer_precs = sorted(
+                SubdirData.query_all(
+                    conda_newer_spec,
+                    self.channels,
+                    self.subdirs,
+                    repodata_fn=self._repodata_fn,
+                ),
+                key=lambda x: VersionOrder(x.version),
+                # VersionOrder is fine here rather than r.version_key because all precs
+                # should come from the same channel
+            )
+            if conda_newer_precs:
+                latest_version = conda_newer_precs[-1].version
+                # If conda comes from defaults, ensure we're giving instructions to users
+                # that should resolve release timing issues between defaults and conda-forge.
+                print(
+                    dedent(
+                        f"""
+
+                        ==> WARNING: A newer version of conda exists. <==
+                        current version: {CONDA_VERSION}
+                        latest version: {latest_version}
+
+                        Please update conda by running
+
+                            $ conda update -n base -c {channel_name} conda
+
+                        Or to minimize the number of packages updated during conda update use
+
+                            conda install conda={latest_version}
+
+                        """
+                    ),
+                    file=sys.stderr,
+                )
+
+
+class Solver(BaseSolver):
     def solve_final_state(
         self,
         update_modifier=NULL,
@@ -1228,61 +1294,10 @@ class Solver:
 
         return ssc
 
-    def _notify_conda_outdated(self, link_precs):
-        if not context.notify_outdated_conda or context.quiet:
-            return
-        current_conda_prefix_rec = PrefixData(context.conda_prefix).get("conda", None)
-        if current_conda_prefix_rec:
-            channel_name = current_conda_prefix_rec.channel.canonical_name
-            if channel_name == UNKNOWN_CHANNEL:
-                channel_name = "defaults"
-
-            # only look for a newer conda in the channel conda is currently installed from
-            conda_newer_spec = MatchSpec(f"{channel_name}::conda>{CONDA_VERSION}")
-
-            if paths_equal(self.prefix, context.conda_prefix):
-                if any(conda_newer_spec.match(prec) for prec in link_precs):
-                    return
-
-            conda_newer_precs = sorted(
-                SubdirData.query_all(
-                    conda_newer_spec,
-                    self.channels,
-                    self.subdirs,
-                    repodata_fn=self._repodata_fn,
-                ),
-                key=lambda x: VersionOrder(x.version),
-                # VersionOrder is fine here rather than r.version_key because all precs
-                # should come from the same channel
-            )
-            if conda_newer_precs:
-                latest_version = conda_newer_precs[-1].version
-                # If conda comes from defaults, ensure we're giving instructions to users
-                # that should resolve release timing issues between defaults and conda-forge.
-                print(
-                    dedent(
-                        f"""
-
-                ==> WARNING: A newer version of conda exists. <==
-                  current version: {CONDA_VERSION}
-                  latest version: {latest_version}
-
-                Please update conda by running
-
-                    $ conda update -n base -c {channel_name} conda
-
-                Or to minimize the number of packages updated during conda update use
-
-                     conda install conda={latest_version}
-
-                """
-                    ),
-                    file=sys.stderr,
-                )
-
     def _prepare(self, prepared_specs) -> tuple[ReducedIndex, Resolve]:
         # All of this _prepare() method is hidden away down here. Someday we may want to further
         # abstract away the use of `index` or the Resolve object.
+        from ..resolve import Resolve
 
         if self._prepared and prepared_specs == self._prepared_specs:
             return self._index, self._r
