@@ -2,10 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
-
-import pytest
 
 from conda.base.context import context
 from conda.exceptions import EnvironmentLocationNotFound
@@ -37,18 +34,14 @@ def test_conda_doctor_happy_path_verbose(conda_cli: CondaCLIFixture):
 
 def test_conda_doctor_happy_path_show_help(conda_cli: CondaCLIFixture):
     """Make sure that we are able to run ``conda doctor`` command with the --help flag"""
-    with pytest.raises(SystemExit, match="0"):  # 0 is the return code ¯\_(ツ)_/¯
-        conda_cli("doctor", "--help")
+    out, err, exc = conda_cli("doctor", "--help", raises=SystemExit)
 
-
-def test_conda_doctor_help_shows_override_frozen(conda_cli: CondaCLIFixture):
-    with pytest.raises(SystemExit, match="0"):
-        conda_cli("doctor", "--help")
-
-    out, err = conda_cli.capsys.readouterr()
-
+    assert "conda doctor" in out
     assert "--override-frozen" in out
+    assert "--list" in out
+    assert "--fix, --heal" in out
     assert not err
+    assert exc.value.code == 0
 
 
 def test_conda_doctor_with_test_environment(
@@ -58,7 +51,7 @@ def test_conda_doctor_with_test_environment(
     """Make sure that we are able to call ``conda doctor`` command for a specific environment"""
 
     with tmp_env() as prefix:
-        out, err, code = conda_cli("doctor", "--prefix", prefix)
+        out, err, code = conda_cli("doctor", f"--prefix={prefix}")
 
         assert "There are no packages with missing files." in out
         assert not err  # no error message
@@ -68,15 +61,14 @@ def test_conda_doctor_with_test_environment(
 def test_conda_doctor_with_non_existent_environment(conda_cli: CondaCLIFixture):
     """Make sure that ``conda doctor`` detects a non existent environment path"""
     # with pytest.raises(EnvironmentLocationNotFound):
-    out, err, exception = conda_cli(
+    out, err, exc = conda_cli(
         "doctor",
-        "--prefix",
-        Path("non/existent/path"),
+        "--prefix=non/existent/path",
         raises=EnvironmentLocationNotFound,
     )
     assert not out
     assert not err  # no error message
-    assert exception
+    assert exc
 
 
 def test_conda_doctor_list(conda_cli: CondaCLIFixture):
@@ -95,7 +87,7 @@ def test_conda_doctor_specific_check(
 ):
     """Make sure we can run a specific health check by id."""
     with tmp_env() as prefix:
-        out, err, code = conda_cli("doctor", "missing-files", "--prefix", prefix)
+        out, err, code = conda_cli("doctor", "missing-files", f"--prefix={prefix}")
 
         assert "There are no packages with missing files." in out
         # Should NOT run other checks like altered files
@@ -113,13 +105,7 @@ def test_conda_doctor_fix_dry_run(
 ):
     """Make sure --fix --dry-run doesn't make actual changes."""
     with tmp_env() as prefix:
-        out, err, code = conda_cli(
-            "doctor",
-            "--fix",
-            "--dry-run",
-            "--prefix",
-            prefix,
-        )
+        out, err, code = conda_cli("doctor", "--fix", "--dry-run", f"--prefix={prefix}")
         # Dry run triggers DryRunExit which results in exit code 1
         # The important thing is that no actual changes are made
         assert "Running fixes" in out
@@ -137,8 +123,7 @@ def test_conda_doctor_fix_yes(
             "doctor",
             "--fix",
             "--yes",
-            "--prefix",
-            prefix,
+            f"--prefix={prefix}",
         )
         # Should complete without prompting
         assert not err
@@ -170,8 +155,7 @@ def test_conda_doctor_fix_accepts_override_frozen(
         "missing-files",
         "--fix",
         "--yes",
-        "--prefix",
-        env_missing_files.prefix,
+        f"--prefix={env_missing_files.prefix}",
         "--override-frozen",
     )
 
