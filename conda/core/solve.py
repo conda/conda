@@ -268,7 +268,8 @@ class BaseSolver:
     def _notify_conda_outdated(self, link_precs):
         if not context.notify_outdated_conda or context.quiet:
             return
-        current_conda_prefix_rec = PrefixData(context.conda_prefix).get("conda", None)
+        conda_prefix_data = PrefixData(context.conda_prefix)
+        current_conda_prefix_rec = conda_prefix_data.get("conda", None)
         if current_conda_prefix_rec:
             channel_name = current_conda_prefix_rec.channel.canonical_name
             if channel_name == UNKNOWN_CHANNEL:
@@ -296,6 +297,14 @@ class BaseSolver:
                 latest_version = conda_newer_precs[-1].version
                 # If conda comes from defaults, ensure we're giving instructions to users
                 # that should resolve release timing issues between defaults and conda-forge.
+                if conda_prefix_data.get("conda-self", None):
+                    conda_update_message = "conda self update"
+                else:
+                    conda_update_message = (
+                        f"conda update -n base -c {channel_name} conda"
+                    )
+                    if conda_prefix_data.is_frozen():
+                        conda_update_message += " --override-frozen"
                 print(
                     dedent(
                         f"""
@@ -306,11 +315,7 @@ class BaseSolver:
 
                         Please update conda by running
 
-                            $ conda update -n base -c {channel_name} conda
-
-                        Or to minimize the number of packages updated during conda update use
-
-                            conda install conda={latest_version}
+                            $ {conda_update_message}
 
                         """
                     ),

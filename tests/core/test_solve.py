@@ -47,7 +47,7 @@ from conda.testing.helpers import (
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
-    from pytest import MonkeyPatch
+    from pytest import CaptureFixture, MonkeyPatch
     from pytest_benchmark.fixture import BenchmarkFixture
     from pytest_mock import MockerFixture
 
@@ -4061,3 +4061,87 @@ def test_no_channels_error(tmpdir, mocker: MockerFixture):
     assert "No channels are configured" in error_message
     assert "numpy" in error_message
     assert "conda config --append channels" in error_message
+
+
+def _make_conda_prefix_rec(name, version, channel="test"):
+    return PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC,
+        name=name,
+        version=version,
+        channel=channel,
+        subdir="noarch",
+        fn=f"{name}-{version}",
+        build="0",
+        build_number=0,
+        paths_data=None,
+        files=None,
+        depends=[],
+        constrains=[],
+    )
+
+
+@pytest.mark.parametrize(
+    "has_conda_self,is_frozen,expected,unexpected",
+    [
+        pytest.param(
+            True,
+            False,
+            "conda self update",
+            "conda update -n base",
+            id="has_conda_self",
+        ),
+        pytest.param(
+            True,
+            True,
+            "conda self update",
+            "--override-frozen",
+            id="has_conda_self, override-frozen",
+        ),
+        pytest.param(
+            False,
+            False,
+            "conda update -n base -c test conda",
+            "--override-frozen",
+            id="no_conda_self",
+        ),
+        pytest.param(
+            False, True, "--override-frozen", "conda self update", id="frozen"
+        ),
+    ],
+)
+def test_notify_conda_outdated_update_message(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    has_conda_self: bool,
+    is_frozen: bool,
+    expected: str,
+    unexpected: str,
+):
+    monkeypatch.setenv("CONDA_NOTIFY_OUTDATED_CONDA", "true")
+    monkeypatch.setenv("CONDA_QUIET", "false")
+    reset_context()
+
+    # Setup prefix data to return the current conda and conda-self records, and to indicate whether the environment is frozen
+    current_conda = _make_conda_prefix_rec("conda", "0.0.1")
+    newer_conda = _make_conda_prefix_rec("conda", "99.0.0")
+    conda_self = (
+        _make_conda_prefix_rec("conda-self", "1.0.0") if has_conda_self else None
+    )
+    mock_prefix_data = mocker.Mock()
+    mock_prefix_data.get.side_effect = lambda name, default=None: {
+        "conda": current_conda,
+        "conda-self": conda_self,
+    }.get(name, default)
+    mock_prefix_data.is_frozen.return_value = is_frozen
+    mocker.patch("conda.core.solve.PrefixData", return_value=mock_prefix_data)
+
+    # Setup SubdirData query to return a always newer version of conda
+    mocker.patch("conda.core.solve.SubdirData.query_all", return_value=[newer_conda])
+
+    solver = Solver(prefix="idontexist", channels=("test",))
+    solver._notify_conda_outdated(link_precs=())
+
+    err = capsys.readouterr().err
+    assert expected in err
+    assert unexpected not in err
