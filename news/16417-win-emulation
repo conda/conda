@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix platform when emulating on windows. Previously when emulating
+  win-64 on a win-arm64 machine gave win-arm64 as the platform
+  resulting in conda trying to install win-arm64 packages to the
+  base win-64 environment and failing. This PR correctly identifies
+  the environment as a win-64 environment.
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
