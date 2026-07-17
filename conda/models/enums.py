@@ -3,9 +3,9 @@
 """Collection of enums used throughout conda."""
 
 import sys
+import sysconfig
 from enum import Enum
 from platform import machine
-import sysconfig
 
 from ..auxlib.decorators import classproperty
 from ..auxlib.ish import dals
