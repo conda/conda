@@ -13,6 +13,7 @@ import os
 import platform
 import struct
 import sys
+import sysconfig
 import warnings
 from contextlib import contextmanager, suppress
 from errno import ENOENT
@@ -122,8 +123,13 @@ non_x86_machines = {
     "s390x",
 }
 _arch_names = {
-    32: "x86",
-    64: "x86_64",
+    "32": "x86",
+    "64": "x86_64",
+}
+_win_sysconfig_map = {
+    "win-amd64": "win-64",
+    "win-arm64": "win-arm64",
+    "win32": "win-32",
 }
 
 user_rc_path: PathType = abspath(expanduser(f"~/{DEFAULT_CONDARC_FILENAME}"))
@@ -668,15 +674,12 @@ class Context(Configuration):
 
     @property
     def arch_name(self) -> str:
-        m = platform.machine().lower()
-        if m in non_x86_machines:
-            return m
-        else:
-            return _arch_names[self.bits]
+        arch = self.subdir.split("-")[1]
+        return _arch_names.get(arch, arch)
 
     @property
     def platform(self) -> str:
-        return _platform_map.get(sys.platform, "unknown")
+        return self.subdir.split("-")[0]
 
     @property
     def default_threads(self) -> int | None:
@@ -723,13 +726,19 @@ class Context(Configuration):
 
     @cache
     def _native_subdir(self) -> str:
+        if sys.platform == "win32":
+            return _win_sysconfig_map[sysconfig.get_platform()]
+
+        _platform = _platform_map.get(sys.platform, "unknown")
         m = platform.machine().lower()
+
         if m in non_x86_machines:
-            return f"{self.platform}-{m}"
-        elif self.platform == "zos":
-            return "zos-z"
+            arch = m
+        elif _platform == "zos":
+            arch = "z"
         else:
-            return "%s-%d" % (self.platform, self.bits)
+            arch = str(self.bits)
+        return f"{_platform}-{arch}"
 
     @property
     def subdirs(self) -> tuple[str, str]:

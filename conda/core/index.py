@@ -598,7 +598,7 @@ def get_archspec_name() -> str | None:
     elif target_arch == "zos":
         return None
     elif target_arch.isdigit():
-        machine = _arch_names[int(target_arch)]
+        machine = _arch_names[target_arch]
     else:
         return None
 
