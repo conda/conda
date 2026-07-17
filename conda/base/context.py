@@ -674,12 +674,12 @@ class Context(Configuration):
 
     @property
     def arch_name(self) -> str:
-        arch = self.subdir.split("-")[1]
+        arch = self._native_subdir().split("-")[1]
         return _arch_names.get(arch, arch)
 
     @property
     def platform(self) -> str:
-        return self.subdir.split("-")[0]
+        return self._native_subdir().split("-")[0]
 
     @property
     def default_threads(self) -> int | None:
