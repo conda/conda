@@ -578,6 +578,11 @@ def test_native_subdir(
     ensure _native_subdir normalizes to the correct subdir string."""
     monkeypatch.setattr("conda.base.context.platform.machine", lambda: machine)
     monkeypatch.setattr("conda.base.context.sys.platform", sys_platform)
+    if sys_platform == "win32":
+        monkeypatch.setattr(
+            "conda.base.context.sysconfig.get_platform",
+            lambda: f"win-{machine.lower()}",
+        )
     context._native_subdir.cache_clear()
     try:
         assert context._native_subdir() == expected_subdir
