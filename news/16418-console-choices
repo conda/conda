@@ -1,0 +1,19 @@
+### Enhancements
+
+* `--console` now validates its value against the available reporter backends and rejects unknown ones with a clear error, instead of silently accepting any string. (#16418)
+
+### Bug fixes
+
+* Document the accepted values of the `--console` flag in its `--help` output by listing the available reporter backends (e.g. `classic`, `json`), which are discovered dynamically so plugin-provided backends are included too. (#16418)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
