@@ -315,7 +315,7 @@ class UnlinkLinkTransaction:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf(self.transaction_context["temp_dir"])
+                    self._rollback_on_verify_failure()
                     raise
                 log.info(exceptions)
         try:
@@ -328,9 +328,19 @@ class UnlinkLinkTransaction:
                 )
             )
         except CondaSystemExit:
-            rm_rf(self.transaction_context["temp_dir"])
+            self._rollback_on_verify_failure()
             raise
         self._verified = True
+
+    def _rollback_on_verify_failure(self):
+        # Clean up anything this transaction created before verification failed.
+        # Besides the temporary directory, remove prefix directories that were
+        # created by _prepare() so a failed `conda create` doesn't leave a
+        # partial/empty environment folder behind (#16076). Prefixes that
+        # already existed are never touched.
+        rm_rf(self.transaction_context["temp_dir"])
+        for prefix in self.transaction_context.get("created_prefixes", ()):
+            rm_rf(prefix)
 
     def _verify_pre_link_message(self, all_link_groups):
         flag_pre_link = False
@@ -406,6 +416,11 @@ class UnlinkLinkTransaction:
                     "Check that you have sufficient permissions."
                     ""
                 )
+            # Remember that we created this prefix so it can be rolled back if
+            # the transaction fails to verify (e.g. a ClobberError). We must
+            # never remove a prefix that already existed before this
+            # transaction. See #16076.
+            transaction_context.setdefault("created_prefixes", set()).add(target_prefix)
 
         # gather information from disk and caches
         prefix_data = PrefixData(target_prefix)
