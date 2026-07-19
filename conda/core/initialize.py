@@ -1455,7 +1455,7 @@ def init_fish_user(
             rc_content = fh.read()
     except FileNotFoundError:
         rc_content = ""
-    except:
+    except Exception:
         raise
 
     rc_original_content = rc_content
@@ -1596,7 +1596,7 @@ def init_xonsh_user(
             rc_content = fh.read()
     except FileNotFoundError:
         rc_content = ""
-    except:
+    except Exception:
         raise
 
     rc_original_content = rc_content
@@ -1775,7 +1775,7 @@ def init_sh_user(
             rc_content = fh.read()
     except FileNotFoundError:
         rc_content = ""
-    except:
+    except Exception:
         raise
 
     rc_original_content = rc_content
