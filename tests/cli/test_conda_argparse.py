@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.cli.conda_argparse import (
+    _PLUGIN_FREE_BUILTIN_COMMANDS,
     ArgumentParser,
     _GreedySubParsersAction,
     generate_parser,
@@ -166,6 +167,23 @@ def test_lazy_parser_map_cheap_introspection():
     # builtin parsers.
     assert "this-subcommand-does-not-exist" not in action._name_parser_map
     assert set(action._lazy_loaders) == pending_before
+
+
+@pytest.mark.parametrize(
+    "args",
+    (["activate"], ["deactivate"], ["run", "python"]),
+)
+def test_plugin_free_builtin_commands_skip_discovery(
+    args: list[str],
+    clear_plugin_manager_cache: None,
+) -> None:
+    from conda.plugins.manager import get_plugin_manager
+
+    parser = generate_parser()
+    parser.parse_args(args)
+
+    assert args[0] in _PLUGIN_FREE_BUILTIN_COMMANDS
+    assert get_plugin_manager.cache_info().currsize == 0
 
 
 def test_sorted_commands_in_error(capsys: CaptureFixture):
