@@ -85,6 +85,22 @@ def test_plugins_list_table(
     assert not err
 
 
+def test_plugins_list_disabled(
+    plugin_manager_with_test_plugin: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_NO_PLUGINS", "true")
+
+    out, err, code = conda_cli("plugins", "list")
+
+    assert code == 0, f"conda plugins list failed ({code}): {err}"
+    assert "conda-test-plugin" in out
+    assert "disabled" in out
+    assert "solvers" in out
+    assert not err
+
+
 def test_plugins_list_json(
     plugin_manager_with_test_plugin: CondaPluginManager,
     conda_cli: CondaCLIFixture,
