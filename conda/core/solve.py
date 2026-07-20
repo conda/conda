@@ -295,8 +295,6 @@ class BaseSolver:
             )
             if conda_newer_precs:
                 latest_version = conda_newer_precs[-1].version
-                # If conda comes from defaults, ensure we're giving instructions to users
-                # that should resolve release timing issues between defaults and conda-forge.
                 if conda_prefix_data.get("conda-self", None):
                     conda_update_message = "conda self update"
                 else:
