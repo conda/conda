@@ -97,6 +97,9 @@ BUILTIN_COMMANDS = {
 }
 """List of built-in commands; these cannot be overridden by plugin subcommands."""
 
+_PLUGIN_FREE_BUILTIN_COMMANDS = frozenset({"activate", "deactivate", "run"})
+"""Built-in commands that intentionally skip plugin discovery and command hooks."""
+
 BUILTIN_COMMAND_PARSERS = {
     "activate": configure_parser_activate,
     "clean": configure_parser_clean,
@@ -202,23 +205,14 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # func_name should always be 'execute'
         module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
+        invoke_command_hooks = (
+            command.removeprefix("mock_") not in _PLUGIN_FREE_BUILTIN_COMMANDS
+        )
 
-        # Only invoke plugin hooks when the plugin manager has already been
-        # loaded.  With lazy subcommand parser loading (A2/A3), commands like
-        # `conda run` reach do_call() without triggering plugin discovery,
-        # so accessing context.plugin_manager here would load all plugins
-        # (~430 modules, ~240 ms) for commands that never use them.
-        from ..plugins.manager import get_plugin_manager
-
-        try:
-            plugins_loaded = get_plugin_manager.cache_info().currsize > 0
-        except (AttributeError, TypeError):
-            plugins_loaded = True
-
-        if plugins_loaded:
+        if invoke_command_hooks:
             context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)
-        if plugins_loaded:
+        if invoke_command_hooks:
             context.plugin_manager.invoke_post_commands(command)
     return result
 

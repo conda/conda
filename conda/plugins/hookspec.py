@@ -156,13 +156,11 @@ class CondaSpecs:
         Register pre-command functions in conda.
 
         .. note::
-           Pre-command hooks are best-effort. They are only invoked when the
-           plugin manager has already been loaded by the time a command runs.
-           Fast paths that skip plugin discovery, such as ``conda shell.*``
-           activation commands or ``do_call()`` subcommands reached while the
-           plugin manager is still cold, do not fire these hooks. Do not rely
-           on them for correctness; treat them as opportunistic hooks for
-           user-visible side effects (logging, notifications, etc.).
+           Pre-command hooks are not invoked for ``conda run`` or shell
+           activation commands (``activate``, ``deactivate``, ``reactivate``,
+           and ``hook``). These commands intentionally skip plugin discovery
+           to preserve their startup fast paths. Use ``run_for`` to select
+           from the remaining built-in and plugin subcommands.
 
         **Example:**
 
@@ -191,13 +189,11 @@ class CondaSpecs:
         Register post-command functions in conda.
 
         .. note::
-           Post-command hooks are best-effort. They are only invoked when the
-           plugin manager has already been loaded by the time a command runs.
-           Fast paths that skip plugin discovery, such as ``conda shell.*``
-           activation commands or ``do_call()`` subcommands reached while the
-           plugin manager is still cold, do not fire these hooks. Do not rely
-           on them for correctness; treat them as opportunistic hooks for
-           user-visible side effects (logging, notifications, etc.).
+           Post-command hooks are not invoked for ``conda run`` or shell
+           activation commands (``activate``, ``deactivate``, ``reactivate``,
+           and ``hook``). These commands intentionally skip plugin discovery
+           to preserve their startup fast paths. Use ``run_for`` to select
+           from the remaining built-in and plugin subcommands.
 
         **Example:**
 
