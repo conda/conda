@@ -314,6 +314,15 @@ def test_invalid_field_type_on_assignment(dc_record: PackageRecord) -> None:
         dc_record.build_number = "4040"
 
 
+def test_sequence_assignment_coercion(dc_record: PackageRecord) -> None:
+    dc_record.depends = ["python >=3.10"]
+
+    assert dc_record.depends == ("python >=3.10",)
+
+    with pytest.raises(ValidationError, match="Invalid value python for depends"):
+        dc_record.depends = "python"
+
+
 def test_timestamp_falls_back_to_date() -> None:
     rec = PackageRecord(
         name="test-package",
