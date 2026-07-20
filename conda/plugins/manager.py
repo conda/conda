@@ -212,11 +212,15 @@ class CondaPluginManager(pluggy.PluginManager):
         return self.get_name(plugin) or self.get_canonical_name(plugin)
 
     def get_plugin_hook_names(self, plugin: object) -> list[str]:
-        """Return short hook names implemented by a registered plugin."""
+        """Return short hook names implemented by a plugin."""
         hook_prefix = f"{self.project_name}_"
         hook_names: list[str] = []
-        for hook_caller in self.get_hookcallers(plugin) or ():
-            hook_name = hook_caller.name
+        for name in dir(plugin):
+            hookimpl_opts = self.parse_hookimpl_opts(plugin, name)
+            if hookimpl_opts is None:
+                continue
+
+            hook_name = hookimpl_opts.get("specname") or name
             if hook_name.startswith(hook_prefix):
                 hook_names.append(hook_name[len(hook_prefix) :])
 
@@ -226,8 +230,8 @@ class CondaPluginManager(pluggy.PluginManager):
         """Return metadata for installed entry-point conda plugins."""
         installed: dict[str, PluginInfo] = {}
         for plugin, dist in self.list_plugin_distinfo():
-            canonical_name = self.get_name(plugin)
-            if canonical_name is None or canonical_name in installed:
+            canonical_name = self.get_name(plugin) or self.get_canonical_name(plugin)
+            if canonical_name in installed:
                 continue
 
             installed[canonical_name] = {
