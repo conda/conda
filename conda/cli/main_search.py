@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
-    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import (
         add_parser_channels,
         add_parser_json,
@@ -31,7 +31,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_networking,
     )
 
-    summary = BUILTIN_SUBCOMMAND_HELP["search"]
+    summary = BUILTIN_SUBCOMMANDS["search"]["help"]
     description = dals(
         f"""
         {summary}

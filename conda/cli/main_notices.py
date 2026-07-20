@@ -10,10 +10,10 @@ from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_channels, add_parser_json
 
-    summary = BUILTIN_SUBCOMMAND_HELP["notices"]
+    summary = BUILTIN_SUBCOMMANDS["notices"]["help"]
     description = dals(
         f"""
         {summary}
