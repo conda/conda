@@ -18,7 +18,7 @@ from __future__ import annotations
 import enum
 import json  # noqa: TID251
 import sys
-from dataclasses import MISSING, dataclass, field, fields
+from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 from functools import cache, partial
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
@@ -32,6 +32,7 @@ from ..auxlib.entity import (
     ListField,
     StringField,
 )
+from ..auxlib.exceptions import ValidationError
 from ..deprecations import deprecated
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
@@ -39,6 +40,8 @@ from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platfo
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
+
+    from .match_spec import MatchSpec
 
 
 class LinkTypeField(EnumField):
@@ -93,6 +96,50 @@ SENTINEL = object()
 
 TS_BOUNDARY = 253402300799  # 9999-12-31 in epoch seconds
 
+REQUIRED_FIELDS = ("name", "version", "build", "build_number")
+
+STRING_FIELDS = frozenset(
+    {
+        "name",
+        "version",
+        "build",
+        "subdir",
+        "fn",
+        "md5",
+        "legacy_bz2_md5",
+        "url",
+        "sha256",
+        "arch",
+        "preferred_env",
+        "python_site_packages_path",
+        "license",
+        "license_family",
+        "date",
+        "package_tarball_full_path",
+        "extracted_package_dir",
+        "requested_spec",
+        "auth",
+    }
+)
+
+INTEGER_FIELDS = frozenset({"build_number", "legacy_bz2_size", "size"})
+
+SEQUENCE_FIELDS = frozenset(
+    {
+        "depends",
+        "constrains",
+        "flags",
+        "track_features",
+        "features",
+        "files",
+        "_requested_specs",
+    }
+)
+
+PKEY_FIELDS = frozenset(
+    {"channel", "subdir", "name", "version", "build_number", "build", "fn"}
+)
+
 CACHE_FIELDS = frozenset({"_pkey_cache", "_hash_cache", "_memoized_md5"})
 
 FIELDS_EXCLUDED_FROM_DUMP = frozenset({"metadata"})
@@ -135,10 +182,10 @@ class Dumpable(Protocol):
 
 @cache
 def get_field_info(cls: type) -> tuple[tuple[str, Any, Any], ...]:
-    """Return (name, default, default_factory) for each public field of *cls*."""
+    """Return initialization metadata for each constructor field of *cls*."""
     info: list[tuple[str, Any, Any]] = []
     for f in fields(cls):
-        if f.name in CACHE_FIELDS:
+        if not f.init:
             continue
         default = f.default if f.default is not MISSING else SENTINEL
         default_factory = (
@@ -163,8 +210,8 @@ def get_dump_specs(cls: type) -> tuple[tuple[str, bool, Any], ...]:
 
 @cache
 def get_known_fields(cls: type) -> frozenset[str]:
-    """Return the set of non-cache field names for *cls*."""
-    return frozenset(f.name for f in fields(cls) if f.name not in CACHE_FIELDS)
+    """Return constructor field names for *cls*."""
+    return frozenset(f.name for f in fields(cls) if f.init)
 
 
 def resolve_channel(val: Any, record: PackageRecord) -> Channel | None:
@@ -209,6 +256,13 @@ def resolve_fn(val: Any, record: PackageRecord) -> str:
 
 
 def resolve_timestamp(val: Any, record: PackageRecord) -> int | float:
+    if not val and record.date:
+        from boltons.timeutils import dt_to_timestamp, isoparse
+
+        try:
+            return int(dt_to_timestamp(isoparse(record.date)))
+        except (TypeError, ValueError):
+            return 0
     if val and val > TS_BOUNDARY:
         return val / 1000
     return val
@@ -230,6 +284,12 @@ def resolve_as_tuple(val: Any, record: PackageRecord) -> tuple:
     if not val:
         return ()
     return tuple(val)
+
+
+def resolve_optional_tuple(val: Any, record: PackageRecord) -> tuple | None:
+    if val is None:
+        return None
+    return resolve_as_tuple(val, record)
 
 
 def resolve_noarch(val: Any, record: PackageRecord) -> NoarchType | None:
@@ -285,9 +345,34 @@ def dump_nested(val: Any) -> Any:
     return val.dump() if isinstance(val, Dumpable) else val
 
 
+def coerce_and_validate(name: str, val: Any) -> Any:
+    """Preserve the scalar validation performed by the old Entity fields."""
+    if val is None:
+        if name in REQUIRED_FIELDS:
+            raise ValidationError(name)
+        return val
+    if name in STRING_FIELDS:
+        if isinstance(val, (int, float, complex)):
+            return str(val)
+        if not isinstance(val, str):
+            raise ValidationError(name, val)
+    elif name in INTEGER_FIELDS and not isinstance(val, int):
+        raise ValidationError(name, val)
+    elif name == "timestamp" and not isinstance(val, (int, float)):
+        raise ValidationError(name, val)
+    elif name in SEQUENCE_FIELDS and not isinstance(val, tuple):
+        raise ValidationError(name, val)
+    return val
+
+
 @dataclass(slots=True, init=False, eq=False, repr=False)
 class PackageRecord:
-    """Representation of a concrete package archive (tarball or .conda file)."""
+    """Representation of a concrete package archive (tarball or .conda file).
+
+    The subclasses add information for solved, cached, and installed packages,
+    but do not add fields to :attr:`_pkey`. Records with the same identity
+    fields therefore compare equal and produce the same hash across subclasses.
+    """
 
     ALIASES: ClassVar[dict[str, str]] = {
         "build_string": "build",
@@ -358,7 +443,6 @@ class PackageRecord:
     size: int | None = None
 
     metadata: set[str] = field(default_factory=set, repr=False)
-
     _pkey_cache: tuple | None = field(
         default=None, repr=False, compare=False, init=False
     )
@@ -371,30 +455,57 @@ class PackageRecord:
             if alias in kwargs and canonical not in kwargs:
                 kwargs[canonical] = kwargs.pop(alias)
 
+        for name in REQUIRED_FIELDS:
+            if name not in kwargs:
+                raise ValidationError(
+                    name,
+                    msg=(
+                        f"{self.__class__.__name__} requires a {name} field. "
+                        f"Instantiated with {kwargs}"
+                    ),
+                )
+
         for name, default, default_factory in get_field_info(self.__class__):
             val = kwargs.get(name, SENTINEL)
             if val is SENTINEL:
                 if default_factory is not None:
-                    setattr_(self, name, default_factory())
+                    val = default_factory()
                 else:
-                    setattr_(self, name, default)
-            else:
-                setattr_(self, name, val)
+                    val = default
+            if name not in self.FIELD_RESOLVERS:
+                val = coerce_and_validate(name, val)
+            setattr_(self, name, val)
+
+        for f_obj in fields(self.__class__):
+            if f_obj.init:
+                continue
+            if f_obj.default_factory is not MISSING:
+                setattr_(self, f_obj.name, f_obj.default_factory())
+            elif f_obj.default is not MISSING:
+                setattr_(self, f_obj.name, f_obj.default)
 
         for name, resolve in self.FIELD_RESOLVERS.items():
             val = getattr(self, name, SENTINEL)
             if val is not SENTINEL:
-                resolved = resolve(val, self)
-                if resolved is not val:
-                    setattr_(self, name, resolved)
+                resolved = (
+                    val
+                    if name == "timestamp" and name in kwargs and not val
+                    else resolve(val, self)
+                )
+                setattr_(self, name, coerce_and_validate(name, resolved))
 
         for fname in INTERN_FIELDS:
             val = getattr(self, fname, None)
             if isinstance(val, str):
                 setattr_(self, fname, sys.intern(val))
 
-        setattr_(self, "_pkey_cache", None)
-        setattr_(self, "_hash_cache", None)
+    def __setattr__(self, name: str, value: Any) -> None:
+        value = coerce_and_validate(name, value)
+        if resolve := self.FIELD_RESOLVERS.get(name):
+            value = resolve(value, self)
+        object.__setattr__(self, name, value)
+        if name in PKEY_FIELDS and hasattr(self, "_pkey_cache"):
+            self.invalidate_pkey()
 
     def __getitem__(self, item: str) -> Any:
         try:
@@ -407,6 +518,7 @@ class PackageRecord:
 
     @property
     def channel_name(self) -> str | None:
+        """The canonical name of the channel of this package."""
         ch = self.channel
         if ch is None:
             return None
@@ -428,6 +540,12 @@ class PackageRecord:
 
     @property
     def _pkey(self) -> tuple:
+        """Components used for record comparison and hashing.
+
+        The key contains the channel name, subdir, name, version, build number,
+        and build string. It also contains the filename when
+        :ref:`separate_format_cache <auto-config-reference>` is enabled.
+        """
         cached = self._pkey_cache
         if cached is not None:
             return cached
@@ -504,16 +622,16 @@ class PackageRecord:
                 src = obj
             elif isinstance(obj, Dumpable):
                 src = obj.dump()
+            elif is_dataclass(obj):
+                src = {f.name: getattr(obj, f.name) for f in fields(obj)}
             elif hasattr(obj, "__dict__"):
                 src = obj.__dict__
-            elif hasattr(obj, "__slots__"):
-                src = {
-                    s: getattr(obj, s)
-                    for s in obj.__slots__
-                    if hasattr(obj, s) and not s.startswith("_")
-                }
             else:
-                continue
+                src = {
+                    name: getattr(obj, name)
+                    for name in known | cls.ALIASES.keys()
+                    if hasattr(obj, name)
+                }
             for k, v in src.items():
                 target = cls.ALIASES.get(k, k) if k not in known else k
                 if target in known and target not in kwargs and v is not None:
@@ -570,7 +688,7 @@ class PackageRecord:
             "version": self.version,
         }
 
-    def to_match_spec(self):
+    def to_match_spec(self) -> MatchSpec:
         from .match_spec import MatchSpec
 
         return MatchSpec(
@@ -581,7 +699,7 @@ class PackageRecord:
             build=self.build,
         )
 
-    def to_simple_match_spec(self):
+    def to_simple_match_spec(self) -> MatchSpec:
         from .match_spec import MatchSpec
 
         return MatchSpec(name=self.name, version=self.version)
@@ -606,13 +724,17 @@ class PackageRecord:
 
     @property
     def spec(self) -> str:
+        """Return package spec as ``name=version=build``."""
         return f"{self.name}={self.version}={self.build}"
 
     @property
     def spec_no_build(self) -> str:
+        """Return package spec as ``name=version``."""
         return f"{self.name}={self.version}"
 
     def record_id(self) -> str:
+        # Used only by link.py's change report. This is not an official record
+        # identifier until it gains a namespace and a stable format.
         ch = self.channel
         ch_name = getattr(ch, "name", "") if ch else ""
         return f"{ch_name}/{self.subdir}::{self.name}-{self.version}-{self.build}"
@@ -669,9 +791,16 @@ class PackageRecord:
 
 @dataclass(slots=True, init=False, eq=False, repr=False)
 class PackageCacheRecord(PackageRecord):
-    """Representation of a package in the local package cache."""
+    """Representation of a package in the local package cache.
 
+    This specialization adds the local archive and extracted-directory paths.
+    It does not add fields to :attr:`PackageRecord._pkey`, so equal package and
+    prefix records continue to compare equal and produce the same hash.
+    """
+
+    # Full path to the local package archive.
     package_tarball_full_path: str = ""
+    # Full path to the local extracted package directory.
     extracted_package_dir: str = ""
     _memoized_md5: str | None = field(
         default=None, repr=False, compare=False, init=False
@@ -679,12 +808,14 @@ class PackageCacheRecord(PackageRecord):
 
     @property
     def is_fetched(self) -> bool:
+        """Whether the package archive exists locally."""
         from ..gateways.disk.read import isfile
 
         return isfile(self.package_tarball_full_path)
 
     @property
     def is_extracted(self) -> bool:
+        """Whether the package has been extracted locally."""
         from ..gateways.disk.read import isdir, isfile
 
         epd = self.extracted_package_dir
@@ -692,15 +823,11 @@ class PackageCacheRecord(PackageRecord):
 
     @property
     def tarball_basename(self) -> str:
+        """The basename of the local package archive."""
         return Path(self.package_tarball_full_path).name
 
     def calculate_md5sum(self) -> str | None:
-        # ``_memoized_md5`` is a slot but is not populated by PackageRecord's
-        # __init__ (it's listed in CACHE_FIELDS which skips initialization),
-        # so on a freshly-constructed PackageCacheRecord the slot read would
-        # raise AttributeError. Use getattr with a default to keep the slow
-        # path reachable on first call.
-        memoized = getattr(self, "_memoized_md5", None)
+        memoized = self._memoized_md5
         if memoized:
             return memoized
         if Path(self.package_tarball_full_path).is_file():
@@ -736,8 +863,8 @@ def _make_md5_auto_compute_property() -> property:
         auto = self.calculate_md5sum()
         if auto is not None:
             deprecated.topic(
-                "26.9",
                 "27.3",
+                "27.9",
                 topic="Implicit md5 auto-compute on PackageCacheRecord.md5",
                 addendum="Call PackageCacheRecord.calculate_md5sum() explicitly instead.",
             )
@@ -754,18 +881,30 @@ PackageCacheRecord.md5 = _make_md5_auto_compute_property()
 
 @dataclass(slots=True, init=False, eq=False, repr=False)
 class SolvedRecord(PackageRecord):
-    """Representation of a package returned as part of a solver solution."""
+    """Representation of a package returned as part of a solver solution.
+
+    This sits between :class:`PackageRecord` and :class:`PrefixRecord`, adding
+    the requested specs used by lockfiles without requiring an artifact on disk.
+    """
 
     ALIASES: ClassVar[dict[str, str]] = {
         **PackageRecord.ALIASES,
         "requested_specs": "_requested_specs",
     }
 
+    FIELD_RESOLVERS: ClassVar[dict[str, Callable]] = {
+        **PackageRecord.FIELD_RESOLVERS,
+        "_requested_specs": resolve_optional_tuple,
+    }
+
+    # The MatchSpec explicitly requested by the user, if any.
     requested_spec: str | None = None
+    # All MatchSpecs explicitly requested by the user, if available.
     _requested_specs: tuple[str, ...] | None = None
 
     @property
     def requested_specs(self) -> tuple[str, ...]:
+        """Return plural requested specs, falling back to ``requested_spec``."""
         val = self._requested_specs
         if val:
             return tuple(val)
@@ -775,9 +914,10 @@ class SolvedRecord(PackageRecord):
         return ()
 
     def dump(self) -> dict[str, Any]:
+        """Expose requested specs under their public plural field name."""
         dumped = PackageRecord.dump(self)
         if dumped.get("_requested_specs"):
-            dumped["requested_specs"] = dumped.pop("_requested_specs")
+            dumped["requested_specs"] = list(dumped.pop("_requested_specs"))
         elif spec := dumped.get("requested_spec"):
             dumped["requested_specs"] = [spec]
         return dumped
@@ -785,15 +925,22 @@ class SolvedRecord(PackageRecord):
 
 @dataclass(slots=True, init=False, eq=False, repr=False)
 class PrefixRecord(SolvedRecord):
-    """Representation of a package installed in a local conda environment."""
+    """Representation of a package installed in a local conda environment.
+
+    This specialization adds paths, link information, and local cache paths.
+    It does not add fields to :attr:`PackageRecord._pkey`. Instances are
+    generally loaded from JSON files in ``$prefix/conda-meta``.
+    """
 
     FIELD_RESOLVERS: ClassVar[dict[str, Callable]] = {
-        **PackageRecord.FIELD_RESOLVERS,
+        **SolvedRecord.FIELD_RESOLVERS,
         "paths_data": resolve_paths_data,
     }
 
+    # Local cache paths, if known.
     package_tarball_full_path: str = ""
     extracted_package_dir: str = ""
+    # Files and detailed path/link metadata recorded for the installation.
     files: tuple[str, ...] = ()
     paths_data: Any = None
     link: Any = None
@@ -858,8 +1005,8 @@ for _name in (
     "Md5Field",
 ):
     deprecated.constant(
-        "26.9",
         "27.3",
+        "27.9",
         _name,
         factory=partial(_legacy_field, _name),
         addendum=(
