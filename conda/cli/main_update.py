@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import (
         add_parser_create_install_update,
         add_parser_frozen_env,
@@ -27,7 +28,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_update_modifiers,
     )
 
-    summary = "Update conda packages to the latest compatible version."
+    summary = _get_builtin_subcommand_help("update")
     description = dals(
         f"""
         {summary}

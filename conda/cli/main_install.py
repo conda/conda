@@ -21,6 +21,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..common.constants import NULL
     from ..deprecations import deprecated
     from .actions import NullCountAction
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import (
         add_parser_create_install_update,
         add_parser_frozen_env,
@@ -29,7 +30,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_update_modifiers,
     )
 
-    summary = "Install a list of packages into a specified conda environment."
+    summary = _get_builtin_subcommand_help("install")
     description = dals(
         f"""
         {summary}

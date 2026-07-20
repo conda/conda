@@ -14,12 +14,11 @@ if TYPE_CHECKING:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from .conda_argparse import _get_builtin_subcommand_help
+
     p = sub_parsers.add_parser(
         "commands",
-        help=(
-            "List all available conda subcommands (including those from plugins). "
-            "Generally only used by tab-completion."
-        ),
+        help=_get_builtin_subcommand_help("commands"),
         **kwargs,
     )
     p.set_defaults(func="conda.cli.main_commands.execute")

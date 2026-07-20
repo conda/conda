@@ -64,9 +64,10 @@ def epilog() -> str:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
 
-    summary = "Export a conda environment to a file."
+    summary = _get_builtin_subcommand_help("export")
     description = dals(
         """
         Export a conda environment to a file. The set of supported formats

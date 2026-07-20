@@ -35,9 +35,10 @@ INSTALLER_INFO_FIELDS = ("name", "version", "platform", "type")
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..common.constants import NULL
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import add_parser_json
 
-    summary = "Display information about current conda install."
+    summary = _get_builtin_subcommand_help("info")
     description = summary
     epilog = ""
 

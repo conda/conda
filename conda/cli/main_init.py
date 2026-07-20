@@ -22,9 +22,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..base.constants import COMPATIBLE_SHELLS
     from ..common.compat import on_win
     from ..common.constants import NULL
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import add_parser_json
 
-    summary = "Initialize conda for shell interaction."
+    summary = _get_builtin_subcommand_help("init")
     description = summary
     epilog = dals(
         """
