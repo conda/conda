@@ -236,6 +236,9 @@ BUILTIN_COMMANDS = {
 }
 """Names (and aliases) of built-in commands; these cannot be overridden by plugin subcommands."""
 
+_PLUGIN_FREE_BUILTIN_COMMANDS = frozenset({"activate", "deactivate", "run"})
+"""Built-in commands that intentionally skip plugin discovery."""
+
 _BUILTIN_SUBCOMMANDS_BY_NAME = {
     name: (module_path, help_text, extra_kwargs)
     for name, module_path, help_text, extra_kwargs in _BUILTIN_SUBCOMMANDS
@@ -355,12 +358,10 @@ class ArgumentParser(ArgumentParserBase):
             action.choices, dict
         ):
             # Unknown command: discover plugins before rejecting so that plugin
-            # subcommands appear in the "choose from" error message.  Must read
-            # from _name_parser_map (not choices) after loading because the
-            # sort-reassignment above disconnects choices from _name_parser_map.
+            # subcommands appear in the sorted "choose from" error message.
             if not isiterable(value) and value not in action._name_parser_map:
                 action._ensure_plugins_loaded()
-            action.choices = dict(sorted(action._name_parser_map.items()))
+                action.choices = dict(sorted(dict.items(action._name_parser_map)))
         elif isinstance(action, _GreedySubParsersAction) and isinstance(
             action.choices, dict
         ):
@@ -580,10 +581,11 @@ class _LazySubParsersAction(_GreedySubParsersAction):
     def __call__(self, parser, namespace, values, option_string=None):
         parser_name = values[0]
         self._ensure_loaded(parser_name)
-        # Always discover plugins when a subcommand is dispatched so that
-        # the builtin-override check in configure_parser_plugins() runs even
-        # when the invoked command is a builtin (e.g. `conda info --help`).
-        self._ensure_plugins_loaded()
+        if parser_name not in _PLUGIN_FREE_BUILTIN_COMMANDS:
+            # Discover plugins when a subcommand is dispatched so that the
+            # builtin-override check in configure_parser_plugins() runs even
+            # when the invoked command is a builtin (e.g. `conda info --help`).
+            self._ensure_plugins_loaded()
         super().__call__(parser, namespace, values, option_string)
 
     def _get_subactions(self):
