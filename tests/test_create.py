@@ -48,8 +48,8 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
-    CondaValueError,
     ClobberError,
+    CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
@@ -3202,13 +3202,13 @@ def test_clobber_error_on_conflicting_packages(
             "clobber-b",
             "--yes",
         )
-    clobber_errors = [
-        e for e in exc_info.value.errors if isinstance(e, ClobberError)
-    ]
-    assert clobber_errors, f"Expected KnownPackageClobberError, got: {exc_info.value.errors}"
-    assert any(
-        "bin/clobber-test-file" in str(e) for e in clobber_errors
-    ), f"Expected bin/clobber-test-file in error, got: {clobber_errors}"
+    clobber_errors = [e for e in exc_info.value.errors if isinstance(e, ClobberError)]
+    assert clobber_errors, (
+        f"Expected KnownPackageClobberError, got: {exc_info.value.errors}"
+    )
+    assert any("bin/clobber-test-file" in str(e) for e in clobber_errors), (
+        f"Expected bin/clobber-test-file in error, got: {clobber_errors}"
+    )
     assert not new_prefix.exists(), (
         "prefix directory must not be left behind after a failed conda create (#16076)"
     )
