@@ -49,6 +49,7 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
+    ClobberError,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
     DryRunExit,
@@ -3168,3 +3169,75 @@ def test_mix_explicit_file_and_packages(
             raises=CondaValueError,
         )
         assert "Cannot combine package names with explicit package lists" in str(exc)
+
+
+def test_clobber_error_on_conflicting_packages(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """Regression test for https://github.com/conda/conda/issues/16076.
+
+    Two packages sharing a file path raise KnownPackageClobberError under
+    CONDA_PATH_CONFLICT=prevent. Crucially:
+    - A failed ``conda create`` must not leave the new prefix directory behind.
+    - A failed ``conda install`` into a pre-existing env must leave that env intact.
+    - The install succeeds when --clobber is passed.
+
+    clobber-a and clobber-b both install bin/clobber-test-file.
+    """
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+
+    # conda create: the new prefix must not exist after a clobber failure (#16076).
+    new_prefix = path_factory()
+    assert not new_prefix.exists()
+    with pytest.raises(CondaMultiError) as exc_info:
+        conda_cli(
+            "create",
+            f"--prefix={new_prefix}",
+            "clobber-a",
+            "clobber-b",
+            "--yes",
+        )
+    clobber_errors = [
+        e for e in exc_info.value.errors if isinstance(e, ClobberError)
+    ]
+    assert clobber_errors, f"Expected KnownPackageClobberError, got: {exc_info.value.errors}"
+    assert any(
+        "bin/clobber-test-file" in str(e) for e in clobber_errors
+    ), f"Expected bin/clobber-test-file in error, got: {clobber_errors}"
+    assert not new_prefix.exists(), (
+        "prefix directory must not be left behind after a failed conda create (#16076)"
+    )
+
+    # conda install into a pre-existing env: the existing prefix must survive.
+    with tmp_env() as existing_prefix:
+        assert existing_prefix.exists()
+        with pytest.raises(CondaMultiError):
+            conda_cli(
+                "install",
+                f"--prefix={existing_prefix}",
+                "clobber-a",
+                "clobber-b",
+                "--yes",
+            )
+        assert existing_prefix.exists(), (
+            "pre-existing prefix must not be removed after a failed conda install"
+        )
+
+    # With --clobber: the install should succeed and both packages are present.
+    with tmp_env() as prefix:
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--clobber",
+            "clobber-a",
+            "clobber-b",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "clobber-a")
+        assert package_is_installed(prefix, "clobber-b")
+        assert (prefix / "bin" / "clobber-test-file").exists()
