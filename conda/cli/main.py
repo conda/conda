@@ -23,9 +23,14 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
     args = args or ["--help"]
+    separator = args.index("--") if "--" in args else len(args)
+    args = tuple(
+        "--no-plugins=" if index < separator and arg == "--no-plugins" else arg
+        for index, arg in enumerate(args)
+    )
 
     pre_parser = generate_pre_parser(add_help=False)
-    args_subset = args[: args.index("--")] if "--" in args else args
+    args_subset = args[:separator]
     pre_args, _ = pre_parser.parse_known_args(args_subset)
 
     # the arguments that we want to pass to the main parser later on

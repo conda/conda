@@ -90,8 +90,7 @@ def test_main_subshell_no_plugins_option(monkeypatch) -> None:
         lambda: disabled.append(True),
     )
 
-    with pytest.raises(SystemExit):
-        main_subshell("--no-plugins", "--help")
+    assert main_subshell("--no-plugins", "commands") == 0
 
     assert disabled
 

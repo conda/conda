@@ -122,6 +122,12 @@ BUILTIN_COMMAND_PARSERS = {
 }
 
 
+def _parse_disabled_plugins(value: str) -> list[str] | None:
+    if value == "":
+        return None
+    return comma_separated_stripped(value)
+
+
 def generate_pre_parser(**kwargs) -> ArgumentParser:
     pre_parser = ArgumentParser(
         prog="conda",
@@ -144,7 +150,7 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
         const=None,
         default=NULL,
         metavar="PLUGIN[,PLUGIN...]",
-        type=comma_separated_stripped,
+        type=_parse_disabled_plugins,
         help="Disable all external plugins, or the comma-separated plugins listed.",
     )
 
