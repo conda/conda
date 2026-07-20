@@ -46,6 +46,19 @@ def test_parse_clobber(subtests: Subtests):
             assert args.clobber
 
 
+def test_console_accepts_known_backend():
+    p = generate_parser()
+    args = p.parse_args(["clean", "--console", "classic", "--all"])
+    assert args.console == "classic"
+
+
+def test_console_rejects_unknown_backend(capsys: CaptureFixture):
+    p = generate_parser()
+    with pytest.raises(SystemExit):
+        p.parse_args(["clean", "--console", "does-not-exist", "--all"])
+    assert "invalid choice: 'does-not-exist'" in capsys.readouterr().err
+
+
 def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
     stdout, stderr, err = conda_cli("config", "--show", "add_anaconda_token")
     assert stdout

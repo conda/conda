@@ -198,6 +198,7 @@ def add_parser_prefix_to_group(m: _MutuallyExclusiveGroup) -> None:
 
 
 def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
+    from ..base.context import context
     from ..common.constants import NULL
 
     output_and_prompt_options = p.add_argument_group(
@@ -212,6 +213,10 @@ def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
     output_and_prompt_options.add_argument(
         "--console",
         default=NULL,
+        action=LazyChoicesAction,
+        choices_func=lambda: sorted(
+            backend.name for backend in context.plugin_manager.get_reporter_backends()
+        ),
         help="Select the backend to use for normal output rendering.",
     )
     add_parser_verbose(output_and_prompt_options)
