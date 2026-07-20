@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import os
 from argparse import Namespace
 from pathlib import Path
 
@@ -68,10 +69,16 @@ def test_pip_installer_resolves_multiple_requirement_sources_once(
 @pytest.mark.parametrize(
     ("spec_template", "expected_template"),
     [
-        ("--editable=./pkg", "--editable={workdir}/pkg"),
-        ("--requirement=requirements.txt", "--requirement={workdir}/requirements.txt"),
-        ("--constraint constraints.txt", "--constraint {workdir}/constraints.txt"),
-        ("./pkg", "{workdir}/pkg"),
+        ("--editable=./pkg", "--editable={workdir}{path_sep}pkg"),
+        (
+            "--requirement=requirements.txt",
+            "--requirement={workdir}{path_sep}requirements.txt",
+        ),
+        (
+            "--constraint constraints.txt",
+            "--constraint {workdir}{path_sep}constraints.txt",
+        ),
+        ("./pkg", "{workdir}{path_sep}pkg"),
         (
             "-e git+https://example.com/pkg.git#egg=pkg",
             "-e git+https://example.com/pkg.git#egg=pkg",
@@ -91,6 +98,7 @@ def test_pip_installer_normalizes_relative_source_paths(
     other_workdir.mkdir()
     format_args = {
         "absolute": tmp_path / "constraints.txt",
+        "path_sep": os.sep,
         "workdir": workdir,
     }
     spec = spec_template.format(**format_args)
