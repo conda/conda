@@ -2,7 +2,7 @@ name: sphinx
 channels:
   - conda-forge
 dependencies:
-  - Pillow==12.2.0
+  - Pillow==12.3.0
   - Sphinx<10
   - boltons>=26.0.0
   - conda-sphinx-theme==0.4.0
@@ -24,12 +24,12 @@ dependencies:
   - sphinxcontrib-devhelp==2.0.0
   - sphinxcontrib-htmlhelp==2.1.0
   - sphinxcontrib-jsmath==1.0.1
-  - sphinxcontrib-mermaid==2.0.2
+  - sphinxcontrib-mermaid==2.1.0
   - sphinxcontrib-programoutput==0.20
   - sphinxcontrib-qthelp==2.0.0
   - sphinxcontrib-serializinghtml==2.0.0
-  - tqdm>=4.68.3
-  - conda-libmamba-solver>=26.4.2
+  - tqdm>=4.69.0
+  - conda-libmamba-solver>=26.7.0
   - pip>25
   - pip:
       - sphinxcontrib-plantuml==0.31
