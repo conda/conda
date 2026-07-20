@@ -13,6 +13,7 @@ from conda.core.portability import (
     MAX_SHEBANG_LENGTH,
     SHEBANG_REGEX,
     batch_codesign_calls,
+    generate_shebang_for_entry_point,
     replace_long_shebang,
     update_prefix,
 )
@@ -122,6 +123,96 @@ def test_replace_long_shebang_spaces_in_prefix():
     assert len(new_shebang) < MAX_SHEBANG_LENGTH
     new_expected_data = b"\n".join((new_shebang, CONTENT, CONTENT, CONTENT))
     assert new_expected_data == new_data
+
+
+# conda-build and rattler-build use different host prefix naming conventions.
+@pytest.mark.parametrize(
+    "prefix_name",
+    (
+        pytest.param("_h_env_placehold", id="conda-build"),
+        pytest.param("host_env_placehold", id="rattler-build"),
+    ),
+)
+def test_generate_shebang_preserves_build_prefix(
+    monkeypatch,
+    tmp_path,
+    prefix_name,
+):
+    build_prefix = tmp_path / (prefix_name * 40)
+    executable = build_prefix / "bin" / "python"
+    assert len(f"#!{executable}\n") > MAX_SHEBANG_LENGTH
+
+    monkeypatch.setenv("CONDA_BUILD", "1")
+    monkeypatch.setenv("PREFIX", str(build_prefix))
+
+    assert generate_shebang_for_entry_point(str(executable), with_usr_bin_env=True) == (
+        f"#!{executable}\n"
+    )
+
+
+def test_generate_shebang_does_not_preserve_non_placeholder_long_build_prefix(
+    monkeypatch,
+    tmp_path,
+):
+    build_prefix = tmp_path / ("build_prefix" * 40)
+    executable = build_prefix / "bin" / "python"
+    assert len(f"#!{executable}\n") > MAX_SHEBANG_LENGTH
+
+    monkeypatch.setenv("CONDA_BUILD", "1")
+    monkeypatch.setenv("PREFIX", str(build_prefix))
+
+    assert (
+        generate_shebang_for_entry_point(str(executable), with_usr_bin_env=True)
+        == "#!/usr/bin/env python\n"
+    )
+
+
+def test_generate_shebang_does_not_preserve_non_placeholder_spaced_build_prefix(
+    monkeypatch,
+    tmp_path,
+):
+    build_prefix = tmp_path / "build prefix with spaces"
+    executable = build_prefix / "bin" / "python"
+    assert " " in str(executable)
+
+    monkeypatch.setenv("CONDA_BUILD", "1")
+    monkeypatch.setenv("PREFIX", str(build_prefix))
+
+    assert (
+        generate_shebang_for_entry_point(str(executable), with_usr_bin_env=True)
+        == "#!/usr/bin/env python\n"
+    )
+
+
+def test_generate_shebang_does_not_preserve_outside_build_prefix(
+    monkeypatch,
+    tmp_path,
+):
+    build_prefix = tmp_path / ("host_env_placehold" * 40)
+    executable = tmp_path / ("outside" * 80) / "bin" / "python"
+    assert len(f"#!{executable}\n") > MAX_SHEBANG_LENGTH
+
+    monkeypatch.setenv("CONDA_BUILD", "1")
+    monkeypatch.setenv("PREFIX", str(build_prefix))
+
+    assert (
+        generate_shebang_for_entry_point(str(executable), with_usr_bin_env=True)
+        == "#!/usr/bin/env python\n"
+    )
+
+
+def test_generate_shebang_normalizes_build_prefix_paths(monkeypatch, tmp_path):
+    build_prefix = tmp_path / ("host_env_placehold" * 40)
+    executable = build_prefix / ".." / ("outside" * 80) / "bin" / "python"
+    assert len(f"#!{executable}\n") > MAX_SHEBANG_LENGTH
+
+    monkeypatch.setenv("CONDA_BUILD", "1")
+    monkeypatch.setenv("PREFIX", str(build_prefix))
+
+    assert (
+        generate_shebang_for_entry_point(str(executable), with_usr_bin_env=True)
+        == "#!/usr/bin/env python\n"
+    )
 
 
 @pytest.mark.skipif(on_win, reason="Shebang replacement only needed on Unix systems")
