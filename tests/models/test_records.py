@@ -4,10 +4,12 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.auxlib.exceptions import ValidationError
 from conda.base.context import context
 from conda.core.prefix_data import PrefixData
 from conda.models.channel import Channel
@@ -273,7 +275,7 @@ def test_cross_subclass_equality() -> None:
     assert pfx in {pr, sr}
 
 
-def test_invalidate_pkey() -> None:
+def test_mutating_identity_field_invalidates_pkey() -> None:
     rec = PackageRecord(
         name="a",
         version="1",
@@ -283,9 +285,58 @@ def test_invalidate_pkey() -> None:
         subdir="linux-64",
     )
     h1 = hash(rec)
-    rec.invalidate_pkey()
-    object.__setattr__(rec, "channel", Channel("conda-forge"))
+    rec.channel = Channel("conda-forge")
     assert hash(rec) != h1
+
+
+@pytest.mark.parametrize("missing", ("name", "version", "build", "build_number"))
+def test_required_fields(missing: str) -> None:
+    kwargs = dict(COMMON_KWARGS)
+    kwargs.pop(missing)
+
+    with pytest.raises(ValidationError, match=rf"requires a {missing} field"):
+        PackageRecord(**kwargs)
+
+
+def test_unknown_fields_are_ignored() -> None:
+    rec = PackageRecord(**COMMON_KWARGS, unknown=True)
+
+    assert not hasattr(rec, "unknown")
+
+
+def test_invalid_field_type() -> None:
+    with pytest.raises(ValidationError, match="Invalid value 4040 for build_number"):
+        PackageRecord(**{**COMMON_KWARGS, "build_number": "4040"})
+
+
+def test_invalid_field_type_on_assignment(dc_record: PackageRecord) -> None:
+    with pytest.raises(ValidationError, match="Invalid value 4040 for build_number"):
+        dc_record.build_number = "4040"
+
+
+def test_timestamp_falls_back_to_date() -> None:
+    rec = PackageRecord(
+        name="test-package",
+        version="1.2.3",
+        build="2",
+        build_number=2,
+        date="1970-01-02T00:00:00",
+    )
+
+    assert rec.timestamp == 86400
+
+
+def test_explicit_timestamp_does_not_fall_back_to_date() -> None:
+    rec = PackageRecord(
+        name="test-package",
+        version="1.2.3",
+        build="2",
+        build_number=2,
+        timestamp=0,
+        date="1970-01-02T00:00:00",
+    )
+
+    assert rec.timestamp == 0
 
 
 def test_from_objects_dict() -> None:
@@ -307,6 +358,25 @@ def test_from_objects_entity() -> None:
     dc = PackageRecord.from_objects(entity)
     assert dc.name == entity.name
     assert dc._pkey == entity._pkey
+
+
+def test_from_objects_includes_inherited_dataclass_fields() -> None:
+    @dataclass(slots=True)
+    class BaseRecord:
+        name: str
+        version: str
+
+    @dataclass(slots=True)
+    class ChildRecord(BaseRecord):
+        build: str
+        build_number: int
+
+    rec = PackageRecord.from_objects(ChildRecord("name", "1", "0", 0))
+
+    assert rec.name == "name"
+    assert rec.version == "1"
+    assert rec.build == "0"
+    assert rec.build_number == 0
 
 
 def test_from_json() -> None:
