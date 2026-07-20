@@ -314,7 +314,7 @@ class UnlinkLinkTransaction:
             if exceptions:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
-                except:
+                except Exception:
                     rm_rf(self.transaction_context["temp_dir"])
                     raise
                 log.info(exceptions)

@@ -55,7 +55,7 @@ def rmtree(path):
             out = check_output(
                 f'RD /S /Q "{path}" > NUL 2> NUL', shell=True, stderr=STDOUT
             )
-        except:
+        except Exception:
             try:
                 # Try to delete in Unicode
                 name = None
@@ -106,7 +106,7 @@ def rmtree(path):
     else:
         try:
             os.makedirs(".empty")
-        except:
+        except OSError:
             pass
         # yes, this looks strange.  See
         #    https://unix.stackexchange.com/a/79656/34459
@@ -259,7 +259,7 @@ def backoff_rmdir(dirpath, max_tries=MAX_TRIES):
 
     try:
         rmtree(dirpath)
-    except:
+    except OSError:
         # we don't really care about errors that much.  We'll catch remaining files
         #    with slower python logic.
         pass
