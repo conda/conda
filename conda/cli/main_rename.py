@@ -19,10 +19,10 @@ if TYPE_CHECKING:
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from .conda_argparse import _get_builtin_subcommand_help
+    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
     from .helpers import add_output_and_prompt_options, add_parser_prefix
 
-    summary = _get_builtin_subcommand_help("rename")
+    summary = BUILTIN_SUBCOMMAND_HELP["rename"]
     description = dals(
         f"""
         {summary}

@@ -16,11 +16,11 @@ if TYPE_CHECKING:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from .conda_argparse import _get_builtin_subcommand_help
+    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
 
     p = sub_parsers.add_parser(
         "deactivate",
-        help=_get_builtin_subcommand_help("deactivate"),
+        help=BUILTIN_SUBCOMMAND_HELP["deactivate"],
         **kwargs,
     )
     p.set_defaults(func="conda.cli.main_mock_deactivate.execute")

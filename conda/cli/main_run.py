@@ -16,10 +16,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..common.constants import NULL
     from ..deprecations import deprecated
     from .actions import NullCountAction
-    from .conda_argparse import _get_builtin_subcommand_help
+    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
     from .helpers import add_parser_prefix, add_parser_verbose
 
-    summary = _get_builtin_subcommand_help("run")
+    summary = BUILTIN_SUBCOMMAND_HELP["run"]
     description = summary
     epilog = dals(
         """
