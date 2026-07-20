@@ -53,6 +53,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..auxlib.ish import dals
     from ..common.constants import NULL
     from .actions import NullCountAction
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import (
         add_parser_create_install_update,
         add_parser_default_packages,
@@ -60,7 +61,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
-    summary = "Create a new conda environment from a list of specified packages."
+    summary = _get_builtin_subcommand_help("create")
     description = dals(
         f"""
         {summary}

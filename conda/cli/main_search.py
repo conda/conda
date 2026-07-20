@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import (
         add_parser_channels,
         add_parser_json,
@@ -30,7 +31,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_networking,
     )
 
-    summary = "Search for packages and display associated information using the MatchSpec format."
+    summary = _get_builtin_subcommand_help("search")
     description = dals(
         f"""
         {summary}
