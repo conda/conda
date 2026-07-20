@@ -246,9 +246,11 @@ def test_calculate_change_report_superseded():
 
 
 def test_rollback_on_verify_failure_removes_only_created_prefixes(tmp_path):
-    # A prefix created by this transaction must be removed on verification
-    # failure (e.g. a ClobberError), while a prefix that already existed must be
-    # left untouched. See #16076.
+    """
+    A prefix created by this transaction must be removed on verification
+    failure (e.g. a ClobberError), while a prefix that already existed must be
+    left untouched. See https://github.com/conda/conda/issues/16076.
+    """
     created = tmp_path / "created"
     created.mkdir()
     (created / "conda-meta").mkdir()

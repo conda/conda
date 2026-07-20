@@ -333,11 +333,9 @@ class UnlinkLinkTransaction:
         self._verified = True
 
     def _rollback_on_verify_failure(self):
-        # Clean up anything this transaction created before verification failed.
-        # Besides the temporary directory, remove prefix directories that were
-        # created by _prepare() so a failed `conda create` doesn't leave a
-        # partial/empty environment folder behind (#16076). Prefixes that
-        # already existed are never touched.
+        """
+        Clean up anything this transaction created before verification failed.
+        """
         rm_rf(self.transaction_context["temp_dir"])
         for prefix in self.transaction_context.get("created_prefixes", ()):
             rm_rf(prefix)
@@ -416,10 +414,7 @@ class UnlinkLinkTransaction:
                     "Check that you have sufficient permissions."
                     ""
                 )
-            # Remember that we created this prefix so it can be rolled back if
-            # the transaction fails to verify (e.g. a ClobberError). We must
-            # never remove a prefix that already existed before this
-            # transaction. See #16076.
+            # Remember prefixes we created in case we need to rollback changes.
             transaction_context.setdefault("created_prefixes", set()).add(target_prefix)
 
         # gather information from disk and caches
