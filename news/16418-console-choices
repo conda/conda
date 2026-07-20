@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Document the accepted values of the `--console` flag in its `--help` output by listing the available reporter backends (e.g. `classic`, `json`), which are discovered dynamically so plugin-provided backends are included too. (#16418)
+*
 
 ### Deprecations
 
