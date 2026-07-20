@@ -236,6 +236,11 @@ BUILTIN_COMMANDS = {
 }
 """Names (and aliases) of built-in commands; these cannot be overridden by plugin subcommands."""
 
+BUILTIN_SUBCOMMAND_HELP = {
+    name: help_text for name, _, help_text, _ in _BUILTIN_SUBCOMMANDS
+}
+"""Help text for built-in subcommands."""
+
 _PLUGIN_FREE_BUILTIN_COMMANDS = frozenset({"activate", "deactivate", "run"})
 """Built-in commands that intentionally skip plugin discovery."""
 
@@ -243,10 +248,6 @@ _BUILTIN_SUBCOMMANDS_BY_NAME = {
     name: (module_path, help_text, extra_kwargs)
     for name, module_path, help_text, extra_kwargs in _BUILTIN_SUBCOMMANDS
 }
-
-
-def _get_builtin_subcommand_help(name: str) -> str:
-    return _BUILTIN_SUBCOMMANDS_BY_NAME[name][1]
 
 
 def _configure_builtin_subcommand(sub_parsers, name: str) -> ArgumentParser:

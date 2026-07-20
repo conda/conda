@@ -20,7 +20,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..auxlib.ish import dals
     from ..common.constants import NULL
     from .actions import NullCountAction
-    from .conda_argparse import _get_builtin_subcommand_help
+    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
     from .helpers import (
         add_parser_create_install_update,
         add_parser_frozen_env,
@@ -29,7 +29,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_update_modifiers,
     )
 
-    summary = _get_builtin_subcommand_help("install")
+    summary = BUILTIN_SUBCOMMAND_HELP["install"]
     description = dals(
         f"""
         {summary}

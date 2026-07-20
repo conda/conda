@@ -77,6 +77,10 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.add_parser_verbose", isfunction),
         ("conda.cli.conda_argparse.ArgumentParser", isclass),
         ("conda.cli.conda_argparse.BUILTIN_COMMANDS", lambda x: isinstance(x, set)),
+        (
+            "conda.cli.conda_argparse.BUILTIN_SUBCOMMAND_HELP",
+            lambda x: isinstance(x, dict),
+        ),
         ("conda.cli.conda_argparse.configure_parser_plugins", isfunction),
         ("conda.cli.conda_argparse.do_call", isfunction),
         ("conda.cli.conda_argparse.ExtendConstAction", isclass),
