@@ -148,114 +148,131 @@ for _name, _factory, _addendum in (
 del _name, _factory, _addendum
 
 
-_BUILTIN_SUBCOMMANDS: list[tuple[str, str, str, dict]] = [
-    # (name, module_path, help_text, extra_kwargs)
-    ("activate", "conda.cli.main_mock_activate", "Activate a conda environment.", {}),
-    ("clean", "conda.cli.main_clean", "Remove unused packages and caches.", {}),
-    (
-        "commands",
-        "conda.cli.main_commands",
-        "List all available conda subcommands (including those from plugins). "
+BUILTIN_SUBCOMMANDS: dict[str, dict] = {
+    "activate": {
+        "module": "conda.cli.main_mock_activate",
+        "help": "Activate a conda environment.",
+        "kwargs": {},
+    },
+    "clean": {
+        "module": "conda.cli.main_clean",
+        "help": "Remove unused packages and caches.",
+        "kwargs": {},
+    },
+    "commands": {
+        "module": "conda.cli.main_commands",
+        "help": "List all available conda subcommands (including those from plugins). "
         "Generally only used by tab-completion.",
-        {},
-    ),
-    (
-        "compare",
-        "conda.cli.main_compare",
-        "Compare packages between conda environments.",
-        {},
-    ),
-    ("config", "conda.cli.main_config", "Modify configuration values in .condarc.", {}),
-    (
-        "create",
-        "conda.cli.main_create",
-        "Create a new conda environment from a list of specified packages.",
-        {},
-    ),
-    (
-        "deactivate",
-        "conda.cli.main_mock_deactivate",
-        "Deactivate the current active conda environment.",
-        {},
-    ),
-    ("env", "conda.cli.main_env", "Create and manage conda environments.", {}),
-    ("export", "conda.cli.main_export", "Export a conda environment to a file.", {}),
-    (
-        "info",
-        "conda.cli.main_info",
-        "Display information about current conda install.",
-        {},
-    ),
-    ("init", "conda.cli.main_init", "Initialize conda for shell interaction.", {}),
-    (
-        "install",
-        "conda.cli.main_install",
-        "Install a list of packages into a specified conda environment.",
-        {},
-    ),
-    (
-        "list",
-        "conda.cli.main_list",
-        "List installed packages in a conda environment.",
-        {},
-    ),
-    ("notices", "conda.cli.main_notices", "Retrieve latest channel notifications.", {}),
-    (
-        "package",
-        "conda.cli.main_package",
-        "Create low-level conda packages. (EXPERIMENTAL)",
-        {},
-    ),
-    (
-        "remove",
-        "conda.cli.main_remove",
-        "Remove a list of packages from a specified conda environment.",
-        {"aliases": ["uninstall"]},
-    ),
-    ("rename", "conda.cli.main_rename", "Rename an existing environment.", {}),
-    ("run", "conda.cli.main_run", "Run an executable in a conda environment.", {}),
-    (
-        "search",
-        "conda.cli.main_search",
-        "Search for packages and display associated information "
+        "kwargs": {},
+    },
+    "compare": {
+        "module": "conda.cli.main_compare",
+        "help": "Compare packages between conda environments.",
+        "kwargs": {},
+    },
+    "config": {
+        "module": "conda.cli.main_config",
+        "help": "Modify configuration values in .condarc.",
+        "kwargs": {},
+    },
+    "create": {
+        "module": "conda.cli.main_create",
+        "help": "Create a new conda environment from a list of specified packages.",
+        "kwargs": {},
+    },
+    "deactivate": {
+        "module": "conda.cli.main_mock_deactivate",
+        "help": "Deactivate the current active conda environment.",
+        "kwargs": {},
+    },
+    "env": {
+        "module": "conda.cli.main_env",
+        "help": "Create and manage conda environments.",
+        "kwargs": {},
+    },
+    "export": {
+        "module": "conda.cli.main_export",
+        "help": "Export a conda environment to a file.",
+        "kwargs": {},
+    },
+    "info": {
+        "module": "conda.cli.main_info",
+        "help": "Display information about current conda install.",
+        "kwargs": {},
+    },
+    "init": {
+        "module": "conda.cli.main_init",
+        "help": "Initialize conda for shell interaction.",
+        "kwargs": {},
+    },
+    "install": {
+        "module": "conda.cli.main_install",
+        "help": "Install a list of packages into a specified conda environment.",
+        "kwargs": {},
+    },
+    "list": {
+        "module": "conda.cli.main_list",
+        "help": "List installed packages in a conda environment.",
+        "kwargs": {},
+    },
+    "notices": {
+        "module": "conda.cli.main_notices",
+        "help": "Retrieve latest channel notifications.",
+        "kwargs": {},
+    },
+    "package": {
+        "module": "conda.cli.main_package",
+        "help": "Create low-level conda packages. (EXPERIMENTAL)",
+        "kwargs": {},
+    },
+    "remove": {
+        "module": "conda.cli.main_remove",
+        "help": "Remove a list of packages from a specified conda environment.",
+        "kwargs": {"aliases": ["uninstall"]},
+    },
+    "rename": {
+        "module": "conda.cli.main_rename",
+        "help": "Rename an existing environment.",
+        "kwargs": {},
+    },
+    "run": {
+        "module": "conda.cli.main_run",
+        "help": "Run an executable in a conda environment.",
+        "kwargs": {},
+    },
+    "search": {
+        "module": "conda.cli.main_search",
+        "help": "Search for packages and display associated information "
         "using the MatchSpec format.",
-        {},
-    ),
-    (
-        "update",
-        "conda.cli.main_update",
-        "Update conda packages to the latest compatible version.",
-        {"aliases": ["upgrade"]},
-    ),
-]
+        "kwargs": {},
+    },
+    "update": {
+        "module": "conda.cli.main_update",
+        "help": "Update conda packages to the latest compatible version.",
+        "kwargs": {"aliases": ["upgrade"]},
+    },
+}
+"""Built-in subcommand module, help, and parser metadata."""
 
 BUILTIN_COMMANDS = {
     name
-    for command, _, _, kwargs in _BUILTIN_SUBCOMMANDS
-    for name in (command, *kwargs.get("aliases", ()))
+    for command, subcommand in BUILTIN_SUBCOMMANDS.items()
+    for name in (command, *subcommand["kwargs"].get("aliases", ()))
 }
 """Names (and aliases) of built-in commands; these cannot be overridden by plugin subcommands."""
-
-BUILTIN_SUBCOMMAND_HELP = {
-    name: help_text for name, _, help_text, _ in _BUILTIN_SUBCOMMANDS
-}
-"""Help text for built-in subcommands."""
 
 _PLUGIN_FREE_BUILTIN_COMMANDS = frozenset({"activate", "deactivate", "run"})
 """Built-in commands that intentionally skip plugin discovery."""
 
-_BUILTIN_SUBCOMMANDS_BY_NAME = {
-    name: (module_path, help_text, extra_kwargs)
-    for name, module_path, help_text, extra_kwargs in _BUILTIN_SUBCOMMANDS
-}
-
 
 def _configure_builtin_subcommand(sub_parsers, name: str) -> ArgumentParser:
-    module_path, _, extra_kwargs = _BUILTIN_SUBCOMMANDS_BY_NAME[name]
     if isinstance(sub_parsers, _LazySubParsersAction):
         sub_parsers._ensure_loaded(name)
         return sub_parsers._name_parser_map[name]
-    return import_module(module_path).configure_parser(sub_parsers, **extra_kwargs)
+    subcommand = BUILTIN_SUBCOMMANDS[name]
+    return import_module(subcommand["module"]).configure_parser(
+        sub_parsers, **subcommand["kwargs"]
+    )
 
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:
@@ -303,8 +320,13 @@ def generate_parser(**kwargs) -> ArgumentParser:
         required=True,
     )
 
-    for name, module_path, help_text, extra_kwargs in _BUILTIN_SUBCOMMANDS:
-        sub_parsers.add_lazy_subcommand(name, module_path, help_text, **extra_kwargs)
+    for name, subcommand in BUILTIN_SUBCOMMANDS.items():
+        sub_parsers.add_lazy_subcommand(
+            name,
+            subcommand["module"],
+            subcommand["help"],
+            **subcommand["kwargs"],
+        )
 
     return parser
 
@@ -681,7 +703,7 @@ def configure_parser_plugins(sub_parsers) -> None:
             continue
 
         # create the parser for the subcommand
-        if preview and name in _BUILTIN_SUBCOMMANDS_BY_NAME:
+        if preview and name in BUILTIN_SUBCOMMANDS:
             parser = _configure_builtin_subcommand(sub_parsers, name)
         else:
             parser = sub_parsers.add_parser(

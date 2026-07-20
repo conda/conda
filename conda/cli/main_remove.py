@@ -18,7 +18,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..common.constants import NULL
     from ..deprecations import deprecated
     from .actions import NullCountAction
-    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_channels,
@@ -30,7 +30,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
-    summary = BUILTIN_SUBCOMMAND_HELP["remove"]
+    summary = BUILTIN_SUBCOMMANDS["remove"]["help"]
     description = dals(
         f"""
         {summary}

@@ -19,11 +19,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         main_env_update,
         main_export,
     )
-    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
 
     p = sub_parsers.add_parser(
         "env",
-        help=BUILTIN_SUBCOMMAND_HELP["env"],
+        help=BUILTIN_SUBCOMMANDS["env"]["help"],
         **kwargs,
     )
 
