@@ -278,18 +278,24 @@ def resolve_features(val: Any, record: PackageRecord) -> tuple[str, ...]:
     return tuple(f for f in (ff.strip() for ff in val) if f)
 
 
-def resolve_as_tuple(val: Any, record: PackageRecord) -> tuple:
+def resolve_as_tuple(
+    val: Any,
+    record: PackageRecord,
+    field_name: str = "sequence",
+) -> tuple:
     if isinstance(val, tuple):
         return val
     if not val:
         return ()
+    if isinstance(val, str):
+        raise ValidationError(field_name, val)
     return tuple(val)
 
 
 def resolve_optional_tuple(val: Any, record: PackageRecord) -> tuple | None:
     if val is None:
         return None
-    return resolve_as_tuple(val, record)
+    return resolve_as_tuple(val, record, "_requested_specs")
 
 
 def resolve_noarch(val: Any, record: PackageRecord) -> NoarchType | None:
@@ -387,10 +393,10 @@ class PackageRecord:
         "timestamp": resolve_timestamp,
         "track_features": resolve_features,
         "features": resolve_features,
-        "depends": resolve_as_tuple,
-        "constrains": resolve_as_tuple,
-        "flags": resolve_as_tuple,
-        "files": resolve_as_tuple,
+        "depends": partial(resolve_as_tuple, field_name="depends"),
+        "constrains": partial(resolve_as_tuple, field_name="constrains"),
+        "flags": partial(resolve_as_tuple, field_name="flags"),
+        "files": partial(resolve_as_tuple, field_name="files"),
         "noarch": resolve_noarch,
         "package_type": resolve_package_type,
         "platform": resolve_platform,
@@ -500,9 +506,9 @@ class PackageRecord:
                 setattr_(self, fname, sys.intern(val))
 
     def __setattr__(self, name: str, value: Any) -> None:
-        value = coerce_and_validate(name, value)
         if resolve := self.FIELD_RESOLVERS.get(name):
             value = resolve(value, self)
+        value = coerce_and_validate(name, value)
         object.__setattr__(self, name, value)
         if name in PKEY_FIELDS and hasattr(self, "_pkey_cache"):
             self.invalidate_pkey()
