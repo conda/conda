@@ -40,10 +40,11 @@ jobs:
             days-before-issue-stale: 90
             days-before-issue-close: 21
     steps:
-      - uses: conda/actions/read-yaml@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
-        id: read_yaml
+      - uses: conda/actions/read-file@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
+        id: read_messages
         with:
           path: https://raw.githubusercontent.com/conda/infra/main/.github/messages.yml
+          parser: yaml
 
       - uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629 # v10.4.0
         id: stale
@@ -61,7 +62,7 @@ jobs:
           days-before-pr-close: 30
 
           # Comment on the staled issues
-          stale-issue-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-issue'] }}
+          stale-issue-message: ${{ fromJSON(steps.read_messages.outputs.content)['stale-issue'] }}
           # Label to apply on staled issues
           stale-issue-label: stale
           # Label to apply on closed issues
@@ -70,7 +71,7 @@ jobs:
           close-issue-reason: not_planned
 
           # Comment on the staled PRs
-          stale-pr-message: ${{ fromJSON(steps.read_yaml.outputs.value)['stale-pr'] }}
+          stale-pr-message: ${{ fromJSON(steps.read_messages.outputs.content)['stale-pr'] }}
           # Label to apply on staled PRs
           stale-pr-label: stale
           # Label to apply on closed PRs
