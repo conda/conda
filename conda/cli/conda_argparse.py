@@ -15,11 +15,6 @@ from argparse import ArgumentParser as ArgumentParserBase
 from importlib import import_module
 from logging import getLogger
 from subprocess import Popen
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import Any
 
 from .. import __version__
 from ..common.compat import isiterable, on_win
@@ -61,15 +56,6 @@ log = getLogger(__name__)
 # which, combined with the lazy subcommand parser map below, is the whole
 # point of A2/A3: ``import conda.cli.conda_argparse`` must not drag in 20+
 # subcommand modules.
-def _configure_parser_factory(module_path: str) -> Callable[[], Any]:
-    """Build a ``factory=`` callable that imports ``module_path`` lazily."""
-
-    def _factory() -> Any:
-        return import_module(module_path).configure_parser
-
-    return _factory
-
-
 for _name, _module_path in (
     ("configure_parser_activate", "conda.cli.main_mock_activate"),
     ("configure_parser_clean", "conda.cli.main_clean"),
@@ -93,10 +79,12 @@ for _name, _module_path in (
     ("configure_parser_update", "conda.cli.main_update"),
 ):
     deprecated.constant(
-        "26.5",
         "27.3",
+        "27.9",
         _name,
-        factory=_configure_parser_factory(_module_path),
+        factory=lambda module_path=_module_path: (
+            import_module(module_path).configure_parser
+        ),
         addendum=f"Use `from {_module_path} import configure_parser` instead.",
     )
 del _name, _module_path
@@ -151,8 +139,8 @@ for _name, _factory, _addendum in (
     ),
 ):
     deprecated.constant(
-        "26.5",
         "27.3",
+        "27.9",
         _name,
         factory=_factory,
         addendum=_addendum,
@@ -191,7 +179,7 @@ _BUILTIN_SUBCOMMANDS: list[tuple[str, str, str, dict]] = [
         {},
     ),
     ("env", "conda.cli.main_env", "Create and manage conda environments.", {}),
-    ("export", "conda.cli.main_export", "Export a given environment", {}),
+    ("export", "conda.cli.main_export", "Export a conda environment to a file.", {}),
     (
         "info",
         "conda.cli.main_info",
@@ -241,20 +229,25 @@ _BUILTIN_SUBCOMMANDS: list[tuple[str, str, str, dict]] = [
     ),
 ]
 
-BUILTIN_COMMANDS = {name for name, *_ in _BUILTIN_SUBCOMMANDS}
-for _name, _module, _help, _kw in _BUILTIN_SUBCOMMANDS:
-    for _alias in _kw.get("aliases", ()):
-        BUILTIN_COMMANDS.add(_alias)
+BUILTIN_COMMANDS = {
+    name
+    for command, _, _, kwargs in _BUILTIN_SUBCOMMANDS
+    for name in (command, *kwargs.get("aliases", ()))
+}
 """Names (and aliases) of built-in commands; these cannot be overridden by plugin subcommands."""
 
 _BUILTIN_SUBCOMMANDS_BY_NAME = {
-    name: (module_path, extra_kwargs)
-    for name, module_path, _help_text, extra_kwargs in _BUILTIN_SUBCOMMANDS
+    name: (module_path, help_text, extra_kwargs)
+    for name, module_path, help_text, extra_kwargs in _BUILTIN_SUBCOMMANDS
 }
 
 
+def _get_builtin_subcommand_help(name: str) -> str:
+    return _BUILTIN_SUBCOMMANDS_BY_NAME[name][1]
+
+
 def _configure_builtin_subcommand(sub_parsers, name: str) -> ArgumentParser:
-    module_path, extra_kwargs = _BUILTIN_SUBCOMMANDS_BY_NAME[name]
+    module_path, _, extra_kwargs = _BUILTIN_SUBCOMMANDS_BY_NAME[name]
     if isinstance(sub_parsers, _LazySubParsersAction):
         sub_parsers._ensure_loaded(name)
         return sub_parsers._name_parser_map[name]

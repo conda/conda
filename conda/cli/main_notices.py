@@ -10,9 +10,10 @@ from argparse import ArgumentParser, Namespace, _SubParsersAction
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import add_parser_channels, add_parser_json
 
-    summary = "Retrieve latest channel notifications."
+    summary = _get_builtin_subcommand_help("notices")
     description = dals(
         f"""
         {summary}

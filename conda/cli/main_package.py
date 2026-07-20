@@ -15,9 +15,10 @@ from os.path import abspath, basename, dirname, isdir, isfile, islink, join
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from .conda_argparse import _get_builtin_subcommand_help
     from .helpers import add_parser_prefix
 
-    summary = "Create low-level conda packages. (EXPERIMENTAL)"
+    summary = _get_builtin_subcommand_help("package")
     description = summary
     epilog = ""
 

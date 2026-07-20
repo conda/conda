@@ -95,7 +95,7 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
 @pytest.mark.parametrize(
     "path,validate",
     [
-        # configure_parser_* functions moved to their own main_* modules (deprecated in 26.5)
+        # configure_parser_* functions moved to their own main_* modules (deprecated in 27.3)
         ("conda.cli.conda_argparse.configure_parser_clean", isfunction),
         ("conda.cli.conda_argparse.configure_parser_compare", isfunction),
         ("conda.cli.conda_argparse.configure_parser_config", isfunction),
@@ -111,7 +111,7 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
         ("conda.cli.conda_argparse.configure_parser_run", isfunction),
         ("conda.cli.conda_argparse.configure_parser_search", isfunction),
         ("conda.cli.conda_argparse.configure_parser_update", isfunction),
-        # rc_path variables moved to conda.base.context (deprecated in 26.5)
+        # rc_path variables moved to conda.base.context (deprecated in 27.3)
         ("conda.cli.conda_argparse.escaped_sys_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.escaped_user_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.sys_rc_path", lambda x: isinstance(x, str)),
