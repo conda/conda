@@ -24,10 +24,10 @@ log = getLogger(__name__)
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .actions import ExtendConstAction
-    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_output_and_prompt_options
 
-    summary = BUILTIN_SUBCOMMAND_HELP["clean"]
+    summary = BUILTIN_SUBCOMMANDS["clean"]["help"]
     description = summary
     epilog = dals(
         """

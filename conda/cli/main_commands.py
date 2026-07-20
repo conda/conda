@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
 
     p = sub_parsers.add_parser(
         "commands",
-        help=BUILTIN_SUBCOMMAND_HELP["commands"],
+        help=BUILTIN_SUBCOMMANDS["commands"]["help"],
         **kwargs,
     )
     p.set_defaults(func="conda.cli.main_commands.execute")

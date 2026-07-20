@@ -22,10 +22,10 @@ log = logging.getLogger(__name__)
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
-    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_json, add_parser_prefix
 
-    summary = BUILTIN_SUBCOMMAND_HELP["compare"]
+    summary = BUILTIN_SUBCOMMANDS["compare"]["help"]
     description = summary
     epilog = dals(
         """

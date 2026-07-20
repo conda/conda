@@ -17,11 +17,11 @@ if TYPE_CHECKING:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
 
     p = sub_parsers.add_parser(
         "activate",
-        help=BUILTIN_SUBCOMMAND_HELP["activate"],
+        help=BUILTIN_SUBCOMMANDS["activate"]["help"],
         **kwargs,
     )
     p.set_defaults(func="conda.cli.main_mock_activate.execute")
