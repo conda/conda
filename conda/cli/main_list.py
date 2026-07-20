@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..base.constants import CONDA_LIST_FIELDS
-    from .conda_argparse import _get_builtin_subcommand_help
+    from .conda_argparse import BUILTIN_SUBCOMMAND_HELP
     from .helpers import (
         add_parser_json,
         add_parser_prefix,
@@ -32,7 +32,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         comma_separated_stripped,
     )
 
-    summary = _get_builtin_subcommand_help("list")
+    summary = BUILTIN_SUBCOMMAND_HELP["list"]
     description = summary
     epilog = dals(
         """
