@@ -48,6 +48,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
+    ClobberError,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
@@ -3168,3 +3169,69 @@ def test_mix_explicit_file_and_packages(
             raises=CondaValueError,
         )
         assert "Cannot combine package names with explicit package lists" in str(exc)
+
+
+def test_create_cleanup_on_clobber_error(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    Regression test: #16076 — failed create must not leave the prefix behind.
+    """
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+
+    new_prefix = path_factory()
+    with pytest.raises(CondaMultiError) as exc_info:
+        conda_cli("create", f"--prefix={new_prefix}", "clobber-a", "clobber-b", "--yes")
+
+    clobber_errors = [e for e in exc_info.value.errors if isinstance(e, ClobberError)]
+    assert clobber_errors
+    assert any("bin/clobber-test-file" in str(e) for e in clobber_errors)
+    assert not new_prefix.exists()
+
+
+def test_install_preserves_prefix_on_clobber_error(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+
+    with tmp_env() as existing_prefix:
+        with pytest.raises(CondaMultiError):
+            conda_cli(
+                "install",
+                f"--prefix={existing_prefix}",
+                "clobber-a",
+                "clobber-b",
+                "--yes",
+            )
+        assert existing_prefix.exists()
+
+
+def test_install_succeeds_with_clobber_flag(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+
+    with tmp_env() as prefix:
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--clobber",
+            "clobber-a",
+            "clobber-b",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "clobber-a")
+        assert package_is_installed(prefix, "clobber-b")
+        assert (prefix / "bin" / "clobber-test-file").exists()
