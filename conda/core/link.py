@@ -315,7 +315,7 @@ class UnlinkLinkTransaction:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf(self.transaction_context["temp_dir"])
+                    self._rollback_on_verify_failure()
                     raise
                 log.info(exceptions)
         try:
@@ -328,9 +328,17 @@ class UnlinkLinkTransaction:
                 )
             )
         except CondaSystemExit:
-            rm_rf(self.transaction_context["temp_dir"])
+            self._rollback_on_verify_failure()
             raise
         self._verified = True
+
+    def _rollback_on_verify_failure(self):
+        """
+        Clean up anything this transaction created before verification failed.
+        """
+        rm_rf(self.transaction_context["temp_dir"])
+        for prefix in self.transaction_context.get("created_prefixes", ()):
+            rm_rf(prefix)
 
     def _verify_pre_link_message(self, all_link_groups):
         flag_pre_link = False
@@ -406,6 +414,8 @@ class UnlinkLinkTransaction:
                     "Check that you have sufficient permissions."
                     ""
                 )
+            # Remember prefixes we created in case we need to rollback changes.
+            transaction_context.setdefault("created_prefixes", set()).add(target_prefix)
 
         # gather information from disk and caches
         prefix_data = PrefixData(target_prefix)

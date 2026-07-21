@@ -74,6 +74,32 @@
       "timestamp": 1701471759792,
       "version": "1.0.0"
     },
+    "clobber-a-1.0.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "6dcf4c9545cfbae8e8840ca7cb06ea22",
+      "name": "clobber-a",
+      "noarch": "generic",
+      "sha256": "da5f4178dcab7bf321c63e8b27ae31bb772900ec8678a0d0b7069a060ba55c24",
+      "size": 540,
+      "subdir": "noarch",
+      "timestamp": 1784535699678,
+      "version": "1.0.0"
+    },
+    "clobber-b-1.0.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "74855179ca0e6bde41095a16aff2cc6f",
+      "name": "clobber-b",
+      "noarch": "generic",
+      "sha256": "135e2d3af8339c729cc47e153b983b6fa51f7434fa075e835e3d422a135ec85e",
+      "size": 537,
+      "subdir": "noarch",
+      "timestamp": 1784535699679,
+      "version": "1.0.0"
+    },
     "d_post_link_package-1.0.0-0.tar.bz2": {
       "build": "0",
       "build_number": 0,
