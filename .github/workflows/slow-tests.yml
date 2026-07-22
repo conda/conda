@@ -1,3 +1,5 @@
+# edit this in https://github.com/conda/infrastructure
+
 name: Slow Test Review
 
 on:
@@ -26,10 +28,11 @@ env:
   GH_REPO: ${{ github.repository }}
   # Base URL for issue links
   ISSUES_URL: ${{ github.server_url }}/${{ github.repository }}/issues
-  # TODO: Replace with the actual epic issue number
   EPIC_NUMBER: '15637'
   # Maximum number of incomplete sub-issues before we stop adding more
-  MAX_INCOMPLETE: '1'
+  # Override via repository variable SLOW_TESTS_MAX_INCOMPLETE
+  # (see Settings → Secrets and variables → Actions → Variables → Repository variables)
+  MAX_INCOMPLETE: ${{ vars.SLOW_TESTS_MAX_INCOMPLETE || '1' }}
   # Platforms to fetch duration files for
   PLATFORMS: |
     Linux
@@ -85,6 +88,7 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
+          # template-files-raw
           # Verify epic exists and get its node ID, default to dry-run if missing
           if ! epic_id=$(gh issue view "${EPIC_NUMBER}" --json id --jq '.id' 2>/dev/null); then
             echo "::warning::Epic #${EPIC_NUMBER} does not exist. Running in dry-run mode."
@@ -144,12 +148,14 @@ jobs:
           total_count=$(wc -l < /tmp/tracked_tests.txt 2>/dev/null) || total_count=0
           echo "Sub-issues: ${total_count} total, ${incomplete_count} incomplete"
           echo "incomplete_count=${incomplete_count}" >> "$GITHUB_OUTPUT"
+          # template-files-endraw
 
       - name: Fetch duration files
         id: durations
         env:
           BASE_URL: https://raw.githubusercontent.com/${{ github.repository }}/main/durations
         run: |
+          # template-files-raw
           # Combine all durations, keeping max and tracking which platform
           # Format: {test_name: {duration: N, platform: "X"}}
           echo "{}" > /tmp/all_durations.json
@@ -194,6 +200,7 @@ jobs:
 
           echo "platforms_fetched=${fetched:-none}" >> "$GITHUB_OUTPUT"
           echo "platforms_missing=${missing}" >> "$GITHUB_OUTPUT"
+          # template-files-endraw
 
       - name: Create sub-issues up to cap
         id: create
@@ -202,6 +209,7 @@ jobs:
           INCOMPLETE_COUNT: ${{ steps.epic.outputs.incomplete_count }}
           EPIC_ID: ${{ steps.epic.outputs.epic_id }}
         run: |
+          # template-files-raw
           to_add=$((MAX_INCOMPLETE - INCOMPLETE_COUNT))
           if [[ "$to_add" -le 0 ]]; then
             echo "Already at cap (${INCOMPLETE_COUNT} incomplete sub-issues)"
@@ -283,6 +291,7 @@ jobs:
 
           echo "Processed $created tests"
           echo "created_count=$created" >> "$GITHUB_OUTPUT"
+          # template-files-endraw
 
       - name: Summary
         if: always()
@@ -294,6 +303,7 @@ jobs:
           PLATFORMS_FETCHED: ${{ steps.durations.outputs.platforms_fetched }}
           PLATFORMS_MISSING: ${{ steps.durations.outputs.platforms_missing }}
         run: |
+          # template-files-raw
           echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${EPIC_MISSING}" == "true" ]]; then
@@ -322,3 +332,4 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             cat /tmp/created_summary.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
           fi
+          # template-files-endraw

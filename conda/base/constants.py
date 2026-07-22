@@ -186,6 +186,7 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
+CONDA_PACKAGE_EXTRACTOR_NAME: Final = "conda-package"
 
 PARTIAL_EXTENSION: Final = ".partial"
 """Suffix appended to package filenames during incomplete downloads."""
@@ -219,6 +220,9 @@ CONDA_LOGS_DIR: Final = ".logs"
 UNKNOWN_CHANNEL: Final = "<unknown>"
 REPODATA_FN: Final = "repodata.json"
 
+REPODATA_SHARDS_FN: Final = "repodata_shards.msgpack.zst"
+"""Index for sharded repodata data of a channel"""
+
 NOTICES_FN: Final = "notices.json"
 """Default name of the notices file on the server we look for."""
 
@@ -229,7 +233,12 @@ NOTICES_CACHE_SUBDIR: Final = "notices"
 """Determines the subdir for notices cache."""
 
 NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400  # in seconds
-"""Determines how often notices are displayed while running commands."""
+"""Determines how often (in seconds) notices are displayed while running commands."""
+
+NOTICES_DECORATOR_DISPLAY_INTERVAL_NS: Final = (
+    NOTICES_DECORATOR_DISPLAY_INTERVAL * 1_000_000_000
+)
+"""Determines how often (in nanoseconds) notices are displayed while running commands."""
 
 DRY_RUN_PREFIX: Final = "Dry run action:"
 PREFIX_NAME_DISALLOWED_CHARS: Final = {"/", " ", ":", "#"}

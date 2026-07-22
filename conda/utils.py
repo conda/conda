@@ -90,10 +90,11 @@ def quote_for_shell(*arguments):
     For POSIX uses `shlex.join`, for Windows uses a custom implementation to properly escape
     metacharacters.
 
-    :param arguments: Arguments to quote.
-    :type arguments: list of str
-    :return: Quoted arguments.
-    :rtype: str
+    Args:
+        arguments: Arguments to quote.
+
+    Returns:
+        Quoted arguments.
     """
     # [backport] Support passing in a list of strings or args of string.
     if len(arguments) == 1 and isiterable(arguments[0]):
@@ -334,9 +335,11 @@ def get_comspec():
 
     Ensures COMSPEC envvar is set to cmd.exe, if not attempt to find it.
 
-    :raises KeyError: COMSPEC is undefined and cannot be found.
-    :returns: COMSPEC value.
-    :rtype: str
+    Raises:
+        KeyError: COMSPEC is undefined and cannot be found.
+
+    Returns:
+        COMSPEC value.
     """
     if basename(environ.get("COMSPEC", "")).lower() != "cmd.exe":
         for comspec in (

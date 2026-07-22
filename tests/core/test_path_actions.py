@@ -304,6 +304,50 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
         assert not isfile(windows_exe_axn.target_full_path)
 
 
+@pytest.mark.parametrize(
+    "definition,result_or_exc",
+    [
+        ("command1=some.module:main", ("command1", "some.module", "main")),
+        (
+            "command1=some.module:SomeClass.method",
+            ("command1", "some.module", "SomeClass.method"),
+        ),
+        (
+            'command1 = "some.module:main"',
+            ("command1", "some.module", "main"),
+        ),
+        (
+            "../bin/python=some.module:main",
+            (ValueError, "simple file name"),
+        ),
+        (
+            "command=.some.module:main",
+            (ValueError, "not a valid absolute import of a Python module"),
+        ),
+        (
+            "command=some..module:main",
+            (ValueError, "not a valid absolute import of a Python module"),
+        ),
+        (
+            "command=some.module:main-function",
+            (ValueError, "not a valid Python function identifier"),
+        ),
+        (
+            "command=some.module:main..function",
+            (ValueError, "not a valid Python function identifier"),
+        ),
+    ],
+)
+def test_entry_point_parse_def(
+    definition: str, result_or_exc: tuple[str, str, str] | tuple[Exception, str]
+):
+    if isinstance(result_or_exc[0], str):
+        assert parse_entry_point_def(definition) == result_or_exc
+    else:
+        with pytest.raises(result_or_exc[0], match=result_or_exc[1]):
+            parse_entry_point_def(definition)
+
+
 def test_simple_LinkPathAction_hardlink(prefix: Path, pkgs_dir: Path):
     source_full_path = make_test_file(pkgs_dir)
     target_short_path = source_short_path = basename(source_full_path)

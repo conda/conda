@@ -19,6 +19,7 @@ from conda.auxlib.ish import dals
 from conda.base.constants import (
     DEFAULT_AGGRESSIVE_UPDATE_PACKAGES,
     DEFAULT_CHANNELS,
+    PREFIX_MAGIC_FILE,
     ChannelPriority,
     PathConflict,
 )
@@ -577,6 +578,11 @@ def test_native_subdir(
     ensure _native_subdir normalizes to the correct subdir string."""
     monkeypatch.setattr("conda.base.context.platform.machine", lambda: machine)
     monkeypatch.setattr("conda.base.context.sys.platform", sys_platform)
+    if sys_platform == "win32":
+        monkeypatch.setattr(
+            "conda.base.context.sysconfig.get_platform",
+            lambda: f"win-{machine.lower()}",
+        )
     context._native_subdir.cache_clear()
     try:
         assert context._native_subdir() == expected_subdir
@@ -971,3 +977,83 @@ def test_category_map_covers_all_parameters(context_testdata: None) -> None:
         mapped = [m for m in mapped if m != extra]
 
     assert not set(parameters).difference(mapped)
+
+
+def test_preview_default_is_empty(context_testdata: None) -> None:
+    assert context.preview == ()
+
+
+def test_preview_loads_from_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup,other-feature")
+    reset_context()
+    assert context.preview == ("env-setup", "other-feature")
+
+
+def test_preview_loads_from_condarc(context_testdata: None) -> None:
+    reset_context()
+    rd = {
+        "testdata": YamlRawParameter.make_raw_parameters(
+            "testdata",
+            yaml.loads("preview:\n  - env-setup\n  - other-feature\n"),
+        )
+    }
+    context._set_raw_data(rd)
+    assert context.preview == ("env-setup", "other-feature")
+
+
+def test_preview_enabled_returns_true_when_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
+    reset_context()
+    assert context.preview_enabled("env-setup")
+
+
+def test_preview_enabled_returns_false_when_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_PREVIEW", "other-feature")
+    reset_context()
+    assert not context.preview_enabled("env-setup")
+
+
+def test_preview_enabled_returns_false_when_empty(context_testdata: None) -> None:
+    assert not context.preview_enabled("env-setup")
+
+
+def test_root_writable_reflects_filesystem(tmp_path: Path, monkeypatch) -> None:
+    """root_writable should return True when the magic file is accessible."""
+    magic = tmp_path / PREFIX_MAGIC_FILE
+    magic.parent.mkdir(parents=True, exist_ok=True)
+    magic.touch()
+
+    monkeypatch.setenv("CONDA_ROOT_PREFIX", str(tmp_path))
+    reset_context()
+
+    assert context.root_writable is True
+
+
+def test_root_writable_is_memoized(tmp_path: Path, monkeypatch) -> None:
+    """root_writable must return the same cached value on repeated access."""
+    magic = tmp_path / PREFIX_MAGIC_FILE
+    magic.parent.mkdir(parents=True, exist_ok=True)
+    magic.touch()
+
+    monkeypatch.setenv("CONDA_ROOT_PREFIX", str(tmp_path))
+    reset_context()
+
+    first = context.root_writable
+    second = context.root_writable
+
+    assert first is second
+    assert "__root_writable" in context._cache_
+
+
+def test_root_writable_false_when_magic_file_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """root_writable should be False when the prefix magic file does not exist."""
+    monkeypatch.setenv("CONDA_ROOT_PREFIX", str(tmp_path))
+    reset_context()
+
+    assert context.root_writable is False

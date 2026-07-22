@@ -33,7 +33,7 @@ from ..base.context import context, locate_prefix_by_name
 from ..common.compat import on_mac, on_win
 from ..common.constants import NULL
 from ..common.io import time_recorder
-from ..common.path import expand, paths_equal, strip_pkg_extension
+from ..common.path import expand, paths_equal
 from ..common.serialize import json
 from ..common.url import mask_anaconda_token
 from ..common.url import remove_auth as url_remove_auth
@@ -146,8 +146,11 @@ class PrefixData(metaclass=PrefixDataType):
 
         The name will be validated with `PrefixData.validate_name()` if it does not exist.
 
-        :param name: The name of the environment. Must not contain path separators (/, \\).
-        :raises CondaValueError: If `name` contains a path separator.
+        Args:
+            name: The name of the environment. Must not contain path separators (/, \\).
+
+        Raises:
+            CondaValueError: If `name` contains a path separator.
         """
         if "/" in name or "\\" in name:
             raise CondaValueError("Environment names cannot contain path separators")
@@ -165,9 +168,10 @@ class PrefixData(metaclass=PrefixDataType):
         The path and name will be validated with `PrefixData.validate_path()` and
         `PrefixData.validate_name()`, respectively, if `validate` is `True`.
 
-        :param validate: Whether the path and name should be validated. Useful for environments
-            about to be created.
-        :param kwargs: Additional keyword arguments to pass to the constructor.
+        Args:
+            validate: Whether the path and name should be validated. Useful for environments
+                about to be created.
+            kwargs: Additional keyword arguments to pass to the constructor.
         """
         inst = cls(context.target_prefix, **kwargs)
         if validate:
@@ -265,7 +269,8 @@ class PrefixData(metaclass=PrefixDataType):
         """
         Check whether the environment path exists.
 
-        :raises EnvironmentLocationNotFound: If the check returns False.
+        Raises:
+            EnvironmentLocationNotFound: If the check returns False.
         """
         if not self.exists():
             raise EnvironmentLocationNotFound(self.prefix_path)
@@ -274,7 +279,8 @@ class PrefixData(metaclass=PrefixDataType):
         """
         Check whether the environment path exists and is a valid conda environment.
 
-        :raises DirectoryNotACondaEnvironmentError: If the check returns False.
+        Raises:
+            DirectoryNotACondaEnvironmentError: If the check returns False.
         """
         self.assert_exists()
         if not self.is_environment():
@@ -284,7 +290,8 @@ class PrefixData(metaclass=PrefixDataType):
         """
         Check whether the environment path is a valid conda environment and is writable.
 
-        :raises EnvironmentNotWritableError: If the check returns False.
+        Raises:
+            EnvironmentNotWritableError: If the check returns False.
         """
         self.assert_environment()
         if not file_path_is_writable(self._magic_file):
@@ -295,7 +302,8 @@ class PrefixData(metaclass=PrefixDataType):
         Check whether the environment path is a valid conda environment and is not marked
         as frozen (as per CEP 22).
 
-        :raises EnvironmentIsFrozenError: If the environment is marked as frozen.
+        Raises:
+            EnvironmentIsFrozenError: If the environment is marked as frozen.
         """
         self.assert_environment()
         if not self.is_frozen():
@@ -316,9 +324,12 @@ class PrefixData(metaclass=PrefixDataType):
         - Disallow immediately nested environments (e.g. `$CONDA_ROOT` and `$CONDA_ROOT/my-env`).
         - Warn if there are spaces in the path.
 
-        :param expand_path: Whether to process `~` and environment variables in the string.
-            The expanded value will replace `.prefix_path`.
-        :raises CondaValueError: If the environment contains `:`, `;`, or is nested.
+        Args:
+            expand_path: Whether to process `~` and environment variables in the string.
+                The expanded value will replace `.prefix_path`.
+
+        Raises:
+            CondaValueError: If the environment contains `:`, `;`, or is nested.
         """
         prefix_str = str(self.prefix_path)
         if expand_path:
@@ -345,8 +356,11 @@ class PrefixData(metaclass=PrefixDataType):
         """
         Validate the name of the environment.
 
-        :param allow_base: Whether to allow `base` as a valid name.
-        :raises CondaValueError: If the name is protected, or if it contains disallowed characters
+        Args:
+            allow_base: Whether to allow `base` as a valid name.
+
+        Raises:
+            CondaValueError: If the name is protected, or if it contains disallowed characters
             (`/`, ` `, `:`, `#`).
         """
         if not allow_base and self.name in RESERVED_ENV_NAMES:
@@ -426,7 +440,8 @@ class PrefixData(metaclass=PrefixDataType):
         plus the size of non-manifest files under conda-meta (history, markers,
         etc.)
 
-        :returns: Total size in bytes.
+        Returns:
+            Total size in bytes.
         """
         total_size = 0
 
@@ -474,16 +489,9 @@ class PrefixData(metaclass=PrefixDataType):
         return self
 
     def _get_json_fn(self, prefix_record: PrefixRecord) -> str:
-        fn = prefix_record.fn
-        # Check package extensions (dynamic) or .dist-info (pip-installed)
-        stripped, ext = strip_pkg_extension(fn)
-        if not ext and fn.endswith(".dist-info"):
-            stripped = fn[: -len(".dist-info")]
-        elif not ext:
-            raise ValueError(
-                f"Attempted to make prefix record for unknown package type: {fn}"
-            )
-        return stripped + ".json"
+        if not isinstance(prefix_record, PrefixRecord):
+            prefix_record = PrefixRecord.from_objects(prefix_record)
+        return prefix_record._get_json_fn()
 
     def insert(self, prefix_record: PrefixRecord, remove_auth: bool = True) -> None:
         if prefix_record.name in self._prefix_records:
@@ -549,7 +557,8 @@ class PrefixData(metaclass=PrefixDataType):
         """
         Map the records to a frozendict of name -> record.
 
-        :return: A mapping of name -> record.
+        Returns:
+            A mapping of name -> record.
         """
         return frozendict(self._prefix_records)
 
@@ -592,7 +601,8 @@ class PrefixData(metaclass=PrefixDataType):
     def get_conda_packages(self) -> list[PrefixRecord]:
         """Get conda packages sorted alphabetically by name.
 
-        :return: Sorted conda package records
+        Returns:
+            Sorted conda package records.
         """
         conda_types = {None, PackageType.NOARCH_GENERIC, PackageType.NOARCH_PYTHON}
         conda_packages = [
@@ -605,7 +615,8 @@ class PrefixData(metaclass=PrefixDataType):
     def get_python_packages(self) -> list[PrefixRecord]:
         """Get Python packages (installed via pip) sorted alphabetically by name.
 
-        :return: Sorted Python package records
+        Returns:
+            Sorted Python package records.
         """
         python_types = {
             PackageType.VIRTUAL_PYTHON_WHEEL,
@@ -773,6 +784,11 @@ def get_conda_anchor_files_and_records(
             if on_win:
                 fpath = fpath.replace("\\", "/")
             if matcher(fpath):
+                if on_win:
+                    fpath = (
+                        site_packages_short_path
+                        + fpath[len(site_packages_short_path) :]
+                    )
                 anchor_paths.append(fpath)
         if len(anchor_paths) > 1:
             anchor_path = max(anchor_paths, key=len)

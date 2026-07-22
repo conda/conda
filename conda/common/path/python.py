@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import keyword
 import re
 from logging import getLogger
 from os.path import join, split, splitext
@@ -11,6 +12,19 @@ from os.path import join, split, splitext
 from ..compat import on_win
 
 log = getLogger(__name__)
+
+
+def is_valid_import_path(path: str) -> bool:
+    """
+    Python import paths are a sequence of non-keyword Python identifiers separated by one period.
+    """
+    # Empty strings are not valid, and return an empty list on split(), making all([]) truthy!
+    if not path:
+        return False
+
+    return all(
+        part.isidentifier() and not keyword.iskeyword(part) for part in path.split(".")
+    )
 
 
 def pyc_path(py_path, python_major_minor_version):
@@ -43,9 +57,29 @@ def missing_pyc_files(python_major_minor_version, files):
 
 
 def parse_entry_point_def(ep_definition):
-    cmd_mod, func = ep_definition.rsplit(":", 1)
-    command, module = cmd_mod.rsplit("=", 1)
+    command, defn = ep_definition.split("=", 1)
+    module, func = defn.strip(" \t\r\n\"'").rsplit(":", 1)
     command, module, func = command.strip(), module.strip(), func.strip()
+
+    # Validate command
+    if not command or any(c in command for c in ("/", "\\", "\0", "\n", "\r")):
+        raise ValueError(
+            "entry point command must be a simple file name; "
+            f"got invalid characters in {command!r}"
+        )
+    if command.startswith("."):
+        raise ValueError(
+            "entry point command must not be a path-traversal token "
+            f"or hidden name: {command!r}"
+        )
+    # Validate module and func
+    if not is_valid_import_path(module):
+        raise ValueError(
+            f"'{module}' is not a valid absolute import of a Python module"
+        )
+    if not is_valid_import_path(func):
+        raise ValueError(f"'{func}' is not a valid Python function identifier")
+
     return command, module, func
 
 

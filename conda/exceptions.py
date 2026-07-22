@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 
 from . import CondaError, CondaExitZero, CondaMultiError
 from .auxlib.ish import dals
-from .auxlib.logz import stringify
 from .base.constants import (
     COMPATIBLE_SHELLS,
     PREFIX_PINNED_FILE,
@@ -24,10 +23,6 @@ from .base.constants import (
     SafetyChecks,
 )
 from .common.compat import on_win
-from .common.io import dashlist
-from .common.iterators import groupby_to_dict as groupby
-from .common.serialize.json import JSONDecodeError
-from .common.serialize.json import dumps as json_dumps
 from .common.signals import get_signal_name
 from .common.url import join_url, maybe_unquote
 from .deprecations import (
@@ -35,7 +30,6 @@ from .deprecations import (
     deprecated,
 )
 from .exception_handler import ExceptionHandler, conda_exception_handler  # noqa: F401
-from .models.channel import Channel
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -44,11 +38,21 @@ if TYPE_CHECKING:
 
     import requests
 
-    from conda.base.context import Context
-    from conda.common.path import PathType
-    from conda.models.match_spec import MatchSpec
-    from conda.models.records import PackageRecord
-    from conda.plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
+    from ._private.exception_guidance import (
+        ErrorGuidance,
+        ErrorGuidanceTypedDict,
+        GuidanceHintTypedDict,
+    )
+    from .base.context import Context
+    from .common.path import PathType
+    from .models.channel import Channel
+    from .models.match_spec import MatchSpec
+    from .models.records import PackageRecord
+    from .plugins.types import CondaEnvironmentExporter, CondaEnvironmentSpecifier
+
+    UnsatisfiableConflictEntry = tuple[tuple[MatchSpec, ...], str]
+    UnsatisfiableConflictClass = set[UnsatisfiableConflictEntry]
+    UnsatisfiableConflictMap = dict[str, UnsatisfiableConflictClass]
 
 log = getLogger(__name__)
 
@@ -87,7 +91,7 @@ class ArgumentError(CondaError):
 
 
 class Help(CondaError):
-    pass
+    return_code = 0
 
 
 class ActivateHelp(Help):
@@ -302,6 +306,8 @@ class SharedLinkPathClobberError(ClobberError):
 class CommandNotFoundError(CondaError):
     @deprecated("26.9", "27.3")
     def __init__(self, command: str):
+        from .common.io import dashlist
+
         activate_commands = {
             "activate",
             "deactivate",
@@ -533,6 +539,9 @@ class UnavailableInvalidChannel(ChannelError):
         status_code: str | int,
         response: requests.models.Response | None = None,
     ):
+        from .auxlib.logz import stringify
+        from .models.channel import Channel
+
         # parse channel
         channel = Channel(channel)
         channel_name = channel.name
@@ -562,14 +571,21 @@ class UnavailableInvalidChannel(ChannelError):
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
-        except (AttributeError, JSONDecodeError):
+        except (AttributeError, ValueError):
+            # AttributeError: response has no .json method
+            # ValueError: covers both json.JSONDecodeError and simplejson.JSONDecodeError
             body = {}
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
-            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # RFC 9457 'detail' is preferred over 'message' for
+            # application/problem+json responses.
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail") or message
+            content_type = getattr(response, "headers", {}).get("content-type", "")
+            if "application/problem+json" in content_type:
+                detail = body.get("detail")
+                if isinstance(detail, str):
+                    message = detail
 
         # standardize arguments
         status_code = status_code or "000"
@@ -653,17 +669,26 @@ class CondaHTTPError(CondaError):
         response: requests.Response | None = None,
         caused_by: Any = None,
     ):
+        from .auxlib.logz import stringify
+
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
-        except (AttributeError, JSONDecodeError):
+        except (AttributeError, ValueError):
+            # AttributeError: response has no .json method
+            # ValueError: covers both json.JSONDecodeError and simplejson.JSONDecodeError
             body = {}
         else:
             reason = body.get("reason") or reason
             message = body.get("message") or message
-            # if RFC 9457 'detail' is present, it is preferred over 'message'
+            # RFC 9457 'detail' is preferred over 'message' for
+            # application/problem+json responses.
             # See https://datatracker.ietf.org/doc/html/rfc9457
-            message = body.get("detail") or message
+            content_type = getattr(response, "headers", {}).get("content-type", "")
+            if "application/problem+json" in content_type:
+                detail = body.get("detail")
+                if isinstance(detail, str):
+                    message = detail
 
         # standardize arguments
         url = maybe_unquote(url)
@@ -723,6 +748,8 @@ class PackagesNotFoundError(CondaError):
         packages: Iterable[MatchSpec | PackageRecord | str],
         channel_urls: Iterable[str] = (),
     ):
+        from .common.io import dashlist
+
         self.packages = tuple(packages)
         self.channel_urls = tuple(channel_urls)
 
@@ -764,12 +791,50 @@ class PackagesNotFoundError(CondaError):
             packages_formatted = dashlist(packages)
             channels_formatted = ""
 
+        guidance = None
+        if channel_urls and len(self.packages) >= 5:
+            guidance = {
+                "summary": (
+                    "Many packages are unavailable at once. The cause is often "
+                    "channel configuration, an incomplete package index, or a "
+                    "platform mismatch."
+                ),
+                "cause": (
+                    "All %(count)d requested packages were not found in the "
+                    "configured channels."
+                )
+                % {"count": len(self.packages)},
+                "hints": [
+                    {
+                        "text": (
+                            "Verify the expected channels are listed:\n"
+                            "      conda config --show channels"
+                        ),
+                        "hint_code": "check_channel_config",
+                    },
+                    {
+                        "text": (
+                            "Confirm the platform (subdir) matches your system:\n"
+                            "      conda info"
+                        ),
+                        "hint_code": "check_platform_subdir",
+                    },
+                    {
+                        "text": (
+                            "Clear the index cache, then retry:\n      conda clean -i"
+                        ),
+                        "hint_code": "clear_index_cache",
+                    },
+                ],
+            }
+
         super().__init__(
             message,
             packages=self.packages,
             packages_formatted=packages_formatted,
             channel_urls=list(self.channel_urls),
             channels_formatted=channels_formatted,
+            guidance=guidance,
         )
 
 
@@ -796,6 +861,8 @@ class PackageNotInstalledError(PackagesNotFoundError):
         prefix: PathType,
         package_name: str | Iterable[MatchSpec | PackageRecord | str],
     ):
+        from .common.io import dashlist
+
         if isinstance(package_name, str):
             message = dals(
                 """
@@ -876,25 +943,20 @@ class NoChannelsConfiguredError(CondaError):
 
 
 class UnsatisfiableError(CondaError):
-    """An exception to report unsatisfiable dependencies.
+    """Raised when dependency constraints cannot be satisfied.
 
     Args:
-        bad_deps: a list of tuples of objects (likely MatchSpecs).
-        chains: (optional) if True, the tuples are interpreted as chains
-            of dependencies, from top level to bottom. If False, the tuples
-            are interpreted as simple lists of conflicting specs.
-
-    Returns:
-        Raises an exception with a formatted message detailing the
-        unsatisfiable specifications.
+        bad_deps: Classified resolver conflicts, or empty when hints are off.
+        chains: Unused; retained for call-site compatibility.
+        strict: Whether strict channel priority was in effect.
     """
 
-    def _format_chain_str(self, bad_deps: Iterable[Iterable[MatchSpec]]):
-        chains = {}
+    def _format_chain_str(self, bad_deps: list[list[str]]) -> list[str]:
+        chains: dict[tuple[str, ...], list[set[str]]] = {}
         for dep in sorted(bad_deps, key=len, reverse=True):
             dep1 = [s.partition(" ") for s in dep[1:]]
-            key = (dep[0],) + tuple(v[0] for v in dep1)
-            vals = ("",) + tuple(v[2] for v in dep1)
+            key: tuple[str, ...] = (dep[0],) + tuple(v[0] for v in dep1)
+            vals: tuple[str, ...] = ("",) + tuple(v[2] for v in dep1)
             found = False
             for key2, csets in chains.items():
                 if key2[: len(key)] == key:
@@ -903,6 +965,8 @@ class UnsatisfiableError(CondaError):
                     found = True
             if not found:
                 chains[key] = [{val} for val in vals]
+
+        fchains: dict[tuple[str, ...], str] = {}
         for key, csets in chains.items():
             deps = []
             for name, cset in zip(key, csets):
@@ -918,73 +982,72 @@ class UnsatisfiableError(CondaError):
                 deps.append(
                     "{} {}".format(name, "|".join(sorted(cset))) if cset else name
                 )
-            chains[key] = " -> ".join(deps)
-        return [chains[key] for key in sorted(chains.keys())]
+            fchains[key] = " -> ".join(deps)
+        return [fchains[key] for key in sorted(fchains.keys())]
 
     def __init__(
         self,
-        bad_deps: Iterable[Iterable[MatchSpec]],
+        bad_deps: UnsatisfiableConflictMap,
         chains: bool = True,
         strict: bool = False,
     ):
+        from .common.io import dashlist
         from .models.match_spec import MatchSpec
 
         messages = {
             "python": dals(
                 """
+                The following specifications were found
+                to be incompatible with the existing python installation in your environment:
 
-The following specifications were found
-to be incompatible with the existing python installation in your environment:
+                Specifications:
+                {specs}
 
-Specifications:\n{specs}
+                Your python: {ref}
 
-Your python: {ref}
-
-If python is on the left-most side of the chain, that's the version you've asked for.
-When python appears to the right, that indicates that the thing on the left is somehow
-not available for the python version you are constrained to. Note that conda will not
-change your python version to a different minor version unless you explicitly specify
-that.
-
-        """
+                If python is on the left-most side of the chain, that's the version you've asked for.
+                When python appears to the right, that indicates that the thing on the left is somehow
+                not available for the python version you are constrained to. Note that conda will not
+                change your python version to a different minor version unless you explicitly specify
+                that.
+                """
             ),
             "request_conflict_with_history": dals(
                 """
-
-The following specifications were found to be incompatible with a past
-explicit spec that is not an explicit spec in this operation ({ref}):\n{specs}
-
-                    """
+                The following specifications were found to be incompatible with a past
+                explicit spec that is not an explicit spec in this operation ({ref}):
+                {specs}
+                """
             ),
             "direct": dals(
                 """
-
-The following specifications were found to be incompatible with each other:
-                    """
+                The following specifications were found to be incompatible with each other:
+                """
             ),
             "virtual_package": dals(
                 """
+                The following specifications were found to be incompatible with your system:
+                {specs}
 
-The following specifications were found to be incompatible with your system:\n{specs}
-
-Your installed version is: {ref}
-"""
+                Your installed version is: {ref}
+                """
             ),
         }
 
         msg = ""
         self.unsatisfiable = []
         if len(bad_deps) == 0:
-            msg += """
-Did not find conflicting dependencies. If you would like to know which
-packages conflict ensure that you have enabled unsatisfiable hints.
+            msg += dals(
+                """
+                Did not find conflicting dependencies. If you would like to know which
+                packages conflict ensure that you have enabled unsatisfiable hints.
 
-conda config --set unsatisfiable_hints True
-            """
+                conda config --set unsatisfiable_hints True
+                """
+            )
         else:
             for class_name, dep_class in bad_deps.items():
                 if dep_class:
-                    _chains = []
                     if class_name == "direct":
                         msg += messages["direct"]
                         last_dep_entry = {d[0][-1].name for d in dep_class}
@@ -1005,6 +1068,7 @@ conda config --set unsatisfiable_hints True
                                     tuple(entries) for entries in chain
                                 ]
                     else:
+                        _chains: list[list[str]] = []
                         for dep_chain, installed_blocker in dep_class:
                             # Remove any target values from the MatchSpecs, convert to strings
                             dep_chain = [
@@ -1012,12 +1076,13 @@ conda config --set unsatisfiable_hints True
                             ]
                             _chains.append(dep_chain)
 
+                        _fchains: list[str]
                         if _chains:
-                            _chains = self._format_chain_str(_chains)
+                            _fchains = self._format_chain_str(_chains)
                         else:
-                            _chains = [", ".join(c) for c in _chains]
+                            _fchains = [", ".join(c) for c in _chains]
                         msg += messages[class_name].format(
-                            specs=dashlist(_chains), ref=installed_blocker
+                            specs=dashlist(_fchains), ref=installed_blocker
                         )
         if strict:
             msg += (
@@ -1025,13 +1090,93 @@ conda config --set unsatisfiable_hints True
                 "packages required for satisfiability."
             )
 
-        super().__init__(msg)
+        guidance = self._get_guidance(bad_deps, strict)
+
+        super().__init__(msg, guidance=guidance)
+
+    def _get_guidance(
+        self,
+        bad_deps: UnsatisfiableConflictMap,
+        strict: bool = False,
+    ) -> ErrorGuidanceTypedDict | None:
+        """Build guidance dict for :class:`UnsatisfiableError`, or ``None``."""
+        cause = []
+        if bad_deps.get("direct"):
+            cause.append("Some requested packages have conflicting version constraints")
+        if bad_deps.get("python"):
+            cause.append(
+                "Some packages are incompatible with the current Python version"
+            )
+        if bad_deps.get("request_conflict_with_history"):
+            cause.append(
+                "The operation conflicts with a past explicit install specification"
+            )
+        if bad_deps.get("virtual_package"):
+            cause.append(
+                "Some packages are not available for the current system platform"
+            )
+
+        hints = []
+        if not bad_deps:
+            hints.append(
+                {
+                    "text": (
+                        "Enable unsatisfiable hints for more detail:\n"
+                        "      conda config --set unsatisfiable_hints True"
+                    ),
+                    "hint_code": "enable_unsatisfiable_hints",
+                }
+            )
+        else:
+            hints.append(
+                {
+                    "text": (
+                        "Review the conflicting specifications above and adjust version "
+                        "ranges or package names."
+                    ),
+                    "hint_code": "review_conflicting_specs",
+                }
+            )
+        if strict:
+            hints.append(
+                {
+                    "text": (
+                        "Strict channel priority is enabled. Try flexible priority:\n"
+                        "      conda config --set channel_priority flexible"
+                    ),
+                    "hint_code": "channel_priority_flexible",
+                }
+            )
+        hints.append(
+            {
+                "text": (
+                    "Check for pinned packages:\n      conda config --show pinned_packages"
+                ),
+                "hint_code": "check_pinned_packages",
+            }
+        )
+        hints.append(
+            {
+                "text": "Update conda and try again:\n      conda update conda",
+                "hint_code": "update_conda",
+            }
+        )
+
+        return {
+            "summary": "Conda could not find a compatible set of packages to satisfy the requested specifications.",
+            "cause": "; ".join(cause) if cause else None,
+            "hints": hints,
+        }
 
 
 class RemoveError(CondaError):
-    def __init__(self, message: str):
-        msg = f"{message}"
-        super().__init__(msg)
+    def __init__(
+        self,
+        message: str,
+        *,
+        guidance: ErrorGuidance | ErrorGuidanceTypedDict | None = None,
+    ):
+        super().__init__(f"{message}", guidance=guidance)
 
 
 class DisallowedPackageError(CondaError):
@@ -1055,6 +1200,8 @@ class SpecsConfigurationConflictError(CondaError):
         pinned_specs: Iterable[MatchSpec],
         prefix: PathType,
     ):
+        from .common.io import dashlist
+
         message = dals(
             """
         Requested specs conflict with configured specs.
@@ -1094,7 +1241,7 @@ class PlatformMismatchError(CondaValueError):
 
     The message is derived from a list of ``(source, available_platforms)`` pairs
     so the wording stays consistent whether the failure comes from a single file
-    (``conda env create``, ``conda env update``) or several
+    (``conda create``, ``conda update``) or several
     (``Environment.from_cli`` with multiple ``-f`` / ``--file`` arguments).
     """
 
@@ -1133,6 +1280,7 @@ class PlatformMismatchError(CondaValueError):
 
 class CyclicalDependencyError(CondaError, ValueError):
     def __init__(self, packages_with_cycles: Iterable[PackageRecord], **kwargs):
+        from .common.io import dashlist
         from .models.records import PackageRecord
 
         packages_with_cycles = tuple(
@@ -1237,12 +1385,16 @@ class NotWritableError(CondaError, OSError):
 
 class NoWritableEnvsDirError(CondaError):
     def __init__(self, envs_dirs: Iterable[PathType], **kwargs):
+        from .common.io import dashlist
+
         message = f"No writeable envs directories configured.{dashlist(envs_dirs)}"
         super().__init__(message, envs_dirs=envs_dirs, **kwargs)
 
 
 class NoWritablePkgsDirError(CondaError):
     def __init__(self, pkgs_dirs: Iterable[PathType], **kwargs):
+        from .common.io import dashlist
+
         message = f"No writeable pkgs directories configured.{dashlist(pkgs_dirs)}"
         super().__init__(message, pkgs_dirs=pkgs_dirs, **kwargs)
 
@@ -1442,6 +1594,8 @@ def format_env_spec_available_plugins(
     indent: int = 4,
     cmd_suggestion: bool = True,
 ):
+    from .common.io import dashlist
+
     msg = (
         "\nPlease add to your prior command: --env-spec <format>\n"
         if cmd_suggestion
@@ -1501,6 +1655,8 @@ class EnvironmentExporterNotDetected(CondaError):
         *args,
         **kwargs,
     ):
+        from .common.io import dashlist
+
         self.filename = filename
         supported_filenames: list[str] = []
         available_formats: list[str] = []
@@ -1533,6 +1689,8 @@ class SpecNotFoundInPackageCache(CondaError):
 
 
 def maybe_raise(error: BaseException, context: Context):
+    from .common.iterators import groupby_to_dict as groupby
+
     if isinstance(error, CondaMultiError):
         groups = groupby(lambda e: isinstance(e, ClobberError), error.errors)
         clobber_errors = groups.get(True, ())
@@ -1575,25 +1733,47 @@ def maybe_raise(error: BaseException, context: Context):
 
 def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = None):
     from .base.context import context
+    from .common.serialize.json import dumps as json_dumps
 
     rc = getattr(exc_val, "return_code", None)
     if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
         print(_format_exc(exc_val, exc_tb), file=sys.stderr)
-    elif context.json:
+        return
+
+    if context.json:
         if isinstance(exc_val, DryRunExit):
             return
+
+    guidance = exc_val.guidance
+    try:
+        plugin_hints = context.plugin_manager.get_error_hints(exc_val)
+    except BaseException:
+        log.debug("Failed to collect error hint plugins", exc_info=True)
+        plugin_hints = ()
+    if guidance is not None:
+        guidance = guidance.with_hints(plugin_hints)
+    elif plugin_hints:
+        from ._private.exception_guidance import ErrorGuidance
+
+        guidance = ErrorGuidance.from_hints(plugin_hints)
+
+    if context.json:
         from .gateways.streams import stderr, stdout
 
-        exc_json = json_dumps(exc_val.dump_map(), sort_keys=True)
+        error_map = exc_val.dump_map()
+        if guidance is not None:
+            error_map["guidance"] = guidance.__json__()
+        else:
+            error_map.pop("guidance", None)
+        exc_json = json_dumps(error_map, sort_keys=True)
         (stdout if rc else stderr)(f"{exc_json}\n")
     else:
         from .gateways.streams import stderr
 
-        stderr(f"\n{exc_val!r}\n")
-        # An alternative which would allow us not to reload sys with newly setdefaultencoding()
-        # is to not use `%r`, e.g.:
-        # Still, not being able to use `%r` seems too great a price to pay.
-        # stderrlog.error("\n" + exc_val.__repr__() + \n")
+        if guidance is not None:
+            stderr(f"\n{guidance.format(exc_val)}\n")
+        else:
+            stderr(f"\n{exc_val!r}\n")
 
 
 def _format_exc(
@@ -1610,10 +1790,28 @@ def _format_exc(
     return "".join(formatted_exception)
 
 
-class InvalidInstaller(Exception):
-    def __init__(self, name: str):
+class InvalidInstaller(CondaError):
+    def __init__(self, name: str, *, file: str | None = None):
         msg = f"Unable to load installer for {name}"
-        super().__init__(msg)
+        hints: list[GuidanceHintTypedDict] = [
+            {
+                "text": "Please ensure you are requesting an available installer.",
+                "hint_code": "check_available_installer",
+            },
+        ]
+        if file:
+            summary = (
+                f"Unable to install package for {name} from environment file {file}."
+            )
+        else:
+            summary = f"Unable to install package for {name}."
+
+        super().__init__(
+            msg,
+            name=name,
+            file=file,
+            guidance={"summary": summary, "hints": hints},
+        )
 
 
 class OfflineError(CondaError, RuntimeError):
@@ -1622,6 +1820,8 @@ class OfflineError(CondaError, RuntimeError):
 
 class CondaUpdatePackageError(CondaError):
     def __init__(self, spec: str | list[str]):
+        from .common.io import dashlist
+
         spec_format = dashlist(spec, 4) if isinstance(spec, list) else spec
         msg = (
             f"`conda update` only supports name-only spec, but received: {spec_format}\n"

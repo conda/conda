@@ -47,6 +47,8 @@ from .models.version import VersionOrder
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from .exceptions import UnsatisfiableConflictMap
+
 log = getLogger(__name__)
 deprecated.constant(
     "26.9",
@@ -341,9 +343,13 @@ class Resolve:
         return tuple(non_tf_specs), feature_names
 
     def _classify_bad_deps(
-        self, bad_deps, specs_to_add, history_specs, strict_channel_priority
-    ):
-        classes = {
+        self,
+        bad_deps: list[list[MatchSpec]],
+        specs_to_add,
+        history_specs,
+        strict_channel_priority,
+    ) -> UnsatisfiableConflictMap:
+        classes: UnsatisfiableConflictMap = {
             "python": set(),
             "request_conflict_with_history": set(),
             "direct": set(),
@@ -401,11 +407,11 @@ class Resolve:
 
         if classes["python"]:
             # filter out plain single-entry python conflicts.  The python section explains these.
-            classes["direct"] = [
+            classes["direct"] = {
                 _
                 for _ in classes["direct"]
                 if _[1].startswith("python ") or len(_[0]) > 1
-            ]
+            }
         return classes
 
     def find_matches_with_strict(self, ms, strict_channel_priority):
@@ -492,7 +498,12 @@ class Resolve:
                             queue.append(new_path)
         return dep_graph, all_deps
 
-    def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
+    def build_conflict_map(
+        self,
+        specs: Iterable[MatchSpec],
+        specs_to_add=None,
+        history_specs=None,
+    ) -> UnsatisfiableConflictMap:
         """Perform a deeper analysis on conflicting specifications, by attempting
         to find the common dependencies that might be the cause of conflicts.
 
@@ -501,7 +512,7 @@ class Resolve:
             It is assumed that the specs conflict.
 
         Returns:
-            bad_deps: A list of lists of bad deps
+            Classified conflict map for :class:`~conda.exceptions.UnsatisfiableError`.
 
         Strategy:
             If we're here, we know that the specs conflict. This could be because:
@@ -619,10 +630,12 @@ class Resolve:
                         )
                         chains.extend(c)
 
-        bad_deps = self._classify_bad_deps(
-            chains, specs_to_add, history_specs, strict_channel_priority
+        return self._classify_bad_deps(
+            chains,
+            specs_to_add,
+            history_specs,
+            strict_channel_priority,
         )
-        return bad_deps
 
     def _get_strict_channel(self, package_name):
         channel_name = None
@@ -1453,7 +1466,7 @@ class Resolve:
             log.debug("Solving for: %s", dlist)
 
         if not specs:
-            return ()
+            return []
 
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
@@ -1476,9 +1489,7 @@ class Resolve:
             if not_found_packages:
                 raise ResolvePackageNotFound(not_found_packages)
             elif wrong_version_packages:
-                raise UnsatisfiableError(
-                    [[d] for d in wrong_version_packages], chains=False
-                )
+                self.find_conflicts(wrong_version_packages, specs_to_add, history_specs)
             if should_retry_solve:
                 # We don't want to call find_conflicts until our last try.
                 # This jumps back out to conda/cli/install.py, where the

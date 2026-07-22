@@ -13,6 +13,7 @@ import os
 import platform
 import struct
 import sys
+import sysconfig
 import warnings
 from contextlib import contextmanager, suppress
 from errno import ENOENT
@@ -122,8 +123,13 @@ non_x86_machines = {
     "s390x",
 }
 _arch_names = {
-    32: "x86",
-    64: "x86_64",
+    "32": "x86",
+    "64": "x86_64",
+}
+_win_sysconfig_map = {
+    "win-amd64": "win-64",
+    "win-arm64": "win-arm64",
+    "win32": "win-32",
 }
 
 user_rc_path: PathType = abspath(expanduser(f"~/{DEFAULT_CONDARC_FILENAME}"))
@@ -484,8 +490,10 @@ class Context(Configuration):
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
     experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
+    preview = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
+    repodata_use_shards = ParameterLoader(PrimitiveParameter(True))
     envvars_force_uppercase = ParameterLoader(PrimitiveParameter(True))
 
     ####################################################
@@ -666,15 +674,12 @@ class Context(Configuration):
 
     @property
     def arch_name(self) -> str:
-        m = platform.machine().lower()
-        if m in non_x86_machines:
-            return m
-        else:
-            return _arch_names[self.bits]
+        arch = self._native_subdir().split("-")[1]
+        return _arch_names.get(arch, arch)
 
     @property
     def platform(self) -> str:
-        return _platform_map.get(sys.platform, "unknown")
+        return self._native_subdir().split("-")[0]
 
     @property
     def default_threads(self) -> int | None:
@@ -721,13 +726,19 @@ class Context(Configuration):
 
     @cache
     def _native_subdir(self) -> str:
+        if sys.platform == "win32":
+            return _win_sysconfig_map[sysconfig.get_platform()]
+
+        _platform = _platform_map.get(sys.platform, "unknown")
         m = platform.machine().lower()
+
         if m in non_x86_machines:
-            return f"{self.platform}-{m}"
-        elif self.platform == "zos":
-            return "zos-z"
+            arch = m
+        elif _platform == "zos":
+            arch = "z"
         else:
-            return "%s-%d" % (self.platform, self.bits)
+            arch = str(self.bits)
+        return f"{_platform}-{arch}"
 
     @property
     def subdirs(self) -> tuple[str, str]:
@@ -756,7 +767,7 @@ class Context(Configuration):
         else:
             return 8 * struct.calcsize("P")
 
-    @property
+    @memoizedproperty
     def root_writable(self) -> bool:
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
@@ -1090,6 +1101,10 @@ class Context(Configuration):
         else:
             return logging.WARNING  # 30
 
+    def preview_enabled(self, value: str) -> bool:
+        """Return True if the given preview feature label is enabled by the user."""
+        return value in self.preview
+
     @property
     def override_virtual_packages(self) -> dict[str, str | None]:
         """Remove any dunders in the virtual_package name keys"""
@@ -1126,19 +1141,23 @@ class Context(Configuration):
 
     @contextmanager
     def _override(self, key: str, value: Any) -> Iterator[None]:
-        """
-        TODO: This might be broken in some ways. Unsure what happens if the `old`
-        value is a property and gets set to a new value. Or if the new value
-        overrides the validation logic on the underlying ParameterLoader instance.
+        """Temporarily override an attribute on the context.
 
-        Investigate and implement in a safer way.
+        Uses ``__dict__`` directly because ``ParameterLoader`` (and other
+        non-data descriptors used by the context) have no ``__set__``: a
+        plain ``setattr`` would shadow the descriptor permanently in
+        ``__dict__`` and ``reset_context()`` could not restore it.
         """
-        old = getattr(self, key)
-        setattr(self, key, value)
+        sentinel = object()
+        previous = self.__dict__.get(key, sentinel)
+        self.__dict__[key] = value
         try:
             yield
         finally:
-            setattr(self, key, old)
+            if previous is sentinel:
+                self.__dict__.pop(key, None)
+            else:
+                self.__dict__[key] = previous
 
     @memoizedproperty
     def requests_version(self) -> str:
@@ -1225,7 +1244,7 @@ class Context(Configuration):
                 if context.plugin_manager.has_package_extension(x)
                 else "spec"
             ),
-            sequence=self._create_default_packages,
+            self._create_default_packages,
         )
 
         if grouped_packages.get("explicit", None):
@@ -1245,7 +1264,8 @@ class Context(Configuration):
         If the default_activation_env is an environment name, get the corresponding
         prefix; otherwise it is already a prefix, so just return it.
 
-        :return: Prefix of the default_activation_env
+        Returns:
+            Prefix of the default_activation_env
         """
         from ..exceptions import EnvironmentNameNotFound
 
@@ -1301,11 +1321,13 @@ class Context(Configuration):
             "experimental",
             "no_lock",
             "repodata_use_zst",
+            "repodata_use_shards",
         ),
         "Basic Conda Configuration": (  # TODO: Is there a better category name here?
             "envs_dirs",
             "pkgs_dirs",
             "default_threads",
+            "preview",
         ),
         "Network Configuration": (
             "client_ssl_cert",
@@ -2008,6 +2030,11 @@ class Context(Configuration):
                 List of experimental features to enable.
                 """
             ),
+            preview=dals(
+                """
+                List of preview features to opt into.
+                """
+            ),
             no_lock=dals(
                 """
                 Disable index cache lock (defaults to enabled).
@@ -2015,7 +2042,12 @@ class Context(Configuration):
             ),
             repodata_use_zst=dals(
                 """
-                Disable check for `repodata.json.zst`; use `repodata.json` only.
+                Use `repodata.json.zst` if available.
+                """
+            ),
+            repodata_use_shards=dals(
+                """
+                Use sharded repodata if available.
                 """
             ),
             envvars_force_uppercase=dals(
@@ -2231,9 +2263,12 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
     Validate if the given channel URLs are allowed based on the context's allowlist
     and denylist configurations.
 
-    :param channels: A list of channels (either URLs or names) to validate.
-    :raises ChannelNotAllowed: If any URL is not in the allowlist.
-    :raises ChannelDenied: If any URL is in the denylist.
+    Args:
+        channels: A list of channels (either URLs or names) to validate.
+
+    Raises:
+        ChannelNotAllowed: If any URL is not in the allowlist.
+        ChannelDenied: If any URL is in the denylist.
     """
     from ..exceptions import ChannelDenied, ChannelNotAllowed
     from ..models.channel import Channel
@@ -2270,8 +2305,11 @@ def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> Path
         ctx: the context of conda
         args: the argparse args from the command line
 
-    Returns: the prefix
-    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
+    Returns:
+        Path to the target environment prefix.
+
+    Raises:
+        CondaEnvironmentNotFoundError: If the prefix is invalid.
     """
     argparse_args = args or ctx._argparse_args
     try:

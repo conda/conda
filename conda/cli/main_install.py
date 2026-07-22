@@ -63,15 +63,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Examples:
 
-        Install the package 'scipy' into the currently-active environment::
+        Install the package 'scipy' into the currently-active environment:
 
             conda install scipy
 
-        Install a list of packages into an environment, myenv::
+        Install a list of packages into an environment, myenv:
 
             conda install -n myenv scipy curl wheel
 
-        Install a specific version of 'python' into an environment, myenv::
+        Install a specific version of 'python' into an environment, myenv:
 
             conda install -p path/to/myenv python=3.11
 

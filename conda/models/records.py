@@ -409,6 +409,8 @@ class PackageRecord(DictSafeMixin, Entity):
     depends = ListField(str, default=())
     constrains = ListField(str, default=())
 
+    flags = ListField(str, default=(), required=False, default_in_dump=False)
+
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
 
@@ -525,10 +527,13 @@ class PackageRecord(DictSafeMixin, Entity):
         """
         Create a virtual package record.
 
-        :param name: The name of the virtual package.
-        :param version: The version of the virtual package, defaults to "0".
-        :param build_string: The build string of the virtual package, defaults to "0".
-        :return: A PackageRecord representing the virtual package.
+        Args:
+            name: The name of the virtual package.
+            version: The version of the virtual package, defaults to "0".
+            build_string: The build string of the virtual package, defaults to "0".
+
+        Returns:
+            A PackageRecord representing the virtual package.
         """
         return cls(
             package_type=PackageType.VIRTUAL_SYSTEM,
@@ -703,6 +708,9 @@ class PrefixRecord(SolvedRecord):
     auth = StringField(required=False, nullable=True)
     """Authentication information."""
 
+    def _get_json_fn(self) -> str:
+        return f"{self.name}-{self.version}-{self.build}.json"
+
     def package_size(self, prefix_path: Path) -> int:
         """
         Compute the installed size of this package within a prefix.
@@ -711,13 +719,12 @@ class PrefixRecord(SolvedRecord):
         and stats the files on disk if size_in_bytes is missing and for the
         package's conda-meta JSON manifest.
 
-        :returns: Total size in bytes of all files installed by this package.
+        Returns:
+            Total size in bytes of all files installed by this package.
         """
         total_size = 0
 
-        meta_file = (
-            prefix_path / "conda-meta" / f"{self.name}-{self.version}-{self.build}.json"
-        )
+        meta_file = prefix_path / "conda-meta" / self._get_json_fn()
         try:
             total_size += meta_file.stat().st_size
         except OSError:

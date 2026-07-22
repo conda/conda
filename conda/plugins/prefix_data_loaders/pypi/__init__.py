@@ -7,7 +7,6 @@ from __future__ import annotations
 import sys
 import traceback
 from logging import getLogger
-from os.path import basename
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -106,15 +105,7 @@ def load_site_packages(
     # also deleting the record on disk in the conda-meta/ directory.
     for conda_anchor_file in clobbered_conda_anchor_files:
         prefix_rec = records.pop(conda_python_packages[conda_anchor_file].name)
-        try:
-            extracted_package_dir = basename(prefix_rec.extracted_package_dir)
-        except AttributeError:
-            extracted_package_dir = "-".join(
-                map(str, (prefix_rec.name, prefix_rec.version, prefix_rec.build))
-            )
-        prefix_rec_json_path = (
-            prefix_path / "conda-meta" / f"{extracted_package_dir}.json"
-        )
+        prefix_rec_json_path = prefix_path / "conda-meta" / prefix_rec._get_json_fn()
         try:
             rm_rf(prefix_rec_json_path)
         except OSError:

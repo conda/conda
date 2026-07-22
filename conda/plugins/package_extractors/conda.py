@@ -10,6 +10,12 @@ from logging import getLogger
 from os.path import join
 from typing import TYPE_CHECKING
 
+from ..._private.extract import extract_conda_package_archive
+from ...base.constants import (
+    CONDA_PACKAGE_EXTENSION_V1,
+    CONDA_PACKAGE_EXTENSION_V2,
+    CONDA_PACKAGE_EXTRACTOR_NAME,
+)
 from ...common.compat import on_linux
 from ...gateways.disk.delete import path_is_clean
 from ..hookspec import hookimpl
@@ -28,8 +34,9 @@ def extract_conda_or_tarball(
     """
     Extract a .conda or .tar.bz2 package to the specified destination.
 
-    :param tarball_full_path: Path to the package archive.
-    :param destination_directory: Directory to extract the package contents to.
+    Args:
+        tarball_full_path: Path to the package archive.
+        destination_directory: Directory to extract the package contents to.
     """
     import conda_package_handling.api
 
@@ -49,9 +56,7 @@ def extract_conda_or_tarball(
             destination_directory,
         )
 
-    conda_package_handling.api.extract(
-        tarball_full_path, dest_dir=destination_directory
-    )
+    extract_conda_package_archive(tarball_full_path, destination_directory)
 
     if hasattr(conda_package_handling.api, "THREADSAFE_EXTRACT"):
         return  # indicates conda-package-handling 2.x, which implements --no-same-owner
@@ -69,7 +74,7 @@ def extract_conda_or_tarball(
 @hookimpl
 def conda_package_extractors():
     yield CondaPackageExtractor(
-        name="conda-package",
-        extensions=[".tar.bz2", ".conda"],
+        name=CONDA_PACKAGE_EXTRACTOR_NAME,
+        extensions=[CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2],
         extract=extract_conda_or_tarball,
     )

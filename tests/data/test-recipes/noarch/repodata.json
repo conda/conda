@@ -74,6 +74,32 @@
       "timestamp": 1701471759792,
       "version": "1.0.0"
     },
+    "clobber-a-1.0.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "6dcf4c9545cfbae8e8840ca7cb06ea22",
+      "name": "clobber-a",
+      "noarch": "generic",
+      "sha256": "da5f4178dcab7bf321c63e8b27ae31bb772900ec8678a0d0b7069a060ba55c24",
+      "size": 540,
+      "subdir": "noarch",
+      "timestamp": 1784535699678,
+      "version": "1.0.0"
+    },
+    "clobber-b-1.0.0-0.tar.bz2": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "74855179ca0e6bde41095a16aff2cc6f",
+      "name": "clobber-b",
+      "noarch": "generic",
+      "sha256": "135e2d3af8339c729cc47e153b983b6fa51f7434fa075e835e3d422a135ec85e",
+      "size": 537,
+      "subdir": "noarch",
+      "timestamp": 1784535699679,
+      "version": "1.0.0"
+    },
     "d_post_link_package-1.0.0-0.tar.bz2": {
       "build": "0",
       "build_number": 0,
@@ -320,6 +346,38 @@
     }
   },
   "packages.conda": {
+    "buildstring-1.0-versioned_1.conda": {
+      "build": "versioned_1",
+      "build_number": 0,
+      "depends": [
+        "versioned 1.*"
+      ],
+      "license": "BSD-3-Clause",
+      "md5": "774e0c717175956098d10394754989f2",
+      "name": "buildstring",
+      "noarch": "generic",
+      "sha256": "1e1c9b120afbb59310a32478383666f5ab7316d1f26d8becada7c32e7046abe8",
+      "size": 3942,
+      "subdir": "noarch",
+      "timestamp": 1777585786624,
+      "version": "1.0"
+    },
+    "buildstring-1.0-versioned_2.conda": {
+      "build": "versioned_2",
+      "build_number": 0,
+      "depends": [
+        "versioned 2.*"
+      ],
+      "license": "BSD-3-Clause",
+      "md5": "0a87cfc6013a10badb6f618c7e574e6f",
+      "name": "buildstring",
+      "noarch": "generic",
+      "sha256": "415fa4862f1fa8a3beff20b233fd18448377d1c22264d99b900348943a540615",
+      "size": 3936,
+      "subdir": "noarch",
+      "timestamp": 1777585785524,
+      "version": "1.0"
+    },
     "post_link_run_in_env_package-1.0.0-0.conda": {
       "build": "0",
       "build_number": 0,
@@ -361,6 +419,21 @@
       "subdir": "noarch",
       "timestamp": 1765401586628,
       "version": "1.0.0"
+    },
+    "unsatisfiable-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "versioned <1.0"
+      ],
+      "md5": "9bf2a6c82ed53fffb502be7fb543712a",
+      "name": "unsatisfiable",
+      "noarch": "generic",
+      "sha256": "d2b749d293998bfc3e4b41b70391bbc14cd623b798ed78060ac71018cb90a86a",
+      "size": 3769,
+      "subdir": "noarch",
+      "timestamp": 1778020793322,
+      "version": "1.0"
     },
     "versioned-1.0-0.conda": {
       "build": "0",

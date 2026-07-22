@@ -14,16 +14,18 @@ import pytest
 from packaging.version import Version
 
 from conda import plugins
+from conda.base.context import reset_context
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
-from conda.plugins import virtual_packages
+from conda.plugins import solvers, virtual_packages
 from conda.plugins.types import CondaPlugin
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import Any
 
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.plugins.manager import CondaPluginManager
@@ -61,6 +63,22 @@ class DummyVirtualPackagePlugin:
     @plugins.hookimpl
     def conda_virtual_packages(*args) -> Iterator[plugins.types.CondaVirtualPackage]:
         yield DummyVirtualPackage
+
+
+def test_get_plugin_source_registered_plugin(plugin_manager: CondaPluginManager):
+    plugin_manager.register(VerboseSolverPlugin)
+    solvers_list = [p for ps in plugin_manager.hook.conda_solvers() for p in ps]
+    solver = next(p for p in solvers_list if p.name == "verbose-classic")
+    assert plugin_manager.get_plugin_source(solver).endswith(".VerboseSolverPlugin")
+
+
+def test_get_plugin_source_entrypoint_distribution(
+    plugin_manager: CondaPluginManager,
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    solvers_list = [p for ps in plugin_manager.hook.conda_solvers() for p in ps]
+    solver = next(p for p in solvers_list if p.name == "test")
+    assert plugin_manager.get_plugin_source(solver) == "conda-test-plugin 1.0"
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
@@ -101,8 +119,20 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
             yield plugins.types.CondaVirtualPackage("archspec", "", None)
 
     plugin_manager.register(SecondArchspec)
+    second_archspec_source = re.escape(
+        f"{__name__}.test_get_hook_results.<locals>.SecondArchspec"
+    )
     with pytest.raises(
-        PluginError, match="Conflicting plugins found for `virtual_packages`"
+        PluginError,
+        match=(
+            r"Conflicting plugins found for `virtual_packages`:\n\n"
+            r"  - 'archspec' provided by:\n"
+            r"    - conda\.plugins\.virtual_packages\.archspec\n"
+            rf"    - {second_archspec_source}\n\n"
+            r"Multiple conda plugins are registered via the "
+            r"`conda_virtual_packages` hook\. Please make sure that you don't have any "
+            r"incompatible plugins installed\."
+        ),
     ):
         plugin_manager.get_hook_results(name)
 
@@ -170,9 +200,48 @@ def test_known_solver(plugin_manager: CondaPluginManager):
     assert plugin_manager.get_solver_backend("verbose-classic") == VerboseSolver
 
 
+@pytest.mark.parametrize("use_shards", [True, False])
+def test_solver_with_repodata_subset(
+    use_shards: bool, plugin_manager: CondaPluginManager, monkeypatch: MonkeyPatch
+):
+    """
+    Cover getting a solver that uses sharded repodata api
+    """
+
+    class TestSolver(solve.Solver):
+        def __init__(
+            self,
+            build_repodata_subset=None,
+            *args,
+            **kwargs,
+        ):
+            return super().__init__(*args, **kwargs)
+
+        @staticmethod
+        def user_agent() -> str:
+            return "test-solver/1.0"
+
+    TestCondaSolver = plugins.types.CondaSolver(
+        name="test-classic",
+        backend=TestSolver,
+    )
+
+    class TestSolverPlugin:
+        @plugins.hookimpl
+        def conda_solvers(*args):
+            yield TestCondaSolver
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
+    reset_context()
+
+    assert plugin_manager.load_plugins(TestSolverPlugin) == 1
+    solver = plugin_manager.get_solver_backend("test-classic")
+    assert solver.user_agent() == "test-solver/1.0"
+
+
 def test_get_canonical_name_object(plugin_manager: CondaPluginManager):
     canonical_name = plugin_manager.get_canonical_name(object())
-    assert re.match(r"<unknown_module>.object\[\d+\]", canonical_name), canonical_name
+    assert re.match(r"builtins.object\[\d+\]", canonical_name), canonical_name
 
 
 def test_get_canonical_name_module(plugin_manager: CondaPluginManager):
@@ -190,6 +259,47 @@ def test_get_canonical_name_instance(plugin_manager: CondaPluginManager):
         rf"{__name__}.VerboseSolverPlugin\[\d+\]",
         canonical_name,
     )
+
+
+def test_conflicting_plugin_error_names_registered_instances(
+    plugin_manager: CondaPluginManager,
+) -> None:
+    class IntruderSolver:
+        hide_module = True
+
+        def __dir__(self):
+            return [name for name in super().__dir__() if name != "__module__"]
+
+        def __getattribute__(self, name):
+            if name == "__module__" and self.hide_module:
+                raise AttributeError(name)
+            return super().__getattribute__(name)
+
+        @plugins.hookimpl
+        def conda_solvers(self):
+            yield plugins.types.CondaSolver(name="classic", backend=object)
+
+    intruder_solver_source = re.escape(
+        f"{__name__}."
+        "test_conflicting_plugin_error_names_registered_instances."
+        "<locals>.IntruderSolver"
+    )
+    plugin_manager.load_plugins(solvers)
+    intruder_solver = IntruderSolver()
+    plugin_manager.register(intruder_solver)
+
+    with pytest.raises(
+        PluginError,
+        match=(
+            r"Conflicting plugins found for `solvers`:\n\n"
+            r"  - 'classic' provided by:\n"
+            r"    - conda\.plugins\.solvers\n"
+            rf"    - {intruder_solver_source}\[\d+\]\n\n"
+            r"Multiple conda plugins are registered via the `conda_solvers` hook\. "
+            r"Please make sure that you don't have any incompatible plugins installed\."
+        ),
+    ):
+        plugin_manager.get_hook_results("solvers")
 
 
 @pytest.mark.parametrize("plugin", [this_module, VerboseSolverPlugin])

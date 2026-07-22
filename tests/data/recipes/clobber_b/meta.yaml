@@ -1,0 +1,15 @@
+package:
+  name: clobber-b
+  version: 1.0.0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    # since this is a noarch package we don't care that this is unix
+    - mkdir -p ${PREFIX}/bin
+    - echo "clobber-b" > ${PREFIX}/bin/clobber-test-file
+
+
+about:
+  summary: Test package B for file clobbering regression tests

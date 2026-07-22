@@ -9,7 +9,6 @@ import os
 import signal
 import sys
 from collections import defaultdict
-from concurrent.futures import Executor, Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
@@ -17,7 +16,6 @@ from functools import partial, wraps
 from io import BytesIO, StringIO
 from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-from threading import Lock
 from time import time
 from typing import TYPE_CHECKING
 
@@ -37,7 +35,6 @@ from .constants import NULL
 from .path import expand
 
 log = getLogger(__name__)
-IS_INTERACTIVE = hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
 
 class DeltaSecondsFormatter(Formatter):
@@ -59,8 +56,9 @@ class DeltaSecondsFormatter(Formatter):
     ) -> None:
         """Initialize the formatter with optional format strings.
 
-        :param fmt: Log message format string.
-        :param datefmt: Date format string.
+        Args:
+            fmt: Log message format string.
+            datefmt: Date format string.
         """
         self.prev_time = time()
         super().__init__(fmt=fmt, datefmt=datefmt)
@@ -88,9 +86,12 @@ else:
 def dashlist(iterable: Iterable[Any], indent: int = 2) -> str:
     """Format an iterable as a dashed list with optional indentation.
 
-    :param iterable: Items to format.
-    :param indent: Number of spaces for indentation.
-    :returns: Formatted string with each item on a new line prefixed by ``- ``.
+    Args:
+        iterable: Items to format.
+        indent: Number of spaces for indentation.
+
+    Returns:
+        Formatted string with each item on a new line prefixed by ``- ``.
     """
     return "".join("\n" + " " * indent + "- " + str(x) for x in iterable)
 
@@ -154,9 +155,10 @@ def env_vars(
 ) -> Generator[None, None, None]:
     """Temporarily set environment variables.
 
-    :param var_map: Dictionary of environment variable names to values.
-    :param callback: Optional callback invoked when entering and exiting the context.
-    :param stack_callback: Optional callback invoked with True when entering, False when exiting.
+    Args:
+        var_map: Dictionary of environment variable names to values.
+        callback: Optional callback invoked when entering and exiting the context.
+        stack_callback: Optional callback invoked with True when entering, False when exiting.
     """
     if var_map is None:
         var_map = {}
@@ -194,10 +196,11 @@ def env_var(
 ) -> Generator[None, None, None]:
     """Temporarily set a single environment variable.
 
-    :param name: Environment variable name.
-    :param value: Environment variable value.
-    :param callback: Optional callback invoked when entering and exiting the context.
-    :param stack_callback: Optional callback invoked with True when entering, False when exiting.
+    Args:
+        name: Environment variable name.
+        value: Environment variable value.
+        callback: Optional callback invoked when entering and exiting the context.
+        stack_callback: Optional callback invoked with True when entering, False when exiting.
     """
     d = {name: value}
     with env_vars(d, callback=callback, stack_callback=stack_callback) as es:
@@ -211,7 +214,8 @@ def env_unmodified(
 ) -> Generator[None, None, None]:
     """Context manager that ensures environment variables are not modified.
 
-    :param callback: Optional callback invoked when entering and exiting the context.
+    Args:
+        callback: Optional callback invoked when entering and exiting the context.
     """
     with env_vars(callback=callback) as es:
         yield es
@@ -319,7 +323,8 @@ def captured(
 def argv(args_list: list[str]) -> Generator[None, None, None]:
     """Temporarily replace sys.argv with the given list.
 
-    :param args_list: List of arguments to use as sys.argv.
+    Args:
+        args_list: List of arguments to use as sys.argv.
     """
     saved_args = sys.argv
     sys.argv = args_list
@@ -333,7 +338,8 @@ def argv(args_list: list[str]) -> Generator[None, None, None]:
 def disable_logger(logger_name: str) -> Generator[None, None, None]:
     """Temporarily disable a logger by setting its level above CRITICAL.
 
-    :param logger_name: Name of the logger to disable.
+    Args:
+        logger_name: Name of the logger to disable.
     """
     logr = getLogger(logger_name)
     _lvl, _dsbld, _prpgt = logr.level, logr.disabled, logr.propagate
@@ -358,8 +364,9 @@ def stderr_log_level(
 ) -> Generator[None, None, None]:
     """Temporarily set a logger to output to stderr at the given level.
 
-    :param level: Logging level (e.g., :const:`logging.INFO`).
-    :param logger_name: Name of the logger; if None, uses the root logger.
+    Args:
+        level: Logging level (e.g., :const:`logging.INFO`).
+        logger_name: Name of the logger; if None, uses the root logger.
     """
     logr = getLogger(logger_name)
     _hndlrs, _lvl, _dsbld, _prpgt = (
@@ -441,12 +448,15 @@ def timeout(
 
     Not yet implemented on Windows.
 
-    :param timeout_secs: Maximum seconds to allow the callable to run.
-    :param func: Callable to execute.
-    :param args: Positional arguments to pass to the callable.
-    :param default_return: Value to return if timeout or KeyboardInterrupt occurs.
-    :param kwargs: Keyword arguments to pass to the callable.
-    :returns: Return value of the callable, or ``default_return`` on timeout/interrupt.
+    Args:
+        timeout_secs: Maximum seconds to allow the callable to run.
+        func: Callable to execute.
+        args: Positional arguments to pass to the callable.
+        default_return: Value to return if timeout or KeyboardInterrupt occurs.
+        kwargs: Keyword arguments to pass to the callable.
+
+    Returns:
+        Return value of the callable, or ``default_return`` on timeout/interrupt.
     """
     if on_win:
         # Why does Windows have to be so difficult all the time? Kind of gets old.
@@ -474,71 +484,107 @@ def timeout(
             return default_return
 
 
-# use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
-class DummyExecutor(Executor):
-    """Synchronous executor for debugging; executes tasks in the current thread."""
+def _load_concurrency() -> None:
+    """Lazily define executor classes and as_completed on first access.
 
-    def __init__(self) -> None:
-        self._shutdown = False
-        self._shutdownLock = Lock()
+    Importing concurrent.futures + threading costs ~45 modules.  Deferring
+    this to first use keeps ``import conda.common.io`` lightweight for code
+    paths that never use parallel I/O (dashlist, time_recorder, etc.).
+    """
+    from concurrent.futures import (
+        Executor,
+        Future,
+        ThreadPoolExecutor,
+        as_completed,
+    )
+    from threading import Lock
 
-    def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Future[Any]:
-        with self._shutdownLock:
-            if self._shutdown:
-                raise RuntimeError("cannot schedule new futures after shutdown")
+    class DummyExecutor(Executor):
+        """Synchronous executor for debugging; executes tasks in the current thread."""
 
-            f = Future()
+        def __init__(self) -> None:
+            self._shutdown = False
+            self._shutdownLock = Lock()
+
+        def submit(
+            self, fn: Callable[..., Any], *args: Any, **kwargs: Any
+        ) -> Future[Any]:
+            with self._shutdownLock:
+                if self._shutdown:
+                    raise RuntimeError("cannot schedule new futures after shutdown")
+
+                f = Future()
+                try:
+                    result = fn(*args, **kwargs)
+                except BaseException as e:
+                    f.set_exception(e)
+                else:
+                    f.set_result(result)
+
+                return f
+
+        def map(
+            self,
+            func: Callable[..., Any],
+            *iterables: Iterable[Any],
+        ) -> Iterator[Any]:
+            """Map function over iterables, yielding results one at a time."""
+            for iterable in iterables:
+                for thing in iterable:
+                    yield func(thing)
+
+        def shutdown(self, wait: bool = True) -> None:
+            with self._shutdownLock:
+                self._shutdown = True
+
+    class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
+        """Thread pool executor that gracefully handles thread creation limits."""
+
+        def __init__(self, max_workers: int = 10) -> None:
+            super().__init__(max_workers)
+
+        def _adjust_thread_count(self) -> None:
             try:
-                result = fn(*args, **kwargs)
-            except BaseException as e:
-                f.set_exception(e)
-            else:
-                f.set_result(result)
+                return super()._adjust_thread_count()
+            except RuntimeError:
+                # RuntimeError: can't start new thread
+                # See https://github.com/conda/conda/issues/6624
+                if len(self._threads) > 0:
+                    pass
+                else:
+                    raise
 
-            return f
-
-    def map(
-        self,
-        func: Callable[..., Any],
-        *iterables: Iterable[Any],
-    ) -> Iterator[Any]:
-        """Map function over iterables, yielding results one at a time."""
-        for iterable in iterables:
-            for thing in iterable:
-                yield func(thing)
-
-    def shutdown(self, wait: bool = True) -> None:
-        with self._shutdownLock:
-            self._shutdown = True
+    globals()["DummyExecutor"] = DummyExecutor
+    globals()["ThreadLimitedThreadPoolExecutor"] = ThreadLimitedThreadPoolExecutor
+    globals()["as_completed"] = as_completed
 
 
-class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
-    """Thread pool executor that gracefully handles thread creation limits."""
-
-    def __init__(self, max_workers: int = 10) -> None:
-        super().__init__(max_workers)
-
-    def _adjust_thread_count(self) -> None:
-        try:
-            return super()._adjust_thread_count()
-        except RuntimeError:
-            # RuntimeError: can't start new thread
-            # See https://github.com/conda/conda/issues/6624
-            if len(self._threads) > 0:
-                # It's ok to not be able to start new threads if we already have at least
-                # one thread alive.
-                pass
-            else:
-                raise
+_LAZY_CONCURRENCY = frozenset(
+    {"DummyExecutor", "ThreadLimitedThreadPoolExecutor", "as_completed"}
+)
 
 
-as_completed = as_completed
+def __getattr__(name: str):
+    if name in _LAZY_CONCURRENCY:
+        _load_concurrency()
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "IS_INTERACTIVE",
+    hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
+    addendum="Use `conda.common.terminal.is_tty()` instead.",
+)
 
 
 def get_instrumentation_record_file() -> str:
     """Return the path to the instrumentation record file.
 
-    :returns: Expanded path from ``CONDA_INSTRUMENTATION_RECORD_FILE`` or default location.
+    Returns:
+        Expanded path from ``CONDA_INSTRUMENTATION_RECORD_FILE`` or default location.
     """
     default_record_file = join("~", ".conda", "instrumentation-record.csv")
     return expand(

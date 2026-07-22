@@ -22,10 +22,10 @@ channels in your channel list that host the same package.
 
 By default, conda prefers packages from a higher priority
 channel over any version from a lower priority channel.
-Therefore, you can now safely put channels at the bottom of your
+Therefore, you can put channels at the bottom of your
 channel list to provide additional packages that are not in the
-default channels and still be confident that these channels will
-not override the core package set.
+default channels. However, it is not recommended to mix channels
+in a single environment.
 
 Conda collects all of the packages with the same name across all
 listed channels and processes them as follows:
@@ -59,9 +59,11 @@ of a package in any listed channel:
 
   OR
 
-* Run the equivalent command::
+* Run the equivalent command:
 
-    conda config --set channel_priority disabled
+   .. code-block:: shell
+
+      conda config --set channel_priority disabled
 
 Conda then sorts as follows:
 
@@ -75,45 +77,84 @@ Because build numbers from different channels are not
 comparable, build number still comes after channel priority.
 
 The following command adds the channel "new_channel" to the top
-of the channel list, making it the highest priority::
+of the channel list, making it the highest priority:
 
-  conda config --add channels new_channel
+.. code-block:: shell
 
-Conda has an equivalent command::
+   conda config --add channels new_channel
 
-  conda config --prepend channels new_channel
+Conda has an equivalent command:
+
+.. code-block:: shell
+
+   conda config --prepend channels new_channel
 
 Conda also has a command that adds the new channel to the
-bottom of the channel list, making it the lowest priority::
+bottom of the channel list, making it the lowest priority:
 
-  conda config --append channels new_channel
+.. code-block:: shell
+
+   conda config --append channels new_channel
 
 .. _strict:
+.. _channel-best-practices:
 
-Strict channel priority
-=======================
+Channel configuration best practices
+====================================
 
-As of version 4.6.0, Conda has a strict channel priority feature.
-Strict channel priority can dramatically speed up conda operations and
-also reduce package incompatibility problems. We recommend setting channel
-priority to "strict" when possible.
+To avoid channel conflicts and ensure environment reproducibility,
+we recommend the following approach:
 
-Details about it can be seen by typing ``conda config --describe channel_priority``.
+1. **Use a single channel as your default.** Configure either
+   ``defaults`` or ``conda-forge`` in your ``.condarc``, but not both.
+   Mixing these channels in your global configuration can result in
+   mixed-channel environments with incompatible packages and can
+   introduce hard-to-debug dependency conflicts.
 
-.. code-block:: none
+2. **Install from a specific channel with a single command when needed.** If you
+   need a package from a channel that isn't in your global config,
+   you can target that channel with a single command using the options below.
+   Note that mixing packages from different channels in this way might result in
+   dependency issues if the channels are not fully compatible.
 
-    channel_priority (ChannelPriority)
-    Accepts values of 'strict', 'flexible', and 'disabled'. The default
-    value is 'flexible'. With strict channel priority, packages in lower
-    priority channels are not considered if a package with the same name
-    appears in a higher priority channel. With flexible channel priority,
-    the solver may reach into lower priority channels to fulfill
-    dependencies, rather than raising an unsatisfiable error. With channel
-    priority disabled, package version takes precedence, and the
-    configured priority of channels is used only to break ties. In
-    previous versions of conda, this parameter was configured as either
-    True or False. True is now an alias to 'flexible'.
+   * The ``--channel`` flag installs the named package and all its
+     dependencies from the specified channel. Add ``--override-channels``
+     to ignore any channels configured in your ``.condarc``,
+     using only the specified channel.
 
-    channel_priority: flexible
+     .. code-block:: shell
+
+         conda install --channel conda-forge --override-channels numpy
+
+   * The ``<channel>::<package>`` syntax installs only the named
+     package from the specified channel, with dependencies resolved
+     from your configured channels.
+
+     .. warning::
+
+        If the channel you specify and your configured channels are not
+        fully compatible, this approach can result in binary
+        incompatibilities that can cause hard-to-debug runtime errors,
+        also known as "ABI incompatibility".
+
+     .. code-block:: shell
+
+         conda install conda-forge::numpy
+
+3. **Use strict channel priority only if you must mix channels.**
+   If your workflow requires both ``defaults`` and ``conda-forge`` in
+   your channel list, set your channel priority to ``strict``
+   to reduce the risk of incompatible mixed-channel environments:
+
+   .. code-block:: shell
+
+      conda config --set channel_priority strict
+
+   .. warning::
+
+      Strict channel priority can make some environments unsatisfiable.
+      It also prevents fallback to lower-priority channels when a package
+      with the same name exists in a higher-priority channel. This includes
+      channels that supply packages not available as conda packages.
 
 .. _`default channel`: https://repo.anaconda.com/pkgs/

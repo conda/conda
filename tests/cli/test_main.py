@@ -42,9 +42,11 @@ def test_main_subshell_help_exits_cleanly(capsys) -> None:
     with pytest.raises(SystemExit) as exc_info:
         main_subshell("--help")
 
-    assert exc_info.value.code == 0
-    out = capsys.readouterr().out
-    assert "usage" in out.lower()
+    stdout, stderr = capsys.readouterr()
+    rc = exc_info.value.code
+
+    assert rc == 0, f"main_subshell failed ({rc}): {stderr}"
+    assert "usage" in stdout.lower()
 
 
 def test_main_subshell_no_plugins_flag(monkeypatch) -> None:
@@ -136,21 +138,19 @@ def test_version_fast_path(flag: str, capsys: CaptureFixture[str]) -> None:
     from conda import __version__
 
     rc = main(flag)
+    stdout, stderr = capsys.readouterr()
 
-    assert rc == 0
-    assert capsys.readouterr().out.strip() == f"conda {__version__}"
+    assert rc == 0, f"conda {flag} failed ({rc}): {stderr}"
+    assert stdout.strip() == f"conda {__version__}"
 
 
 @pytest.mark.parametrize("flag", ["-V", "--version"])
 def test_version_fast_path_skips_plugins(
-    flag: str, capsys: CaptureFixture[str]
+    flag: str,
+    clear_plugin_manager_cache: None,
 ) -> None:
     """The fast path must not trigger plugin loading."""
     from conda.plugins.manager import get_plugin_manager
 
-    get_plugin_manager.cache_clear()
-    try:
-        main(flag)
-        assert get_plugin_manager.cache_info().currsize == 0
-    finally:
-        get_plugin_manager.cache_clear()
+    main(flag)
+    assert get_plugin_manager.cache_info().currsize == 0

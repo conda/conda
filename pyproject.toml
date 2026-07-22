@@ -24,24 +24,25 @@ classifiers = [
 ]
 dependencies = [
   "archspec >=0.2.3",
+  "backports.zstd >=1.3.0; python_version < '3.14'",
   "boltons >=23.0.0",
   "charset-normalizer",
   # Disabled due to conda-libmamba-solver not being available on PyPI
-  # "conda-libmamba-solver >=26.4.0",
+  # "conda-libmamba-solver >=26.4.1",
   "conda-package-handling >=2.2.0",
   "distro >=1.5.0",
   "frozendict >=2.4.2",
   "menuinst >=2",
+  "msgpack >=1.1.1",
   "packaging >=23.0",
   "platformdirs >=3.10.0",
-  "pluggy >=1.0.0",
+  "pluggy >=1.6.0",
   "pycosat >=0.6.3",
   "requests >=2.28.0,<3",
   "ruamel.yaml >=0.11.14,<0.19",
   "setuptools >=60.0.0",
   "tqdm >=4",
-  "truststore >=0.8.0; python_version>='3.10'",
-  "zstandard >=0.15",
+  "truststore >=0.8.0",
 ]
 description = "OS-agnostic, system-level binary package manager."
 dynamic = ["version"]
@@ -73,15 +74,19 @@ exclude_lines = [
 omit = [
   "*/site-packages/*",
   '*\site-packages\*',
+  "conda/_private/shards/typing.py",
   "conda/_vendor.py",
-  "conda/console.py",
   "conda/cli/activate.py",
   "conda/cli/main_package.py",
+  "conda/console.py",
   "conda/exports.py",
   "conda/gateways/connection/adapters/ftp.py",
   "conda/gateways/connection/adapters/s3.py",
   "tests/*",
   "utils/*",
+]
+partial_branches = [
+  "pragma: no branch",
 ]
 show_missing = true
 skip_covered = true
@@ -92,6 +97,9 @@ sort = "Miss"
 relative_files = true
 
 [tool.hatch.build]
+exclude = [
+  "tests/**",
+]
 include = ["conda"]
 
 [tool.hatch.build.hooks.vcs]
@@ -211,7 +219,7 @@ ignore = [
   "E731",  # do not assign a lambda expression, use a def
   "UP031",  # do not fix printf-style string formatting
 ]
-pydocstyle = {convention = "pep257"}
+pydocstyle = {convention = "google"}
 # see https://docs.astral.sh/ruff/rules/
 select = [
   # Enable ANN locally for type hints linting

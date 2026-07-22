@@ -13,7 +13,7 @@ import pytest
 from conda import CondaError
 from conda.base.context import context, reset_context
 from conda.core.index import Index
-from conda.core.subdir_data import SubdirData, cache_fn_url
+from conda.core.subdir_data import SubdirData, cache_fn_url, query_all
 from conda.exceptions import CondaUpgradeError
 from conda.gateways.repodata import (
     CondaRepoInterface,
@@ -22,6 +22,7 @@ from conda.gateways.repodata import (
     get_repo_interface,
 )
 from conda.models.channel import Channel
+from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda.testing.helpers import CHANNEL_DIR_V1, CHANNEL_DIR_V2
 from conda.utils import url_path
@@ -96,6 +97,20 @@ def test_get_index_no_platform_with_offline_cache(
     # only works if CONDA_PLATFORM exists in tests/data/conda_format_repo
     # (test will not pass on newer platforms with default CONDA_PLATFORM =
     # 'osx-arm64' etc.)
+
+    # Undo env vars from the loops above so we can fetch repodata online.
+    monkeypatch.delenv("CONDA_OFFLINE")
+    monkeypatch.delenv("CONDA_REPODATA_TIMEOUT_SECS")
+    monkeypatch.delenv("CONDA_PLATFORM")
+    reset_context()
+
+    online_channels = context.channels or ["defaults"]
+
+    # Warm the repodata cache while still online so offline reads work
+    # regardless of which channel the CI environment is configured with.
+    SubdirData._cache_.clear()
+    assert len(SubdirData.query_all("zlib", channels=online_channels)) > 1
+
     monkeypatch.setenv("CONDA_OFFLINE", "yes")
     monkeypatch.setenv("CONDA_PLATFORM", platform)
     monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
@@ -104,7 +119,6 @@ def test_get_index_no_platform_with_offline_cache(
 
     local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     offline_channels = [local_channel]
-    online_channels = context.channels or ["defaults"]
 
     # In offline mode with an empty cache, we expect no results from online channels
     assert len(SubdirData.query_all("zlib", channels=offline_channels)) > 0
@@ -196,6 +210,37 @@ def test_use_only_tar_bz2(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):
     sd = SubdirData(channel)
     precs = tuple(sd.query("zlib"))
     assert precs[0].fn.endswith(".conda")
+
+
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
+def test_query_all_only_tar_bz2(
+    sharded: str, monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM
+):
+    channel = Channel(join(CHANNEL_DIR_V1, platform))
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    SubdirData.clear_cached_local_channel_data()
+
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "true")
+    reset_context()
+
+    results = query_all(MatchSpec("zlib"), [channel], subdirs=[platform])
+    assert len(results) >= 1
+    for result in results:
+        assert result.fn.endswith(".tar.bz2")
+
+    SubdirData.clear_cached_local_channel_data()
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+
+    results = query_all(MatchSpec("zlib"), [channel], subdirs=[platform])
+    assert len(results) >= 1
+    assert any(result.fn.endswith(".conda") for result in results)
 
 
 def test_subdir_data_coverage(monkeypatch: MonkeyPatch, platform=OVERRIDE_PLATFORM):

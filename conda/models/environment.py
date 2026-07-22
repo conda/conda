@@ -409,13 +409,16 @@ class Environment:
         This method analyzes an installed conda environment and creates
         an Environment model that can be used for exporting or other operations.
 
-        :param prefix: Path to the conda environment prefix
-        :param name: Name for the environment
-        :param platform: Target platform (e.g., 'linux-64', 'osx-64')
-        :param from_history: Use explicit specs from history instead of installed packages
-        :param no_builds: Exclude build strings from package specs
-        :param ignore_channels: Don't include channel information in package specs
-        :return: Environment model representing the prefix
+        Args:
+            prefix: Path to the conda environment prefix
+            name: Name for the environment
+            platform: Target platform (e.g., 'linux-64', 'osx-64')
+            from_history: Use explicit specs from history instead of installed packages
+            no_builds: Exclude build strings from package specs
+            ignore_channels: Don't include channel information in package specs
+
+        Returns:
+            Environment model representing the prefix
         """
         prefix_data = PrefixData(prefix, interoperability=True)
         variables = prefix_data.get_environment_env_vars()
@@ -515,8 +518,11 @@ class Environment:
         Environment object. This includes: reading files provided as
         cli arguments, and pulling EnvironmentConfig from the context.
 
-        :param args: argparse Namespace containing command-line arguments
-        :return: An Environment object representing the cli
+        Args:
+            args: argparse Namespace containing command-line arguments
+
+        Returns:
+            An Environment object representing the cli
         """
         env, _ = cls.from_cli_with_file_envs(args, add_default_packages)
         return env
@@ -531,8 +537,11 @@ class Environment:
         Create an Environment model from command-line arguments, with a map
         of file path to Environment for each environment file specified.
 
-        :param args: argparse Namespace containing command-line arguments
-        :return: Tuple of (merged Environment, dict mapping file path to Environment)
+        Args:
+            args: argparse Namespace containing command-line arguments
+
+        Returns:
+            Tuple of (merged Environment, dict mapping file path to Environment)
         """
         specs = [package.strip("\"'") for package in args.packages]
         requested_packages = []
@@ -638,7 +647,8 @@ class Environment:
 
     def extrapolate(self, platform: str) -> Environment:
         """
-        Given the current environment, extrapolate the environment for the given platform.
+        Given the current environment, solve for a comparable environment on a
+        different platform.
         """
         if platform == self.platform:
             return self
@@ -648,17 +658,18 @@ class Environment:
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         requested_packages = self.from_history(self.prefix)
 
-        for repodata_manager in Repodatas(self.config.repodata_fns, {}):
-            with repodata_manager as repodata_fn:
-                solver = solver_backend(
-                    prefix="/env/does/not/exist",
-                    channels=self.config.channels,
-                    subdirs=(platform, "noarch"),
-                    specs_to_add=requested_packages,
-                    repodata_fn=repodata_fn,
-                    command="create",
-                )
-                explicit_packages = solver.solve_final_state()
+        with context._override("_subdir", platform):
+            for repodata_manager in Repodatas(self.config.repodata_fns, {}):
+                with repodata_manager as repodata_fn:
+                    solver = solver_backend(
+                        prefix="/env/does/not/exist",
+                        channels=self.config.channels,
+                        subdirs=(platform, "noarch"),
+                        specs_to_add=requested_packages,
+                        repodata_fn=repodata_fn,
+                        command="create",
+                    )
+                    explicit_packages = solver.solve_final_state()
         return Environment(
             prefix=self.prefix,
             name=self.name,

@@ -48,6 +48,7 @@ from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
+    ClobberError,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
@@ -81,7 +82,7 @@ from conda.testing.integration import (
     which_or_where,
 )
 
-from . import TEST_RECIPES_CHANNEL
+from . import PYTHON_SPEC, PYTHON_SPEC_OLD, TEST_RECIPES_CHANNEL
 from .env import support_file
 
 if TYPE_CHECKING:
@@ -93,6 +94,7 @@ if TYPE_CHECKING:
 
     from conda.testing.fixtures import (
         CondaCLIFixture,
+        HttpTestServerFixture,
         PathFactoryFixture,
         PipCLIFixture,
         TmpChannelFixture,
@@ -140,9 +142,9 @@ def test_install_python_and_search(
     assert context.allow_non_channel_urls
     assert context.channels == channels
 
-    with tmp_env("python") as prefix:
+    with tmp_env(PYTHON_SPEC) as prefix:
         assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, PYTHON_SPEC)
 
         stdout, stderr, err = conda_cli("search", "python", "--json")
         assert len(json.loads(stdout)) == 1
@@ -160,10 +162,8 @@ def test_install_python_and_search(
         assert not err
 
 
-def test_run_preserves_arguments(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, tmp_env_python_spec: str
-):
-    with tmp_env(tmp_env_python_spec) as prefix:
+def test_run_preserves_arguments(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env(PYTHON_SPEC) as prefix:
         echo_args_py = prefix / "echo-args.py"
         echo_args_py.write_text("import sys\nfor arg in sys.argv[1:]: print(arg)")
         # If 'two two' were 'two' this test would pass.
@@ -181,41 +181,45 @@ def test_run_preserves_arguments(
         assert not code
 
 
-@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
+@pytest.mark.parametrize(
+    "http_test_server",
+    [Path(__file__).parent / "data" / "test-recipes"],
+    indirect=True,
+)
 def test_create_install_update_remove_smoketest(
+    http_test_server: HttpTestServerFixture,
+    mock_channels: list[str],
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
-    tmp_env_python_spec: str,
 ):
-    if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
-        return
-    with tmp_env(tmp_env_python_spec) as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "python=3")
+    """Create/install/update/remove/revision smoketest over local HTTP test-recipes."""
+    mock_channels.append(http_test_server.url)
+    with tmp_env("versioned=1.0") as prefix:
+        assert package_is_installed(prefix, "versioned=1.0")
 
-        conda_cli("install", f"--prefix={prefix}", "flask=2.0.1", "--yes")
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        conda_cli("install", f"--prefix={prefix}", "buildstring", "--yes")
+        assert package_is_installed(prefix, "buildstring")
+        assert package_is_installed(prefix, "versioned=1.0", reload_records=False)
 
         conda_cli(
             "install",
             f"--prefix={prefix}",
             "--force-reinstall",
-            "flask=2.0.1",
+            "buildstring",
             "--yes",
         )
-        assert package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        assert package_is_installed(prefix, "buildstring")
+        assert package_is_installed(prefix, "versioned=1.0", reload_records=False)
 
-        conda_cli("update", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask=2.0.1")
-        assert package_is_installed(prefix, "flask", reload_records=False)
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        conda_cli("install", f"--prefix={prefix}", "versioned=2.0", "--yes")
+        assert not package_is_installed(prefix, "versioned=1.0")
+        assert package_is_installed(prefix, "versioned=2.0", reload_records=False)
+        assert package_is_installed(prefix, "buildstring", reload_records=False)
 
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        conda_cli("remove", f"--prefix={prefix}", "buildstring", "--yes")
+        assert not package_is_installed(prefix, "buildstring")
+        assert package_is_installed(prefix, "versioned=2.0", reload_records=False)
 
         stdout, stderr, code = conda_cli("list", f"--prefix={prefix}", "--revisions")
         assert not stderr
@@ -223,8 +227,8 @@ def test_create_install_update_remove_smoketest(
         assert " (rev 5)\n" not in stdout
 
         conda_cli("install", f"--prefix={prefix}", "--revision", "0", "--yes")
-        assert not package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3", reload_records=False)
+        assert not package_is_installed(prefix, "buildstring")
+        assert package_is_installed(prefix, "versioned=1.0", reload_records=False)
 
 
 def test_install_broken_post_install_keeps_existing_folders(
@@ -601,32 +605,30 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
 ):
     """
-    When Python changes versions (e.g. from 3.10 to 3.11) it is important to verify that all the previous
+    When Python changes versions (e.g. from PYTHON_SPEC_OLD to PYTHON_SPEC) it is important to verify that all the previous
     dependencies were transferred over to the new version in ``lib/python3.x/site-packages/*``.
     """
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
 
-    with tmp_env("itsdangerous", "python=3.10") as prefix:
-        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
-        assert py_ver.startswith("3.10")
+    with tmp_env("itsdangerous", PYTHON_SPEC_OLD) as prefix:
+        assert (pkg := package_is_installed(prefix, PYTHON_SPEC_OLD))
+        py_ver = get_major_minor_version(pkg.version)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
-        pyc_file_py310 = pyc_path(py_file, py_ver)
+        old_pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
-        assert (prefix / pyc_file_py310).is_file()
+        assert (prefix / old_pyc_file).is_file()
 
-        conda_cli("install", f"--prefix={prefix}", "python=3.11", "--yes")
-        # python 3.10 pyc file should be gone
-        assert not (prefix / pyc_file_py310).is_file()
-
-        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
-        assert py_ver.startswith("3.11")
+        conda_cli("install", f"--prefix={prefix}", PYTHON_SPEC, "--yes")
+        assert not (prefix / old_pyc_file).is_file()
+        assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
+        py_ver = get_major_minor_version(pkg.version)
         sp_dir = get_python_site_packages_short_path(py_ver)
         py_file = sp_dir + "/itsdangerous/__init__.py"
-        pyc_file_py311 = pyc_path(py_file, py_ver)
+        new_pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
-        assert (prefix / pyc_file_py311).is_file()
+        assert (prefix / new_pyc_file).is_file()
 
 
 def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
@@ -873,8 +875,7 @@ def test_list_with_pip_no_binary(
 ):
     from conda.exports import rm_rf as _rm_rf
 
-    py_ver = "3.10"
-    with tmp_env(f"python={py_ver}", "pip") as prefix:
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
@@ -891,7 +892,10 @@ def test_list_with_pip_no_binary(
         #   when using rm_rf on a directory
         # cache key is prefix, interoperability, which is default=True on conda list
         assert (prefix, True) in PrefixData._cache_
-        _rm_rf(prefix / get_python_site_packages_short_path(py_ver))
+        assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
+        py_ver = get_major_minor_version(pkg.version)
+        sp_dir = get_python_site_packages_short_path(py_ver)
+        _rm_rf(prefix / sp_dir)
         assert prefix not in PrefixData._cache_
 
 
@@ -906,7 +910,7 @@ def test_list_with_pip_wheel(
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
 
-    with tmp_env("python=3.10", "pip") as prefix:
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
         assert pip_code == 0, f"pip install failed: {pip_stderr}"
@@ -925,16 +929,21 @@ def test_list_with_pip_wheel(
         assert package_is_installed(prefix, "python=3.9")
 
 
-def test_rm_rf(clear_package_cache: None, tmp_env: TmpEnvFixture):
+def test_rm_rf(
+    clear_package_cache: None,
+    tmp_env: TmpEnvFixture,
+    test_recipes_channel: Path,
+):
     # regression test for #5980, related to #5847
     from conda.exports import rm_rf as _rm_rf
 
-    py_ver = "3.10"
-    with tmp_env(f"python={py_ver}") as prefix:
+    with tmp_env("small-executable") as prefix:
         # regression test for #5847
         #   when using rm_rf on a file
         assert any(prefix in key for key in PrefixData._cache_)
-        _rm_rf(prefix / get_python_site_packages_short_path(py_ver), "os.py")
+        # remove file from prefix
+        _rm_rf(prefix / "bin" / "small")
+        # check that PrefixData cache was cleared
         assert not any(prefix in key for key in PrefixData._cache_)
 
     with tmp_env(shallow=False) as prefix:
@@ -1116,10 +1125,10 @@ def test_channel_usage_replacing_python(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    # Regression test for #2606
-    with tmp_env("--channel=conda-forge", "python=3.10") as prefix:
+    # Regression test for #2606 -> Assure packages aren't replaced from a different channel.
+    with tmp_env("--channel=conda-forge", PYTHON_SPEC) as prefix:
         assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "conda-forge::python=3.10")
+        assert package_is_installed(prefix, f"conda-forge::{PYTHON_SPEC}")
 
         conda_cli(
             "install",
@@ -1130,23 +1139,23 @@ def test_channel_usage_replacing_python(
         )
         PrefixData._cache_.clear()
         if context.solver == "rattler":
-            # Rattler adjustment: channels change more than expected
-            assert (prec := package_is_installed(prefix, "python=3.10"))
+            # Rattler may rewrite channel attribution (#15592); name-only checks
+            # keep coverage without requiring channel identity.
+            assert package_is_installed(prefix, PYTHON_SPEC)
             assert package_is_installed(prefix, "decorator")
         else:
-            assert (prec := package_is_installed(prefix, "conda-forge::python=3.10"))
+            assert package_is_installed(prefix, f"conda-forge::{PYTHON_SPEC}")
             assert package_is_installed(prefix, "main::decorator")
 
-        with tmp_env(f"--clone={prefix}") as clone:
-            if context.solver == "rattler":
-                # Rattler adjustment: channels change more than expected
-                assert package_is_installed(clone, "python=3.10")
-                assert package_is_installed(clone, "decorator")
-            else:
-                assert package_is_installed(clone, "conda-forge::python=3.10")
-                assert package_is_installed(clone, "main::decorator")
 
-        # Regression test for #2645
+def test_clone_env_missing_channel_metadata(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+):
+    # Regression test for #2645 -> Assure clone works when channel metadata is missing.
+    with tmp_env("small-executable") as prefix:
+        assert package_is_installed(prefix, "small-executable")
+        prec = package_is_installed(prefix, "small-executable")
         fn = prefix / "conda-meta" / f"{prec.name}-{prec.version}-{prec.build}.json"
         data = {
             field: value
@@ -1156,20 +1165,12 @@ def test_channel_usage_replacing_python(
         fn.write_text(json.dumps(data))
         PrefixData._cache_.clear()
 
-        with tmp_env("--channel=conda-forge", f"--clone={prefix}") as clone:
-            if context.solver == "rattler":
-                # Rattler adjustment: channels change more than expected
-                assert package_is_installed(clone, "python=3.10")
-                assert package_is_installed(clone, "decorator")
-            else:
-                assert package_is_installed(clone, "conda-forge::python=3.10")
-                assert package_is_installed(clone, "main::decorator")
+        with tmp_env(f"--clone={prefix}") as clone:
+            assert package_is_installed(clone, "small-executable")
 
 
-def test_install_prune_flag(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, tmp_env_python_spec: str
-):
-    with tmp_env(tmp_env_python_spec, "flask") as prefix:
+def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+    with tmp_env(PYTHON_SPEC, "flask") as prefix:
         assert package_is_installed(prefix, "flask")
         assert package_is_installed(prefix, "python=3")
         conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
@@ -1181,13 +1182,13 @@ def test_install_prune_flag(
 
 @pytest.mark.skipif(on_win, reason="readline is only a python dependency on unix")
 def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python") as prefix:
+    with tmp_env(PYTHON_SPEC) as prefix:
         assert package_is_installed(prefix, "readline")
-        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, PYTHON_SPEC)
 
         conda_cli("remove", f"--prefix={prefix}", "readline", "--force-remove", "--yes")
         assert not package_is_installed(prefix, "readline")
-        assert package_is_installed(prefix, "python")
+        assert package_is_installed(prefix, PYTHON_SPEC)
 
 
 def test_install_force_reinstall_flag(
@@ -1337,8 +1338,8 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
     else:
         # We force the use of 'the other' Python on Windows so that Windows
         # runtime / DLL incompatibilities will be readily apparent.
-        py_ver = "3.10"
-        packages = [f"python={py_ver}"]
+        py_ver = get_major_minor_version(str(MatchSpec(PYTHON_SPEC).version))
+        packages = [PYTHON_SPEC]
 
     with tmp_env(*packages) as prefix:
         if use_sys_python:
@@ -1411,7 +1412,7 @@ def test_update_all_updates_pip_pkg(
     reset_context()
     assert context.prefix_data_interoperability
 
-    with tmp_env("python", "pip", "pytz<2023") as prefix:
+    with tmp_env(PYTHON_SPEC, "pip", "pytz<2023") as prefix:
         # install an old version of itsdangerous from pip
         stdout, stderr, err = pip_cli("install", "itsdangerous==1.*", prefix=prefix)
         assert err == 0, f"pip install failed: {stderr}"
@@ -1983,7 +1984,7 @@ def test_conda_pip_interop_conda_editable_package(
     reset_context()
     assert context.prefix_data_interoperability
 
-    with tmp_env("python=3.12", "pip", "git") as prefix:
+    with tmp_env(PYTHON_SPEC, "pip", "git") as prefix:
         assert package_is_installed(prefix, "python")
         assert package_is_installed(prefix, "pip")
         assert package_is_installed(prefix, "git")
@@ -2152,9 +2153,13 @@ def test_use_index_cache(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
 ):
     from conda.core.subdir_data import SubdirData
     from conda.gateways.connection.session import CondaSession
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "false")
+    reset_context()
 
     # pretend the cache is always stale
     mocker.patch(
@@ -2294,66 +2299,104 @@ def test_disallowed_packages(
         reset_context()
         assert context.disallowed_packages == ("openssl", "flask")
         with pytest.raises(CondaMultiError) as exc:
-            conda_cli("install", f"--prefix={prefix}", "python", "--yes")
+            conda_cli("install", f"--prefix={prefix}", PYTHON_SPEC, "--yes")
         exc_val = exc.value.errors[0]
         assert isinstance(exc_val, DisallowedPackageError)
         assert exc_val.dump_map()["package_ref"]["name"] == "openssl"
 
 
-def test_dont_remove_conda_1(
-    monkeypatch: MonkeyPatch, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+@pytest.fixture(scope="session")
+def _conda_root_prefix_env(
+    session_tmp_env: TmpEnvFixture,
+) -> Iterator[Path]:
+    """Session-scoped conda env shared by the don't-remove-conda tests."""
+    with session_tmp_env("conda") as prefix:
+        yield prefix
+
+
+@pytest.fixture
+def root_prefix_with_conda(
+    monkeypatch: MonkeyPatch,
+    _conda_root_prefix_env: Path,
+) -> Path:
+    """Root prefix with conda installed; local to the don't-remove-conda tests."""
+    monkeypatch.setenv("CONDA_ROOT_PREFIX", str(_conda_root_prefix_env))
+    reset_context()
+    assert context.root_prefix == str(_conda_root_prefix_env)
+    return _conda_root_prefix_env
+
+
+@pytest.mark.parametrize(
+    "remove_order",
+    [("conda", "pycosat"), ("pycosat", "conda")],
+    ids=["conda_first", "pycosat_first"],
+)
+def test_dont_remove_conda(
+    root_prefix_with_conda: Path,
+    conda_cli: CondaCLIFixture,
+    remove_order: tuple[str, str],
 ):
-    with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
-        reset_context()
-        assert context.root_prefix == str(prefix)
-        conda_cli("install", f"--prefix={prefix}", "conda", "conda-build", "--yes")
-        assert package_is_installed(prefix, "conda")
-        assert package_is_installed(prefix, "pycosat")
-        assert package_is_installed(prefix, "conda-build")
-
+    """Conda and its dependencies cannot be removed from the root prefix (#6904)."""
+    for package in remove_order:
         with pytest.raises(CondaMultiError) as exc:
-            conda_cli("remove", f"--prefix={prefix}", "conda", "--yes")
+            conda_cli("remove", f"--prefix={root_prefix_with_conda}", package, "--yes")
 
         assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-        assert package_is_installed(prefix, "conda")
-        assert package_is_installed(prefix, "pycosat")
 
-        with pytest.raises(CondaMultiError) as exc:
-            conda_cli("remove", f"--prefix={prefix}", "pycosat", "--yes")
-
-        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-        assert package_is_installed(prefix, "conda")
-        assert package_is_installed(prefix, "pycosat")
-        assert package_is_installed(prefix, "conda-build")
+    assert package_is_installed(root_prefix_with_conda, "conda")
+    assert package_is_installed(root_prefix_with_conda, "pycosat")
 
 
-def test_dont_remove_conda_2(
-    conda_cli: CondaCLIFixture, tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch
+def test_dont_remove_conda_dependency_with_dependent_packages(
+    root_prefix_with_conda: Path,
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
 ):
-    # regression test for #6904
-    with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
-        reset_context()
-        assert context.root_prefix == str(prefix)
+    """Removing a conda dependency is blocked even when dependents would be unlinked."""
+    # The session-scoped prefix is local to this test group, so these lightweight
+    # packages can remain installed for later parametrized runs.
+    conda_cli(
+        "install",
+        f"--prefix={root_prefix_with_conda}",
+        "another_dependent",
+        "--yes",
+    )
+    assert package_is_installed(root_prefix_with_conda, "dependency")
+    assert package_is_installed(root_prefix_with_conda, "dependent")
+    assert package_is_installed(root_prefix_with_conda, "another_dependent")
 
-        conda_cli("install", f"--prefix={prefix}", "conda", "--yes")
-        assert package_is_installed(prefix, "conda")
-        assert package_is_installed(prefix, "pycosat")
+    # Model a conda dependency that also has installed reverse dependencies.
+    conda_prec = PrefixData(root_prefix_with_conda).reload().get("conda")
+    conda_meta = (
+        root_prefix_with_conda
+        / "conda-meta"
+        / f"{conda_prec.name}-{conda_prec.version}-{conda_prec.build}.json"
+    )
+    assert conda_meta.is_file()
+    conda_record = json.loads(conda_meta.read_text())
+    original_depends = conda_record["depends"]
+    conda_record["depends"] = [*original_depends, "dependency"]
+    conda_meta.write_text(json.dumps(conda_record))
+    PrefixData._cache_.clear()
 
+    try:
         with pytest.raises(CondaMultiError) as exc:
-            conda_cli("remove", f"--prefix={prefix}", "pycosat", "--yes")
+            conda_cli(
+                "remove",
+                f"--prefix={root_prefix_with_conda}",
+                "dependency",
+                "--yes",
+            )
 
         assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-        assert package_is_installed(prefix, "conda")
-        assert package_is_installed(prefix, "pycosat")
-
-        with pytest.raises(CondaMultiError) as exc:
-            conda_cli("remove", f"--prefix={prefix}", "conda", "--yes")
-
-        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-        assert package_is_installed(prefix, "conda")
-        assert package_is_installed(prefix, "pycosat")
+        assert package_is_installed(root_prefix_with_conda, "conda")
+        assert package_is_installed(root_prefix_with_conda, "dependency")
+        assert package_is_installed(root_prefix_with_conda, "dependent")
+        assert package_is_installed(root_prefix_with_conda, "another_dependent")
+    finally:
+        conda_record["depends"] = original_depends
+        conda_meta.write_text(json.dumps(conda_record))
+        PrefixData._cache_.clear()
 
 
 def test_dont_remove_conda_3(
@@ -2366,6 +2409,11 @@ def test_dont_remove_conda_3(
     upgrades a dependency) it could produce spurious RemoveError, blocking
     further use of conda.
     """
+    if context.solver != "libmamba" or context.solver != "classic":
+        pytest.skip(
+            "This test can only be run with solvers that come shipped with conda"
+        )
+
     with tmp_env("conda", "conda-pypi") as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         monkeypatch.setenv("CONDA_PREFIX", str(prefix))
@@ -2570,7 +2618,7 @@ def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFi
     (tmp_path / "tempfile.txt").write_text("hello world")
 
     with pytest.raises(DirectoryNotACondaEnvironmentError):
-        conda_cli("install", "python", f"--prefix={tmp_path}", "--yes")
+        conda_cli("install", PYTHON_SPEC, f"--prefix={tmp_path}", "--yes")
 
 
 def test_must_provide_args_to_install(tmp_path: Path, conda_cli: CondaCLIFixture):
@@ -3121,3 +3169,69 @@ def test_mix_explicit_file_and_packages(
             raises=CondaValueError,
         )
         assert "Cannot combine package names with explicit package lists" in str(exc)
+
+
+def test_create_cleanup_on_clobber_error(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """
+    Regression test: #16076 — failed create must not leave the prefix behind.
+    """
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+
+    new_prefix = path_factory()
+    with pytest.raises(CondaMultiError) as exc_info:
+        conda_cli("create", f"--prefix={new_prefix}", "clobber-a", "clobber-b", "--yes")
+
+    clobber_errors = [e for e in exc_info.value.errors if isinstance(e, ClobberError)]
+    assert clobber_errors
+    assert any("bin/clobber-test-file" in str(e) for e in clobber_errors)
+    assert not new_prefix.exists()
+
+
+def test_install_preserves_prefix_on_clobber_error(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+
+    with tmp_env() as existing_prefix:
+        with pytest.raises(CondaMultiError):
+            conda_cli(
+                "install",
+                f"--prefix={existing_prefix}",
+                "clobber-a",
+                "clobber-b",
+                "--yes",
+            )
+        assert existing_prefix.exists()
+
+
+def test_install_succeeds_with_clobber_flag(
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    monkeypatch.setenv("CONDA_PATH_CONFLICT", "prevent")
+    reset_context()
+
+    with tmp_env() as prefix:
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--clobber",
+            "clobber-a",
+            "clobber-b",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "clobber-a")
+        assert package_is_installed(prefix, "clobber-b")
+        assert (prefix / "bin" / "clobber-test-file").exists()
