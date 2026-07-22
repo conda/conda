@@ -2,7 +2,7 @@
 
 ### Bug fixes
 
-* Run the target environment's `conda` executable for `conda run <prefix> conda ...` on POSIX shells. (#16333)
+* Run the target environment's `conda` executable for `conda run --prefix <prefix> conda ...` on POSIX shells. (#16333)
 
 ### Deprecations
 

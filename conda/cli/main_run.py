@@ -124,6 +124,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,
+        use_target_conda_executable=True,
     )
 
     # run script
