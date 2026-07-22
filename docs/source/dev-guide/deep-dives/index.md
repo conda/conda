@@ -1,23 +1,23 @@
-===========
-Deep dives
-===========
+# Deep dives
 
 Detailed explorations of particularly complex subsystems in conda. These guides go
 beyond the high-level architecture and explain the internal mechanics of specific
 components.
 
-.. toctree::
-   :maxdepth: 1
-   :hidden:
+```{toctree}
+:maxdepth: 1
+:hidden:
 
-   install
-   activation
-   context
-   condarc
-   solvers
-   logging
-   sharded
+install
+activation
+context
+condarc
+solvers
+logging
+sharded
+```
 
+```{eval-rst}
 .. glossary::
 
     :doc:`conda install <install>`
@@ -50,3 +50,4 @@ components.
         How conda implements CEP-16 sharded repodata: the fetch loop, threading
         model, SQLite shard cache, and the ``ShardLike`` interface that unifies
         sharded and monolithic channels.
+```
