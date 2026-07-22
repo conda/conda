@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Use the Windows `CopyFileW` API for copy-mode file creation during installs. (#15969)
+* Use native Windows copy APIs for copy-mode file creation during installs. (#15969)
 
 ### Bug fixes
 

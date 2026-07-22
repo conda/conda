@@ -437,24 +437,48 @@ def _win_copy_file(src, dst):
     if _WIN_COPYFILE is _WIN_COPYFILE_UNAVAILABLE:
         return False
     if _WIN_COPYFILE is None:
-        try:
-            from ctypes import windll, wintypes
-        except ImportError:
-            _WIN_COPYFILE = _WIN_COPYFILE_UNAVAILABLE
-            return False
-        copy_file = windll.kernel32.CopyFileW
-        copy_file.restype = wintypes.BOOL
-        copy_file.argtypes = (wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.BOOL)
-        _WIN_COPYFILE = copy_file
+        _WIN_COPYFILE = _load_win_copy_file()
+    if _WIN_COPYFILE is _WIN_COPYFILE_UNAVAILABLE:
+        return False
 
-    # CopyFileW keeps Windows copy-mode installs in kernel32 instead of bouncing
-    # every file through Python's read/write loop. The target should not exist.
     if _WIN_COPYFILE(src, dst, True):
         log.log(TRACE, "windows copying %s => %s", src, dst)
         return True
     if lexists(dst):
         rm_rf(dst)
     return False
+
+
+def _load_win_copy_file():
+    """Return the best available native Windows file-copy function."""
+    try:
+        from _winapi import (
+            COPY_FILE_ALLOW_DECRYPTED_DESTINATION,
+            COPY_FILE_FAIL_IF_EXISTS,
+            CopyFile2,
+        )
+    except ImportError:
+        try:
+            from ctypes import windll, wintypes
+        except ImportError:
+            return _WIN_COPYFILE_UNAVAILABLE
+        copy_file = windll.kernel32.CopyFileW
+        copy_file.restype = wintypes.BOOL
+        copy_file.argtypes = (wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.BOOL)
+        return copy_file
+
+    def copy_file(src, dst, fail_if_exists):
+        flags = COPY_FILE_ALLOW_DECRYPTED_DESTINATION
+        if fail_if_exists:
+            flags |= COPY_FILE_FAIL_IF_EXISTS
+        try:
+            CopyFile2(src, dst, flags)
+        except OSError as e:
+            log.debug("CopyFile2 failed for %s => %s: %r", src, dst, e)
+            return False
+        return True
+
+    return copy_file
 
 
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):

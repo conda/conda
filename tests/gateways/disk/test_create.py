@@ -213,3 +213,65 @@ def test_do_copy_windows_copyfile_path(
     assert copy_calls == ([(str(source), str(target), True)] if on_win else [])
     assert bool(python_copy_calls) is expects_python_copy
     assert removed == ([str(target)] if expects_removed_target else [])
+
+
+def test_win_copy_file_prefers_copyfile2(
+    mocker,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.write_text("contents")
+
+    def copy_file2(src, dst, flags):
+        copyfile(src, dst)
+
+    winapi = mocker.Mock()
+    winapi.COPY_FILE_ALLOW_DECRYPTED_DESTINATION = 1
+    winapi.COPY_FILE_FAIL_IF_EXISTS = 2
+    winapi.CopyFile2.side_effect = copy_file2
+    mocker.patch.dict("sys.modules", {"_winapi": winapi})
+    monkeypatch.setattr(create, "on_win", True)
+    monkeypatch.setattr(create, "_WIN_COPYFILE", None)
+
+    assert create._win_copy_file(source, target)
+    assert target.read_text() == "contents"
+    winapi.CopyFile2.assert_called_once_with(str(source), str(target), 3)
+
+
+def test_win_copy_file_falls_back_to_copyfilew(
+    mocker,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.write_text("contents")
+
+    def copy_file_w(src, dst, fail_if_exists):
+        copyfile(src, dst)
+        return True
+
+    copy_file_w = mocker.Mock(side_effect=copy_file_w)
+    windll = mocker.Mock()
+    windll.kernel32.CopyFileW = copy_file_w
+    mocker.patch.dict("sys.modules", {"_winapi": None})
+    mocker.patch("ctypes.windll", windll, create=True)
+    monkeypatch.setattr(create, "on_win", True)
+    monkeypatch.setattr(create, "_WIN_COPYFILE", None)
+
+    assert create._win_copy_file(source, target)
+    assert target.read_text() == "contents"
+    copy_file_w.assert_called_once_with(str(source), str(target), True)
+
+
+@pytest.mark.skipif(not create.on_win, reason="requires Windows")
+def test_win_copy_file_native(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.write_text("contents")
+    monkeypatch.setattr(create, "_WIN_COPYFILE", None)
+
+    assert create._win_copy_file(source, target)
+    assert target.read_text() == "contents"
