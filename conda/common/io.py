@@ -473,15 +473,19 @@ def timeout(
         def interrupt(signum, frame):
             raise TimeoutException()
 
-        signal.signal(signal.SIGALRM, interrupt)
+        previous_handler = signal.signal(signal.SIGALRM, interrupt)
         signal.alarm(timeout_secs)
 
         try:
-            ret = func(*args, **kwargs)
-            signal.alarm(0)
-            return ret
+            return func(*args, **kwargs)
         except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
             return default_return
+        finally:
+            # Always cancel the alarm and restore the previous handler, even if
+            # func() raised an unexpected exception; otherwise the alarm stays
+            # armed and can later fire during unrelated code. See #15702.
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous_handler)
 
 
 def _load_concurrency() -> None:
