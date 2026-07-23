@@ -143,3 +143,40 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(io, function)()
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="timeout() uses SIGALRM (Unix only)"
+)
+def test_timeout_returns_value():
+    assert io.timeout(5, lambda: "ok") == "ok"
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="timeout() uses SIGALRM (Unix only)"
+)
+def test_timeout_cleans_up_after_unexpected_exception():
+    """
+    If the callable raises an unexpected (non-timeout) exception, timeout()
+    must still cancel the alarm and restore the previous SIGALRM handler
+    instead of leaving the alarm armed. See
+    https://github.com/conda/conda/issues/15702.
+    """
+    import signal
+
+    def sentinel(signum, frame): ...
+
+    previous = signal.signal(signal.SIGALRM, sentinel)
+    try:
+
+        def boom():
+            raise ValueError("boom")
+
+        with pytest.raises(ValueError):
+            io.timeout(5, boom)
+
+        # the alarm must be cancelled (0 seconds remaining)
+        assert signal.alarm(0) == 0
+        assert signal.getsignal(signal.SIGALRM) is sentinel
+    finally:
+        signal.signal(signal.SIGALRM, previous)
