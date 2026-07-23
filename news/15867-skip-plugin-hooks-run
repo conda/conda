@@ -1,0 +1,7 @@
+### Enhancements
+
+* Skip plugin discovery and pre- and post-command hooks for `conda run` and shell activation commands. (#15867 via #15883)
+
+### Docs
+
+* Document which commands do not invoke pre- and post-command hooks. (#15867 via #15883)
