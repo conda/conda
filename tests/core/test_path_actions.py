@@ -14,7 +14,7 @@ import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
@@ -30,6 +30,7 @@ from conda.core.path_actions import (
     CompileMultiPycAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
+    PrefixReplaceLinkAction,
 )
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -38,7 +39,7 @@ from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.channel import Channel
-from conda.models.enums import LinkType, NoarchType, PathEnum
+from conda.models.enums import FileMode, LinkType, NoarchType, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathDataV1, PathsData
 
@@ -485,6 +486,80 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     axn.reverse()
     assert not lexists(axn.target_full_path)
+
+
+@pytest.mark.parametrize("extra_safety_checks", (False, True))
+def test_PrefixReplaceLinkAction_sha256_in_prefix_extra_safety_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker, extra_safety_checks: bool
+):
+    source_dir = tmp_path / "pkgs"
+    source_short_path = "bin/tool"
+    source_full_path = source_dir / "bin" / "tool"
+    source_full_path.parent.mkdir(parents=True)
+
+    prefix_placeholder = "/some-placeholder"
+    source_full_path.write_bytes(
+        b"\x7fELF..." + prefix_placeholder.encode() + b"/bin/python\0"
+    )
+    source_path_data = PathDataV1(
+        _path=source_short_path,
+        path_type=PathEnum.hardlink,
+    )
+    repodata_record = PackageRecord(
+        build=0,
+        build_number=0,
+        name="test-prefix-replace",
+        version=0,
+        channel="defaults",
+        subdir="linux-64",
+        fn="test-prefix-replace-0-0.conda",
+        md5="0123456789",
+    )
+    package_info = PackageInfo(
+        extracted_package_dir=str(source_dir),
+        package_tarball_full_path=str(source_dir / "test-prefix-replace-0-0.conda"),
+        channel=Channel("defaults"),
+        repodata_record=repodata_record,
+        url="https://example.invalid/test-prefix-replace-0-0.conda",
+        paths_data=PathsData(paths_version=1, paths=[source_path_data]),
+    )
+    action = PrefixReplaceLinkAction(
+        {"temp_dir": str(tmp_path / "temp")},
+        package_info,
+        str(source_dir),
+        source_short_path,
+        "/target",
+        source_short_path,
+        LinkType.hardlink,
+        prefix_placeholder,
+        FileMode.binary,
+        source_path_data,
+    )
+    compute_sum_spy = mocker.patch(
+        "conda.core.path_actions.compute_sum", wraps=compute_sum
+    )
+
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv(
+                "CONDA_EXTRA_SAFETY_CHECKS",
+                "true" if extra_safety_checks else "false",
+            )
+            reset_context()
+
+            assert context.extra_safety_checks is extra_safety_checks
+            assert action.verify() is None
+    finally:
+        reset_context()
+
+    if extra_safety_checks:
+        assert action.prefix_path_data.sha256_in_prefix == compute_sum(
+            action.intermediate_path, "sha256"
+        )
+        compute_sum_spy.assert_called_once_with(action.intermediate_path, "sha256")
+    else:
+        assert getattr(action.prefix_path_data, "sha256_in_prefix", None) is None
+        compute_sum_spy.assert_not_called()
 
 
 def test_create_file_link_actions(tmp_path):

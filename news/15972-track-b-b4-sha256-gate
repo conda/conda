@@ -1,0 +1,19 @@
+### Enhancements
+
+* Skip the SHA-256 of rewritten files in `PrefixReplaceLinkAction.verify()` when `extra_safety_checks` is disabled (the default). Shaves ~27% off per-file verify cost for packages with large binaries (PyTorch, TensorFlow, etc.). (#15972)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
