@@ -7,6 +7,7 @@ import logging
 import re
 import sys
 from dataclasses import dataclass
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pluggy
@@ -18,6 +19,8 @@ from conda.base.context import reset_context
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
+from conda.models.enums import PathEnum
+from conda.models.records import PathDataV1, PathsData
 from conda.plugins import solvers, virtual_packages
 from conda.plugins.types import CondaPlugin
 
@@ -79,6 +82,45 @@ def test_get_plugin_source_entrypoint_distribution(
     solvers_list = [p for ps in plugin_manager.hook.conda_solvers() for p in ps]
     solver = next(p for p in solvers_list if p.name == "test")
     assert plugin_manager.get_plugin_source(solver) == "conda-test-plugin 1.0"
+
+
+@pytest.mark.parametrize(
+    ("entry_points_text", "expected"),
+    (
+        ("[conda]\nexample = conda_example_plugin.plugin\n", True),
+        ("[console_scripts]\nconsole-only = console_only:main\n", False),
+    ),
+)
+def test_is_conda_plugin_package(
+    entry_points_text: str,
+    expected: bool,
+    plugin_manager: CondaPluginManager,
+    tmp_path,
+):
+    entry_points = (
+        tmp_path
+        / "lib"
+        / "python3.12"
+        / "site-packages"
+        / "conda_example_plugin.dist-info"
+        / "entry_points.txt"
+    )
+    entry_points.parent.mkdir(parents=True)
+    entry_points.write_text(entry_points_text)
+    package = SimpleNamespace(
+        extracted_package_dir=str(tmp_path),
+        paths_data=PathsData(
+            paths_version=1,
+            paths=(
+                PathDataV1(
+                    _path=entry_points.relative_to(tmp_path).as_posix(),
+                    path_type=PathEnum.hardlink,
+                ),
+            ),
+        ),
+    )
+
+    assert plugin_manager.is_conda_plugin_package(package) is expected
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):

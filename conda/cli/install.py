@@ -316,6 +316,9 @@ def install(args, parser, command="install"):
         if env.config.update_modifier != UpdateModifier.UPDATE_ALL:
             ensure_update_specs_exist(prefix=env.prefix, specs=env.requested_packages)
 
+    if explicit_validator := getattr(args, "_validate_explicit_packages", None):
+        explicit_validator(env.explicit_packages)
+
     # install explicit specs
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
         return install_explicit_packages(env.explicit_packages, env.prefix)
@@ -562,6 +565,9 @@ def handle_txn(
                       a package from the environment
     :param defer_json_success: when true, will return the set of actions executed in dict form
     """
+    if transaction_validator := getattr(args, "_validate_transaction", None):
+        transaction_validator(unlink_link_transaction)
+
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
@@ -588,6 +594,11 @@ def handle_txn(
 
     try:
         unlink_link_transaction.download_and_extract()
+        if prepared_transaction_validator := getattr(
+            args, "_validate_prepared_transaction", None
+        ):
+            prepared_transaction_validator(unlink_link_transaction)
+
         if context.download_only:
             raise CondaExitZero(
                 "Package caches prepared. UnlinkLinkTransaction cancelled with "
