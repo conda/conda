@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import errno
+import os
 from contextlib import nullcontext
 from shutil import copyfile
 
@@ -122,6 +123,62 @@ def test_copy_over_existing_target_skips_clonefile(
     create.copy(str(source), str(target))
 
     assert target.read_text() == "new"
+
+
+@pytest.mark.parametrize(
+    "ioctl_errno,source_size,target_names,expected_ioctl_calls,expected_copy_calls",
+    (
+        (None, 64 * 1024, ("target",), 1, 0),
+        (None, 1024, ("target",), 0, 1),
+        (errno.ENOTTY, 64 * 1024, ("target-one", "target-two"), 1, 2),
+    ),
+    ids=(
+        "linux-ficlone",
+        "linux-ficlone-skips-tiny-file",
+        "linux-ficlone-unsupported-cache",
+    ),
+)
+def test_copy_linux_ficlone_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+    ioctl_errno,
+    source_size,
+    target_names,
+    expected_ioctl_calls,
+    expected_copy_calls,
+):
+    source = tmp_path / "source"
+    source.write_bytes(b"x" * source_size)
+    ioctl_calls = []
+    copy_calls = []
+
+    def ioctl(dst_fd, request, src_fd):
+        ioctl_calls.append((dst_fd, request, src_fd))
+        if ioctl_errno is not None:
+            raise OSError(ioctl_errno, "unsupported")
+        os.lseek(src_fd, 0, os.SEEK_SET)
+        os.write(dst_fd, os.read(src_fd, source_size))
+
+    def copy_fallback(src, dst):
+        copy_calls.append((src, dst))
+        if expected_copy_calls == 0:
+            pytest.fail("copy fallback should not be used")
+        copyfile(src, dst)
+
+    monkeypatch.setattr(create, "on_mac", False)
+    monkeypatch.setattr(create, "on_linux", True)
+    monkeypatch.setattr(create, "_FICLONE_IOCTL", ioctl)
+    monkeypatch.setattr(create, "_do_copy", copy_fallback)
+    create._FICLONE_UNSUPPORTED_DEVICES.clear()
+
+    for target_name in target_names:
+        create.copy(str(source), str(tmp_path / target_name))
+
+    for target_name in target_names:
+        assert (tmp_path / target_name).read_bytes() == source.read_bytes()
+    assert len(ioctl_calls) == expected_ioctl_calls
+    assert all(call[1] == create._FICLONE for call in ioctl_calls)
+    assert len(copy_calls) == expected_copy_calls
 
 
 def test_copy_link_type_does_not_fall_back_to_hardlink(

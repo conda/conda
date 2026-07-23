@@ -8,16 +8,17 @@ import sys
 import tempfile
 import warnings as _warnings
 from ctypes import CDLL, c_char_p, c_int, get_errno
-from errno import EACCES, ENOSYS, EPERM, EROFS, EXDEV
+from errno import EACCES, EINVAL, ENOSYS, EPERM, EROFS, EXDEV
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
+from stat import S_ISREG
 
 from ... import CondaError
 from ...auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
-from ...common.compat import on_mac, on_win
+from ...common.compat import on_linux, on_mac, on_win
 from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.path.python import is_valid_import_path
@@ -106,6 +107,23 @@ _CLONEFILE_UNSUPPORTED_ERRNOS = frozenset(
 _CLONEFILE_UNSUPPORTED_DEVICES: set[tuple[int, int]] = set()
 _CLONEFILE_UNAVAILABLE = object()
 _CLONEFILE = None
+_FICLONE_UNSUPPORTED_ERRNOS = frozenset(
+    error
+    for error in (
+        EXDEV,
+        EINVAL,
+        ENOSYS,
+        getattr(errno, "ENOTTY", None),
+        getattr(errno, "ENOTSUP", None),
+        getattr(errno, "EOPNOTSUPP", None),
+    )
+    if error is not None
+)
+_FICLONE = 0x40049409
+_FICLONE_MIN_FILE_SIZE = 64 * 1024
+_FICLONE_UNSUPPORTED_DEVICES: set[tuple[int, int]] = set()
+_FICLONE_UNAVAILABLE = object()
+_FICLONE_IOCTL = None
 _WIN_COPYFILE_UNAVAILABLE = object()
 _WIN_COPYFILE = None
 
@@ -340,9 +358,8 @@ def copy(src, dst):
             log.log(TRACE, "soft linking %s => %s", src, dst)
             symlink(src_points_to, dst)
             return
-    # APFS clonefile gives copy-on-write semantics for normal copy requests.
-    # Keep this copy-scoped: clonefile does not raise hardlink refcounts, so
-    # package-cache cleanup cannot treat it as a normal cache-linked install.
+    # Copy-on-write file clones accelerate normal copy requests while preserving
+    # conda's package-cache hardlink/refcount semantics.
     if _clone_file(src, dst):
         try:
             copystat(src, dst)
@@ -358,8 +375,16 @@ def _clone_file(src, dst):
     Returns:
         True when cloning succeeds, or False to use the normal copy fallback.
     """
-    if not on_mac or islink(src) or lexists(dst):
+    if islink(src) or lexists(dst):
         return False
+    if on_mac:
+        return _clone_file_macos(src, dst)
+    if on_linux:
+        return _clone_file_linux(src, dst)
+    return False
+
+
+def _clone_file_macos(src, dst):
     try:
         src_dev = os.stat(src).st_dev
         dst_dev = os.stat(dirname(dst) or ".").st_dev
@@ -395,6 +420,57 @@ def _clone_file(src, dst):
     if lexists(dst):
         rm_rf(dst)
     return False
+
+
+def _clone_file_linux(src, dst):
+    try:
+        src_stat = os.stat(src)
+    except OSError:
+        return False
+    if not S_ISREG(src_stat.st_mode):
+        return False
+    # The ioctl is slower than a buffered copy for tiny files on btrfs, so keep
+    # those on conda's normal copy path and reserve reflinks for files that can
+    # actually avoid meaningful byte-copy work.
+    if src_stat.st_size < _FICLONE_MIN_FILE_SIZE:
+        return False
+    if islink(src) or lexists(dst):
+        return False
+    try:
+        dst_dev = os.stat(dirname(dst) or ".").st_dev
+    except OSError:
+        return False
+    src_dev = src_stat.st_dev
+    device_pair = (src_dev, dst_dev)
+
+    global _FICLONE_IOCTL
+    if device_pair in _FICLONE_UNSUPPORTED_DEVICES:
+        return False
+    if _FICLONE_IOCTL is _FICLONE_UNAVAILABLE:
+        return False
+    if _FICLONE_IOCTL is None:
+        try:
+            from fcntl import ioctl
+        except ImportError:
+            _FICLONE_IOCTL = _FICLONE_UNAVAILABLE
+            return False
+        _FICLONE_IOCTL = ioctl
+
+    try:
+        with open(src, "rb") as fsrc:
+            with open(dst, "xb") as fdst:
+                _FICLONE_IOCTL(fdst.fileno(), _FICLONE, fsrc.fileno())
+        log.log(TRACE, "reflinking %s => %s", src, dst)
+        return True
+    except OSError as e:
+        log.debug("FICLONE failed with errno %s for %s => %s", e.errno, src, dst)
+        if e.errno in _FICLONE_UNSUPPORTED_ERRNOS:
+            # Filesystem support is stable for a package-cache/prefix device
+            # pair, so avoid an ioctl failure for every file in the package.
+            _FICLONE_UNSUPPORTED_DEVICES.add(device_pair)
+        if lexists(dst):
+            rm_rf(dst)
+        return False
 
 
 def _do_copy(src, dst):
