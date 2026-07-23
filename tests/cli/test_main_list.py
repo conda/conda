@@ -347,7 +347,7 @@ def test_list_size(
         for line in package_lines:
             # Size should be the last column
             assert any(
-                line.strip().endswith(suffix) for suffix in ("B", "KB", "MB", "GB")
+                line.strip().endswith(suffix) for suffix in ("B", "KiB", "MiB", "GiB")
             )
 
 
@@ -405,4 +405,4 @@ def test_list_size_empty_paths_data(
         assert pkg_line is not None
 
         assert "0 B" not in pkg_line
-        assert pkg_line.strip().endswith(("B", "KB", "MB", "GB"))
+        assert pkg_line.strip().endswith(("B", "KiB", "MiB", "GiB"))

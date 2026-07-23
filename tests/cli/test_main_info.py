@@ -255,13 +255,13 @@ def test_info_envs_size(conda_cli: CondaCLIFixture):
     # regex to match: <any prefix stuff> <number> <unit> <path>
     # The path is at the end of the line.
     pattern = re.compile(
-        r"\s+(?P<size>\d+(\.\d+)?)\s+(?P<unit>B|KB|MB|GB)\s+(?P<path>.*)$"
+        r"\s+(?P<size>\d+(\.\d+)?)\s+(?P<unit>B|KiB|MiB|GiB)\s+(?P<path>.*)$"
     )
 
     for line in non_comment_lines:
         match = pattern.search(line)
         assert match, f"Line did not match size pattern: {line}"
-        assert match.group("unit") in ["B", "KB", "MB", "GB"]
+        assert match.group("unit") in ["B", "KiB", "MiB", "GiB"]
 
 
 def test_info_envs_size_json(conda_cli: CondaCLIFixture):
