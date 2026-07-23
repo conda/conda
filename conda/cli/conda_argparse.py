@@ -44,6 +44,7 @@ from .helpers import (  # noqa: F401
     add_parser_solver_mode,
     add_parser_update_modifiers,
     add_parser_verbose,
+    comma_separated_stripped,
 )
 from .main_clean import configure_parser as configure_parser_clean
 from .main_commands import configure_parser as configure_parser_commands
@@ -121,6 +122,12 @@ BUILTIN_COMMAND_PARSERS = {
 }
 
 
+def _parse_disabled_plugins(value: str) -> list[str] | None:
+    if value == "":
+        return None
+    return comma_separated_stripped(value)
+
+
 def generate_pre_parser(**kwargs) -> ArgumentParser:
     pre_parser = ArgumentParser(
         prog="conda",
@@ -138,9 +145,13 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
     )
     pre_parser.add_argument(
         "--no-plugins",
-        action="store_true",
+        dest="disabled_plugins",
+        nargs="?",
+        const=None,
         default=NULL,
-        help="Disable all plugins that are not built into conda.",
+        metavar="PLUGIN[,PLUGIN...]",
+        type=_parse_disabled_plugins,
+        help="Disable all external plugins, or the comma-separated plugins listed.",
     )
 
     return pre_parser

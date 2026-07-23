@@ -202,6 +202,11 @@ def test_no_newline_in_output(
             id="double dash option",
         ),
         pytest.param(
+            ["--", "small", "--no-plugins"],
+            "--no-plugins",
+            id="no plugins passthrough",
+        ),
+        pytest.param(
             ["--", "small", "-vic", "eggs"],
             "-vic eggs",
             id="combined option",

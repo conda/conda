@@ -66,6 +66,35 @@ def test_main_subshell_no_plugins_flag(monkeypatch) -> None:
     assert disabled
 
 
+def test_main_subshell_no_plugins_names(monkeypatch) -> None:
+    """--no-plugins=<names> disables the named plugins."""
+    disabled = []
+    monkeypatch.setattr(
+        context.plugin_manager,
+        "disable_plugins",
+        lambda names: disabled.extend(names),
+    )
+
+    with pytest.raises(SystemExit):
+        main_subshell("--no-plugins=plugin-a, plugin-b", "--help")
+
+    assert disabled == ["plugin-a", "plugin-b"]
+
+
+def test_main_subshell_no_plugins_option(monkeypatch) -> None:
+    """--no-plugins disables all external plugins."""
+    disabled = []
+    monkeypatch.setattr(
+        context.plugin_manager,
+        "disable_external_plugins",
+        lambda: disabled.append(True),
+    )
+
+    assert main_subshell("--no-plugins", "commands") == 0
+
+    assert disabled
+
+
 @pytest.mark.skipif(not on_win, reason="Windows-specific test")
 @pytest.mark.parametrize(
     "shell,expected_patterns",

@@ -23,9 +23,14 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
     args = args or ["--help"]
+    separator = args.index("--") if "--" in args else len(args)
+    args = tuple(
+        "--no-plugins=" if index < separator and arg == "--no-plugins" else arg
+        for index, arg in enumerate(args)
+    )
 
     pre_parser = generate_pre_parser(add_help=False)
-    args_subset = args[: args.index("--")] if "--" in args else args
+    args_subset = args[:separator]
     pre_args, _ = pre_parser.parse_known_args(args_subset)
 
     # the arguments that we want to pass to the main parser later on
@@ -36,9 +41,12 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
         "verbosity": pre_args.verbosity,
     }
 
+    disabled_plugins = pre_args.disabled_plugins
     context.__init__(argparse_args=pre_args)
-    if context.no_plugins:
+    if context.no_plugins or disabled_plugins is None:
         context.plugin_manager.disable_external_plugins()
+    elif disabled_plugins:
+        context.plugin_manager.disable_plugins(disabled_plugins)
 
     parser = generate_parser(add_help=True)
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
