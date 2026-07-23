@@ -6,19 +6,21 @@ from __future__ import annotations
 
 import os
 
-# This module is imported in each spawned extraction worker. Keep imports here
-# limited to the standard library; importing conda runtime state defeats the
-# process pool's startup benefit.
+# This module is imported in each spawned extraction worker. Keep top-level
+# imports limited to the standard library so loading the worker stays cheap.
 
 
 def extract_conda_package_archive(
     source_full_path: str | os.PathLike,
     destination_directory: str | os.PathLike,
 ) -> None:
-    """Extract a conda package archive without importing conda runtime state."""
+    """Extract a conda package archive with standard file-operation retries."""
     import conda_package_handling.api
 
-    conda_package_handling.api.extract(
+    from ..gateways.disk import exp_backoff_fn
+
+    exp_backoff_fn(
+        conda_package_handling.api.extract,
         os.fspath(source_full_path),
         dest_dir=os.fspath(destination_directory),
     )
