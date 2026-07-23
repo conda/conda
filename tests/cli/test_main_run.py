@@ -128,11 +128,11 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
 @pytest.mark.parametrize(
     "command",
     [
-        pytest.param(("conda", "sentinel"), id="direct"),
-        pytest.param(("time", "conda", "sentinel"), id="time"),
+        pytest.param(("conda", "--version"), id="direct"),
+        pytest.param(("time", "conda", "--version"), id="time"),
     ],
 )
-def test_run_uses_target_prefix_conda_executable(
+def test_run_warns_before_changing_conda_executable_resolution(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     command: tuple[str, ...],
@@ -140,19 +140,24 @@ def test_run_uses_target_prefix_conda_executable(
     with tmp_env() as prefix:
         conda_exe = prefix / "bin" / "conda"
         conda_exe.parent.mkdir(parents=True, exist_ok=True)
-        conda_exe.write_text('#!/bin/sh\nprintf "target-prefix-conda %s\\n" "$1"\n')
+        conda_exe.write_text('#!/bin/sh\nprintf "target-prefix-conda\\n"\n')
         conda_exe.chmod(
             conda_exe.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
         )
 
-        stdout, stderr, err = conda_cli(
-            "run",
-            f"--prefix={prefix}",
-            *command,
-        )
+        with pytest.warns(
+            (PendingDeprecationWarning, FutureWarning),
+            match="resolving `conda` from the invoking installation",
+        ):
+            stdout, stderr, err = conda_cli(
+                "run",
+                f"--prefix={prefix}",
+                *command,
+            )
 
         assert err == 0, f"conda run failed ({err}): {stderr}"
-        assert stdout.strip() == "target-prefix-conda sentinel"
+        assert stdout.startswith("conda ")
+        assert "target-prefix-conda" not in stdout
 
 
 @pytest.mark.skipif(on_win, reason="POSIX shell function regression test")

@@ -99,8 +99,9 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
-    from ..common.compat import encode_environment
+    from ..common.compat import encode_environment, on_win
     from ..core.prefix_data import PrefixData
+    from ..deprecations import deprecated
     from ..exceptions import ArgumentError
     from ..gateways.disk.delete import rm_rf
     from ..gateways.subprocess import subprocess_call
@@ -117,6 +118,25 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if not args.executable_call:
         raise ArgumentError("No command specified. Please provide a command to run.")
 
+    if not on_win and (
+        args.executable_call[0] == "conda"
+        or args.executable_call[:2] == ["time", "conda"]
+    ):
+        deprecated.topic(
+            "27.3",
+            "27.9",
+            topic=(
+                "`conda run ... conda ...` resolving `conda` from the invoking "
+                "installation"
+            ),
+            addendum=(
+                "In 27.9, `conda` will resolve from the target environment's PATH. "
+                "Use `$CONDA_EXE` to continue using the invoking installation, or "
+                "`python -m conda` to use the target installation."
+            ),
+            deprecation_type=FutureWarning,
+        )
+
     # create run script
     script, command = wrap_subprocess_call(
         context.root_prefix,
@@ -124,7 +144,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,
-        use_target_conda_executable=True,
+        # TODO: Set to True when the deprecated behavior is removed in 27.9.
+        use_target_conda_executable=False,
     )
 
     # run script

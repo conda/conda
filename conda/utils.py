@@ -304,7 +304,10 @@ def wrap_subprocess_call(
                 from .auxlib.ish import dals
 
                 # Keep the hook's `conda()` function, but make its command
-                # runner resolve `conda` from the activated PATH.
+                # runner resolve `conda` from the activated PATH. Match the
+                # subshell body used by `__conda_exe()` in `conda.sh`:
+                # https://github.com/conda/conda/blob/main/conda/shell/etc/profile.d/conda.sh
+                # `()` isolates shell-state changes, while `{}` does not.
                 fh.write(
                     dals(
                         r"""
@@ -315,7 +318,7 @@ def wrap_subprocess_call(
                     )
                 )
             if multiline:
-                # The ' '.join() is pointless since mutliline is only True when there's 1 arg
+                # The ' '.join() is pointless since multiline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
                 fh.write("{}\n".format(" ".join(arguments)))
             else:
