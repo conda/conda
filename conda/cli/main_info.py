@@ -33,9 +33,10 @@ log = getLogger(__name__)
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..common.constants import NULL
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_json
 
-    summary = "Display information about current conda install."
+    summary = BUILTIN_SUBCOMMANDS["info"]["help"]
     description = summary
     epilog = ""
 

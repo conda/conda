@@ -16,9 +16,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..common.constants import NULL
     from ..deprecations import deprecated
     from .actions import NullCountAction
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_prefix, add_parser_verbose
 
-    summary = "Run an executable in a conda environment."
+    summary = BUILTIN_SUBCOMMANDS["run"]["help"]
     description = summary
     epilog = dals(
         """
