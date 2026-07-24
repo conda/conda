@@ -141,7 +141,7 @@ def test_thread_limited_executor_handles_thread_limit(
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
+    with pytest.deprecated_call(match=rf"{function}.*27\.9"), raises_context:
         getattr(io, function)()
 
 
