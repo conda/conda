@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Forward the `truststore` SSL context to proxy connections so that `ssl_verify: truststore` is honored when a proxy is configured, not just on direct connections. (#16252)
+* Forward the `truststore` SSL context to proxy connections so that `ssl_verify: truststore` is honored when a proxy is configured, not just on direct connections. (#16252 via #16253)
 
 ### Deprecations
 

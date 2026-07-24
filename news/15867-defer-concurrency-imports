@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Defer `concurrent.futures` and `threading` imports in `common/io.py` so they only load when executor classes (`DummyExecutor`, `ThreadLimitedThreadPoolExecutor`) are first accessed. (#15867)
+* Defer `concurrent.futures` and `threading` imports in `common/io.py` so they only load when executor classes (`DummyExecutor`, `ThreadLimitedThreadPoolExecutor`) are first accessed. (#15867 via #15881)
 
 ### Bug fixes
 

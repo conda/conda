@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add support for aliases on plugin-provided subcommands. (#16187)
+* Add support for aliases on plugin-provided subcommands. (#16187 via #16188)
 
 ### Bug fixes
 

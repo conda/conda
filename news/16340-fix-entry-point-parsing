@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix quote handling in parse_entry_point_def() function (#16340)
+* Fix quote handling in the `parse_entry_point_def()` function. (#16340)
 
 ### Deprecations
 

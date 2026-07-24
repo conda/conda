@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Preserve relocatable Python shebangs without depending on the build tool's host prefix name. (#16327 via #16328)
+* Keep deprecated `conda.common.io.IS_INTERACTIVE` importable so downstream plugins continue to load. (#16401 via #16406)
 
 ### Deprecations
 

@@ -1,10 +1,10 @@
 ### Enhancements
 
-* `--console` now validates its value against the available reporter backends and rejects unknown ones with a clear error, instead of silently accepting any string. (#16418)
+* Validate `--console` values against available reporter backends and reject unknown values with a clear error. (#16418 via #16420)
 
 ### Bug fixes
 
-*
+* <news item>
 
 ### Deprecations
 

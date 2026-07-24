@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `conda clean --all` help text to remove obsolete lock-file mention and list tempfiles among the removed targets. (#16043)
+* Fix `conda clean --all` help text to remove obsolete lock-file mention and list tempfiles among the removed targets. (#16043 via #16156)
 
 ### Deprecations
 

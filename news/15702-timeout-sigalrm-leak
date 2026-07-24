@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `conda.common.io.timeout()` leaving the `SIGALRM` alarm armed (and the previous signal handler unrestored) when the wrapped callable raised an unexpected exception, which could cause the alarm to fire later during unrelated code. The alarm is now always cancelled and the previous handler restored via a `finally` block. (#15702)
+* Fix `conda.common.io.timeout()` leaving the `SIGALRM` alarm armed (and the previous signal handler unrestored) when the wrapped callable raised an unexpected exception, which could cause the alarm to fire later during unrelated code. The alarm is now always cancelled and the previous handler restored via a `finally` block. (#15702 via #16437)
 
 ### Deprecations
 

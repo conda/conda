@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Avoid crash when trying to format a CondaError with a message that has already been formatted. (#16263)
+* Avoid crash when trying to format a CondaError with a message that has already been formatted. (#16263 via #16266)
 
 ### Deprecations
 

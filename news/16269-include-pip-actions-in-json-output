@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Include pip actions in output json report for `conda create` commands. {#16269}
+* Include pip actions in the JSON output for `conda create` commands. (#16269)
 
 ### Deprecations
 
