@@ -874,9 +874,13 @@ class CondaSpecs:
         Register exception observer callbacks in conda.
 
         Exception observers are invoked when any exception is handled by the
-        ``ExceptionHandler``. They are **purely observational**: they cannot
-        suppress, modify, or redirect the exception. Their return value is
-        ignored. This follows the same model as CPython's ``sys.excepthook``.
+        ``ExceptionHandler``. They are **purely observational** for control
+        flow: they cannot suppress or redirect the exception. Their return
+        value is ignored. Plugins may call
+        :meth:`~conda.CondaError.append_hint` on ``CondaError`` instances to
+        attach structured next-step hints before conda renders the error.
+        This follows the same model as CPython's ``sys.excepthook`` for
+        everything else.
 
         Any exception raised by an observer is caught at the ``BaseException``
         level, logged at DEBUG, and swallowed -- a buggy plugin can never
