@@ -9,7 +9,7 @@
 
 ### Deprecations
 
-* Deprecate `conda.common.io.IS_INTERACTIVE` (pending removal in 27.3). Use `conda.common.terminal.is_tty()` instead. (#15943)
+* Deprecate `conda.common.io.IS_INTERACTIVE` (pending removal in 27.9). Use `conda.common.terminal.is_tty()` instead. (#15943)
 
 ### Docs
 
