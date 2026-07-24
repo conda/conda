@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from pytest import CaptureFixture, Subtests
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import CondaCLIFixture
 
@@ -123,6 +124,49 @@ def test_imports(path: str, validate: Callable[[Any], bool]):
     module = importlib.import_module(path)
     assert hasattr(module, attr)
     assert validate(getattr(module, attr))
+
+
+@pytest.mark.parametrize(
+    "kwargs,match",
+    [
+        (
+            {"description": "a", "description_factory": lambda: "b"},
+            "description and description_factory",
+        ),
+        ({"epilog": "a", "epilog_factory": lambda: "b"}, "epilog and epilog_factory"),
+    ],
+)
+def test_lazy_argumentparser_mutually_exclusive(kwargs: dict, match: str):
+    with pytest.raises(ValueError, match=match):
+        ArgumentParser(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("description", "a"),
+        ("epilog", "a"),
+    ],
+)
+def test_lazy_action_factory(mocker: MockerFixture, key: str, value: Any):
+    factory = mocker.Mock(return_value=value)
+    parser = ArgumentParser(**{f"{key}_factory": factory})
+
+    # initially uncalled
+    assert factory.call_count == 0
+
+    # first call is evaluated
+    assert getattr(parser, key) == value
+    assert factory.call_count == 1
+
+    # second call is cached
+    assert getattr(parser, key) == value
+    assert factory.call_count == 1
+
+
+def test_argumentparser_static_description_without_factory():
+    parser = ArgumentParser(add_help=False, description="Fixed title")
+    assert parser.description == "Fixed title"
 
 
 def test_sorted_commands_in_error(capsys: CaptureFixture):
