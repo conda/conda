@@ -2007,6 +2007,8 @@
 - name: Daniel Holth
   email: dholth@anaconda.com
   github: dholth
+  alternate_emails:
+  - 208018+dholth@users.noreply.github.com
   num_commits: 138
   first_commit: 2021-11-18 08:57:14
 - name: John Flavin
@@ -2685,6 +2687,8 @@
 - name: Jakov Smolić
   email: jsmolic@gentoo.org
   github: jsmolic
+  alternate_emails:
+  - jsmolic@quansight.com
   num_commits: 1
   first_commit: 2026-05-13 15:04:23
 - name: SmartCoder
@@ -2692,3 +2696,21 @@
   github: smartcoder0777
   num_commits: 1
   first_commit: 2026-04-01 09:40:08
+- name: Adel Kaleche
+  email: Kaleche@gmail.com
+  github: Adelagric
+- name: Bradley Dice
+  email: bdice@bradleydice.com
+  github: bdice
+- name: Yuchen Fan
+  email: 2994114386@qq.com
+  github: Functionhx
+- name: eeshsaxena
+  email: 139802361+eeshsaxena@users.noreply.github.com
+  github: eeshsaxena
+- name: btraven
+  email: 128150520+btraven00@users.noreply.github.com
+  github: btraven00
+- name: Daniel Ching
+  email: 9604511+carterbox@users.noreply.github.com
+  github: carterbox
