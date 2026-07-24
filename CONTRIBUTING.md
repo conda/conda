@@ -129,6 +129,10 @@ Most code changes require one reviewer from the conda-maintainers team. When
 you submit a Pull Request, that group will automatically be assigned as the
 reviewer.
 
+Maintainers: see [Decision making for conda
+maintainers](https://docs.conda.io/projects/conda/en/latest/dev-guide/decision-making.html)
+for how Agree, Input, and escalation work.
+
 ##### What to expect during code review
 
 The primary goal of code review is to ensure maintainability of
