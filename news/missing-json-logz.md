@@ -1,3 +1,0 @@
-### Bug fixes
-
-* Fix `NameError: name 'json' is not defined` in `conda.auxlib.logz.stringify` when debug-logging an HTTP response with `Content-Type: application/json`; regression introduced by #15926. (#missing-json)
