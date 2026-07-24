@@ -576,8 +576,8 @@ def __getattr__(name: str):
 
 
 deprecated.constant(
-    "26.9",
     "27.3",
+    "27.9",
     "IS_INTERACTIVE",
     hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
     addendum="Use `conda.common.terminal.is_tty()` instead.",
