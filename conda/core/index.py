@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from typing import Any, Self
 
     from ..common.path import PathType
+    from .exclude_newer import ExcludeNewerPolicy
 
 
 log = getLogger(__name__)
@@ -85,6 +86,7 @@ class Index(UserDict):
         prefix: PathType | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
+        exclude_newer_policy: ExcludeNewerPolicy | None = None,
     ) -> None:
         """Initializes a new index with the desired components.
 
@@ -142,6 +144,11 @@ class Index(UserDict):
             self.prefix_data = PrefixData(prefix)
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.use_system = use_system
+        from .exclude_newer import ExcludeNewerPolicy
+
+        self.exclude_newer_policy = (
+            exclude_newer_policy or ExcludeNewerPolicy.disabled()
+        )
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord, ...]:
@@ -252,6 +259,11 @@ class Index(UserDict):
             prefix=self.prefix_data,
             repodata_fn=self._repodata_fn,
             use_system=self.use_system,
+            exclude_newer_policy=(
+                self.exclude_newer_policy
+                if self.exclude_newer_policy.active
+                else context.exclude_newer_policy
+            ),
         )
 
     @property
@@ -353,6 +365,8 @@ class Index(UserDict):
                 if hasattr(key, "subdir") and key.subdir != subdir_data.channel.subdir:
                     continue
                 precs.extend(subdir_data.query(key))
+        if self.exclude_newer_policy.active:
+            return list(self.exclude_newer_policy.filter_records(precs))
         return precs
 
     def _update_from_prefix(
@@ -446,6 +460,7 @@ class ReducedIndex(Index):
         prefix: PathType | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
+        exclude_newer_policy: ExcludeNewerPolicy | None = None,
     ) -> None:
         """Initialize a new reduced index.
 
@@ -463,6 +478,7 @@ class ReducedIndex(Index):
             prefix,
             repodata_fn,
             use_system,
+            exclude_newer_policy or context.exclude_newer_policy,
         )
         self.specs = specs
         self._derive_reduced_index()
