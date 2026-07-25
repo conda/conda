@@ -30,7 +30,7 @@ jobs:
       statuses: write  # Required to publish the CLA commit status.
     steps:
       - name: Check CLA
-        uses: conda/actions/check-cla@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
+        uses: conda/actions/check-cla@0f4ec1506e74c12799813dc66e613a39077ea864 # v26.7.0
         with:
           # [required]
           # A token with ability to comment, label, and modify the commit status
