@@ -24,7 +24,7 @@ jobs:
       pull-requests: write  # Required to open the generated update pull request.
       issues: write  # Required for generated update pull request metadata.
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -33,11 +33,11 @@ jobs:
           git config --global user.name 'Conda Bot'
           git config --global user.email '18747875+conda-bot@users.noreply.github.com'
 
-      - uses: conda/actions/combine-durations@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
+      - uses: conda/actions/combine-durations@0f4ec1506e74c12799813dc66e613a39077ea864 # v26.7.0
         id: durations
         continue-on-error: true
 
-      - uses: conda/actions/template-files@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
+      - uses: conda/actions/template-files@0f4ec1506e74c12799813dc66e613a39077ea864 # v26.7.0
         id: templates
         continue-on-error: true
 
