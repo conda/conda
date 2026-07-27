@@ -1,5 +1,0 @@
-### Enhancements
-
-* `context.root_writable` is now a `@memoizedproperty`. The previous `@property`
-  opened a file handle on every access. Results are now cached for the lifetime
-  of the `Context` instance. (#15867 via #15887)
