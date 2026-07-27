@@ -1,0 +1,11 @@
+### Enhancements
+
+* Show Constructor installer metadata in `conda info`. (#16432)
+
+### Bug fixes
+
+### Deprecations
+
+### Docs
+
+### Other
