@@ -118,12 +118,12 @@
 
 ### Contributors
 
-* @Adelagric
+* @Adelagric made their first contribution in <https://github.com/conda/conda/pull/16420>
 * @agriyakhetarpal
-* @bdice
+* @bdice made their first contribution in <https://github.com/conda/conda/pull/16328>
 * @conda-bot
 * @danyeaw
-* @carterbox
+* @carterbox made their first contribution in <https://github.com/conda/conda/pull/16446>
 * @dholth
 * @duncanmmacleod
 * @isuruf
@@ -137,10 +137,10 @@
 * @ryanskeith
 * @soapy1
 * @travishathaway
-* @Functionhx
-* @btraven00
+* @Functionhx made their first contribution in <https://github.com/conda/conda/pull/16391>
+* @btraven00 made their first contribution in <https://github.com/conda/conda/pull/16266>
 * @dependabot[bot]
-* @eeshsaxena
+* @eeshsaxena made their first contribution in <https://github.com/conda/conda/pull/16338>
 * @pre-commit-ci[bot]
 
 
