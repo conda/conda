@@ -1225,7 +1225,7 @@ def install_anaconda_prompt(target_path, conda_prefix, reverse):
     if not context.dry_run:
         create_shortcut(
             "%windir%\\System32\\cmd.exe",
-            "Anconda Prompt",
+            "Anaconda Prompt",
             "" + target_path,
             " ".join(args),
             "" + expanduser("~"),

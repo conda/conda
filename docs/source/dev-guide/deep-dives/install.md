@@ -249,7 +249,7 @@ optimization step also takes longer the bigger the index gets.
 `context.channels` returns an `IndexedSet` of `Channel` objects; essentially a list of unique
 items. The different channels in this list can have overlapping or even conflicting information
 for the same package name. For example, `defaults` and `conda-forge` will for sure contain
-packages that fullfil the `conda install numpy` request. Which one is chosen by `conda` in this
+packages that fulfil the `conda install numpy` request. Which one is chosen by `conda` in this
 case? It depends on the `context.channel_priority` setting: From the help message:
 
 > Accepts values of 'strict', 'flexible', and 'disabled'. The default value is 'flexible'. With
@@ -345,7 +345,7 @@ public methods:
 * `download_and_extract()`: essentially a forwarder to instantiate and call
   `ProgressiveFetchExtract`, responsible for deciding which `PackageRecords` need to be
   downloaded and extracted to the packages cache.
-* `execute()`: the core logic is layed out here. It involves preparing, verifying and
+* `execute()`: the core logic is laid out here. It involves preparing, verifying and
   performing the rest of the actions. Among others:
     * Unlinking packages (removing a package from the environment)
     * Linking (adding a package to the environment)

@@ -207,7 +207,7 @@ Some tasks do not involve the solver at all. Let's enumerate them:
 
 These commands do not need a solver because the requested packages are expressed with a direct
 URL or path to a specific tarball. Instead of a `MatchSpec`, we already have a
-`PackageRecord`-like entity! For this to work, all the requested packages neeed to be URLs or paths.
+`PackageRecord`-like entity! For this to work, all the requested packages need to be URLs or paths.
 They can be typed in the command line or in a text file including a `@EXPLICIT` line.
 
 Since the solver is not involved, the dependencies of the explicit package(s) are not processed

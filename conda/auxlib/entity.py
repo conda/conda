@@ -801,7 +801,7 @@ class Entity(metaclass=EntityType):
 
         Args:
             cls(:class:`Entity` subclass): The class to create, usually determined by call, e.g. ``PrefixRecord.from_objects(...)``.
-            *objects(tuple(object or dict)): Any combination of objects and dicts in order of decending precedence.
+            *objects(tuple(object or dict)): Any combination of objects and dicts in order of descending precedence.
             **override_fields(dict(str, object)): Any individual fields overriding possible contents from ``*objects``.
         """
         init_vars = {}

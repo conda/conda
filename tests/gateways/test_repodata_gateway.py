@@ -108,7 +108,7 @@ def test_stale(tmp_path, mocker: MockerFixture):
     assert cache.timeout() == -30
 
     # lesser backdate.
-    # excercise stale paths.
+    # exercise stale paths.
     original_ttl = context.local_repodata_ttl
     try:
         cache.state["refresh_ns"] = now_ns - (31 * 10**9)  # type: ignore

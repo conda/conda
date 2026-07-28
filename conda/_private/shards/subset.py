@@ -578,7 +578,7 @@ def build_repodata_subset(
         spec_to_package_name_func: callable to convert package specs to names.
                                    Defaults to the standard spec_to_package_name.
         repodata_version: repodata format version (1 = classic, 3 = v3).
-        depth: the maximum depth of dependant packages to include in the repodata
+        depth: the maximum depth of dependent packages to include in the repodata
                subset.
     Return:
         None if there are no shards available, or a mapping of channel URL's to

@@ -12,7 +12,7 @@ from conda.testing.helpers import raises
 #    - positive integers are variables
 #    - negative integers are negations of positive variables
 #    - lowercase True and False are fixed values
-#    - None reprents an indeterminate value
+#    - None represents an indeterminate value
 # If a fixed result is not determinable, the result is None, which
 # propagates through the result.
 #

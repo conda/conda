@@ -101,7 +101,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             file=sys.stderr,
         )
 
-    # Ensure provided combination of command line argments are valid
+    # Ensure provided combination of command line arguments are valid
     # One of --file or packages or --update-all must be specified
     if not (
         args.file

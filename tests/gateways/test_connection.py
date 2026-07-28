@@ -127,7 +127,7 @@ def test_s3_server_with_mock(
 ) -> None:
     """
     Use boto3 to fetch from a mock s3 server pointing at the test package
-    repository. This works since conda only GET's against s3 and s3 is http.
+    repository. This works since conda only GETs against s3 and s3 is http.
     """
     host, port = package_server.getsockname()
     endpoint_url = f"http://{host}:{port}"
@@ -410,7 +410,7 @@ def test_get_session_with_channel_settings_multiple(mocker):
 def test_get_session_with_channel_settings_no_handler(mocker):
     """
     Tests to make sure the get_session function works when ``channel_settings``
-    have been set on the context objet. This test does not find a matching auth
+    have been set on the context object. This test does not find a matching auth
     handler.
     """
     mocker.patch(

@@ -236,7 +236,7 @@ def test_virtual_package_solver(tmpdir, clear_cuda_version, monkeypatch):
 
 
 def test_solve_msgs_exclude_vp(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
-    # Sovler hints should exclude virtual packages that are not dependencies
+    # Solver hints should exclude virtual packages that are not dependencies
     specs = (
         MatchSpec("python =2.7.5"),
         MatchSpec("readline =5.0"),
@@ -674,7 +674,7 @@ def test_update_prune_2(tmpdir, request):
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
 
-        # Every dependecy of accelerate should now be absent from the solved
+        # Every dependency of accelerate should now be absent from the solved
         # packages.
         order = add_subdir_to_iter(
             (
@@ -757,7 +757,7 @@ def test_update_prune_3(tmpdir, request):
         final_state_1 = solver.solve_final_state(prune=True)
         pprint(convert_to_dist_str(final_state_1))
 
-        # Every dependecy of accelerate should now be absent from the solved packages,
+        # Every dependency of accelerate should now be absent from the solved packages,
         # but numpy should remain.
         order = add_subdir_to_iter(
             (

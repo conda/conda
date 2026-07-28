@@ -1066,7 +1066,7 @@ def do_cache_action(prec, cache_action, progress_bar, download_total=1.0, *, can
         def progress_update_cache_action(pct_completed):
             if cancelled():
                 """
-                Used to cancel dowload threads when parent thread is interrupted.
+                Used to cancel download threads when parent thread is interrupted.
                 """
                 raise CancelledError()
             progress_bar.update_to(pct_completed * download_total)

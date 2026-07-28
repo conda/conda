@@ -43,7 +43,7 @@ class Index(UserDict):
     Channels
         represent packages available from standard sources identified with a url, mostly online,
         but can also be on a local filesystem using the ``file://`` scheme.
-        Programatically, channels are represented by :class:`conda.models.channel.Channel`, their data
+        Programmatically, channels are represented by :class:`conda.models.channel.Channel`, their data
         is fetched using :class:`conda.core.subdir_data.SubdirData`.
 
         For more information see :ref:`concepts-channels`.

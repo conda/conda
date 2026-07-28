@@ -40,7 +40,7 @@ class MyConfiguration(Configuration):
 ```
 
 When `MyConfiguration` is instantiated, those class attributes are populated by the `.raw_data`
-dicionary that has been filled in with the values coming from the precedence chain stated
+dictionary that has been filled in with the values coming from the precedence chain stated
 above. The `raw_data` dictionary contains `RawParameter` objects, subclassed to deal with the
 specifics of their origin (YAML file, environment variable, command line flag). Each
 `ParameterLoader` object will pass the `RawParameter` object to the `.load()` method of its relevant

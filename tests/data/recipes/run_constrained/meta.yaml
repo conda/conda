@@ -9,4 +9,4 @@ requirements:
   run_constrained: "dependency>=2.0"
 
 about:
-  summary: A package with a run contrain
+  summary: A package with a run constrain

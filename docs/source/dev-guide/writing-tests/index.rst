@@ -85,7 +85,7 @@ collide with each other. Consider using a prefix to achieve this.
 
 The context object
 ------------------
-The context object in ``conda`` is used as a singleton. This means that everytime the ``conda``
+The context object in ``conda`` is used as a singleton. This means that every time the ``conda``
 command runs, only a single object is instantiated. This makes sense as it holds all the configuration
 for the program and re-instantiating it or making multiple copies would be inefficient.
 
