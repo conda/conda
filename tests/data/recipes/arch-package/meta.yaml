@@ -2,8 +2,5 @@ package:
   name: arch-package
   version: 1.0
 
-build:
-  number: 0
-
 about:
   summary: Architecture-specific package for fake-subdir search/install

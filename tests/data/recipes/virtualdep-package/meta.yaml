@@ -3,7 +3,6 @@ package:
   version: '{{ pkg_version }}'
 
 build:
-  number: 0
   string: "0"
 
 requirements:
