@@ -6,3 +6,6 @@ package:
 build:
   noarch: generic
   python_site_packages_path: "lib/python3.99t/site-packages"
+
+about:
+  summary: Stub python with custom python_site_packages_path

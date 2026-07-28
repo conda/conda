@@ -7,4 +7,4 @@ build:
   noarch: generic
 
 about:
-  summary: Test that post link scripts get run last
+  summary: Post-link script for link-order / post-link execution tests

@@ -19,4 +19,4 @@ build:
     - echo 'set "SMALL_EXE=small-var-cmd"' > ${PREFIX}/etc/conda/activate.d/small_executable.bat
 
 about:
-  summary: A small executable package
+  summary: Tiny bin/Scripts entry point plus activate.d env vars

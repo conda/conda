@@ -11,3 +11,6 @@ requirements:
     - python 3.99
   run:
     - python 3.99
+
+about:
+  summary: Stub pip paired with fake python 3.99

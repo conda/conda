@@ -6,7 +6,4 @@ build:
   noarch: generic
 
 about:
-  summary: A versioned package
-
-extra:
-  test_purpose: A versioned package to test package upgrades
+  summary: Versioned fixture for upgrade/update/conflict tests

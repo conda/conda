@@ -5,7 +5,7 @@
 
 This reads package metadata from artifacts in ``tests/data/test-recipes``:
 - ``info/index.json`` for package name and version (source of truth)
-- ``info/recipe/meta.yaml`` for ``extra.test_purpose`` when present
+- ``info/recipe/meta.yaml`` for ``about.summary`` when present
 
 Supports ``*.tar.bz2`` packages and ``*.conda`` packages (``info-*.tar.zst``).
 """
@@ -151,23 +151,22 @@ def _parse_artifact(artifact: Path) -> RecipeInfo | None:
             package_name = package_name or _normalize(package.get("name"))
             version = version or _normalize(package.get("version"))
 
-        extra = parsed.get("extra")
-        if isinstance(extra, dict):
-            purpose = _normalize(extra.get("test_purpose"))
+        about = parsed.get("about")
+        if isinstance(about, dict):
+            purpose = _normalize(about.get("summary"))
 
     if not package_name:
-        # skip package if package_name cannot be determined
         print(
             f"warning: skipping {artifact.relative_to(CHANNEL_ROOT.parent)}: "
-            f"missing {_META_PATH} and {_INDEX_PATH}",
+            f"no package name in {_INDEX_PATH} or {_META_PATH}",
             file=sys.stderr,
         )
         return None
     elif not meta_yaml_text:
-        # warn that meta.yaml is not included in the package
         print(
-            f"warning: skipping {artifact.relative_to(CHANNEL_ROOT.parent)}: "
-            f"missing {_META_PATH} (fallback to {_INDEX_PATH})",
+            f"warning: {artifact.relative_to(CHANNEL_ROOT.parent)}: "
+            f"missing {_META_PATH} "
+            f"(using {_INDEX_PATH}; no about.summary available)",
             file=sys.stderr,
         )
 
@@ -205,15 +204,15 @@ def _generate_readme(grouped: list[list[RecipeInfo]]) -> Iterator[str]:
         )
         recipe = recipes[0]
         link = ""
-        if purpose := list(
-            {recipe.purpose: recipe for recipe in recipes if recipe.purpose}.values()
-        ):
-            details.append(purpose)
-            link = f"[#{recipe.package}](#{recipe.package})"
+        if purpose := list({r.purpose: r for r in recipes if r.purpose}.values()):
+            fn = len(details) + 1
+            details.append((fn, purpose))
+            # Heading "## [N] name" slugs to "n-name" (brackets stripped).
+            link = f"[[{fn}]](#{fn}-{recipe.package})"
         yield f"| `{recipe.package}` | {versions} | {subdirs} | {link} |"
     yield ""
-    for recipes in details:
-        yield f"## {recipes[0].package}"
+    for fn, recipes in details:
+        yield f"## [{fn}] {recipes[0].package}"
         for recipe in recipes:
             if len(recipes) > 1:
                 yield f"### `{recipe.version}` `{recipe.subdir}`"

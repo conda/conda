@@ -11,3 +11,6 @@ requirements:
     - python
   run:
     - python
+
+about:
+  summary: "noarch: python package installing into $SP_DIR"

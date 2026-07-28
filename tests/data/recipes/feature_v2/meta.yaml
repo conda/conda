@@ -10,3 +10,6 @@ build:
 requirements:
   run:
     - track_feature
+
+about:
+  summary: "Package declaring features: track_feature2"

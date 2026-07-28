@@ -12,4 +12,4 @@ build:
 
 
 about:
-  summary: Test that post link scripts get run last
+  summary: Dependency (no post-link) linked before c_post_link_package

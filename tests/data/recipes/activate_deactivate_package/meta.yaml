@@ -13,4 +13,4 @@ build:
     - cp -r etc ${PREFIX}
 
 about:
-  summary: Test activate and deactivate scripts effecting environment variables
+  summary: Activate/deactivate scripts that set environment variables

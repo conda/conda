@@ -11,4 +11,4 @@ requirements:
     - b_post_link_package
 
 about:
-  summary: Test that post link scripts get run last
+  summary: Post-link script that depends on b_post_link_package (link order)

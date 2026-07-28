@@ -17,7 +17,4 @@ requirements:
 about:
   home: https://github.com/conda/conda
   license: BSD-3-Clause
-  summary: A build string package
-
-extra:
-  test_purpose: A build string package to test package revisions
+  summary: Package with a variant build string for revision installs

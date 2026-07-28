@@ -7,7 +7,7 @@ build:
   noarch: generic
 
 about:
-  summary: Package to test prelink_message
+  summary: Package with prelink_message files shown on install
   prelink_message:
     - message-from-pkg.txt
     - message-from-pkg2.txt

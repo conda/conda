@@ -1,4 +1,5 @@
-{% set url = "https://raw.githubusercontent.com/google/fonts/main" %}
+# note: "hiding" jinja so its still a valid YAML file for pre-commit hooks
+# {% set url = "https://raw.githubusercontent.com/google/fonts/main" %}
 
 package:
   name: font-ttf-inconsolata
@@ -23,6 +24,6 @@ test:
 
 about:
   home: http://levien.com/type/myfonts/inconsolata.html
-  summary: Monospace font for pretty code listings
+  summary: Noarch font files for softlink / file-install tests
   license: OFL
   license_family: Other

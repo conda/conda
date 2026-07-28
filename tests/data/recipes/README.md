@@ -7,39 +7,87 @@ Overview of package artifacts and their intended purpose.
 
 | Package | Version | Subdirs | Purpose |
 | --- | --- | --- | --- |
-| `activate_deactivate_package` | `1.0.0` | `noarch` |  |
-| `another_dependent` | `1.0`<br>`2.0` | `noarch` |  |
-| `arch-package` | `1.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` |  |
-| `b_post_link_package` | `1.0.0` | `noarch` |  |
-| `buildstring` | `1.0` | `noarch` | [#buildstring](#buildstring) |
-| `c_post_link_package` | `1.0.0` | `noarch` |  |
+| `activate_deactivate_package` | `1.0.0` | `noarch` | [[1]](#1-activate_deactivate_package) |
+| `another_dependent` | `1.0`<br>`2.0` | `noarch` | [[2]](#2-another_dependent) |
+| `arch-package` | `1.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[3]](#3-arch-package) |
+| `b_post_link_package` | `1.0.0` | `noarch` | [[4]](#4-b_post_link_package) |
+| `buildstring` | `1.0` | `noarch` | [[5]](#5-buildstring) |
+| `c_post_link_package` | `1.0.0` | `noarch` | [[6]](#6-c_post_link_package) |
 | `clobber-a` | `1.0.0` | `noarch` |  |
 | `clobber-b` | `1.0.0` | `noarch` |  |
-| `d_post_link_package` | `1.0.0` | `noarch` |  |
-| `dependency` | `1.0`<br>`2.0` | `noarch` |  |
-| `dependent` | `1.0`<br>`2.0` | `noarch` |  |
-| `e_post_link_package` | `1.0.0` | `noarch` |  |
-| `failing_post_link` | `1.0.0` | `noarch` |  |
+| `d_post_link_package` | `1.0.0` | `noarch` | [[7]](#7-d_post_link_package) |
+| `dependency` | `1.0`<br>`2.0` | `noarch` | [[8]](#8-dependency) |
+| `dependent` | `1.0`<br>`2.0` | `noarch` | [[9]](#9-dependent) |
+| `e_post_link_package` | `1.0.0` | `noarch` | [[10]](#10-e_post_link_package) |
+| `failing_post_link` | `1.0.0` | `noarch` | [[11]](#11-failing_post_link) |
 | `feature` | `1.0`<br>`2.0` | `noarch` |  |
-| `font-ttf-inconsolata` | `23.12.6` | `noarch` |  |
-| `other_dependent` | `1.0` | `noarch` |  |
+| `font-ttf-inconsolata` | `23.12.6` | `noarch` | [[12]](#12-font-ttf-inconsolata) |
+| `other_dependent` | `1.0` | `noarch` | [[13]](#13-other_dependent) |
 | `pip` | `99.99.99` | `noarch` |  |
-| `post_link_run_in_env_package` | `1.0.0` | `noarch` |  |
-| `pre_link_messages_package` | `1.0.0` | `noarch` |  |
+| `post_link_run_in_env_package` | `1.0.0` | `noarch` | [[14]](#14-post_link_run_in_env_package) |
+| `pre_link_messages_package` | `1.0.0` | `noarch` | [[15]](#15-pre_link_messages_package) |
 | `python` | `3.99.99` | `noarch` |  |
-| `run_constrained` | `1.0` | `noarch` |  |
+| `run_constrained` | `1.0` | `noarch` | [[16]](#16-run_constrained) |
 | `sample_noarch_python` | `1.0.0` | `noarch` |  |
-| `small-executable` | `1.0.0` | `noarch` |  |
+| `small-executable` | `1.0.0` | `noarch` | [[17]](#17-small-executable) |
 | `track_feature` | `1.0`<br>`2.0` | `noarch` |  |
-| `unsatisfiable` | `1.0` | `noarch` | [#unsatisfiable](#unsatisfiable) |
-| `versioned` | `1.0`<br>`2.0` | `noarch` | [#versioned](#versioned) |
-| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` |  |
+| `unsatisfiable` | `1.0` | `noarch` |  |
+| `versioned` | `1.0`<br>`2.0` | `noarch` | [[18]](#18-versioned) |
+| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[19]](#19-virtualdep-package) |
 
-## buildstring
-A build string package to test package revisions
+## [1] activate_deactivate_package
+Test activate and deactivate scripts effecting environment variables
 
-## unsatisfiable
-Package that depends on a missing package version so the solver hits a deterministic unsatisfiable case.
+## [2] another_dependent
+Another generic dependent
 
-## versioned
-A versioned package to test package upgrades
+## [3] arch-package
+A small architecture specific package
+
+## [4] b_post_link_package
+Test that post link scripts get run last
+
+## [5] buildstring
+A build string package
+
+## [6] c_post_link_package
+Test that post link scripts get run last
+
+## [7] d_post_link_package
+Test that post link scripts get run last
+
+## [8] dependency
+A generic dependent
+
+## [9] dependent
+A generic dependent
+
+## [10] e_post_link_package
+Test that post link scripts get run last
+
+## [11] failing_post_link
+Test that post link failures are handled correctly
+
+## [12] font-ttf-inconsolata
+Monospace font for pretty code listings
+
+## [13] other_dependent
+Other generic dependent
+
+## [14] post_link_run_in_env_package
+test package that checks for an activated env in the post link script
+
+## [15] pre_link_messages_package
+Package to test prelink_message
+
+## [16] run_constrained
+A package with a run contrain
+
+## [17] small-executable
+A small executable package
+
+## [18] versioned
+A versioned package
+
+## [19] virtualdep-package
+A small architecture specific package

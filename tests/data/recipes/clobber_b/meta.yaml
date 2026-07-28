@@ -12,4 +12,4 @@ build:
 
 
 about:
-  summary: Test package B for file clobbering regression tests
+  summary: Ships the same path as clobber-a with different content

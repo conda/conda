@@ -12,4 +12,4 @@ build:
 
 
 about:
-  summary: Test package A for file clobbering regression tests
+  summary: Ships bin/clobber-test-file (pair with clobber-b for path conflicts)

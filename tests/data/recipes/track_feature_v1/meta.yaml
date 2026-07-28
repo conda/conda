@@ -6,3 +6,6 @@ build:
   noarch: generic
   track_features:
     - track_feature1
+
+about:
+  summary: "Package with track_features: track_feature1"

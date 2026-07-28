@@ -11,4 +11,4 @@ requirements:
     - e_post_link_package
 
 about:
-  summary: Test that post link scripts get run last
+  summary: Post-link package depending on e_post_link_package
