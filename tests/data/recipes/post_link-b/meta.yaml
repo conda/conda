@@ -1,5 +1,5 @@
 package:
-  name: clobber-a
+  name: post_link-b
   version: 1.0
 
 build:
@@ -8,8 +8,8 @@ build:
   script:
     # since this is a noarch package we don't care that this is unix
     - mkdir -p ${PREFIX}/bin
-    - echo "clobber-a" > ${PREFIX}/bin/clobber-test-file
+    - echo "test" > ${PREFIX}/bin/file
 
 
 about:
-  summary: Ships bin/clobber-test-file (pair with clobber-b for path conflicts)
+  summary: Dependency (no post-link) linked before post_link-c

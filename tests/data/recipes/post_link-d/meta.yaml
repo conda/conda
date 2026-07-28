@@ -1,0 +1,14 @@
+package:
+  name: post_link-d
+  version: 1.0
+
+build:
+  number: 0
+  noarch: generic
+
+requirements:
+  run:
+    - post_link-e
+
+about:
+  summary: Post-link package depending on post_link-e

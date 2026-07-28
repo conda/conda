@@ -9,19 +9,18 @@ conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/another_dependent
 CONDA_SUBDIR=linux-fake conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/arch-package
 CONDA_SUBDIR=osx-fake conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/arch-package
 CONDA_SUBDIR=win-fake conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/arch-package
-conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/b_post_link_package
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/buildstring
-conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/c_post_link_package
-conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/clobber-a
-conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/clobber-b
-conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/d_post_link_package
+conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/clobber
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/dependent
-conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/e_post_link_package
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/failing_post_link
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/feature
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/other_dependent
 CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=false conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/pip
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/post_link_run_in_env_package
+conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/post_link-b
+conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/post_link-c
+conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/post_link-d
+conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/post_link-e
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/pre_link_messages_package
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/private-package
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/python

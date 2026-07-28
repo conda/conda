@@ -7,29 +7,29 @@ Overview of package artifacts and their intended purpose.
 
 | Package | Version | Subdirs | Purpose |
 | --- | --- | --- | --- |
-| `activate_deactivate_package` | `1.0.0` | `noarch` | [[1]](#1-activate_deactivate_package) |
+| `activate_deactivate_package` | `1.0` | `noarch` | [[1]](#1-activate_deactivate_package) |
 | `another_dependent` | `1.0`<br>`2.0` | `noarch` | [[2]](#2-another_dependent) |
 | `arch-package` | `1.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[3]](#3-arch-package) |
-| `b_post_link_package` | `1.0.0` | `noarch` | [[4]](#4-b_post_link_package) |
-| `buildstring` | `1.0` | `noarch` | [[5]](#5-buildstring) |
-| `c_post_link_package` | `1.0.0` | `noarch` | [[6]](#6-c_post_link_package) |
-| `clobber-a` | `1.0.0` | `noarch` | [[7]](#7-clobber-a) |
-| `clobber-b` | `1.0.0` | `noarch` | [[8]](#8-clobber-b) |
-| `d_post_link_package` | `1.0.0` | `noarch` | [[9]](#9-d_post_link_package) |
-| `dependency` | `1.0`<br>`2.0` | `noarch` | [[10]](#10-dependency) |
-| `dependent` | `1.0`<br>`2.0` | `noarch` | [[11]](#11-dependent) |
-| `e_post_link_package` | `1.0.0` | `noarch` | [[12]](#12-e_post_link_package) |
-| `failing_post_link` | `1.0.0` | `noarch` | [[13]](#13-failing_post_link) |
-| `feature` | `1.0`<br>`2.0` | `noarch` | [[14]](#14-feature) |
-| `other_dependent` | `1.0` | `noarch` | [[15]](#15-other_dependent) |
-| `pip` | `99.99.99` | `noarch` | [[16]](#16-pip) |
-| `post_link_run_in_env_package` | `1.0.0` | `noarch` | [[17]](#17-post_link_run_in_env_package) |
-| `pre_link_messages_package` | `1.0.0` | `noarch` | [[18]](#18-pre_link_messages_package) |
-| `private-package` | `1.0.0` | `noarch` | [[19]](#19-private-package) |
+| `buildstring` | `1.0` | `noarch` | [[4]](#4-buildstring) |
+| `clobber-a` | `1.0` | `noarch` | [[5]](#5-clobber-a) |
+| `clobber-b` | `1.0` | `noarch` | [[6]](#6-clobber-b) |
+| `dependency` | `1.0`<br>`2.0` | `noarch` | [[7]](#7-dependency) |
+| `dependent` | `1.0`<br>`2.0` | `noarch` | [[8]](#8-dependent) |
+| `failing_post_link` | `1.0` | `noarch` | [[9]](#9-failing_post_link) |
+| `feature` | `1.0`<br>`2.0` | `noarch` | [[10]](#10-feature) |
+| `other_dependent` | `1.0` | `noarch` | [[11]](#11-other_dependent) |
+| `pip` | `99.99.99` | `noarch` | [[12]](#12-pip) |
+| `post_link-b` | `1.0` | `noarch` | [[13]](#13-post_link-b) |
+| `post_link-c` | `1.0` | `noarch` | [[14]](#14-post_link-c) |
+| `post_link-d` | `1.0` | `noarch` | [[15]](#15-post_link-d) |
+| `post_link-e` | `1.0` | `noarch` | [[16]](#16-post_link-e) |
+| `post_link_run_in_env_package` | `1.0` | `noarch` | [[17]](#17-post_link_run_in_env_package) |
+| `pre_link_messages_package` | `1.0` | `noarch` | [[18]](#18-pre_link_messages_package) |
+| `private-package` | `1.0` | `noarch` | [[19]](#19-private-package) |
 | `python` | `3.99.99` | `noarch` | [[20]](#20-python) |
 | `run_constrained` | `1.0` | `noarch` | [[21]](#21-run_constrained) |
-| `sample_noarch_python` | `1.0.0` | `noarch` | [[22]](#22-sample_noarch_python) |
-| `small-executable` | `1.0.0` | `noarch` | [[23]](#23-small-executable) |
+| `sample_noarch_python` | `1.0` | `noarch` | [[22]](#22-sample_noarch_python) |
+| `small-executable` | `1.0` | `noarch` | [[23]](#23-small-executable) |
 | `track_feature` | `1.0`<br>`2.0` | `noarch` | [[24]](#24-track_feature) |
 | `unsatisfiable` | `1.0` | `noarch` | [[25]](#25-unsatisfiable) |
 | `versioned` | `1.0`<br>`2.0` | `noarch` | [[26]](#26-versioned) |
@@ -44,47 +44,47 @@ Second consumer of dependent for multi-package remove/update graphs
 ## [3] arch-package
 Architecture-specific package for fake-subdir search/install
 
-## [4] b_post_link_package
-Dependency (no post-link) linked before c_post_link_package
-
-## [5] buildstring
+## [4] buildstring
 Package with a variant build string for revision installs
 
-## [6] c_post_link_package
-Post-link script that depends on b_post_link_package (link order)
+## [5] clobber-a
+Ships bin/clobber-test-file (pair with the other clobber-* for path conflicts)
 
-## [7] clobber-a
-Ships bin/clobber-test-file (pair with clobber-b for path conflicts)
+## [6] clobber-b
+Ships bin/clobber-test-file (pair with the other clobber-* for path conflicts)
 
-## [8] clobber-b
-Ships the same path as clobber-a with different content
-
-## [9] d_post_link_package
-Post-link package depending on e_post_link_package
-
-## [10] dependency
+## [7] dependency
 Depends on co-built dependency output; generic pin/remove fixture
 
-## [11] dependent
+## [8] dependent
 Depends on co-built dependency output; generic pin/remove fixture
 
-## [12] e_post_link_package
-Post-link script for link-order / post-link execution tests
-
-## [13] failing_post_link
+## [9] failing_post_link
 Post-link script that always fails
 
-## [14] feature
+## [10] feature
 ### `1.0` `noarch`
 Package declaring features: track_feature1
 ### `2.0` `noarch`
 Package declaring features: track_feature2
 
-## [15] other_dependent
+## [11] other_dependent
 Another dependent consumer for --only-deps and multi-spec ops
 
-## [16] pip
+## [12] pip
 Stub pip paired with fake python 3.99
+
+## [13] post_link-b
+Dependency (no post-link) linked before post_link-c
+
+## [14] post_link-c
+Post-link script that depends on post_link-b (link order)
+
+## [15] post_link-d
+Post-link package depending on post_link-e
+
+## [16] post_link-e
+Post-link script for link-order / post-link execution tests
 
 ## [17] post_link_run_in_env_package
 Post-link script that requires an activated env (TEST_VAR set by activate.d); fails if the post-link runs outside that env (e.g. base)
