@@ -632,8 +632,8 @@ def test_noarch_python_package_reinstall_on_pyver_change(
 
 
 def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
-    with tmp_env("font-ttf-inconsolata") as prefix:
-        assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
+    with tmp_env("small-executable") as prefix:
+        assert (prefix / "bin" / "small").is_file()
 
 
 def test_no_channels(
@@ -1109,8 +1109,8 @@ def test_allow_softlinks(
     reset_context()
     assert context.allow_softlinks
 
-    with tmp_env("font-ttf-inconsolata") as prefix:
-        assert (prefix / "fonts" / "Inconsolata-Bold.ttf").is_symlink()
+    with tmp_env("activate_deactivate_package") as prefix:
+        assert (prefix / "etc" / "conda" / "activate.d" / "activate.sh").is_symlink()
 
 
 def test_clone_env_with_conda(tmp_env: TmpEnvFixture):
@@ -1677,12 +1677,12 @@ def test_create_default_packages(
     assert context.create_default_packages == ("small-executable", "dependent")
 
     prefix = path_factory()
-    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "activate_deactivate_package")
     assert not package_is_installed(prefix, "small-executable")
     assert not package_is_installed(prefix, "dependent")
 
-    with tmp_env("font-ttf-inconsolata", prefix=prefix):
-        assert package_is_installed(prefix, "font-ttf-inconsolata")
+    with tmp_env("activate_deactivate_package", prefix=prefix):
+        assert package_is_installed(prefix, "activate_deactivate_package")
         assert package_is_installed(prefix, "small-executable")
         assert package_is_installed(prefix, "dependent")
 
@@ -1699,12 +1699,12 @@ def test_create_default_packages_no_default_packages(
     assert context.create_default_packages == ("small-executable", "dependent")
 
     prefix = path_factory()
-    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "activate_deactivate_package")
     assert not package_is_installed(prefix, "small-executable")
     assert not package_is_installed(prefix, "dependent")
 
-    with tmp_env("font-ttf-inconsolata", "--no-default-packages", prefix=prefix):
-        assert package_is_installed(prefix, "font-ttf-inconsolata")
+    with tmp_env("activate_deactivate_package", "--no-default-packages", prefix=prefix):
+        assert package_is_installed(prefix, "activate_deactivate_package")
         assert not package_is_installed(prefix, "small-executable")
         assert not package_is_installed(prefix, "dependent")
 

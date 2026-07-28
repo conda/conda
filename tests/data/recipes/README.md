@@ -21,19 +21,18 @@ Overview of package artifacts and their intended purpose.
 | `e_post_link_package` | `1.0.0` | `noarch` | [[10]](#10-e_post_link_package) |
 | `failing_post_link` | `1.0.0` | `noarch` | [[11]](#11-failing_post_link) |
 | `feature` | `1.0`<br>`2.0` | `noarch` |  |
-| `font-ttf-inconsolata` | `23.12.6` | `noarch` | [[12]](#12-font-ttf-inconsolata) |
-| `other_dependent` | `1.0` | `noarch` | [[13]](#13-other_dependent) |
+| `other_dependent` | `1.0` | `noarch` | [[12]](#12-other_dependent) |
 | `pip` | `99.99.99` | `noarch` |  |
-| `post_link_run_in_env_package` | `1.0.0` | `noarch` | [[14]](#14-post_link_run_in_env_package) |
-| `pre_link_messages_package` | `1.0.0` | `noarch` | [[15]](#15-pre_link_messages_package) |
+| `post_link_run_in_env_package` | `1.0.0` | `noarch` | [[13]](#13-post_link_run_in_env_package) |
+| `pre_link_messages_package` | `1.0.0` | `noarch` | [[14]](#14-pre_link_messages_package) |
 | `python` | `3.99.99` | `noarch` |  |
-| `run_constrained` | `1.0` | `noarch` | [[16]](#16-run_constrained) |
+| `run_constrained` | `1.0` | `noarch` | [[15]](#15-run_constrained) |
 | `sample_noarch_python` | `1.0.0` | `noarch` |  |
-| `small-executable` | `1.0.0` | `noarch` | [[17]](#17-small-executable) |
+| `small-executable` | `1.0.0` | `noarch` | [[16]](#16-small-executable) |
 | `track_feature` | `1.0`<br>`2.0` | `noarch` |  |
 | `unsatisfiable` | `1.0` | `noarch` |  |
-| `versioned` | `1.0`<br>`2.0` | `noarch` | [[18]](#18-versioned) |
-| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[19]](#19-virtualdep-package) |
+| `versioned` | `1.0`<br>`2.0` | `noarch` | [[17]](#17-versioned) |
+| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[18]](#18-virtualdep-package) |
 
 ## [1] activate_deactivate_package
 Test activate and deactivate scripts effecting environment variables
@@ -68,26 +67,23 @@ Test that post link scripts get run last
 ## [11] failing_post_link
 Test that post link failures are handled correctly
 
-## [12] font-ttf-inconsolata
-Monospace font for pretty code listings
-
-## [13] other_dependent
+## [12] other_dependent
 Other generic dependent
 
-## [14] post_link_run_in_env_package
+## [13] post_link_run_in_env_package
 test package that checks for an activated env in the post link script
 
-## [15] pre_link_messages_package
+## [14] pre_link_messages_package
 Package to test prelink_message
 
-## [16] run_constrained
+## [15] run_constrained
 A package with a run contrain
 
-## [17] small-executable
+## [16] small-executable
 A small executable package
 
-## [18] versioned
+## [17] versioned
 A versioned package
 
-## [19] virtualdep-package
+## [18] virtualdep-package
 A small architecture specific package

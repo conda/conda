@@ -229,21 +229,6 @@
       "timestamp": 1706117932630,
       "version": "2.0"
     },
-    "font-ttf-inconsolata-23.12.6-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "license": "OFL",
-      "license_family": "Other",
-      "md5": "fa71e49d9d2754f5f02c6258b5543df5",
-      "name": "font-ttf-inconsolata",
-      "noarch": true,
-      "sha256": "2a7a536018482f5adf8a3e8b7e2229c7f0aac42736704f3eb7a0775eff87e911",
-      "size": 93789,
-      "subdir": "noarch",
-      "timestamp": 1701955087171,
-      "version": "23.12.6"
-    },
     "other_dependent-1.0-0.tar.bz2": {
       "build": "0",
       "build_number": 0,
