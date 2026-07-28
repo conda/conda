@@ -4,6 +4,7 @@ package:
 
 build:
   noarch: generic
+  string: "0"
 
 requirements:
   run:
@@ -13,6 +14,7 @@ outputs:
   - name: dependency
     build:
       noarch: generic
+      string: "0"
 
 about:
   summary: Depends on co-built dependency output; generic pin/remove fixture

@@ -4,6 +4,7 @@ package:
 
 build:
   noarch: generic
+  string: "0"
   track_features:
     - "{{ feature }}"
 

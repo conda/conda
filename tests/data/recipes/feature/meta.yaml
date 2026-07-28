@@ -4,6 +4,7 @@ package:
 
 build:
   noarch: generic
+  string: "{{ feature }}_0"
   features:
     - "{{ feature }}"
 

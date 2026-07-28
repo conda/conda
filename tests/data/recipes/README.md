@@ -87,7 +87,7 @@ Another dependent consumer for --only-deps and multi-spec ops
 Stub pip paired with fake python 3.99
 
 ## [17] post_link_run_in_env_package
-Post-link script that requires an activated env (TEST_VAR)
+Post-link script that requires an activated env (TEST_VAR set by activate.d); fails if the post-link runs outside that env (e.g. base)
 
 ## [18] pre_link_messages_package
 Package with prelink_message files shown on install
@@ -120,9 +120,4 @@ Depends on impossible versioned <1.0 for UnsatisfiableError
 Versioned fixture for upgrade/update/conflict tests
 
 ## [27] virtualdep-package
-### `2.0` `osx-fake`
-A small architecture specific package
-### `1.0` `linux-fake`
-Architecture-specific package with an unversioned virtual dependency
-### `2.0` `osx-fake`
-Architecture-specific package with a versioned virtual dependency
+Architecture-specific package with a virtual dependency

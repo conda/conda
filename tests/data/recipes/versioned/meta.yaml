@@ -4,6 +4,7 @@ package:
 
 build:
   noarch: generic
+  string: "0"
 
 about:
   summary: Versioned fixture for upgrade/update/conflict tests
