@@ -84,9 +84,10 @@ repos:
         language_version: python3.14
         additional_dependencies: [pyyaml]
         pass_filenames: false
+        # README is generated from channel artifacts, not recipe sources.
         files: |
           (?x)^(
-            tests/data/recipes/.+/meta.yaml |
+            tests/data/test-recipes/.+\.(conda|tar\.bz2) |
             tests/data/recipes/generate_recipes_readme.py |
             tests/data/recipes/README.md
           )$

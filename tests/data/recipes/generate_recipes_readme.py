@@ -156,11 +156,20 @@ def _parse_artifact(artifact: Path) -> RecipeInfo | None:
             purpose = _normalize(extra.get("test_purpose"))
 
     if not package_name:
+        # skip package if package_name cannot be determined
         print(
-            f"warning: skipping {artifact}: no package name in index.json or meta.yaml",
+            f"warning: skipping {artifact.relative_to(CHANNEL_ROOT.parent)}: "
+            f"missing {_META_PATH} and {_INDEX_PATH}",
             file=sys.stderr,
         )
         return None
+    elif not meta_yaml_text:
+        # warn that meta.yaml is not included in the package
+        print(
+            f"warning: skipping {artifact.relative_to(CHANNEL_ROOT.parent)}: "
+            f"missing {_META_PATH} (fallback to {_INDEX_PATH})",
+            file=sys.stderr,
+        )
 
     return RecipeInfo(
         artifact=artifact.name,
