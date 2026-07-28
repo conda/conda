@@ -2896,8 +2896,8 @@ def test_create_download_only_without_prefix(
     assert tmp_pkgs_dir.exists()
     assert set(tmp_pkgs_dir.iterdir()) == {
         tmp_pkgs_dir / "cache",
-        tmp_pkgs_dir / "small-executable-1.0.0-0",
-        tmp_pkgs_dir / "small-executable-1.0.0-0.conda",
+        tmp_pkgs_dir / "small-executable-1.0-0",
+        tmp_pkgs_dir / "small-executable-1.0-0.conda",
         tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE,
     }
 
@@ -3104,7 +3104,7 @@ def test_python_site_packages_path(
             reason="conda-libmamba-solver does not support python_site_packages_path",
         )
     )
-    with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
+    with tmp_env("python=3.99.99", "sample_noarch_python=1.0") as prefix:
         sp_dir = "lib/python3.99t/site-packages"
         assert (prefix / sp_dir / "sample.py").is_file()
 

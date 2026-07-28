@@ -1,6 +1,6 @@
 package:
   name: failing_post_link
-  version: 1.0.0
+  version: 1.0
 
 build:
   number: 0

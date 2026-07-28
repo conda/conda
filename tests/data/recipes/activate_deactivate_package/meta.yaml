@@ -1,6 +1,6 @@
 package:
   name: activate_deactivate_package
-  version: 1.0.0
+  version: 1.0
 
 source:
   path: ./src

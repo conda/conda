@@ -1,6 +1,6 @@
 package:
   name: post_link_run_in_env_package
-  version: 1.0.0
+  version: 1.0
 
 build:
   number: 0
