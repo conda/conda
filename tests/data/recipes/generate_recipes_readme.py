@@ -3,14 +3,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Generate a test-recipes README from rendered package metadata.
 
-This reads rendered recipe metadata from package artifacts in
-``tests/data/test-recipes``:
-- ``*.tar.bz2`` packages: ``info/recipe/meta.yaml``
-- ``*.conda`` packages: ``info-*.tar.zst`` component -> ``info/recipe/meta.yaml``
+This reads package metadata from artifacts in ``tests/data/test-recipes``:
+- ``info/index.json`` for package name and version (source of truth)
+- ``info/recipe/meta.yaml`` for ``extra.test_purpose`` when present
+
+Supports ``*.tar.bz2`` packages and ``*.conda`` packages (``info-*.tar.zst``).
 """
 
 from __future__ import annotations
 
+import json
 import sys
 import tarfile
 import zipfile
@@ -41,6 +43,10 @@ CHANNEL_ROOT = RECIPES_ROOT.parent / "test-recipes"
 README = RECIPES_ROOT / "README.md"
 UNKNOWN = "-"
 
+# Paths inside the package info archive (normalize leading "./").
+_META_PATH = "info/recipe/meta.yaml"
+_INDEX_PATH = "info/index.json"
+
 
 @dataclass(frozen=True)
 class RecipeInfo:
@@ -57,21 +63,34 @@ def _normalize(value: object) -> str | None:
     return " ".join(str(value).split())
 
 
-def _extract_meta(tf: tarfile.TarFile) -> str | None:
+def _member_name(name: str) -> str:
+    return name[2:] if name.startswith("./") else name
+
+
+def _extract_info(tf: tarfile.TarFile) -> tuple[str | None, str | None]:
+    """Return ``(meta.yaml text, index.json text)`` from a package info tar."""
+    meta_yaml = None
+    index_json = None
     for member in tf:
-        if member.name == "info/recipe/meta.yaml":
+        name = _member_name(member.name)
+        if name == _META_PATH and meta_yaml is None:
             stream = tf.extractfile(member)
-            return stream.read().decode("utf-8") if stream else None
-    return None
+            meta_yaml = stream.read().decode("utf-8") if stream else None
+        elif name == _INDEX_PATH and index_json is None:
+            stream = tf.extractfile(member)
+            index_json = stream.read().decode("utf-8") if stream else None
+        if meta_yaml is not None and index_json is not None:
+            break
+    return meta_yaml, index_json
 
 
-def _read_meta_from_tar_bz2(artifact: Path) -> str | None:
+def _read_info_from_tar_bz2(artifact: Path) -> tuple[str | None, str | None]:
     # .tar.bz2 is a tarfile of files
     with tarfile.open(artifact, mode="r|bz2") as tf:
-        return _extract_meta(tf)
+        return _extract_info(tf)
 
 
-def _read_meta_from_conda(artifact: Path) -> str | None:
+def _read_info_from_conda(artifact: Path) -> tuple[str | None, str | None]:
     # .conda is a zipfile of tar.zst files
     with zipfile.ZipFile(artifact) as zf:
         try:
@@ -81,44 +100,74 @@ def _read_meta_from_conda(artifact: Path) -> str | None:
                 if name.startswith("info-") and name.endswith(".tar.zst")
             )
         except StopIteration:
-            return None
+            return None, None
         with zf.open(name) as stream, tarfile.open(fileobj=stream, mode="r|zst") as tf:
-            return _extract_meta(tf)
+            return _extract_info(tf)
 
 
-def _read_rendered_meta(artifact: Path) -> str | None:
+def _read_package_info(artifact: Path) -> tuple[str | None, str | None]:
     if not artifact.is_file():
-        return None
+        return None, None
     elif artifact.name.endswith(".conda"):
-        return _read_meta_from_conda(artifact)
+        return _read_info_from_conda(artifact)
     elif artifact.name.endswith(".tar.bz2"):
-        return _read_meta_from_tar_bz2(artifact)
-    return None
+        return _read_info_from_tar_bz2(artifact)
+    return None, None
 
 
 def _parse_artifact(artifact: Path) -> RecipeInfo | None:
-    meta_yaml_text = _read_rendered_meta(artifact)
-    if not meta_yaml_text:
+    if not (artifact.name.endswith(".conda") or artifact.name.endswith(".tar.bz2")):
         return None
 
-    try:
-        parsed = yaml.safe_load(meta_yaml_text) or {}
-    except yaml.YAMLError as exc:
-        raise ValueError("Failed to parse rendered recipe metadata") from exc
+    meta_yaml_text, index_json_text = _read_package_info(artifact)
 
-    package = parsed.get("package")
-    extra = parsed.get("extra")
-    if not isinstance(package, dict):
-        package = {}
-    if not isinstance(extra, dict):
-        extra = {}
+    package_name = None
+    version = None
+    purpose = None
+
+    if index_json_text:
+        try:
+            index = json.loads(index_json_text)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Failed to parse index.json in {artifact.name}") from exc
+        if isinstance(index, dict):
+            package_name = _normalize(index.get("name"))
+            version = _normalize(index.get("version"))
+
+    if meta_yaml_text:
+        try:
+            parsed = yaml.safe_load(meta_yaml_text) or {}
+        except yaml.YAMLError as exc:
+            raise ValueError(
+                f"Failed to parse rendered recipe metadata in {artifact.name}"
+            ) from exc
+
+        if not isinstance(parsed, dict):
+            parsed = {}
+
+        # Prefer index.json for name/version; fall back to recipe metadata.
+        package = parsed.get("package")
+        if isinstance(package, dict):
+            package_name = package_name or _normalize(package.get("name"))
+            version = version or _normalize(package.get("version"))
+
+        extra = parsed.get("extra")
+        if isinstance(extra, dict):
+            purpose = _normalize(extra.get("test_purpose"))
+
+    if not package_name:
+        print(
+            f"warning: skipping {artifact}: no package name in index.json or meta.yaml",
+            file=sys.stderr,
+        )
+        return None
 
     return RecipeInfo(
         artifact=artifact.name,
         subdir=artifact.parent.name,
-        package=_normalize(package.get("name")),
-        version=_normalize(package.get("version")),
-        purpose=_normalize(extra.get("test_purpose")),
+        package=package_name,
+        version=version,
+        purpose=purpose,
     )
 
 

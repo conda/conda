@@ -13,6 +13,8 @@ Overview of package artifacts and their intended purpose.
 | `b_post_link_package` | `1.0.0` | `noarch` |  |
 | `buildstring` | `1.0` | `noarch` | [#buildstring](#buildstring) |
 | `c_post_link_package` | `1.0.0` | `noarch` |  |
+| `clobber-a` | `1.0.0` | `noarch` |  |
+| `clobber-b` | `1.0.0` | `noarch` |  |
 | `d_post_link_package` | `1.0.0` | `noarch` |  |
 | `dependency` | `1.0`<br>`2.0` | `noarch` |  |
 | `dependent` | `1.0`<br>`2.0` | `noarch` |  |
@@ -31,6 +33,7 @@ Overview of package artifacts and their intended purpose.
 | `track_feature` | `1.0`<br>`2.0` | `noarch` |  |
 | `unsatisfiable` | `1.0` | `noarch` | [#unsatisfiable](#unsatisfiable) |
 | `versioned` | `1.0`<br>`2.0` | `noarch` | [#versioned](#versioned) |
+| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` |  |
 
 ## buildstring
 A build string package to test package revisions
