@@ -1,9 +1,0 @@
-package:
-  name: versioned
-  version: 2.0
-
-build:
-  noarch: generic
-
-about:
-  summary: Versioned fixture for upgrade/update/conflict tests

@@ -1,6 +1,6 @@
 package:
   name: dependent
-  version: 2.0
+  version: '{{ pkg_version }}'
 
 build:
   noarch: generic

@@ -1,15 +1,15 @@
 package:
   name: feature
-  version: "1.0"
+  version: "{{ pkg_version }}"
 
 build:
   noarch: generic
   features:
-    - track_feature1
+    - "{{ feature }}"
 
 requirements:
   run:
     - track_feature
 
 about:
-  summary: "Package declaring features: track_feature1"
+  summary: "Package declaring features: {{ feature }}"

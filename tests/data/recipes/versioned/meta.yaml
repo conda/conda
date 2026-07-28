@@ -1,6 +1,6 @@
 package:
   name: versioned
-  version: 1.0
+  version: '{{ pkg_version }}'
 
 build:
   noarch: generic

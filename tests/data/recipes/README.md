@@ -120,4 +120,9 @@ Depends on impossible versioned <1.0 for UnsatisfiableError
 Versioned fixture for upgrade/update/conflict tests
 
 ## [27] virtualdep-package
+### `2.0` `osx-fake`
 A small architecture specific package
+### `1.0` `linux-fake`
+Architecture-specific package with an unversioned virtual dependency
+### `2.0` `osx-fake`
+Architecture-specific package with a versioned virtual dependency

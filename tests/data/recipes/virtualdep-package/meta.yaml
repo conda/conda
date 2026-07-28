@@ -1,0 +1,19 @@
+package:
+  name: virtualdep-package
+  version: '{{ pkg_version }}'
+
+build:
+  number: 0
+
+requirements:
+  run:
+    # Unversioned virtual deps for 1.0; versioned pins for 2.0 where the
+    # platform exposes a versioned virtual package (Windows has no versioned __win).
+    - __glibc  # [linux and pkg_version == "1.0"]
+    - __glibc >=2.28  # [linux and pkg_version == "2.0"]
+    - __osx  # [osx and pkg_version == "1.0"]
+    - __osx >=11.0  # [osx and pkg_version == "2.0"]
+    - __win  # [win]
+
+about:
+  summary: Architecture-specific package with a virtual dependency
