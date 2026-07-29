@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* <news item>
+* Mark `conda.plugins.virtual_packages.cuda._cuda_driver_version_detector_target` as pending deprecation, to be removed in 27.9. Use `conda.plugins.virtual_packages.cuda.cuda_version()` instead. (#16392)
 
 ### Docs
 

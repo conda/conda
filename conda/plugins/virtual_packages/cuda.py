@@ -11,18 +11,26 @@ import warnings
 from typing import TYPE_CHECKING
 
 from conda._private.cuda import (
-    cuda_driver_version_detector_target as _cuda_driver_version_detector_target,
+    cuda_driver_version_detector_target as _private_cuda_driver_version_detector_target,
 )
 
 from ...auxlib import NULL
+from ...deprecations import deprecated
 from .. import hookimpl
 from ..types import CondaVirtualPackage
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from ...auxlib import _Null
 
-def cuda_version():
+
+@deprecated("27.3", "27.9", addendum="Use `cuda_version()` directly")
+def _cuda_driver_version_detector_target(queue) -> None:
+    _private_cuda_driver_version_detector_target(queue)
+
+
+def cuda_version() -> str | _Null:
     """
     Attempt to detect the version of CUDA present in the operating system.
 
@@ -30,10 +38,10 @@ def cuda_version():
     driver package, and is typically found in the standard library path,
     rather than with the CUDA SDK (which is optional for running CUDA apps).
 
-    On macOS, the CUDA library is only installed with the CUDA SDK, and
+    On macOS Intel, the CUDA library is only installed with the CUDA SDK, and
     might not be in the library path.
 
-    Returns: version string (e.g., '9.2') or None if CUDA is not found.
+    Returns: version string (e.g., '9.2') or NULL if CUDA is not found.
     """
 
     # Shortcut: CUDA is not available on macOS ARM64 (Apple Silicon)
