@@ -13,9 +13,13 @@ import itertools
 import os
 import platform
 from contextlib import suppress
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from multiprocessing import SimpleQueue
 
 
-def cuda_driver_version_detector_target(queue):
+def cuda_driver_version_detector_target(queue: SimpleQueue) -> None:
     """
     Attempt to detect the version of CUDA present in the operating system in a
     subprocess.
