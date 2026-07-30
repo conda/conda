@@ -344,6 +344,12 @@ If no version constraint is provided, conda attempts to install a package
 that satisfies the requested name, the configured channels, the platform,
 and the other constraints in the environment.
 
+Canonical match specifications
+------------------------------
+
+`CEP 29 <https://conda.org/learn/ceps/cep-0029/>`_ describes the
+canonical package match specification grammar used by conda.
+
 Package dependencies are specified using a match specification.
 A match specification is a space-separated string of 1, 2, or 3
 parts:
