@@ -1731,6 +1731,91 @@ def maybe_raise(error: BaseException, context: Context):
         raise error
 
 
+def _iter_leaf_errors(exc_val: BaseException) -> Iterable[BaseException]:
+    """Yield non-container errors, flattening nested ``CondaMultiError``s."""
+    if isinstance(exc_val, CondaMultiError):
+        for error in exc_val.errors:
+            yield from _iter_leaf_errors(error)
+    else:
+        yield exc_val
+
+
+def _merged_guidance(error: CondaError, get_error_hints) -> ErrorGuidance | None:
+    """Combine core guidance with plugin hints for a leaf ``CondaError``."""
+    from ._private.exception_guidance import ErrorGuidance
+
+    guidance = error.guidance
+    try:
+        plugin_hints = get_error_hints(error)
+    except BaseException:
+        log.debug("Failed to collect error hint plugins", exc_info=True)
+        plugin_hints = ()
+    if guidance is not None:
+        return guidance.with_hints(plugin_hints)
+    if plugin_hints:
+        return ErrorGuidance.from_hints(plugin_hints)
+    return None
+
+
+def _format_leaf_errors(leaves: Iterable[BaseException], get_error_hints) -> str:
+    """Format leaf errors for human output; dedupe hints by ``hint_code``."""
+    from dataclasses import replace
+
+    from ._private.exception_guidance import ErrorGuidance
+
+    shown: ErrorGuidance | None = None
+    parts: list[str] = []
+    for error in leaves:
+        guidance = None
+        if isinstance(error, CondaError):
+            guidance = _merged_guidance(error, get_error_hints)
+            if guidance is not None:
+                if shown is None:
+                    shown = ErrorGuidance.from_hints(guidance.hints)
+                    remaining_hints = shown.hints if shown else ()
+                else:
+                    updated = shown.with_hints(guidance.hints)
+                    remaining_hints = updated.hints[len(shown.hints) :]
+                    shown = updated
+                if remaining_hints != guidance.hints:
+                    if (
+                        not guidance.summary
+                        and not guidance.cause
+                        and not remaining_hints
+                    ):
+                        guidance = None
+                    else:
+                        guidance = replace(guidance, hints=remaining_hints)
+        if guidance is not None:
+            parts.append(guidance.format(error))
+        elif isinstance(error, EnvironmentError) and not isinstance(error, CondaError):
+            parts.append(str(error))
+        else:
+            # Prefer ``__repr__`` over ``repr()``; see ``CondaMultiError.__repr__``.
+            parts.append(error.__repr__())
+    return "\n".join(parts)
+
+
+def _enrich_error_map(
+    error: BaseException, error_map: dict[str, Any], get_error_hints
+) -> None:
+    """Attach print-time guidance on leaf maps; never on ``CondaMultiError``."""
+    if isinstance(error, CondaMultiError):
+        error_map.pop("guidance", None)
+        enriched = []
+        for nested, nested_map in zip(error.errors, error_map["errors"]):
+            nested_map = dict(nested_map)
+            _enrich_error_map(nested, nested_map, get_error_hints)
+            enriched.append(nested_map)
+        error_map["errors"] = enriched
+    elif isinstance(error, CondaError):
+        guidance = _merged_guidance(error, get_error_hints)
+        if guidance is not None:
+            error_map["guidance"] = guidance.__json__()
+        else:
+            error_map.pop("guidance", None)
+
+
 def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = None):
     from .base.context import context
     from .common.serialize.json import dumps as json_dumps
@@ -1744,36 +1829,21 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
         if isinstance(exc_val, DryRunExit):
             return
 
-    guidance = exc_val.guidance
-    try:
-        plugin_hints = context.plugin_manager.get_error_hints(exc_val)
-    except BaseException:
-        log.debug("Failed to collect error hint plugins", exc_info=True)
-        plugin_hints = ()
-    if guidance is not None:
-        guidance = guidance.with_hints(plugin_hints)
-    elif plugin_hints:
-        from ._private.exception_guidance import ErrorGuidance
-
-        guidance = ErrorGuidance.from_hints(plugin_hints)
+    get_error_hints = context.plugin_manager.get_error_hints
 
     if context.json:
         from .gateways.streams import stderr, stdout
 
         error_map = exc_val.dump_map()
-        if guidance is not None:
-            error_map["guidance"] = guidance.__json__()
-        else:
-            error_map.pop("guidance", None)
+        _enrich_error_map(exc_val, error_map, get_error_hints)
         exc_json = json_dumps(error_map, sort_keys=True)
         (stdout if rc else stderr)(f"{exc_json}\n")
     else:
         from .gateways.streams import stderr
 
-        if guidance is not None:
-            stderr(f"\n{guidance.format(exc_val)}\n")
-        else:
-            stderr(f"\n{exc_val!r}\n")
+        stderr(
+            f"\n{_format_leaf_errors(_iter_leaf_errors(exc_val), get_error_hints)}\n"
+        )
 
 
 def _format_exc(
