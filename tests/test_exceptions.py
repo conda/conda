@@ -1289,7 +1289,7 @@ def test_print_conda_multi_error_with_nested_guidance(
     )
 
 
-def test_print_conda_multi_error_dedups_nested_hint_codes(
+def test_print_conda_multi_error_renders_each_nested_guidance(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
 ) -> None:
@@ -1341,6 +1341,7 @@ def test_print_conda_multi_error_dedups_nested_hint_codes(
             "RemoveError: Cannot remove python.",
             "",
             "Next steps:",
+            "  - (use_non_base_env) Use a non-base env.",
             "  - (pip_conda_mix) Avoid mixing pip and conda.",
             "",
             "",

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Render nested structured error guidance when printing a `CondaMultiError` (e.g. `conda remove conda`), deduplicating repeated `hint_code` values across nested errors. Apply `conda_error_hints` to each nested leaf error rather than the multi-error container. (#16462)
+* Render nested structured error guidance when printing a `CondaMultiError` (e.g. `conda remove conda`). Apply `conda_error_hints` to each nested leaf error rather than the multi-error container. (#16462)
 
 ### Deprecations
 
