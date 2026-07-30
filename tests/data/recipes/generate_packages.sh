@@ -1,3 +1,16 @@
+#!/usr/bin/env bash
+# Rebuild test channel packages under tests/data/test-recipes from recipe sources.
+#
+# Workflow:
+#   1. Edit recipes under tests/data/recipes/
+#   2. Run this script
+#   3. Commit the updated artifacts (and repodata.json from indexing below)
+#   4. Pre-commit regenerates tests/data/recipes/README.md from the artifacts
+#
+# If you rename/remove a package or change its filename (version/build), delete the
+# old artifact under tests/data/test-recipes/ yourself before rebuilding so orphans
+# are not left in the channel.
+
 # exit if any command fails
 set -e
 
@@ -34,3 +47,9 @@ conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/versioned
 CONDA_SUBDIR=linux-fake conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/virtualdep-package
 CONDA_SUBDIR=osx-fake conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/virtualdep-package
 CONDA_SUBDIR=win-fake conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/virtualdep-package
+
+conda index "$TEST_RECIPES_DIR" \
+  --subdir noarch \
+  --subdir linux-fake \
+  --subdir osx-fake \
+  --subdir win-fake
