@@ -1770,7 +1770,7 @@ def _format_leaf_errors(leaves: Iterable[BaseException]) -> str:
         else:
             # Prefer ``__repr__`` over ``repr()``; see ``CondaMultiError.__repr__``.
             parts.append(error.__repr__())
-    return "\n".join(parts)
+    return "\n\n".join(parts)
 
 
 def _json_error_map(error: BaseException) -> dict[str, Any]:

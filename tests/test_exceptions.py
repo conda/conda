@@ -1338,6 +1338,7 @@ def test_print_conda_multi_error_renders_each_nested_guidance(
             "Next steps:",
             "  - (use_non_base_env) Use a non-base env.",
             "  - (install_conda_version) Pin a conda version.",
+            "",
             "RemoveError: Cannot remove python.",
             "",
             "Next steps:",
