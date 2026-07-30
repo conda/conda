@@ -1746,7 +1746,11 @@ def _get_guidance(error: CondaError) -> ErrorGuidance | None:
     from .base.context import context
 
     guidance = error.guidance
-    plugin_hints = context.plugin_manager.get_error_hints(error)
+    try:
+        plugin_hints = context.plugin_manager.get_error_hints(error)
+    except BaseException:
+        log.debug("Failed to collect error hint plugins", exc_info=True)
+        plugin_hints = ()
 
     # no plugin hints, return guidance (or None) as is
     if not plugin_hints:
