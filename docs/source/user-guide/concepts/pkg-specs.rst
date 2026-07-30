@@ -279,10 +279,12 @@ Windows::
 Package match specifications
 ============================
 
-This match specification is not the same as the syntax used at
-the command line with ``conda install``, such as
-``conda install python=3.9``. Internally, conda translates the
-command line syntax to the spec defined in this section.
+Conda accepts package specifications on the command line with commands
+such as ``conda install`` and ``conda create``. Common command-line forms
+are described in `Command-line package specifications`_.
+
+Internally, conda translates command-line package specifications into
+canonical match specifications.
 
 EXAMPLE: python=3.9 is translated to python 3.9*.
 
