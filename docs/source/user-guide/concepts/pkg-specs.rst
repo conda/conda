@@ -311,8 +311,8 @@ Common forms include:
        and is translated internally to a version pattern such as
        ``numpy 1.11*``.
    * - ``numpy==1.11``
-     - Match versions equal to ``1.11`` according to conda's version
-       ordering rules.
+     - Exact match for version 1.11. This also matches 1.11.0 and 1.11.0.0, but not 1.11.1.
+        Unlike numpy=1.11, it does not match the whole 1.11 series.
    * - ``numpy>=1.8``
      - Match versions greater than or equal to ``1.8``.
    * - ``numpy>=1.8,<2``
