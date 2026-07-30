@@ -322,6 +322,12 @@ Common forms include:
      - Match ``numpy`` version ``1.11.2`` with a build string matching
        ``*nomkl*``.
 
+   * - ``conda-forge::numpy``
+     - Match ``numpy`` from the ``conda-forge`` channel.
+   * - ``conda-forge/linux-64::numpy``
+     - Match ``numpy`` from the ``linux-64`` subdir of the
+       ``conda-forge`` channel.
+
 Supported version operators include ``<``, ``>``, ``<=``, ``>=``,
 ``==``, and ``!=``. Commas separate constraints that must all be true
 (AND), while ``|`` separates alternatives (OR). Wildcards such as ``*``
