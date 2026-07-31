@@ -332,12 +332,21 @@ class ShardBase(abc.ABC):
 
     def iter_records(self) -> Iterable[tuple[str, dict]]:
         """
-        Yield (filename, record) tuples for all packages in visited shards.
+        Yield (filename, record) tuples for all packages in visited shards,
+        including v3 records.
+
+        For classic packages, *filename* is the shard key. For v3 packages,
+        *filename* is ``record["fn"]`` when present (otherwise the shard key),
+        so callers that build download URLs as ``base_url + filename`` keep
+        working.
+
+        Prefer :meth:`iter_records_v3` when section information is needed.
         """
-        for (filename, section), record in self.iter_records_v3():
-            if section not in ("packages", "packages.conda"):
-                continue
-            yield filename, record
+        for (key, section), record in self.iter_records_v3():
+            if section in ("packages", "packages.conda"):
+                yield key, record
+            else:
+                yield record.get("fn") or key, record
 
     def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
         """
@@ -357,7 +366,7 @@ class ShardBase(abc.ABC):
             for package_group in ("packages", "packages.conda"):
                 for key, record in shard.get(package_group, {}).items():
                     yield (key, package_group), record
-            # v3 packages (iter_records() method depends on these coming last)
+            # v3 packages
             for section_name, group in shard.get("v3", {}).items():
                 v3_section = f"v3.{section_name}"
                 for key, record in group.items():
