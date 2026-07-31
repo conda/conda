@@ -1482,6 +1482,7 @@ def test_safe_urljoin_with_slash(base_url, relative_url, expected):
 def test_classic_404_shards_only_hint_enabled(
     http_server_shards, monkeypatch, tmp_path, use_shards
 ):
+    """Test that enable shards hint shows up when shards are turned off and Unavailable channel error is raised."""
     monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
     monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
     reset_context()
