@@ -596,7 +596,7 @@ def handle_txn(
         unlink_link_transaction.execute()
 
     except SystemExit as e:
-        raise CondaSystemExit("Exiting", e) from e
+        raise CondaSystemExit("Exiting", e)
 
     if newenv:
         if context.subdir != context._native_subdir():
