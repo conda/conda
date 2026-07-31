@@ -46,7 +46,7 @@ from ..exceptions import (
     SpecsConfigurationConflictError,
     UnsatisfiableError,
 )
-from ..gateways.disk.delete import delete_trash, path_is_clean, rm_rf
+from ..gateways.disk.delete import delete_trash, path_is_clean
 from ..history import History
 from ..misc import (
     _get_best_prec_match,
@@ -586,9 +586,6 @@ def handle_txn(
         common.stdout_json_success(prefix=prefix, actions=actions, dry_run=True)
         raise DryRunExit()
 
-    # Fresh create paths should be removed entirely if the transaction fails.
-    # Do not remove a pre-existing directory (e.g. create -p into a kept folder).
-    prefix_existed = PrefixData(prefix).exists()
     try:
         unlink_link_transaction.download_and_extract()
         if context.download_only:
@@ -598,14 +595,8 @@ def handle_txn(
             )
         unlink_link_transaction.execute()
 
-    except CondaExitZero:
-        raise
-    except BaseException as e:
-        if newenv and not prefix_existed:
-            rm_rf(prefix)
-        if isinstance(e, SystemExit):
-            raise CondaSystemExit("Exiting", e) from e
-        raise
+    except SystemExit as e:
+        raise CondaSystemExit("Exiting", e) from e
 
     if newenv:
         if context.subdir != context._native_subdir():

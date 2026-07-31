@@ -1,6 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+import pytest
+
 from conda.core import link
 from conda.core.link import UnlinkLinkTransaction
 from conda.core.path_actions import RemoveLinkedPackageRecordAction
@@ -245,11 +247,11 @@ def test_calculate_change_report_superseded():
     assert change_report.superseded_precs.get("global:mypackage") is not None
 
 
-def test_rollback_on_verify_failure_removes_only_created_prefixes(tmp_path):
+def test_cleanup_transaction_artifacts_removes_only_created_prefixes(tmp_path):
     """
-    A prefix created by this transaction must be removed on verification
-    failure (e.g. a ClobberError), while a prefix that already existed must be
-    left untouched. See https://github.com/conda/conda/issues/16076.
+    A prefix created by this transaction must be removed on cleanup, while a
+    prefix that already existed must be left untouched.
+    See https://github.com/conda/conda/issues/16076.
     """
     created = tmp_path / "created"
     created.mkdir()
@@ -268,7 +270,37 @@ def test_rollback_on_verify_failure_removes_only_created_prefixes(tmp_path):
         "created_prefixes": {str(created)},
     }
 
-    txn._rollback_on_verify_failure()
+    txn._cleanup_transaction_artifacts()
+
+    assert not created.exists()
+    assert not temp_dir.exists()
+    assert preexisting.exists()
+
+
+def test_execute_failure_removes_created_prefixes(tmp_path, mocker):
+    """Execute failure must remove prefixes this transaction created."""
+    created = tmp_path / "created"
+    created.mkdir()
+    (created / "conda-meta").mkdir()
+
+    preexisting = tmp_path / "preexisting"
+    preexisting.mkdir()
+    (preexisting / "conda-meta").mkdir()
+
+    temp_dir = tmp_path / "temp"
+    temp_dir.mkdir()
+
+    txn = object.__new__(UnlinkLinkTransaction)
+    txn._verified = True
+    txn.prefix_action_groups = {}
+    txn.transaction_context = {
+        "temp_dir": str(temp_dir),
+        "created_prefixes": {str(created)},
+    }
+    mocker.patch.object(txn, "_execute", side_effect=RuntimeError("boom"))
+
+    with pytest.raises(RuntimeError, match="boom"):
+        txn.execute()
 
     assert not created.exists()
     assert not temp_dir.exists()

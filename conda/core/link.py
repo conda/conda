@@ -315,7 +315,7 @@ class UnlinkLinkTransaction:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    self._rollback_on_verify_failure()
+                    self._cleanup_transaction_artifacts()
                     raise
                 log.info(exceptions)
         try:
@@ -328,14 +328,12 @@ class UnlinkLinkTransaction:
                 )
             )
         except CondaSystemExit:
-            self._rollback_on_verify_failure()
+            self._cleanup_transaction_artifacts()
             raise
         self._verified = True
 
-    def _rollback_on_verify_failure(self):
-        """
-        Clean up anything this transaction created before verification failed.
-        """
+    def _cleanup_transaction_artifacts(self):
+        """Remove the temp dir and any prefixes this transaction created."""
         rm_rf(self.transaction_context["temp_dir"])
         for prefix in self.transaction_context.get("created_prefixes", ()):
             rm_rf(prefix)
@@ -367,14 +365,19 @@ class UnlinkLinkTransaction:
         if context.dry_run:
             raise RuntimeError("Cannot run .execute() with dry-run enabled.")
 
+        succeeded = False
         try:
             # innermost dict.values() is an iterable of PrefixActionGroup
             # instances; zip() is an iterable of each PrefixActionGroup
             self._execute(
                 tuple(chain(*chain(*zip(*self.prefix_action_groups.values()))))
             )
+            succeeded = True
         finally:
             rm_rf(self.transaction_context["temp_dir"])
+            if not succeeded:
+                for prefix in self.transaction_context.get("created_prefixes", ()):
+                    rm_rf(prefix)
 
     def _get_pfe(self):
         from .package_cache_data import ProgressiveFetchExtract
