@@ -520,6 +520,26 @@ an environment without first activating that environment will likely not work.
 For the ability to run executables in activated environments, you may be
 interested in the ``conda run`` command.
 
+Activating environments in shell scripts
+----------------------------------------
+
+The ``conda activate`` command is normally made available by shell
+initialization code added by ``conda init``. Non-interactive shell scripts
+may not read the same shell startup files as an interactive terminal session,
+so ``conda activate`` can fail even when it works from the command line.
+
+For bash scripts, initialize conda for the current shell before activating the
+environment::
+
+  eval "$(conda shell.bash hook)"
+  conda activate myenv
+
+Replace ``myenv`` with the environment name or directory path. If you only need
+to run a single command in an environment, you can use ``conda run`` instead of
+activating the environment in the script::
+
+  conda run -n myenv python script.py
+
 If you experience errors with PATH, review our :ref:`troubleshooting <path-error>`.
 
 Conda init

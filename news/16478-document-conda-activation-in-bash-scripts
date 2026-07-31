@@ -1,0 +1,3 @@
+### Docs
+
+* Documented how to activate conda environments from bash scripts using `conda shell.bash hook`, and mentioned `conda run` as an alternative for single-command execution.
