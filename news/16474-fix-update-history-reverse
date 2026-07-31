@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix environment history being deleted when rolling back a failed install into an existing environment. (#16473 via #16474)
+
+* Remove the target prefix when `conda create` fails and that path did not exist before the create. (#16474)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
