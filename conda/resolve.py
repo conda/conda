@@ -606,16 +606,16 @@ class Resolve:
                     for root in roots:
                         if root != chains[0][0]:
                             search_node = shortest_node.name
-                            num_occurances = dep_list[search_node].count(root)
+                            num_occurrences = dep_list[search_node].count(root)
                             c = self.breadth_first_search_for_dep_graph(
-                                root, search_node, dep_graph, num_occurances
+                                root, search_node, dep_graph, num_occurrences
                             )
                             chains.extend(c)
                 else:
                     for node in nodes:
-                        num_occurances = dep_list[node].count(lroots[0])
+                        num_occurrences = dep_list[node].count(lroots[0])
                         chain = self.breadth_first_search_for_dep_graph(
-                            lroots[0], node, dep_graph, num_occurances
+                            lroots[0], node, dep_graph, num_occurrences
                         )
                         chains.extend(chain)
                         if len(current_shortest_chain) == 0 or len(chain) < len(
@@ -624,9 +624,9 @@ class Resolve:
                             current_shortest_chain = chain
                             shortest_node = node
                     for root in lroots[1:]:
-                        num_occurances = dep_list[shortest_node].count(root)
+                        num_occurrences = dep_list[shortest_node].count(root)
                         c = self.breadth_first_search_for_dep_graph(
-                            root, shortest_node, dep_graph, num_occurances
+                            root, shortest_node, dep_graph, num_occurrences
                         )
                         chains.extend(c)
 

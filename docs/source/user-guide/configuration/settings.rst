@@ -718,7 +718,7 @@ specific version or build overrides for virtual package installs.
 
 Conda sets virtual package version and/or build numbers in three ways:
 
-1. By passing an enviroment variable with the ``conda install`` command (highest priority)
+1. By passing an environment variable with the ``conda install`` command (highest priority)
 
    For example: ``CONDA_OVERRIDE_CUDA="12.0" conda install -c conda-forge tensorflow``
 
