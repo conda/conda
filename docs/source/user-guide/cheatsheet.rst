@@ -4,7 +4,7 @@ Cheatsheet
 
 The conda cheatsheet contains the most important information about using conda, such as basic commands for creating and managing environments, installing packages, and importing and exporting environments.
 
-See the :download:`conda cheatsheet <conda-cheatsheet.pdf>` PDF (64 KB) for a downloadable, two-page version.
+See the :download:`conda cheatsheet <conda-cheatsheet.pdf>` for a PDF version.
 
 **Versions**
 
