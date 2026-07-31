@@ -538,6 +538,7 @@ class UnavailableInvalidChannel(ChannelError):
         channel: Channel | str,
         status_code: str | int,
         response: requests.models.Response | None = None,
+        shards_only_hint: bool = False,
     ):
         from .auxlib.logz import stringify
         from .models.channel import Channel
@@ -567,6 +568,14 @@ class UnavailableInvalidChannel(ChannelError):
                 empty. Use `conda index {url}`, or create `noarch/repodata.json`
                 """
             )
+
+        # Hint user to enable shards when channel is shards only
+        if shards_only_hint:
+            message += dedent("""
+                This channel appears to provide only sharded repodata.
+                Enable shards with `conda config --set repodata_use_shards true`
+                or pass `--repodata-use-shards`.
+                """)
 
         # if response includes a valid json body we prefer the reason/message defined there
         try:
