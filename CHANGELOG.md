@@ -64,6 +64,8 @@
 * Include the Python entry point validation first released in conda 26.5.2 to address [GHSA-9m8m-c4j3-rj2c](https://github.com/conda/conda/security/advisories/GHSA-9m8m-c4j3-rj2c). (#16168)
 * Render nested structured error guidance when printing a `CondaMultiError` (e.g. `conda remove conda`). Apply `conda_error_hints` to each nested leaf error rather than the multi-error container. (#16462)
 * Include v3 records in `Shards.iter_records()` again so solvers that still call this API can install from shards-only channels such as `conda-pypi`. Prefer `Shards.iter_records_v3()` for section-aware iteration. (#16469)
+* Fix environment history being deleted when rolling back a failed install into an existing environment. (#16473 via #16474)
+* Remove the target prefix when `conda create` fails and that path did not exist before the create. (#16474)
 
 ### Deprecations
 
