@@ -2588,12 +2588,35 @@ def test_transactional_rollback_simple(
     conda_cli: CondaCLIFixture,
     test_recipes_channel: Path,
 ):
+    prefix = path_factory()
     mocker.patch(
         "conda.core.path_actions.CreatePrefixRecordAction.execute",
         side_effect=KeyError,
     )
     with pytest.raises(CondaMultiError):
-        conda_cli("create", f"--prefix={path_factory()}", "small-executable", "--yes")
+        conda_cli("create", f"--prefix={prefix}", "small-executable", "--yes")
+    # Failed create into a new path should remove the prefix entirely.
+    assert not prefix.exists()
+
+
+def test_transactional_rollback_create_keeps_preexisting_directory(
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    prefix = path_factory()
+    prefix.mkdir()
+    marker = prefix / "keep-me"
+    marker.write_text("x")
+    mocker.patch(
+        "conda.core.path_actions.CreatePrefixRecordAction.execute",
+        side_effect=KeyError,
+    )
+    with pytest.raises(CondaMultiError):
+        conda_cli("create", f"--prefix={prefix}", "small-executable", "--yes")
+    # Pre-existing directories must not be removed on failed create.
+    assert marker.is_file()
 
 
 def test_transactional_rollback_upgrade_downgrade(
@@ -2612,6 +2635,8 @@ def test_transactional_rollback_upgrade_downgrade(
         with pytest.raises(CondaMultiError):
             conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")
         assert package_is_installed(prefix, "dependent=1.0")
+        # Rollback must keep conda-meta/history so the prefix remains an environment.
+        assert (prefix / "conda-meta" / "history").is_file()
 
 
 def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFixture):
