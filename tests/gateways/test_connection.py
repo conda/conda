@@ -283,50 +283,79 @@ def test_get_session_with_channel_settings(mocker):
 
 
 @pytest.mark.parametrize(
-    "channel_settings_url, expect_match",
+    "channel_url, channel_settings_url, expect_match",
     [
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/channel-name",
             True,
             id="exact-url",
         ),
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/*",
             True,
             id="url-prefix",
         ),
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/another-channel",
             False,
             id="no-match",
         ),
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "https://*.com/*",
             True,
             id="wildcard-match-same-schema",
         ),
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "http://*.com/*",
             False,
             id="wildcard-no-match-different-scheme",
         ),
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "*",
             False,
             id="wildcard-no-match-missing-scheme",
         ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name",
+            "https://repo.some-hostname.com/channel-name/",
+            True,
+            id="exact-url-trailing-slash-in-settings",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name/",
+            "https://repo.some-hostname.com/channel-name",
+            True,
+            id="exact-url-trailing-slash-in-request-url",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name/",
+            "https://repo.some-hostname.com/channel-name/",
+            True,
+            id="exact-url-trailing-slash-in-both",
+        ),
     ],
 )
-def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match):
+def test_get_session_with_url_pattern(
+    mocker, channel_url, channel_settings_url, expect_match
+):
     """
     For channels specified by URL, we can configure channel_settings with a URL containing
     either an exact URL match or with a glob-like pattern. In the latter case we require the
     HTTP schemes to be identical.
+
+    Trailing slashes in either the request URL or the channel_settings URL are normalized away
+    via Channel.canonical_name before comparison, so they should never prevent a match.
     """
-    channel_url = "https://repo.some-hostname.com/channel-name"
+    canonical_channel_name = "https://repo.some-hostname.com/channel-name"
     mocker.patch(
         "conda.gateways.connection.session.get_channel_name_from_url",
-        return_value=channel_url,
+        return_value=canonical_channel_name,
     )
     mocker.patch(
         "conda.base.context.Context.channel_settings",
@@ -438,6 +467,51 @@ def test_get_session_with_channel_settings_no_handler(mocker):
 
     # Make sure we tried to retrieve our auth handler in this function
     assert mocker.call("dummy_two") in mock.mock_calls
+
+
+@pytest.mark.parametrize(
+    "bad_settings_entry",
+    [
+        pytest.param(
+            {"channel": None, "auth": "dummy_one"},
+            id="channel-value-is-none",
+        ),
+        pytest.param(
+            {"auth": "dummy_one"},
+            id="channel-key-missing",
+        ),
+    ],
+)
+def test_get_session_with_missing_or_none_channel_in_settings(
+    mocker, bad_settings_entry
+):
+    """
+    Settings entries that have a missing or None ``channel`` key must be silently
+    skipped rather than crashing.  The result should be the same default CondaSession
+    that would be returned when no channel_settings are present at all.
+    """
+    mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url",
+        return_value="defaults",
+    )
+    get_auth_handler = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler"
+    )
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=(bad_settings_entry,),
+    )
+
+    url = "https://localhost/test"
+
+    session_obj = get_session(url)
+
+    assert type(session_obj) is CondaSession
+
+    # The bad entry must have been skipped; no auth handler lookup should occur
+    assert type(session_obj.auth) is CondaHttpAuth
+    assert not get_auth_handler.mock_calls
 
 
 def test_get_session_with_request_headers(mocker: MockerFixture) -> None:

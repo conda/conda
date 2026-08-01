@@ -169,8 +169,12 @@ def get_session(url: str):
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
-        channel = settings.get("channel", "")
-        if channel == channel_name:
+        channel = settings.get("channel")
+
+        if channel is None:
+            continue
+
+        if Channel(channel).canonical_name == channel_name:
             # First we check for exact match
             channel_settings = settings
             continue
