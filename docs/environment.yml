@@ -4,7 +4,7 @@ channels:
 dependencies:
   - Pillow==12.3.0
   - Sphinx<10
-  - boltons>=26.0.0
+  - boltons>=26.1.0
   - conda-sphinx-theme==0.4.0
   - frozendict>=2.4.7
   - linkify-it-py==2.1.0
@@ -28,7 +28,7 @@ dependencies:
   - sphinxcontrib-programoutput==0.20
   - sphinxcontrib-qthelp==2.0.0
   - sphinxcontrib-serializinghtml==2.0.0
-  - tqdm>=4.69.0
+  - tqdm>=4.70.0
   - conda-libmamba-solver>=26.7.0
   - pip>25
   - pip:
