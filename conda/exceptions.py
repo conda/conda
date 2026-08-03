@@ -569,14 +569,6 @@ class UnavailableInvalidChannel(ChannelError):
                 """
             )
 
-        # Hint user to enable shards when channel is shards only
-        if shards_only_hint:
-            message += dedent("""
-                This channel appears to provide only sharded repodata.
-                Enable shards with `conda config --set repodata_use_shards true`
-                or pass `--repodata-use-shards`.
-                """)
-
         # if response includes a valid json body we prefer the reason/message defined there
         try:
             body = response.json()
@@ -595,6 +587,14 @@ class UnavailableInvalidChannel(ChannelError):
                 detail = body.get("detail")
                 if isinstance(detail, str):
                     message = detail
+
+        # Hint user to enable shards when channel is shards only
+        if shards_only_hint:
+            message += dedent("""
+                This channel appears to provide only sharded repodata.
+                Enable shards with `conda config --set repodata_use_shards true`
+                or pass `--repodata-use-shards`.
+                """)
 
         # standardize arguments
         status_code = status_code or "000"
