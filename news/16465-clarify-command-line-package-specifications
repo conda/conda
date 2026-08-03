@@ -1,3 +1,3 @@
 ### Docs
 
-* Clarified how command-line package specifications are interpreted when installing packages with conda.
+* Clarify how command-line package specifications are interpreted when installing packages with conda. (#10491 via #16465)
