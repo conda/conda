@@ -1740,9 +1740,81 @@ def maybe_raise(error: BaseException, context: Context):
         raise error
 
 
+def _get_errors(exc_val: BaseException) -> Iterable[BaseException]:
+    """Yield non-container errors, flattening nested ``CondaMultiError``s."""
+    if isinstance(exc_val, CondaMultiError):
+        for error in exc_val.errors:
+            yield from _get_errors(error)
+    else:
+        yield exc_val
+
+
+def _get_guidance(error: CondaError) -> ErrorGuidance | None:
+    """Combine core guidance with plugin hints for a leaf ``CondaError``."""
+    from ._private.exception_guidance import ErrorGuidance
+    from .base.context import context
+
+    guidance = error.guidance
+    try:
+        plugin_hints = context.plugin_manager.get_error_hints(error)
+    except BaseException:
+        log.debug("Failed to collect error hint plugins", exc_info=True)
+        plugin_hints = ()
+
+    # no plugin hints, return guidance (or None) as is
+    if not plugin_hints:
+        return guidance
+
+    # merge plugin hints with existing guidance or create a new instance
+    if guidance is not None:
+        return guidance.with_hints(plugin_hints)
+    return ErrorGuidance.from_hints(plugin_hints)
+
+
+def _format_leaf_errors(leaves: Iterable[BaseException]) -> str:
+    """Format each leaf error for human output with its own guidance."""
+    parts: list[str] = []
+    for error in leaves:
+        guidance = _get_guidance(error) if isinstance(error, CondaError) else None
+        if guidance is not None:
+            parts.append(guidance.format(error))
+        elif isinstance(error, EnvironmentError) and not isinstance(error, CondaError):
+            parts.append(str(error))
+        else:
+            # Prefer ``__repr__`` over ``repr()``; see ``CondaMultiError.__repr__``.
+            parts.append(error.__repr__())
+    return "\n\n".join(parts)
+
+
+def _json_error_map(error: BaseException) -> dict[str, Any]:
+    """Build JSON error map with print-time guidance (leaf errors only)."""
+    if isinstance(error, CondaMultiError):
+        # Container: no guidance key; recurse into nested errors.
+        return {
+            "exception_type": str(type(error)),
+            "exception_name": error.__class__.__name__,
+            "errors": tuple(_json_error_map(e) for e in error.errors),
+            "error": "Multiple Errors Encountered.",
+        }
+    if isinstance(error, CondaError):
+        error_map = error.dump_map()
+        guidance = _get_guidance(error)
+        if guidance is not None:
+            error_map["guidance"] = guidance.__json__()
+        else:
+            error_map.pop("guidance", None)
+        return error_map
+    return {
+        "exception_type": str(type(error)),
+        "exception_name": type(error).__name__,
+        "message": str(error),
+        "error": repr(error),
+    }
+
+
 def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = None):
     from .base.context import context
-    from .common.serialize.json import dumps as json_dumps
+    from .common.serialize import json
 
     rc = getattr(exc_val, "return_code", None)
     if context.debug or (not isinstance(exc_val, DryRunExit) and context.info):
@@ -1753,36 +1825,15 @@ def print_conda_exception(exc_val: CondaError, exc_tb: TracebackType | None = No
         if isinstance(exc_val, DryRunExit):
             return
 
-    guidance = exc_val.guidance
-    try:
-        plugin_hints = context.plugin_manager.get_error_hints(exc_val)
-    except BaseException:
-        log.debug("Failed to collect error hint plugins", exc_info=True)
-        plugin_hints = ()
-    if guidance is not None:
-        guidance = guidance.with_hints(plugin_hints)
-    elif plugin_hints:
-        from ._private.exception_guidance import ErrorGuidance
-
-        guidance = ErrorGuidance.from_hints(plugin_hints)
-
     if context.json:
         from .gateways.streams import stderr, stdout
 
-        error_map = exc_val.dump_map()
-        if guidance is not None:
-            error_map["guidance"] = guidance.__json__()
-        else:
-            error_map.pop("guidance", None)
-        exc_json = json_dumps(error_map, sort_keys=True)
+        exc_json = json.dumps(_json_error_map(exc_val), sort_keys=True)
         (stdout if rc else stderr)(f"{exc_json}\n")
     else:
         from .gateways.streams import stderr
 
-        if guidance is not None:
-            stderr(f"\n{guidance.format(exc_val)}\n")
-        else:
-            stderr(f"\n{exc_val!r}\n")
+        stderr(f"\n{_format_leaf_errors(_get_errors(exc_val))}\n")
 
 
 def _format_exc(

@@ -1,5 +1,125 @@
 [//]: # (current developments)
 
+## 26.7.0 (2026-07-27)
+
+### Enhancements
+
+* Replace runtime dependency on `zstandard` with `compression.zstd` (Python >=3.14) and `backports.zstd` (Python 3.10–3.13) for repodata and sharded repodata decompression. (#15486 via #16191)
+* Defer `concurrent.futures` and `threading` imports in `common/io.py` so they only load when executor classes (`DummyExecutor`, `ThreadLimitedThreadPoolExecutor`) are first accessed. (#15867 via #15881)
+* Defer heavy imports in `exceptions.py` (`models.channel`, `auxlib.logz`, `common.io`, `common.iterators`, `serialize.json`) to function level so they only load on error paths. (#15867 via #15880)
+* Defer importing `conda.plugins.types` until it is imported explicitly or one of its deprecated re-exports is accessed. (#15867 via #15893)
+* Defer `ruamel.yaml` import in `common/serialize/yaml.py` so it only loads when YAML parsing/writing is first needed. (#15867 via #15882)
+* Cache `context.root_writable` for the lifetime of the `Context` instance to avoid opening a file on every access. (#15867 via #15887)
+* Skip plugin loading for shell activation commands (`conda shell.* activate | deactivate | reactivate | hook`),
+  avoiding ~430 imports when the plugin manager has not already been initialized. Plugin authors should not rely
+  on `pre_commands` / `post_commands` hooks running for these commands. (#15867 via #15877)
+* Add `conda.common.terminal` module centralizing TTY detection and terminal output-mode logic with helpers `is_tty()`, `no_color()`, `force_color()`, and `should_use_color()` that respect the `NO_COLOR`, `FORCE_COLOR`, and `TERM=dumb`/`TERM=unknown` environment variables. (#15943 via #15982)
+* Suppress progress-bar and spinner animations in the console reporter backend when the output is not a TTY or `TERM=dumb`/`TERM=unknown` is set. (#15943 via #15982)
+* Replace the quadratic position scan in `diff_for_unlink_link_precs()` with linear order restoration. A focused synthetic benchmark with a 50,000-record prefix improved this function by about 780x. (#15969 via #15970)
+* Build a per-name candidate index in `PrefixGraph.__init__()` to accelerate graph construction for large prefixes. (#15969 via #15971)
+* Extract built-in `.conda` and `.tar.bz2` package archives with a process pool so zstd decompression can run outside the GIL, while keeping package-cache metadata updates in the parent process. (#15969 via #15974)
+* Batch per-file `codesign` invocations on osx-arm64 into one end-of-transaction call, reducing process launches for packages with many prefix-replaced binaries. This does not affect other platforms. (#15969 via #15975)
+* Add structured error guidance to `CondaError`, including actionable terminal hints, a `guidance` field in `--json` output, and initial guidance for `RemoveError`, `PackagesNotFoundError`, and `UnsatisfiableError`. (#16036 via #16160)
+* Add search support for sharded repodata while disallowing `conda search *` to avoid downloading every shard. (#16134 via #16149)
+* Improve conflicting plugin errors to list each provider by distribution name and version when available. (#16166)
+* Add support for aliases on plugin-provided subcommands. (#16187 via #16188)
+* Make `conda env create` an alias of `conda create`. (#15576 via #16210)
+* Support displaying plugin parameter values with `conda config --show-sources`. (#16238 via #16246)
+* Rework `InvalidInstaller` as a `CondaError` with structured guidance, removing redundant CLI try/except wrappers. (#16276)
+* Add a `conda_error_hints` plugin hook for appending structured guidance hints to `CondaError` output. (#16290 via #16305)
+* Introduce `conda.core.solve.BaseSolver` as the solver plugin base class. (#16320)
+* Add channel notices cache directory to `conda info` output. (#16374)
+* Suggest `conda self update` when the `conda-self` plugin is installed. (#16319 via #16414)
+* Validate `--console` values against available reporter backends and reject unknown values with a clear error. (#16418 via #16420)
+
+### Bug fixes
+
+* Fix `MatchSpec` incorrectly collapsing URL-form channel specs through `channel_alias`, causing `file:///path/to/distr::pkg` to resolve to the remote `distr` channel instead of the local one, and `https://repo.anaconda.com/pkgs/free::numpy` to lose its explicit host. URL-form specs now round-trip through `str(MatchSpec(...))` with their identity preserved. (#16175 via #16176)
+* Fix `ChannelMatch` incorrectly matching URL-form channel specs against channels at a different host with the same path (e.g., `https://software.repos.intel.com/python/conda` no longer matches records from `https://other.example.com/python/conda`). (#16176)
+* Fix `conda.common.io.timeout()` leaving the `SIGALRM` alarm armed (and the previous signal handler unrestored) when the wrapped callable raised an unexpected exception, which could cause the alarm to fire later during unrelated code. The alarm is now always cancelled and the previous handler restored via a `finally` block. (#15702 via #16437)
+* Compare channels by `canonical_name` when merging prefix and repodata records, so a prefix record built from a bare URL (`platform=None`) matches a repodata record built from a subdir URL. Fixes doubled or platform-mismatched subdirs in `PackageRecord.dist_str()`. (#15933 via #15934)
+* Avoid a `TypeError` in `CondaHTTPError` and `UnavailableInvalidChannel` by only reading the RFC 9457 `detail` field from `application/problem+json` responses. (#15999)
+* Fix `conda clean --all` help text to remove obsolete lock-file mention and list tempfiles among the removed targets. (#16043 via #16156)
+* Remove the environment directory created by a failed `conda create` when the transaction fails to verify (e.g. a `ClobberError` under `CONDA_PATH_CONFLICT=prevent`), instead of leaving a partial/empty environment folder behind. Prefixes that already existed before the transaction are never removed. (#16076 via #16421)
+* Raise `NoChannelsConfiguredError` from `conda search` when no channels are configured, matching the behavior of `conda install`. (#16180 via #16181)
+* Prevent `conda env create` from creating environments inside existing prefixes. (#16210)
+* Make `conda env create --dry-run` and `conda create --dry-run` outputs consistent. (#16210)
+* Forward the `truststore` SSL context to proxy connections so that `ssl_verify: truststore` is honored when a proxy is configured, not just on direct connections. (#16252 via #16253)
+* Avoid a crash when trying to format a `CondaError` with a message that has already been formatted. (#16263 via #16266)
+* Fix conda-meta JSON paths for wheel package records by deriving them from package record name, version, and build instead of the package filename or extracted package directory. (#16235, #16265 via #16387)
+* Include pip actions in the JSON output for `conda create` commands. (#16269)
+* Ensure auth headers are set when fetching sharded repodata. (#16250 via #16273)
+* Fix `conda env update` reporting a literal `{0}` placeholder when an external installer is unavailable. (#16276)
+* Exclude test files from Hatch build to prevent them from being packaged. (#15513 via #16289)
+* Fix an `AttributeError` when moving files to the trash on Windows. (#15760 via #16315)
+* Preserve relocatable Python shebangs without depending on the build tool's host prefix name. (#16327 via #16328)
+* Allow `conda doctor --fix --override-frozen` to run fixers against frozen environments. (#16336 via #16337)
+* Fix parsing of entry point definitions surrounded by quotes. (#16339 via #16340)
+* Increase the decompressed size limit of `repodata_shards.msgpack.zst` to allow for channels with a very large number of packages. (#16285 via #16383)
+* Restore imports of deprecated `conda.common.io.IS_INTERACTIVE` so downstream plugins continue to load. (#16401 via #16406)
+* Fix platform detection when emulating win-64 on win-arm64, which previously caused conda to select win-arm64 packages for the win-64 base environment. (#16416 via #16417)
+* Fix a `NameError` in `conda.auxlib.logz.stringify` when logging an HTTP response with `Content-Type: application/json`. This regression was introduced by #15926. (#16446)
+* Skip CUDA detection on osx-arm64. Warn and assume CUDA is unsupported when detection raises `PermissionError`, such as when conda runs in a sandbox. (#16388)
+* Add `Shards.iter_records_v3()` to yield records from classic and v3 repodata with unique `(key, section_name)` keys. (#16099)
+* Include the Python entry point validation first released in conda 26.5.2 to address [GHSA-9m8m-c4j3-rj2c](https://github.com/conda/conda/security/advisories/GHSA-9m8m-c4j3-rj2c). (#16168)
+* Render nested structured error guidance when printing a `CondaMultiError` (e.g. `conda remove conda`). Apply `conda_error_hints` to each nested leaf error rather than the multi-error container. (#16462)
+* Include v3 records in `Shards.iter_records()` again so solvers that still call this API can install from shards-only channels such as `conda-pypi`. Prefer `Shards.iter_records_v3()` for section-aware iteration. (#16469)
+* Fix environment history being deleted when rolling back a failed install into an existing environment. (#16473 via #16474)
+* Remove the target prefix when `conda create` fails and that path did not exist before the create. (#16474)
+
+### Deprecations
+
+* Mark `conda.common.serialize.yaml.CondaYAMLRepresenter` as pending deprecation, to be removed in 27.9. Use `conda.common.serialize.yaml.write()` and `conda.common.serialize.yaml.read()` for serialization, or subclass `ruamel.yaml.representer.RoundTripRepresenter` directly. (#15867 via #15882)
+* Mark `conda.common.io.IS_INTERACTIVE` as pending deprecation, to be removed in 27.9. Use `conda.common.terminal.is_tty()` instead. (#15943 via #15982)
+* Mark `conda.gateways.subprocess.subprocess_call_with_clean_env` as pending deprecation, to be removed in 27.9. Use `conda.gateways.subprocess.subprocess_call()` with a cleaned copy of `os.environ` instead. (#16312)
+* Mark `conda.exports.Solver` as pending deprecation, to be removed in 27.9. Use `conda.core.solve.Solver` instead. (#16320)
+
+### Docs
+
+* Add warning to new features page about removing environments with `conda-pypi` packages before uninstalling Miniconda or Anaconda Distribution. (#16225, #16242)
+* Update guidance on strict channel priority and add a channel configuration best-practices section. (#15996 via #16247)
+* Include shards documentation from `conda-libmamba-solver` in
+  `conda` to accompany the ported implementation. (#16267, #16277)
+* Update Miniconda links on the platform installation pages to point directly to the Anaconda download page. (#16281 via #16284)
+
+### Other
+
+* Add the private `conda/_preview/` namespace for opt-in preview features and scaffold the non-operational `env-setup` preview. (#16011 via #16014)
+* Replace the deprecated `JasonEtco/create-an-issue` GitHub Action with native GitHub CLI commands. (#16233)
+* Re-add `conda-pypi` to the conda recipe and require `conda-pypi >=0.10.1`. (#16210, #16222)
+* Enable infrastructure-managed Dependabot configuration via conda/infrastructure templates. (#16251, #16271)
+* Speed up `test_create_install_update_remove_smoketest` by serving local test-recipes over HTTP instead of remote python/flask solves. (#16009 via #16287, #16307)
+* Speed up `test_dont_remove_conda` by merging duplicate setup from `test_dont_remove_conda_1` and `test_dont_remove_conda_2`, parametrizing remove order, and sharing one session-scoped conda install across variants. (#16299 via #16311)
+
+### Contributors
+
+* @Adelagric made their first contribution in <https://github.com/conda/conda/pull/16420>
+* @agriyakhetarpal
+* @bdice made their first contribution in <https://github.com/conda/conda/pull/16328>
+* @conda-bot
+* @danyeaw
+* @carterbox made their first contribution in <https://github.com/conda/conda/pull/16446>
+* @dholth
+* @duncanmmacleod
+* @isuruf
+* @jaimergp
+* @jsmolic
+* @jezdez
+* @kathatherine
+* @kenodegard
+* @ForgottenProgramme
+* @mcg1969
+* @ryanskeith
+* @soapy1
+* @travishathaway
+* @Functionhx made their first contribution in <https://github.com/conda/conda/pull/16391>
+* @btraven00 made their first contribution in <https://github.com/conda/conda/pull/16266>
+* @dependabot[bot]
+* @eeshsaxena made their first contribution in <https://github.com/conda/conda/pull/16338>
+* @pre-commit-ci[bot]
+
+
+
 ## 26.5.3 (2026-06-16)
 
 ### Bug fixes

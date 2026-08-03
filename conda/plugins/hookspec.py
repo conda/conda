@@ -638,6 +638,12 @@ class CondaSpecs:
         to the error's existing guidance. Plugins should not print directly from
         this hook.
 
+        When a :class:`~conda.CondaMultiError` is printed, conda invokes this
+        hook once per nested leaf error (for example ``RemoveError``), not on
+        the multi-error container itself. Implementations should match concrete
+        exception types; ``isinstance(error, CondaMultiError)`` will not see
+        wrapped failures.
+
         Conda invokes implementations in deterministic plugin-name order and
         preserves the hint order yielded by each plugin. Existing core guidance
         hints win when a plugin yields the same ``hint_code``. Hook wrappers are
