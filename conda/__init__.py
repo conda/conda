@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from subprocess import Popen
-    from typing import Any
+    from typing import Any, Self
 
     from ._private.exception_guidance import ErrorGuidance, ErrorGuidanceTypedDict
 
@@ -102,6 +102,20 @@ class CondaError(Exception):
         handle raw dicts.
         """
         return self._guidance
+
+    def append_hint(self, text: str, hint_code: str) -> Self:
+        """Append an actionable hint to this exception's guidance.
+
+        Returns ``self`` for chaining. When ``hint_code`` already exists,
+        the new hint replaces the previous one.
+        """
+        from ._private.exception_guidance import ErrorGuidance, GuidanceHint
+
+        if self._guidance is None:
+            self._guidance = ErrorGuidance(hints=(GuidanceHint(text, hint_code),))
+        else:
+            self._guidance = self._guidance.with_hint(text, hint_code)
+        return self
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: {self}"

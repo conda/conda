@@ -1,0 +1,3 @@
+### Enhancements
+
+* Add ``CondaError.append_hint`` and ``ErrorGuidance.with_hint`` so plugins can attach structured next-step hints to expected errors via the existing ``conda_exception_observers`` hook.
