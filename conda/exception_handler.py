@@ -205,7 +205,7 @@ class ExceptionHandler:
             message_builder.extend(
                 [
                     "",
-                    "An unexpected error has occurred. Conda has prepared the above report."
+                    "An unexpected error has occurred. Conda has prepared the above report.",
                     "",
                     "If you suspect this error is being caused by a malfunctioning plugin,",
                     "consider using the --no-plugins option to turn off plugins.",

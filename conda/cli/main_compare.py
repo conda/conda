@@ -96,9 +96,11 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
             errors.append(f"{name} not found")
     if not errors:
         return 0, [
-            "Success. All the packages in the "
-            "specification file are present in the environment "
-            "with matching version and build string."
+            (
+                "Success. All the packages in the "
+                "specification file are present in the environment "
+                "with matching version and build string."
+            )
         ]
     return 1, errors
 

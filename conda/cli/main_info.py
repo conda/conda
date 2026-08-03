@@ -406,8 +406,10 @@ def get_main_info_display(info_dict: dict[str, Any]) -> dict[str, str]:
         if installer := info_dict.get("installer"):
             yield (
                 "distribution",
-                f"{installer['name']} {installer['version']} "
-                f"({installer['type']}, {installer['platform']})",
+                (
+                    f"{installer['name']} {installer['version']} "
+                    f"({installer['type']}, {installer['platform']})"
+                ),
             )
         yield ("conda av data dir", info_dict["av_data_dir"])
         yield ("conda av metadata url", info_dict["av_metadata_url_base"])

@@ -1413,8 +1413,10 @@ def test_platform_mismatch_error_is_conda_value_error() -> None:
                 "Environment file 'env.yml' does not include packages for linux-64",
                 "Available platforms: osx-64, osx-arm64",
                 "regenerate the environment file with linux-64",
-                "    conda export --file env.yml "
-                "--platform osx-64 --platform osx-arm64 --platform linux-64",
+                (
+                    "    conda export --file env.yml "
+                    "--platform osx-64 --platform osx-arm64 --platform linux-64"
+                ),
             ),
             id="single-source",
         ),
