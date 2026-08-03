@@ -196,10 +196,7 @@ def _shard_index_exists(subdir_url: str) -> bool:
             context.remote_connect_timeout_secs,
             context.remote_read_timeout_secs,
         )
-        # Try HEAD first. If HEAD not supported, try GET.
         response = session.head(url, timeout=timeout, proxies=session.proxies)
-        if response.status_code in (405, 501):
-            response = session.get(url, timeout=timeout, proxies=session.proxies)
         return 200 <= response.status_code < 300
     except Exception:
         return False
