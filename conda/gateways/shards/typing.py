@@ -20,7 +20,14 @@ class Shards(typing.Protocol):
 
     def iter_records(self) -> Iterator[tuple[str, dict]]:
         """
-        Yield (filename, record) tuples for all packages in visited shards.
+        Yield (key, record) tuples for all packages in visited shards,
+        including v3 records.
+
+        For classic packages, *key* is the filename. For v3 packages, *key* is
+        the shard key (not necessarily the download filename; see
+        ``record["fn"]``).
+
+        Prefer :meth:`iter_records_v3` when section information is needed.
         """
 
     def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
