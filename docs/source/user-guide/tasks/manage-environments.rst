@@ -528,11 +528,23 @@ initialization code added by ``conda init``. Non-interactive shell scripts
 may not read the same shell startup files as an interactive terminal session,
 so ``conda activate`` can fail even when it works from the command line.
 
-For bash scripts, initialize conda for the current shell before activating the
-environment::
+Initialize conda for the current shell before activating the environment:
 
-  eval "$(conda shell.bash hook)"
-  conda activate myenv
+.. tab-set::
+
+   .. tab-item:: Bash
+
+      .. code-block:: bash
+
+         eval "$(conda shell.bash hook)"
+         conda activate myenv
+
+   .. tab-item:: PowerShell
+
+      .. code-block:: powershell
+
+         conda shell.powershell hook | Out-String | Invoke-Expression
+         conda activate myenv
 
 Replace ``myenv`` with the environment name or directory path. If you only need
 to run a single command in an environment, you can use ``conda run`` instead of
