@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Install PlantUML from conda-forge instead of downloading the jar from SourceForge during docs builds.
+* Install PlantUML from conda-forge instead of downloading the jar from SourceForge during docs builds. (#16492)
 
 ### Other
 
