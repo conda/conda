@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Display a "enable shards" hint to users when a channel is shards only and shards are disabled.(#16453)
+* Display a "enable shards" hint to users when a channel is shards only and shards are disabled. (#16453)
 
 ### Bug fixes
 
