@@ -25,20 +25,25 @@ searches. For details, see how to :ref:`modify your channel lists
 Common public channels
 ======================
 
-Some commonly used public channels include:
+Some commonly used public channels and multichannels include:
 
 ``defaults``
-    The default Anaconda repository. It includes channels such as ``main``,
-    ``r``, and ``msys2`` under ``repo.anaconda.com``.
+    A built-in multichannel that includes Anaconda-hosted channels such as
+    ``main``, ``r``, and ``msys2`` under ``repo.anaconda.com``.
+
+``main``
+    The primary Anaconda-hosted channel under ``repo.anaconda.com``. It
+    contains many commonly used packages distributed by Anaconda.
 
 ``conda-forge``
     A community-led channel with packages maintained by thousands of
-    contributors. The ``conda-forge`` channel is free for all to use and
+    contributors. The `conda-forge project <https://conda-forge.org/>`_
     provides a large collection of packages across many ecosystems.
 
 ``bioconda``
-    A community channel focused on bioinformatics packages. It is commonly
-    used together with ``conda-forge``.
+    A community channel focused on bioinformatics packages. The
+    `Bioconda project <https://bioconda.github.io/>`_ is commonly used
+    together with ``conda-forge``.
 
 You can browse public channels and search for packages on
 `Anaconda.org <https://anaconda.org/>`_.
@@ -71,7 +76,7 @@ ignores conda's default channels.
 
 .. code-block:: bash
 
-  $ conda search scipy --channel file:/<path to>/local-channel --override-channels
+  $ conda search scipy --channel conda-forge --override-channels
 
 In ``.condarc``, use the ``channels`` key to configure the list of
 channels conda searches for packages.
