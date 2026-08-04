@@ -538,6 +538,7 @@ class UnavailableInvalidChannel(ChannelError):
         channel: Channel | str,
         status_code: str | int,
         response: requests.models.Response | None = None,
+        shards_only_hint: bool = False,
     ):
         from .auxlib.logz import stringify
         from .models.channel import Channel
@@ -593,6 +594,19 @@ class UnavailableInvalidChannel(ChannelError):
 
         self.status_code = status_code
 
+        guidance = None
+        # Hint user to enable shards when channel is shards only
+        if shards_only_hint:
+            guidance = {
+                "cause": "This channel appears to provide only sharded repodata.",
+                "hints": [
+                    {
+                        "text": "Enable shards with `conda config --set repodata_use_shards true` or pass `--repodata-use-shards`",
+                        "hint_code": "enable_repodata_shards",
+                    }
+                ],
+            }
+
         super().__init__(
             f"HTTP {status_code} {reason} for channel {channel_name} <{channel_url}>\n\n{message}",
             channel_name=channel_name,
@@ -601,6 +615,7 @@ class UnavailableInvalidChannel(ChannelError):
             reason=reason,
             response_details=stringify(response, content_max_len=1024) or "",
             json=body,
+            guidance=guidance,
         )
 
 

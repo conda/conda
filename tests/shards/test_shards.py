@@ -40,6 +40,7 @@ from conda._private.shards.shards import (
 )
 from conda.base.context import context, reset_context
 from conda.core.subdir_data import SubdirData
+from conda.exceptions import UnavailableInvalidChannel
 from conda.models.channel import Channel
 
 from .conftest import (
@@ -1505,3 +1506,25 @@ def test_safe_urljoin_with_slash(base_url, relative_url, expected):
     """
     result = _safe_urljoin_with_slash(base_url, relative_url)
     assert result == expected
+
+
+@pytest.mark.parametrize("use_shards", (True, False))
+def test_classic_404_shards_only_hint_enabled(
+    http_server_shards, monkeypatch, tmp_path, use_shards
+):
+    """Test that enable shards hint shows up when shards are turned off and Unavailable channel error is raised."""
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+
+    with pytest.raises(UnavailableInvalidChannel) as exc_info:
+        SubdirData(channel).load()
+
+    hint = "--repodata-use-shards"
+    # raises with hint when shards disabled
+    if not use_shards:
+        assert hint in str(exc_info.value.guidance)
+    else:
+        assert exc_info.value.guidance is None
