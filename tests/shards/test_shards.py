@@ -1051,6 +1051,36 @@ def test_iter_records_v3():
     assert records[("mypkg-1.0-py312_none_any_0", "v3.whl")]["name"] == "mypkg"
 
 
+def test_iter_records_includes_v3():
+    """iter_records must surface v3 wheels so solvers still see conda-pypi packages."""
+    shardlike = ShardLike(
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
+    )
+    shardlike.visit_shard(
+        "mypkg",
+        {
+            "packages": {},
+            "packages.conda": {},
+            "v3": {
+                "whl": {
+                    "mypkg-1.0-py312_none_any_0": {
+                        "name": "mypkg",
+                        "fn": "mypkg-1.0-py312-none-any.whl",
+                    }
+                },
+            },
+        },
+    )
+    shardlike.visited["ghost"] = None
+    records = dict(shardlike.iter_records())
+    assert "mypkg-1.0-py312_none_any_0" in records
+    assert records["mypkg-1.0-py312_none_any_0"]["fn"] == "mypkg-1.0-py312-none-any.whl"
+
+
 def test_shardlike_repr():
     """
     Code coverage for ShardLike.__repr__()
