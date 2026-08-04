@@ -379,7 +379,7 @@ def test_url_percent_encoding():
 
     assert MatchSpec(url_with).version == MatchSpec(url_without).version
 
-    # Ficticious channel that yells at you
+    # Fictitious channel that yells at you
     url_with = "https://anaconda.org/conda-forge%21/linux-64/x264-1%21164.3095-h166bdaf_2.tar.bz2"
     url_without = (
         "https://anaconda.org/conda-forge!/linux-64/x264-1!164.3095-h166bdaf_2.tar.bz2"

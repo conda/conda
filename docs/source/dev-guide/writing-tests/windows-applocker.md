@@ -13,7 +13,7 @@ AppLocker is Microsoft's application control solution that allows organizations 
 - Create rules to allow or deny applications from running based on file attributes
 - Create exceptions to rules
 
-Many enterprise environments use AppLocker to restrict script execution, which can impact environmnet activation and execution processes. Testing with AppLocker ensures `conda` works properly in these restricted environments.
+Many enterprise environments use AppLocker to restrict script execution, which can impact environment activation and execution processes. Testing with AppLocker ensures `conda` works properly in these restricted environments.
 
 ## Setting Up AppLocker for Testing
 

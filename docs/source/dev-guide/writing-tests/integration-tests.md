@@ -172,7 +172,7 @@ def test_conda_rename(
 
 ## Tests with fixtures
 
-Sometimes in integration tests, you may want to re-use the same type of environment more
+Sometimes in integration tests, you may want to reuse the same type of environment more
 than once. Copying and pasting this setup and teardown code into each individual test
 can make these tests more difficult to read and harder to maintain.
 

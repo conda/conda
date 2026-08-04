@@ -890,7 +890,7 @@ class Resolve:
                                 # specifies a "soft" dependency: it must be in the
                                 # environment, but it is not _pulled_ in. The SAT
                                 # logic doesn't do a perfect job of capturing this
-                                # behavior, but keeping these packags out of the
+                                # behavior, but keeping these packages out of the
                                 # reduced index helps. Of course, if _another_
                                 # package pulls it in by dependency, that's fine.
                                 if "track_features" not in new_ms and not self._broader(

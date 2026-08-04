@@ -431,13 +431,13 @@ def test_override_package_values(
             ("1.2", "1-abc-2", "version", "override", None, None),
             False,
             True,
-            id="version overriden",
+            id="version overridden",
         ),
         pytest.param(
             ("1.2", "1-abc-2", "build", "override", None, None),
             True,
             False,
-            id="build overriden",
+            id="build overridden",
         ),
         pytest.param(
             ("1.2", "1-abc-2", None, None, None, None),
@@ -493,7 +493,7 @@ def test_version_validation(virtual_package_plugin: CondaVirtualPackage):
     [
         pytest.param(
             ("1.2", "0", "version", None, None, None),
-            "overriden",
+            "overridden",
             id="`CONDA_OVERRIDE_FOO` not set, but `context.override_virtual_packages` is set",
         ),
         pytest.param(
@@ -512,7 +512,7 @@ def test_context_override(
     mocker.patch(
         "conda.base.context.Context.override_virtual_packages",
         new_callable=mocker.PropertyMock,
-        return_value=({"foo": "overriden"}),
+        return_value=({"foo": "overridden"}),
     )
     package = virtual_package_plugin.to_virtual_package()
     assert package.name == "__foo"

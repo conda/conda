@@ -692,7 +692,7 @@ class Context(Configuration):
     @property
     def fetch_threads(self) -> int | None:
         """
-        If both are not overriden (0), return experimentally-determined value of 5
+        If both are not overridden (0), return experimentally-determined value of 5
         """
         if self._fetch_threads == 0 and self._default_threads == 0:
             return 5

@@ -313,7 +313,7 @@ def test_notices_appear_once_when_running_decorated_commands(
 
     This should only be once per 24 hours according to the current setting.
 
-    To ensure this test runs appropriately, we rely on using a pass-thru mock
+    To ensure this test runs appropriately, we rely on using a passthrough mock
     of the `conda.notices.fetch.get_notice_responses` function. If this function
     was called and called correctly we can assume everything is working well.
 

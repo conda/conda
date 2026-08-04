@@ -59,6 +59,10 @@ changelog = "https://github.com/conda/conda/blob/main/CHANGELOG.md"
 documentation = "https://docs.conda.io/projects/conda/en/stable/"
 repository = "https://github.com/conda/conda"
 
+[tool.codespell]
+ignore-words-list = ["astroid", "rever", "fo", "te", "thi", "crasher", "crashers", "wile", "iTerm", "cant", "doesnt"]
+skip = "AUTHORS.md,*invalid_keys.yml,*env_metadata*,*.json,*.pdf"
+
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",

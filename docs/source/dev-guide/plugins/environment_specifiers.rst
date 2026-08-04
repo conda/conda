@@ -206,7 +206,7 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
        )
 
 We can test this out by trying to create a conda environment with a new file
-that is compatible with the definied spec. Create a file ``testenv.json``
+that is compatible with the defined spec. Create a file ``testenv.json``
 
 .. code-block::
 

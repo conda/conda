@@ -131,7 +131,7 @@ def package_repository_base(tmp_path_factory):
     """
     Copy tests/index_data to avoid writing changes to repository.
 
-    Could be made session-scoped if we don't mind re-using the index cache
+    Could be made session-scoped if we don't mind reusing the index cache
     during tests.
     """
     # destination can't exist for shutil.copytree(); create its parent

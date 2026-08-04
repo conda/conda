@@ -241,7 +241,7 @@ class TestMiscModule:
         assert result1 == "python"
 
     def test_spec_to_package_name_invalid_returns_none(self):
-        """An unparseable spec returns None instead of raising"""
+        """An unparsable spec returns None instead of raising"""
         result = spec_to_package_name("python>= '2.7'")
         assert result is None
 

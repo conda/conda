@@ -583,7 +583,7 @@ def test_compare_export_commands(
     args: list[str],
     format: str,
 ):
-    """Test that the new export commmand produces the same output as the legacy command."""
+    """Test that the new export command produces the same output as the legacy command."""
     with tmp_env("small-executable") as prefix:
         old_output, _, _ = conda_cli(*args, f"--prefix={prefix}")
         new_output, _, _ = conda_cli(

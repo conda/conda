@@ -151,7 +151,7 @@ def test_list_all_known_prefixes_with_none_values_error(
     mock_is_admin, mock_getpwall, mock_clean_env, mock_context, tmp_path
 ):
     """
-    Regression test for a bug first indentified in this issue: https://github.com/conda/conda/issues/12063
+    Regression test for a bug first identified in this issue: https://github.com/conda/conda/issues/12063
 
     Tests to make sure that `None` values are filtered out of the `search_dirs` variable in the
     `list_all_known_prefixes` function.

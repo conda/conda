@@ -126,7 +126,7 @@ def test_repodata_state(
 
     assert sd._loaded is False
 
-    # shoud automatically fetch and load
+    # should automatically fetch and load
     assert len(list(sd.iter_records()))
 
     assert sd._loaded is True
@@ -168,7 +168,7 @@ def test_repodata_info_jsondecodeerror(
     sd = SubdirData(channel=test_channel)
 
     assert sd._loaded is False
-    # shoud automatically fetch and load
+    # should automatically fetch and load
     assert len(list(sd.iter_records()))
     assert sd._loaded is True
 

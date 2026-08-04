@@ -1460,7 +1460,7 @@ Following feedback from conda users about the pre-configuration of the conda cod
 
 In the future, we will rely on providers of conda distributions, such as [miniforge](https://github.com/conda-forge/miniforge) or Anaconda (including miniconda), to pre-configure their preferred channels, e.g. by running the necessary ``conda config --set channels`` command.
 
-We're also going to continue to [work on improving channel management](https://github.com/conda/conda/issues/14217) in the forseeable future and would love to get your feedback.
+We're also going to continue to [work on improving channel management](https://github.com/conda/conda/issues/14217) in the foreseeable future and would love to get your feedback.
 
 ### Enhancements
 
@@ -1608,7 +1608,7 @@ We're also going to continue to [work on improving channel management](https://g
 
 ### Other
 
-* Update `xonsh` support to accomodate deprecated import path. (#14047)
+* Update `xonsh` support to accommodate deprecated import path. (#14047)
 
 ### Contributors
 
@@ -1962,7 +1962,7 @@ command line interface related to environment management. (#13168)
 * Provide a more useful warning when attempting to rename a non-existent prefix. (#13387)
 * Add a new flag `--keep-env` to be used with `conda remove --all`. It allows users to delete all packages in the environment while retaining the environment itself. (#13419)
 * Add a Y/N prompt warning users that `conda env remove` and `conda remove --all` deletes not only the conda packages but the entirety of the specified environment. (#13440)
-* Add `--repodata-use-zst/--no-repodata-use-zst` flag to control `repodata.json.zst` check; corresponding `repodata_use_zst: true/false` for `.condarc`. Default is to check for `repodata.json.zst`. Disable if remote returns unparseable `repodata.json.zst` instead of correct data or 404. (#13504)
+* Add `--repodata-use-zst/--no-repodata-use-zst` flag to control `repodata.json.zst` check; corresponding `repodata_use_zst: true/false` for `.condarc`. Default is to check for `repodata.json.zst`. Disable if remote returns unparsable `repodata.json.zst` instead of correct data or 404. (#13504)
 
 
 ### Bug fixes
@@ -3688,7 +3688,7 @@ Please read that CEP for more information, but here is a quick synopsis. We hope
 
 ### Docs
 
-* removeed references to MD5s from docs (#9247)
+* removed references to MD5s from docs (#9247)
 * Add docs on `CONDA_DLL_SEARCH_MODIFICATION_ENABLED` (#9286)
 * document threads, spec history and configuration (#9327)
 * more documentation on channels (#9335)
@@ -5168,7 +5168,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 * fix #6181 keep existing pythons pinned to minor version (4.4.0rc2) (#6363)
 * fix #6201 incorrect subdir shown for conda search when package not found (4.4.0rc2) (#6367)
 * fix #6045 help message and zsh shift (4.4.0rc3) (#6368)
-* fix noarch python package resintall (4.4.0rc3) (#6394)
+* fix noarch python package reinstall (4.4.0rc3) (#6394)
 * fix #6366 shell activation message (4.4.0rc3) (#6369)
 * fix #6429 AttributeError on 'conda remove' (4.4.0rc3) (#6434)
 * fix #6449 problems with 'conda info --envs' (#6451)
@@ -5391,7 +5391,7 @@ will make sure that whenever conda is installed or changed in an environment, th
 ### Non-User-Facing Changes
 * test conda 4.3 with requests 2.14.2 (#5281)
 * remove pycrypto as requirement on windows (#5325)
-* fix typo avaialble -> available (#5345)
+* fix typo (#5345)
 * fix test failures related to menuinst update (#5344, #5362)
 
 

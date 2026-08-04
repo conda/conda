@@ -558,7 +558,7 @@ def test_shard_mentioned_packages_2():
 
 
 def test_shard_mentioned_packages_invalid_spec_skipped():
-    # An unparseable spec is silently skipped; valid deps are still yielded and
+    # An unparsable spec is silently skipped; valid deps are still yielded and
     # no None values appear in the output.
     shard = {
         "packages": {

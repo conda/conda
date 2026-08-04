@@ -11,7 +11,7 @@ See the :download:`conda cheatsheet <conda-cheatsheet.pdf>` PDF (3 MB) for a dow
 ..
     Maintainers! When updating the following list, please make sure to
     update the filesystem symlink "conda-cheatsheet.pdf" to the latest
-    version as well, to keep the URL of the conda cheetsheet the same.
+    version as well, to keep the URL of the conda cheatsheet the same.
     Thank you!
 
 - :download:`conda 25.3.1 <cheatsheets/conda-25.3.1.pdf>` (latest)

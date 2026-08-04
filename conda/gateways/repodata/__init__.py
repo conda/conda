@@ -75,7 +75,7 @@ CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"
 CACHE_STATE_SUFFIX = ".info.json"
 
-# show some unparseable json in error
+# show some unparsable json in error
 ERROR_SNIPPET_LENGTH = 32
 
 
@@ -668,7 +668,7 @@ class RepodataCache:
         if target is None:
             target = self.cache_path_json
         with self.lock() as state_file:
-            # "a+" creates the file if necessary, does not trunctate file.
+            # "a+" creates the file if necessary, does not truncate file.
             state_file.seek(0)
             state_file.truncate()
             stat = temp_path.stat()
@@ -690,7 +690,7 @@ class RepodataCache:
         """
         # Note this is not thread-safe.
         with self.lock() as state_file:
-            # "a+" creates the file if necessary, does not trunctate file.
+            # "a+" creates the file if necessary, does not truncate file.
             state_file.seek(0)
             state_file.truncate()
             self.state["refresh_ns"] = refresh_ns or time.time_ns()

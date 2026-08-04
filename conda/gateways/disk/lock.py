@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """
 Record locking to manage potential repodata / repodata metadata file contention
-between conda processes. Try to acquire a lock on a single byte in the metadat
+between conda processes. Try to acquire a lock on a single byte in the metadata
 file; modify both files; then release the lock.
 """
 
@@ -51,7 +51,7 @@ except ImportError:
     try:
         import fcntl
     except ImportError:  # pragma: no cover
-        # "fcntl Availibility: not Emscripten, not WASI."
+        # "fcntl Availability: not Emscripten, not WASI."
         warnings.warn("file locking not available")
 
         _lock_impl = _lock_noop  # type: ignore

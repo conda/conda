@@ -41,7 +41,7 @@ This one group _does_ change during the solver lifetime:
 Also, two more sources that are not obvious at first. These are not labeled as a _source_, but they
 do participate in the `specs` collection:
 
-* In new environments, packages included in the `contex.create_default_packages` list. These
+* In new environments, packages included in the `context.create_default_packages` list. These
   `MatchSpec` objects are injected in each `conda create` command, so the solver will see them
   as explicitly requested by the user (`requested`).
 * Specs added by command line modifiers. The specs here present aren't new (they are already in
@@ -123,7 +123,7 @@ This is getting simplified in the libmamba refactor, as the following. It should
 If we have a history:
     * Add history specs
     * Add installed packages as unconstrained specs that satisfy any of these conditions:
-        * Part of aggresive updates
+        * Part of aggressive updates
         * Part of do_not_remove
         * Installed by pip
 Else, we add _all_ installed packages as unconstrained specs.

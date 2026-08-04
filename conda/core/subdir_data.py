@@ -269,7 +269,7 @@ class SubdirData(metaclass=SubdirDataType):
         # disallow None (typing)
         self.url_w_subdir = self.channel.url(with_credentials=False) or ""
         self.url_w_credentials = self.channel.url(with_credentials=True) or ""
-        # these can be overriden by repodata.json v2
+        # these can be overridden by repodata.json v2
         self._base_url = self.url_w_subdir
         self._base_url_w_credentials = self.url_w_credentials
         # whether or not to try using the new, trimmed-down repodata
