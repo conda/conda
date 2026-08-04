@@ -1495,6 +1495,6 @@ def test_classic_404_shards_only_hint_enabled(
     hint = "--repodata-use-shards"
     # raises with hint when shards disabled
     if not use_shards:
-        assert hint in str(exc_info.value)
+        assert hint in str(exc_info.value.guidance)
     else:
-        assert hint not in str(exc_info.value)
+        assert hint not in str(exc_info.value.guidance)
