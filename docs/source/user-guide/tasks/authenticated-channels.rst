@@ -17,7 +17,7 @@ Install ``conda-auth`` into your base environment:
 
 .. code-block:: shell
 
-   conda install --name base --channel conda-forge conda-auth
+   conda self install conda-auth
 
 Because ``conda-auth`` is a conda plugin, it must be installed in the
 environment where conda itself is installed, usually ``base``.
@@ -47,6 +47,9 @@ Use token authentication for channels that require an access token:
 .. code-block:: shell
 
    conda auth login my-private-channel --token
+
+When you provide a bare channel name such as ``my-private-channel``,
+``conda-auth`` uses the corresponding channel on ``anaconda.org`` by default.
 
 The command prompts for your token. After you log in, use the channel as
 you normally would:
@@ -83,5 +86,8 @@ The ``channel_settings`` configuration option can associate a channel
 with a specific authentication handler. This is mainly useful for
 advanced workflows or custom authentication plugins.
 
-For more information, see :ref:`channel_settings <channel-settings>` and
-the developer documentation for :doc:`/dev-guide/plugins/auth_handlers`.
+For more information, see the
+`conda-auth Getting Started guide
+<https://conda-incubator.github.io/conda-auth/user/index.html#getting-started>`_,
+:ref:`channel_settings <channel-settings>`, and the developer documentation
+for :doc:`/dev-guide/plugins/auth_handlers`.
