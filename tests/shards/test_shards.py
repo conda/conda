@@ -1527,4 +1527,4 @@ def test_classic_404_shards_only_hint_enabled(
     if not use_shards:
         assert hint in str(exc_info.value.guidance)
     else:
-        assert hint not in str(exc_info.value.guidance)
+        assert exc_info.value.guidance is None
