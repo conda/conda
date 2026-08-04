@@ -1,4 +1,3 @@
 ### Docs
 
-* Added a user guide task page for using authenticated channels with the `conda-auth` plugin.
-  ([#16231](https://github.com/conda/conda/issues/16231), [#16483](https://github.com/conda/conda/pull/16483))
+* Add a user guide task page for using authenticated channels with the `conda-auth` plugin. (#16231 via #16483)
