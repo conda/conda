@@ -1,4 +1,3 @@
 ### Docs
 
-* Updated the channels concept page with examples of common public channels, guidance for finding channels on Anaconda.org, and a section explaining local channels.
-  ([#16026](https://github.com/conda/conda/issues/16026), [#16484](https://github.com/conda/conda/pull/16484))
+* Update the channels concept page with examples of common public channels, guidance for finding channels on Anaconda.org, and a section explaining local channels. (#16026 via #16484)
