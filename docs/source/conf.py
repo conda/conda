@@ -122,8 +122,9 @@ html_context = {
 # -- sphinxcontrib.plantuml ------------------------------------------------
 
 plantuml_output_format = "svg_img"
-plantuml_jarfile_path = Path(__file__).parent.parent / "_build" / "plantuml.jar"
-plantuml = f"java -Djava.awt.headless=true -jar {plantuml_jarfile_path}"
+plantuml = (
+    f"java -Djava.awt.headless=true -jar {Path(sys.prefix) / 'lib' / 'plantuml.jar'}"
+)
 
 
 # -- For sphinx.ext.intersphinx --------------------------------------------
