@@ -87,5 +87,6 @@ command-line interface. For example, a plugin may add a command for a custom
 workflow, package source, or environment management task.
 
 Plugins that add conda commands must be installed in the ``base`` environment,
-where conda itself is installed. Installing a plugin into another environment
-does not make its command available to the main ``conda`` command.
+where conda itself is installed. You can use ``conda self install`` to install
+a plugin into the ``base`` environment. Installing a plugin into another
+environment does not make its command available to the main ``conda`` command.

@@ -1,3 +1,4 @@
 ### Docs
 
 * Updated the commands concept page with common conda commands, command-line help examples, and a note about plugin-provided commands.
+  ([#16023](https://github.com/conda/conda/issues/16023), [#16485](https://github.com/conda/conda/pull/16485))
