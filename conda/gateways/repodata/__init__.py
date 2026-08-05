@@ -594,6 +594,10 @@ class RepodataCache:
             # stat (if json_data is to be trusted)
             if state_only:
                 json_data = b"" if binary else ""
+                if not cache_path.exists():
+                    self.state.clear()
+                    self.state.update(state)
+                    return json_data
             else:
                 if binary:
                     json_data = cache_path.read_bytes()
