@@ -911,6 +911,13 @@ class RepodataFetch:
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
+
+                # when self.repodata.fn==repodata.json, and RepodataIsEmpty error is raised:
+                # if shards are available, we can assume that repodata.json is not supported
+                has_shards, _ = cache.state.has_format("shards")
+                if has_shards or cache.cache_path_shards.exists():
+                    cache.state.set_has_format("repodata_json", False)
+
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata = None
             except RepodataOnDisk:
