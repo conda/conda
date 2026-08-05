@@ -32,9 +32,7 @@ repos:
       - id: check-yaml
         exclude: |
           (?x)^(
-            (conda\.)?recipe/meta.yaml |
-            tests/data/recipes/font-ttf-inconsolata/meta.yaml |
-            tests/data/recipes/dependent/meta.yaml
+            (conda\.)?recipe/meta.yaml
           )
       # catch git merge/rebase problems
       - id: check-merge-conflict
@@ -84,9 +82,10 @@ repos:
         language_version: python3.14
         additional_dependencies: [pyyaml]
         pass_filenames: false
+        # README is generated from channel artifacts, not recipe sources.
         files: |
           (?x)^(
-            tests/data/recipes/.+/meta.yaml |
+            tests/data/test-recipes/.+\.(conda|tar\.bz2) |
             tests/data/recipes/generate_recipes_readme.py |
             tests/data/recipes/README.md
           )$
