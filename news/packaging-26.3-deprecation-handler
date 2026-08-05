@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `DeprecationHandler` version fallback when `packaging` raises `InvalidVersion` for unparseable versions (e.g. `None` under packaging >=26.3). (#XXXX)
+* Fix `DeprecationHandler` version fallback when `packaging` raises `InvalidVersion` for unparseable versions (e.g. `None` under packaging >=26.3). (#16495)
 
 ### Deprecations
 
