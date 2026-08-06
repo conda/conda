@@ -278,7 +278,6 @@ def get_info_dict() -> dict[str, Any]:
         av_metadata_url_base=context.signing_metadata_url_base,
         root_writable=context.root_writable,
         pkgs_dirs=context.pkgs_dirs,
-        notices_cache_dir=str(get_notices_cache_dir()),
         envs_dirs=context.envs_dirs,
         default_prefix=context.default_prefix,
         active_prefix=context.active_prefix,
@@ -300,6 +299,7 @@ def get_info_dict() -> dict[str, Any]:
         virtual_pkgs=virtual_pkgs,
         solver=solver,
         tmp_dir=gettempdir(),
+        notices_cache_dir=str(get_notices_cache_dir()),
     )
     if installer := get_installer_info(context.root_prefix):
         info_dict["installer"] = installer

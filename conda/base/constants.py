@@ -232,13 +232,13 @@ NOTICES_CACHE_FN: Final = "notices.cache"
 NOTICES_CACHE_SUBDIR: Final = "notices"
 """Determines the subdir for notices cache."""
 
-NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400
-"""Minimum seconds between channel notice fetches on decorated commands."""
+NOTICES_DECORATOR_DISPLAY_INTERVAL: Final = 86400  # in seconds
+"""Determines how often (in seconds) notices are displayed while running commands."""
 
 NOTICES_DECORATOR_DISPLAY_INTERVAL_NS: Final = (
     NOTICES_DECORATOR_DISPLAY_INTERVAL * 1_000_000_000
 )
-"""Minimum nanoseconds between channel notice fetches on decorated commands."""
+"""Determines how often (in nanoseconds) notices are displayed while running commands."""
 
 DRY_RUN_PREFIX: Final = "Dry run action:"
 PREFIX_NAME_DISALLOWED_CHARS: Final = {"/", " ", ":", "#"}
