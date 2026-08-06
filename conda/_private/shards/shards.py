@@ -824,7 +824,8 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             sd = subdir_data[channel_url]
             cache = sd.repo_fetch.repo_cache
             cache.load_state()
-            # ensure classic repodata_json is not missing (has_format marked False)
+
+            # skip classic when has_repodata_json was recorded False
             if cache.state.should_check_format("repodata_json"):
                 futures_non_sharded[
                     executor.submit(sd.repo_fetch.fetch_latest_parsed)
