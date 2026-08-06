@@ -415,9 +415,8 @@ def compile_multiple_pyc(
         os.close(fd)
         command = ["-Wi", "-m", "compileall", "-q", "-l", "-i", filename]
         # if the python version in the prefix is 3.5+, we have some extra args.
-        #    -j 0 will do the compilation in parallel, with os.cpu_count() cores
         if int(py_ver[0]) >= 3 and int(py_ver.split(".")[1]) > 5:
-            command.extend(["-j", "0"])
+            command.extend(["-j", str(context.default_threads or 0)])
         command[0:0] = [python_exe_full_path]
         # command[0:0] = ['--cwd', prefix, '--dev', '-p', prefix, python_exe_full_path]
         log.log(TRACE, command)

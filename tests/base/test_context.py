@@ -390,6 +390,21 @@ def test_threads(monkeypatch: MonkeyPatch) -> None:
         assert context.execute_threads == 3
 
 
+def test_compile_pyc(monkeypatch: MonkeyPatch) -> None:
+    assert context.compile_pyc is True
+
+    with monkeypatch.context() as m:
+        m.setenv("CONDA_COMPILE_PYC", "false")
+        reset_context()
+        assert context.compile_pyc is False
+
+    try:
+        reset_context(argparse_args=Namespace(compile_pyc=False))
+        assert context.compile_pyc is False
+    finally:
+        reset_context()
+
+
 def test_channels_empty(context_testdata: None):
     """Test when no channels provided in cli and no condarc config is present."""
     reset_context(())

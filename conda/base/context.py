@@ -461,6 +461,7 @@ class Context(Configuration):
         aliases=("error_upload_url",),
     )
     force = ParameterLoader(PrimitiveParameter(False))
+    compile_pyc = ParameterLoader(PrimitiveParameter(True))
     json = ParameterLoader(PrimitiveParameter(False))
     _console = ParameterLoader(
         PrimitiveParameter(DEFAULT_CONSOLE_REPORTER_BACKEND, element_type=str),
@@ -1357,6 +1358,7 @@ class Context(Configuration):
             "allow_softlinks",
             "always_copy",
             "always_softlink",
+            "compile_pyc",
             "path_conflict",
             "rollback_enabled",
             "safety_checks",
@@ -1655,8 +1657,10 @@ class Context(Configuration):
             default_threads=dals(
                 """
                 Threads to use by default for parallel operations.  Default is None,
-                which allows operations to choose themselves.  For more specific
-                control, see the other *_threads parameters:
+                which allows operations to choose themselves.  When set, this value is
+                also used as the worker-process count for Python bytecode compilation
+                during installation.  For more specific control, see the other
+                *_threads parameters:
                     * repodata_threads - for fetching/loading repodata
                     * verify_threads - for verifying package contents in transactions
                     * execute_threads - for carrying out the unlinking and linking steps
@@ -1705,6 +1709,13 @@ class Context(Configuration):
                 Threads to use when performing the unlink/link transaction.  When not set,
                 defaults to 1.  This step is pretty strongly I/O limited, and you may not
                 see much benefit here.
+                """
+            ),
+            compile_pyc=dals(
+                """
+                Compile Python bytecode files for noarch Python packages during installation.
+                Disable this when startup-time bytecode compilation is preferable to
+                install-time compilation.
                 """
             ),
             export_platforms=dals(
