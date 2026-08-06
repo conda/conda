@@ -28,11 +28,12 @@ def print_notices(channel_notices: Sequence[ChannelNotice]):
         for channel_notice in channel_notices:
             if current_channel != channel_notice.channel_name:
                 print()
-                channel_header = "Channel"
-                channel_header += (
-                    f' "{channel_notice.channel_name}" has the following notices:'
-                )
-                print(channel_header)
+                is_plugin = channel_notice.id.startswith("plugin:")
+                if is_plugin:
+                    header = f'Plugin "{channel_notice.channel_name}" has the following notices:'
+                else:
+                    header = f'Channel "{channel_notice.channel_name}" has the following notices:'
+                print(header)
                 current_channel = channel_notice.channel_name
             print_notice_message(channel_notice)
             print()
