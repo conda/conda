@@ -318,20 +318,17 @@ def test_notices_appear_once_when_running_decorated_commands(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
     )
 
-    # First run of install; notices should be retrieved; it's okay that this function fails
-    # to install anything.
+    # First run of install; notices should be retrieved once per subdir queried
+    # (the channel's platform subdir and noarch), each resolving to the same
+    # channel-root notices.json URL per CEP-6; it's okay that this function
+    # fails to install anything.
     conda_cli("create", "--name", env_one, "--yes", "--channel", test_recipes_channel)
 
-    # make sure our fetch function was called correctly
-    fetch_mock.assert_called_once()
-    args, kwargs = fetch_mock.call_args
-
-    # If we did this correctly, args should be an empty list because our local channel has not
-    # been initialized. This causes no network traffic because there are no URLs to fetch which
-    # is what we want.
-    notices_path = test_recipes_channel / "notices.json"
-    notices_url = path_to_url(str(notices_path))
-    assert args == ([(notices_url, "test-recipes")],)
+    # make sure our fetch function was called once per subdir queried, all
+    # targeting the channel-root notices.json (not a per-subdir one)
+    assert fetch_mock.call_count == 2
+    actual_urls = {call.args[0][0][0] for call in fetch_mock.call_args_list}
+    assert actual_urls == {path_to_url(str(test_recipes_channel / "notices.json"))}
 
     # Reset our mock for another call to "conda install"
     fetch_mock.reset_mock()
@@ -374,7 +371,7 @@ def test_notices_does_not_interrupt_command_on_failure(
     As a user, when I run conda in an environment where notice fetching or cache
     operations fail, I still want commands to run and not end up failing.
     """
-    mock_logger = mocker.patch("conda.notices.core.logger.debug")
+    mock_logger = mocker.patch("conda.gateways.repodata.log.debug")
 
     prefix = path_factory()
 
@@ -387,9 +384,14 @@ def test_notices_does_not_interrupt_command_on_failure(
 
     assert rc == 0, f"conda create failed ({rc}): {stderr}"
 
-    mock_logger.assert_called_once()
-    (fmt, exc), _ = mock_logger.call_args
-    assert "Unable to fetch channel notices" in fmt
+    notice_failure_calls = [
+        call for call in mock_logger.call_args_list if "channel notices" in call.args[0]
+    ]
+    assert notice_failure_calls, "expected a 'channel notices' debug log"
+    for call in notice_failure_calls:
+        fmt, exc = call.args
+        assert "Unable to fetch channel notices" in fmt
+        assert isinstance(exc, TypeError)
 
 
 def test_notices_cannot_read_cache_files(

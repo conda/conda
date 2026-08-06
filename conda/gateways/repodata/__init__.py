@@ -836,12 +836,43 @@ class RepodataFetch:
             cache=self.repo_cache,
         )
 
+    def _broadcast_channel_notices(self) -> None:
+        """Fetch notices.json for this channel and broadcast to the bus.
+
+        Per CEP-6, ``notices.json`` lives at the root of the channel, not
+        per-subdir -- so this uses ``self.channel.base_url`` rather than
+        ``self.url_w_subdir``.
+
+        Called from :meth:`fetch_latest` so it fires regardless of which
+        caller reaches this class -- ``SubdirData.load()`` (classic solver)
+        or ``conda-libmamba-solver``'s index builder, which accesses
+        ``RepodataFetch`` directly and bypasses ``SubdirData.load()``.
+
+        Errors are logged but not re-raised -- notices are best-effort and
+        should never block a command from completing.
+        """
+        try:
+            base_url = self.channel.base_url
+            if not base_url:
+                return
+
+            from ...base.constants import NOTICES_FN
+            from ...notices.core import broadcast_channel_notices
+
+            notice_url = f"{base_url}/{NOTICES_FN}"
+            channel_name = self.channel.name or self.channel.location
+            broadcast_channel_notices([(notice_url, channel_name)])
+        except Exception as exc:
+            log.debug("Unable to fetch channel notices: %s", exc)
+
     def fetch_latest(self) -> tuple[dict | str, RepodataState]:
         """
         Return up-to-date repodata and cache information. Fetch repodata from
         remote if cache has expired; return cached data if cache has not
         expired; return stale cached data or dummy data if in offline mode.
         """
+        self._broadcast_channel_notices()
+
         cache = self.repo_cache
         cache.load_state()
 
