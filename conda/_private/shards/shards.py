@@ -819,12 +819,15 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
         # Latency penalty launching these requests here instead of when we
         # non_sharded_channels.append(), but we want to leave a fallback to the
         # non-sharded path open.
+
         for channel_url, _ in non_sharded_channels:
-            futures_non_sharded[
-                executor.submit(
-                    SubdirData(Channel(channel_url)).repo_fetch.fetch_latest_parsed
-                )
-            ] = channel_url
+            sd = subdir_data[channel_url]
+            cache = sd.repo_fetch.repo_cache
+            cache.load_state()
+            if cache.state.should_check_format("repodata_json"):
+                futures_non_sharded[
+                    executor.submit(sd.repo_fetch.fetch_latest_parsed)
+                ] = channel_url
 
         for future in concurrent.futures.as_completed(futures_non_sharded):
             channel_url = futures_non_sharded[future]
