@@ -148,6 +148,26 @@ def test_load_entrypoints_success(plugin_manager: CondaPluginManager):
     assert plugin_manager.list_name_plugin()[0][0] == "test_plugin.success"
 
 
+def test_get_installed_plugins(plugin_manager: CondaPluginManager):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    expected = [
+        {
+            "name": "conda-test-plugin",
+            "version": "1.0",
+            "canonical_name": "test_plugin.success",
+            "status": "active",
+            "hooks": ["solvers"],
+        }
+    ]
+    assert plugin_manager.get_installed_plugins() == expected
+
+    plugin_manager.disable_external_plugins()
+    expected[0]["status"] = "disabled"
+
+    assert plugin_manager.get_installed_plugins() == expected
+
+
 def test_load_entrypoints_importerror(
     plugin_manager: CondaPluginManager,
     mocker: MockerFixture,
