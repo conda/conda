@@ -41,7 +41,6 @@ def epilog() -> str:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
     from ..common.constants import NULL
     from .helpers import (
         add_output_and_prompt_options,
@@ -54,30 +53,25 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     summary = "Create an environment based on an environment definition file."
-    description = dals(
-        f"""
-        {summary}
-
-        The file format is detected from the filename or contents. Which
-        formats are supported depends on the plugins installed in your
-        environment. See the epilog for the list of formats available here.
-
-        If the file declares a name in its contents (for instance as the
-        first line of an environment.yml file), that name is used unless
-        overridden on the CLI with -n/--name.
-
-        Unless you are in the directory containing the environment definition
-        file, use -f to specify the file path of the environment definition
-        file you want to use.
-
-        """
+    description = (
+        "The file format is detected from the filename or contents. Which "
+        "formats are supported depends on the plugins installed in your "
+        "environment. See the epilog for the list of formats available here. "
+        "\n\n"
+        "If the file declares a name in its contents (for instance as the "
+        "first line of an environment.yml file), that name is used unless "
+        "overridden on the CLI with -n/--name. "
+        "\n\n"
+        "Unless you are in the directory containing the environment definition "
+        "file, use -f to specify the file path of the environment definition "
+        "file you want to use."
     )
 
     p = sub_parsers.add_parser(
         "create",
         help=summary,
-        description=description,
-        epilog=epilog(),
+        description=summary + "\n\n" + description,
+        epilog_factory=epilog,
         **kwargs,
     )
     p.add_argument(

@@ -50,7 +50,6 @@ def epilog() -> str:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from ..auxlib.ish import dals
     from ..common.constants import NULL
     from .actions import NullCountAction
     from .helpers import (
@@ -61,26 +60,22 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
 
     summary = "Create a new conda environment from a list of specified packages."
-    description = dals(
-        f"""
-        {summary}
-
-        Environments can be created from package specs on the command line,
-        from an input file whose format is detected from its name or
-        contents, or as a clone of an existing environment. See the epilog
-        for the input formats available in your installation.
-
-        To use the newly-created environment, use 'conda activate envname'.
-        This command requires either the -n NAME or -p PREFIX option unless
-        --dry-run or --download-only is specified.
-        """
+    description = (
+        "Environments can be created from package specs on the command line, "
+        "from an input file whose format is detected from its name or "
+        "contents, or as a clone of an existing environment. See the epilog "
+        "for the input formats available in your installation. "
+        "\n\n"
+        "To use the newly-created environment, use 'conda activate envname'. "
+        "This command requires either the -n NAME or -p PREFIX option unless "
+        "--dry-run or --download-only is specified."
     )
 
     p = sub_parsers.add_parser(
         "create",
         help=summary,
-        description=description,
-        epilog=epilog(),
+        description=summary + "\n\n" + description,
+        epilog_factory=epilog,
         **kwargs,
     )
     p.add_argument(
