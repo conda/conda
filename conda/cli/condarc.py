@@ -598,6 +598,67 @@ class ConfigurationFile:
         else:
             raise CondaKeyError(key, "invalid parameter")
 
+    def clear_key(self, key: str) -> None:
+        """
+        Clear all values from a sequence configuration parameter.
+
+        The key remains explicitly configured with an empty list. This differs
+        from ``remove_key()``, which removes the key entirely and may allow a
+        value from another configuration source or a default to take effect.
+
+        Args:
+            key: Sequence configuration key name.
+
+        Raises:
+            CondaKeyError: If the key is unknown or is not a sequence parameter.
+            CouldntParseError: If the configured value is not a sequence.
+        """
+        from ..exceptions import CondaKeyError, CouldntParseError
+
+        if not self.key_exists(key):
+            raise CondaKeyError(key, "unknown parameter")
+
+        if aliased := self.context.name_for_alias(key):
+            log.warning(
+                "Key %s is an alias of %s; clearing value with latter",
+                key,
+                aliased,
+            )
+            key = aliased
+
+        first, *rest = key.split(".")
+
+        if first == "plugins" and hasattr(self.context, "plugins"):
+            if not rest:
+                raise CondaKeyError(key, "invalid parameter")
+
+            base_context = self.context.plugins
+            base_config = self.content.setdefault("plugins", {})
+            parameter_name, *rest = rest
+        else:
+            base_context = self.context
+            base_config = self.content
+            parameter_name = first
+
+        try:
+            parameter_type = base_context.describe_parameter(parameter_name)[
+                "parameter_type"
+            ]
+        except KeyError:
+            raise CondaKeyError(key, "unknown parameter")
+
+        if parameter_type != "sequence" or rest:
+            raise CondaKeyError(key, "invalid parameter")
+
+        current_value = base_config.get(parameter_name, MISSING)
+        if current_value is not MISSING and not (
+            isinstance(current_value, Sequence) and not isinstance(current_value, str)
+        ):
+            bad_type = current_value.__class__.__name__
+            raise CouldntParseError(f"key {key!r} should be a list, not {bad_type}.")
+
+        base_config[parameter_name] = []
+
     def remove_key(self, key: str) -> None:
         """
         Remove a configuration key entirely.

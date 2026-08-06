@@ -212,6 +212,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         metavar=("KEY", "VALUE"),
     )
     config_modifiers.add_argument(
+        "--clear",
+        action="append",
+        help="""Clear all values from a list key.""",
+        metavar="KEY",
+    )
+    config_modifiers.add_argument(
         "--remove-key",
         action="append",
         help="""Remove a configuration key (and all its values).""",
@@ -697,6 +703,10 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     # Remove
     for key, item in args.remove:
         rc_config.remove_item(key, item)
+
+    # Clear
+    for key in args.clear or ():
+        rc_config.clear_key(key)
 
     # Remove Key
     for key in args.remove_key:
