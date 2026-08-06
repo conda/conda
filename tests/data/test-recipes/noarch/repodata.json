@@ -2,350 +2,51 @@
   "info": {
     "subdir": "noarch"
   },
-  "packages": {
-    "activate_deactivate_package-1.0.0-0.tar.bz2": {
+  "packages": {},
+  "packages.conda": {
+    "activate_deactivate_package-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [],
-      "md5": "82ecc40f09b9c44483e6b70cad2545d7",
+      "md5": "1ab35ce26ceedeaa9eb3102a6e26cea3",
       "name": "activate_deactivate_package",
       "noarch": "generic",
-      "sha256": "eb65e866067865793b981c2ba74485f75bef441842b5998badc4ec66717685c7",
-      "size": 3141,
+      "sha256": "4569650df7e365f9d0923863d782eb58f08fd574416ed7be99eafae2bf1888d3",
+      "size": 4930,
       "subdir": "noarch",
-      "timestamp": 1689209309623,
-      "version": "1.0.0"
+      "timestamp": 1785276600992,
+      "version": "1.0"
     },
-    "another_dependent-1.0-0.tar.bz2": {
+    "another_dependent-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [
         "dependent"
       ],
-      "md5": "d06de8de378aefc1f3ee3fe3c2893641",
+      "md5": "d84f49dd8192d02c2077a8b626a4e8db",
       "name": "another_dependent",
       "noarch": "generic",
-      "sha256": "fdedab563a73be9b111f18fc4a3197c830096796ef217190597e72ce2963c55e",
-      "size": 2573,
+      "sha256": "49163cab5e85c29043892496880634b2a1480e263dd891c464d51bac966f0e85",
+      "size": 3891,
       "subdir": "noarch",
-      "timestamp": 1704402266146,
+      "timestamp": 1785276607294,
       "version": "1.0"
     },
-    "another_dependent-2.0-0.tar.bz2": {
+    "another_dependent-2.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [
         "dependent"
       ],
-      "md5": "fed59bbd5a1b37a3f800db7507484fc9",
+      "md5": "d67b07bfd34bd26c5322fb0f17fe2bf6",
       "name": "another_dependent",
       "noarch": "generic",
-      "sha256": "2a0d77a8aef8e5b3e0099f8e57d4afc292cf3a68091149d8995682d378b79441",
-      "size": 2576,
+      "sha256": "90ef838ce0a995bdb876126746a34d9479f15df97ce67314c35d553abec9d40e",
+      "size": 3882,
       "subdir": "noarch",
-      "timestamp": 1704403779864,
+      "timestamp": 1785276606150,
       "version": "2.0"
     },
-    "b_post_link_package-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "6d7fc79fac942451b9d3dc35ee0a9c3f",
-      "name": "b_post_link_package",
-      "noarch": "generic",
-      "sha256": "6ab24e5312fb3ffebb99d1839cf4c2cb6b1f69d83d2fa0de4ed681f34a09cd1f",
-      "size": 2560,
-      "subdir": "noarch",
-      "timestamp": 1689208607729,
-      "version": "1.0.0"
-    },
-    "c_post_link_package-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [
-        "b_post_link_package"
-      ],
-      "md5": "3a540a1cda7d1c9b37e4362f0de2798f",
-      "name": "c_post_link_package",
-      "noarch": "generic",
-      "sha256": "364648c8f6cd58f236b94689fe09016931786030eaeecb21066713d27155f47d",
-      "size": 2778,
-      "subdir": "noarch",
-      "timestamp": 1701471759792,
-      "version": "1.0.0"
-    },
-    "clobber-a-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "6dcf4c9545cfbae8e8840ca7cb06ea22",
-      "name": "clobber-a",
-      "noarch": "generic",
-      "sha256": "da5f4178dcab7bf321c63e8b27ae31bb772900ec8678a0d0b7069a060ba55c24",
-      "size": 540,
-      "subdir": "noarch",
-      "timestamp": 1784535699678,
-      "version": "1.0.0"
-    },
-    "clobber-b-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "74855179ca0e6bde41095a16aff2cc6f",
-      "name": "clobber-b",
-      "noarch": "generic",
-      "sha256": "135e2d3af8339c729cc47e153b983b6fa51f7434fa075e835e3d422a135ec85e",
-      "size": 537,
-      "subdir": "noarch",
-      "timestamp": 1784535699679,
-      "version": "1.0.0"
-    },
-    "d_post_link_package-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [
-        "e_post_link_package"
-      ],
-      "md5": "52252cd65b768a6d79654e04864ac124",
-      "name": "d_post_link_package",
-      "noarch": "generic",
-      "sha256": "396c568f31d35b7de69457bda706401987df00b67ff3c2894eb4865069dc886b",
-      "size": 2793,
-      "subdir": "noarch",
-      "timestamp": 1701471771080,
-      "version": "1.0.0"
-    },
-    "dependency-1.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "0e0130f1bb826a2b903460cdb590091a",
-      "name": "dependency",
-      "noarch": "generic",
-      "sha256": "a782cedc637f5dbdd255342145c60985bc662c41413e17a70e7f5ae11ddd6772",
-      "size": 2583,
-      "subdir": "noarch",
-      "timestamp": 1702962588221,
-      "version": "1.0"
-    },
-    "dependency-2.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "89c54773351d0184e81e645ad85c6fe5",
-      "name": "dependency",
-      "noarch": "generic",
-      "sha256": "c25c86e708a51e0f444f6eda6746691d0f6cfbc2427e120b2b37437f10da0f65",
-      "size": 2578,
-      "subdir": "noarch",
-      "timestamp": 1702962607296,
-      "version": "2.0"
-    },
-    "dependent-1.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [
-        "dependency >=1.0,<2.0a0"
-      ],
-      "md5": "9f27061cfcb47dcec3dcabf8722af245",
-      "name": "dependent",
-      "noarch": "generic",
-      "sha256": "5187e830858e53620fd30408c2798f64a9dac0270bfb13c96160edc1013398b2",
-      "size": 2616,
-      "subdir": "noarch",
-      "timestamp": 1702962588406,
-      "version": "1.0"
-    },
-    "dependent-2.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [
-        "dependency >=2.0,<3.0a0"
-      ],
-      "md5": "75c39be9c900663327c83b6c33a73c1c",
-      "name": "dependent",
-      "noarch": "generic",
-      "sha256": "22f0a4f561c1a67c3b835e6066096c02155f7128d67304c9536c9b4d617a2da6",
-      "size": 2613,
-      "subdir": "noarch",
-      "timestamp": 1702962607466,
-      "version": "2.0"
-    },
-    "e_post_link_package-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "5b9d2685a46eb62bcc25b7ad99bf02fa",
-      "name": "e_post_link_package",
-      "noarch": "generic",
-      "sha256": "3af25501a9e4294d00991bdd3dfde3faa917c1c5e83af6607cd6b8b15c42ff3e",
-      "size": 2781,
-      "subdir": "noarch",
-      "timestamp": 1701471782303,
-      "version": "1.0.0"
-    },
-    "failing_post_link-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "82b78bfb9285ee628f97bb522b7e1072",
-      "name": "failing_post_link",
-      "noarch": "generic",
-      "sha256": "5d7c14e30ea8723e0d465db1c424c6e3e53506d6927552891aba6e47def41a45",
-      "size": 3045,
-      "subdir": "noarch",
-      "timestamp": 1702532147436,
-      "version": "1.0.0"
-    },
-    "feature-1.0-track_feature1_0.tar.bz2": {
-      "build": "track_feature1_0",
-      "build_number": 0,
-      "depends": [
-        "track_feature"
-      ],
-      "features": "track_feature1",
-      "md5": "bd2b3215749608978d0570bb446bd313",
-      "name": "feature",
-      "noarch": "generic",
-      "sha256": "967b871cd9b6fc74ce2a4c9ea3993a6b76ab7350588d8e5d170e098a06ffaf03",
-      "size": 2569,
-      "subdir": "noarch",
-      "timestamp": 1706117932181,
-      "version": "1.0"
-    },
-    "feature-2.0-track_feature2_0.tar.bz2": {
-      "build": "track_feature2_0",
-      "build_number": 0,
-      "depends": [
-        "track_feature"
-      ],
-      "features": "track_feature2",
-      "md5": "b66d4ede8dc48f285ee6cc3682b4a975",
-      "name": "feature",
-      "noarch": "generic",
-      "sha256": "6748b2ca33e08698962dfe8d144f2e232f03c577545b19f81b7dc7bf9f3e8984",
-      "size": 2563,
-      "subdir": "noarch",
-      "timestamp": 1706117932630,
-      "version": "2.0"
-    },
-    "font-ttf-inconsolata-23.12.6-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "license": "OFL",
-      "license_family": "Other",
-      "md5": "fa71e49d9d2754f5f02c6258b5543df5",
-      "name": "font-ttf-inconsolata",
-      "noarch": true,
-      "sha256": "2a7a536018482f5adf8a3e8b7e2229c7f0aac42736704f3eb7a0775eff87e911",
-      "size": 93789,
-      "subdir": "noarch",
-      "timestamp": 1701955087171,
-      "version": "23.12.6"
-    },
-    "other_dependent-1.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [
-        "dependent"
-      ],
-      "md5": "45851b2210e6107f3677a0ca53d70d21",
-      "name": "other_dependent",
-      "noarch": "generic",
-      "sha256": "739ac51e49bcaaec5f954f2dace0402a3e4b89eb2ea8aaf84cadc99ebec443ce",
-      "size": 2569,
-      "subdir": "noarch",
-      "timestamp": 1704402747277,
-      "version": "1.0"
-    },
-    "pip-99.99.99-py399_0.tar.bz2": {
-      "build": "py399_0",
-      "build_number": 0,
-      "depends": [
-        "python 3.99.*"
-      ],
-      "md5": "23f5642e5c9b091b68c7955c96ee90c6",
-      "name": "pip",
-      "noarch": "generic",
-      "sha256": "54fe3bcdb2bc22e0228ba7e1a52772cabce1765216d204b1be9c37d3d5663591",
-      "size": 4524,
-      "subdir": "noarch",
-      "timestamp": 1730910865290,
-      "version": "99.99.99"
-    },
-    "pre_link_messages_package-1.0.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "70750ac2887ebb310863b7aa954d0f59",
-      "name": "pre_link_messages_package",
-      "noarch": "generic",
-      "sha256": "e0405de73743344cb9c1a6e9878d28cc07e4da97157c6a6ea502b57bd0fc27aa",
-      "size": 2607,
-      "subdir": "noarch",
-      "timestamp": 1689208733231,
-      "version": "1.0.0"
-    },
-    "python-3.99.99-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "1d5c0038f147b27276d6afff9e4e2814",
-      "name": "python",
-      "noarch": "generic",
-      "python_site_packages_path": "lib/python3.99t/site-packages",
-      "sha256": "b9216d74a3e780a80f92bfbd699afd1e06a9b7e05f7d9002fa45051e37036b2a",
-      "size": 2953,
-      "subdir": "noarch",
-      "timestamp": 1730834970178,
-      "version": "3.99.99"
-    },
-    "sample_noarch_python-1.0.0-py_0.tar.bz2": {
-      "build": "py_0",
-      "build_number": 0,
-      "depends": [
-        "python"
-      ],
-      "md5": "44c0ed235bc83e2527c868bd6583eb24",
-      "name": "sample_noarch_python",
-      "noarch": "python",
-      "sha256": "3ffaff48173f6af5af7505c526ce4333b8897e9930aee7b4a17f0e30e5a96b3a",
-      "size": 4740,
-      "subdir": "noarch",
-      "timestamp": 1730835517361,
-      "version": "1.0.0"
-    },
-    "track_feature-1.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "1c8a55af8e11e0ee8318bc23e8464a2e",
-      "name": "track_feature",
-      "noarch": "generic",
-      "sha256": "9d74b60bea9a41b550fbb7c6ce32d5107e754a36fc91469ef7ae82eaf27be9f4",
-      "size": 2540,
-      "subdir": "noarch",
-      "timestamp": 1706117932958,
-      "track_features": "track_feature1",
-      "version": "1.0"
-    },
-    "track_feature-2.0-0.tar.bz2": {
-      "build": "0",
-      "build_number": 0,
-      "depends": [],
-      "md5": "68a3469f4447994bd45f698b2da2c38f",
-      "name": "track_feature",
-      "noarch": "generic",
-      "sha256": "17ea74fd1db033e2cb419b61a41427c91583049161b21e20342183eff8de3be2",
-      "size": 2552,
-      "subdir": "noarch",
-      "timestamp": 1706117933301,
-      "track_features": "track_feature2",
-      "version": "2.0"
-    }
-  },
-  "packages.conda": {
     "buildstring-1.0-versioned_1.conda": {
       "build": "versioned_1",
       "build_number": 0,
@@ -353,13 +54,13 @@
         "versioned 1.*"
       ],
       "license": "BSD-3-Clause",
-      "md5": "774e0c717175956098d10394754989f2",
+      "md5": "71fbdec9935747d7b37d963fc9ac5fa0",
       "name": "buildstring",
       "noarch": "generic",
-      "sha256": "1e1c9b120afbb59310a32478383666f5ab7316d1f26d8becada7c32e7046abe8",
-      "size": 3942,
+      "sha256": "e4ab8b64783d0f6fb48f1d52e8fbf4613a3d07566f18d9d10c8a9cee8fc81fc2",
+      "size": 4016,
       "subdir": "noarch",
-      "timestamp": 1777585786624,
+      "timestamp": 1785276618072,
       "version": "1.0"
     },
     "buildstring-1.0-versioned_2.conda": {
@@ -369,27 +70,280 @@
         "versioned 2.*"
       ],
       "license": "BSD-3-Clause",
-      "md5": "0a87cfc6013a10badb6f618c7e574e6f",
+      "md5": "9e22ed4a4b41912164f756947abe5108",
       "name": "buildstring",
       "noarch": "generic",
-      "sha256": "415fa4862f1fa8a3beff20b233fd18448377d1c22264d99b900348943a540615",
-      "size": 3936,
+      "sha256": "e4d7d1c3dba29b17d2855898c2cd5ba610672f391b15ad4fbe634f61228e8e7a",
+      "size": 4004,
       "subdir": "noarch",
-      "timestamp": 1777585785524,
+      "timestamp": 1785276619221,
       "version": "1.0"
     },
-    "post_link_run_in_env_package-1.0.0-0.conda": {
+    "clobber-a-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [],
-      "md5": "33f97ce8a6edca7239176ff508d10b3a",
+      "md5": "6f1a90237f17e819a5f8c5753b4fd2f8",
+      "name": "clobber-a",
+      "noarch": "generic",
+      "sha256": "f5a7548e69725f3bf2995f62d78785902c6bbc1ed91d2b1ca17158ceff8cb9c4",
+      "size": 4179,
+      "subdir": "noarch",
+      "timestamp": 1785276626362,
+      "version": "1.0"
+    },
+    "clobber-b-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "0a848fe5915d8b98fc4bdd96ddf21743",
+      "name": "clobber-b",
+      "noarch": "generic",
+      "sha256": "f341c7f6a3954082c2d5464c70f35e50570da8f930deb4efe1ac79fa88c4eea7",
+      "size": 4186,
+      "subdir": "noarch",
+      "timestamp": 1785276623744,
+      "version": "1.0"
+    },
+    "dependency-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "46ae8016c479559a645bf34aa6f9f27b",
+      "name": "dependency",
+      "noarch": "generic",
+      "sha256": "df04e0b4bbb159ce69d6996d152b32b61b698bf6f692995a3367d413929343a9",
+      "size": 3905,
+      "subdir": "noarch",
+      "timestamp": 1785276634075,
+      "version": "1.0"
+    },
+    "dependency-2.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "21795447ae91d30198e3839aad978c57",
+      "name": "dependency",
+      "noarch": "generic",
+      "sha256": "4df38132cf16e894b75290c0f425c9276f715acc150fbdfc2a2526e0c115cc68",
+      "size": 3919,
+      "subdir": "noarch",
+      "timestamp": 1785276632284,
+      "version": "2.0"
+    },
+    "dependent-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "dependency >=1.0,<2.0a0"
+      ],
+      "md5": "1727bf80191dd87b19c2deb3c45f7dd3",
+      "name": "dependent",
+      "noarch": "generic",
+      "sha256": "df9d9b8cd5dc7025f78f2286c4b0639d06a03edc641dadd5fcba16be246cbe99",
+      "size": 3898,
+      "subdir": "noarch",
+      "timestamp": 1785276634298,
+      "version": "1.0"
+    },
+    "dependent-2.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "dependency >=2.0,<3.0a0"
+      ],
+      "md5": "010c65424748fa33908faad094af0c84",
+      "name": "dependent",
+      "noarch": "generic",
+      "sha256": "0f4ef520a859d195e27976d826dcd32c0bfeabb92ea5b0cc5f9501043446ce51",
+      "size": 3903,
+      "subdir": "noarch",
+      "timestamp": 1785276632599,
+      "version": "2.0"
+    },
+    "failing_post_link-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "5532c37d11a5f6bc7b55cf51b284af03",
+      "name": "failing_post_link",
+      "noarch": "generic",
+      "sha256": "c7ae90de2aa49e10b04a1dad48a4fb2e2a271c4fe7d91f5fc6db33f0e7b1e594",
+      "size": 4327,
+      "subdir": "noarch",
+      "timestamp": 1785276638876,
+      "version": "1.0"
+    },
+    "feature-1.0-track_feature1_0.conda": {
+      "build": "track_feature1_0",
+      "build_number": 0,
+      "depends": [
+        "track_feature"
+      ],
+      "features": "track_feature1",
+      "md5": "b083e6aadb1adee993ae7d5df545bd60",
+      "name": "feature",
+      "noarch": "generic",
+      "sha256": "36159734a0c773eb6e496c2226749ea4d954e3c7cd13f17b13c3043c1c597811",
+      "size": 3953,
+      "subdir": "noarch",
+      "timestamp": 1785276644976,
+      "version": "1.0"
+    },
+    "feature-2.0-track_feature2_0.conda": {
+      "build": "track_feature2_0",
+      "build_number": 0,
+      "depends": [
+        "track_feature"
+      ],
+      "features": "track_feature2",
+      "md5": "20d095d10dd911b2580a9e969b16dbec",
+      "name": "feature",
+      "noarch": "generic",
+      "sha256": "2886070bfa5698fd80498bcfdfe9552854d28f9c36b9a214fdec6593a433bcb7",
+      "size": 3947,
+      "subdir": "noarch",
+      "timestamp": 1785276643842,
+      "version": "2.0"
+    },
+    "other_dependent-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "dependent"
+      ],
+      "md5": "80e595d4126c01a26bf67113721e6a20",
+      "name": "other_dependent",
+      "noarch": "generic",
+      "sha256": "197b7781aed7ac516feba956a75810504a80c575a6667c09e669e5b5df7d08b7",
+      "size": 3881,
+      "subdir": "noarch",
+      "timestamp": 1785276650099,
+      "version": "1.0"
+    },
+    "pip-99.99.99-py399_0.conda": {
+      "build": "py399_0",
+      "build_number": 0,
+      "depends": [
+        "python >=3.99,<3.100.0a0"
+      ],
+      "md5": "b287f54b1bab28ffbea5fae1306a7205",
+      "name": "pip",
+      "noarch": "generic",
+      "sha256": "472f68b900e20112c1c3722c50745be3fd04c8ff9c2c285ba7f8d6db312fe735",
+      "size": 3874,
+      "subdir": "noarch",
+      "timestamp": 1785276657095,
+      "version": "99.99.99"
+    },
+    "post_link-b-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "38cae3d619c6e05036f486a1c30cd04f",
+      "name": "post_link-b",
+      "noarch": "generic",
+      "sha256": "da9049b81269d35ac263b6f4b29b4b453ac383a2acac09489fb44acd3521028e",
+      "size": 4133,
+      "subdir": "noarch",
+      "timestamp": 1785276665270,
+      "version": "1.0"
+    },
+    "post_link-c-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "post_link-b"
+      ],
+      "md5": "7faf32b7232782a909e693cacad3fe4b",
+      "name": "post_link-c",
+      "noarch": "generic",
+      "sha256": "b6abd427be000f08a6c5a546f136d1e5b682eeddf7c5c5c97084ed13e324fd4c",
+      "size": 4260,
+      "subdir": "noarch",
+      "timestamp": 1785276669989,
+      "version": "1.0"
+    },
+    "post_link-d-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "post_link-e"
+      ],
+      "md5": "2554e3040e4ef53f309549baa35300f4",
+      "name": "post_link-d",
+      "noarch": "generic",
+      "sha256": "3c4703bbd4cff06666900a15ed74020ebe3e41006638c2fc639e2b4d7107514e",
+      "size": 4207,
+      "subdir": "noarch",
+      "timestamp": 1785276675612,
+      "version": "1.0"
+    },
+    "post_link-e-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "d175b8513ab131e489d61c7b6183c6d4",
+      "name": "post_link-e",
+      "noarch": "generic",
+      "sha256": "00ef00f75bec3192aeb12110982c7d4224411466e04a819c38afbae15de399d7",
+      "size": 4226,
+      "subdir": "noarch",
+      "timestamp": 1785276677975,
+      "version": "1.0"
+    },
+    "post_link_run_in_env_package-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "8140879aabd85dd54da42df13699a07f",
       "name": "post_link_run_in_env_package",
       "noarch": "generic",
-      "sha256": "219ea9e363709e782cd3ac6feb715b4a72e4dbe52c23620c0978132d1aee9481",
-      "size": 5038,
+      "sha256": "5947103999930b6da15c8fb8bbbd2c42b8f572e8cd40953f223db588ca275efb",
+      "size": 5250,
       "subdir": "noarch",
-      "timestamp": 1737753459620,
-      "version": "1.0.0"
+      "timestamp": 1785276661464,
+      "version": "1.0"
+    },
+    "pre_link_messages_package-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "799182444edc5b02d0277973af5310a1",
+      "name": "pre_link_messages_package",
+      "noarch": "generic",
+      "sha256": "8914e1bdbed1a535a2cc2b4d0bd9ebd62b177e0ee58bac43abce3a98b6103414",
+      "size": 4153,
+      "subdir": "noarch",
+      "timestamp": 1785276679748,
+      "version": "1.0"
+    },
+    "private-package-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "d3740a57296f346632ddd39f5af27f56",
+      "name": "private-package",
+      "noarch": "generic",
+      "sha256": "290369b1dda21daa1ed17d533a2f85062c38e24e917ff1c55647851f9ad76694",
+      "size": 4139,
+      "subdir": "noarch",
+      "timestamp": 1785276683552,
+      "version": "1.0"
+    },
+    "python-3.99.99-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "c21c61494fef1028c0cfcb8a687db392",
+      "name": "python",
+      "noarch": "generic",
+      "python_site_packages_path": "lib/python3.99t/site-packages",
+      "sha256": "17c37feb42d345221cc0c1ed4ebaeabff72a48e3d90722e921ad5354906f1f2a",
+      "size": 3854,
+      "subdir": "noarch",
+      "timestamp": 1785276685262,
+      "version": "3.99.99"
     },
     "run_constrained-1.0-0.conda": {
       "build": "0",
@@ -398,27 +352,70 @@
         "dependency>=2.0"
       ],
       "depends": [],
-      "md5": "29e59112ea9693a0876dfcf73163f0ef",
+      "md5": "01258035539c29c0a3fc0c4b9e938552",
       "name": "run_constrained",
       "noarch": "generic",
-      "sha256": "e1a0cef570df26bc3aedb9e11415e0f46adcc4f38ee92066850c2f1d396ffded",
-      "size": 4022,
+      "sha256": "29718733c7a2abff955aa5212753bdc0b9971398d8296020354aa13398bb175d",
+      "size": 3877,
       "subdir": "noarch",
-      "timestamp": 1747922191018,
+      "timestamp": 1785276686988,
       "version": "1.0"
     },
-    "small-executable-1.0.0-0.conda": {
+    "sample_noarch_python-1.0-py_0.conda": {
+      "build": "py_0",
+      "build_number": 0,
+      "depends": [
+        "python"
+      ],
+      "md5": "e1ad57185ec888d52cffca80eac18964",
+      "name": "sample_noarch_python",
+      "noarch": "python",
+      "sha256": "07803e8807debd8924e9749cc2513b08c5f1035806dc2fb7ed3cc6c3d33baea5",
+      "size": 4241,
+      "subdir": "noarch",
+      "timestamp": 1785276706426,
+      "version": "1.0"
+    },
+    "small-executable-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [],
-      "md5": "9b415868f2b3d74d85b349bfd7f74289",
+      "md5": "022da45e9f752f468fe0b517ff2e0ef8",
       "name": "small-executable",
       "noarch": "generic",
-      "sha256": "8dd488bebb78d62b701db1954e56f81b15f38c085bb503fe8da409d6c9e4919d",
-      "size": 4956,
+      "sha256": "079e691db3d6cdfc13047c19b3b8bf2501d820e89820c47eb23eb7e5149d8fef",
+      "size": 4746,
       "subdir": "noarch",
-      "timestamp": 1765401586628,
-      "version": "1.0.0"
+      "timestamp": 1785276711681,
+      "version": "1.0"
+    },
+    "track_feature-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "d35f944adca802014439b1da14efeeae",
+      "name": "track_feature",
+      "noarch": "generic",
+      "sha256": "5f5478a7c8c9ba4d5d39abf9f76b5bda8b832ea10541bf7ffd44a60c50635dbd",
+      "size": 3896,
+      "subdir": "noarch",
+      "timestamp": 1785276713372,
+      "track_features": "track_feature1",
+      "version": "1.0"
+    },
+    "track_feature-2.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "3374787a44b0d21be44417c548c48e7e",
+      "name": "track_feature",
+      "noarch": "generic",
+      "sha256": "53de1511c1899c33c9bf2b7647444495f52c4974a89dd55d5c99087983cbccb5",
+      "size": 3889,
+      "subdir": "noarch",
+      "timestamp": 1785276713854,
+      "track_features": "track_feature2",
+      "version": "2.0"
     },
     "unsatisfiable-1.0-0.conda": {
       "build": "0",
@@ -426,39 +423,39 @@
       "depends": [
         "versioned <1.0"
       ],
-      "md5": "9bf2a6c82ed53fffb502be7fb543712a",
+      "md5": "086716c057909cf46fc22ff592a2f354",
       "name": "unsatisfiable",
       "noarch": "generic",
-      "sha256": "d2b749d293998bfc3e4b41b70391bbc14cd623b798ed78060ac71018cb90a86a",
-      "size": 3769,
+      "sha256": "641d736533ac70bdf718a803106d9821000d23aa9151e0f71c4803e5823ebf26",
+      "size": 3844,
       "subdir": "noarch",
-      "timestamp": 1778020793322,
+      "timestamp": 1785276715533,
       "version": "1.0"
     },
     "versioned-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [],
-      "md5": "0c13023ad81e019fe5e4d13561ecdf0d",
+      "md5": "99f272a87c2b4c38f72352b39c004e47",
       "name": "versioned",
       "noarch": "generic",
-      "sha256": "812ac0539783ea3d4a21ba8393aa040edccbc96894c8c3d299843adae40965cb",
-      "size": 3667,
+      "sha256": "eb00a20fa3c32521d85cfc0591a1aef11cff153dfaefc7fe904818c2590c6e8d",
+      "size": 3814,
       "subdir": "noarch",
-      "timestamp": 1773096845104,
+      "timestamp": 1785276717120,
       "version": "1.0"
     },
     "versioned-2.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [],
-      "md5": "bdd2e8d9245d1a5a0e9feb6b7cb13e66",
+      "md5": "6ef0926e6a0735aa52ea9280869cf0b1",
       "name": "versioned",
       "noarch": "generic",
-      "sha256": "5e1047b1e7d4534ea41ea12e6faed6406f16a1dd352a1db7d3033836111538c4",
-      "size": 3694,
+      "sha256": "eddf8b24062e2d620e7695871e19af67afafbedcf20a7e6b4da5dbedf7ebc4ec",
+      "size": 3838,
       "subdir": "noarch",
-      "timestamp": 1773096845642,
+      "timestamp": 1785276717614,
       "version": "2.0"
     }
   },
