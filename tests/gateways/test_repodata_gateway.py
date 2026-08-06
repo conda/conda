@@ -477,3 +477,24 @@ def test_classic_soft_404_records_no_repodata_json(tmp_path, mocker):
     fetch.repo_cache.save(b"shards")
     fetch.fetch_latest()
     assert fetch.repo_cache.load_state().has_format("repodata_json")[0] is False
+
+
+def test_classic_noarch_404_records_no_repodata_json(tmp_path, mocker):
+    """Record has_repodata_json False when noarch classic 404s and shards are known."""
+    channel = Channel("http://example.com/noarch")
+    mocker.patch.object(
+        CondaRepoInterface,
+        "repodata",
+        side_effect=UnavailableInvalidChannel(channel, 404, response=None),
+    )
+    fetch = RepodataFetch(
+        tmp_path / "cache",
+        channel,
+        REPODATA_FN,
+        repo_interface_cls=CondaRepoInterface,
+    )
+    fetch.repo_cache.state.set_has_format("shards", True)
+    fetch.repo_cache.save(b"shards")
+    with pytest.raises(UnavailableInvalidChannel):
+        fetch.fetch_latest()
+    assert fetch.repo_cache.load_state().has_format("repodata_json")[0] is False
