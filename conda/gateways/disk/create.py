@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Disk utility functions for creating new files or directories."""
 
+import errno
 import os
 import sys
 import tempfile
 import warnings as _warnings
-from errno import EACCES, EPERM, EROFS
+from ctypes import CDLL, c_char_p, c_int, get_errno
+from errno import EACCES, ENOSYS, EPERM, EROFS, EXDEV
 from logging import getLogger
 from os.path import dirname, isdir, isfile, join, splitext
 from shutil import copyfileobj, copystat
@@ -15,7 +17,7 @@ from ... import CondaError
 from ...auxlib.ish import dals
 from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
-from ...common.compat import on_win
+from ...common.compat import on_mac, on_win
 from ...common.constants import TRACE
 from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
 from ...common.path.python import is_valid_import_path
@@ -90,6 +92,20 @@ deprecated.constant(
     getLogger("conda.stdoutlog"),
     addendum="Use `conda.gateways.streams.stdoutlog` instead.",
 )
+
+_CLONEFILE_UNSUPPORTED_ERRNOS = frozenset(
+    error
+    for error in (
+        EXDEV,
+        ENOSYS,
+        getattr(errno, "ENOTSUP", None),
+        getattr(errno, "EOPNOTSUPP", None),
+    )
+    if error is not None
+)
+_CLONEFILE_UNSUPPORTED_DEVICES: set[tuple[int, int]] = set()
+_CLONEFILE_UNAVAILABLE = object()
+_CLONEFILE = None
 
 # in __init__.py to help with circular imports
 mkdir_p = mkdir_p
@@ -322,7 +338,61 @@ def copy(src, dst):
             log.log(TRACE, "soft linking %s => %s", src, dst)
             symlink(src_points_to, dst)
             return
+    # APFS clonefile gives copy-on-write semantics for normal copy requests.
+    # Keep this copy-scoped: clonefile does not raise hardlink refcounts, so
+    # package-cache cleanup cannot treat it as a normal cache-linked install.
+    if _clone_file(src, dst):
+        try:
+            copystat(src, dst)
+        except OSError as e:  # pragma: no cover
+            log.debug("%r", e)
+        return
     _do_copy(src, dst)
+
+
+def _clone_file(src, dst):
+    """Create a copy-on-write clone when supported.
+
+    Returns:
+        True when cloning succeeds, or False to use the normal copy fallback.
+    """
+    if not on_mac or islink(src) or lexists(dst):
+        return False
+    try:
+        src_dev = os.stat(src).st_dev
+        dst_dev = os.stat(dirname(dst) or ".").st_dev
+    except OSError:
+        return False
+    device_pair = (src_dev, dst_dev)
+    if device_pair in _CLONEFILE_UNSUPPORTED_DEVICES:
+        return False
+
+    global _CLONEFILE
+    # Resolve clonefile lazily so importing conda stays portable and cheap.
+    if _CLONEFILE is _CLONEFILE_UNAVAILABLE:
+        return False
+    if _CLONEFILE is None:
+        try:
+            clonefile = CDLL(None, use_errno=True).clonefile
+        except AttributeError:
+            _CLONEFILE = _CLONEFILE_UNAVAILABLE
+            return False
+        clonefile.argtypes = (c_char_p, c_char_p, c_int)
+        clonefile.restype = c_int
+        _CLONEFILE = clonefile
+
+    if _CLONEFILE(os.fsencode(src), os.fsencode(dst), 0) == 0:
+        log.log(TRACE, "cloning %s => %s", src, dst)
+        return True
+    errno = get_errno()
+    log.debug("clonefile failed with errno %s for %s => %s", errno, src, dst)
+    if errno in _CLONEFILE_UNSUPPORTED_ERRNOS:
+        # Cross-device and unsupported filesystem failures are stable for this
+        # source/destination pair; skip repeated clonefile probes.
+        _CLONEFILE_UNSUPPORTED_DEVICES.add(device_pair)
+    if lexists(dst):
+        rm_rf(dst)
+    return False
 
 
 def _do_copy(src, dst):
