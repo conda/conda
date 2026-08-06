@@ -42,17 +42,20 @@ class ChannelNotice(NamedTuple):
         }
 
 
-@deprecated("27.3", "27.9", addendum="Use NoticeBus and _display_notices directly.")
+@deprecated("27.3", "27.9", addendum="Use NoticeBus and show_notices directly.")
 class ChannelNoticeResultSet(NamedTuple):
     """
-    Deprecated: prefer using ``NoticeBus`` + ``_display_notices`` directly.
+    Deprecated: prefer using ``NoticeBus`` + ``show_notices`` directly.
     """
 
     channel_notices: Sequence[ChannelNotice]
+    """Channel notices that are included in this particular set."""
 
     total_number_channel_notices: int
+    """Total number of channel notices; not just the ones that will be displayed."""
 
     viewed_channel_notices: int
+    """The number of channel notices that have already been viewed."""
 
 
 class ChannelNoticeResponse(NamedTuple):

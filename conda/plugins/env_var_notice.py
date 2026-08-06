@@ -1,6 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""POC: display a notice from the CONDA_NOTICE environment variable."""
+"""Built-in plugin: display a notice from the ``CONDA_NOTICE`` environment variable."""
 
 import os
 
@@ -17,5 +17,4 @@ def conda_notices():
             name="env-var-notice",
             message=message,
             level=NoticeLevel.INFO,
-            # created_at=datetime.now(timezone.utc),
         )

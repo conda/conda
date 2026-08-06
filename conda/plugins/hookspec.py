@@ -942,7 +942,7 @@ class CondaSpecs:
         Notices yielded by this hook are merged into conda's notice pipeline
         alongside channel notices. They inherit deduplication via viewed-ID
         tracking and structured output. Plugin notices are collected on every
-        decorated command; the 24-hour channel-notice fetch interval applies
+        CLI subcommand; the 24-hour channel-notice fetch interval applies
         only to ``notices.json`` HTTP fetches, not to this hook.
 
         The ``name`` field (inherited from :class:`~conda.plugins.types.CondaPlugin`)

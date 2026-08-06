@@ -82,7 +82,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 channel_name_urls, silent=False, force=True
             )
 
-        notices._display_notices(
+        notices.show_notices(
             NoticeBus.consume(),
             always_show_viewed=True,
         )

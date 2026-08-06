@@ -318,15 +318,14 @@ def test_notices_appear_once_when_running_decorated_commands(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
     )
 
-    # First run of install; notices should be retrieved once per subdir queried
-    # (the channel's platform subdir and noarch), each resolving to the same
-    # channel-root notices.json URL per CEP-6; it's okay that this function
+    # First run of create; notices should be retrieved once for the channel
+    # (short-circuited after the first RepodataFetch in the command), targeting
+    # the channel-root notices.json per CEP-6; it's okay that this function
     # fails to install anything.
     conda_cli("create", "--name", env_one, "--yes", "--channel", test_recipes_channel)
 
-    # make sure our fetch function was called once per subdir queried, all
-    # targeting the channel-root notices.json (not a per-subdir one)
-    assert fetch_mock.call_count == 2
+    # One get_notice_responses call for the channel-root notices.json
+    assert fetch_mock.call_count == 1
     actual_urls = {call.args[0][0][0] for call in fetch_mock.call_args_list}
     assert actual_urls == {path_to_url(str(test_recipes_channel / "notices.json"))}
 

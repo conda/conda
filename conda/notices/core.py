@@ -74,10 +74,14 @@ def retrieve_notices(
     return result
 
 
-@deprecated("27.3", "27.9", addendum="Use _display_notices() with NoticeBus.consume().")
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use show_notices() with notices from NoticeBus.consume().",
+)
 def display_notices(channel_notice_set: ChannelNoticeResultSet) -> None:
     """
-    Deprecated: prefer ``_display_notices()`` with notices from
+    Deprecated: prefer ``show_notices()`` with notices from
     ``NoticeBus.consume()``.
     """
     from . import cache, views
@@ -102,24 +106,33 @@ def broadcast_channel_notices(
 ) -> None:
     """Fetch notices.json for each (name, url) and broadcast to the bus.
 
-    Gated on ``number_channel_notices``, offline mode, and the channel-notice
-    fetch interval (``NOTICES_DECORATOR_DISPLAY_INTERVAL``) unless ``force`` is
-    set.  Pass ``force=True`` for explicit ``conda notices`` invocations.
+    When ``force`` is False (repodata side effect), gated on
+    ``is_channel_notices_enabled`` (configured + not ``--json``), the
+    channel-notice fetch interval, and at most one attempt per command.
+    Pass ``force=True`` for explicit ``conda notices`` invocations (still
+    requires ``channel_notices_configured``).
 
     Args:
         url_and_names: Sequence of ``(url, channel_name)`` tuples.
         silent: Whether to suppress the spinner during fetch (default ``True``).
-        force: Bypass the fetch-interval gate (default ``False``).
+        force: Bypass JSON / fetch-interval gates (default ``False``).
     """
-    if context.number_channel_notices == 0 or context.offline:
-        return
-
-    if not force and not is_channel_notices_cache_expired():
-        return
+    if force:
+        if not channel_notices_configured(context):
+            return
+        NoticeBus.mark_channel_fetch()
+    else:
+        if not is_channel_notices_enabled(context):
+            return
+        if not is_channel_notices_cache_expired():
+            return
+        # Claim before I/O so concurrent RepodataFetch callers (one per subdir)
+        # do not each hit notices.json.
+        if not NoticeBus.try_begin_channel_fetch():
+            return
 
     from . import fetch
 
-    NoticeBus.mark_channel_fetch()
     for response in fetch.get_notice_responses(url_and_names, silent=silent):
         for notice in response.notices:
             NoticeBus.broadcast(notice)
@@ -151,7 +164,7 @@ def broadcast_plugin_notices() -> None:
         )
 
 
-def _display_notices(
+def show_notices(
     notices: Sequence[ChannelNotice],
     *,
     limit: int | None = None,
@@ -195,7 +208,7 @@ def run_notices_sandwich(func):
     """Run a nullary callable within the notices pub/sub lifecycle.
 
     Plugin notices are broadcast first.  ``func`` runs next (during which
-    channel notices may be broadcast via ``SubdirData``).  Accumulated
+    channel notices may be broadcast via ``RepodataFetch``).  Accumulated
     notices are displayed afterward and the channel fetch interval is
     committed when any channel fetch ran.
 
@@ -205,32 +218,35 @@ def run_notices_sandwich(func):
     broadcast_plugin_notices()
 
     try:
+        # Load display deps before the command: upgrading/downgrading base
+        # python rewrites site-packages under the running interpreter, so
+        # show_notices() must not be the first import of views.
+        # see https://github.com/conda/conda/issues/16126
         from . import cache, views  # noqa: F401
 
         result = func()
 
-        if not context.json:
-            _display_notices(
-                NoticeBus.consume(),
-                limit=context.number_channel_notices,
-            )
-        else:
-            NoticeBus.consume()
+        notices = NoticeBus.consume()
+        if notices_display_enabled(context):
+            show_notices(notices, limit=context.number_channel_notices)
 
         NoticeBus.commit_channel_fetch_interval()
         return result
 
     except Exception:
+        # Skip interval commit on failure (flag reset). Do not clear viewed-ID
+        # / response caches: do_call wraps every subcommand, so wiping them
+        # here would re-show notices after routine command failures.
         NoticeBus._channel_fetches_this_command = False
-        try:
-            from . import cache
-
-            cache.clear_cache()
-        except OSError:
-            pass
         raise
 
 
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="do_call() wraps all CLI subcommands in run_notices_sandwich(); "
+    "the decorator is a no-op.",
+)
 def notices(func):
     """Legacy decorator retained for compatibility; ``do_call()`` wraps subcommands."""
     return func
@@ -286,19 +302,26 @@ def filter_notices(
     return channel_notices
 
 
+def channel_notices_configured(ctx: Context) -> bool:
+    """Whether channel-notice fetching is configured (count > 0, not offline).
+
+    Used by explicit ``conda notices`` (``force=True``) and as the base for
+    automatic enablement. Does not consider ``--json``.
+    """
+    return ctx.number_channel_notices > 0 and not ctx.offline
+
+
 def is_channel_notices_enabled(ctx: Context) -> bool:
-    """
-    Determines whether channel notices are enabled for CLI subcommands.
+    """Whether automatic channel-notice fetch should run for a CLI command.
 
-    This only happens when:
-     - offline is False
-     - number_channel_notices is greater than 0
-     - json output is not requested
-
-    Args:
-        ctx: The conda context object
+    Requires :func:`channel_notices_configured` and non-JSON output.
     """
-    return ctx.number_channel_notices > 0 and not ctx.offline and not ctx.json
+    return channel_notices_configured(ctx) and notices_display_enabled(ctx)
+
+
+def notices_display_enabled(ctx: Context) -> bool:
+    """Whether notice text should be printed (suppressed under ``--json``)."""
+    return not ctx.json
 
 
 def is_channel_notices_cache_expired() -> bool:

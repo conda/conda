@@ -4,5 +4,7 @@
 
 ### Deprecations
 
-* Deprecate `conda.notices.retrieve_notices` (pending removal in 27.9). Use `broadcast_channel_notices()`, `broadcast_plugin_notices()`, and `NoticeBus` directly. (#14157)
-* Deprecate `conda.notices.display_notices` (pending removal in 27.9). Use `_display_notices()` instead. (#14157)
+* Mark `conda.notices.core.retrieve_notices` as pending deprecation, to be removed in 27.9. Use `broadcast_channel_notices()`, `broadcast_plugin_notices()`, and `NoticeBus` directly. (#14157)
+* Mark `conda.notices.core.display_notices` as pending deprecation, to be removed in 27.9. Use `show_notices()` with notices from `NoticeBus.consume()` instead. (#14157)
+* Mark `conda.notices.types.ChannelNoticeResultSet` as pending deprecation, to be removed in 27.9. Use `NoticeBus` and `show_notices()` instead. (#14157)
+* Mark `conda.notices.core.notices` as pending deprecation, to be removed in 27.9. `do_call()` wraps all CLI subcommands in `run_notices_sandwich()`; the decorator is a no-op. (#14157)

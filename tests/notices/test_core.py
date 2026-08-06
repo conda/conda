@@ -3,6 +3,7 @@
 import pytest
 
 from conda.base.context import reset_context
+from conda.models.channel import Channel
 from conda.notices import core as notices
 from conda.notices.dispatch import NoticeBus
 from conda.testing.notices.helpers import (
@@ -13,6 +14,10 @@ from conda.testing.notices.helpers import (
 )
 
 
+def _defaults_notice_urls():
+    return notices.get_channel_name_and_urls([Channel("defaults")])
+
+
 @pytest.mark.parametrize("status_code", (200, 404, 500))
 def test_display_notices_happy_path(
     status_code,
@@ -21,9 +26,7 @@ def test_display_notices_happy_path(
     notices_mock_fetch_get_session,
     monkeypatch,
 ):
-    """
-    Happy path for displaying notices via the bus.
-    """
+    """Happy path for displaying notices via the bus."""
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
     reset_context()
     messages = ("Test One", "Test Two")
@@ -31,14 +34,9 @@ def test_display_notices_happy_path(
     add_resp_to_mock(notices_mock_fetch_get_session, status_code, messages_json)
 
     NoticeBus.clear()
-    notices.broadcast_channel_notices(
-        notices.get_channel_name_and_urls(
-            [__import__("conda").models.channel.Channel("defaults")]
-        ),
-        force=True,
-    )
+    notices.broadcast_channel_notices(_defaults_notice_urls(), force=True)
     bulletin = NoticeBus.consume()
-    notices._display_notices(bulletin, always_show_viewed=True)
+    notices.show_notices(bulletin, always_show_viewed=True)
     captured = capsys.readouterr()
 
     assert captured.err == ""
@@ -51,14 +49,9 @@ def test_display_notices_happy_path(
 
     # Second display should show the same notices again (always_show_viewed=True)
     NoticeBus.clear()
-    notices.broadcast_channel_notices(
-        notices.get_channel_name_and_urls(
-            [__import__("conda").models.channel.Channel("defaults")]
-        ),
-        force=True,
-    )
+    notices.broadcast_channel_notices(_defaults_notice_urls(), force=True)
     bulletin = NoticeBus.consume()
-    notices._display_notices(bulletin, always_show_viewed=True)
+    notices.show_notices(bulletin, always_show_viewed=True)
     captured = capsys.readouterr()
 
     assert captured.err == ""
@@ -76,7 +69,7 @@ def test_notices_decorator(
     """
     Exercise the ``do_call`` notices sandwich via ``run_notices_sandwich``.
 
-    Channel notices are broadcast during the command (simulating ``SubdirData``).
+    Channel notices are broadcast during the command (simulating ``RepodataFetch``).
     """
     monkeypatch.setenv("CONDA_CHANNELS", "defaults")
     reset_context()
@@ -86,13 +79,7 @@ def test_notices_decorator(
     dummy_mesg = "Dummy mesg"
 
     def dummy(args, parser):
-        NoticeBus.clear()
-        notices.broadcast_channel_notices(
-            notices.get_channel_name_and_urls(
-                [__import__("conda").models.channel.Channel("defaults")]
-            ),
-            force=True,
-        )
+        notices.broadcast_channel_notices(_defaults_notice_urls(), force=True)
         print(dummy_mesg)
 
     dummy_args = DummyArgs(toves="slithy")
@@ -125,13 +112,7 @@ def test__conda_user_story__only_see_once(
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
     def dummy(args, parser):
-        NoticeBus.clear()
-        notices.broadcast_channel_notices(
-            notices.get_channel_name_and_urls(
-                [__import__("conda").models.channel.Channel("defaults")]
-            ),
-            force=True,
-        )
+        notices.broadcast_channel_notices(_defaults_notice_urls(), force=True)
         print(dummy_mesg)
 
     dummy_args = DummyArgs()
@@ -198,13 +179,7 @@ def test__conda_user_story__more_notices_message(
     add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
 
     def dummy(args, parser):
-        NoticeBus.clear()
-        notices.broadcast_channel_notices(
-            notices.get_channel_name_and_urls(
-                [__import__("conda").models.channel.Channel("defaults")]
-            ),
-            force=True,
-        )
+        notices.broadcast_channel_notices(_defaults_notice_urls(), force=True)
 
     notices.run_notices_sandwich(lambda: dummy(None, None))
 
@@ -236,17 +211,37 @@ def test_broadcast_channel_notices_respects_fetch_interval(
         wraps=notices_fetch.get_notice_responses,
     )
 
-    notices.broadcast_channel_notices(
-        notices.get_channel_name_and_urls(
-            [__import__("conda").models.channel.Channel("defaults")]
-        )
-    )
+    NoticeBus.clear()
+    notices.broadcast_channel_notices(_defaults_notice_urls())
     fetch_mock.assert_not_called()
 
-    notices.broadcast_channel_notices(
-        notices.get_channel_name_and_urls(
-            [__import__("conda").models.channel.Channel("defaults")]
-        ),
-        force=True,
+    notices.broadcast_channel_notices(_defaults_notice_urls(), force=True)
+    fetch_mock.assert_called_once()
+
+
+def test_broadcast_channel_notices_once_per_command(
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+    monkeypatch,
+    mocker,
+):
+    """Within one command, only the first non-force broadcast fetches."""
+    from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
+    from conda.notices import fetch as notices_fetch
+    from conda.testing.notices.helpers import offset_cache_file_mtime
+
+    monkeypatch.setenv("CONDA_CHANNELS", "defaults")
+    reset_context()
+    messages_json = get_test_notices(("Test One",))
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
+    offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
+
+    fetch_mock = mocker.patch(
+        "conda.notices.fetch.get_notice_responses",
+        wraps=notices_fetch.get_notice_responses,
     )
+
+    NoticeBus.clear()
+    notices.broadcast_channel_notices(_defaults_notice_urls())
+    notices.broadcast_channel_notices(_defaults_notice_urls())
     fetch_mock.assert_called_once()

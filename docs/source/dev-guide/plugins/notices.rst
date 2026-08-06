@@ -5,8 +5,10 @@ Notices
 Conda's channel-notices feature (see :doc:`/commands/notices`) can be extended with
 the ``conda_notices`` plugin hook. Write a plugin that yields
 :class:`~conda.plugins.types.CondaNotice` entries and they will be merged into the
-same notice pipeline as channel notices, displayed once per command after ``create``,
-``install``, ``update``, ``env create``, ``env update``, or an explicit ``conda notices``.
+same notice pipeline as channel notices. Plugin notices are collected on every CLI
+subcommand (via ``do_call``); channel notices are fetched as a side effect of
+repodata loading (subject to the 24-hour fetch interval). An explicit
+``conda notices`` always refreshes and displays.
 
 Basic Plugin Notice
 ====================
@@ -44,8 +46,8 @@ Controlling re-display with ``name``
 =====================================
 
 Unlike channel notices, plugin notices are **not** subject to the 24-hour
-channel-notice fetch interval — ``conda_notices`` is called on every decorated
-command. Whether a user sees the same notice again is controlled entirely by
+channel-notice fetch interval — ``conda_notices`` is called on every CLI
+subcommand. Whether a user sees the same notice again is controlled entirely by
 ``name``:
 
 - A **static** ``name`` (like the example above) is shown once, then suppressed on
@@ -78,6 +80,14 @@ fetch, with:
 .. code-block:: bash
 
    conda notices --plugin
+
+Built-in example: ``CONDA_NOTICE``
+===================================
+
+Conda ships a small built-in implementation that yields a notice when the
+``CONDA_NOTICE`` environment variable is set. Useful for manual testing::
+
+   CONDA_NOTICE="hello from the notices hook" conda info
 
 API Reference
 ==============

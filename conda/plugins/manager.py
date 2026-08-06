@@ -1300,7 +1300,7 @@ class CondaPluginManager(pluggy.PluginManager):
         Each yielded :class:`~conda.plugins.types.CondaNotice` carries a
         ``.impl`` attribute (set by the hook execution wrapper) that can be
         used to trace back to the originating plugin via
-        ``notice.impl.plugin.plugin_name``.
+        ``notice.impl.plugin_name``.
 
         :return: A list of :class:`~conda.plugins.types.CondaNotice` entries.
         """

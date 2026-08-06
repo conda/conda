@@ -9,6 +9,7 @@ notices lifecycle and consumes/renders afterward.
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -28,6 +29,7 @@ class NoticeBus:
     _notices: ClassVar[list[ChannelNotice]] = []
     _ids: ClassVar[set[str]] = set()
     _channel_fetches_this_command: ClassVar[bool] = False
+    _channel_fetch_lock = threading.Lock()
 
     @classmethod
     def broadcast(cls, notice: ChannelNotice) -> None:
@@ -53,8 +55,21 @@ class NoticeBus:
         cls._channel_fetches_this_command = True
 
     @classmethod
+    def try_begin_channel_fetch(cls) -> bool:
+        """Claim the once-per-command channel-notice fetch slot.
+
+        Returns True if this caller should perform the fetch. Safe under
+        concurrent ``RepodataFetch`` calls for multiple subdirs.
+        """
+        with cls._channel_fetch_lock:
+            if cls._channel_fetches_this_command:
+                return False
+            cls._channel_fetches_this_command = True
+            return True
+
+    @classmethod
     def commit_channel_fetch_interval(cls) -> None:
-        """Reset the channel-notice fetch interval after a decorated command."""
+        """Reset the channel-notice fetch interval after a command."""
         if cls._channel_fetches_this_command:
             from . import cache
 
