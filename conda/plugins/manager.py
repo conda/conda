@@ -19,8 +19,9 @@ from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
 from email.message import Message
-from importlib.metadata import distributions
+from importlib.metadata import PathDistribution, distributions
 from inspect import getmodule, isclass, signature
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, overload
 
 import pluggy
@@ -72,7 +73,8 @@ if TYPE_CHECKING:
     from ..core.path_actions import Action
     from ..core.solve import Solver
     from ..models.match_spec import MatchSpec
-    from ..models.records import PackageRecord
+    from ..models.package_info import PackageInfo
+    from ..models.records import PackageRecord, PrefixRecord
     from .types import (
         CondaAuthHandler,
         CondaEnvironmentExporter,
@@ -232,6 +234,39 @@ class CondaPluginManager(pluggy.PluginManager):
                 hook_names.append(hook_name[len(hook_prefix) :])
 
         return sorted(hook_names)
+
+    def is_conda_plugin_package(
+        self,
+        package: PackageInfo | PrefixRecord,
+        prefix: PathType | None = None,
+    ) -> bool:
+        """Return whether package contents declare conda plugin entry points."""
+        package_root = prefix or getattr(package, "extracted_package_dir", None)
+        paths_data = getattr(package, "paths_data", None)
+        if not package_root or not paths_data:
+            return False
+
+        for path_data in paths_data.paths:
+            relative_path = PurePosixPath(path_data.path.replace("\\", "/"))
+            if (
+                relative_path.is_absolute()
+                or relative_path.name != "entry_points.txt"
+                or not any(
+                    part.endswith((".dist-info", ".egg-info"))
+                    for part in relative_path.parts
+                )
+            ):
+                continue
+
+            path = Path(package_root, *relative_path.parts)
+            with suppress(OSError, UnicodeDecodeError, ValueError):
+                if any(
+                    entry_point.group == self.project_name
+                    for entry_point in PathDistribution(path.parent).entry_points
+                ):
+                    return True
+
+        return False
 
     def get_installed_plugins(self) -> list[PluginInfo]:
         """Return metadata for installed entry-point conda plugins."""

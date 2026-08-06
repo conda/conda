@@ -404,7 +404,11 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
     return solver_mode_options
 
 
-def add_parser_update_modifiers(solver_mode_options: ArgumentParser):
+def add_parser_update_modifiers(
+    solver_mode_options: ArgumentParser,
+    *,
+    include_update_all: bool = True,
+):
     from ..base.constants import UpdateModifier
     from ..common.constants import NULL
 
@@ -439,15 +443,16 @@ def add_parser_update_modifiers(solver_mode_options: ArgumentParser):
         "'conda config --describe aggressive_update_packages' to view your setting. "
         "--satisfied-skip-solve is similar to the default behavior of 'pip install'.",
     )
-    update_modifiers.add_argument(
-        "--update-all",
-        "--all",
-        action="store_const",
-        const=UpdateModifier.UPDATE_ALL,
-        dest="update_modifier",
-        help="Update all installed packages in the environment.",
-        default=NULL,
-    )
+    if include_update_all:
+        update_modifiers.add_argument(
+            "--update-all",
+            "--all",
+            action="store_const",
+            const=UpdateModifier.UPDATE_ALL,
+            dest="update_modifier",
+            help="Update all installed packages in the environment.",
+            default=NULL,
+        )
     update_modifiers.add_argument(
         "--update-specs",
         action="store_const",
