@@ -46,19 +46,19 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Examples:
 
-        Remove the package 'scipy' from the currently-active environment::
+        Remove the package 'scipy' from the currently-active environment:
 
             conda remove scipy
 
-        Remove a list of packages from an environment 'myenv'::
+        Remove a list of packages from an environment 'myenv':
 
             conda remove -n myenv scipy curl wheel
 
-        Remove all packages from environment `myenv` and the environment itself::
+        Remove all packages from environment `myenv` and the environment itself:
 
             conda remove -n myenv --all
 
-        Remove all packages from the environment `myenv` but retain the environment::
+        Remove all packages from the environment `myenv` but retain the environment:
 
             conda remove -n myenv --all --keep-env
 

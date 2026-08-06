@@ -37,31 +37,31 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Examples:
 
-        List all packages in the current environment::
+        List all packages in the current environment:
 
             conda list
 
-        List all packages in reverse order::
+        List all packages in reverse order:
 
             conda list --reverse
 
-        List all packages installed into the environment 'myenv'::
+        List all packages installed into the environment 'myenv':
 
             conda list -n myenv
 
-        List all packages that begin with the letters "py", using regex::
+        List all packages that begin with the letters "py", using regex:
 
             conda list ^py
 
-        List name and version only::
+        List name and version only:
 
             conda list --fields name,version
 
-        Save packages for future use::
+        Save packages for future use:
 
             conda list --export > package-list.txt
 
-        Reinstall packages from an export file::
+        Reinstall packages from an export file:
 
             conda create -n myenv --file package-list.txt
 

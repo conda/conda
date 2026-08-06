@@ -31,12 +31,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         Examples:
 
         Compare packages in the current environment with respect
-        to 'environment.yml' located in the current working directory::
+        to 'environment.yml' located in the current working directory:
 
             conda compare environment.yml
 
         Compare packages installed into the environment 'myenv' with respect
-        to 'environment.yml' in a different directory::
+        to 'environment.yml' in a different directory:
 
             conda compare -n myenv path/to/file/environment.yml
 
@@ -96,9 +96,11 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
             errors.append(f"{name} not found")
     if not errors:
         return 0, [
-            "Success. All the packages in the "
-            "specification file are present in the environment "
-            "with matching version and build string."
+            (
+                "Success. All the packages in the "
+                "specification file are present in the environment "
+                "with matching version and build string."
+            )
         ]
     return 1, errors
 

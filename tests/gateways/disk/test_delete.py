@@ -5,12 +5,13 @@ from __future__ import annotations
 import os
 from errno import ENOENT
 from os.path import isdir, isfile, join, lexists
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.common.compat import on_win
 from conda.gateways.disk.create import TemporaryDirectory, create_link, mkdir_p
-from conda.gateways.disk.delete import backoff_rmdir, rm_rf
+from conda.gateways.disk.delete import backoff_rmdir, rm_rf, unlink_or_rename_to_trash
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.test import softlink_supported
@@ -18,6 +19,9 @@ from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
 
 from .test_permissions import _try_open, tempdir
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 def _write_file(path, content):
@@ -167,3 +171,39 @@ def test_try_rmdir_all_empty_doesnt_exist():
         assert isdir(td)
         rm_rf(td)
         assert not isdir(td)
+
+
+def test_unlink_to_rename_to_trash_win_fallback(
+    mocker: MockerFixture,
+):
+    """
+    Test fix for bug: https://github.com/conda/conda/issues/15760
+    """
+    test_path = "idontexist"
+    mocker.patch(
+        "conda.gateways.disk.delete.os.unlink",
+        side_effect=OSError(),
+    )
+    mocker.patch(
+        "conda.gateways.disk.delete.os.rename",
+        side_effect=OSError(),
+    )
+    mocker.patch("conda.gateways.disk.delete.on_win", True)
+    mocker.patch("conda.gateways.disk.delete.exists", return_value=True)
+
+    # Return True on the first isfile check so the while-loop body executes,
+    # then False to exit the loop.
+    mocker.patch(
+        "conda.gateways.disk.delete.isfile",
+        side_effect=[True, False],
+    )
+    mock_check_output = mocker.patch(
+        "conda.gateways.disk.delete.check_output",
+        return_value=b"",
+    )
+
+    unlink_or_rename_to_trash(test_path)
+
+    # The counter suffix must have been applied; dest filename should end with .conda_trash_1
+    call_args = mock_check_output.call_args[0][0]
+    assert call_args[-1].endswith(".conda_trash_1")

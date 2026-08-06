@@ -447,6 +447,109 @@ def test_conda_config_show_for_individual_settings(
         assert out == expected_output
 
 
+def test_conda_config_show_sources_includes_plugin_settings(
+    monkeypatch: MonkeyPatch, condarc_plugin_manager, conda_cli, tmp_path
+):
+    """
+    Ensure that --show-sources merges plugin settings nested under 'plugins' in the
+    plain-text output for each source where plugin settings are configured.
+    """
+    condarc = tmp_path / "condarc"
+    monkeypatch.setenv("CONDARC", str(condarc))
+    out, err, _ = conda_cli(
+        "config",
+        "--file",
+        condarc,
+        "--set",
+        f"plugins.{STRING_PARAMETER_NAME}",
+        "value_one",
+    )
+    assert not err
+
+    out, err, _ = conda_cli("config", "--file", condarc, "--show-sources")
+    assert not err
+    # The file source block must contain a 'plugins:' section with the set value nested inside
+    assert f"plugins:\n  {STRING_PARAMETER_NAME}: value_one" in out
+
+
+def test_conda_config_show_sources_includes_plugin_settings_json(
+    monkeypatch: MonkeyPatch, condarc_plugin_manager, conda_cli, tmp_path
+):
+    """
+    Ensure that --show-sources --json merges plugin settings nested under 'plugins' in
+    the JSON output, keyed by source path.
+    """
+    condarc = tmp_path / "condarc"
+    monkeypatch.setenv("CONDARC", str(condarc))
+    out, err, _ = conda_cli(
+        "config",
+        "--file",
+        condarc,
+        "--set",
+        f"plugins.{STRING_PARAMETER_NAME}",
+        "value_one",
+    )
+    assert not err
+
+    out, err, _ = conda_cli("config", "--file", condarc, "--show-sources", "--json")
+    assert not err
+    data = json.loads(out)
+    # Find the source entry corresponding to the condarc file
+    file_source = next(
+        (v for k, v in data.items() if str(condarc) in k),
+        None,
+    )
+    assert file_source is not None, f"condarc source not found in output: {list(data)}"
+    assert "plugins" in file_source, (
+        f"'plugins' key missing in source entry: {file_source}"
+    )
+    assert file_source["plugins"][STRING_PARAMETER_NAME] == "value_one"
+
+
+def test_conda_config_show_sources_plugin_env_var(
+    monkeypatch: MonkeyPatch, setting_plugin_manager, conda_cli
+):
+    """
+    Ensure that --show-sources includes plugin settings coming from environment variables,
+    nested under 'plugins' in the envvars source entry.
+    """
+    monkeypatch.setenv(
+        f"CONDA_PLUGINS_{STRING_PARAMETER_NAME.upper()}", STRING_PARAMETER_ENV_VAR_VALUE
+    )
+    reset_context()
+
+    out, err, _ = conda_cli("config", "--show-sources", "--json")
+    assert not err
+    data = json.loads(out)
+    assert "plugins" in data.get("envvars", {}), (
+        f"'plugins' key missing from envvars source: {data.get('envvars')}"
+    )
+    assert (
+        data["envvars"]["plugins"][STRING_PARAMETER_NAME]
+        == STRING_PARAMETER_ENV_VAR_VALUE
+    )
+
+
+def test_conda_config_show_sources_no_plugin_key_without_plugin_settings(
+    conda_cli, mocker
+):
+    """
+    Ensure that --show-sources --json does not inject a spurious 'plugins' key into any
+    source when no plugin settings are configured.
+    """
+    mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_hook_results", return_value=[]
+    )
+
+    out, err, _ = conda_cli("config", "--show-sources", "--json")
+    assert not err
+    data = json.loads(out)
+    for source, values in data.items():
+        assert "plugins" not in values, (
+            f"unexpected 'plugins' key in source '{source}': {values}"
+        )
+
+
 @pytest.mark.parametrize(
     "parameter_name, expected_description",
     [

@@ -746,12 +746,32 @@ def _parse_legacy_dist(dist_str):
     return name, version, build
 
 
+def _is_non_alias_url_channel(chn: Channel) -> bool:
+    """Return ``True`` if ``chn`` was constructed from a URL whose location
+    is not ``channel_alias`` (or a migrated alias).
+
+    This is used to decide whether to preserve the explicit URL (``base_url``)
+    of a channel rather than collapsing it through ``canonical_name``.
+    The latter flattens URL-form multichannel members such as
+    "https://repo.anaconda.com/pkgs/main" into the multichannel
+    name ("defaults").
+    """
+    if not chn.location:
+        return False
+    alias_locations = (
+        context.channel_alias.location,
+        *(alias.location for alias in context.migrated_channel_aliases),
+    )
+    return chn.location not in alias_locations
+
+
 def _parse_channel(channel_val):
     if not channel_val:
         return None, None
     chn = Channel(channel_val)
-    channel_name = chn.name or chn.base_url
-    return channel_name, chn.subdir
+    if is_url(channel_val) and _is_non_alias_url_channel(chn):
+        return chn.base_url or chn.canonical_name, chn.subdir
+    return chn.canonical_name, chn.subdir
 
 
 _PARSE_CACHE = {}
@@ -1600,16 +1620,37 @@ class ChannelMatch(GlobStrMatch):
 
         if self._re_match:
             return self._re_match(_other_val.canonical_name)
+
+        # assert ChannelMatch('pkgs/free').match('defaults') is False
+        # assert ChannelMatch('defaults').match('pkgs/free') is True
+        elif _is_non_alias_url_channel(self._raw_value):
+            # Compare by base_url rather than Channel.__eq__, because
+            # there are cases where we can have a spec whose channel has
+            # no platform, such as one extracted by the URL parser when
+            # a subdir is also present. For example, a spec extracted
+            # from a URL like "file:///.../channel/noarch/pkg-...tar.bz2"
+            # still matches a cached record whose channel retained the
+            # platform.
+            return self._raw_value.base_url == _other_val.base_url
+
         else:
-            # assert ChannelMatch('pkgs/free').match('defaults') is False
-            # assert ChannelMatch('defaults').match('pkgs/free') is True
+            # This should have been the following
+            # self._raw_value.name == _other_val.canonical_name or self._raw_value == _other_val
+            # but users may rely on this exact behaviour.
+            # For eg: conda install -c file::/path/to/distr distr::pkg as mentioned in
+            # https://anaconda.org/distr
             return self._raw_value.name in (_other_val.name, _other_val.canonical_name)
 
     def __str__(self):
-        try:
-            return f"{self._raw_value.name}"
-        except AttributeError:
-            return f"{self._raw_value}"
+        if isinstance(self._raw_value, Channel):
+            # We mirror _parse_channel: for non-alias URL channels, we
+            # prefer base_url, so that URL-form multichannel members like
+            # "https://repo.anaconda.com/pkgs/main" don't collapse to the
+            # multichannel name ("defaults") via canonical_name.
+            if _is_non_alias_url_channel(self._raw_value):
+                return self._raw_value.base_url or self._raw_value.canonical_name
+            return self._raw_value.canonical_name
+        return f"{self._raw_value}"
 
     def __repr__(self):
         return f"'{self.__str__()}'"

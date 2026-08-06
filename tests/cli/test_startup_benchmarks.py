@@ -1,10 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Startup performance benchmarks tracked by CodSpeed.
+"""Startup performance benchmarks.
 
-Measures the cost of conda's startup phases.  Instrumented by CodSpeed in
-CI (CPU instruction counting) and runnable locally with
-``pytest --codspeed tests/cli/test_startup_benchmarks.py``.
+Measures the cost of conda's startup phases. Runs locally with
+``pytest -m benchmark tests/cli/test_startup_benchmarks.py``.
 
 Import benchmarks use ``benchmark.pedantic`` with a setup function that
 scrubs cached modules between rounds so each iteration starts from a clean
@@ -30,7 +29,7 @@ from conda.cli.main import main
 if TYPE_CHECKING:
     from typing import TypedDict
 
-    from pytest_codspeed.plugin import BenchmarkFixture
+    from pytest_benchmark.fixture import BenchmarkFixture
 
     class _BudgetSpec(TypedDict):
         code: str
@@ -46,7 +45,7 @@ _TEST_INFRA = frozenset(
         "pluggy",
         "py",
         "pytest",
-        "pytest_codspeed",
+        "pytest_benchmark",
         "pytest_cov",
         "pytest_mock",
         "pytest_split",
@@ -97,10 +96,9 @@ def _restore_modules():
 def _run_import_benchmark(benchmark: BenchmarkFixture, target) -> None:
     """Run an import benchmark, using pedantic mode when available.
 
-    ``benchmark.pedantic`` (with per-round ``sys.modules`` cleanup) is only
-    available under CodSpeed instrumentation or pytest-benchmark.  In plain
-    pytest-codspeed walltime/local mode it is absent, so fall back to a
-    single ``benchmark(target)`` call — still useful as a smoke test.
+    ``benchmark.pedantic`` with per-round ``sys.modules`` cleanup is available
+    with pytest-benchmark. Keep the fallback so the test remains a useful smoke
+    test if another benchmark fixture implementation lacks pedantic mode.
     """
     if hasattr(benchmark, "pedantic"):
         benchmark.pedantic(target, setup=_pedantic_setup, rounds=5, warmup_rounds=1)
@@ -222,6 +220,18 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
             "        pass"
         ),
         "max_modules": 1000,
+    },
+    "shell_hook": {
+        "code": (
+            "import contextlib, io\n"
+            "from conda.cli.main import main_sourced\n"
+            "class CapturedStdout(io.StringIO):\n"
+            "    def reconfigure(self, *args, **kwargs):\n"
+            "        pass\n"
+            "with contextlib.redirect_stdout(CapturedStdout()):\n"
+            "    main_sourced('shell.posix', 'hook')"
+        ),
+        "max_modules": 750,
     },
 }
 

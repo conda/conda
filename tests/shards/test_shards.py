@@ -20,13 +20,10 @@ from typing import TYPE_CHECKING, NamedTuple
 
 import msgpack
 import pytest
-import zstandard
-from conda_libmamba_solver.index import (
-    _is_sharded_repodata_enabled,
-)
 from requests import Request, Response
 
 import conda.gateways.repodata
+from conda._private import zstd
 from conda._private.shards import cache as shards_cache
 from conda._private.shards import shards
 from conda._private.shards import subset as shards_subset
@@ -43,6 +40,7 @@ from conda._private.shards.shards import (
 )
 from conda.base.context import context, reset_context
 from conda.core.subdir_data import SubdirData
+from conda.exceptions import UnavailableInvalidChannel
 from conda.models.channel import Channel
 
 from .conftest import (
@@ -73,17 +71,15 @@ def package_names(shard: shards_cache.ShardDict):
 @pytest.fixture
 def prepare_shards_test(monkeypatch: pytest.MonkeyPatch):
     """
-    Reset token to avoid being logged in. e.g. the testing channel doesn't understand them.
-    Enable shards.
+    Reset token to avoid being logged in. e.g. the testing channel doesn't
+    understand them. Enable shards.
     """
     logging.basicConfig(level=logging.INFO)
     for module in (shards, shards_cache, shards_subset):
         module.log.setLevel(logging.DEBUG)
 
     monkeypatch.setenv("CONDA_TOKEN", "")
-    monkeypatch.setenv("CONDA_PLUGINS_USE_SHARDED_REPODATA", "1")
     reset_context()
-    assert _is_sharded_repodata_enabled()
 
 
 @pytest.fixture
@@ -236,16 +232,16 @@ class ShardFactory:
         noarch = shards_repository / "noarch"
         noarch.mkdir()
 
-        foo_shard = zstandard.compress(msgpack.dumps(FAKE_SHARD))  # type: ignore
+        foo_shard = zstd.compress(msgpack.dumps(FAKE_SHARD))  # type: ignore
         foo_shard_digest = hashlib.sha256(foo_shard).digest()
         (noarch / f"{foo_shard_digest.hex()}.msgpack.zst").write_bytes(foo_shard)
 
-        bar_shard = zstandard.compress(msgpack.dumps(FAKE_SHARD_2))  # type: ignore
+        bar_shard = zstd.compress(msgpack.dumps(FAKE_SHARD_2))  # type: ignore
         bar_shard_digest = hashlib.sha256(bar_shard).digest()
         (noarch / f"{bar_shard_digest.hex()}.msgpack.zst").write_bytes(bar_shard)
 
         malformed = {"follows_schema": False}
-        bad_schema = zstandard.compress(msgpack.dumps(malformed))  # type: ignore
+        bad_schema = zstd.compress(msgpack.dumps(malformed))  # type: ignore
         malformed_digest = hashlib.sha256(bad_schema).digest()
 
         (noarch / f"{malformed_digest.hex()}.msgpack.zst").write_bytes(bad_schema)
@@ -253,7 +249,7 @@ class ShardFactory:
         (noarch / f"{hashlib.sha256(not_zstd).digest().hex()}.msgpack.zst").write_bytes(
             not_zstd
         )
-        not_msgpack = zstandard.compress(b"not msgpack")
+        not_msgpack = zstd.compress(b"not msgpack")
         (
             noarch / f"{hashlib.sha256(not_msgpack).digest().hex()}.msgpack.zst"
         ).write_bytes(not_msgpack)
@@ -271,7 +267,7 @@ class ShardFactory:
             },
         }
         (shards_repository / "noarch" / "repodata_shards.msgpack.zst").write_bytes(
-            zstandard.compress(msgpack.dumps(fake_shards))  # type: ignore
+            zstd.compress(msgpack.dumps(fake_shards))  # type: ignore
         )
 
         http = _run_test_server(
@@ -361,14 +357,69 @@ def test_fetch_shards_index_mark_unavailable(monkeypatch, tmp_path, error_code):
     # load json directly due to issues with repo_cache API, also
     # fetch_shards_index gets a different repo_cache instance:
     repo_cache.state.update(json.loads(repo_cache.cache_path_state.read_text()))
-    assert repo_cache.state.should_check_format("shards") == expect_should_check_shards
+    # Always check for shards if json has not been cached:
+    assert repo_cache.state.should_check_format("shards") == (
+        expect_should_check_shards or not repo_cache.cache_path_json.exists()
+    )
     assert mock_session.get_count == 1
 
-    # assert that retry skips over shards without trying to GET
+    # Without classic repodata cache, retry should still check shards before
+    # falling back to a cache path that is not available.
     get_count = mock_session.get_count
     second_try = fetch_shards_index(subdir_data)
     assert second_try is None
-    assert mock_session.get_count == get_count + expect_should_check_shards
+    assert mock_session.get_count == get_count + 1
+
+    if not expect_should_check_shards:
+        repo_cache.state.update(json.loads(repo_cache.cache_path_state.read_text()))
+        repo_cache.save("{}")
+
+        # With classic repodata cache available, cached negative shard state can
+        # safely skip the shard check.
+        get_count = mock_session.get_count
+        third_try = fetch_shards_index(subdir_data)
+        assert third_try is None
+        assert mock_session.get_count == get_count
+
+
+def test_fetch_shards_index_uses_credentials(monkeypatch, tmp_path):
+    """
+    Regression test: fetch_shards_index must include credentials in the request
+    if provided in the channel url. This way, auth tokens are included in the
+    request URL for sharded repodata.
+    """
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    captured_urls = []
+
+    class MockSession:
+        proxies = None
+
+        def __call__(self, *args):
+            return self
+
+        def get(self, url, *args, **kwargs):
+            captured_urls.append(url)
+            request = Request("GET", url).prepare()
+            response = Response()
+            response.request = request
+            response.url = url
+            response.status_code = 404
+            return response
+
+    monkeypatch.setattr(shards, "get_session", MockSession())
+
+    # Channel with a token embedded in the URL
+    channel = Channel("http://token:mytoken@localhost/mock/noarch")
+    subdir_data = SubdirData(channel)
+
+    assert "mytoken" in subdir_data.url_w_credentials
+
+    fetch_shards_index(subdir_data)
+
+    assert len(captured_urls) == 1
+    assert "mytoken" in captured_urls[0]
 
 
 def test_fetch_shards_error(http_server_shards, empty_shards_cache):
@@ -694,7 +745,7 @@ def test_shards_cache(tmp_path: Path):
     annotated_shard = shards_cache.AnnotatedRawShard(
         "https://foo",
         "foo",
-        zstandard.compress(msgpack.dumps(fake_shard)),  # type: ignore
+        zstd.compress(msgpack.dumps(fake_shard)),  # type: ignore
     )
     cache.insert(annotated_shard)
 
@@ -743,7 +794,6 @@ def test_shards_cache_uses_wal(tmp_path: Path):
 
 def test_shards_cache_concurrent_read_write(tmp_path: Path):
     """Concurrent readers and writers must not raise OperationalError (#924)."""
-    compressor = zstandard.ZstdCompressor(level=1)
     errors: list[Exception] = []
     stop = threading.Event()
 
@@ -756,7 +806,7 @@ def test_shards_cache_concurrent_read_write(tmp_path: Path):
                     shard = shards_cache.AnnotatedRawShard(
                         f"https://shard{i}",
                         f"pkg{i}",
-                        compressor.compress(msgpack.dumps({f"pkg{i}": "data"})),
+                        zstd.compress(msgpack.dumps({f"pkg{i}": "data"}), level=1),
                     )
                     cache_copy.insert(shard)
         except Exception as exc:
@@ -808,13 +858,12 @@ def mock_cache(tmp_path: Path) -> Iterator[MockCache]:
         NUM_FAKE_SHARDS = 64
         fake_shards = []
 
-        compressor = zstandard.ZstdCompressor(level=1)
         for i in range(NUM_FAKE_SHARDS):
             fake_shard = {f"foo{i}": "bar"}
             annotated_shard = shards_cache.AnnotatedRawShard(
                 f"https://foo{i}",
                 f"foo{i}",
-                compressor.compress(msgpack.dumps(fake_shard)),  # type: ignore
+                zstd.compress(msgpack.dumps(fake_shard), level=1),  # type: ignore
             )
             cache.insert(annotated_shard)
             fake_shards.append(annotated_shard)
@@ -1000,6 +1049,36 @@ def test_iter_records_v3():
     assert ("mypkg-1.0-0.conda", "packages.conda") in records
     assert ("mypkg-1.0-py312_none_any_0", "v3.whl") in records
     assert records[("mypkg-1.0-py312_none_any_0", "v3.whl")]["name"] == "mypkg"
+
+
+def test_iter_records_includes_v3():
+    """iter_records must surface v3 wheels so solvers still see conda-pypi packages."""
+    shardlike = ShardLike(
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
+    )
+    shardlike.visit_shard(
+        "mypkg",
+        {
+            "packages": {},
+            "packages.conda": {},
+            "v3": {
+                "whl": {
+                    "mypkg-1.0-py312_none_any_0": {
+                        "name": "mypkg",
+                        "fn": "mypkg-1.0-py312-none-any.whl",
+                    }
+                },
+            },
+        },
+    )
+    shardlike.visited["ghost"] = None
+    records = dict(shardlike.iter_records())
+    assert "mypkg-1.0-py312_none_any_0" in records
+    assert records["mypkg-1.0-py312_none_any_0"]["fn"] == "mypkg-1.0-py312-none-any.whl"
 
 
 def test_shardlike_repr():
@@ -1427,3 +1506,25 @@ def test_safe_urljoin_with_slash(base_url, relative_url, expected):
     """
     result = _safe_urljoin_with_slash(base_url, relative_url)
     assert result == expected
+
+
+@pytest.mark.parametrize("use_shards", (True, False))
+def test_classic_404_shards_only_hint_enabled(
+    http_server_shards, monkeypatch, tmp_path, use_shards
+):
+    """Test that enable shards hint shows up when shards are turned off and Unavailable channel error is raised."""
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+
+    with pytest.raises(UnavailableInvalidChannel) as exc_info:
+        SubdirData(channel).load()
+
+    hint = "--repodata-use-shards"
+    # raises with hint when shards disabled
+    if not use_shards:
+        assert hint in str(exc_info.value.guidance)
+    else:
+        assert exc_info.value.guidance is None

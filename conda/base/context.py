@@ -13,6 +13,7 @@ import os
 import platform
 import struct
 import sys
+import sysconfig
 import warnings
 from contextlib import contextmanager, suppress
 from errno import ENOENT
@@ -122,8 +123,13 @@ non_x86_machines = {
     "s390x",
 }
 _arch_names = {
-    32: "x86",
-    64: "x86_64",
+    "32": "x86",
+    "64": "x86_64",
+}
+_win_sysconfig_map = {
+    "win-amd64": "win-64",
+    "win-arm64": "win-arm64",
+    "win32": "win-32",
 }
 
 user_rc_path: PathType = abspath(expanduser(f"~/{DEFAULT_CONDARC_FILENAME}"))
@@ -668,15 +674,12 @@ class Context(Configuration):
 
     @property
     def arch_name(self) -> str:
-        m = platform.machine().lower()
-        if m in non_x86_machines:
-            return m
-        else:
-            return _arch_names[self.bits]
+        arch = self._native_subdir().split("-")[1]
+        return _arch_names.get(arch, arch)
 
     @property
     def platform(self) -> str:
-        return _platform_map.get(sys.platform, "unknown")
+        return self._native_subdir().split("-")[0]
 
     @property
     def default_threads(self) -> int | None:
@@ -723,13 +726,19 @@ class Context(Configuration):
 
     @cache
     def _native_subdir(self) -> str:
+        if sys.platform == "win32":
+            return _win_sysconfig_map[sysconfig.get_platform()]
+
+        _platform = _platform_map.get(sys.platform, "unknown")
         m = platform.machine().lower()
+
         if m in non_x86_machines:
-            return f"{self.platform}-{m}"
-        elif self.platform == "zos":
-            return "zos-z"
+            arch = m
+        elif _platform == "zos":
+            arch = "z"
         else:
-            return "%s-%d" % (self.platform, self.bits)
+            arch = str(self.bits)
+        return f"{_platform}-{arch}"
 
     @property
     def subdirs(self) -> tuple[str, str]:
@@ -758,7 +767,7 @@ class Context(Configuration):
         else:
             return 8 * struct.calcsize("P")
 
-    @property
+    @memoizedproperty
     def root_writable(self) -> bool:
         # rather than using conda.gateways.disk.test.prefix_is_writable
         # let's shortcut and assume the root prefix exists
@@ -1255,7 +1264,8 @@ class Context(Configuration):
         If the default_activation_env is an environment name, get the corresponding
         prefix; otherwise it is already a prefix, so just return it.
 
-        :return: Prefix of the default_activation_env
+        Returns:
+            Prefix of the default_activation_env
         """
         from ..exceptions import EnvironmentNameNotFound
 
@@ -2253,9 +2263,12 @@ def validate_channels(channels: Iterator[str]) -> tuple[str, ...]:
     Validate if the given channel URLs are allowed based on the context's allowlist
     and denylist configurations.
 
-    :param channels: A list of channels (either URLs or names) to validate.
-    :raises ChannelNotAllowed: If any URL is not in the allowlist.
-    :raises ChannelDenied: If any URL is in the denylist.
+    Args:
+        channels: A list of channels (either URLs or names) to validate.
+
+    Raises:
+        ChannelNotAllowed: If any URL is not in the allowlist.
+        ChannelDenied: If any URL is in the denylist.
     """
     from ..exceptions import ChannelDenied, ChannelNotAllowed
     from ..models.channel import Channel
@@ -2292,8 +2305,11 @@ def determine_target_prefix(ctx: Context, args: Namespace | None = None) -> Path
         ctx: the context of conda
         args: the argparse args from the command line
 
-    Returns: the prefix
-    Raises: CondaEnvironmentNotFoundError if the prefix is invalid
+    Returns:
+        Path to the target environment prefix.
+
+    Raises:
+        CondaEnvironmentNotFoundError: If the prefix is invalid.
     """
     argparse_args = args or ctx._argparse_args
     try:

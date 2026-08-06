@@ -6,13 +6,20 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.base.context import context
 from conda.cli.main_env_create import epilog as env_create_epilog
+from conda.exceptions import InvalidInstaller
+from conda.models.environment import Environment
+from conda.plugins import hookimpl
+from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
 
 from .test_main_create import DummyEnvSpecPlugin, DummyLockfilePlugin
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from conda.plugins.manager import CondaPluginManager
-    from conda.testing.fixtures import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
 
 
 @pytest.mark.parametrize(
@@ -62,3 +69,41 @@ def test_env_create_help(conda_cli: CondaCLIFixture) -> None:
     """``conda env create --help`` renders the epilog."""
     stdout, _, _ = conda_cli("env", "create", "--help", raises=SystemExit)
     assert env_create_epilog() in stdout
+
+
+class DummyExternalPackagesEnvSpecPlugin:
+    class CustomEnvironmentSpec(EnvironmentSpecBase):
+        def __init__(self, filename: str | None = None, **kwargs):
+            self.filename = filename
+
+        def can_handle(self):
+            return True
+
+        @property
+        def env(self):
+            return Environment(
+                platform=context.subdir,
+                external_packages={"custom": ["package"]},
+            )
+
+    @hookimpl
+    def conda_environment_specifiers(self):
+        yield CondaEnvironmentSpecifier(
+            name="custom",
+            environment_spec=self.CustomEnvironmentSpec,
+            default_filenames=("invalid.yml",),
+        )
+
+
+def test_env_create_with_invalid_installer(
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    plugin_manager_with_exporters: CondaPluginManager,
+    path_factory: PathFactoryFixture,
+) -> None:
+    """``conda env create`` raises an error when the installer is invalid."""
+    plugin_manager_with_exporters.register(DummyExternalPackagesEnvSpecPlugin())
+
+    (path := tmp_path / "invalid.yml").touch()
+    with pytest.raises(InvalidInstaller):
+        conda_cli("env", "create", f"--prefix={path_factory()}", f"--file={path}")

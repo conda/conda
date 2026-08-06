@@ -12,8 +12,6 @@ from argparse import (
     _SubParsersAction,
 )
 
-from .. import CondaError
-
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
@@ -29,7 +27,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     description = summary
     epilog = dals(
         """
-        Examples::
+        Examples:
 
             conda env update
             conda env update -n=foo
@@ -82,7 +80,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..env.installers.base import get_installer
     from ..exceptions import (
         CondaEnvException,
-        InvalidInstaller,
         PlatformMismatchError,
     )
     from .common import validate_file_exists
@@ -149,21 +146,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # Ensure we have all the right external package installers before starting
     # to install anything.
     for installer_type in env.external_packages:
-        try:
-            installers[installer_type] = get_installer(installer_type)
-        except InvalidInstaller:
-            raise CondaError(
-                dals(
-                    f"""
-                    Unable to install package for {0}.
-
-                    Please double check and ensure you dependencies file has
-                    the correct spelling.  You might also try installing the
-                    conda-env-{0} package to see if provides the required
-                    installer.
-                    """
-                )
-            )
+        installers[installer_type] = get_installer(installer_type, file=args.file)
 
     result = {"conda": None, "pip": None}
     # install conda packages

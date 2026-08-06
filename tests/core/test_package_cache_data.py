@@ -2,8 +2,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import datetime
 import json
+from concurrent.futures import ThreadPoolExecutor
 from os.path import abspath, basename, dirname, join
 from pathlib import Path
+from threading import Event
+from types import SimpleNamespace
 
 import pytest
 from pytest import MonkeyPatch
@@ -76,6 +79,67 @@ zlib_conda_prec = PackageRecord.from_objects(
     fn=zlib_conda_fn,
     url=f"{CONDA_PKG_REPO}/{subdir}/{zlib_conda_fn}",
 )
+
+
+def fresh_zlib_records():
+    return (
+        PackageRecord.from_objects(zlib_tar_bz2_prec),
+        PackageRecord.from_objects(zlib_conda_prec),
+    )
+
+
+def test_process_extract_finishes_when_later_fetch_fails(mocker):
+    extracted = Event()
+    good = PackageRecord(name="good", version="1", build="0", build_number=0)
+    bad = PackageRecord(name="bad", version="1", build="0", build_number=0)
+    good_cache = mocker.MagicMock()
+    bad_cache = mocker.MagicMock()
+    good_extract = mocker.MagicMock(
+        source_full_path="/tmp/good.conda",
+        target_full_path="/tmp/good",
+    )
+    bad_extract = mocker.MagicMock(
+        source_full_path="/tmp/bad.conda",
+        target_full_path="/tmp/bad",
+    )
+    pfe = ProgressiveFetchExtract(())
+    pfe.paired_actions = {
+        good: (good_cache, good_extract),
+        bad: (bad_cache, bad_extract),
+    }
+    pfe._prepared = True
+
+    def cache_action(record, *args, **kwargs):
+        if record == bad:
+            assert extracted.wait(timeout=5)
+            raise OSError("fetch failed")
+        return record
+
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    mocker.patch.object(package_cache_data, "do_cache_action", side_effect=cache_action)
+    mocker.patch.object(
+        package_cache_data,
+        "extract_conda_package_archive",
+        side_effect=lambda *args: extracted.set(),
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "ProcessPoolExecutor",
+        side_effect=lambda **kwargs: ThreadPoolExecutor(kwargs["max_workers"]),
+    )
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_extractor",
+        return_value=SimpleNamespace(name="conda-package"),
+    )
+    mocker.patch.object(pfe, "_progress_bar", return_value=mocker.MagicMock())
+
+    with pytest.raises(CondaMultiError, match="fetch failed"):
+        pfe.execute()
+
+    good_extract._finish_extract.assert_called_once_with()
+    good_extract.cleanup.assert_called_once_with()
+    bad_extract._finish_extract.assert_not_called()
 
 
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):
@@ -277,8 +341,10 @@ def test_tar_bz2_in_pkg_cache_used_instead_of_conda_pkg(tmp_pkgs_dir: Path):
     Test that if a .tar.bz2 package is downloaded and extracted in a package cache, the
     complementary .conda package is not downloaded/extracted
     """
+    tar_bz2_prec, conda_prec = fresh_zlib_records()
+
     # Cache the .tar.bz2 file in the package cache and extract it
-    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe = ProgressiveFetchExtract((tar_bz2_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 1
     assert len(pfe.extract_actions) == 1
@@ -295,20 +361,20 @@ def test_tar_bz2_in_pkg_cache_used_instead_of_conda_pkg(tmp_pkgs_dir: Path):
     assert isfile(join(tmp_pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
 
     # Ensure second download/extract is a no-op
-    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe = ProgressiveFetchExtract((tar_bz2_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 0
     assert len(pfe.extract_actions) == 0
 
     # Now ensure download/extract for the complementary .conda package uses the cache
-    pfe = ProgressiveFetchExtract((zlib_conda_prec,))
+    pfe = ProgressiveFetchExtract((conda_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 0
     assert len(pfe.extract_actions) == 0
 
     # Now check urls.txt to make sure extensions are included.
     urls_text = tuple(yield_lines(join(tmp_pkgs_dir, "urls.txt")))
-    assert urls_text[0] == zlib_tar_bz2_prec.url
+    assert urls_text[0] == tar_bz2_prec.url
 
 
 @pytest.mark.integration
@@ -322,9 +388,10 @@ def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg(
     monkeypatch.setenv("CONDA_SEPARATE_FORMAT_CACHE", "True")
     reset_context()
     assert context.separate_format_cache
+    tar_bz2_prec, conda_prec = fresh_zlib_records()
 
     # Cache the .tar.bz2 file in the package cache and extract it
-    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe = ProgressiveFetchExtract((tar_bz2_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 1
     assert len(pfe.extract_actions) == 1
@@ -341,14 +408,14 @@ def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg(
     assert isfile(join(tmp_pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
 
     # Ensure second download/extract is a no-op
-    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe = ProgressiveFetchExtract((tar_bz2_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 0
     assert len(pfe.extract_actions) == 0
 
     # Now ensure download/extract for the complementary .conda package replaces the
     # extracted .tar.bz2
-    pfe = ProgressiveFetchExtract((zlib_conda_prec,))
+    pfe = ProgressiveFetchExtract((conda_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 1
     assert len(pfe.extract_actions) == 1
@@ -366,8 +433,8 @@ def test_tar_bz2_in_pkg_cache_doesnt_overwrite_conda_pkg(
 
     # Now check urls.txt to make sure extensions are included.
     urls_text = tuple(yield_lines(join(tmp_pkgs_dir, "urls.txt")))
-    assert urls_text[0] == zlib_tar_bz2_prec.url
-    assert urls_text[1] == zlib_conda_prec.url
+    assert urls_text[0] == tar_bz2_prec.url
+    assert urls_text[1] == conda_prec.url
 
 
 @pytest.mark.integration
@@ -381,9 +448,10 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2(
     monkeypatch.setenv("CONDA_SEPARATE_FORMAT_CACHE", "True")
     reset_context()
     assert context.separate_format_cache
+    tar_bz2_prec, conda_prec = fresh_zlib_records()
 
     # Cache the .conda file in the package cache and extract it
-    pfe = ProgressiveFetchExtract((zlib_conda_prec,))
+    pfe = ProgressiveFetchExtract((conda_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 1
     assert len(pfe.extract_actions) == 1
@@ -400,14 +468,14 @@ def test_conda_pkg_in_pkg_cache_doesnt_overwrite_tar_bz2(
     assert isfile(join(tmp_pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
 
     # Ensure second download/extract is a no-op
-    pfe = ProgressiveFetchExtract((zlib_conda_prec,))
+    pfe = ProgressiveFetchExtract((conda_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 0
     assert len(pfe.extract_actions) == 0
 
     # Now ensure download/extract for the complementary .conda package replaces the
     # extracted .tar.bz2
-    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe = ProgressiveFetchExtract((tar_bz2_prec,))
     pfe.prepare()
     assert len(pfe.cache_actions) == 1
     assert len(pfe.extract_actions) == 1

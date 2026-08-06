@@ -42,43 +42,43 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Examples:
 
-        Search for a specific package named 'scikit-learn'::
+        Search for a specific package named 'scikit-learn':
 
             conda search scikit-learn
 
-        Search for packages containing 'scikit' in the package name::
+        Search for packages containing 'scikit' in the package name:
 
             conda search *scikit*
 
         Note that your shell may expand '*' before handing the command over to conda.
-        Therefore, it is sometimes necessary to use single or double quotes around the query::
+        Therefore, it is sometimes necessary to use single or double quotes around the query:
 
             conda search '*scikit'
             conda search "*scikit*"
 
         Search for packages for 64-bit Linux (by default, packages for your current
-        platform are shown)::
+        platform are shown):
 
             conda search numpy[subdir=linux-64]
 
-        Search for a specific version of a package::
+        Search for a specific version of a package:
 
             conda search 'numpy>=1.12'
 
-        Search for a package on a specific channel::
+        Search for a package on a specific channel:
 
             conda search conda-forge::numpy
 
-        Search for a package on a specific channel and platform::
+        Search for a package on a specific channel and platform:
 
             conda search 'numpy[channel=conda-forge, subdir=osx-64]'
 
-        Search for a package with a specific software version and python version::
+        Search for a package with a specific software version and python version:
 
             conda search 'numpy-base=2.4.2=py313*'
             conda search 'numpy-base[version="2.4.2",build=py313*]'
 
-        Search for a package with a specific software version and build string::
+        Search for a package with a specific software version and build string:
 
             conda search 'r-shiny=1.12.0=r45*'
             conda search 'r-shiny[version="1.12.0",build=r45*]'
@@ -181,10 +181,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..cli.common import stdout_json
     from ..core.envs_manager import query_all_prefixes
-    from ..core.subdir_data import SubdirData
+    from ..core.subdir_data import query_all
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
-    from ..models.version import VersionOrder
     from ..reporters import get_spinner
 
     spec = MatchSpec(args.match_spec)
@@ -252,20 +251,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     with get_spinner("Loading channels"):
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
+        if not channel_urls:
+            from ..exceptions import NoChannelsConfiguredError
 
-        matches = sorted(
-            SubdirData.query_all(spec, channel_urls, subdirs),
-            key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
-        )
+            raise NoChannelsConfiguredError(
+                packages=[spec.name] if spec.get_exact_value("name") else [],
+            )
+        matches = query_all(spec, channel_urls, subdirs)
     if not matches and not args.skip_flexible_search and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name=f"*{spec.name}*")
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
-        matches = sorted(
-            SubdirData.query_all(flex_spec, channel_urls, subdirs),
-            key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
-        )
-
+        matches = query_all(flex_spec, channel_urls, subdirs)
     if not matches:
         from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls
@@ -360,6 +357,7 @@ def pretty_record(record: PackageRecord, print=print) -> None:
     """
     Pretty prints a `PackageRecord`.
 
-    :param record:  The `PackageRecord` object to print.
+    Args:
+        record: The `PackageRecord` object to print.
     """
     print(_pretty_record_format(record))

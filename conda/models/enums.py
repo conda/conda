@@ -3,6 +3,7 @@
 """Collection of enums used throughout conda."""
 
 import sys
+import sysconfig
 from enum import Enum
 from platform import machine
 
@@ -33,6 +34,16 @@ class Arch(Enum):
     def from_sys(cls):
         if sys.platform == "zos":
             return cls["z"]
+        if sys.platform == "win32":
+            # platform.machine() is wrong when using emulation
+            # see https://github.com/python/cpython/issues/98962
+            sysconfig_platform = sysconfig.get_platform()
+            if sysconfig_platform == "win-amd64":
+                return cls["x86_64"]
+            elif sysconfig_platform == "win-arm64":
+                return cls["arm64"]
+            elif sysconfig_platform == "win32":
+                return cls["x86"]
         return cls[machine()]
 
     def __json__(self):

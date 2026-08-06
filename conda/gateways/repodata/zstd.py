@@ -7,11 +7,11 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shutil
 import time
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-import zstandard
 from requests import HTTPError  # noqa: TID253
 
 from ...base.constants import REPODATA_FN
@@ -86,17 +86,18 @@ def download_repodata(
     response.raise_for_status()
     length = 0
     if response.status_code == 200:
-        if is_zst:
-            decompressor = zstandard.ZstdDecompressor()
-            writer = decompressor.stream_writer(
-                dest_path.open("wb"),  # type: ignore
-                closefd=True,
-            )
-        else:
-            writer = dest_path.open("wb")
-        with writer as repodata:
-            for block in response.iter_content(chunk_size=1 << 14):
-                repodata.write(block)
+        with dest_path.open("wb") as repodata:
+            if is_zst:
+                from ..._private import zstd
+
+                # Content-Encoding could be present so we need to decode it before
+                # decompressing the response payload.  No op if absent.
+                response.raw.decode_content = True
+                with zstd.ZstdFile(response.raw, "rb") as zf:
+                    shutil.copyfileobj(zf, repodata)
+            else:
+                for block in response.iter_content(chunk_size=1 << 14):
+                    repodata.write(block)
     if response.request:
         try:
             length = int(response.headers["Content-Length"])
@@ -140,6 +141,8 @@ def request_url_zstd_state(
     """
     json_path = cache.cache_path_json
 
+    from ..._private.zstd import ZstdError
+
     is_fallback = False
     with timeme(f"Download complete {url} "):
         # Just try downloading .json.zst
@@ -152,8 +155,8 @@ def request_url_zstd_state(
                 dest_path=temp_path,
                 is_zst=True,
             )
-        except (HTTPError, zstandard.ZstdError) as e:
-            if isinstance(e, zstandard.ZstdError):
+        except (HTTPError, ZstdError) as e:
+            if isinstance(e, ZstdError):
                 log.warning(
                     "Could not decompress %s as zstd. Fall back to .json. (%s)",
                     mask_anaconda_token(withext(url, ".json.zst")),

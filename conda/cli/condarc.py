@@ -105,7 +105,8 @@ class ParameterTypeGroups:
         """
         Initialize ParameterTypeGroups by grouping parameters by type.
 
-        :param context: Configuration instance containing configuration parameters.
+        Args:
+            context: Configuration instance containing configuration parameters.
         """
         from ..common.iterators import groupby_to_dict as groupby
 
@@ -155,10 +156,13 @@ def validate_provided_parameters(
     Compares the provided parameters with the available parameters in the context
     and raises an error if any are invalid.
 
-    :param parameters: Regular parameter names to validate.
-    :param plugin_parameters: Plugin parameter names to validate.
-    :param context: Configuration instance containing available parameters.
-    :raises ArgumentError: If any provided parameters are not valid.
+    Args:
+        parameters: Regular parameter names to validate.
+        plugin_parameters: Plugin parameter names to validate.
+        context: Configuration instance containing available parameters.
+
+    Raises:
+        ArgumentError: If any provided parameters are not valid.
     """
     from ..common.io import dashlist
     from ..exceptions import ArgumentError
@@ -219,8 +223,11 @@ class ConfigurationFile:
         """
         Create a ConfigurationFile instance for the default user .condarc file.
 
-        :param context: Optional Configuration instance. If None, uses the global context.
-        :returns: ConfigurationFile instance configured for the user's .condarc file.
+        Args:
+            context: Optional Configuration instance. If None, uses the global context.
+
+        Returns:
+            ConfigurationFile instance configured for the user's .condarc file.
         """
         from ..base.context import user_rc_path
 
@@ -233,8 +240,11 @@ class ConfigurationFile:
         """
         Create a ConfigurationFile instance for the system .condarc file.
 
-        :param context: Optional Configuration instance. If None, uses the global context.
-        :returns: ConfigurationFile instance configured for the system .condarc file.
+        Args:
+            context: Optional Configuration instance. If None, uses the global context.
+
+        Returns:
+            ConfigurationFile instance configured for the system .condarc file.
         """
         from ..base.context import sys_rc_path
 
@@ -252,9 +262,12 @@ class ConfigurationFile:
         Environment-specific .condarc files are located at `{prefix}/.condarc` and allow
         per-environment configuration overrides.
 
-        :param prefix: Path to the conda environment. If None, uses $CONDA_PREFIX or sys.prefix.
-        :param context: Optional Configuration instance. If None, uses the global context.
-        :returns: ConfigurationFile instance configured for the environment's .condarc file.
+        Args:
+            prefix: Path to the conda environment. If None, uses $CONDA_PREFIX or sys.prefix.
+            context: Optional Configuration instance. If None, uses the global context.
+
+        Returns:
+            ConfigurationFile instance configured for the environment's .condarc file.
         """
         if prefix is None:
             prefix = os.environ.get("CONDA_PREFIX", sys.prefix)
@@ -275,8 +288,11 @@ class ConfigurationFile:
         """
         Get the path to the configuration file.
 
-        :returns: Path to the configuration file.
-        :raises AttributeError: If path has not been set.
+        Returns:
+            Path to the configuration file.
+
+        Raises:
+            AttributeError: If path has not been set.
         """
         if self._path is None:
             raise AttributeError("Configuration file path has not been set")
@@ -288,7 +304,8 @@ class ConfigurationFile:
         """
         Set the path to the configuration file.
 
-        :param path: Path to the configuration file.
+        Args:
+            path: Path to the configuration file.
         """
         self._path = path
 
@@ -301,7 +318,8 @@ class ConfigurationFile:
         conda context singleton. This lazy import is necessary to avoid circular
         dependencies at module load time.
 
-        :returns: Configuration instance.
+        Returns:
+            Configuration instance.
         """
         if self._context is None:
             # Import the global context singleton
@@ -323,7 +341,8 @@ class ConfigurationFile:
         """
         Get the configuration content, reading from file if needed.
 
-        :returns: Dictionary containing configuration content.
+        Returns:
+            Dictionary containing configuration content.
         """
         if self._content is None:
             self.read()
@@ -334,8 +353,11 @@ class ConfigurationFile:
         """
         Read configuration content from file.
 
-        :param path: Optional path to read from. If None, uses the instance path.
-        :returns: Dictionary containing configuration content.
+        Args:
+            path: Optional path to read from. If None, uses the instance path.
+
+        Returns:
+            Dictionary containing configuration content.
         """
         from ..common.serialize import yaml
 
@@ -352,8 +374,11 @@ class ConfigurationFile:
         """
         Write configuration content to file.
 
-        :param path: Optional path to write to. If None, uses the instance path.
-        :raises CondaError: If the file cannot be written.
+        Args:
+            path: Optional path to write to. If None, uses the instance path.
+
+        Raises:
+            CondaError: If the file cannot be written.
         """
         from .. import CondaError
         from ..common.serialize import yaml
@@ -368,8 +393,11 @@ class ConfigurationFile:
         """
         Check if a configuration key is valid.
 
-        :param key: Configuration key to check.
-        :returns: True if the key is valid, False otherwise.
+        Args:
+            key: Configuration key to check.
+
+        Returns:
+            True if the key is valid, False otherwise.
         """
         first, *rest = key.split(".")
 
@@ -394,11 +422,14 @@ class ConfigurationFile:
         """
         Add an item to a sequence configuration parameter.
 
-        :param key: Configuration key name (may contain dots for nested keys).
-        :param item: Item to add to the sequence.
-        :param prepend: If True, add to the beginning; if False, add to the end.
-        :raises CondaValueError: If the key is not a known sequence parameter.
-        :raises CouldntParseError: If the key should be a list but isn't.
+        Args:
+            key: Configuration key name (may contain dots for nested keys).
+            item: Item to add to the sequence.
+            prepend: If True, add to the beginning; if False, add to the end.
+
+        Raises:
+            CondaValueError: If the key is not a known sequence parameter.
+            CouldntParseError: If the key should be a list but isn't.
         """
         from ..exceptions import CondaValueError, CouldntParseError
 
@@ -444,8 +475,11 @@ class ConfigurationFile:
         """
         Get a configuration value by key.
 
-        :param key: Configuration key name (may contain dots for nested keys).
-        :returns: Tuple of (key, value) or (key, MISSING) if key doesn't exist.
+        Args:
+            key: Configuration key name (may contain dots for nested keys).
+
+        Returns:
+            Tuple of (key, value) or (key, MISSING) if key doesn't exist.
         """
         key_parts = key.split(".")
 
@@ -471,9 +505,12 @@ class ConfigurationFile:
         """
         Set a configuration value for a primitive or map parameter.
 
-        :param key: Configuration key name (may contain dots for nested keys).
-        :param item: Value to set.
-        :raises CondaKeyError: If the key is unknown or invalid.
+        Args:
+            key: Configuration key name (may contain dots for nested keys).
+            item: Value to set.
+
+        Raises:
+            CondaKeyError: If the key is unknown or invalid.
         """
         from ..exceptions import CondaKeyError
 
@@ -516,9 +553,12 @@ class ConfigurationFile:
         """
         Remove an item from a sequence configuration parameter.
 
-        :param key: Configuration key name.
-        :param item: Item to remove from the sequence.
-        :raises CondaKeyError: If the key is unknown, undefined, or the item is not present.
+        Args:
+            key: Configuration key name.
+            item: Item to remove from the sequence.
+
+        Raises:
+            CondaKeyError: If the key is unknown, undefined, or the item is not present.
         """
         from ..exceptions import CondaKeyError
 
@@ -562,8 +602,11 @@ class ConfigurationFile:
         """
         Remove a configuration key entirely.
 
-        :param key: Configuration key name (may contain dots for nested keys).
-        :raises CondaKeyError: If the key is undefined in the config.
+        Args:
+            key: Configuration key name (may contain dots for nested keys).
+
+        Raises:
+            CondaKeyError: If the key is undefined in the config.
         """
         from ..exceptions import CondaKeyError
 

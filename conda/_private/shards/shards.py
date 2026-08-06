@@ -15,7 +15,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import msgpack
-import zstandard
 
 import conda.exceptions
 import conda.gateways.repodata
@@ -29,6 +28,7 @@ from conda.gateways.repodata import (
 )
 from conda.models.channel import Channel
 
+from ..zstd import capped_decompress
 from . import cache
 from .misc import (
     _is_http_error_most_400_codes,
@@ -52,6 +52,11 @@ if TYPE_CHECKING:
 
 ZSTD_MAX_SHARD_SIZE = (
     2**20 * 16
+)  # maximum size necessary when compressed data has no size header
+
+
+ZSTD_MAX_SHARD_INDEX_SIZE = (
+    2**23 * 16
 )  # maximum size necessary when compressed data has no size header
 
 
@@ -172,7 +177,7 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            zstandard.decompress(
+            capped_decompress(
                 fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
             )
         )
@@ -327,12 +332,17 @@ class ShardBase(abc.ABC):
 
     def iter_records(self) -> Iterable[tuple[str, dict]]:
         """
-        Yield (filename, record) tuples for all packages in visited shards.
+        Yield (key, record) tuples for all packages in visited shards,
+        including v3 records.
+
+        For classic packages, *key* is the filename. For v3 packages, *key* is
+        the shard key (not necessarily the download filename; see
+        ``record["fn"]``).
+
+        Prefer :meth:`iter_records_v3` when section information is needed.
         """
-        for (filename, section), record in self.iter_records_v3():
-            if section not in ("packages", "packages.conda"):
-                continue
-            yield filename, record
+        for (key, _), record in self.iter_records_v3():
+            yield key, record
 
     def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
         """
@@ -352,7 +362,7 @@ class ShardBase(abc.ABC):
             for package_group in ("packages", "packages.conda"):
                 for key, record in shard.get(package_group, {}).items():
                     yield (key, package_group), record
-            # v3 packages (iter_records() method depends on these coming last)
+            # v3 packages
             for section_name, group in shard.get("v3", {}).items():
                 v3_section = f"v3.{section_name}"
                 for key, record in group.items():
@@ -657,7 +667,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
     if cache_state.should_check_format("shards"):
         # look for shards index
         shards_data = None
-        shards_index_url = f"{sd.url_w_subdir}/{REPODATA_SHARDS_FN}"
+        shards_index_url = f"{sd.url_w_credentials}/{REPODATA_SHARDS_FN}"
 
         if not repo_cache.cache_path_shards.exists():
             # avoid 304 not modified if we don't have the file
@@ -698,7 +708,9 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         if shards_data:
             # basic parse (move into caller?)
             shards_index: ShardsIndexDict = msgpack.loads(
-                zstandard.decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_SIZE)
+                capped_decompress(
+                    shards_data, max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE
+                )
             )  # type: ignore
             shards = Shards(shards_index, shards_index_url)
             return shards
@@ -783,11 +795,13 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
     with concurrent.futures.ThreadPoolExecutor(
         max_workers=_shards_connections()
     ) as executor:
+        subdir_data = {
+            channel_url: SubdirData(Channel(channel_url))
+            for channel_url in url_to_channel
+        }
         futures = {
-            executor.submit(
-                fetch_shards_index, SubdirData(Channel(channel_url))
-            ): channel_url
-            for (channel_url, _) in url_to_channel.items()
+            executor.submit(fetch_shards_index, sd): channel_url
+            for channel_url, sd in subdir_data.items()
         }
         futures_non_sharded = {}
 
@@ -799,7 +813,6 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        # If all are None then don't do ShardLike.
         if all(value is None for value in channel_data.values()):
             return None  # caller should interpret this as falling back to the older code path
 

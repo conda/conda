@@ -8,33 +8,36 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.repository }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   update:
+    name: Update repository files
     runs-on: ubuntu-slim
     permissions:
-      contents: write
-      pull-requests: write
-      issues: write
+      contents: write  # Required to commit synced template and workflow updates.
+      pull-requests: write  # Required to open the generated update pull request.
+      issues: write  # Required for generated update pull request metadata.
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ env.REPOSITORY || github.repository }}
-          ref: ${{ env.REF || '' }}
-          token: ${{ secrets.SYNC_TOKEN }}
+          persist-credentials: false
 
       - name: Configure git user
         run: |
           git config --global user.name 'Conda Bot'
           git config --global user.email '18747875+conda-bot@users.noreply.github.com'
 
-      - uses: conda/actions/combine-durations@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
+      - uses: conda/actions/combine-durations@0f4ec1506e74c12799813dc66e613a39077ea864 # v26.7.0
         id: durations
         continue-on-error: true
 
-      - uses: conda/actions/template-files@7f6830b1428a9bd47f0b068892c77eae95207037 # v26.1.0
+      - uses: conda/actions/template-files@0f4ec1506e74c12799813dc66e613a39077ea864 # v26.7.0
         id: templates
         continue-on-error: true
 
@@ -47,7 +50,9 @@ jobs:
 
       - name: Create fork
         # no-op if the repository is already forked
-        run: echo FORK=$(gh repo fork --clone=false --default-branch-only 2>&1 | awk '{print $1}') >> $GITHUB_ENV
+        run: |
+          FORK="$(gh repo fork --clone=false --default-branch-only 2>&1 | awk '{print $1}' | sed 's|^https://github.com/||')"
+          echo "FORK=${FORK}" >> "$GITHUB_ENV"
         env:
           GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
 

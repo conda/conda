@@ -3,16 +3,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import fileinput
 import os
-import shutil
 import sys
 
-import requests  # noqa: TID253
 from pylint.pyreverse.main import Run
 
 here = os.path.dirname(__file__)
-plantuml_jarfile_url = (
-    "https://sourceforge.net/projects/plantuml/files/plantuml.jar/download"
-)
 
 
 # files and folders to ignore during generating the UML files
@@ -86,47 +81,22 @@ def generate_pumls(app=None, config=None):
             f"--project={package}",
             f"--output-directory={output_path}",
             "--all-associated",
-            "--all-ancestors",
+            # Causes an EmptyNode AttributeError: https://github.com/pylint-dev/pylint/issues/10767
+            # This allows more of the inheritance hierarchy to be shown, however the Level 4 C4
+            # diagram is already too detailed.
+            # "--all-ancestors",
         ]
         # Run pyreverse to create the files first
-        try:
-            Run(args)
-        except SystemExit as err:
-            # ignore sys.exit() call from pyreverse.Run if the exit code is 0
-            if err.code:
-                raise
+        exit_code = Run(args).run()
+        if exit_code:
+            raise SystemExit(exit_code)
         # Then post-process the generated files to fix some things.
         post_process(files, output_path)
         sys.stdout.write("Done generating PlantUML files.\n")
 
 
-def download_plantuml(app, config):
-    if os.path.exists(config.plantuml_jarfile_path):
-        sys.stdout.write(
-            f"PlantUML jar file already downloaded. "
-            f"To update run `make clean` or manually "
-            f"delete {config.plantuml_jarfile_path}.\n"
-        )
-    else:
-        parent = os.path.dirname(config.plantuml_jarfile_path)
-        if not os.path.isdir(parent):
-            os.makedirs(parent, exist_ok=True)
-        with requests.get(plantuml_jarfile_url, stream=True) as response:
-            sys.stdout.write(
-                f"Downloading PlantUML jar file to {config.plantuml_jarfile_path}..."
-            )
-            sys.stdout.flush()
-            response.raise_for_status()
-            response.raw.decode_content = True
-            with open(config.plantuml_jarfile_path, "wb") as jarfile:
-                shutil.copyfileobj(response.raw, jarfile)
-                sys.stdout.write("done.\n")
-
-
 def setup(app):
     if "AUTOBUILD" not in os.environ:
-        app.add_config_value("plantuml_jarfile_path", None, rebuild="")
-        app.connect("config-inited", download_plantuml)
         app.connect("config-inited", generate_pumls)
 
     return {

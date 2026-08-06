@@ -259,9 +259,8 @@ case? It depends on the `context.channel_priority` setting: From the help messag
 > unsatisfiable error. With channel priority disabled, package version takes precedence, and
 > the configured priority of channels is used only to break ties.
 
-In practice, `channel_priority=strict` is often the recommended setting for most users. It's faster
-to solve and causes fewer problems down the line. Check more details
-{ref}`here <concepts-performance-channel-priority>`.
+While `channel_priority=strict` is often faster to solve, it can make some environments unsatisfiable.
+Check more details {ref}`here <concepts-performance-channel-priority>`.
 
 ## Solving the install request
 

@@ -27,10 +27,11 @@ def get_user_environments_txt_file(userhome: str = "~") -> str:
     """
     Gets the path to the user's environments.txt file.
 
-    :param userhome: The home directory of the user.
-    :type userhome: str
-    :return: Path to the environments.txt file.
-    :rtype: str
+    Args:
+        userhome: The home directory of the user.
+
+    Returns:
+        Path to the environments.txt file.
     """
     return expand(join(userhome, ".conda", "environments.txt"))
 
@@ -39,9 +40,8 @@ def register_env(location: str) -> None:
     """
     Registers an environment by adding it to environments.txt file.
 
-    :param location: The file path of the environment to register.
-    :type location: str
-    :return: None
+    Args:
+        location: The file path of the environment to register.
     """
     if not context.register_envs:
         return
@@ -100,9 +100,8 @@ def unregister_env(location: str) -> None:
 
     The environment is only unregistered if its associated 'conda-meta' directory exists and contains no significant files other than 'history'. If these conditions are met, the environment's path is removed from environments.txt.
 
-    :param location: The file path of the environment to unregister.
-    :type location: str
-    :return: None
+    Args:
+        location: The file path of the environment to unregister.
     """
     if isdir(location):
         meta_dir = join(location, "conda-meta")
@@ -120,8 +119,8 @@ def list_all_known_prefixes() -> list[str]:
     """
     Lists all known conda environment prefixes.
 
-    :return: A list of all known conda environment prefixes.
-    :rtype: List[str]
+    Returns:
+        A list of all known conda environment prefixes.
     """
     all_env_paths = set()
     # If the user is an admin, load environments from all user home directories
@@ -166,10 +165,11 @@ def query_all_prefixes(spec: str) -> Iterator[tuple[str, tuple]]:
     """
     Queries all known prefixes for a given specification.
 
-    :param spec: The specification to query for.
-    :type spec: str
-    :return: An iterator of tuples containing the prefix and the query results.
-    :rtype: Iterator[Tuple[str, Tuple]]
+    Args:
+        spec: The specification to query for.
+
+    Returns:
+        An iterator of tuples containing the prefix and the query results.
     """
     for prefix in list_all_known_prefixes():
         prefix_recs = tuple(PrefixData(prefix).query(spec))
@@ -184,12 +184,12 @@ def _clean_environments_txt(
     """
     Cleans the environments.txt file by removing specified locations.
 
-    :param environments_txt_file: The file path of environments.txt.
-    :param remove_location: Optional location to remove from the file.
-    :type environments_txt_file: str
-    :type remove_location: Optional[str]
-    :return: A tuple of the cleaned lines.
-    :rtype: Tuple[str, ...]
+    Args:
+        environments_txt_file: The file path of environments.txt.
+        remove_location: Optional location to remove from the file.
+
+    Returns:
+        A tuple of the cleaned lines.
     """
     if not isfile(environments_txt_file):
         return ()
@@ -211,11 +211,9 @@ def _rewrite_environments_txt(environments_txt_file: str, prefixes: list[str]) -
     """
     Rewrites the environments.txt file with the specified prefixes.
 
-    :param environments_txt_file: The file path of environments.txt.
-    :param prefixes: List of prefixes to write into the file.
-    :type environments_txt_file: str
-    :type prefixes: List[str]
-    :return: None
+    Args:
+        environments_txt_file: The file path of environments.txt.
+        prefixes: List of prefixes to write into the file.
     """
     try:
         with open_utf8(environments_txt_file, "w") as fh:

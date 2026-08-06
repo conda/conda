@@ -3,6 +3,7 @@
 import pytest
 
 from conda import plugins
+from conda.base.context import context
 from conda.exceptions import CondaSystemExit
 from conda.plugins.subcommands import doctor
 from conda.plugins.types import CondaHealthCheck
@@ -95,3 +96,44 @@ def test_fix_user_cancels_no_warning(health_check_plugin_with_fixer, conda_cli, 
     assert "Error running fix" not in err
     # The warning would contain "Exiting" from CondaSystemExit
     assert "Exiting" not in err
+
+
+class HealthCheckPluginWithContextAwareFixer:
+    """Health check plugin with a fixer that records frozen-env protection."""
+
+    def __init__(self):
+        self.fixer_calls = []
+
+    def health_check_action(self, prefix, verbose):
+        pass
+
+    def health_check_fixer(self, prefix, args, confirm):
+        self.fixer_calls.append((args.protect_frozen_envs, context.protect_frozen_envs))
+        return 0
+
+    @plugins.hookimpl
+    def conda_health_checks(self):
+        yield CondaHealthCheck(
+            name="test-context-aware-fixer",
+            action=self.health_check_action,
+            fixer=self.health_check_fixer,
+        )
+
+
+@pytest.fixture()
+def health_check_plugin_with_context_aware_fixer(plugin_manager_with_doctor_command):
+    health_check_plugin = HealthCheckPluginWithContextAwareFixer()
+    plugin_manager_with_doctor_command.register(health_check_plugin)
+    return health_check_plugin
+
+
+def test_fix_override_frozen_reaches_plugin_fixer(
+    health_check_plugin_with_context_aware_fixer,
+    conda_cli,
+):
+    out, err, code = conda_cli("doctor", "--fix", "--yes", "--override-frozen")
+
+    assert "Running fixes" in out
+    assert not err
+    assert code == 0
+    assert health_check_plugin_with_context_aware_fixer.fixer_calls == [(False, False)]

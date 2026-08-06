@@ -19,6 +19,7 @@ from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero, OfflineError, PluginError
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
+from conda.gateways.connection.adapters.http import HTTPAdapter
 from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
     CondaHttpAuth,
@@ -676,6 +677,32 @@ def test_accept_range_none(package_server, tmp_path):
 
     assert complete_file.read_text() == test_content
     assert not partial_file.exists()
+
+
+def test_ssl_context_adapter_forwards_to_proxy_manager():
+    """``ssl_context`` must reach the proxy pool manager, not just the direct one.
+
+    requests builds a separate ProxyManager via ``proxy_manager_for`` that does
+    not see the kwargs passed to ``init_poolmanager``; without an explicit
+    override the custom truststore context is dropped on proxied connections.
+    """
+    sentinel = object()
+    adapter = HTTPAdapter(ssl_context=sentinel)
+
+    assert adapter.poolmanager.connection_pool_kw["ssl_context"] is sentinel
+
+    proxy_manager = adapter.proxy_manager_for("http://proxy:8080")
+    assert proxy_manager.connection_pool_kw["ssl_context"] is sentinel
+
+
+def test_ssl_context_adapter_omits_proxy_ssl_context_when_unset():
+    """The default ``ssl_verify: True`` path must not inject an ssl_context key."""
+    adapter = HTTPAdapter()
+
+    assert "ssl_context" not in adapter.poolmanager.connection_pool_kw
+
+    proxy_manager = adapter.proxy_manager_for("http://proxy:8080")
+    assert "ssl_context" not in proxy_manager.connection_pool_kw
 
 
 @pytest.mark.parametrize("offline", [True, False])

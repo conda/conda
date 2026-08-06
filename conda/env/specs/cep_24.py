@@ -33,8 +33,11 @@ class Cep24YamlFileSpec(EnvironmentSpecBase):
             * the provided file exists
             * the provided file is compliant with the CEP-0024
 
-        :return: True if the file can be handled
-        :raises: if the file can not be handled
+        Returns:
+            True if the file can be handled
+
+        Raises:
+            Exception: if the file can not be handled
         """
         if self.filename is None:
             raise CondaValueError("No filename provided")

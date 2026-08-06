@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
-from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
+from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN, REPODATA_SHARDS_FN
 from ...base.context import context
 from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
@@ -188,6 +188,20 @@ def _add_http_value_to_dict(resp, http_key, d, dict_key):
         d[dict_key] = value
 
 
+def _shard_index_exists(subdir_url: str) -> bool:
+    try:
+        session = get_session(subdir_url)
+        url = join_url(subdir_url, REPODATA_SHARDS_FN)
+        timeout = (
+            context.remote_connect_timeout_secs,
+            context.remote_read_timeout_secs,
+        )
+        response = session.head(url, timeout=timeout, proxies=session.proxies)
+        return 200 <= response.status_code < 300
+    except Exception:
+        return False
+
+
 @contextmanager
 def conda_http_errors(url, repodata_fn):
     """Use in a with: statement to translate requests exceptions to conda ones."""
@@ -257,10 +271,16 @@ Exception: {e}
                         response=e.response,
                     )
                 else:
+                    shards_only_hint = (
+                        repodata_fn == REPODATA_FN
+                        and not context.repodata_use_shards
+                        and _shard_index_exists(url)
+                    )
                     raise UnavailableInvalidChannel(
                         Channel(dirname(url)),
                         status_code,
                         response=e.response,
+                        shards_only_hint=shards_only_hint,
                     )
 
         elif status_code == 403:
@@ -485,12 +505,16 @@ class RepodataState(UserDict):
     def should_check_format(self, format: str) -> bool:
         """Return True if named format should be attempted."""
         has, when = self.has_format(format)
-        return (
+        should_check = (
             has is True
             or isinstance(when, datetime.datetime)
             and datetime.datetime.now(tz=datetime.timezone.utc) - when
             > CHECK_ALTERNATE_FORMAT_INTERVAL
         )
+        # Always check for shards if json has not been cached:
+        if format == "shards" and not should_check:
+            should_check = not self.cache_path_json.exists()
+        return should_check
 
     def __contains__(self, key: str) -> bool:
         key = self._aliased.get(key, key)
@@ -714,7 +738,7 @@ class RepodataCache:
         max_age *= 10**9  # nanoseconds
         now = time.time_ns()
         refresh = self.state.get("refresh_ns", 0)
-        return ((now - refresh) + max_age) / 1e9
+        return (max_age - (now - refresh)) / 1e9
 
 
 class RepodataFetch:
@@ -756,7 +780,8 @@ class RepodataFetch:
         Retrieve parsed latest or latest-cached repodata as a dict; update
         cache.
 
-        :return: (repodata contents, state including cache headers)
+        Returns:
+            Repodata contents, state including cache headers
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
@@ -775,7 +800,8 @@ class RepodataFetch:
         """
         Retrieve latest or latest-cached repodata; update cache.
 
-        :return: (pathlib.Path to uncompressed repodata contents, RepodataState)
+        Returns:
+            Path to uncompressed repodata contents, RepodataState
         """
         _, state = self.fetch_latest()
         return self.cache_path_json, state
