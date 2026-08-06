@@ -106,6 +106,8 @@ _CLONEFILE_UNSUPPORTED_ERRNOS = frozenset(
 _CLONEFILE_UNSUPPORTED_DEVICES: set[tuple[int, int]] = set()
 _CLONEFILE_UNAVAILABLE = object()
 _CLONEFILE = None
+_WIN_COPYFILE_UNAVAILABLE = object()
+_WIN_COPYFILE = None
 
 # in __init__.py to help with circular imports
 mkdir_p = mkdir_p
@@ -397,6 +399,13 @@ def _clone_file(src, dst):
 
 def _do_copy(src, dst):
     log.log(TRACE, "copying %s => %s", src, dst)
+    if _win_copy_file(src, dst):
+        try:
+            copystat(src, dst)
+        except OSError as e:  # pragma: no cover
+            log.debug("%r", e)
+        return
+
     # src and dst are always files. So we can bypass some checks that shutil.copy does.
     # Also shutil.copy calls shutil.copymode, which we can skip because we are explicitly
     # calling copystat.
@@ -414,6 +423,62 @@ def _do_copy(src, dst):
         # shutil.copystat gives a permission denied when using the os.setxattr function
         # on the security.selinux property.
         log.debug("%r", e)
+
+
+def _win_copy_file(src, dst):
+    if not on_win:
+        return False
+
+    # ctypes does not coerce PathLike objects for the CopyFileW wide strings.
+    src = os.fspath(src)
+    dst = os.fspath(dst)
+
+    global _WIN_COPYFILE
+    if _WIN_COPYFILE is _WIN_COPYFILE_UNAVAILABLE:
+        return False
+    if _WIN_COPYFILE is None:
+        _WIN_COPYFILE = _load_win_copy_file()
+    if _WIN_COPYFILE is _WIN_COPYFILE_UNAVAILABLE:
+        return False
+
+    if _WIN_COPYFILE(src, dst, True):
+        log.log(TRACE, "windows copying %s => %s", src, dst)
+        return True
+    if lexists(dst):
+        rm_rf(dst)
+    return False
+
+
+def _load_win_copy_file():
+    """Return the best available native Windows file-copy function."""
+    try:
+        from _winapi import (
+            COPY_FILE_ALLOW_DECRYPTED_DESTINATION,
+            COPY_FILE_FAIL_IF_EXISTS,
+            CopyFile2,
+        )
+    except ImportError:
+        try:
+            from ctypes import windll, wintypes
+        except ImportError:
+            return _WIN_COPYFILE_UNAVAILABLE
+        copy_file = windll.kernel32.CopyFileW
+        copy_file.restype = wintypes.BOOL
+        copy_file.argtypes = (wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.BOOL)
+        return copy_file
+
+    def copy_file(src, dst, fail_if_exists):
+        flags = COPY_FILE_ALLOW_DECRYPTED_DESTINATION
+        if fail_if_exists:
+            flags |= COPY_FILE_FAIL_IF_EXISTS
+        try:
+            CopyFile2(src, dst, flags)
+        except OSError as e:
+            log.debug("CopyFile2 failed for %s => %s: %r", src, dst, e)
+            return False
+        return True
+
+    return copy_file
 
 
 def create_link(src, dst, link_type=LinkType.hardlink, force=False):
