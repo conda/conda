@@ -40,7 +40,6 @@ from ..exceptions import (
     PluginError,
 )
 from . import (
-    env_var_notice,
     environment_exporters,
     environment_specifiers,
     package_extractors,
@@ -1359,7 +1358,6 @@ def get_plugin_manager() -> CondaPluginManager:
     plugin_manager.load_plugins(
         solvers,
         previews,
-        env_var_notice,
         *virtual_packages.plugins,
         *subcommands.plugins,
         *health_checks.plugins,

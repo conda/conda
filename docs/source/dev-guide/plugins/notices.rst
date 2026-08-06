@@ -81,14 +81,6 @@ fetch, with:
 
    conda notices --plugin
 
-Built-in example: ``CONDA_NOTICE``
-===================================
-
-Conda ships a small built-in implementation that yields a notice when the
-``CONDA_NOTICE`` environment variable is set. Useful for manual testing::
-
-   CONDA_NOTICE="hello from the notices hook" conda info
-
 API Reference
 ==============
 
