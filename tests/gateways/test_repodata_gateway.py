@@ -498,3 +498,25 @@ def test_classic_noarch_404_records_no_repodata_json(tmp_path, mocker):
     with pytest.raises(UnavailableInvalidChannel):
         fetch.fetch_latest()
     assert fetch.repo_cache.load_state().has_format("repodata_json")[0] is False
+
+
+def test_fetch_latest_is_skipped_when_repodata_json_False(tmp_path, mocker):
+    """Test network calls are skipped when shards are cached and repodata_json set False"""
+    channel = Channel("http://example.com/noarch")
+
+    fetch = RepodataFetch(
+        tmp_path / "cache",
+        channel,
+        REPODATA_FN,
+        repo_interface_cls=CondaRepoInterface,
+    )
+    cache = fetch.repo_cache
+    cache.state.set_has_format("repodata_json", False)
+    cache.state.set_has_format("shards", True)
+    cache.save(b"shards")
+
+    repodata = mocker.patch.object(CondaRepoInterface, "repodata")
+    raw, state = fetch.fetch_latest()
+
+    assert raw == "{}"
+    assert repodata.call_count == 0
