@@ -236,6 +236,15 @@ def test_config_clear_key() -> None:
     assert config.content["channels"] == []
 
 
+def test_config_clear_key_alias() -> None:
+    config = ConfigurationFile(content={"disallow": ["openssl"]})
+
+    config.clear_key("disallow")
+
+    assert "disallow" not in config.content
+    assert config.content["disallowed_packages"] == []
+
+
 def test_config_clear_key_invalid() -> None:
     config = ConfigurationFile(content={"changeps1": True})
 

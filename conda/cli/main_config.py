@@ -215,6 +215,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--clear",
         action="append",
         help="""Clear all values from a list key.""",
+        default=[],
         metavar="KEY",
     )
     config_modifiers.add_argument(

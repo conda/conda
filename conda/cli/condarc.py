@@ -618,20 +618,19 @@ class ConfigurationFile:
         if not self.key_exists(key):
             raise CondaKeyError(key, "unknown parameter")
 
+        alias_key = None
         if aliased := self.context.name_for_alias(key):
             log.warning(
                 "Key %s is an alias of %s; clearing value with latter",
                 key,
                 aliased,
             )
+            alias_key = key
             key = aliased
 
         first, *rest = key.split(".")
 
         if first == "plugins" and hasattr(self.context, "plugins"):
-            if not rest:
-                raise CondaKeyError(key, "invalid parameter")
-
             base_context = self.context.plugins
             base_config = self.content.setdefault("plugins", {})
             parameter_name, *rest = rest
@@ -656,6 +655,9 @@ class ConfigurationFile:
         ):
             bad_type = current_value.__class__.__name__
             raise CouldntParseError(f"key {key!r} should be a list, not {bad_type}.")
+
+        if alias_key is not None:
+            self.content.pop(alias_key, None)
 
         base_config[parameter_name] = []
 
