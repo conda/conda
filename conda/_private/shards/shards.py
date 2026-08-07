@@ -705,6 +705,17 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
                     cache_state.set_has_format("shards", False)
                 repo_cache.refresh()
 
+        # Use cached on-disk shards data in case re-fetch fails above or classic repodata.json is missing
+        if shards_data is None and repo_cache.cache_path_shards.exists():
+            has_shards, checked = cache_state.has_format("shards")
+            shards_still_ok = checked is not None and has_shards
+            classic_absent = not cache_state.should_check_format("repodata_json")
+            if shards_still_ok or classic_absent:
+                with repo_cache.lock("r+"):
+                    shards_data = repo_cache.cache_path_shards.read_bytes()
+                cache_state.set_has_format("shards", True)
+                repo_cache.refresh()
+
         if shards_data:
             # basic parse (move into caller?)
             shards_index: ShardsIndexDict = msgpack.loads(
