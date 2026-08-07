@@ -705,6 +705,17 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
                     cache_state.set_has_format("shards", False)
                 repo_cache.refresh()
 
+        # Use cached on-disk shards data in case re-fetch fails above or classic repodata.json is missing
+        if shards_data is None and repo_cache.cache_path_shards.exists():
+            has_shards, checked = cache_state.has_format("shards")
+            shards_still_ok = checked is not None and has_shards
+            classic_absent = not cache_state.should_check_format("repodata_json")
+            if shards_still_ok or classic_absent:
+                with repo_cache.lock("r+"):
+                    shards_data = repo_cache.cache_path_shards.read_bytes()
+                cache_state.set_has_format("shards", True)
+                repo_cache.refresh()
+
         if shards_data:
             # basic parse (move into caller?)
             shards_index: ShardsIndexDict = msgpack.loads(
@@ -819,12 +830,17 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
         # Latency penalty launching these requests here instead of when we
         # non_sharded_channels.append(), but we want to leave a fallback to the
         # non-sharded path open.
+
         for channel_url, _ in non_sharded_channels:
-            futures_non_sharded[
-                executor.submit(
-                    SubdirData(Channel(channel_url)).repo_fetch.fetch_latest_parsed
-                )
-            ] = channel_url
+            sd = subdir_data[channel_url]
+            cache = sd.repo_fetch.repo_cache
+            cache.load_state()
+
+            # skip classic when has_repodata_json was recorded False
+            if cache.state.should_check_format("repodata_json"):
+                futures_non_sharded[
+                    executor.submit(sd.repo_fetch.fetch_latest_parsed)
+                ] = channel_url
 
         for future in concurrent.futures.as_completed(futures_non_sharded):
             channel_url = futures_non_sharded[future]

@@ -1528,3 +1528,53 @@ def test_classic_404_shards_only_hint_enabled(
         assert hint in str(exc_info.value.guidance)
     else:
         assert exc_info.value.guidance is None
+
+
+def test_cached_shards_returned(monkeypatch, tmp_path):
+    """Test that stale cache and failed network still returns shards when classic repodata_json is unavailable"""
+
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel("http://localhost/mock/noarch")
+    sd = SubdirData(channel)
+    cache = sd.repo_cache
+
+    fake_index: ShardsIndexDict = {
+        "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
+        "version": 1,
+        "shards": {
+            "foo": hashlib.sha256(b"x").digest(),
+        },
+    }
+    index_bytes = zstd.compress(msgpack.dumps(fake_index))
+    cache.state.set_has_format("shards", True)
+    cache.state.set_has_format("repodata_json", False)
+    cache.save(index_bytes)
+
+    # force stale
+    cache.refresh(refresh_ns=1)
+
+    class MockSession:
+        proxies = None
+        get_count = 0
+
+        def __call__(self, *args):
+            return self
+
+        def get(self, url, *args, **kwargs):
+            self.get_count += 1
+            request = Request("GET", url).prepare()
+            response = Response()
+            response.request = request
+            response.url = url
+            response.status_code = 500  # fail the re-fetch
+            return response
+
+    mock_session = MockSession()
+    monkeypatch.setattr(shards, "get_session", mock_session)
+
+    found = fetch_shards_index(sd)
+    assert found is not None  # cache recovery worked, not "no shards"
+    assert "foo" in found  # loaded cached index
+    assert mock_session.get_count >= 1  # network tried first

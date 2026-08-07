@@ -594,6 +594,10 @@ class RepodataCache:
             # stat (if json_data is to be trusted)
             if state_only:
                 json_data = b"" if binary else ""
+                if not cache_path.exists():
+                    self.state.clear()
+                    self.state.update(state)
+                    return json_data
             else:
                 if binary:
                     json_data = cache_path.read_bytes()
@@ -739,6 +743,10 @@ class RepodataCache:
         now = time.time_ns()
         refresh = self.state.get("refresh_ns", 0)
         return (max_age - (now - refresh)) / 1e9
+
+    def _shards_known(self) -> bool:
+        has_shards, checked = self.state.has_format("shards")
+        return (checked is not None and has_shards) or self.cache_path_shards.exists()
 
 
 class RepodataFetch:
@@ -897,6 +905,14 @@ class RepodataFetch:
                 self.cache_path_json,
             )
 
+        # avoid network calls if repodata_json is set to False and return "{}""
+        if (
+            self.repodata_fn == REPODATA_FN
+            and not cache.state.should_check_format("repodata_json")
+            and cache.cache_path_shards.exists()
+        ):
+            return "{}", cache.state
+
         try:
             try:
                 repo = self._repo
@@ -907,8 +923,20 @@ class RepodataFetch:
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
+
+                # when self.repodata_fn==repodata.json, and RepodataIsEmpty error is raised:
+                # if shards are available, we can assume that repodata.json is not supported
+                if cache._shards_known():
+                    cache.state.set_has_format("repodata_json", False)
+
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata = None
+            except UnavailableInvalidChannel:  # for noarch case
+                if self.repodata_fn == REPODATA_FN:
+                    if cache._shards_known():
+                        cache.state.set_has_format("repodata_json", False)
+                        cache.refresh()
+                raise
             except RepodataOnDisk:
                 # used as a sentinel, not the raised exception object
                 raw_repodata = RepodataOnDisk
