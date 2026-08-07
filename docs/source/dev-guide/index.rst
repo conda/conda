@@ -21,6 +21,13 @@ New to conda development? Start here.
         Learn how the conda project is managed, how to open issues and pull requests,
         and what to expect from the review process.
 
+    .. grid-item-card:: Decision making :octicon:`law;1em;sd-text-primary`
+        :link: decision-making
+        :link-type: doc
+
+        How conda-maintainers assign ownership, agree on changes, and escalate
+        disagreements using a lightweight RAPID framework.
+
     .. grid-item-card:: Development environment :octicon:`file-code;1em;sd-text-primary`
         :link: development-environment
         :link-type: doc
@@ -75,7 +82,8 @@ Build on top of conda using its plugin system or consult the formal specificatio
 Contributing & quality :octicon:`heart;1em;sd-text-primary`
 ............................................................
 
-Guides for writing tests, managing deprecations, and cutting releases.
+Guides for writing tests, maintainer decision-making, managing deprecations,
+and cutting releases.
 
 .. grid:: 1 2 2 2
     :gutter: 2
@@ -128,6 +136,7 @@ API reference :octicon:`code;1em;sd-text-primary`
 
    architecture
    contributing
+   decision-making
    development-environment
    deep-dives/index
    writing-tests/index
