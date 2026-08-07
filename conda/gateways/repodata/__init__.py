@@ -744,6 +744,10 @@ class RepodataCache:
         refresh = self.state.get("refresh_ns", 0)
         return (max_age - (now - refresh)) / 1e9
 
+    def _shards_known(self) -> bool:
+        has_shards, checked = self.state.has_format("shards")
+        return (checked is not None and has_shards) or self.cache_path_shards.exists()
+
 
 class RepodataFetch:
     """
@@ -914,20 +918,14 @@ class RepodataFetch:
 
                 # when self.repodata_fn==repodata.json, and RepodataIsEmpty error is raised:
                 # if shards are available, we can assume that repodata.json is not supported
-                has_shards, checked = cache.state.has_format("shards")
-                if (
-                    checked is not None and has_shards
-                ) or cache.cache_path_shards.exists():
+                if cache._shards_known():
                     cache.state.set_has_format("repodata_json", False)
 
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata = None
             except UnavailableInvalidChannel:  # for noarch case
                 if self.repodata_fn == REPODATA_FN:
-                    has_shards, checked = cache.state.has_format("shards")
-                    if (
-                        checked is not None and has_shards
-                    ) or cache.cache_path_shards.exists():
+                    if cache._shards_known():
                         cache.state.set_has_format("repodata_json", False)
                         cache.refresh()
                 raise
