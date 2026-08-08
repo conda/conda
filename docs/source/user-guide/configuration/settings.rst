@@ -119,10 +119,13 @@ a list of channel names and/or channel URLs.
 
 .. versionadded:: 23.3.0
 
+.. versionadded:: 26.7.0
+   Support for channel-specific ``exclude_newer`` settings.
+
 With ``channel_settings``, it is possible to add extra configuration options
-for individual channels. This is currently used to register additional authentication
-handlers for conda via the :doc:`/dev-guide/plugins/auth_handlers` plugin hook, but may also
-accommodate more use cases in the future.
+for individual channels. This is used to register additional authentication
+handlers for conda via the :doc:`/dev-guide/plugins/auth_handlers` plugin hook
+and to set channel-specific ``exclude_newer`` policies.
 
 Here is an example of how it may be defined provided there was an available authentication
 handler called, "test-auth-handler" registered via the aforementioned plugin hook:
@@ -135,12 +138,18 @@ handler called, "test-auth-handler" registered via the aforementioned plugin hoo
        user: my-user-account
      - channel: https://some.base-url-prefix/*
        auth: another-auth-handler
+     - channel: conda-forge
+       exclude_newer: 7d
+     - channel: defaults
+       exclude_newer: 14d
 
 .. note::
 
    Each entry in ``channel_settings`` needs to define the ``channel`` attribute so that
-   the configuration knows which channel these settings are associated with. The ``channel``
-   attribute may specify a glob-like URL pattern for matching. Note that in this case, the HTTP
+   the configuration knows which channel these settings are associated with. The
+   ``channel`` attribute may be a channel name, a multichannel name such as
+   ``defaults``, a channel URL, or a glob-like URL pattern. Multichannel settings
+   apply to their resolved member channels. For glob-like URL patterns, the HTTP
    schema must match exactly to the channel URL, so a pattern like ``*`` is not valid.
 
 
@@ -554,6 +563,64 @@ The default is ``False``.
 To avoid updating only specific packages in an environment, a
 better option may be to pin them. For more information, see
 :ref:`pinning-packages`.
+
+.. _exclude-newer:
+
+``exclude_newer``: Exclude newer packages
+-----------------------------------------
+
+.. versionadded:: 26.7.0
+
+Exclude packages published more recently than the configured cutoff. This can
+reduce exposure to newly uploaded packages while allowing older package records
+to remain available to the solver. For a one-off solve, the same value can be
+provided with the ``--exclude-newer`` option for ``conda create``, ``conda
+install``, or ``conda update``. A configured ``exclude_newer`` policy also
+filters ``conda search`` results.
+
+Values may be compact durations such as ``7d``, ``3d12h``, or ``1w``,
+ISO 8601 durations such as ``P7D``, RFC 3339 timestamps such as
+``2026-04-01T12:00:00Z``, ISO 8601 dates such as ``2026-04-01``, or a
+plain number of seconds. Date-only values are interpreted as the start of the
+next day in UTC. Set this value to ``0`` for no delay, using the current time as
+the cutoff. Leave it empty to disable the policy, which is the default.
+
+Packages without an ``indexed_timestamp`` or ``timestamp`` value are included
+for compatibility.
+
+**Example:**
+
+.. code-block:: yaml
+
+  exclude_newer: 7d
+
+Channel-specific cutoffs can be set with ``exclude_newer`` entries in
+:ref:`channel_settings <channel-settings>`, and per-package overrides can be set
+with :ref:`exclude_newer_package <exclude-newer-package>`. Package-specific
+overrides take precedence over channel-specific cutoffs, and channel-specific
+cutoffs take precedence over the global ``exclude_newer`` value. Channel and
+package-specific overrides are configured in ``.condarc`` only; the
+``--exclude-newer`` command option sets a global cutoff for that command.
+
+.. _exclude-newer-package:
+
+``exclude_newer_package``: Exclude newer packages by package name
+-----------------------------------------------------------------
+
+.. versionadded:: 26.7.0
+
+Override the ``exclude_newer`` policy for individual package names. Values may
+use the same duration, timestamp, date, or seconds formats as
+``exclude_newer``. Set a package value to ``false`` to exempt that package from
+the policy.
+
+**Example:**
+
+.. code-block:: yaml
+
+  exclude_newer_package:
+    openssl: false
+    numpy: 30d
 
 .. _disallow-install:
 

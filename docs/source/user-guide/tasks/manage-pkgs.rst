@@ -90,6 +90,42 @@ If you want to use a specific Python version, it is best to use
 an environment with that version. For more information,
 see :doc:`../troubleshooting`.
 
+Installing packages with an upload cutoff
+=========================================
+
+.. versionadded:: 26.7.0
+
+Use ``--exclude-newer`` to ignore package records published after a
+configured cutoff for one ``conda create``, ``conda install``, or
+``conda update`` command. This can reduce exposure to packages that were
+uploaded very recently while still allowing older package records to be
+selected.
+
+To install a package while ignoring package records uploaded in the last
+7 days:
+
+.. code-block:: bash
+
+   conda install --exclude-newer 7d scipy
+
+To update packages while applying the same cutoff:
+
+.. code-block:: bash
+
+   conda update --exclude-newer 7d --all
+
+To create an environment using only package records published on or before a
+specific date:
+
+.. code-block:: bash
+
+   conda create --name myenv --exclude-newer 2026-04-01 python
+
+Date-only cutoffs are interpreted as the start of the next day in UTC. To
+apply this policy persistently, or to set channel-specific or package-specific
+overrides, configure :ref:`exclude_newer <exclude-newer>` in your
+``.condarc`` file.
+
 Installing similar packages
 ===========================
 Installing packages that have similar filenames and serve similar
