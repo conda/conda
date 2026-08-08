@@ -157,10 +157,12 @@ class CondaSpecs:
         """
         Register pre-command functions in conda.
 
-        Shell activation commands avoid loading the plugin manager for startup
-        performance. These hooks run for ``conda shell.* activate``,
-        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
-        was already loaded by another code path.
+        .. note::
+           Pre-command hooks are not invoked for ``conda run`` or shell
+           activation commands (``activate``, ``deactivate``, ``reactivate``,
+           and ``hook``). These commands intentionally skip plugin discovery
+           to preserve their startup fast paths. Use ``run_for`` to select
+           from the remaining built-in and plugin subcommands.
 
         **Example:**
 
@@ -188,10 +190,12 @@ class CondaSpecs:
         """
         Register post-command functions in conda.
 
-        Shell activation commands avoid loading the plugin manager for startup
-        performance. These hooks run for ``conda shell.* activate``,
-        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
-        was already loaded by another code path.
+        .. note::
+           Post-command hooks are not invoked for ``conda run`` or shell
+           activation commands (``activate``, ``deactivate``, ``reactivate``,
+           and ``hook``). These commands intentionally skip plugin discovery
+           to preserve their startup fast paths. Use ``run_for`` to select
+           from the remaining built-in and plugin subcommands.
 
         **Example:**
 

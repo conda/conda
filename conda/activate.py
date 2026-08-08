@@ -220,24 +220,7 @@ class _Activator(metaclass=abc.ABCMeta):
     def execute(self):
         # return value meant to be written to stdout
         self._parse_and_set_args()
-
-        # Avoid loading plugins solely to run activation hooks. If another
-        # code path has already initialized the plugin manager, preserve the
-        # existing pre/post hook behavior.
-        from .plugins.manager import get_plugin_manager
-
-        try:
-            plugins_loaded = get_plugin_manager.cache_info().currsize > 0
-        except (AttributeError, TypeError):
-            # Tests may patch the cached factory; keep hooks enabled then.
-            plugins_loaded = True
-
-        if plugins_loaded:
-            context.plugin_manager.invoke_pre_commands(self.command)
-        response = getattr(self, self.command)()
-        if plugins_loaded:
-            context.plugin_manager.invoke_post_commands(self.command)
-        return response
+        return getattr(self, self.command)()
 
     def template_unset_var(self, key: str) -> str:
         return self.unset_var_tmpl % key
