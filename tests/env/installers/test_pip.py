@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from argparse import Namespace
 from pathlib import Path
+from shlex import quote
 
 import pytest
 
@@ -61,7 +62,8 @@ def test_pip_installer_resolves_multiple_requirement_sources_once(
     assert captured["prefix"] == "/prefix"
     assert captured["cwd"] is None
     assert captured["requirements_text"] == (
-        f"boto3>1.43.38\n-e {first_pkg}\naiobotocore==3.6.0\n-r {second_requirements}"
+        f"boto3>1.43.38\n-e {quote(str(first_pkg))}\n"
+        f"aiobotocore==3.6.0\n-r {quote(str(second_requirements))}"
     )
     assert result == ["aiobotocore", "boto3"]
 
@@ -69,14 +71,23 @@ def test_pip_installer_resolves_multiple_requirement_sources_once(
 @pytest.mark.parametrize(
     ("spec_template", "expected_template"),
     [
-        ("--editable=./pkg", "--editable={workdir}{path_sep}pkg"),
+        ("--editable=./pkg", "--editable={pkg}"),
+        ("-e./pkg", "-e{pkg}"),
         (
             "--requirement=requirements.txt",
-            "--requirement={workdir}{path_sep}requirements.txt",
+            "--requirement={requirements}",
+        ),
+        (
+            "-rrequirements.txt",
+            "-r{requirements}",
         ),
         (
             "--constraint constraints.txt",
-            "--constraint {workdir}{path_sep}constraints.txt",
+            "--constraint {constraints}",
+        ),
+        (
+            "-cconstraints.txt",
+            "-c{constraints}",
         ),
         ("./pkg", "{workdir}{path_sep}pkg"),
         (
@@ -92,13 +103,16 @@ def test_pip_installer_normalizes_relative_source_paths(
     tmp_path,
     captured_pip_subprocess,
 ):
-    workdir = tmp_path / "source"
+    workdir = tmp_path / "source dir"
     other_workdir = tmp_path / "other"
     workdir.mkdir()
     other_workdir.mkdir()
     format_args = {
         "absolute": tmp_path / "constraints.txt",
+        "constraints": quote(str(workdir / "constraints.txt")),
         "path_sep": os.sep,
+        "pkg": quote(str(workdir / "pkg")),
+        "requirements": quote(str(workdir / "requirements.txt")),
         "workdir": workdir,
     }
     spec = spec_template.format(**format_args)
@@ -139,3 +153,28 @@ def test_pip_installer_uses_common_source_workdir(
 
     assert captured["cwd"] == str(workdir)
     assert captured["requirements_text"] == "-e ./pkg\n-r requirements.txt"
+
+
+def test_pip_installer_does_not_use_partial_source_workdir(
+    tmp_path,
+    captured_pip_subprocess,
+):
+    workdir = tmp_path / "source"
+    workdir.mkdir()
+    requirements = workdir / "requirements.txt"
+    _, captured = captured_pip_subprocess
+
+    install(
+        "/prefix",
+        [],
+        Namespace(file=[]),
+        requirements_sources=[
+            (["-r requirements.txt"], str(workdir)),
+            (["-r unknown.txt"], None),
+        ],
+    )
+
+    assert captured["cwd"] is None
+    assert captured["requirements_text"] == (
+        f"-r {quote(str(requirements))}\n-r unknown.txt"
+    )

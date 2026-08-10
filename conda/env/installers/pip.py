@@ -5,6 +5,7 @@
 import os
 import os.path as op
 from logging import getLogger
+from shlex import quote
 
 from ...auxlib.compat import Utf8NamedTemporaryFile
 from ...common.path import expand, is_path, paths_equal
@@ -26,6 +27,7 @@ def install(prefix, specs, args, *_, workdir=None, requirements_sources=None, **
 
     specs: iterable of strings
       Each element should be a valid pip dependency.
+      Ignored when requirements_sources is nonempty.
       See: https://pip.pypa.io/en/stable/user_guide/#requirements-files
            https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
 
@@ -43,9 +45,8 @@ def install(prefix, specs, args, *_, workdir=None, requirements_sources=None, **
     with get_spinner("Installing pip dependencies"):
         if requirements_sources:
             source_workdirs = {
-                expand(source_workdir)
+                expand(source_workdir) if source_workdir else None
                 for _, source_workdir in requirements_sources
-                if source_workdir
             }
             if workdir is None and len(source_workdirs) == 1:
                 workdir = source_workdirs.pop()
@@ -69,28 +70,36 @@ def install(prefix, specs, args, *_, workdir=None, requirements_sources=None, **
                                 and not op.isabs(path)
                                 and (option != "--editable" or is_path(path))
                             ):
-                                path = expand(op.join(source_workdir, path))
+                                path = quote(expand(op.join(source_workdir, path)))
                             spec = f"{option_prefix}{path}"
                             break
                     else:
                         option, separator, path = spec.partition(" ")
-                        if separator and option in {"-e", "--editable"}:
+                        # Short options attach values directly. "=" belongs to the value.
+                        if (
+                            not separator
+                            and spec[:2] in {"-e", "-r", "-c"}
+                            and spec[2:3] not in {"", "="}
+                            and not spec[2:3].isspace()
+                        ):
+                            option, path = spec[:2], spec[2:]
+                        if path and option in {"-e", "--editable"}:
                             if (
                                 not is_url(path)
                                 and not op.isabs(path)
                                 and is_path(path)
                             ):
-                                path = expand(op.join(source_workdir, path))
-                            spec = f"{option} {path}"
-                        elif separator and option in {
+                                path = quote(expand(op.join(source_workdir, path)))
+                            spec = f"{option}{separator}{path}"
+                        elif path and option in {
                             "-r",
                             "--requirement",
                             "-c",
                             "--constraint",
                         }:
                             if not is_url(path) and not op.isabs(path):
-                                path = expand(op.join(source_workdir, path))
-                            spec = f"{option} {path}"
+                                path = quote(expand(op.join(source_workdir, path)))
+                            spec = f"{option}{separator}{path}"
                         elif not is_url(spec) and not op.isabs(spec) and is_path(spec):
                             spec = expand(op.join(source_workdir, spec))
                     pip_specs.append(spec)

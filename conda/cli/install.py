@@ -431,7 +431,7 @@ def install(args, parser, command="install"):
             installer = get_installer("pip", file=pip_sources[0][0])
             result = installer.install(
                 prefix,
-                list(env.external_packages["pip"]),
+                [],
                 args,
                 env,
                 requirements_sources=[
