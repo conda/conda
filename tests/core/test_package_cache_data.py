@@ -142,6 +142,24 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
     bad_extract._finish_extract.assert_not_called()
 
 
+@pytest.mark.parametrize("error", (FileNotFoundError, NotImplementedError))
+def test_process_pool_unavailable_falls_back_to_threads(
+    mocker, tmp_pkgs_dir: Path, error
+):
+    process_pool = mocker.patch.object(
+        package_cache_data,
+        "ProcessPoolExecutor",
+        side_effect=error,
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    _, conda_prec = fresh_zlib_records()
+
+    ProgressiveFetchExtract((conda_prec,)).execute()
+
+    process_pool.assert_called_once()
+    assert isfile(join(tmp_pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
+
+
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):
     # force this to False, because otherwise tests fail when run with old conda-build
     # zlib is available in local "linux-64" subdir

@@ -870,11 +870,18 @@ class ProgressiveFetchExtract:
                         break
 
             if use_process_pool:
-                extract_executor = ProcessPoolExecutor(
-                    max_workers=EXTRACT_PROCESSES,
-                    mp_context=multiprocessing.get_context("spawn"),
-                )
-            else:
+                try:
+                    extract_executor = ProcessPoolExecutor(
+                        max_workers=EXTRACT_PROCESSES,
+                        mp_context=multiprocessing.get_context("spawn"),
+                    )
+                except (OSError, NotImplementedError):
+                    log.debug(
+                        "Process pool unavailable, falling back to thread pool.",
+                        exc_info=True,
+                    )
+                    use_process_pool = False
+            if not use_process_pool:
                 extract_executor = ThreadPoolExecutor(EXTRACT_THREADS)
 
             cancelled_flag = False
