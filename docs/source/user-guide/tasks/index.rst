@@ -22,7 +22,7 @@ you can do with conda.
 Common Tasks
 ============
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Managing conda <manage-conda>`
         Everything necessary to know about managing your installation of conda
@@ -49,7 +49,7 @@ Common Tasks
 Tutorials
 =========
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Creating custom channels <create-custom-channels>`
         Tutorial walking you through how to create a custom channel and serve it from your local computer

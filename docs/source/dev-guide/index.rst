@@ -11,7 +11,7 @@ Getting started :octicon:`rocket;1em;sd-text-primary`
 
 New to conda development? Start here.
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Contributing 101 <contributing>`
         Learn how the conda project is managed, how to open issues and pull requests,
@@ -26,7 +26,7 @@ Architecture & internals :octicon:`project;1em;sd-text-primary`
 
 Understand how conda is structured and how its most complex subsystems work.
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Architecture <architecture>`
         A high-level overview of conda's architecture, its major components, and how
@@ -41,22 +41,22 @@ Extending conda :octicon:`plug;1em;sd-text-primary`
 
 Build on top of conda using its plugin system or consult the formal specifications.
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Plugins <plugins/index>`
         Learn how to extend and customize conda's behavior using the plugin system,
         including hooks for solvers, subcommands, auth handlers, and more.
 
-    :doc:`Specifications <specs/index>`
-        Formal specifications for conda internals, including solver state and other
-        components.
+    :doc:`Implementation Notes <implementation-notes/index>`
+        Notes on how specific conda subsystems are implemented, including the solver
+        state and sharded repodata.
 
 Contributing & quality :octicon:`heart;1em;sd-text-primary`
 ............................................................
 
 Guides for writing tests, managing deprecations, and cutting releases.
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Writing tests <writing-tests/index>`
         Guidelines and guides for writing unit and integration tests, using the HTTP
@@ -77,7 +77,7 @@ Guides for writing tests, managing deprecations, and cutting releases.
 API reference :octicon:`code;1em;sd-text-primary`
 ..................................................
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`API reference </dev-guide/api>`
         Auto-generated API documentation for all public modules, classes, and
@@ -97,5 +97,5 @@ API reference :octicon:`code;1em;sd-text-primary`
    releasing
    plugins/index
    previews
-   specs/index
+   implementation-notes/index
    typing

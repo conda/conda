@@ -18,7 +18,7 @@ sharded
 ```
 
 ```{eval-rst}
-.. glossary::
+.. nav-glossary::
 
     :doc:`conda install <install>`
         A thorough walkthrough of what happens when you run ``conda install``: from

@@ -1,7 +1,7 @@
-# Specifications
+# Implementation Notes
 
-Formal specifications for conda internals. These pages describe how specific subsystems
-behave and are intended as a reference for contributors and integrators.
+Notes on how specific conda subsystems are implemented. These pages are intended as a
+reference for contributors and integrators.
 
 ```{toctree}
 :maxdepth: 1
@@ -12,7 +12,7 @@ sharded-repodata
 ```
 
 ```{eval-rst}
-.. glossary::
+.. nav-glossary::
 
     :doc:`Solver state <solver-state>`
         A technical specification of the solver state: how the list of ``MatchSpec`` objects

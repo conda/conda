@@ -2,7 +2,7 @@
 This page of the documentation is not yet finished and only contains a draft of the content.
 ```
 
-# Technical specification: solver state
+# Solver state
 
 :::{admonition} Note
 :class: warning

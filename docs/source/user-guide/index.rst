@@ -23,7 +23,7 @@ First steps
 
 If you are brand new to conda, then these are guides that you will want to start with first:
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Installing conda <install/index>`
         Follow these instructions to get a working installation of conda on your computer
@@ -44,7 +44,7 @@ If you are brand new to conda, then these are guides that you will want to start
 Learn more
 ==========
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Configuring conda <configuration/index>`
         Reference and explanation for all the ways you can configure conda
@@ -60,7 +60,7 @@ Learn more
 Additional resources
 ====================
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Cheat sheet <cheatsheet>`
         Commonly used commands organized into a PDF
