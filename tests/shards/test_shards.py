@@ -1609,3 +1609,45 @@ def test_cached_shards_when_shards_check_skipped(monkeypatch, tmp_path):
     found = fetch_shards_index(sd)
     assert found is not None
     assert "foo" in found  # loaded cached index
+
+
+def test_fetch_channels_skips_classic_for_shards_only_url(
+    monkeypatch, tmp_path, mocker
+):
+    """Mixed channels: do not classic-probe a URL with has_repodata_json recorded False."""
+
+    from conda.gateways.repodata import RepodataFetch
+
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+    good_url = "http://example.com/good/noarch"
+    shards_only_url = "http://example.com/shards-only/noarch"
+
+    # Same cache path fetch_channels will use for the shards-only URL
+    only_cache = SubdirData(Channel(shards_only_url)).repo_cache
+    only_cache.state.set_has_format("repodata_json", False)
+    only_cache.refresh()
+
+    # mimic fetch_shards_index behavior without http calls
+    def fake_fetch_shards_index(sd: SubdirData):
+        if sd.url_w_subdir == shards_only_url:
+            return None
+        # Successful shards result for the other URL (type only needs to be truthy)
+        return object()
+
+    monkeypatch.setattr(
+        "conda._private.shards.shards.fetch_shards_index",
+        fake_fetch_shards_index,
+    )
+
+    spy = mocker.spy(RepodataFetch, "fetch_latest_parsed")
+    result = fetch_channels(
+        {
+            good_url: Channel(good_url),
+            shards_only_url: Channel(shards_only_url),
+        }
+    )
+    assert result is not None
+    assert good_url in result
+    assert shards_only_url not in result
+    assert spy.call_count == 0  # classic must not be probed for the shards-only URL

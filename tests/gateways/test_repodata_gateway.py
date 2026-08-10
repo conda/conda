@@ -475,6 +475,7 @@ def test_classic_soft_404_records_no_repodata_json(tmp_path, mocker):
     )
     fetch.repo_cache.state.set_has_format("shards", True)
     fetch.repo_cache.save(b"shards")
+    assert not fetch.repo_cache.cache_path_json.exists()
     fetch.fetch_latest()
     assert fetch.repo_cache.load_state().has_format("repodata_json")[0] is False
 
