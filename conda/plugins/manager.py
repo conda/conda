@@ -78,6 +78,7 @@ if TYPE_CHECKING:
         CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
+        CondaPackageVerifier,
         CondaPlugin,
         CondaPluginWithAliases,
         CondaPostCommand,
@@ -377,6 +378,11 @@ class CondaPluginManager(pluggy.PluginManager):
     def get_hook_results(
         self, name: Literal["package_extractors"]
     ) -> list[CondaPackageExtractor]: ...
+
+    @overload
+    def get_hook_results(
+        self, name: Literal["package_verifiers"]
+    ) -> list[CondaPackageVerifier]: ...
 
     @overload
     def get_hook_results(
@@ -1246,6 +1252,10 @@ class CondaPluginManager(pluggy.PluginManager):
             )
             for hook in self.get_hook_results("post_transaction_actions")
         ]
+
+    def get_package_verifiers(self) -> tuple[CondaPackageVerifier, ...]:
+        """Return the registered package verifier plugins."""
+        return tuple(self.get_hook_results("package_verifiers"))
 
     def get_package_extractors(self) -> dict[str, CondaPackageExtractor]:
         """

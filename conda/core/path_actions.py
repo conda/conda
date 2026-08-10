@@ -34,10 +34,12 @@ from ..common.path import (
 from ..common.serialize import json
 from ..common.url import has_platform, path_to_url
 from ..exceptions import (
+    ChecksumMismatchError,
     CondaUpgradeError,
     CondaVerificationError,
     NotWritableError,
     PaddingError,
+    PluginError,
     SafetyError,
 )
 from ..gateways.connection.download import download
@@ -1315,6 +1317,7 @@ class CacheUrlAction(PathAction):
         sha256=None,
         size=None,
         md5=None,
+        defer_cleanup=False,
     ):
         self.url = url
         self.target_pkgs_dir = target_pkgs_dir
@@ -1322,7 +1325,11 @@ class CacheUrlAction(PathAction):
         self.sha256 = sha256
         self.size = size
         self.md5 = md5
+        self.defer_cleanup = defer_cleanup
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
+        self._verified_checksum = None
+        self._target_path_touched = False
+        self._pending_url = None
 
     def verify(self):
         if "::" in self.url:
@@ -1335,6 +1342,7 @@ class CacheUrlAction(PathAction):
         from .package_cache_data import PackageCacheData
 
         target_package_cache = PackageCacheData(self.target_pkgs_dir)
+        self._verified_checksum = None
 
         log.log(TRACE, "caching url %s => %s", self.url, self.target_full_path)
 
@@ -1350,6 +1358,7 @@ class CacheUrlAction(PathAction):
             else:
                 backoff_rename(self.target_full_path, self.hold_path, force=True)
 
+        self._target_path_touched = True
         if self.url.startswith("file:/"):
             source_path = url_to_path(self.url)
             self._execute_local(
@@ -1375,7 +1384,7 @@ class CacheUrlAction(PathAction):
                 self.target_package_basename
             )
             if origin_url and has_platform(origin_url, context.known_subdirs):
-                target_package_cache._urls_data.add_url(origin_url)
+                self.record_url(target_package_cache, origin_url)
         else:
             # so our tarball source isn't a package cache, but that doesn't mean it's not
             #   in another package cache somewhere
@@ -1410,9 +1419,9 @@ class CacheUrlAction(PathAction):
             )
 
             if origin_url and has_platform(origin_url, context.known_subdirs):
-                target_package_cache._urls_data.add_url(origin_url)
+                self.record_url(target_package_cache, origin_url)
             else:
-                target_package_cache._urls_data.add_url(self.url)
+                self.record_url(target_package_cache, self.url)
 
     def _execute_channel(self, target_package_cache, progress_update_callback=None):
         kwargs = {}
@@ -1428,15 +1437,36 @@ class CacheUrlAction(PathAction):
             progress_update_callback=progress_update_callback,
             **kwargs,
         )
-        target_package_cache._urls_data.add_url(self.url)
+        if self.sha256:
+            self._verified_checksum = ("sha256", self.sha256)
+        elif self.md5:
+            self._verified_checksum = ("md5", self.md5)
+        self.record_url(target_package_cache, self.url)
+
+    def record_url(self, target_package_cache, url):
+        """Record the package URL now or when the cache action is accepted."""
+        if self.defer_cleanup:
+            self._pending_url = (target_package_cache._urls_data, url)
+        else:
+            target_package_cache._urls_data.add_url(url)
 
     def reverse(self):
+        self._verified_checksum = None
+        if self._target_path_touched:
+            rm_rf(self.target_full_path)
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
+        self._target_path_touched = False
+        self._pending_url = None
 
     def cleanup(self):
+        if self._pending_url is not None:
+            urls_data, url = self._pending_url
+            urls_data.add_url(url)
+            self._pending_url = None
         rm_rf(self.hold_path)
+        self._target_path_touched = False
 
     @property
     def target_full_path(self):
@@ -1465,8 +1495,79 @@ class ExtractPackageAction(PathAction):
         self.sha256 = sha256
         self.size = size
         self.md5 = md5
+        self._verified_checksum = None
+        self._target_path_touched = False
 
     def verify(self):
+        verified_checksum = self._verified_checksum
+        self._verified_checksum = None
+        verifiers = context.plugin_manager.get_package_verifiers()
+        if verifiers:
+            source_url = path_to_url(os.fspath(self.source_full_path))
+            actual_size = getsize(self.source_full_path)
+            if self.size is not None and actual_size != self.size:
+                raise ChecksumMismatchError(
+                    source_url,
+                    self.source_full_path,
+                    "size",
+                    self.size,
+                    actual_size,
+                )
+
+            if verified_checksum and verified_checksum[0] == "sha256":
+                actual_sha256 = bytes.fromhex(verified_checksum[1]).hex()
+                expected_sha256 = (
+                    bytes.fromhex(self.sha256).hex() if self.sha256 else None
+                )
+                if actual_sha256 != expected_sha256:
+                    raise ChecksumMismatchError(
+                        source_url,
+                        self.source_full_path,
+                        "sha256",
+                        self.sha256,
+                        actual_sha256,
+                    )
+            else:
+                actual_sha256 = compute_sum(self.source_full_path, "sha256")
+                if self.sha256 and actual_sha256 != self.sha256:
+                    raise ChecksumMismatchError(
+                        source_url,
+                        self.source_full_path,
+                        "sha256",
+                        self.sha256,
+                        actual_sha256,
+                    )
+
+            if not self.sha256 and self.md5:
+                actual_md5 = (
+                    verified_checksum[1]
+                    if verified_checksum and verified_checksum[0] == "md5"
+                    else compute_sum(self.source_full_path, "md5")
+                )
+                if actual_md5 != self.md5:
+                    raise ChecksumMismatchError(
+                        source_url,
+                        self.source_full_path,
+                        "md5",
+                        self.md5,
+                        actual_md5,
+                    )
+
+            for verifier in verifiers:
+                try:
+                    verifier.verify(
+                        self.record_or_spec,
+                        self.source_full_path,
+                        actual_sha256,
+                    )
+                except CondaError:
+                    raise
+                except Exception as err:
+                    raise PluginError(
+                        f"Package verifier {verifier.name!r} failed: {err}"
+                    ) from err
+            self.sha256 = actual_sha256
+
         self._verified = True
 
     def execute(self, progress_update_callback=None):
@@ -1482,6 +1583,7 @@ class ExtractPackageAction(PathAction):
             TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
         )
 
+        self._target_path_touched = True
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
@@ -1547,14 +1649,16 @@ class ExtractPackageAction(PathAction):
         target_package_cache.insert(package_cache_record)
 
     def reverse(self):
-        rm_rf(self.target_full_path)
-        if lexists(self.hold_path):
-            log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
+        if self._target_path_touched:
             rm_rf(self.target_full_path)
-            backoff_rename(self.hold_path, self.target_full_path)
+            if lexists(self.hold_path):
+                log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
+                backoff_rename(self.hold_path, self.target_full_path)
+        self._target_path_touched = False
 
     def cleanup(self):
         rm_rf(self.hold_path)
+        self._target_path_touched = False
 
     @property
     def target_full_path(self):

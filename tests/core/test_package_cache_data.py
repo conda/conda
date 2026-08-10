@@ -12,7 +12,7 @@ import pytest
 from pytest import MonkeyPatch
 
 from conda import CondaError, CondaMultiError
-from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
+from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE, SafetyChecks
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.path import strip_pkg_extension
@@ -27,7 +27,13 @@ from conda.core.package_cache_data import (
 from conda.core.path_actions import CacheUrlAction
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.disk.read import isfile, listdir, yield_lines
+from conda.gateways.disk.read import (
+    compute_sum,
+    isfile,
+    listdir,
+    read_index_json,
+    yield_lines,
+)
 from conda.models.match_spec import MatchSpec
 from conda.testing.helpers import CHANNEL_DIR_V1
 from conda.utils import url_path
@@ -375,6 +381,395 @@ def test_tar_bz2_in_pkg_cache_used_instead_of_conda_pkg(tmp_pkgs_dir: Path):
     # Now check urls.txt to make sure extensions are included.
     urls_text = tuple(yield_lines(join(tmp_pkgs_dir, "urls.txt")))
     assert urls_text[0] == tar_bz2_prec.url
+
+
+def test_package_verifier_does_not_reuse_complementary_format(
+    tmp_pkgs_dir: Path,
+    mocker,
+):
+    tar_bz2_prec, conda_prec = fresh_zlib_records()
+    ProgressiveFetchExtract((tar_bz2_prec,)).execute()
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(mocker.MagicMock(),),
+    )
+
+    pfe = ProgressiveFetchExtract((conda_prec,))
+    pfe.prepare()
+
+    assert len(pfe.cache_actions) == 1
+    assert pfe.cache_actions[0].target_package_basename == conda_prec.fn
+    assert pfe.extract_actions[0].sha256 == conda_prec.sha256
+
+
+def test_package_verifier_uses_exact_retained_format(
+    tmp_pkgs_dir: Path,
+    mocker,
+):
+    for filename in (zlib_tar_bz2_fn, zlib_conda_fn):
+        cache_action = CacheUrlAction(
+            f"{CONDA_PKG_REPO}/{subdir}/{filename}",
+            tmp_pkgs_dir,
+            filename,
+        )
+        cache_action.verify()
+        cache_action.execute()
+        cache_action.cleanup()
+
+    verify = mocker.stub(name="verify")
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(name="test-verifier", verify=verify),),
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+    selected = PackageRecord.from_objects(
+        zlib_tar_bz2_prec,
+        url=f"https://mirror.example/{subdir}/{zlib_tar_bz2_fn}",
+    )
+
+    pfe = ProgressiveFetchExtract((selected,))
+    pfe.prepare()
+
+    assert not pfe.cache_actions
+    assert Path(pfe.extract_actions[0].source_full_path) == Path(
+        tmp_pkgs_dir,
+        zlib_tar_bz2_fn,
+    )
+
+    pfe.execute()
+
+    verify.assert_called_once()
+    assert verify.call_args.args[0] is selected
+
+
+@pytest.mark.parametrize("checksum", ("sha256", "md5"))
+def test_package_verifier_reuses_download_checksum(
+    checksum: str,
+    tmp_pkgs_dir: Path,
+    mocker,
+):
+    source = Path(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn)
+    record_data = zlib_tar_bz2_prec.dump()
+    record_data["url"] = f"https://example.invalid/{subdir}/{zlib_tar_bz2_fn}"
+    if checksum == "md5":
+        record_data.pop("sha256")
+    else:
+        record_data["sha256"] = record_data["sha256"].upper()
+    selected = PackageRecord(**record_data)
+
+    def download(url, target_full_path, **kwargs):
+        copy(source, target_full_path)
+
+    download_package = mocker.patch(
+        "conda.core.path_actions.download",
+        side_effect=download,
+    )
+    compute_checksum = mocker.patch(
+        "conda.core.path_actions.compute_sum",
+        wraps=compute_sum,
+    )
+
+    def verify(record_or_spec, source_full_path, sha256):
+        assert record_or_spec is selected
+        assert sha256 == zlib_tar_bz2_prec.sha256
+        if checksum == "sha256":
+            compute_checksum.assert_not_called()
+        else:
+            compute_checksum.assert_called_once_with(source_full_path, "sha256")
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(name="test-verifier", verify=verify),),
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+
+    pfe = ProgressiveFetchExtract((selected,))
+    pfe.execute()
+
+    download_package.assert_called_once()
+    assert download_package.call_args.kwargs[checksum] == getattr(selected, checksum)
+    if checksum == "sha256":
+        compute_checksum.assert_not_called()
+        extract_action = pfe.extract_actions[0]
+        extract_action._verified_checksum = ("sha256", selected.sha256)
+        extract_action.verify()
+        compute_checksum.assert_not_called()
+    else:
+        compute_checksum.assert_called_once_with(
+            str(Path(tmp_pkgs_dir, zlib_tar_bz2_fn)),
+            "sha256",
+        )
+
+
+def test_package_verifier_uses_exact_read_only_archive(
+    tmp_pkgs_dir: Path,
+    tmp_path: Path,
+    mocker,
+):
+    read_only_pkgs_dir = tmp_path / "read-only-pkgs"
+    read_only_pkgs_dir.mkdir()
+    magic_file = read_only_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE
+    magic_file.touch()
+    copy(
+        join(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn),
+        read_only_pkgs_dir / zlib_tar_bz2_fn,
+    )
+    make_read_only(magic_file)
+    mocker.patch(
+        "conda.base.context.Context.pkgs_dirs",
+        new_callable=mocker.PropertyMock,
+        return_value=(str(tmp_pkgs_dir), str(read_only_pkgs_dir)),
+    )
+    PackageCacheData.clear()
+    verify = mocker.stub(name="verify")
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(name="test-verifier", verify=verify),),
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+
+    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe.prepare()
+
+    assert len(pfe.cache_actions) == 1
+    assert pfe.cache_actions[0].url == (read_only_pkgs_dir / zlib_tar_bz2_fn).as_uri()
+
+    pfe.execute()
+
+    verify.assert_called_once()
+    assert Path(verify.call_args.args[1]).parent == tmp_pkgs_dir
+
+
+def test_package_verifier_extracts_into_first_writable_cache(
+    tmp_pkgs_dir: Path,
+    tmp_path: Path,
+    mocker,
+):
+    ProgressiveFetchExtract((zlib_tar_bz2_prec,)).execute()
+    Path(tmp_pkgs_dir, zlib_tar_bz2_fn).unlink()
+    stale_marker = Path(tmp_pkgs_dir, zlib_base_fn, "stale")
+    stale_marker.touch()
+
+    second_pkgs_dir = tmp_path / "second-pkgs"
+    second_pkgs_dir.mkdir()
+    Path(second_pkgs_dir, PACKAGE_CACHE_MAGIC_FILE).touch()
+    copy(
+        join(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn),
+        second_pkgs_dir / zlib_tar_bz2_fn,
+    )
+    mocker.patch(
+        "conda.base.context.Context.pkgs_dirs",
+        new_callable=mocker.PropertyMock,
+        return_value=(str(tmp_pkgs_dir), str(second_pkgs_dir)),
+    )
+    PackageCacheData.clear()
+    verify = mocker.stub(name="verify")
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(name="test-verifier", verify=verify),),
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+
+    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe.prepare()
+
+    assert len(pfe.cache_actions) == 1
+    assert pfe.cache_actions[0].url == (second_pkgs_dir / zlib_tar_bz2_fn).as_uri()
+    assert Path(pfe.cache_actions[0].target_full_path).parent == tmp_pkgs_dir
+
+    pfe.execute()
+
+    verify.assert_called_once()
+    assert Path(verify.call_args.args[1]).parent == tmp_pkgs_dir
+    assert not stale_marker.exists()
+    entry = PackageCacheData.get_entry_to_link(zlib_tar_bz2_prec)
+    assert entry is not None
+    assert Path(entry.extracted_package_dir).parent == tmp_pkgs_dir
+
+
+def test_package_verifier_reacquires_unhashed_explicit_package(
+    tmp_pkgs_dir: Path,
+    mocker,
+):
+    requested = Path(CHANNEL_DIR_V1, "win-64", zlib_tar_bz2_fn)
+    wrong = Path(
+        CHANNEL_DIR_V1,
+        "linux-64",
+        "zlib-1.2.11-h7b6447c_3.tar.bz2",
+    )
+    copy(wrong, Path(tmp_pkgs_dir, requested.name))
+    verify = mocker.stub(name="verify")
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(name="test-verifier", verify=verify),),
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+
+    ProgressiveFetchExtract((MatchSpec(url=requested.as_uri()),)).execute()
+
+    verify.assert_called_once()
+    assert verify.call_args.args[2] == compute_sum(requested, "sha256")
+    assert read_index_json(Path(tmp_pkgs_dir, zlib_base_fn))["subdir"] == "win-64"
+
+
+@pytest.mark.skipif(on_win, reason="creating symlinks requires extra privileges")
+def test_package_verifier_does_not_follow_cached_archive_symlink(
+    tmp_pkgs_dir: Path,
+    mocker,
+):
+    Path(tmp_pkgs_dir, zlib_tar_bz2_fn).symlink_to(
+        Path(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn)
+    )
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(mocker.MagicMock(),),
+    )
+
+    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe.prepare()
+
+    assert len(pfe.cache_actions) == 1
+
+
+def test_package_verifier_rechecks_cached_package(tmp_pkgs_dir: Path, mocker):
+    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe.prepare()
+    pfe.execute()
+
+    archive_path = str(Path(tmp_pkgs_dir, zlib_tar_bz2_fn))
+    compute_checksum = None
+
+    def reject(*args):
+        compute_checksum.assert_called_once_with(archive_path, "sha256")
+        raise CondaError("rejected")
+
+    verify = mocker.MagicMock(side_effect=reject)
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(verify=verify),),
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+    extract = mocker.patch.object(context.plugin_manager, "extract_package")
+    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe.prepare()
+    compute_checksum = mocker.patch(
+        "conda.core.path_actions.compute_sum",
+        wraps=compute_sum,
+    )
+
+    with pytest.raises(CondaMultiError, match="rejected"):
+        pfe.execute()
+
+    verify.assert_called_once()
+    assert verify.call_args.args[0] is zlib_tar_bz2_prec
+    assert verify.call_args.args[1] == archive_path
+    assert verify.call_args.args[2] == zlib_tar_bz2_prec.sha256
+    compute_checksum.assert_called_once_with(archive_path, "sha256")
+    extract.assert_not_called()
+    assert Path(tmp_pkgs_dir, zlib_base_fn, "info", "index.json").exists()
+
+    Path(tmp_pkgs_dir, zlib_tar_bz2_fn).unlink()
+    cache_action, extract_action = ProgressiveFetchExtract.make_actions_for_record(
+        zlib_tar_bz2_prec
+    )
+    assert cache_action is not None
+    assert extract_action is not None
+
+
+def test_package_verifier_prevents_extraction_during_cache_scan(
+    tmp_pkgs_dir: Path,
+    mocker,
+):
+    copy(
+        join(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn),
+        join(tmp_pkgs_dir, zlib_tar_bz2_fn),
+    )
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(mocker.MagicMock(),),
+    )
+
+    record = PackageCacheData(tmp_pkgs_dir)._make_single_record(zlib_tar_bz2_fn)
+
+    assert record is not None
+    assert record.is_fetched
+    assert not record.is_extracted
+
+
+def test_package_verifier_blocks_process_extraction_when_safety_checks_disabled(
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+    mocker,
+):
+    monkeypatch.setenv("CONDA_SAFETY_CHECKS", "disabled")
+    reset_context()
+    assert context.safety_checks == SafetyChecks.disabled
+    reject = mocker.MagicMock(side_effect=CondaError("rejected"))
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(verify=reject),),
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    extract = mocker.patch.object(
+        package_cache_data,
+        "extract_conda_package_archive",
+    )
+
+    with pytest.raises(CondaMultiError, match="rejected") as exc_info:
+        ProgressiveFetchExtract((zlib_tar_bz2_prec,)).execute()
+
+    assert len(exc_info.value.errors) == 1
+    reject.assert_called_once()
+    extract.assert_not_called()
+    assert not Path(tmp_pkgs_dir, zlib_tar_bz2_fn).exists()
+    assert not Path(tmp_pkgs_dir, zlib_base_fn).exists()
+
+
+@pytest.mark.parametrize("same_size", (False, True))
+def test_package_verifier_rejection_restores_previous_archive(
+    same_size: bool,
+    tmp_pkgs_dir: Path,
+    mocker,
+):
+    target = Path(tmp_pkgs_dir, zlib_tar_bz2_fn)
+    if same_size:
+        target.write_bytes(b"\0" * zlib_tar_bz2_prec.size)
+    else:
+        copy(
+            Path(
+                CHANNEL_DIR_V1,
+                "linux-64",
+                "zlib-1.2.11-h7b6447c_3.tar.bz2",
+            ),
+            target,
+        )
+    previous_bytes = target.read_bytes()
+    urls_path = Path(tmp_pkgs_dir, "urls.txt")
+    previous_urls = urls_path.read_bytes() if urls_path.exists() else None
+    reject = mocker.MagicMock(side_effect=CondaError("rejected"))
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(verify=reject),),
+    )
+
+    with pytest.raises(CondaMultiError, match="rejected"):
+        ProgressiveFetchExtract((zlib_tar_bz2_prec,)).execute()
+
+    reject.assert_called_once()
+    assert target.read_bytes() == previous_bytes
+    current_urls = urls_path.read_bytes() if urls_path.exists() else None
+    assert current_urls == previous_urls
 
 
 @pytest.mark.integration
