@@ -329,7 +329,12 @@ def test_get_module() -> None:
     ],
 )
 def test_version_fallback(version: str | None) -> None:
-    """Unparseable versions fall back so conda can still run."""
+    """Unparseable versions fall back so conda can still run.
+
+    packaging <26 raised TypeError for non-strings (e.g. None). packaging >=26.3
+    raises InvalidVersion instead (pypa/packaging#1319). Invalid strings have
+    always raised InvalidVersion.
+    """
     deprecated = DeprecationHandler(version)  # type: ignore[arg-type]
     assert deprecated._version_less_than("0")
     assert deprecated._version_tuple is None
