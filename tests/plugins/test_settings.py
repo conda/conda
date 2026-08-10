@@ -253,6 +253,37 @@ def test_conda_config_with_sequence_settings(
     assert not err
 
 
+def test_conda_config_clear_sequence_setting(
+    condarc_plugin_manager, tmp_path, conda_cli
+):
+    """Ensure that sequence plugin settings can be explicitly cleared."""
+    condarc = tmp_path / "condarc"
+
+    out, err, _ = conda_cli(
+        "config",
+        "--file",
+        condarc,
+        "--add",
+        f"plugins.{SEQ_PARAMETER_NAME}",
+        "value_one",
+    )
+
+    assert not out
+    assert not err
+
+    out, err, _ = conda_cli(
+        "config",
+        "--file",
+        condarc,
+        "--clear",
+        f"plugins.{SEQ_PARAMETER_NAME}",
+    )
+
+    assert not out
+    assert not err
+    assert "plugins:\n  seq_parameter: []\n" in condarc.read_text()
+
+
 def test_conda_config_with_map_settings(condarc_plugin_manager, tmp_path, conda_cli):
     """
     Ensure that sequence parameter types work correctly as a plugin setting
