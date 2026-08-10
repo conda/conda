@@ -2,6 +2,7 @@ archspec >=0.2.3
 backports.zstd >=1.3.0
 boltons >=23.0.0
 charset-normalizer
+conda-forge::nvidia-virtual-packages
 conda-libmamba-solver >=26.4.1
 conda-package-handling >=2.2.0
 distro >=1.5.0

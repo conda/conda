@@ -33,6 +33,7 @@ dependencies = [
   "frozendict >=2.4.2",
   "menuinst >=2",
   "msgpack >=1.1.1",
+  # "nvidia-virtual-packages",
   "packaging >=23.0",
   "platformdirs >=3.10.0",
   "pluggy >=1.6.0",
