@@ -331,7 +331,7 @@ def test_install_combines_pip_dependencies_from_multiple_env_files(
 
     mock_pip_installer.install.assert_called_once_with(
         str(prefix),
-        ["boto3>1.43.38", "aiobotocore==3.6.0"],
+        [],
         args,
         merged_env,
         requirements_sources=[
