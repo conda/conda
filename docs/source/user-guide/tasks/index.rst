@@ -9,6 +9,7 @@ Tasks
    manage-conda
    manage-environments
    manage-channels
+   authenticated-channels
    manage-pkgs
    manage-python
    manage-virtual
@@ -32,6 +33,9 @@ Common Tasks
 
     :doc:`Managing channels <manage-channels>`
         Information about channels and how they are searched through when installing packages
+
+    :doc:`Using authenticated channels <authenticated-channels>`
+        Learn how to log in to private or protected channels that require HTTP basic authentication or token authentication
 
     :doc:`Managing packages <manage-pkgs>`
         Details related to how to find, install, remove, and update packages in a given environment

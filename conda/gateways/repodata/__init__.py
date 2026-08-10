@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
-from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
+from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN, REPODATA_SHARDS_FN
 from ...base.context import context
 from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
@@ -188,6 +188,20 @@ def _add_http_value_to_dict(resp, http_key, d, dict_key):
         d[dict_key] = value
 
 
+def _shard_index_exists(subdir_url: str) -> bool:
+    try:
+        session = get_session(subdir_url)
+        url = join_url(subdir_url, REPODATA_SHARDS_FN)
+        timeout = (
+            context.remote_connect_timeout_secs,
+            context.remote_read_timeout_secs,
+        )
+        response = session.head(url, timeout=timeout, proxies=session.proxies)
+        return 200 <= response.status_code < 300
+    except Exception:
+        return False
+
+
 @contextmanager
 def conda_http_errors(url, repodata_fn):
     """Use in a with: statement to translate requests exceptions to conda ones."""
@@ -257,10 +271,16 @@ Exception: {e}
                         response=e.response,
                     )
                 else:
+                    shards_only_hint = (
+                        repodata_fn == REPODATA_FN
+                        and not context.repodata_use_shards
+                        and _shard_index_exists(url)
+                    )
                     raise UnavailableInvalidChannel(
                         Channel(dirname(url)),
                         status_code,
                         response=e.response,
+                        shards_only_hint=shards_only_hint,
                     )
 
         elif status_code == 403:

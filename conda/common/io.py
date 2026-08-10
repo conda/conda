@@ -14,7 +14,7 @@ from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
-from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
+from logging import CRITICAL, WARNING, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from time import time
 from typing import TYPE_CHECKING
@@ -393,7 +393,7 @@ def stderr_log_level(
 
 
 def attach_stderr_handler(
-    level: int = WARN,
+    level: int = WARNING,
     logger_name: str | None = None,
     propagate: bool = False,
     formatter: Formatter | None = None,
@@ -473,15 +473,19 @@ def timeout(
         def interrupt(signum, frame):
             raise TimeoutException()
 
-        signal.signal(signal.SIGALRM, interrupt)
+        previous_handler = signal.signal(signal.SIGALRM, interrupt)
         signal.alarm(timeout_secs)
 
         try:
-            ret = func(*args, **kwargs)
-            signal.alarm(0)
-            return ret
+            return func(*args, **kwargs)
         except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
             return default_return
+        finally:
+            # Always cancel the alarm and restore the previous handler, even if
+            # func() raised an unexpected exception; otherwise the alarm stays
+            # armed and can later fire during unrelated code. See #15702.
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous_handler)
 
 
 def _load_concurrency() -> None:
@@ -572,8 +576,8 @@ def __getattr__(name: str):
 
 
 deprecated.constant(
-    "26.9",
     "27.3",
+    "27.9",
     "IS_INTERACTIVE",
     hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
     addendum="Use `conda.common.terminal.is_tty()` instead.",
