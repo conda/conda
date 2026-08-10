@@ -1106,6 +1106,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         self.neutered_specs = neutered_specs
 
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
+        self._execute_successful = False
 
     def execute(self):
         log.log(TRACE, "updating environment history %s", self.target_full_path)
@@ -1118,12 +1119,15 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
             PrefixData(self.target_prefix).set_creation_time()
         h.update()
         h.write_specs(self.remove_specs, self.update_specs, self.neutered_specs)
+        self._execute_successful = True
 
     def reverse(self):
+        if not self._execute_successful:
+            return
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
-        if isfile(hpath := History(self.target_prefix).path):
+        elif isfile(hpath := History(self.target_prefix).path):
             rm_rf(hpath)
 
     def cleanup(self):

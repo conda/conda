@@ -32,9 +32,7 @@ repos:
       - id: check-yaml
         exclude: |
           (?x)^(
-            (conda\.)?recipe/meta.yaml |
-            tests/data/recipes/font-ttf-inconsolata/meta.yaml |
-            tests/data/recipes/dependent/meta.yaml
+            (conda\.)?recipe/meta.yaml
           )
       # catch git merge/rebase problems
       - id: check-merge-conflict
@@ -68,7 +66,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 01a675ea018f2fb714478a5ffb83fcea8374bb06  # frozen: v0.15.21
+    rev: cb8c523fd4835aba42af70f4cad5568db4df0b6c  # frozen: v0.16.0
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
@@ -84,9 +82,10 @@ repos:
         language_version: python3.14
         additional_dependencies: [pyyaml]
         pass_filenames: false
+        # README is generated from channel artifacts, not recipe sources.
         files: |
           (?x)^(
-            tests/data/recipes/.+/meta.yaml |
+            tests/data/test-recipes/.+\.(conda|tar\.bz2) |
             tests/data/recipes/generate_recipes_readme.py |
             tests/data/recipes/README.md
           )$

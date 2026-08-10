@@ -36,6 +36,7 @@ Bootstrap and set up an environment for **development and testing** from the rep
 - **Sections:** Enhancements, Bug fixes, Deprecations, Docs, Other. Put **removals with Deprecations**, not under Other. One snippet may span multiple sections when one PR covers several kinds of changes.
 - **Bullets:** End each bullet with a GitHub reference in parentheses. Prefer an issue when there is one, e.g. `(#12345)`, `(#12345 via #12346)`. When "via" is used, the syntax is `#issue-number via #pr-number`. Several issues/PRs can be mentioned in the same parentheses; use commas to separate them. Use **imperative mood** (Add, Fix, Mark, Remove), matching recent entries.
 - **Deprecations / removals:** Follow existing Deprecations bullets in **`CHANGELOG.md`** (symbol paths, “pending deprecation”, target removal version, replacement when applicable).
+- **Empty bullets:** Empty bullets in unused sections may be kept or deleted; both render correctly in `CHANGELOG.md`.
 
 ## Deprecation policy
 

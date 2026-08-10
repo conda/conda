@@ -632,8 +632,8 @@ def test_noarch_python_package_reinstall_on_pyver_change(
 
 
 def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
-    with tmp_env("font-ttf-inconsolata") as prefix:
-        assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
+    with tmp_env("small-executable") as prefix:
+        assert (prefix / "bin" / "small").is_file()
 
 
 def test_no_channels(
@@ -1004,7 +1004,7 @@ def test_tarball_install(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2") as prefix:
+    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.conda") as prefix:
         assert package_is_installed(prefix, "dependent")
         assert not package_is_installed(prefix, "dependency")
         conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
@@ -1012,7 +1012,9 @@ def test_tarball_install(
 
 
 def test_tarball_install_and_bad_metadata(
-    test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
 ):
     with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
         assert package_is_installed(prefix, "another_dependent")
@@ -1023,7 +1025,7 @@ def test_tarball_install_and_bad_metadata(
         assert not package_is_installed(prefix, "dependency")
         assert not package_is_installed(prefix, "another_dependent")
 
-        tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+        tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
         with pytest.raises(DryRunExit):
             conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
 
@@ -1109,8 +1111,8 @@ def test_allow_softlinks(
     reset_context()
     assert context.allow_softlinks
 
-    with tmp_env("font-ttf-inconsolata") as prefix:
-        assert (prefix / "fonts" / "Inconsolata-Bold.ttf").is_symlink()
+    with tmp_env("activate_deactivate_package") as prefix:
+        assert (prefix / "etc" / "conda" / "activate.d" / "activate.sh").is_symlink()
 
 
 def test_clone_env_with_conda(tmp_env: TmpEnvFixture):
@@ -1677,12 +1679,12 @@ def test_create_default_packages(
     assert context.create_default_packages == ("small-executable", "dependent")
 
     prefix = path_factory()
-    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "activate_deactivate_package")
     assert not package_is_installed(prefix, "small-executable")
     assert not package_is_installed(prefix, "dependent")
 
-    with tmp_env("font-ttf-inconsolata", prefix=prefix):
-        assert package_is_installed(prefix, "font-ttf-inconsolata")
+    with tmp_env("activate_deactivate_package", prefix=prefix):
+        assert package_is_installed(prefix, "activate_deactivate_package")
         assert package_is_installed(prefix, "small-executable")
         assert package_is_installed(prefix, "dependent")
 
@@ -1699,12 +1701,12 @@ def test_create_default_packages_no_default_packages(
     assert context.create_default_packages == ("small-executable", "dependent")
 
     prefix = path_factory()
-    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "activate_deactivate_package")
     assert not package_is_installed(prefix, "small-executable")
     assert not package_is_installed(prefix, "dependent")
 
-    with tmp_env("font-ttf-inconsolata", "--no-default-packages", prefix=prefix):
-        assert package_is_installed(prefix, "font-ttf-inconsolata")
+    with tmp_env("activate_deactivate_package", "--no-default-packages", prefix=prefix):
+        assert package_is_installed(prefix, "activate_deactivate_package")
         assert not package_is_installed(prefix, "small-executable")
         assert not package_is_installed(prefix, "dependent")
 
@@ -2588,12 +2590,35 @@ def test_transactional_rollback_simple(
     conda_cli: CondaCLIFixture,
     test_recipes_channel: Path,
 ):
+    prefix = path_factory()
     mocker.patch(
         "conda.core.path_actions.CreatePrefixRecordAction.execute",
         side_effect=KeyError,
     )
     with pytest.raises(CondaMultiError):
-        conda_cli("create", f"--prefix={path_factory()}", "small-executable", "--yes")
+        conda_cli("create", f"--prefix={prefix}", "small-executable", "--yes")
+    # Failed create into a new path should remove the prefix entirely.
+    assert not prefix.exists()
+
+
+def test_transactional_rollback_create_keeps_preexisting_directory(
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    prefix = path_factory()
+    prefix.mkdir()
+    marker = prefix / "keep-me"
+    marker.write_text("x")
+    mocker.patch(
+        "conda.core.path_actions.CreatePrefixRecordAction.execute",
+        side_effect=KeyError,
+    )
+    with pytest.raises(CondaMultiError):
+        conda_cli("create", f"--prefix={prefix}", "small-executable", "--yes")
+    # Pre-existing directories must not be removed on failed create.
+    assert marker.is_file()
 
 
 def test_transactional_rollback_upgrade_downgrade(
@@ -2612,6 +2637,8 @@ def test_transactional_rollback_upgrade_downgrade(
         with pytest.raises(CondaMultiError):
             conda_cli("install", f"--prefix={prefix}", "dependent=2.0", "--yes")
         assert package_is_installed(prefix, "dependent=1.0")
+        # Rollback must keep conda-meta/history so the prefix remains an environment.
+        assert (prefix / "conda-meta" / "history").is_file()
 
 
 def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFixture):
@@ -2896,8 +2923,8 @@ def test_create_download_only_without_prefix(
     assert tmp_pkgs_dir.exists()
     assert set(tmp_pkgs_dir.iterdir()) == {
         tmp_pkgs_dir / "cache",
-        tmp_pkgs_dir / "small-executable-1.0.0-0",
-        tmp_pkgs_dir / "small-executable-1.0.0-0.conda",
+        tmp_pkgs_dir / "small-executable-1.0-0",
+        tmp_pkgs_dir / "small-executable-1.0-0.conda",
         tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE,
     }
 
@@ -3104,7 +3131,7 @@ def test_python_site_packages_path(
             reason="conda-libmamba-solver does not support python_site_packages_path",
         )
     )
-    with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
+    with tmp_env("python=3.99.99", "sample_noarch_python=1.0") as prefix:
         sp_dir = "lib/python3.99t/site-packages"
         assert (prefix / sp_dir / "sample.py").is_file()
 

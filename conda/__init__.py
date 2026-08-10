@@ -141,6 +141,13 @@ class CondaError(Exception):
 
 
 class CondaMultiError(CondaError):
+    """Container for multiple conda errors raised together.
+
+    This is a control-flow artifact, not a user-facing error type. It must not
+    carry its own ``guidance``; printers apply guidance and
+    ``conda_error_hints`` to each nested leaf error instead.
+    """
+
     def __init__(self, errors: Iterable[CondaError]):
         self.errors = errors
         super().__init__(None)
