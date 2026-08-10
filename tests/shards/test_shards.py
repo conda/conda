@@ -1578,3 +1578,34 @@ def test_cached_shards_returned(monkeypatch, tmp_path):
     assert found is not None  # cache recovery worked, not "no shards"
     assert "foo" in found  # loaded cached index
     assert mock_session.get_count >= 1  # network tried first
+
+
+def test_cached_shards_when_shards_check_skipped(monkeypatch, tmp_path):
+    """Return cached shards when shards check is skipped but classic is absent."""
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel("http://localhost/mock/noarch")
+    sd = SubdirData(channel)
+    cache = sd.repo_cache
+
+    fake_index: ShardsIndexDict = {
+        "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
+        "version": 1,
+        "shards": {
+            "foo": hashlib.sha256(b"x").digest(),
+        },
+    }
+    index_bytes = zstd.compress(msgpack.dumps(fake_index))
+    cache.state.set_has_format("shards", False)
+    cache.state.set_has_format("repodata_json", False)
+    cache.save(index_bytes)
+    cache.save(
+        "{}"
+    )  # classic cache exists; with has_shards=False, shards check stays skipped
+    cache.refresh()
+
+    assert cache.state.should_check_format("shards") is False
+    found = fetch_shards_index(sd)
+    assert found is not None
+    assert "foo" in found  # loaded cached index
