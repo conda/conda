@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from os.path import abspath, basename, dirname, join
 from pathlib import Path
-from threading import Event
+from threading import Barrier, Event, Lock
 from types import SimpleNamespace
 
 import pytest
@@ -95,7 +95,25 @@ def fresh_zlib_records():
     )
 
 
-def test_process_extract_finishes_when_later_fetch_fails(mocker):
+@pytest.fixture
+def process_pool_as_threads(mocker):
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 3)
+    mocker.patch.object(
+        package_cache_data,
+        "ProcessPoolExecutor",
+        side_effect=lambda **kwargs: ThreadPoolExecutor(kwargs["max_workers"]),
+    )
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_extractor",
+        return_value=SimpleNamespace(name="conda-package"),
+    )
+
+
+def test_process_extract_finishes_when_later_fetch_fails(
+    mocker,
+    process_pool_as_threads,
+):
     extracted = Event()
     good = PackageRecord(name="good", version="1", build="0", build_number=0)
     bad = PackageRecord(name="bad", version="1", build="0", build_number=0)
@@ -122,22 +140,11 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
             raise OSError("fetch failed")
         return record
 
-    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
     mocker.patch.object(package_cache_data, "do_cache_action", side_effect=cache_action)
     mocker.patch.object(
         package_cache_data,
         "extract_conda_package_archive",
         side_effect=lambda *args, **kwargs: extracted.set(),
-    )
-    mocker.patch.object(
-        package_cache_data,
-        "ProcessPoolExecutor",
-        side_effect=lambda **kwargs: ThreadPoolExecutor(kwargs["max_workers"]),
-    )
-    mocker.patch.object(
-        context.plugin_manager,
-        "get_package_extractor",
-        return_value=SimpleNamespace(name="conda-package"),
     )
     mocker.patch.object(pfe, "_progress_bar", return_value=mocker.MagicMock())
 
@@ -196,6 +203,124 @@ def test_process_extract_logs_exception_cause(mocker, tmp_pkgs_dir: Path):
     log_debug.assert_any_call("Package extraction failed.", exc_info=pool_error)
     assert exc_info.value.errors == [pool_error]
     assert pool_error.__cause__ is decode_error
+
+
+def test_process_extract_gates_each_archive_on_concurrent_verifier(
+    mocker,
+    process_pool_as_threads,
+):
+    records = tuple(
+        PackageRecord(name=name, version="1", build="0", build_number=0)
+        for name in ("accepted", "rejected-one", "rejected-two")
+    )
+    barrier = Barrier(len(records))
+    accepted_extracted = Event()
+    lock = Lock()
+    verified = set()
+
+    def verify(name):
+        barrier.wait(timeout=5)
+        with lock:
+            verified.add(name)
+        if name.startswith("rejected"):
+            assert accepted_extracted.wait(timeout=5)
+            raise CondaError(name)
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(SimpleNamespace(name="test-verifier", verify=verify),),
+    )
+    extracted = []
+
+    def extract(source_full_path, target_full_path, **kwargs):
+        assert target_full_path == "/tmp/accepted"
+        assert kwargs == {"ensure_picklable_errors": True}
+        extracted.append(target_full_path)
+        accepted_extracted.set()
+
+    mocker.patch.object(
+        package_cache_data,
+        "extract_conda_package_archive",
+        side_effect=extract,
+    )
+    actions = {}
+    for record in records:
+        action = mocker.MagicMock(
+            source_full_path=f"/tmp/{record.name}.conda",
+            target_full_path=f"/tmp/{record.name}",
+        )
+        action.verify.side_effect = lambda name=record.name: verify(name)
+        actions[record] = (None, action)
+    pfe = ProgressiveFetchExtract(())
+    pfe.paired_actions = actions
+    pfe._prepared = True
+    mocker.patch.object(pfe, "_progress_bar", return_value=mocker.MagicMock())
+
+    with pytest.raises(CondaMultiError) as exc_info:
+        pfe.execute()
+
+    assert {str(error) for error in exc_info.value.errors} == {
+        "rejected-one",
+        "rejected-two",
+    }
+    assert verified == {record.name for record in records}
+    assert extracted == ["/tmp/accepted"]
+    for record, (_, action) in actions.items():
+        if record.name.startswith("rejected"):
+            action._prepare_extract.assert_not_called()
+
+
+def test_process_extract_does_not_start_after_interrupt(
+    mocker,
+    process_pool_as_threads,
+):
+    record = PackageRecord(name="package", version="1", build="0", build_number=0)
+    extract_action = mocker.MagicMock(
+        source_full_path="/tmp/package.conda",
+        target_full_path="/tmp/package",
+    )
+    pfe = ProgressiveFetchExtract(())
+    pfe.paired_actions = {record: (None, extract_action)}
+    pfe._prepared = True
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(mocker.MagicMock(),),
+    )
+    mocker.patch.object(pfe, "_progress_bar", return_value=mocker.MagicMock())
+    extract = mocker.patch.object(
+        package_cache_data,
+        "extract_conda_package_archive",
+    )
+    verifier_started = Event()
+    release_verifier = Event()
+
+    def verify():
+        verifier_started.set()
+        assert release_verifier.wait(timeout=5)
+
+    extract_action.verify.side_effect = verify
+    wait_calls = 0
+
+    def interrupt_after_fetch(futures, **kwargs):
+        nonlocal wait_calls
+        wait_calls += 1
+        if wait_calls == 1:
+            return {next(iter(futures))}, set()
+        assert verifier_started.wait(timeout=5)
+        release_verifier.set()
+        raise KeyboardInterrupt
+
+    mocker.patch.object(package_cache_data, "wait", side_effect=interrupt_after_fetch)
+
+    with pytest.raises(CondaMultiError):
+        pfe.execute()
+
+    extract_action.verify.assert_called_once_with()
+    extract_action._prepare_extract.assert_not_called()
+    extract.assert_not_called()
 
 
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):

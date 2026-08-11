@@ -8,10 +8,12 @@ import multiprocessing
 import os
 from collections import defaultdict
 from concurrent.futures import (
+    FIRST_COMPLETED,
     CancelledError,
     ProcessPoolExecutor,
     ThreadPoolExecutor,
     as_completed,
+    wait,
 )
 from contextlib import ExitStack
 from errno import EACCES, ENOENT, EPERM, EROFS
@@ -924,6 +926,7 @@ class ProgressiveFetchExtract:
             exceptions = []
             progress_bars = {}
             futures: list[Future] = []
+            verifier_futures = {}
             extract_futures = {}
             extract_actions = self.extract_actions
             use_process_pool = (
@@ -987,6 +990,38 @@ class ProgressiveFetchExtract:
                             do_reverse,
                             reversed(actions),
                         )
+                verifier_executor = (
+                    package_verifier_rollback.enter_context(
+                        ThreadPoolExecutor(EXTRACT_PROCESSES)
+                    )
+                    if verify_packages and use_process_pool
+                    else None
+                )
+
+                def finish_verification(verifier_future, *, submit_extract=True):
+                    actions, extract_action, progress_bar = verifier_futures.pop(
+                        verifier_future
+                    )
+                    try:
+                        verifier_future.result()
+                        if not submit_extract:
+                            return
+                        extract_action._prepare_extract()
+                        extract_future = extract_executor.submit(
+                            extract_conda_package_archive,
+                            extract_action.source_full_path,
+                            extract_action.target_full_path,
+                            ensure_picklable_errors=True,
+                        )
+                    except Exception as e:
+                        do_reverse(reversed(actions))
+                        exceptions.append(e)
+                    else:
+                        extract_futures[extract_future] = (
+                            actions,
+                            extract_action,
+                            progress_bar,
+                        )
 
                 for prec_or_spec, (
                     cache_action,
@@ -1027,7 +1062,18 @@ class ProgressiveFetchExtract:
                     futures.append(future)
 
                 try:
-                    for completed_future in as_completed(futures):
+                    completed = set()
+                    while futures or verifier_futures:
+                        if not completed:
+                            completed, _ = wait(
+                                (*futures, *verifier_futures),
+                                return_when=FIRST_COMPLETED,
+                            )
+                        completed_future = completed.pop()
+                        if completed_future in verifier_futures:
+                            finish_verification(completed_future)
+                            continue
+
                         futures.remove(completed_future)
                         prec_or_spec = completed_future.result()
 
@@ -1043,6 +1089,15 @@ class ProgressiveFetchExtract:
                             do_cleanup(actions)
                             progress_bar.finish()
                             progress_bar.refresh()
+                        elif verifier_executor:
+                            verifier_future = verifier_executor.submit(
+                                extract_action.verify
+                            )
+                            verifier_futures[verifier_future] = (
+                                actions,
+                                extract_action,
+                                progress_bar,
+                            )
                         elif use_process_pool:
                             try:
                                 extract_action.verify()
@@ -1074,20 +1129,27 @@ class ProgressiveFetchExtract:
                                 None,
                                 progress_bar,
                             )
+
                 except BaseException as e:
-                    # We are interested in KeyboardInterrupt delivered to
-                    # as_completed() while waiting, or any exception raised from
-                    # completed_future.result(). cancelled_flag is checked in the
-                    # progress callback to stop running transfers, shutdown() should
-                    # prevent new downloads from starting.
+                    # We are interested in KeyboardInterrupt delivered while waiting,
+                    # or any exception raised from completed_future.result().
+                    # cancelled_flag is checked in the progress callback to stop
+                    # running transfers, shutdown() should prevent new downloads from
+                    # starting.
                     cancelled_flag = True
-                    for future in futures:  # needed on top of .shutdown()
+                    for future in chain(futures, verifier_futures):
                         future.cancel()
                     # Has a Python >=3.9 cancel_futures= parameter that does not
                     # replace the above loop:
                     fetch_executor.shutdown(wait=False)
                     exceptions.append(e)
                 finally:
+                    for verifier_future in tuple(verifier_futures):
+                        finish_verification(
+                            verifier_future,
+                            submit_extract=not cancelled_flag,
+                        )
+
                     for extract_future in as_completed(extract_futures):
                         actions, process_extract_action, progress_bar = extract_futures[
                             extract_future
