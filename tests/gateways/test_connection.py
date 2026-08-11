@@ -70,17 +70,15 @@ def test_add_binstar_token_notices_json():
     """add_binstar_token must not drop notices.json from URLs that have no platform subdir.
 
     Regression test for https://github.com/conda/conda/issues/16516:
-    URLs like /thath/notices.json have no platform component, so Channel.url()
+    URLs like /channel-name/notices.json have no platform component, so Channel.url()
     previously discarded the filename and substituted a subdir from context.subdirs.
     """
     try:
         set_binstar_token("https://api.anaconda.test", "tk-abacadaba-1029384756")
 
         # URL with no platform subdir — notices.json must be preserved
-        url = "https://conda.anaconda.test/thath/notices.json"
-        expected = (
-            "https://conda.anaconda.test/t/tk-abacadaba-1029384756/thath/notices.json"
-        )
+        url = "https://conda.anaconda.test/channel-name/notices.json"
+        expected = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/channel-name/notices.json"
         assert CondaHttpAuth.add_binstar_token(url) == expected, (
             f"notices.json was dropped or URL was mangled: {CondaHttpAuth.add_binstar_token(url)}"
         )
