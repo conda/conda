@@ -28,7 +28,6 @@ from ..gateways.disk.read import lexists
 from ..history import History
 from ..models.channel import Channel
 from ..models.records import PackageRecord, PrefixRecord
-from ..resolve import Resolve
 
 # The default value will only work if we have installed conda in development mode!
 TEST_DATA_DIR = os.environ.get(
@@ -259,6 +258,9 @@ def _get_index_r_base(
     add_pip=False,
     merge_noarch=False,
 ):
+    with pytest.deprecated_call():
+        from ..resolve import Resolve
+
     if isinstance(json_filename_or_packages, (str, os.PathLike)):
         with open(join(TEST_DATA_DIR, json_filename_or_packages)) as fi:
             all_packages = json.load(fi)

@@ -10,8 +10,10 @@ import pytest
 from conda.common.compat import on_win
 from conda.exceptions import UnsatisfiableError
 from conda.models.match_spec import MatchSpec
-from conda.resolve import Resolve
 from conda.testing import helpers
+
+with pytest.deprecated_call():
+    from conda.resolve import Resolve
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture

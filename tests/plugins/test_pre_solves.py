@@ -8,7 +8,6 @@ import pytest
 
 from conda import plugins
 from conda.exceptions import DryRunExit
-from conda.plugins import solvers
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -38,6 +37,9 @@ def pre_solve_plugin(
     mocker: MockerFixture,
     plugin_manager_with_reporter_backends: CondaPluginManager,
 ) -> PreSolvePlugin:
+    with pytest.deprecated_call():
+        from conda.plugins import solvers
+
     mocker.patch.object(PreSolvePlugin, "pre_solve_action")
 
     pre_solve_plugin = PreSolvePlugin()

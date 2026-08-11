@@ -18,7 +18,7 @@ from conda.base.context import reset_context
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
-from conda.plugins import solvers, virtual_packages
+from conda.plugins import virtual_packages
 from conda.plugins.types import CondaPlugin
 
 if TYPE_CHECKING:
@@ -284,6 +284,9 @@ def test_get_canonical_name_instance(plugin_manager: CondaPluginManager):
 def test_conflicting_plugin_error_names_registered_instances(
     plugin_manager: CondaPluginManager,
 ) -> None:
+    with pytest.deprecated_call():
+        from conda.plugins import solvers
+
     class IntruderSolver:
         hide_module = True
 
