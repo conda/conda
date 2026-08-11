@@ -22,7 +22,6 @@ from itertools import chain
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
-from sys import platform
 from tarfile import ReadError
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
@@ -574,8 +573,7 @@ class UrlsData:
 
     def add_url(self, url):
         with open(self.urls_txt_path, mode="a", encoding="utf-8") as fh:
-            linefeed = "\r\n" if platform == "win32" else "\n"
-            fh.write(url + linefeed)
+            fh.write(url + "\n")
         self._urls_data.insert(0, url)
 
     @memoizemethod
