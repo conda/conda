@@ -8,7 +8,7 @@ import pytest
 
 from conda import plugins
 from conda.core.path_actions import Action
-from conda.plugins import package_extractors, solvers
+from conda.plugins import package_extractors
 from conda.plugins.types import CondaPostTransactionAction, CondaPreTransactionAction
 
 if TYPE_CHECKING:
@@ -58,6 +58,9 @@ class DummyPostActionPlugin:
 
 @pytest.fixture
 def plugin_manager_with_solvers(plugin_manager_with_reporter_backends, mocker):
+    with pytest.deprecated_call():
+        from conda.plugins import solvers
+
     # Explicitly load the solver, since this is a dummy plugin manager and not the default
     plugin_manager_with_reporter_backends.load_plugins(
         solvers,

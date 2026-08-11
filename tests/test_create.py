@@ -72,7 +72,6 @@ from conda.gateways.subprocess import Response
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
-from conda.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
 from conda.testing.integration import (
     PYTHON_BINARY,
@@ -831,6 +830,9 @@ def test_strict_channel_priority(
 
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
+    with pytest.deprecated_call():
+        from conda.resolve import Resolve
+
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
     index = ReducedIndex(

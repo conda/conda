@@ -22,7 +22,7 @@ from conda.common.configuration import (
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.gateways.connection.session import CondaSession, get_session
-from conda.plugins import environment_exporters, solvers
+from conda.plugins import environment_exporters
 from conda.plugins.config import PluginConfig
 from conda.plugins.hookspec import CondaSpecs
 from conda.plugins.manager import CondaPluginManager
@@ -223,6 +223,9 @@ class Exporters:
 def plugin_manager_with_exporters(
     plugin_manager_with_reporter_backends: CondaPluginManager,
 ) -> CondaPluginManager:
+    with pytest.deprecated_call():
+        from conda.plugins import solvers
+
     plugin_manager_with_reporter_backends.load_plugins(
         solvers,
         *environment_exporters.plugins,
