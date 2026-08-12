@@ -69,9 +69,9 @@ class BaseSolver:
     _index: ReducedIndex | None
     _r: Resolve | None
 
-    supports_exclude_newer_global: ClassVar[bool] = True
-    supports_exclude_newer_channel: ClassVar[bool] = True
-    supports_exclude_newer_package: ClassVar[bool] = True
+    supports_exclude_newer_global: ClassVar[bool] = False
+    supports_exclude_newer_channel: ClassVar[bool] = False
+    supports_exclude_newer_package: ClassVar[bool] = False
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -371,6 +371,10 @@ class BaseSolver:
 
 
 class Solver(BaseSolver):
+    supports_exclude_newer_global = True
+    supports_exclude_newer_channel = True
+    supports_exclude_newer_package = True
+
     def solve_final_state(
         self,
         update_modifier=NULL,
