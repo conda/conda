@@ -144,6 +144,8 @@ jobs:
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+        env:
+          CONDA_SUBDIR: win-64
 
       - name: Conda Install
         run: >
@@ -154,6 +156,8 @@ jobs:
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
           python=${{ matrix.python-version }}
+        env:
+          CONDA_SUBDIR: win-64
 
       - name: Conda Info
         # view test env info (not base)
