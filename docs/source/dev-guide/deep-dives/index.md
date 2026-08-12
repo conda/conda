@@ -13,6 +13,7 @@ activation
 context
 condarc
 solvers
+solver-state
 logging
 sharded
 ```
@@ -40,12 +41,16 @@ sharded
     Inside the solver black box: how conda constructs the ``MatchSpec`` inputs,
     drives the SAT solver, and handles conflicts and retries.
 
+:doc:`Solver state <solver-state>`
+    A technical reference for how the list of ``MatchSpec`` objects passed to the
+    SAT solver is constructed from prefix state, history, pins, and other inputs.
+
 :doc:`Logging <logging>`
     The loggers and handlers used throughout conda, how they are configured,
     and how to work with them during development and debugging.
 
 :doc:`Sharded repodata <sharded>`
     How conda implements CEP-16 sharded repodata: the fetch loop, threading
-    model, SQLite shard cache, and the ``ShardLike`` interface that unifies
-    sharded and monolithic channels.
+    model, SQLite shard cache, and the deliberate decision not to validate shard
+    contents against their content-addressable SHA-256 filename hash.
 ```
