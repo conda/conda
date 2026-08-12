@@ -905,7 +905,7 @@ class RepodataFetch:
                 self.cache_path_json,
             )
 
-        # avoid network calls if repodata_json is set to False and return "{}""
+        # avoid network calls if repodata_json is set to False and return "{}"
         if (
             self.repodata_fn == REPODATA_FN
             and not cache.state.should_check_format("repodata_json")
