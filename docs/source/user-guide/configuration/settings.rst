@@ -119,7 +119,7 @@ a list of channel names and/or channel URLs.
 
 .. versionadded:: 23.3.0
 
-.. versionadded:: 26.7.0
+.. versionadded:: 26.9.0
    Support for channel-specific ``exclude_newer`` settings.
 
 With ``channel_settings``, it is possible to add extra configuration options
@@ -569,7 +569,7 @@ better option may be to pin them. For more information, see
 ``exclude_newer``: Exclude newer packages
 -----------------------------------------
 
-.. versionadded:: 26.7.0
+.. versionadded:: 26.9.0
 
 Exclude packages published more recently than the configured cutoff. This can
 reduce exposure to newly uploaded packages while allowing older package records
@@ -607,7 +607,7 @@ package-specific overrides are configured in ``.condarc`` only; the
 ``exclude_newer_package``: Exclude newer packages by package name
 -----------------------------------------------------------------
 
-.. versionadded:: 26.7.0
+.. versionadded:: 26.9.0
 
 Override the ``exclude_newer`` policy for individual package names. Values may
 use the same duration, timestamp, date, or seconds formats as

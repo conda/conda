@@ -93,7 +93,7 @@ see :doc:`../troubleshooting`.
 Installing packages with an upload cutoff
 =========================================
 
-.. versionadded:: 26.7.0
+.. versionadded:: 26.9.0
 
 Use ``--exclude-newer`` to ignore package records published after a
 configured cutoff for one ``conda create``, ``conda install``, or
