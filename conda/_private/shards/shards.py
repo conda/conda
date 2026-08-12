@@ -850,7 +850,8 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             cache = sd.repo_fetch.repo_cache
             cache.load_state()
 
-            # skip classic when has_repodata_json was recorded False
+            # Skip classic when has_repodata_json is False until
+            # CHECK_ALTERNATE_FORMAT_INTERVAL (should_check_format) expires
             if cache.state.should_check_format("repodata_json"):
                 futures_non_sharded[
                     executor.submit(sd.repo_fetch.fetch_latest_parsed)
