@@ -92,6 +92,9 @@ jobs:
             subdir: linux-aarch64
           # template-files-endif
           # template-files-if
+          - runs-on: macos-15-intel
+            subdir: osx-64
+          # template-files-endif
           # template-files-if
           - runs-on: macos-latest
             subdir: osx-arm64
