@@ -73,11 +73,12 @@ jobs:
       (!github.event.repository.fork && github.event_name == 'schedule')
       || needs.changes.outputs.code == 'true'
 
-    runs-on: windows-latest
+    runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
+        runs-on: [windows-latest, windows-11-arm]
         python-version: ['3.10', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
@@ -87,6 +88,10 @@ jobs:
             python-version: '3.10'
           - test-type: unit
             test-group: 3
+          - runs-on: windows-11-arm
+            python-version: '3.10'
+          - runs-on: windows-11-arm
+            default-channel: conda-forge
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
@@ -98,12 +103,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-
-      - name: Set TEMP to D:/Temp
-        run: |
-          mkdir "D:\\Temp"
-          echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV
-          echo "TMP=D:\\Temp"  >> $env:GITHUB_ENV
 
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
@@ -118,8 +117,8 @@ jobs:
           # Use faster GNU tar for all runners
           enableCrossOsArchive: true
           path: |
-            D:\conda_pkgs_dir\*.tar.bz2
-            D:\conda_pkgs_dir\*.conda
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
@@ -127,13 +126,17 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          pkgs-dirs: D:\conda_pkgs_dir
-          installation-dir: D:\conda
+          # A native win-arm64 conda test environment is not available yet.
+          architecture: x64
+        env:
+          CONDA_SUBDIR: win-64
 
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+        env:
+          CONDA_SUBDIR: win-64
 
       - name: Conda Install
         run: >
@@ -144,6 +147,8 @@ jobs:
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
           python=${{ matrix.python-version }}
+        env:
+          CONDA_SUBDIR: win-64
 
       - name: Conda Info
         # view test env info (not base)
