@@ -462,7 +462,7 @@ def test_get_cache_control_max_age():
 
 
 def test_classic_soft_404_records_no_repodata_json(tmp_path, mocker):
-    """Record has_repodata_json False when classic 404s and shards are known."""
+    """Record has_json False when classic 404s and shards are known."""
     channel = Channel("http://example.com/linux-64")
     mocker.patch.object(
         CondaRepoInterface,
@@ -479,11 +479,14 @@ def test_classic_soft_404_records_no_repodata_json(tmp_path, mocker):
     fetch.repo_cache.save(b"shards")
     assert not fetch.repo_cache.cache_path_json.exists()
     fetch.fetch_latest()
-    assert fetch.repo_cache.load_state().has_format(FORMAT_JSON)[0] is False
+    state = fetch.repo_cache.load_state()
+    assert state.has_format(FORMAT_JSON)[0] is False
+    assert "has_json" in state
+    assert "has_repodata_json" not in state
 
 
 def test_classic_noarch_404_records_no_repodata_json(tmp_path, mocker):
-    """Record has_repodata_json False when noarch classic 404s and shards are known."""
+    """Record has_json False when noarch classic 404s and shards are known."""
     channel = Channel("http://example.com/noarch")
     mocker.patch.object(
         CondaRepoInterface,
