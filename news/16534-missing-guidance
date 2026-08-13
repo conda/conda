@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `AttributeError` when accessing `CondaError.guidance` on subclasses that skip `CondaError.__init__`. (#16534 via #16535)
+* Fix `AttributeError` when accessing `CondaError.guidance`, `__str__`, or `dump_map` on subclasses that skip `CondaError.__init__`. (#16534 via #16535)
 
 ### Deprecations
 
