@@ -4,7 +4,9 @@
 
 ### Bug fixes
 
-* Skip falling back to monolithic repodata.json when the channel is shards only. Record `has_format("repodata_json")` as False when classic repodata.json 404s and shards are present. (#16452)
+* Skip falling back to monolithic repodata.json when the channel is shards only.
+  Record `has_format("json")` as False when classic `repodata.json` returns
+  `404` and shards are present. (#16452)
 
 ### Deprecations
 

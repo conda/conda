@@ -41,6 +41,7 @@ from conda._private.shards.shards import (
 from conda.base.context import context, reset_context
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import UnavailableInvalidChannel
+from conda.gateways.repodata import FORMAT_JSON, FORMAT_SHARDS
 from conda.models.channel import Channel
 
 from .conftest import (
@@ -350,7 +351,7 @@ def test_fetch_shards_index_mark_unavailable(monkeypatch, tmp_path, error_code):
 
     repo_cache = subdir_data.repo_cache
     repo_cache.load_state()
-    assert repo_cache.state.should_check_format("shards")
+    assert repo_cache.state.should_check_format(FORMAT_SHARDS)
 
     fetch_shards_index(subdir_data)
 
@@ -358,7 +359,7 @@ def test_fetch_shards_index_mark_unavailable(monkeypatch, tmp_path, error_code):
     # fetch_shards_index gets a different repo_cache instance:
     repo_cache.state.update(json.loads(repo_cache.cache_path_state.read_text()))
     # Always check for shards if json has not been cached:
-    assert repo_cache.state.should_check_format("shards") == (
+    assert repo_cache.state.should_check_format(FORMAT_SHARDS) == (
         expect_should_check_shards or not repo_cache.cache_path_json.exists()
     )
     assert mock_session.get_count == 1
@@ -1548,8 +1549,8 @@ def test_cached_shards_returned(monkeypatch, tmp_path):
         },
     }
     index_bytes = zstd.compress(msgpack.dumps(fake_index))
-    cache.state.set_has_format("shards", True)
-    cache.state.set_has_format("repodata_json", False)
+    cache.state.set_has_format(FORMAT_SHARDS, True)
+    cache.state.set_has_format(FORMAT_JSON, False)
     cache.save(index_bytes)
 
     # force stale
@@ -1592,20 +1593,20 @@ def test_cached_shards_when_shards_check_skipped(monkeypatch, tmp_path):
     fake_index: ShardsIndexDict = {
         "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
         "version": 1,
-        "shards": {
+        FORMAT_SHARDS: {
             "foo": hashlib.sha256(b"x").digest(),
         },
     }
     index_bytes = zstd.compress(msgpack.dumps(fake_index))
-    cache.state.set_has_format("shards", False)
-    cache.state.set_has_format("repodata_json", False)
+    cache.state.set_has_format(FORMAT_SHARDS, False)
+    cache.state.set_has_format(FORMAT_JSON, False)
     cache.save(index_bytes)
     cache.save(
         "{}"
     )  # classic cache exists; with has_shards=False, shards check stays skipped
     cache.refresh()
 
-    assert cache.state.should_check_format("shards") is False
+    assert cache.state.should_check_format(FORMAT_SHARDS) is False
     found = fetch_shards_index(sd)
     assert found is not None
     assert "foo" in found  # loaded cached index
@@ -1625,7 +1626,7 @@ def test_fetch_channels_skips_classic_for_shards_only_url(
 
     # Same cache path fetch_channels will use for the shards-only URL
     only_cache = SubdirData(Channel(shards_only_url)).repo_cache
-    only_cache.state.set_has_format("repodata_json", False)
+    only_cache.state.set_has_format(FORMAT_JSON, False)
     only_cache.refresh()
 
     # mimic fetch_shards_index behavior without http calls
