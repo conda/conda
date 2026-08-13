@@ -8,6 +8,7 @@ The MatchSpec is the conda package specification (e.g. `conda==23.3`, `python<3.
 
 from __future__ import annotations
 
+import ast
 import re
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -17,6 +18,7 @@ from itertools import chain
 from logging import getLogger
 from operator import attrgetter
 from os.path import basename
+from typing import TYPE_CHECKING
 
 from ..auxlib.decorators import memoizedproperty
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
@@ -25,7 +27,9 @@ from ..common.compat import isiterable
 from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
+from ..common.serialize import yaml
 from ..common.url import is_url, path_to_url, unquote
+from ..deprecations import deprecated
 from ..exceptions import InvalidMatchSpec, InvalidSpec
 from .channel import Channel
 from .version import BuildNumberMatch, VersionSpec
@@ -35,8 +39,16 @@ try:
 except ImportError:
     from ..auxlib.collection import frozendict
 
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from .records import PackageRecord
+
 log = getLogger(__name__)
 
+
+# Matches the whole square brackets section
 _BRACKETS_RE: re.Pattern[str] = re.compile(r".*(?:(\[.*\]))")
 _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
     r"""
@@ -49,6 +61,38 @@ _BRACKETS_KV_RE: re.Pattern[str] = re.compile(
     """,
     re.VERBOSE,
 )
+# These _V3 are for new matchspecs in repodata v3
+_BRACKETS_RE_V3: re.Pattern[str] = re.compile(r"^.*?(\[.*\])")
+# Detects empty items in a YAML flow sequence (e.g. [a,,b])
+_LIST_EMPTY_ITEM_RE: re.Pattern[str] = re.compile(r",\s*,")
+# Matches all the key-value pairs within the square brackets section
+_BRACKETS_KV_RE_V3: re.Pattern[str] = re.compile(
+    r"""
+    (?P<key>[a-zA-Z0-9_-]+?)        # key
+    \ *=\ *                         # separator, with or without surrounding spaces
+    (?:                             # the value can be a:
+                                      # 1. a list of maybe-quoted strings (key={extras,flags})
+                                      #    this has to be matched first so we can capture
+                                      #    comma-separated lists fully (e.g. flags=[a, b])
+                                      #    without being caught by 'when' specs like
+                                      #    `python[version='>=3,<4']`
+        \[\ *                           # opening square bracket, with maybe spaces
+        (?P<value_list>[^\[\]]*?)         # inner value; will be parsed as YAML, this is enough.
+                                          # a previous attempt had a more sophisticated regex
+                                          # with quote and comma tracking, but it hang with input:
+                                          # 'channel=https://repo.anaconda.com/pkgs/free'
+        \ *\]                           # matching closing square bracket closes the list
+        |                             # 2. maybe-quoted string
+        (?P<quote_s>["']?)              # optional opening quote
+        (?P<value>.*?)                  # non-greedy value; will be post-processed later
+                                        # depending on the key type
+        (?P=quote_s)                    # matching closing quote
+    )
+    (?:[,\ ]|$)               # delimiter or end
+    """,
+    re.VERBOSE,
+)
+# Matches the legacy parentheses section, which is parsed but omitted
 _PARENS_RE: re.Pattern[str] = re.compile(r".*(?:(\(.*\)))")
 _NAME_VERSION_RE: re.Pattern[str] = re.compile(
     r"""
@@ -56,6 +100,13 @@ _NAME_VERSION_RE: re.Pattern[str] = re.compile(
     ([><!=~\ ].+)?          # version constraint
     """,
     re.VERBOSE,
+)
+# CEP-26 package name validation (distributable and virtual)
+_CEP26_NAME_RE: re.Pattern[str] = re.compile(
+    r"^(([a-z0-9])|([a-z0-9_](?!_)))[._-]?([a-z0-9]+(\.|-|_|$))*$"
+)
+_CEP26_VIRTUAL_NAME_RE: re.Pattern[str] = re.compile(
+    r"^__[a-z0-9][._-]?([a-z0-9]+(\.|-|_|$))*$"
 )
 _VERSION_BUILD_RE: re.Pattern[str] = re.compile(
     r"""
@@ -68,6 +119,29 @@ _VERSION_BUILD_RE: re.Pattern[str] = re.compile(
     """,
     re.VERBOSE,
 )
+
+
+def _validate_package_name(name: str, original_spec_str: str) -> None:
+    """Validate a package name against CEP-26 rules.
+
+    Glob patterns (containing *) are not validated.
+    Names are lowercased before checking since conda normalizes case.
+    """
+    if "*" in name:
+        return
+    normalized = name.lower()
+    if invalid := re.findall(r"[^a-z0-9._-]", normalized):
+        raise InvalidMatchSpec(
+            original_spec_str,
+            f"package name contains invalid characters ({''.join(dict.fromkeys(invalid))})",
+        )
+    if not (
+        _CEP26_NAME_RE.match(normalized) or _CEP26_VIRTUAL_NAME_RE.match(normalized)
+    ):
+        raise InvalidMatchSpec(
+            original_spec_str,
+            "invalid package name",
+        )
 
 
 class MatchSpecType(type):
@@ -84,7 +158,7 @@ class MatchSpecType(type):
                     new_kwargs.update(**kwargs)
                     return super().__call__(**new_kwargs)
                 elif isinstance(spec_arg, str):
-                    parsed = _parse_spec_str(spec_arg)
+                    parsed = _parse_spec_str_dispatcher(spec_arg)
                     if kwargs:
                         parsed = dict(parsed, **kwargs)
                         if set(kwargs) - {"optional", "target"}:
@@ -172,6 +246,11 @@ class MatchSpec(metaclass=MatchSpecType):
       - If the string contains an asterisk (`*`), it is transformed from a glob to a regex.
       - Otherwise, an exact match to the string is sought.
 
+    Some fields (`extras`, `flags`) allow list of strings. They must be passed with Python
+    syntax for lists. Quotes are optional like in YAML.
+
+    The `when` field expects a string that can be parsed as a `MatchSpec`. This inner spec
+    cannot contain another `when` field.
 
     Examples:
         >>> str(MatchSpec(name='foo', build='py2*', channel='conda-forge'))
@@ -186,6 +265,10 @@ class MatchSpec(metaclass=MatchSpecType):
         "conda-forge/linux-64::foo[version='>=1.0']"
         >>> str(MatchSpec('*/linux-64::foo>=1.0'))
         "foo[subdir=linux-64,version='>=1.0']"
+        >>> str(MatchSpec('package[extras=[a,b]]'))
+        "package[extras=['a', 'b']]"
+        >>> str(MatchSpec('package[when=__unix]'))
+        'package[when=__unix]'
 
     To fully-specify a package with a full, exact spec, the fields
       - channel
@@ -204,7 +287,7 @@ class MatchSpec(metaclass=MatchSpecType):
         "name",
         "version",
         "build",
-        "build_number",
+        "build_number",  # int
         "track_features",
         "features",
         "url",
@@ -213,6 +296,9 @@ class MatchSpec(metaclass=MatchSpecType):
         "license",
         "license_family",
         "fn",
+        "when",  # str
+        "extras",  # str | list[str]
+        "flags",  # str | list[str]
     )
     FIELD_NAMES_SET = frozenset(FIELD_NAMES)
     _MATCHER_CACHE = {}
@@ -288,7 +374,7 @@ class MatchSpec(metaclass=MatchSpecType):
     def original_spec_str(self):
         return self._original_spec_str
 
-    def match(self, rec):
+    def match(self, rec: PackageRecord | dict[str, Any]) -> bool:
         """
         Accepts a `PackageRecord` or a dict, and matches can pull from any field
         in that record.  Returns True for a match, and False for no match.
@@ -299,6 +385,10 @@ class MatchSpec(metaclass=MatchSpecType):
 
             rec = PackageRecord.from_objects(rec)
         for field_name, v in self._match_components.items():
+            if field_name == "when":
+                # Conditions do not apply to check whether a record
+                # matches a given match spec.
+                continue
             if not self._match_individual(rec, field_name, v):
                 return False
         return True
@@ -407,7 +497,9 @@ class MatchSpec(metaclass=MatchSpecType):
                     # skip url in canonical str if channel already included
                     continue
                 value = str(self._match_components[key])
-                if any(s in value for s in ", ="):
+                if value.startswith("[") and key in ("extras", "flags"):
+                    brackets.append(f"{key}={value}")
+                elif any(s in value for s in ", ="):
                     brackets.append(f"{key}='{value}'")
                 else:
                     brackets.append(f"{key}={value}")
@@ -451,7 +543,8 @@ class MatchSpec(metaclass=MatchSpecType):
             >>> MatchSpec("numpy=1.21.0").conda_env_form()  # no-builds case
             'numpy=1.21.0'
             >>> MatchSpec("conda-forge::numpy==1.21.0=py39h1234567_0").conda_env_form()
-            'numpy=1.21.0=py39h1234567_0'  # channel prefix removed
+            'numpy=1.21.0=py39h1234567_0'
+            >>> # channel prefix removed
 
         Returns:
             str: Package specification in conda env export format
@@ -653,12 +746,32 @@ def _parse_legacy_dist(dist_str):
     return name, version, build
 
 
+def _is_non_alias_url_channel(chn: Channel) -> bool:
+    """Return ``True`` if ``chn`` was constructed from a URL whose location
+    is not ``channel_alias`` (or a migrated alias).
+
+    This is used to decide whether to preserve the explicit URL (``base_url``)
+    of a channel rather than collapsing it through ``canonical_name``.
+    The latter flattens URL-form multichannel members such as
+    "https://repo.anaconda.com/pkgs/main" into the multichannel
+    name ("defaults").
+    """
+    if not chn.location:
+        return False
+    alias_locations = (
+        context.channel_alias.location,
+        *(alias.location for alias in context.migrated_channel_aliases),
+    )
+    return chn.location not in alias_locations
+
+
 def _parse_channel(channel_val):
     if not channel_val:
         return None, None
     chn = Channel(channel_val)
-    channel_name = chn.name or chn.base_url
-    return channel_name, chn.subdir
+    if is_url(channel_val) and _is_non_alias_url_channel(chn):
+        return chn.base_url or chn.canonical_name, chn.subdir
+    return chn.canonical_name, chn.subdir
 
 
 _PARSE_CACHE = {}
@@ -717,6 +830,15 @@ def _sanitize_version_str(version: str, build: str | None) -> str:
         return version_without_equals
 
     return version
+
+
+def _parse_spec_str_dispatcher(spec_str) -> dict[str, object]:
+    """
+    Temporary dispatcher while we introduce the new v3 features
+    """
+    if context.solver == "rattler":
+        return _parse_spec_str_v3(spec_str)
+    return _parse_spec_str(spec_str)
 
 
 def _parse_spec_str(spec_str):
@@ -842,6 +964,7 @@ def _parse_spec_str(spec_str):
             raise InvalidMatchSpec(
                 original_spec_str, f"no package name found in '{spec_str}'"
             )
+        _validate_package_name(name, original_spec_str)
     else:
         raise InvalidMatchSpec(original_spec_str, "no package name found")
 
@@ -896,6 +1019,268 @@ def _parse_spec_str(spec_str):
     components["_original_spec_str"] = original_spec_str
     _PARSE_CACHE[original_spec_str] = components
     return components
+
+
+def _parse_spec_str_v3(spec_str):
+    """
+    New parser engine only used
+    """
+    cached_result = _PARSE_CACHE.get(spec_str)
+    if cached_result:
+        return cached_result
+
+    original_spec_str = spec_str
+
+    # pre-step for ugly backward compat
+    if spec_str.endswith("@"):
+        feature_name = spec_str[:-1]
+        return {
+            "name": "*",
+            "track_features": (feature_name,),
+        }
+
+    # Step 1. strip '#' comment
+    if "#" in spec_str:
+        ndx = spec_str.index("#")
+        spec_str, _ = spec_str[:ndx], spec_str[ndx:]
+        spec_str.strip()
+
+    # Step 2. done if spec_str is a tarball
+    if context.plugin_manager.has_package_extension(spec_str):
+        # treat as a normal url
+        if not is_url(spec_str):
+            spec_str = unquote(path_to_url(expand(spec_str)))
+
+        channel = Channel(spec_str)
+        if channel.subdir:
+            name, version, build = _parse_legacy_dist(channel.package_filename)
+            result = {
+                "channel": channel.canonical_name,
+                "subdir": channel.subdir,
+                "name": name,
+                "version": version,
+                "build": build,
+                "fn": channel.package_filename,
+                "url": spec_str,
+            }
+        else:
+            # url is not a channel
+            if spec_str.startswith("file://"):
+                # We must undo percent-encoding when generating fn.
+                path_or_url = url_to_path(spec_str)
+            else:
+                path_or_url = spec_str
+
+            return {
+                "name": "*",
+                "fn": basename(path_or_url),
+                "url": spec_str,
+            }
+        return result
+
+    # Step 3. strip off brackets portion
+    brackets = {}
+    m3 = _BRACKETS_RE_V3.match(spec_str)
+    if m3:
+        brackets_str = m3.groups()[0]
+        spec_str = spec_str.replace(brackets_str, "")
+        brackets_str = brackets_str[1:-1]
+        m3b = list(_BRACKETS_KV_RE_V3.finditer(brackets_str))
+        for match in m3b:
+            groups = match.groupdict()
+            key = groups["key"]
+            if key in brackets:
+                raise InvalidSpec(
+                    f"Each key can only be specified once: repeated '{key}' "
+                )
+            value = groups["value"] or groups["value_list"]
+            if not (key and value):
+                raise InvalidSpec(
+                    "key-value mismatch in brackets; a key or a value is missing",
+                )
+            if "][" in value:
+                raise InvalidSpec("Multiple bracket sections are not allowed")
+            if key in ("flags", "extras"):
+                if (value[0] == "[") ^ (value[-1] == "]"):
+                    # mismatched single-item list, raise
+                    raise InvalidSpec(f"'{key}' value has unbalanced brackets: {value}")
+                inner = value.strip("[]")
+                if _LIST_EMPTY_ITEM_RE.search(inner):
+                    raise InvalidSpec(f"'{key}' list has an empty item: {value!r}")
+                value = tuple(
+                    str(x) if x is not None else "null"
+                    for x in yaml.loads(f"[{inner}]")
+                )
+            elif key == "when":
+                _validate_when_spec(value)
+            brackets[key] = value
+        if m3b:
+            remainder = brackets_str[m3b[-1].end() :].strip(", ")
+            if remainder:
+                raise InvalidSpec(f"Unrecognized content in brackets: {remainder!r}")
+        if not brackets:
+            # No key-value pairs found but there was a outer square brackets match?
+            # That's invalid syntax (e.g. accidental `package[extra]`)
+            if brackets_str.startswith("version"):
+                # Backwards compatibility for a bit; supporting this was an accident!
+                brackets_str_version = brackets_str[len("version") :]
+                brackets["version"] = _sanitize_version_str(brackets_str_version, None)
+                deprecated.topic(
+                    "26.9",
+                    "27.3",
+                    topic="MatchSpec version expression without = separator",
+                    addendum=f"This MatchSpec syntax `{original_spec_str}` was accidentally "
+                    f"allowed in the past. Please use `version='{brackets_str_version}'`.",
+                )
+            else:
+                raise InvalidSpec(
+                    "No key-value pairs found in square brackets, "
+                    f"did you mean `extras=[{brackets_str}]`?",
+                )
+
+    # Re-process version field, whose syntax depends on the presence of a build field
+    if version_value := brackets.get("version"):
+        brackets["version"] = _sanitize_version_str(
+            version_value, brackets.get("build")
+        )
+
+    # Step 4. strip off parens portion
+    m4 = _PARENS_RE.match(spec_str)
+    parens = {}
+    if m4:
+        parens_str = m4.groups()[0]
+        spec_str = spec_str.replace(parens_str, "")
+        parens_str = parens_str[1:-1]
+        m4b = _BRACKETS_KV_RE_V3.finditer(parens_str)
+        for match in m4b:
+            groups = match.groupdict()
+            parens[groups["key"]] = groups["value"] or groups["value_list"]
+        if "optional" in parens_str:
+            parens["optional"] = True
+
+    # Step 5. strip off '::' channel and namespace
+    m5 = spec_str.rsplit(":", 2)
+    m5_len = len(m5)
+    if m5_len == 3:
+        channel_str, namespace, spec_str = m5
+    elif m5_len == 2:
+        namespace, spec_str = m5
+        channel_str = None
+    elif m5_len:
+        spec_str = m5[0]
+        channel_str, namespace = None, None
+    else:
+        raise NotImplementedError()
+    channel, subdir = _parse_channel(channel_str)
+    if "channel" in brackets:
+        b_channel, b_subdir = _parse_channel(brackets.pop("channel"))
+        if b_channel:
+            channel = b_channel
+        if b_subdir:
+            subdir = b_subdir
+    if "subdir" in brackets:
+        subdir = brackets.pop("subdir")
+
+    # Step 6. strip off package name from remaining version + build
+    m3 = _NAME_VERSION_RE.match(spec_str)
+    if m3:
+        name, spec_str = m3.groups()
+        if name is None:
+            raise InvalidMatchSpec(
+                original_spec_str, f"no package name found in '{spec_str}'"
+            )
+        _validate_package_name(name, original_spec_str)
+    else:
+        raise InvalidMatchSpec(original_spec_str, "no package name found")
+
+    # Step 7. otherwise sort out version + build
+    spec_str = spec_str and spec_str.strip()
+    # This was an attempt to make MatchSpec('numpy-1.11.0-py27_0') work like we'd want. It's
+    # not possible though because plenty of packages have names with more than one '-'.
+    # if spec_str is None and name.count('-') >= 2:
+    #     name, version, build = _parse_legacy_dist(name)
+    if spec_str:
+        if "[" in spec_str:
+            raise InvalidMatchSpec(
+                original_spec_str, "multiple brackets sections not allowed"
+            )
+
+        version, build = _parse_version_plus_build(spec_str)
+        version = _sanitize_version_str(version, build)
+    else:
+        version, build = None, None
+
+    # Step 8. now compile components together
+    components = {}
+    components["name"] = name or "*"
+
+    if channel is not None:
+        components["channel"] = channel
+    if subdir is not None:
+        components["subdir"] = subdir
+    if namespace is not None:
+        # components['namespace'] = namespace
+        pass
+    if version is not None:
+        components["version"] = version
+    if build is not None:
+        components["build"] = build
+
+    # anything in brackets will now strictly override key as set in other area of spec str
+    # EXCEPT FOR: name
+    # If we let name in brackets override a name outside of brackets it is possible to write
+    # MatchSpecs that appear to install one package but actually install a completely different one
+    # e.g. tensorflow[name=* version=* md5=<hash of pytorch package> ] will APPEAR to install
+    # tensorflow but actually install pytorch.
+    if "name" in components and "name" in brackets:
+        msg = (
+            f"'name' specified both inside ({brackets['name']}) and outside "
+            f"({components['name']}) of brackets. The value outside of brackets "
+            f"({components['name']}) will be used."
+        )
+        warnings.warn(msg, UserWarning)
+        del brackets["name"]
+    components.update(brackets)
+    components["_original_spec_str"] = original_spec_str
+    _PARSE_CACHE[original_spec_str] = components
+    return components
+
+
+def _validate_when_spec(spec) -> None:
+    """
+    The value of a `when` expression is a MatchSpec or a boolean
+    expression of MatchSpecs. Parentheses override precedence.
+    We can use Python's parser for this but we need to wrap the MatchSpec
+    as strings first.
+
+    >>> _validate_when_spec("python")
+    >>> _validate_when_spec("(python)")
+    >>> _validate_when_spec("(python and __unix)")
+    >>> _validate_when_spec("(python and __unix>=3)")
+    >>> _validate_when_spec("(python and __unix>=3 or __win)")
+    """
+    if not spec or not spec.strip():
+        raise InvalidSpec("'when' value must not be empty")
+    specs = []
+    for a in spec.split(" and "):
+        for b in a.split(" or "):
+            specs.append(b.strip(" ()"))
+    for found in specs:
+        parsed = MatchSpec(found)
+        if parsed.get("when"):
+            raise InvalidSpec(
+                f"'when' specs cannot include inner 'when' fields: {found} ",
+            )
+        escaped = found.replace('"', '\\"')
+        spec = spec.replace(found, f'"{escaped}"')
+    if len(specs) == 1:
+        # no boolean logic found, just check MatchSpec is parsable
+        return
+    try:
+        ast.parse(spec)
+    except (ValueError, SyntaxError) as exc:
+        raise InvalidSpec("'when' expression cannot be parsed") from exc
+    return
 
 
 class MatchInterface(metaclass=ABCMeta):
@@ -1166,6 +1551,46 @@ class FeatureMatch(MatchInterface):
         return self._raw_value
 
 
+class ListOfStrMatch(MatchInterface):
+    # FIXME: This is a quick copy of FeatureMatch
+    # Needs globbing too, or a globbing subclass
+    __slots__ = ("_raw_value",)
+
+    def __init__(self, value):
+        super().__init__(self._convert(value))
+
+    def _convert(self, value):
+        if not value:
+            return ()
+        elif isinstance(value, str):
+            return tuple(
+                f
+                for f in (ff.strip() for ff in value.replace(" ", ",").split(","))
+                if f
+            )
+        else:
+            return tuple(f for f in (ff.strip() for ff in value) if f)
+
+    def match(self, other):
+        other = self._convert(other)
+        return self._raw_value == other
+
+    def __repr__(self):
+        return "[{}]".format(", ".join(f"'{k}'" for k in sorted(self._raw_value)))
+
+    __str__ = __repr__
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self._raw_value == other._raw_value
+
+    def __hash__(self):
+        return hash(self._raw_value)
+
+    @property
+    def exact_value(self):
+        return self._raw_value
+
+
 class ChannelMatch(GlobStrMatch):
     def __init__(self, value):
         self._re_match = None
@@ -1195,16 +1620,37 @@ class ChannelMatch(GlobStrMatch):
 
         if self._re_match:
             return self._re_match(_other_val.canonical_name)
+
+        # assert ChannelMatch('pkgs/free').match('defaults') is False
+        # assert ChannelMatch('defaults').match('pkgs/free') is True
+        elif _is_non_alias_url_channel(self._raw_value):
+            # Compare by base_url rather than Channel.__eq__, because
+            # there are cases where we can have a spec whose channel has
+            # no platform, such as one extracted by the URL parser when
+            # a subdir is also present. For example, a spec extracted
+            # from a URL like "file:///.../channel/noarch/pkg-...tar.bz2"
+            # still matches a cached record whose channel retained the
+            # platform.
+            return self._raw_value.base_url == _other_val.base_url
+
         else:
-            # assert ChannelMatch('pkgs/free').match('defaults') is False
-            # assert ChannelMatch('defaults').match('pkgs/free') is True
+            # This should have been the following
+            # self._raw_value.name == _other_val.canonical_name or self._raw_value == _other_val
+            # but users may rely on this exact behaviour.
+            # For eg: conda install -c file::/path/to/distr distr::pkg as mentioned in
+            # https://anaconda.org/distr
             return self._raw_value.name in (_other_val.name, _other_val.canonical_name)
 
     def __str__(self):
-        try:
-            return f"{self._raw_value.name}"
-        except AttributeError:
-            return f"{self._raw_value}"
+        if isinstance(self._raw_value, Channel):
+            # We mirror _parse_channel: for non-alias URL channels, we
+            # prefer base_url, so that URL-form multichannel members like
+            # "https://repo.anaconda.com/pkgs/main" don't collapse to the
+            # multichannel name ("defaults") via canonical_name.
+            if _is_non_alias_url_channel(self._raw_value):
+                return self._raw_value.base_url or self._raw_value.canonical_name
+            return self._raw_value.canonical_name
+        return f"{self._raw_value}"
 
     def __repr__(self):
         return f"'{self.__str__()}'"
@@ -1234,4 +1680,8 @@ _implementors = {
     "features": FeatureMatch,
     "license": CaseInsensitiveStrMatch,
     "license_family": CaseInsensitiveStrMatch,
+    # TODO: These needs their own classes for matching and merging
+    "when": CaseInsensitiveStrMatch,  # FIXME: Merge should be possible, matching is not
+    "flags": ListOfStrMatch,  # FIXME: Must accept globs too, unordered subsets
+    "extras": ListOfStrMatch,  # FIXME: We are matching dicts on keys only
 }

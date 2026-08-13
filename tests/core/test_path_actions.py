@@ -30,6 +30,7 @@ from conda.core.path_actions import (
     CompileMultiPycAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
+    UpdateHistoryAction,
 )
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
@@ -303,6 +304,50 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
         assert not isfile(windows_exe_axn.target_full_path)
 
 
+@pytest.mark.parametrize(
+    "definition,result_or_exc",
+    [
+        ("command1=some.module:main", ("command1", "some.module", "main")),
+        (
+            "command1=some.module:SomeClass.method",
+            ("command1", "some.module", "SomeClass.method"),
+        ),
+        (
+            'command1 = "some.module:main"',
+            ("command1", "some.module", "main"),
+        ),
+        (
+            "../bin/python=some.module:main",
+            (ValueError, "simple file name"),
+        ),
+        (
+            "command=.some.module:main",
+            (ValueError, "not a valid absolute import of a Python module"),
+        ),
+        (
+            "command=some..module:main",
+            (ValueError, "not a valid absolute import of a Python module"),
+        ),
+        (
+            "command=some.module:main-function",
+            (ValueError, "not a valid Python function identifier"),
+        ),
+        (
+            "command=some.module:main..function",
+            (ValueError, "not a valid Python function identifier"),
+        ),
+    ],
+)
+def test_entry_point_parse_def(
+    definition: str, result_or_exc: tuple[str, str, str] | tuple[Exception, str]
+):
+    if isinstance(result_or_exc[0], str):
+        assert parse_entry_point_def(definition) == result_or_exc
+    else:
+        with pytest.raises(result_or_exc[0], match=result_or_exc[1]):
+            parse_entry_point_def(definition)
+
+
 def test_simple_LinkPathAction_hardlink(prefix: Path, pkgs_dir: Path):
     source_full_path = make_test_file(pkgs_dir)
     target_short_path = source_short_path = basename(source_full_path)
@@ -524,3 +569,41 @@ def test_create_file_link_actions(tmp_path):
 
     assert TARGET_SITE_PACKAGES not in file_link_actions[0].target_short_path
     assert TARGET_SITE_PACKAGES not in file_link_actions[1].target_short_path
+
+
+def test_update_history_action_reverse_prior_history(prefix: Path):
+    history = prefix / "conda-meta" / "history"
+    history.parent.mkdir(parents=True)
+    prior = "==> 2020-01-01 00:00:00 <==\n# cmd: conda create\n"
+    history.write_text(prior)
+
+    (axn,) = UpdateHistoryAction.create_actions({}, str(prefix), (), (), ())
+    axn.execute()
+    assert history.is_file()
+    assert history.read_text() != prior
+
+    axn.reverse()
+    assert history.is_file()
+    assert history.read_text() == prior
+
+
+def test_update_history_action_reverse_new_history(prefix: Path):
+    history = prefix / "conda-meta" / "history"
+    (axn,) = UpdateHistoryAction.create_actions({}, str(prefix), (), (), ())
+    axn.execute()
+    assert history.is_file()
+
+    axn.reverse()
+    assert not history.is_file()
+
+
+def test_update_history_action_reverse_not_executed(prefix: Path):
+    history = prefix / "conda-meta" / "history"
+    history.parent.mkdir(parents=True)
+    prior = "==> 2020-01-01 00:00:00 <==\n# cmd: conda create\n"
+    history.write_text(prior)
+
+    (axn,) = UpdateHistoryAction.create_actions({}, str(prefix), (), (), ())
+    axn.reverse()
+    assert history.is_file()
+    assert history.read_text() == prior

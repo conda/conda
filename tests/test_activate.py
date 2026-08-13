@@ -2268,3 +2268,21 @@ def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
     if activator_cls == CmdExeActivator:
         output = Path(output.strip()).read_text()
     assert str(tmp_path) in output
+
+
+@pytest.mark.usefixtures("clear_plugin_manager_cache")
+@pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
+def test_plugin_hooks_skipped_when_manager_not_loaded(command: str) -> None:
+    """Plugin hooks are skipped when the plugin manager has not been loaded.
+
+    Activation commands should not initialize the plugin manager just to check
+    pre/post hooks.
+    """
+    from conda.plugins.manager import get_plugin_manager
+
+    assert get_plugin_manager.cache_info().currsize == 0
+
+    activator = PosixActivator([command])
+    activator.execute()
+
+    assert get_plugin_manager.cache_info().currsize == 0

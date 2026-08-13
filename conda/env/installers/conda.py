@@ -12,7 +12,6 @@ from ...base.constants import UpdateModifier
 from ...base.context import context
 from ...common.constants import NULL
 from ...common.iterators import unique
-from ...core.solve import solver_backend_shards
 from ...env.env import EnvironmentYaml
 from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
@@ -29,11 +28,14 @@ def _solve(
 ) -> Solver:
     """Solve the environment.
 
-    :param prefix: Installation target directory
-    :param specs: Package specifications to install
-    :param args: Command-line arguments
-    :param env: Environment object
-    :return: Solver object
+    Args:
+        prefix: Installation target directory
+        specs: Package specifications to install
+        args: Command-line arguments
+        env: Environment object
+
+    Returns:
+        Solver object
     """
     # TODO: support all various ways this happens
     # Including 'nodefaults' in the channels list disables the defaults
@@ -46,7 +48,7 @@ def _solve(
     channels = tuple(unique(Channel(url) for url in _channel_priority_map))
     subdirs = tuple(unique(basename(url) for url in _channel_priority_map))
 
-    solver_backend = solver_backend_shards()
+    solver_backend = solver_backend = context.plugin_manager.get_cached_solver_backend()
     solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
     return solver
 
@@ -56,11 +58,13 @@ def dry_run(
 ) -> EnvironmentYaml:
     """Do a dry run of the environment solve.
 
-    :param specs: Package specifications to install
-    :param args: Command-line arguments
-    :param env: Environment object
-    :return: Solved environment object
-    :rtype: EnvironmentYaml
+    Args:
+        specs: Package specifications to install
+        args: Command-line arguments
+        env: Environment object
+
+    Returns:
+        Solved environment object
     """
     solver = _solve(tempfile.mkdtemp(), specs, args, env, *_, **kwargs)
     pkgs = solver.solve_final_state()
@@ -80,11 +84,14 @@ def install(
     2. For regular Environment instances: Uses the solver to determine the optimal
        package set before installation.
 
-    :param prefix: The target installation path for the environment
-    :param specs: Package specifications to install
-    :param args: Command-line arguments from the conda command
-    :param env: Environment object containing dependencies and channels
-    :return: Installation result information
+    Args:
+        prefix: The target installation path for the environment
+        specs: Package specifications to install
+        args: Command-line arguments from the conda command
+        env: Environment object containing dependencies and channels
+
+    Returns:
+        Installation result information
 
     .. note::
         This implementation follows CEP-23, which states: "When an explicit input file is

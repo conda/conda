@@ -19,6 +19,7 @@ from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
 from conda.exceptions import CondaExitZero, OfflineError, PluginError
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
+from conda.gateways.connection.adapters.http import HTTPAdapter
 from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
     CondaHttpAuth,
@@ -61,6 +62,26 @@ def test_add_binstar_token():
         url = "https://conda.anaconda.test/biopython/linux-64/repodata.json"
         new_url = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/biopython/linux-64/repodata.json"
         assert CondaHttpAuth.add_binstar_token(url) == new_url
+    finally:
+        remove_binstar_token("https://api.anaconda.test")
+
+
+def test_add_binstar_token_notices_json():
+    """add_binstar_token must not drop notices.json from URLs that have no platform subdir.
+
+    Regression test for https://github.com/conda/conda/issues/16516:
+    URLs like /channel-name/notices.json have no platform component, so Channel.url()
+    previously discarded the filename and substituted a subdir from context.subdirs.
+    """
+    try:
+        set_binstar_token("https://api.anaconda.test", "tk-abacadaba-1029384756")
+
+        # URL with no platform subdir — notices.json must be preserved
+        url = "https://conda.anaconda.test/channel-name/notices.json"
+        expected = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/channel-name/notices.json"
+        assert CondaHttpAuth.add_binstar_token(url) == expected, (
+            f"notices.json was dropped or URL was mangled: {CondaHttpAuth.add_binstar_token(url)}"
+        )
     finally:
         remove_binstar_token("https://api.anaconda.test")
 
@@ -676,6 +697,32 @@ def test_accept_range_none(package_server, tmp_path):
 
     assert complete_file.read_text() == test_content
     assert not partial_file.exists()
+
+
+def test_ssl_context_adapter_forwards_to_proxy_manager():
+    """``ssl_context`` must reach the proxy pool manager, not just the direct one.
+
+    requests builds a separate ProxyManager via ``proxy_manager_for`` that does
+    not see the kwargs passed to ``init_poolmanager``; without an explicit
+    override the custom truststore context is dropped on proxied connections.
+    """
+    sentinel = object()
+    adapter = HTTPAdapter(ssl_context=sentinel)
+
+    assert adapter.poolmanager.connection_pool_kw["ssl_context"] is sentinel
+
+    proxy_manager = adapter.proxy_manager_for("http://proxy:8080")
+    assert proxy_manager.connection_pool_kw["ssl_context"] is sentinel
+
+
+def test_ssl_context_adapter_omits_proxy_ssl_context_when_unset():
+    """The default ``ssl_verify: True`` path must not inject an ssl_context key."""
+    adapter = HTTPAdapter()
+
+    assert "ssl_context" not in adapter.poolmanager.connection_pool_kw
+
+    proxy_manager = adapter.proxy_manager_for("http://proxy:8080")
+    assert "ssl_context" not in proxy_manager.connection_pool_kw
 
 
 @pytest.mark.parametrize("offline", [True, False])

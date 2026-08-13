@@ -296,6 +296,7 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             self.plugin_manager = mocker.MagicMock()
             self.repodata_fns = ["repodata.json", "current_repodata.json"]
             self.subdir = mocker.MagicMock()
+            self.preview = ()
 
         @property
         def plugins(self) -> PluginConfig:

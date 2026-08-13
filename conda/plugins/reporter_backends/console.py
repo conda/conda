@@ -21,6 +21,7 @@ from ...base.constants import (
 from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
+from ...common.terminal import is_tty, term_dumb
 from ...core.prefix_data import PrefixData
 from ...exceptions import CondaError
 from ...utils import human_bytes
@@ -234,24 +235,37 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         # leading and trailing newlines
         return "\n" + "\n".join(output) + "\n\n"
 
+    @property
+    def animations_disabled(self) -> bool:
+        """True when progress bars/spinners should be suppressed."""
+        return context.quiet or not is_tty() or term_dumb()
+
     def progress_bar(
         self,
         description: str,
         **kwargs,
     ) -> ProgressBarBase:
         """
-        Determines whether to return a TQDMProgressBar or QuietProgressBar
+        Determines whether to return a TQDMProgressBar or QuietProgressBar.
+
+        Animations are suppressed when:
+        * ``context.quiet`` is set,
+        * the output is not a TTY (e.g. piped to a file), or
+        * ``TERM=dumb`` or ``TERM=unknown`` is set.
         """
-        if context.quiet:
+        if self.animations_disabled:
             return QuietProgressBar(description, **kwargs)
         else:
             return TQDMProgressBar(description, **kwargs)
 
     def spinner(self, message: str, fail_message: str = "failed\n") -> SpinnerBase:
         """
-        Determines whether to return a Spinner or QuietSpinner
+        Determines whether to return a Spinner or QuietSpinner.
+
+        Animations are suppressed under the same conditions as
+        :meth:`progress_bar`.
         """
-        if context.quiet:
+        if self.animations_disabled:
             return QuietSpinner(message, fail_message)
         else:
             return Spinner(message, fail_message)

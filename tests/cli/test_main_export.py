@@ -13,6 +13,7 @@ import pytest
 
 from conda.base.context import context
 from conda.cli.main_export import CondaExportWarning
+from conda.cli.main_export import epilog as export_epilog
 from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
@@ -20,6 +21,8 @@ from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
+from conda.plugins import hookimpl
+from conda.plugins.types import CondaEnvironmentExporter, EnvironmentFormat
 
 from .. import PYTHON_SPEC
 
@@ -990,3 +993,97 @@ def test_export_invalid_platform_from_condarc_fails_fast(
         CondaValueError, match=r"Could not find platform\(s\): doesnotexist"
     ):
         conda_cli("export")
+
+
+class DummyEnvSpecPlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-spec",
+            aliases=("spec",),
+            default_filenames=("spec.dummy",),
+            export=lambda env: "",
+        )
+
+
+class DummyLockfilePlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-lock",
+            aliases=("lock",),
+            default_filenames=("lock.dummy",),
+            export=lambda envs: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+class DummyMultilockPlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-multi",
+            aliases=("multi",),
+            default_filenames=("multi.dummy",),
+            multiplatform_export=lambda envs: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+@pytest.mark.parametrize(
+    "spec_plugin,lockfile_plugin,multilock_plugin",
+    [
+        pytest.param(False, False, False, id="no plugins"),
+        pytest.param(True, False, False, id="spec plugin only"),
+        pytest.param(False, True, False, id="lockfile plugin only"),
+        pytest.param(False, False, True, id="multilock plugin only"),
+        pytest.param(True, True, True, id="all plugins"),
+    ],
+)
+def test_epilog(
+    plugin_manager_with_reporter_backends: CondaPluginManager,
+    subtests,
+    spec_plugin: bool,
+    lockfile_plugin: bool,
+    multilock_plugin: bool,
+) -> None:
+    """``conda export --help`` renders examples and format epilog using the registered plugins."""
+    # register dummy plugins
+    if spec_plugin:
+        plugin_manager_with_reporter_backends.register(DummyEnvSpecPlugin())
+    if lockfile_plugin:
+        plugin_manager_with_reporter_backends.register(DummyLockfilePlugin())
+    if multilock_plugin:
+        plugin_manager_with_reporter_backends.register(DummyMultilockPlugin())
+
+    # check help contains expected text
+    epilog = export_epilog()
+    for expected, line in (
+        (True, "Examples:"),
+        (True, "Export an environment spec:"),
+        (True, "conda export --from-history > environment.yml"),
+        (True, "Export a lockfile for the same platform:"),
+        (True, "conda export --file explicit.txt"),
+        (multilock_plugin, "Export a lockfile for multiple platforms:"),
+        (
+            multilock_plugin,
+            "conda export --file multi.dummy --platform linux-64 --platform osx-arm64",
+        ),
+        (
+            spec_plugin or lockfile_plugin or multilock_plugin,
+            "Available output formats:",
+        ),
+        (spec_plugin, "Environment specs:"),
+        (spec_plugin, "- dummy-spec (aliases: spec): spec.dummy"),
+        (lockfile_plugin or multilock_plugin, "Lockfiles:"),
+        (lockfile_plugin, "- dummy-lock (aliases: lock): lock.dummy"),
+        (multilock_plugin, "- dummy-multi (aliases: multi): multi.dummy"),
+    ):
+        with subtests.test(f"{'expected' if expected else 'not expected'}: {line}"):
+            assert (line in epilog) is expected, epilog
+
+
+def test_export_help(conda_cli: CondaCLIFixture) -> None:
+    """``conda export --help`` renders the epilog."""
+    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
+    assert export_epilog() in stdout

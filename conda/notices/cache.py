@@ -22,7 +22,7 @@ from ..base.constants import (
     APP_NAME,
     NOTICES_CACHE_FN,
     NOTICES_CACHE_SUBDIR,
-    NOTICES_DECORATOR_DISPLAY_INTERVAL,
+    NOTICES_DECORATOR_DISPLAY_INTERVAL_NS,
 )
 from ..common.serialize import json
 from ..exceptions import CondaError
@@ -31,6 +31,7 @@ from .types import ChannelNoticeResponse
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from ..common.path import PathType
     from .types import ChannelNotice
 
 logger = logging.getLogger(__name__)
@@ -102,18 +103,12 @@ def get_notices_cache_file() -> Path:
     display interval.
     """
     cache_dir = get_notices_cache_dir()
-    cache_file = cache_dir.joinpath(NOTICES_CACHE_FN)
+    notices_cache = cache_dir / NOTICES_CACHE_FN
 
-    if not cache_file.is_file():
-        with open(cache_file, "w") as fp:
-            fp.write("")
+    if not notices_cache.is_file():
+        _clear_cache_file(notices_cache)
 
-        # Keep natural access time, set only mtime to past for immediate notice display
-        stat = cache_file.stat()
-        past_mtime = stat.st_mtime - NOTICES_DECORATOR_DISPLAY_INTERVAL
-        os.utime(cache_file, (stat.st_atime, past_mtime))
-
-    return cache_file
+    return notices_cache
 
 
 def get_notice_response_from_cache(
@@ -189,7 +184,7 @@ def clear_cache() -> None:
     any ``OSError`` raised while unlinking them is ignored for the same
     reason.
     """
-    cache_dir = Path(get_notices_cache_dir())
+    cache_dir = get_notices_cache_dir()
     notices_cache = cache_dir / NOTICES_CACHE_FN
 
     for cache_file in cache_dir.iterdir():
@@ -197,11 +192,7 @@ def clear_cache() -> None:
             continue
         if cache_file == notices_cache:
             try:
-                with open(cache_file, "w") as fp:
-                    fp.write("")
-                stat = cache_file.stat()
-                past_mtime = stat.st_mtime - NOTICES_DECORATOR_DISPLAY_INTERVAL
-                os.utime(cache_file, (stat.st_atime, past_mtime))
+                _clear_cache_file(cache_file)
             except OSError:
                 pass
         else:
@@ -209,3 +200,13 @@ def clear_cache() -> None:
                 cache_file.unlink()
             except OSError:
                 pass
+
+
+def _clear_cache_file(cache_file: PathType) -> None:
+    cache_file = Path(cache_file)
+    with open(cache_file, "w") as fp:
+        fp.write("")
+    stat = cache_file.stat()
+    # Keep natural access time, set only mtime to past for immediate notice display
+    past_mtime_ns = stat.st_mtime_ns - NOTICES_DECORATOR_DISPLAY_INTERVAL_NS
+    os.utime(cache_file, ns=(stat.st_atime_ns, past_mtime_ns))

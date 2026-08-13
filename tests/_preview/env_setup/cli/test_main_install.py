@@ -1,0 +1,52 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+"""Integration tests for conda/_preview/env_setup/cli/main_install.py.
+
+These tests verify that:
+- When the env-setup preview is NOT enabled, `conda install` runs via the standard path.
+- When the env-setup preview IS enabled, `conda install` is routed to the stub and
+  raises OperationNotAllowed.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import pytest
+
+from conda.exceptions import OperationNotAllowed
+
+if TYPE_CHECKING:
+    from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import CondaCLIFixture
+
+
+def test_install_preview_disabled(conda_cli: CondaCLIFixture):
+    """conda install without CONDA_PREVIEW set routes to the standard implementation."""
+    # --help exits cleanly via SystemExit; if routing had fired it would raise
+    # OperationNotAllowed instead, so a clean SystemExit proves no redirection occurred.
+    with pytest.raises(SystemExit, match="0"):
+        conda_cli("install", "--help")
+
+
+def test_install_preview_enabled(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """conda install with CONDA_PREVIEW=env-setup is routed to the stub."""
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
+
+    with pytest.raises(OperationNotAllowed, match=r"'env-setup'.+'conda install'"):
+        conda_cli("install", "numpy")
+
+
+def test_install_preview_uses_builtin_parser_arguments(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+):
+    """The preview stub accepts options from the built-in install parser."""
+    monkeypatch.setenv("CONDA_PREVIEW", "env-setup")
+
+    with pytest.raises(OperationNotAllowed, match=r"'env-setup'.+'conda install'"):
+        conda_cli("install", "--revision", "1")

@@ -22,7 +22,8 @@ def detect(filename: str | None = None) -> SpecTypes:
     """
     Return the appropriate spec type to use.
 
-    :raises SpecNotFound: Raised if no suitable spec class could be found given the input
+    Raises:
+        SpecNotFound: Raised if no suitable spec class could be found given the input
     """
     try:
         spec_hook = context.plugin_manager.detect_environment_specifier(

@@ -148,8 +148,11 @@ def get_schema_errors(data: dict) -> list[EnvironmentFileInvalid]:
       * all required fields are present
       * all fields contain valid data
 
-    :param dict data: The contents of the environment.yaml
-    :returns errors: A list of EnvironmentFileInvalid exceptions that occurred during validation
+    Args:
+        data: The contents of the environment.yaml
+
+    Returns:
+        Validation errors for the environment file schema.
     """
     errors = []
     # Ensure all required keys are present
@@ -210,16 +213,17 @@ def validate_keys(data, kwargs):
 def from_environment(
     name, prefix, no_builds=False, ignore_channels=False, from_history=False
 ):
-    """
-        Get ``EnvironmentYaml`` object from prefix
-    Args:
-        name: The name of environment
-        prefix: The path of prefix
-        no_builds: Whether has build requirement
-        ignore_channels: whether ignore_channels
-        from_history: Whether environment file should be based on explicit specs in history
+    """Build an ``EnvironmentYaml`` from an existing environment prefix.
 
-    Returns:     EnvironmentYaml object
+    Args:
+        name: Environment name.
+        prefix: Path to the environment prefix.
+        no_builds: Omit build strings from dependency specs.
+        ignore_channels: Do not add channels from installed packages.
+        from_history: Base dependencies on explicit specs from install history.
+
+    Returns:
+        Representation of the environment suitable for export to YAML.
     """
     pd = PrefixData(prefix, interoperability=True)
     variables = pd.get_environment_env_vars()
@@ -271,10 +275,11 @@ def from_environment(
 def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
     """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string
 
-    :param yamlstr: The contents of the environment.yaml
-    :param raise_validation_errors: Indicates if an error should be raised if the yamlstr
-        is found to be invalid
-    :returns EnvironmentYaml: A representation of the environment file
+    Args:
+        yamlstr: The contents of the environment.yaml.
+
+    Returns:
+        A representation of the environment file
     """
     data = yaml.loads(yamlstr)
     filename = kwargs.get("filename")

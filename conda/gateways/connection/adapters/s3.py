@@ -75,11 +75,14 @@ class S3Adapter(BaseAdapter):
         This avoids the extra copy that occurs when using send() which buffers
         to a SpooledTemporaryFile first.
 
-        :param url: S3 URL (s3://bucket/key)
-        :param fileobj: File object to write to (must be opened in binary write mode)
-        :param progress_callback: Optional callback(fraction) where fraction is 0.0-1.0
-        :param size: Optional content length (required for progress reporting)
-        :raises CondaError: On S3 errors or if boto3 is not installed
+        Args:
+            url: S3 URL (s3://bucket/key)
+            fileobj: File object to write to (must be opened in binary write mode)
+            progress_callback: Optional callback(fraction) where fraction is 0.0-1.0
+            size: Optional content length (required for progress reporting)
+
+        Raises:
+            CondaError: On S3 errors or if boto3 is not installed
         """
         from ....exceptions import CondaError
 

@@ -763,7 +763,7 @@ class Clauses:
                 self.unsat = False
                 try0 = None
 
-            log.debug("Final %s objective: %d" % ("peak" if peak else "sum", bestval))
+            log.debug("Final %s objective: %d", "peak" if peak else "sum", bestval)
             if bestval == 0:
                 break
             elif peak:
@@ -776,6 +776,6 @@ class Clauses:
                 try0 = sum_val(bestsol, objective_dict)
                 lo = bestval
             else:
-                log.debug("New peak objective: %d" % peak_val(bestsol, objective_dict))
+                log.debug("New peak objective: %d", peak_val(bestsol, objective_dict))
 
         return bestsol, bestval

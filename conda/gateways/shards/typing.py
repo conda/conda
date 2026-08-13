@@ -3,7 +3,7 @@
 """Minimal set of interfaces required to describe shards code to clients (solvers)"""
 
 import typing
-from collections.abc import Callable, Iterable, Iterator, Mapping
+from collections.abc import Iterable, Iterator, KeysView
 from typing import Literal
 
 
@@ -11,7 +11,7 @@ class Shards(typing.Protocol):
     base_url: str
 
     @property
-    def package_names(self) -> Mapping[str]:
+    def package_names(self) -> KeysView[str]:
         """Return the names of all packages available in this shard collection."""
         ...
 
@@ -20,7 +20,26 @@ class Shards(typing.Protocol):
 
     def iter_records(self) -> Iterator[tuple[str, dict]]:
         """
-        Yield (filename, record) tuples for all packages in visited shards.
+        Yield (key, record) tuples for all packages in visited shards,
+        including v3 records.
+
+        For classic packages, *key* is the filename. For v3 packages, *key* is
+        the shard key (not necessarily the download filename; see
+        ``record["fn"]``).
+
+        Prefer :meth:`iter_records_v3` when section information is needed.
+        """
+
+    def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
+        """
+        Yield ((key, section), record) tuples for all packages in visited
+        shards.
+
+        Section can be: "packages" for .tar.bz2 packages, "packages.conda"
+        for .conda packages, "v3.whl", "v3.conda", "v3.tar.bz2" for v3 packages.
+
+        key is the same as the filename for "packages", "packages.conda" but is
+        different from the filename for v3 packages.
         """
 
 
@@ -38,8 +57,8 @@ class BuildRepodataSubset(typing.Protocol):
         self,
         root_packages: Iterable[str],
         channels: dict[str, typing.Any],
-        algorithm: Literal["bfs", "pipelined"] = "bfs",
-        spec_to_package_name_func: Callable[[str], str] | None = None,
+        algorithm: Literal["bfs", "pipelined"] = "pipelined",
+        repodata_version: int = 1,
     ) -> dict[str, Shards] | None:
         """
         Retrieve a minimal subset of repodata based on root packages.
@@ -48,9 +67,7 @@ class BuildRepodataSubset(typing.Protocol):
             root_packages: Iterable of installed and requested package names
             channels: Dictionary mapping channel URLs to Channel objects
             algorithm: Traversal algorithm to use ("bfs" or "pipelined")
-            spec_to_package_name_func: Optional callable to convert package specs to names.
-                                      Defaults to the standard spec_to_package_name function.
-
+            repodata_version: repodata format version (1 = classic, 3 = v3).
         Returns:
             A dictionary mapping channel URLs to Shards objects containing
             the subset of packages needed, or None if shards are unavailable

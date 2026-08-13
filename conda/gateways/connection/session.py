@@ -120,8 +120,11 @@ def _validate_plugin_headers(headers: dict) -> None:
     headers are detected. This prevents plugins from compromising conda's
     core network stack.
 
-    :param headers: Dictionary of headers to validate
-    :raises PluginError: If any forbidden headers are detected
+    Args:
+        headers: Dictionary of headers to validate
+
+    Raises:
+        PluginError: If any forbidden headers are detected
     """
     for key, value in headers.items():
         key_lower = key.lower()
@@ -247,7 +250,8 @@ class CondaSession(Session, metaclass=CondaSessionType):
         auth: AuthBase | tuple[str, str] | None = None,
     ):
         """
-        :param auth: Optionally provide ``requests.AuthBase`` compliant objects
+        Args:
+            auth: Optionally provide ``requests.AuthBase`` compliant objects
         """
         super().__init__()
 

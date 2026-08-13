@@ -850,8 +850,8 @@ with the following config entry:
 ``no_verify``: Disable recipe and package verification (conda-build 3.0+)
 -------------------------------------------------------------------------
 
-By default, conda-build uses conda-verify to ensure that your recipe
-and package meet some minimum sanity checks. You can disable these:
+By default, conda-build enables optional recipe and package verification.
+You can disable it:
 
 .. code-block:: yaml
 

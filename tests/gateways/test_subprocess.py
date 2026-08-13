@@ -1,8 +1,9 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import pytest
 from pytest import CaptureFixture
 
-from conda.gateways.subprocess import subprocess_call
+from conda.gateways.subprocess import subprocess_call, subprocess_call_with_clean_env
 
 
 def test_subprocess_call_without_capture_output(capfd: CaptureFixture):
@@ -45,3 +46,8 @@ def test_subprocess_call_with_capture_output():
     assert resp.stdout.replace("\r\n", "\n") == "1\nnumber=8\nend\n"
     assert resp.stderr.replace("\r\n", "\n") == "2\n"
     assert resp.rc == 0
+
+
+def test_subprocess_call_with_clean_env_deprecated():
+    with pytest.deprecated_call():
+        subprocess_call_with_clean_env('python -c "pass"')

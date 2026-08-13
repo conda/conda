@@ -30,7 +30,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     description = summary
     epilog = dals(
         """
-        Examples::
+        Examples:
 
             conda clean --tarballs
         """
@@ -49,7 +49,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "-a",
         "--all",
         action="store_true",
-        help="Remove index cache, lock files, unused cache packages, tarballs, and logfiles.",
+        help="Remove index cache, unused cache packages, tarballs, tempfiles, and logfiles.",
     )
     removal_target_options.add_argument(
         "-i",

@@ -1,6 +1,6 @@
 package:
   name: "sample_noarch_python"
-  version: "1.0.0"
+  version: "1.0"
 
 build:
   noarch: python
@@ -11,3 +11,6 @@ requirements:
     - python
   run:
     - python
+
+about:
+  summary: "noarch: python package installing into $SP_DIR"

@@ -40,7 +40,8 @@ class YamlFileSpec(EnvironmentSpecBase):
             * the provided file exists
             * the yaml file can be loaded and is not empty
 
-        :return: True or False
+        Returns:
+            True or False
         """
         if self.filename is None:
             raise CondaValueError("No filename provided")

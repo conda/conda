@@ -54,7 +54,7 @@ Placeholder for `conda YY.MM.x` release.
 <summary><h4>The week before release week</h4></summary>
 
 - [ ] Create release branch (named `YY.MM.x`)
-- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/rc-conda-YY.MM.x`)
+- [ ] Ensure release candidates are being successfully built (see `conda-canary/label/conda-conda-rc-YY.MM.x`)
 - [ ] [Complete outstanding PRs][milestone]
 - [ ] Check for deprecated features
 - [ ] Test release candidates
@@ -83,12 +83,17 @@ Placeholder for `conda YY.MM.x` release.
 ```
 </details>
 
-If a patch release is necessary, reopen the original release issue and append the following template to the release issue summary.
+If a patch release is necessary, open a new release issue using the template below.
 
 <details>
 <summary><h3>Patch Release Template</h3></summary>
 
-#### Append to existing 'Release `YY.MM.x`' issue:
+#### Title:
+```markdown
+Release `YY.MM.MICRO`
+```
+
+#### Body:
 ```markdown
 <details open>  <!-- feel free to remove the open attribute once this section is completed -->
 <summary><h4>Patch YY.MM.MICRO</h4></summary>
@@ -125,10 +130,10 @@ Let various interested parties know about the upcoming release; at minimum, cond
 
 ### Canary Builds for Manual Testing
 
-Once the release PRs are filed, successful canary builds will be available on `https://anaconda.org/conda-canary/conda/files?channel=rc-conda-YY.MM.x` for manual testing.
+Once the release PRs are filed, successful canary builds will be available on `https://anaconda.org/conda-canary/conda/files?channel=conda-conda-rc-YY.MM.x` for manual testing.
 
 > [!NOTE]
-> You do not need to apply the `build::review` label for release PRs; every commit to the release branch builds and uploads canary builds to the respective `rc-` label.
+> You do not need to apply the `build::review` label for release PRs; every commit to the release branch builds and uploads canary builds to the respective `conda-conda-rc-YY.MM.x` label.
 
 ## 4. Ensure `rever.xsh` and `news/TEMPLATE` are up to date.
 
@@ -139,32 +144,34 @@ These are synced from [`conda/infrastructure`][infrastructure].
 
 Currently, there are only 2 activities we use rever for, (1) aggregating the authors and (2) updating the changelog. Aggregating the authors can be an error-prone process and also suffers from a builtin circular dependency (_i.e._, to generate an updated `.authors.yml` we need an updated `.mailmap` but to have an updated `.mailmap` we need an updated `.authors.yml`). This is why the following steps are very heavy-handed (and potentially repetitive) in running rever commands, undoing commits, squashing/reordering commits, etc.
 
-1. Install [`rever`][rever docs] and activate the environment:
+1. Install [`rever`][rever docs] from the `main` branch:
 
     ```bash
-    $ conda create -n rever conda-forge::rever
-    $ conda activate rever
-    (rever) $
+    $ pipx install https://github.com/regro/rever.git
+    # or, if you have uv installed:
+    $ uv tool install https://github.com/regro/rever.git
     ```
+
+    > **Note:** We install from the `main` branch rather than the released version because it contains a bug fix that has not yet been included in a release.
 
 2. Clone and `cd` into the repository if you haven't done so already:
 
     ```bash
-    (rever) $ git clone git@github.com:/conda.git
-    (rever) $ cd conda
+    $ git clone git@github.com:/conda.git
+    $ cd conda
     ```
 
 2. Fetch the latest changes from the remote and checkout the release branch created a week ago:
 
     ```bash
-    (rever) $ git fetch upstream
-    (rever) $ git checkout YY.MM.x
+    $ git fetch upstream
+    $ git checkout YY.MM.x
     ```
 
 2. Create a versioned branch, this is where rever will make its changes:
 
     ```bash
-    (rever) $ git checkout -b changelog-YY.MM.MICRO
+    $ git checkout -b changelog-YY.MM.MICRO
     ```
 
 2. Run `rever --activities authors <VERSION>`:
@@ -173,7 +180,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     > Include `--force` when re-running any rever commands for the same `<VERSION>`, otherwise, rever will skip the activity and no changes will be made (i.e., rever remembers if an activity has been run for a given version).
 
     ```bash
-    (rever) $ rever --activities authors --force <VERSION>
+    $ rever --activities authors --force <VERSION>
     ```
 
     - If rever finds that any of the authors are not correctly represented in `.authors.yml` it will produce an error. If the author that the error pertains to is:
@@ -192,26 +199,26 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     - Here's a sample run where we undo the commit made by rever in order to commit the changes to `.authors.yml` separately:
 
         ```bash
-        (rever) $ rever --activities authors --force YY.MM.MICRO
+        $ rever --activities authors --force YY.MM.MICRO
 
         # changes were made to .authors.yml as per the prior bullet
-        (rever) $ git diff --name-only HEAD HEAD~1
+        $ git diff --name-only HEAD HEAD~1
         .authors.yml
         .mailmap
         AUTHORS.md
 
         # undo commit
-        (rever) $ git reset --soft HEAD~1
+        $ git reset --soft HEAD~1
 
         # undo changes made to everything except .authors.yml
-        (rever) $ git restore --staged --worktree .mailmap AUTHORS.md
+        $ git restore --staged --worktree .mailmap AUTHORS.md
         ```
 
     - Commit these changes to `.authors.yml`:
 
         ```bash
-        (rever) $ git add .
-        (rever) $ git commit -m "Update .authors.yml"
+        $ git add .
+        $ git commit -m "Update .authors.yml"
         ```
 
     - Rerun `rever --activities authors --force <VERSION>` and finally check that your `.mailmap` is correct by running:
@@ -226,23 +233,23 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
         ```bash
         # undo commit (but preserve changes)
-        (rever) $ git reset --soft HEAD~1
+        $ git reset --soft HEAD~1
 
         # undo changes made to everything except .mailmap
-        (rever) $ git restore --staged --worktree .authors.yml AUTHORS.md
+        $ git restore --staged --worktree .authors.yml AUTHORS.md
         ```
 
     - Commit these changes to `.mailmap`:
 
         ```bash
-        (rever) $ git add .
-        (rever) $ git commit -m "Update .mailmap"
+        $ git add .
+        $ git commit -m "Update .mailmap"
         ```
 
     - Continue repeating the above processes until the `.authors.yml` and `.mailmap` are corrected to your liking. After completing this, you will have at most two commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v <release branch>
+        $ git cherry -v <release branch>
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         ```
@@ -268,14 +275,14 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     - Commit these changes to news snippets:
 
         ```bash
-        (rever) $ git add .
-        (rever) $ git commit -m "Update news"
+        $ git add .
+        $ git commit -m "Update news"
         ```
 
     - After completing this, you will have at most three commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v <release branch>
+        $ git cherry -v <release branch>
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
@@ -287,7 +294,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     > This has previously been a notoriously fickle step (likely due to incorrect regex patterns in the `rever.xsh` config file and missing `github` keys in `.authors.yml`) so beware of potential hiccups. If this fails, it's highly likely to be an innocent issue.
 
     ```bash
-    (rever) $ rever --activities changelog --force <VERSION>
+    $ rever --activities changelog --force <VERSION>
     ```
 
     - Any necessary modifications to `.authors.yml`, `.mailmap`, or the news snippets themselves should be amended to the previous commits.
@@ -296,13 +303,13 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 
         ```bash
         # undo commit (and discard changes)
-        (rever) $ git reset --hard HEAD~1
+        $ git reset --hard HEAD~1
         ```
 
     - After completing this, you will have at most three commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v <release branch>
+        $ git cherry -v <release branch>
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
@@ -311,13 +318,13 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 6. Now that we have successfully run the activities separately, we wish to run both together. This will ensure that the contributor list, a side-effect of the authors activity, is included in the changelog activity.
 
     ```bash
-    (rever) $ rever --force <VERSION>
+    $ rever --force <VERSION>
     ```
 
     - After completing this, you will have at most five commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v <release branch>
+        $ git cherry -v <release branch>
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
@@ -332,14 +339,14 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     - Commit these final changes:
 
         ```bash
-        (rever) $ git add .
-        (rever) $ git commit -m "Add first-time contributions"
+        $ git add .
+        $ git commit -m "Add first-time contributions"
         ```
 
     - After completing this, you will have at most six commits on your release branch:
 
         ```bash
-        (rever) $ git cherry -v <release branch>
+        $ git cherry -v <release branch>
         + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
         + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
         + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
@@ -351,7 +358,7 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
 8. Push this versioned branch.
 
     ```bash
-    (rever) $ git push -u upstream changelog-YY.MM.MICRO
+    $ git push -u upstream changelog-YY.MM.MICRO
     ```
 
 9. Open the Release PR targeting the `YY.MM.x` branch.
@@ -407,7 +414,7 @@ To publish the release, go to the project's release page (e.g., https://github.c
 4. Ensure that all of the commits being pulled in look accurate, then select "Create pull request".
 
 > [!NOTE]
-> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], create a temporary "connector branch" dedicated to fixing merge conflicts separately from the `YY.MM.x` and `main` branches.
+> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], resolve them by merging `main` into the `YY.MM.x` branch, then push the resulting merge commit. This is now a "bridging branch" to resolve the merge conflict without placing changes from `main` on to the `YY.MM.x` branch.
 
 5. Review and merge the pull request the same as any code change pull request.
 

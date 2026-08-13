@@ -18,127 +18,55 @@ as well as conda's internal implementations of plugins.
 
 **Modules with internal plugin implementations**
 
+- :mod:`conda.plugins.previews`: aggregator for opt-in preview features
 - :mod:`conda.plugins.solvers`: implementation of the "classic" solver
 - :mod:`conda.plugins.subcommands.doctor`: ``conda doctor`` and ``conda check`` subcommands (with ``--fix`` support)
 - :mod:`conda.plugins.virtual_packages`: registers virtual packages in conda
 
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from ..deprecations import deprecated
-from . import types
 from .hookspec import hookimpl
 
-__all__ = ["hookimpl", "types"]
+if TYPE_CHECKING:
+    from types import ModuleType
 
-deprecated.constant(
-    "26.3",
-    "26.9",
+__all__ = ["hookimpl"]
+
+
+def _load_types() -> ModuleType:
+    return __import__("conda.plugins.types", fromlist=["types"])
+
+
+# ``deprecated.constant`` installs its own registry as module ``__getattr__``,
+# so the 16 deprecated re-exports still warn on access.
+for name in (
     "CondaAuthHandler",
-    types.CondaAuthHandler,
-    addendum="Use `conda.plugins.types.CondaAuthHandler` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaEnvironmentSpecifier",
-    types.CondaEnvironmentSpecifier,
-    addendum="Use `conda.plugins.types.CondaEnvironmentSpecifier` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaHealthCheck",
-    types.CondaHealthCheck,
-    addendum="Use `conda.plugins.types.CondaHealthCheck` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPostCommand",
-    types.CondaPostCommand,
-    addendum="Use `conda.plugins.types.CondaPostCommand` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPostSolve",
-    types.CondaPostSolve,
-    addendum="Use `conda.plugins.types.CondaPostSolve` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPostTransactionAction",
-    types.CondaPostTransactionAction,
-    addendum="Use `conda.plugins.types.CondaPostTransactionAction` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPreCommand",
-    types.CondaPreCommand,
-    addendum="Use `conda.plugins.types.CondaPreCommand` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPrefixDataLoader",
-    types.CondaPrefixDataLoader,
-    addendum="Use `conda.plugins.types.CondaPrefixDataLoader` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPreSolve",
-    types.CondaPreSolve,
-    addendum="Use `conda.plugins.types.CondaPreSolve` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaPreTransactionAction",
-    types.CondaPreTransactionAction,
-    addendum="Use `conda.plugins.types.CondaPreTransactionAction` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaReporterBackend",
-    types.CondaReporterBackend,
-    addendum="Use `conda.plugins.types.CondaReporterBackend` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaRequestHeader",
-    types.CondaRequestHeader,
-    addendum="Use `conda.plugins.types.CondaRequestHeader` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaSetting",
-    types.CondaSetting,
-    addendum="Use `conda.plugins.types.CondaSetting` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaSolver",
-    types.CondaSolver,
-    addendum="Use `conda.plugins.types.CondaSolver` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaSubcommand",
-    types.CondaSubcommand,
-    addendum="Use `conda.plugins.types.CondaSubcommand` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
     "CondaVirtualPackage",
-    types.CondaVirtualPackage,
-    addendum="Use `conda.plugins.types.CondaVirtualPackage` instead.",
-)
+):
+    deprecated.constant(
+        "26.3",
+        "26.9",
+        name,
+        factory=lambda n=name: getattr(_load_types(), n),
+        addendum=f"Use `conda.plugins.types.{name}` instead.",
+    )
+del name
