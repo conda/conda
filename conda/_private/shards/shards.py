@@ -23,6 +23,8 @@ from conda.base.context import context
 from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import get_session
 from conda.gateways.repodata import (
+    FORMAT_JSON,
+    FORMAT_SHARDS,
     _add_http_value_to_dict,
     conda_http_errors,
 )
@@ -673,7 +675,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
     cache_state = repo_cache.state
     shards_index_url = f"{sd.url_w_credentials}/{REPODATA_SHARDS_FN}"
 
-    if cache_state.should_check_format("shards"):
+    if cache_state.should_check_format(FORMAT_SHARDS):
         # look for shards index
         shards_data = None
 
@@ -690,7 +692,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         if shards_data is None:
             try:
                 shards_data = _repodata_shards(shards_index_url, repo_cache)
-                cache_state.set_has_format("shards", True)
+                cache_state.set_has_format(FORMAT_SHARDS, True)
                 # this will also set state["refresh_ns"] = time.time_ns(); we could
                 # call cache.refresh() if we got a 304 instead:
                 repo_cache.save(shards_data)
@@ -698,7 +700,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
                 # repodata_shards converts HTTP errors to conda errors.
                 # fetch repodata.json / repodata.json.zst instead
                 if _is_http_error_most_400_codes(err.status_code):
-                    cache_state.set_has_format("shards", False)
+                    cache_state.set_has_format(FORMAT_SHARDS, False)
                 repo_cache.refresh()
             except conda.exceptions.CondaHTTPError as err:
                 # repodata_shards converts HTTP errors to conda errors.
@@ -710,33 +712,33 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
                         err._caused_by.response.status_code
                     )
                 ):
-                    cache_state.set_has_format("shards", False)
+                    cache_state.set_has_format(FORMAT_SHARDS, False)
                 repo_cache.refresh()
 
         # Use cached on-disk shards data in case re-fetch fails above or classic repodata.json is missing
         if shards_data is None and repo_cache.cache_path_shards.exists():
-            has_shards, checked = cache_state.has_format("shards")
+            has_shards, checked = cache_state.has_format(FORMAT_SHARDS)
             shards_still_ok = checked is not None and has_shards
-            classic_absent = not cache_state.should_check_format("repodata_json")
+            classic_absent = not cache_state.should_check_format(FORMAT_JSON)
             if shards_still_ok or classic_absent:
                 with repo_cache.lock("r+"):
                     shards_data = repo_cache.cache_path_shards.read_bytes()
-                cache_state.set_has_format("shards", True)
+                cache_state.set_has_format(FORMAT_SHARDS, True)
                 repo_cache.refresh()
 
         if shards_data:
             return _shards_from_bytes(shards_data, shards_index_url)
 
-    # classic known absent + shard cache exists + should_check_format("shards") marked False
+    # classic known absent + shard cache exists + should_check_format(FORMAT_SHARDS) marked False
     if (
-        not cache_state.should_check_format("repodata_json")
+        not cache_state.should_check_format(FORMAT_JSON)
         and repo_cache.cache_path_shards.exists()
     ):
         with repo_cache.lock("r+"):
             shards_data = repo_cache.cache_path_shards.read_bytes()
-        has_shards, _ = cache_state.has_format("shards")
+        has_shards, _ = cache_state.has_format(FORMAT_SHARDS)
         if not has_shards:
-            cache_state.set_has_format("shards", True)
+            cache_state.set_has_format(FORMAT_SHARDS, True)
             repo_cache.refresh()
         return _shards_from_bytes(shards_data, shards_index_url)
 
@@ -852,7 +854,7 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
 
             # Skip classic when has_repodata_json is False until
             # CHECK_ALTERNATE_FORMAT_INTERVAL (should_check_format) expires
-            if cache.state.should_check_format("repodata_json"):
+            if cache.state.should_check_format(FORMAT_JSON):
                 futures_non_sharded[
                     executor.submit(sd.repo_fetch.fetch_latest_parsed)
                 ] = channel_url
