@@ -131,6 +131,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         )
 
 
+@deprecated("27.3", "27.9")
 def get_revision(arg, json=False):
     try:
         return int(arg)
@@ -492,9 +493,8 @@ def install_revision(args, parser):
                     prefix=prefix,
                     repodata_fn=repodata,
                 )
-            revision_idx = get_revision(args.revision)
-            with get_spinner(f"Reverting to revision {revision_idx}"):
-                unlink_link_transaction = revert_actions(prefix, revision_idx, index)
+            with get_spinner(f"Reverting to revision {args.revision}"):
+                unlink_link_transaction = revert_actions(prefix, args.revision, index)
 
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
 
