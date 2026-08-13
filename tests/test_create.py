@@ -6,6 +6,7 @@ import os
 import platform
 import re
 import sys
+from contextlib import nullcontext
 from datetime import datetime
 from importlib.metadata import version
 from itertools import zip_longest
@@ -830,7 +831,11 @@ def test_strict_channel_priority(
 
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
-    with pytest.deprecated_call():
+    with (
+        pytest.deprecated_call()
+        if "conda.resolve" not in sys.modules
+        else nullcontext()
+    ):
         from conda.resolve import Resolve
 
     channels = (Channel("defaults"),)

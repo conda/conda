@@ -223,11 +223,9 @@ class Exporters:
 def plugin_manager_with_exporters(
     plugin_manager_with_reporter_backends: CondaPluginManager,
 ) -> CondaPluginManager:
-    with pytest.deprecated_call():
-        from conda.plugins import solvers
-
+    # Prefer entry points (conda-classic-solver) over deprecated conda.plugins.solvers
+    # so classic is not registered twice when the external plugin is installed.
     plugin_manager_with_reporter_backends.load_plugins(
-        solvers,
         *environment_exporters.plugins,
         Exporters(),
     )

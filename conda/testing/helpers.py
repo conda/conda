@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
@@ -258,7 +258,13 @@ def _get_index_r_base(
     add_pip=False,
     merge_noarch=False,
 ):
-    with pytest.deprecated_call():
+    # Module deprecation warns only on first import; later callers must not
+    # expect another warning (collection or earlier tests may have imported it).
+    with (
+        pytest.deprecated_call()
+        if "conda.resolve" not in sys.modules
+        else nullcontext()
+    ):
         from ..resolve import Resolve
 
     if isinstance(json_filename_or_packages, (str, os.PathLike)):

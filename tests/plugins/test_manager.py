@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -284,7 +285,11 @@ def test_get_canonical_name_instance(plugin_manager: CondaPluginManager):
 def test_conflicting_plugin_error_names_registered_instances(
     plugin_manager: CondaPluginManager,
 ) -> None:
-    with pytest.deprecated_call():
+    with (
+        pytest.deprecated_call()
+        if "conda.plugins.solvers" not in sys.modules
+        else nullcontext()
+    ):
         from conda.plugins import solvers
 
     class IntruderSolver:

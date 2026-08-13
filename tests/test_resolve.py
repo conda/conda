@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
@@ -12,7 +14,8 @@ from conda.exceptions import UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.testing import helpers
 
-with pytest.deprecated_call():
+# May already be imported (e.g. via helpers during collection); warn only on first load.
+with pytest.deprecated_call() if "conda.resolve" not in sys.modules else nullcontext():
     from conda.resolve import Resolve
 
 if TYPE_CHECKING:
