@@ -6,7 +6,7 @@ Test bytes cache used for sharded repodata.
 
 from pathlib import Path
 
-from conda.gateways.repodata import RepodataCache
+from conda.gateways.repodata import FORMAT_JSON, FORMAT_SHARDS, RepodataCache
 
 
 def test_bytes_cache(tmp_path: Path):
@@ -30,8 +30,8 @@ def test_bytes_cache(tmp_path: Path):
 def test_load_state_preserves_state_without_classic_json(tmp_path: Path):
     """load_state keeps format flags when only the shard cache file exists."""
     cache = RepodataCache(tmp_path / "cache", "repodata.json")
-    cache.state.set_has_format("shards", True)
-    cache.state.set_has_format("repodata_json", False)
+    cache.state.set_has_format(FORMAT_SHARDS, True)
+    cache.state.set_has_format(FORMAT_JSON, False)
     cache.save(b"fake-shard-index")
 
     assert not cache.cache_path_json.exists()
@@ -41,5 +41,5 @@ def test_load_state_preserves_state_without_classic_json(tmp_path: Path):
     state = reloaded.load_state()
 
     # assert state is preserved after reload
-    assert state.has_format("shards")[0] is True
-    assert state.has_format("repodata_json")[0] is False
+    assert state.has_format(FORMAT_SHARDS)[0] is True
+    assert state.has_format(FORMAT_JSON)[0] is False
