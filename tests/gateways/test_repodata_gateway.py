@@ -457,3 +457,67 @@ def test_get_cache_control_max_age():
     """
     assert get_cache_control_max_age('cache_control = "public, max-age=30"') == 30
     assert get_cache_control_max_age(None) == 0
+
+
+def test_classic_soft_404_records_no_repodata_json(tmp_path, mocker):
+    """Record has_repodata_json False when classic 404s and shards are known."""
+    channel = Channel("http://example.com/linux-64")
+    mocker.patch.object(
+        CondaRepoInterface,
+        "repodata",
+        side_effect=RepodataIsEmpty(channel, 404, response=None),
+    )
+    fetch = RepodataFetch(
+        tmp_path / "cache",
+        channel,
+        REPODATA_FN,
+        repo_interface_cls=CondaRepoInterface,
+    )
+    fetch.repo_cache.state.set_has_format("shards", True)
+    fetch.repo_cache.save(b"shards")
+    assert not fetch.repo_cache.cache_path_json.exists()
+    fetch.fetch_latest()
+    assert fetch.repo_cache.load_state().has_format("repodata_json")[0] is False
+
+
+def test_classic_noarch_404_records_no_repodata_json(tmp_path, mocker):
+    """Record has_repodata_json False when noarch classic 404s and shards are known."""
+    channel = Channel("http://example.com/noarch")
+    mocker.patch.object(
+        CondaRepoInterface,
+        "repodata",
+        side_effect=UnavailableInvalidChannel(channel, 404, response=None),
+    )
+    fetch = RepodataFetch(
+        tmp_path / "cache",
+        channel,
+        REPODATA_FN,
+        repo_interface_cls=CondaRepoInterface,
+    )
+    fetch.repo_cache.state.set_has_format("shards", True)
+    fetch.repo_cache.save(b"shards")
+    with pytest.raises(UnavailableInvalidChannel):
+        fetch.fetch_latest()
+    assert fetch.repo_cache.load_state().has_format("repodata_json")[0] is False
+
+
+def test_fetch_latest_is_skipped_when_repodata_json_False(tmp_path, mocker):
+    """Test network calls are skipped when shards are cached and repodata_json set False"""
+    channel = Channel("http://example.com/noarch")
+
+    fetch = RepodataFetch(
+        tmp_path / "cache",
+        channel,
+        REPODATA_FN,
+        repo_interface_cls=CondaRepoInterface,
+    )
+    cache = fetch.repo_cache
+    cache.state.set_has_format("repodata_json", False)
+    cache.state.set_has_format("shards", True)
+    cache.save(b"shards")
+
+    repodata = mocker.patch.object(CondaRepoInterface, "repodata")
+    raw, state = fetch.fetch_latest()
+
+    assert raw == "{}"
+    assert repodata.call_count == 0

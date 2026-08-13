@@ -627,6 +627,14 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 # shards as not supported; otherwise, we will check again next time.
 
 
+def _shards_from_bytes(shards_data: bytes, shards_index_url: str) -> Shards:
+    """Helper func to generate shards from shards byte data"""
+    shards_index: ShardsIndexDict = msgpack.loads(
+        capped_decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE)
+    )  # type: ignore
+    return Shards(shards_index, shards_index_url)
+
+
 def fetch_shards_index(sd: SubdirData) -> Shards | None:
     """
     Check a SubdirData's URL for shards.
@@ -663,11 +671,11 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         pass
 
     cache_state = repo_cache.state
+    shards_index_url = f"{sd.url_w_credentials}/{REPODATA_SHARDS_FN}"
 
     if cache_state.should_check_format("shards"):
         # look for shards index
         shards_data = None
-        shards_index_url = f"{sd.url_w_credentials}/{REPODATA_SHARDS_FN}"
 
         if not repo_cache.cache_path_shards.exists():
             # avoid 304 not modified if we don't have the file
@@ -705,15 +713,32 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
                     cache_state.set_has_format("shards", False)
                 repo_cache.refresh()
 
+        # Use cached on-disk shards data in case re-fetch fails above or classic repodata.json is missing
+        if shards_data is None and repo_cache.cache_path_shards.exists():
+            has_shards, checked = cache_state.has_format("shards")
+            shards_still_ok = checked is not None and has_shards
+            classic_absent = not cache_state.should_check_format("repodata_json")
+            if shards_still_ok or classic_absent:
+                with repo_cache.lock("r+"):
+                    shards_data = repo_cache.cache_path_shards.read_bytes()
+                cache_state.set_has_format("shards", True)
+                repo_cache.refresh()
+
         if shards_data:
-            # basic parse (move into caller?)
-            shards_index: ShardsIndexDict = msgpack.loads(
-                capped_decompress(
-                    shards_data, max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE
-                )
-            )  # type: ignore
-            shards = Shards(shards_index, shards_index_url)
-            return shards
+            return _shards_from_bytes(shards_data, shards_index_url)
+
+    # classic known absent + shard cache exists + should_check_format("shards") marked False
+    if (
+        not cache_state.should_check_format("repodata_json")
+        and repo_cache.cache_path_shards.exists()
+    ):
+        with repo_cache.lock("r+"):
+            shards_data = repo_cache.cache_path_shards.read_bytes()
+        has_shards, _ = cache_state.has_format("shards")
+        if not has_shards:
+            cache_state.set_has_format("shards", True)
+            repo_cache.refresh()
+        return _shards_from_bytes(shards_data, shards_index_url)
 
     return None
 
@@ -819,12 +844,18 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
         # Latency penalty launching these requests here instead of when we
         # non_sharded_channels.append(), but we want to leave a fallback to the
         # non-sharded path open.
+
         for channel_url, _ in non_sharded_channels:
-            futures_non_sharded[
-                executor.submit(
-                    SubdirData(Channel(channel_url)).repo_fetch.fetch_latest_parsed
-                )
-            ] = channel_url
+            sd = subdir_data[channel_url]
+            cache = sd.repo_fetch.repo_cache
+            cache.load_state()
+
+            # Skip classic when has_repodata_json is False until
+            # CHECK_ALTERNATE_FORMAT_INTERVAL (should_check_format) expires
+            if cache.state.should_check_format("repodata_json"):
+                futures_non_sharded[
+                    executor.submit(sd.repo_fetch.fetch_latest_parsed)
+                ] = channel_url
 
         for future in concurrent.futures.as_completed(futures_non_sharded):
             channel_url = futures_non_sharded[future]
