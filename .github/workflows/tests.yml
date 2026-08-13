@@ -94,7 +94,7 @@ jobs:
             default-channel: conda-forge
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
-      TEMP_DRIVE: ${{ matrix.runs-on == 'windows-11-arm' && 'C' || 'D' }}
+      TEMP_DRIVE: C
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
