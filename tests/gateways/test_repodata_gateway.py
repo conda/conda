@@ -35,7 +35,6 @@ from conda.gateways.repodata import (
     ETAG_KEY,
     FORMAT_JSON,
     FORMAT_SHARDS,
-    FORMAT_ZST,
     CondaRepoInterface,
     RepodataCache,
     RepodataFetch,
