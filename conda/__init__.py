@@ -78,11 +78,37 @@ class CondaError(Exception):
     def __init__(
         self,
         message: str | None,
+        *args: Any,
         caused_by: Any = None,
-        *,
         guidance: ErrorGuidance | ErrorGuidanceTypedDict | None = None,
         **kwargs,
     ):
+        if len(args) > 1:
+            raise TypeError(
+                f"{self.__class__.__name__}.__init__() takes from 1 to 2 positional "
+                f"arguments but {len(args) + 1} were given"
+            )
+        elif args:
+            from .deprecations import deprecated
+
+            deprecated.topic(
+                "27.3",
+                "27.9",
+                topic=(
+                    "Passing caused_by as a positional argument to "
+                    "conda.CondaError.__init__"
+                ),
+                addendum="Use the caused_by keyword argument instead.",
+                stack=1,
+            )
+
+            if caused_by is not None:
+                raise TypeError(
+                    f"{self.__class__.__name__}.__init__() got multiple values for "
+                    f"argument 'caused_by'"
+                )
+            caused_by = args[0]
+
         self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
