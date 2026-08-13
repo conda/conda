@@ -972,6 +972,31 @@ def test_RemoveError_without_guidance() -> None:
     assert exc.guidance is None
 
 
+def test_CondaError_guidance_when_init_skipped(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    """Subclasses that skip CondaError.__init__ must not raise on .guidance."""
+
+    class IncompleteCondaError(CondaError):
+        def __init__(self, message: str):
+            # Intentionally skip CondaError.__init__ (as some downstream
+            # subclasses historically do, e.g. DependencyNeedsBuildingError).
+            self.message = message
+
+        def __str__(self) -> str:
+            return self.message
+
+    exc = IncompleteCondaError("boom")
+    assert exc.guidance is None
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert "IncompleteCondaError: boom" in stderr
+
+
 def test_RemoveError_guidance_in_dump_map() -> None:
     exc = RemoveError(
         "legacy message",
