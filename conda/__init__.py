@@ -101,7 +101,11 @@ class CondaError(Exception):
         always the canonical type after dict coercion; callers do not need to
         handle raw dicts.
         """
-        return self._guidance
+        try:
+            return self._guidance
+        except AttributeError:
+            # Some exceptions aren't properly initialized by calling super().__init__()
+            return None
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: {self}"
@@ -135,8 +139,8 @@ class CondaError(Exception):
             caused_by=repr(self._caused_by),
             **self._kwargs,
         )
-        if self._guidance is not None:
-            result["guidance"] = self._guidance.__json__()
+        if (guidance := self.guidance) is not None:
+            result["guidance"] = guidance.__json__()
         return result
 
 
