@@ -94,6 +94,7 @@ jobs:
             default-channel: conda-forge
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
+      TEMP_DRIVE: ${{ matrix.runs-on == 'windows-11-arm' && 'C' || 'D' }}
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
@@ -106,7 +107,7 @@ jobs:
 
       - name: Set TEMP
         run: |
-          $TEMP_DIR = "${{ runner.arch == 'ARM64' && 'C' || 'D' }}:\\Temp"
+          $TEMP_DIR = "$($env:TEMP_DRIVE):\\Temp"
           New-Item -ItemType Directory -Force -Path $TEMP_DIR | Out-Null
           echo "TEMP=$TEMP_DIR" >> $env:GITHUB_ENV
           echo "TMP=$TEMP_DIR"  >> $env:GITHUB_ENV
@@ -124,8 +125,8 @@ jobs:
           # Use faster GNU tar for all runners
           enableCrossOsArchive: true
           path: |
-            ${{ runner.arch == 'ARM64' && 'C' || 'D' }}:\conda_pkgs_dir\*.tar.bz2
-            ${{ runner.arch == 'ARM64' && 'C' || 'D' }}:\conda_pkgs_dir\*.conda
+            ${{ env.TEMP_DRIVE }}:\conda_pkgs_dir\*.tar.bz2
+            ${{ env.TEMP_DRIVE }}:\conda_pkgs_dir\*.conda
           key: cache-${{ env.CACHE_KEY }}
 
       - name: Setup Miniconda
@@ -133,8 +134,8 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          pkgs-dirs: ${{ runner.arch == 'ARM64' && 'C' || 'D' }}:\conda_pkgs_dir
-          installation-dir: ${{ runner.arch == 'ARM64' && 'C' || 'D' }}:\conda
+          pkgs-dirs: ${{ env.TEMP_DRIVE }}:\conda_pkgs_dir
+          installation-dir: ${{ env.TEMP_DRIVE }}:\conda
           # A native win-arm64 conda test environment is not available yet.
           architecture: x64
         env:
