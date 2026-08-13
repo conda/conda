@@ -75,6 +75,12 @@ class CondaError(Exception):
     return_code: int = 1
     reportable: bool = False  # Exception may be reported to core maintainers
 
+    # Class defaults so subclasses that skip CondaError.__init__ still have
+    # safe attribute access in guidance / __str__ / dump_map.
+    _kwargs: dict[str, Any] | None = None
+    _caused_by: Any = None
+    _guidance: ErrorGuidance | None = None
+
     def __init__(
         self,
         message: str | None,
@@ -86,7 +92,6 @@ class CondaError(Exception):
         self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
-        self._guidance = None
         if guidance:
             from ._private.exception_guidance import ErrorGuidance
 
@@ -118,7 +123,7 @@ class CondaError(Exception):
                     "message:",
                     self.message,
                     "kwargs:",
-                    str(self._kwargs),
+                    str(self._kwargs or {}),
                     "",
                 )
             )
@@ -133,10 +138,10 @@ class CondaError(Exception):
             message=str(self),
             error=repr(self),
             caused_by=repr(self._caused_by),
-            **self._kwargs,
+            **(self._kwargs or {}),
         )
-        if self._guidance is not None:
-            result["guidance"] = self._guidance.__json__()
+        if (guidance := self.guidance) is not None:
+            result["guidance"] = guidance.__json__()
         return result
 
 
