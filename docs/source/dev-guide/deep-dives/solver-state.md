@@ -7,9 +7,9 @@ This page of the documentation is not yet finished and only contains a draft of 
 :::{admonition} Note
 :class: warning
 
-This document is a technical specification, which might not be the best way to learn about
-how the solver works. For that, refer to {doc}`../deep-dives/install` and
-{doc}`../deep-dives/solvers`.
+This document is a technical reference for how solver inputs are assembled, which
+might not be the best way to learn about how the solver works. For that, refer to
+{doc}`install` and {doc}`solvers`.
 :::
 
 The `Solver` API will pass a collection of `MatchSpec` objects (from now on, we will refer to

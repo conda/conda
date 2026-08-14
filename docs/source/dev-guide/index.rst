@@ -39,17 +39,13 @@ Understand how conda is structured and how its most complex subsystems work.
 Extending conda :octicon:`plug;1em;sd-text-primary`
 ....................................................
 
-Build on top of conda using its plugin system or consult the formal specifications.
+Build on top of conda using its plugin system.
 
 .. nav-glossary::
 
     :doc:`Plugins <plugins/index>`
         Learn how to extend and customize conda's behavior using the plugin system,
         including hooks for solvers, subcommands, auth handlers, and more.
-
-    :doc:`Implementation Notes <implementation-notes/index>`
-        Notes on how specific conda subsystems are implemented, including the solver
-        state and sharded repodata.
 
 Contributing & quality :octicon:`heart;1em;sd-text-primary`
 ............................................................
@@ -97,5 +93,4 @@ API reference :octicon:`code;1em;sd-text-primary`
    releasing
    plugins/index
    previews
-   implementation-notes/index
    typing

@@ -204,10 +204,9 @@ link_github = True
 # -- For sphinx_reredirects ------------------------------------------------
 
 redirects = {
-    # dev-guide/specs/ was renamed to dev-guide/implementation-notes/
-    "dev-guide/specs/index": "../implementation-notes/index.html",
-    "dev-guide/specs/solver-state": "../implementation-notes/solver-state.html",
-    "dev-guide/specs/sharded-repodata": "../implementation-notes/sharded-repodata.html",
+    # legacy specs/ pages now live under deep-dives/
+    "dev-guide/specs/index": "../deep-dives/index.html",
+    "dev-guide/specs/solver-state": "../deep-dives/solver-state.html",
     # internal redirects
     "admin": "user-guide/configuration/admin-multi-user-install.html",
     "api/api": "../dev-guide/api/conda/index.html",
