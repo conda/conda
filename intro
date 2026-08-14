@@ -1,0 +1,3 @@
+conda config --add channels conda-forge
+conda create -n pyincoreEnv python=3.9
+conda activate pyincoreEnv
