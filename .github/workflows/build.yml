@@ -83,26 +83,14 @@ jobs:
       matrix:
         include:
           # template-files-if
-          # template-files-if
           - runs-on: ubuntu-latest
             subdir: linux-64
-          # template-files-endif
-          # template-files-if
           - runs-on: ubuntu-24.04-arm
             subdir: linux-aarch64
-          # template-files-endif
-          # template-files-if
-          - runs-on: macos-15-intel
-            subdir: osx-64
-          # template-files-endif
-          # template-files-if
           - runs-on: macos-latest
             subdir: osx-arm64
-          # template-files-endif
-          # template-files-if
           - runs-on: windows-latest
             subdir: win-64
-          # template-files-endif
           # template-files-endif
     runs-on: ${{ matrix.runs-on }}
     steps:
