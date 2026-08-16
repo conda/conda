@@ -13,17 +13,24 @@ from shutil import copyfileobj, copystat
 
 from ... import CondaError
 from ...auxlib.ish import dals
-from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
+from ...base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_FROZEN_FILE
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import TRACE
-from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
+from ...common.path import (
+    ensure_pad,
+    expand,
+    paths_equal,
+    win_path_double_escape,
+    win_path_ok,
+)
 from ...common.path.python import is_valid_import_path
 from ...common.serialize import json
 from ...deprecations import deprecated
 from ...exceptions import (
     BasicClobberError,
     CondaOSError,
+    CondaValueError,
     NoWritableEnvsDirError,
     maybe_raise,
 )
@@ -497,12 +504,48 @@ def create_envs_directory(envs_dir):
     return True
 
 
-def first_writable_envs_dir(create=True):
+def first_writable_envs_dir(create=True, reject_active_envs_dir=False):
     # Calling this function will *create* an envs directory if one does not already
     # exist. Any caller should intend to *use* that directory for *writing*, not just reading.
     for envs_dir in context.envs_dirs:
         if envs_dir == os.devnull:
             continue
+        if reject_active_envs_dir:
+            active_prefix = context.active_prefix
+            if (
+                active_prefix
+                and paths_equal(context.conda_prefix, active_prefix)
+                and paths_equal(envs_dir, join(active_prefix, "envs"))
+            ):
+                if activated_prefix := os.environ.get("_CONDA_ROOT"):
+                    activated_prefix = expand(activated_prefix)
+                elif conda_exe := os.environ.get("CONDA_EXE"):
+                    activated_prefix = dirname(dirname(expand(conda_exe)))
+                else:
+                    activated_prefix = None
+
+                if (
+                    activated_prefix
+                    and not paths_equal(activated_prefix, context.conda_prefix)
+                    and isfile(join(activated_prefix, PREFIX_FROZEN_FILE))
+                ):
+                    raise CondaValueError(
+                        dals(
+                            f"""
+                            Refusing to create a named environment in '{envs_dir}' because
+                            conda appears to have been invoked from the active environment's
+                            conda executable instead of the initialized base conda.
+
+                            active prefix: {active_prefix}
+                            invoked conda prefix: {context.conda_prefix}
+                            initialized conda prefix: {activated_prefix}
+
+                            Use `CONDA_EXE` or `CONDA_PYTHON_EXE -m conda` when calling
+                            conda from scripts or Makefiles. If you intentionally want this
+                            target location, pass it explicitly with `--prefix`.
+                            """
+                        )
+                    )
 
         # The magic file being used here could change in the future.  Don't write programs
         # outside this code base that rely on the presence of this file.

@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Refuse to create named environments under an active environment's nested `envs/` directory when `conda` was invoked from that active environment but activation metadata points at a different protected base conda installation. (#16346)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

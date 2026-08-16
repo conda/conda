@@ -140,7 +140,12 @@ class PrefixData(metaclass=PrefixDataType):
         )
 
     @classmethod
-    def from_name(cls, name: str, **kwargs) -> PrefixData:
+    def from_name(
+        cls,
+        name: str,
+        reject_active_envs_dir: bool = False,
+        **kwargs,
+    ) -> PrefixData:
         """
         Creates a PrefixData instance from an environment name.
 
@@ -148,6 +153,8 @@ class PrefixData(metaclass=PrefixDataType):
 
         Args:
             name: The name of the environment. Must not contain path separators (/, \\).
+            reject_active_envs_dir: Whether to reject the active environment's nested
+                `envs` directory if activation metadata points at another conda installation.
 
         Raises:
             CondaValueError: If `name` contains a path separator.
@@ -158,7 +165,15 @@ class PrefixData(metaclass=PrefixDataType):
             return cls(locate_prefix_by_name(name))
         except EnvironmentNameNotFound:
             cls(name).validate_name()
-            return cls(Path(first_writable_envs_dir(), name), **kwargs)
+            return cls(
+                Path(
+                    first_writable_envs_dir(
+                        reject_active_envs_dir=reject_active_envs_dir
+                    ),
+                    name,
+                ),
+                **kwargs,
+            )
 
     @classmethod
     def from_context(cls, validate: bool = False, **kwargs) -> PrefixData:
