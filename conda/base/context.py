@@ -1342,6 +1342,7 @@ class Context(Configuration):
             "ssl_verify",
         ),
         "Solver Configuration": (
+            "add_pip_as_python_dependency",
             "aggressive_update_packages",
             "auto_update_conda",
             "channel_priority",
@@ -1412,7 +1413,6 @@ class Context(Configuration):
         "Hidden and Undocumented": (
             "allow_cycles",  # allow cyclical dependencies, or raise
             "allow_conda_downgrades",
-            "add_pip_as_python_dependency",
             "debug",
             "trace",
             "dev",
