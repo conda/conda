@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import multiprocessing
 import os
+import sys
 from collections import defaultdict
 from concurrent.futures import (
     CancelledError,
@@ -19,7 +20,6 @@ from itertools import chain
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
-from sys import platform
 from tarfile import ReadError
 from typing import TYPE_CHECKING
 
@@ -89,6 +89,23 @@ EXTRACT_PROCESS_EXTENSIONS = (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
 )
+
+
+def _spawn_main_is_importable() -> bool:
+    """Whether spawn workers can re-import the parent's ``__main__``.
+
+    Spawn bootstraps each worker by loading ``__main__.__file__``. Paths that
+    are not real files (e.g. ``<stdin>``) make workers exit immediately and the
+    parent sees ``BrokenProcessPool``. See #16552.
+    """
+    main_file = getattr(sys.modules.get("__main__"), "__file__", None)
+    if main_file is not None and not os.path.isfile(main_file):
+        log.debug(
+            "Process pool unavailable: __main__.__file__ %r is not a file.",
+            main_file,
+        )
+        return False
+    return True
 
 
 class PackageCacheType(type):
@@ -572,7 +589,7 @@ class UrlsData:
 
     def add_url(self, url):
         with open(self.urls_txt_path, mode="a", encoding="utf-8") as fh:
-            linefeed = "\r\n" if platform == "win32" else "\n"
+            linefeed = "\r\n" if sys.platform == "win32" else "\n"
             fh.write(url + linefeed)
         self._urls_data.insert(0, url)
 
@@ -846,7 +863,10 @@ class ProgressiveFetchExtract:
             extract_futures = {}
             extract_actions = self.extract_actions
             use_process_pool = (
-                bool(extract_actions) and EXTRACT_PROCESSES > 1 and not context.debug
+                bool(extract_actions)
+                and EXTRACT_PROCESSES > 1
+                and not context.debug
+                and _spawn_main_is_importable()
             )
             if use_process_pool:
                 # Only bypass the plugin manager when every action resolves to

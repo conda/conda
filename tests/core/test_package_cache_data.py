@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import datetime
 import json
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from os.path import abspath, basename, dirname, join
 from pathlib import Path
 from threading import Event
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 from pytest import MonkeyPatch
@@ -157,6 +158,21 @@ def test_process_pool_unavailable_falls_back_to_threads(
     ProgressiveFetchExtract((conda_prec,)).execute()
 
     process_pool.assert_called_once()
+    assert isfile(join(tmp_pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
+
+
+def test_non_file_main_skips_process_pool(mocker, tmp_pkgs_dir: Path):
+    """Spawn cannot re-import a non-file __main__ (e.g. stdin) and use threads. (#16552)"""
+    fake_main = ModuleType("__main__")
+    fake_main.__file__ = "<stdin>"
+    mocker.patch.dict(sys.modules, {"__main__": fake_main})
+    process_pool = mocker.patch.object(package_cache_data, "ProcessPoolExecutor")
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    _, conda_prec = fresh_zlib_records()
+
+    ProgressiveFetchExtract((conda_prec,)).execute()
+
+    process_pool.assert_not_called()
     assert isfile(join(tmp_pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
 
 

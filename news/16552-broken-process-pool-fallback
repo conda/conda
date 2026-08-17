@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Skip process-pool package extraction when ``__main__`` is not a real file
+  (e.g. stdin), falling back to threads. (#16552)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
