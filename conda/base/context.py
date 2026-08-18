@@ -1454,7 +1454,8 @@ class Context(Configuration):
             ),
             add_pip_as_python_dependency=dals(
                 """
-                Add pip.This ensures pip, will always be installed any time python is installed.
+                Add pip as a dependency of python. This ensures pip will always be installed any
+                time python is installed.
                 """
             ),
             aggressive_update_packages=dals(
