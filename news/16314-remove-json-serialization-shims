@@ -1,0 +1,24 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `json.JSONEncoder` monkey patching for `frozendict` and `obj.to_json()`. (#16314)
+
+* Remove `conda.auxlib.entity.EntityEncoder`, `conda.common.serialize.EntityEncoder` / `json_load` / `json_dump`, `conda.exports.EntityEncoder`. (#16314)
+
+* Remove `conda.auxlib.logz.DumpEncoder`, `_DUMPS`, `jsondumps`. (#16314)
+
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
