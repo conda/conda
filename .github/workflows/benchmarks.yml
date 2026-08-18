@@ -7,6 +7,10 @@ on:
     types:
       - completed
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch || github.run_id }}
+  cancel-in-progress: true
+
 env:
   BENCHMARK_RESULTS: benchmark_results.json
   BENCHMARK_RESULTS_ARTIFACT: benchmark-results
@@ -17,7 +21,7 @@ jobs:
   track-base-branch:
     if: >-
       !github.event.repository.fork
-      && contains(['success', 'failure'], github.event.workflow_run.conclusion)
+      && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')
       && github.event.workflow_run.event == 'push'
       && (
         github.event.workflow_run.head_branch == 'main'
@@ -62,7 +66,7 @@ jobs:
           steps.artifact.outputs.found == 'true'
           && env.BENCHER_API_TOKEN != ''
           && env.BENCHER_PROJECT_SLUG != ''
-        uses: bencherdev/bencher@5f9d4cf890255c35e0354af1ed325108a6a0babd # v0.6.8
+        uses: bencherdev/bencher@4c83b25441d145ee273adaf74be30f2382e6ba85 # v0.6.11
 
       - name: Track base branch benchmarks with Bencher
         if: >-
@@ -91,7 +95,7 @@ jobs:
   track-pull-request:
     if: >-
       !github.event.repository.fork
-      && contains(['success', 'failure'], github.event.workflow_run.conclusion)
+      && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')
       && github.event.workflow_run.event == 'pull_request'
 
     runs-on: ubuntu-latest
@@ -157,7 +161,7 @@ jobs:
           steps.artifacts.outputs.found == 'true'
           && env.BENCHER_API_TOKEN != ''
           && env.BENCHER_PROJECT_SLUG != ''
-        uses: bencherdev/bencher@5f9d4cf890255c35e0354af1ed325108a6a0babd # v0.6.8
+        uses: bencherdev/bencher@4c83b25441d145ee273adaf74be30f2382e6ba85 # v0.6.11
 
       - name: Track PR benchmarks with Bencher
         if: >-

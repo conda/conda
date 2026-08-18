@@ -395,7 +395,7 @@ class TestIndex:
             version="1.0",
             build_number=0,
             build="0",
-            fn="dependent-1.0-0.tar.bz2",
+            fn="dependent-1.0-0.conda",
         )
 
     @pytest.fixture
@@ -407,7 +407,7 @@ class TestIndex:
             version="1.0",
             build_number=0,
             build="0",
-            fn="dependent-1.0-0.tar.bz2",
+            fn="dependent-1.0-0.conda",
         )
 
     @pytest.fixture
@@ -419,7 +419,7 @@ class TestIndex:
             version="2.0",
             build_number=0,
             build="0",
-            fn="dependent-2.0-0.tar.bz2",
+            fn="dependent-2.0-0.conda",
         )
 
     @pytest.fixture

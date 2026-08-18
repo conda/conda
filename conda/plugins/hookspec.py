@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING
 import pluggy
 
 from ..base.constants import APP_NAME
-from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -44,13 +43,6 @@ if TYPE_CHECKING:
         CondaVirtualPackage,
     )
 
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "spec_name",
-    APP_NAME,
-    addendum="Use `conda.base.constants.APP_NAME` instead.",
-)
 
 _hookspec = pluggy.HookspecMarker(APP_NAME)
 """Decorator to mark conda plugin hook specifications, used to register plugin hook types."""
@@ -302,7 +294,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_health_checks():
-                yield plugins.CondaHealthCheck(
+                yield plugins.types.CondaHealthCheck(
                     name="my-check",
                     action=my_health_check,
                     fixer=my_health_fix,

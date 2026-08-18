@@ -7,7 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import nullcontext
 from io import StringIO
-from logging import DEBUG, NOTSET, WARN, getLogger
+from logging import DEBUG, NOTSET, WARNING, getLogger
 
 import pytest
 
@@ -67,15 +67,15 @@ def test_attach_stderr_handler():
     debug_message = "debug message 1329-485"
 
     with captured() as c:
-        attach_stderr_handler(WARN, name)
+        attach_stderr_handler(WARNING, name)
         logr.warning("test message")
         logr.debug(debug_message)
 
     assert len(logr.handlers) == 1
     assert logr.handlers[0].name == "stderr"
-    assert logr.handlers[0].level is WARN
+    assert logr.handlers[0].level is WARNING
     assert logr.level is NOTSET
-    assert logr.getEffectiveLevel() is WARN
+    assert logr.getEffectiveLevel() is WARNING
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message not in c.stderr

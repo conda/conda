@@ -1068,10 +1068,9 @@ class UnlinkLinkTransaction:
 
                 if prec:
                     log.error(
-                        "An error occurred while {} package '{}'.".format(
-                            "uninstalling" if is_unlink else "installing",
-                            prec.dist_str(),
-                        )
+                        "An error occurred while %s package '%s'.",
+                        "uninstalling" if is_unlink else "installing",
+                        prec.dist_str(),
                     )
 
                 # reverse all executed packages except the one that failed

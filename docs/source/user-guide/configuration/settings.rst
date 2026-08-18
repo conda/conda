@@ -290,9 +290,21 @@ to include the activated environment. The default is ``True``.
 ``add_pip_as_python_dependency``: Add pip as Python dependency
 --------------------------------------------------------------
 
-Add pip as a dependency of Python.
-This ensures that pip is always installed any time Python is installed.
+Add ``pip`` as a dependency of ``python``.
+This ensures that ``pip`` is always installed any time ``python`` is installed.
 The default is ``True``.
+
+A future conda release may change that default to ``False``
+(see https://github.com/conda/conda/issues/16404).
+The setting itself will remain supported. If you still want ``pip`` after
+the default changes, either install it explicitly::
+
+  conda create --name myenv python pip
+
+or keep the current automatic behavior by setting
+``add_pip_as_python_dependency`` to ``True``::
+
+  conda config --set add_pip_as_python_dependency True
 
 **Example:**
 
@@ -850,8 +862,8 @@ with the following config entry:
 ``no_verify``: Disable recipe and package verification (conda-build 3.0+)
 -------------------------------------------------------------------------
 
-By default, conda-build uses conda-verify to ensure that your recipe
-and package meet some minimum sanity checks. You can disable these:
+By default, conda-build enables optional recipe and package verification.
+You can disable it:
 
 .. code-block:: yaml
 
