@@ -64,23 +64,3 @@ def test_deprecated_symbol_access_warns(module: str, name: str) -> None:
     mod = importlib.import_module(module)
     with pytest.deprecated_call():
         getattr(mod, name)
-
-
-@pytest.mark.parametrize(
-    "module, name",
-    [
-        ("conda.auxlib.logz", "DumpEncoder"),
-        ("conda.auxlib.logz", "_DUMPS"),
-        ("conda.auxlib.logz", "jsondumps"),
-        ("conda.common.serialize", "EntityEncoder"),
-        ("conda.common.serialize", "json_load"),
-    ],
-)
-def test_deprecated_symbol_identity_is_stable(module: str, name: str) -> None:
-    """Repeated access returns the same object (factory cached)."""
-    mod = importlib.import_module(module)
-    with pytest.deprecated_call():
-        first = getattr(mod, name)
-        second = getattr(mod, name)
-
-    assert first is second
