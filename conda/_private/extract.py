@@ -18,7 +18,14 @@ def extract_conda_package_archive(
     *,
     ensure_picklable_errors: bool = False,
 ) -> None:
-    """Extract a conda package archive without importing conda runtime state."""
+    """Extract a conda package archive without importing conda runtime state.
+
+    Args:
+        source_full_path: Package archive to extract.
+        destination_directory: Directory to extract into.
+        ensure_picklable_errors: Replace exceptions that cannot survive a pickle
+            round trip with a plain ``RuntimeError``.
+    """
     import conda_package_handling.api
 
     try:
