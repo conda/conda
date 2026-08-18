@@ -142,6 +142,36 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
     bad_extract._finish_extract.assert_not_called()
 
 
+def test_get_entry_to_link_prefers_target_prefix_device(mocker, tmp_path: Path):
+    target_prefix = tmp_path / "target"
+    target_prefix.mkdir()
+    remote_entry = SimpleNamespace(
+        is_extracted=True,
+        extracted_package_dir=str(tmp_path / "remote-cache" / "demo"),
+    )
+    local_entry = SimpleNamespace(
+        is_extracted=True,
+        extracted_package_dir=str(tmp_path / "local-cache" / "demo"),
+    )
+
+    mocker.patch.object(
+        PackageCacheData,
+        "query_all",
+        return_value=iter((remote_entry, local_entry)),
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "paths_on_same_device",
+        lambda left, right: (
+            left == str(tmp_path / "local-cache") and right == str(target_prefix)
+        ),
+    )
+
+    assert (
+        PackageCacheData.get_entry_to_link(object(), str(target_prefix)) is local_entry
+    )
+
+
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):
     # force this to False, because otherwise tests fail when run with old conda-build
     # zlib is available in local "linux-64" subdir

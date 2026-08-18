@@ -4,7 +4,7 @@
 
 from functools import cache
 from logging import getLogger
-from os import W_OK, access
+from os import W_OK, access, stat
 from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
@@ -36,6 +36,15 @@ def file_path_is_writable(path) -> bool:
     else:
         # TODO: probably won't work well on Windows
         return access(path, W_OK)
+
+
+@cache
+def paths_on_same_device(left, right) -> bool:
+    """Return whether two paths reside on the same filesystem device."""
+    try:
+        return stat(left).st_dev == stat(right).st_dev
+    except OSError:
+        return False
 
 
 @cache
