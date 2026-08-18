@@ -43,11 +43,12 @@ def _load_types() -> ModuleType:
 
 
 # ``deprecated.constant`` installs its own registry as module ``__getattr__``,
-# so the 16 deprecated re-exports still warn on access.
+# so the 17 deprecated re-exports still warn on access.
 for name in (
     "CondaAuthHandler",
     "CondaEnvironmentSpecifier",
     "CondaHealthCheck",
+    "CondaNotice",
     "CondaPostCommand",
     "CondaPostSolve",
     "CondaPostTransactionAction",

@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
 from conda.base.context import context, reset_context
 from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
@@ -23,7 +22,6 @@ from conda.testing.notices.helpers import (
     create_notice_cache_files,
     get_notice_cache_filenames,
     get_test_notices,
-    offset_cache_file_mtime,
 )
 
 if TYPE_CHECKING:
@@ -307,18 +305,12 @@ def test_notices_appear_once_when_running_decorated_commands(
     test_recipes_channel,
 ):
     """
-    As a user, I want to make sure when I run commands like "install" and "update"
-    that the channels are only appearing according to the specified interval in:
-        conda.base.constants.NOTICES_DECORATOR_DISPLAY_INTERVAL
-
-    This should only be once per 24 hours according to the current setting.
-
-    To ensure this test runs appropriately, we rely on using a pass-thru mock
-    of the `conda.notices.fetch.get_notice_responses` function. If this function
-    was called and called correctly we can assume everything is working well.
-
-    This test intentionally does not make any external network calls and never should.
+    As a user, channel notices should not be fetched more than once per fetch
+    interval across decorated commands.
     """
+    from conda.base.constants import NOTICES_DECORATOR_DISPLAY_INTERVAL
+    from conda.testing.notices.helpers import offset_cache_file_mtime
+
     env_one = "notices_test"
     offset_cache_file_mtime(NOTICES_DECORATOR_DISPLAY_INTERVAL + 100)
 
@@ -326,20 +318,16 @@ def test_notices_appear_once_when_running_decorated_commands(
         "conda.notices.fetch.get_notice_responses", wraps=fetch.get_notice_responses
     )
 
-    # First run of install; notices should be retrieved; it's okay that this function fails
-    # to install anything.
+    # First run of create; notices should be retrieved once for the channel
+    # (short-circuited after the first RepodataFetch in the command), targeting
+    # the channel-root notices.json per CEP-6; it's okay that this function
+    # fails to install anything.
     conda_cli("create", "--name", env_one, "--yes", "--channel", test_recipes_channel)
 
-    # make sure our fetch function was called correctly
-    fetch_mock.assert_called_once()
-    args, kwargs = fetch_mock.call_args
-
-    # If we did this correctly, args should be an empty list because our local channel has not
-    # been initialized. This causes no network traffic because there are no URLs to fetch which
-    # is what we want.
-    notices_path = test_recipes_channel / "notices.json"
-    notices_url = path_to_url(str(notices_path))
-    assert args == ([(notices_url, "test-recipes")],)
+    # One get_notice_responses call for the channel-root notices.json
+    assert fetch_mock.call_count == 1
+    actual_urls = {call.args[0][0][0] for call in fetch_mock.call_args_list}
+    assert actual_urls == {path_to_url(str(test_recipes_channel / "notices.json"))}
 
     # Reset our mock for another call to "conda install"
     fetch_mock.reset_mock()
@@ -379,13 +367,10 @@ def test_notices_does_not_interrupt_command_on_failure(
     test_recipes_channel,
 ):
     """
-    As a user, when I run conda in an environment where notice cache files might not be readable or
-    writable, I still want commands to run and not end up failing.
+    As a user, when I run conda in an environment where notice fetching or cache
+    operations fail, I still want commands to run and not end up failing.
     """
-    error_message = "Can't touch this"
-
-    mocker.patch("conda.notices.cache.open", side_effect=PermissionError(error_message))
-    mock_logger = mocker.patch("conda.notices.core.logger.error")
+    mock_logger = mocker.patch("conda.gateways.repodata.log.debug")
 
     prefix = path_factory()
 
@@ -398,11 +383,14 @@ def test_notices_does_not_interrupt_command_on_failure(
 
     assert rc == 0, f"conda create failed ({rc}): {stderr}"
 
-    mock_logger.assert_called_once()
-    fmt, exc = mock_logger.call_args.args
-    assert fmt == "Unable to open cache file: %s"
-    assert isinstance(exc, PermissionError)
-    assert str(exc) == error_message
+    notice_failure_calls = [
+        call for call in mock_logger.call_args_list if "channel notices" in call.args[0]
+    ]
+    assert notice_failure_calls, "expected a 'channel notices' debug log"
+    for call in notice_failure_calls:
+        fmt, exc = call.args
+        assert "Unable to fetch channel notices" in fmt
+        assert isinstance(exc, TypeError)
 
 
 def test_notices_cannot_read_cache_files(

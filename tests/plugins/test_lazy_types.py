@@ -15,6 +15,7 @@ _DEPRECATED_NAMES = (
     "CondaAuthHandler",
     "CondaEnvironmentSpecifier",
     "CondaHealthCheck",
+    "CondaNotice",
     "CondaPostCommand",
     "CondaPostSolve",
     "CondaPostTransactionAction",
