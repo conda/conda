@@ -1342,6 +1342,7 @@ class Context(Configuration):
             "ssl_verify",
         ),
         "Solver Configuration": (
+            "add_pip_as_python_dependency",
             "aggressive_update_packages",
             "auto_update_conda",
             "channel_priority",
@@ -1412,7 +1413,6 @@ class Context(Configuration):
         "Hidden and Undocumented": (
             "allow_cycles",  # allow cyclical dependencies, or raise
             "allow_conda_downgrades",
-            "add_pip_as_python_dependency",
             "debug",
             "trace",
             "dev",
@@ -1452,12 +1452,12 @@ class Context(Configuration):
                 private token to enable access to private packages and channels.
                 """
             ),
-            # add_pip_as_python_dependency=dals(
-            #     """
-            #     Add pip, wheel and setuptools as dependencies of python. This ensures pip,
-            #     wheel and setuptools will always be installed any time python is installed.
-            #     """
-            # ),
+            add_pip_as_python_dependency=dals(
+                """
+                Add pip as a dependency of python. This ensures pip will always be installed any
+                time python is installed.
+                """
+            ),
             aggressive_update_packages=dals(
                 """
                 A list of packages that, if installed, are always updated to the latest possible
