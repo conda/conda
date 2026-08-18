@@ -294,7 +294,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_health_checks():
-                yield plugins.CondaHealthCheck(
+                yield plugins.types.CondaHealthCheck(
                     name="my-check",
                     action=my_health_check,
                     fixer=my_health_fix,
