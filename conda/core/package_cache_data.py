@@ -952,6 +952,7 @@ class ProgressiveFetchExtract:
                                     extract_conda_package_archive,
                                     extract_action.source_full_path,
                                     extract_action.target_full_path,
+                                    ensure_picklable_errors=True,
                                 )
                             except Exception as e:
                                 do_reverse(reversed(actions))
@@ -998,6 +999,7 @@ class ProgressiveFetchExtract:
                                 process_extract_action._finish_extract()
                                 progress_bar.update_to(1.0)
                         except Exception as e:
+                            log.debug("Package extraction failed.", exc_info=e)
                             do_reverse(reversed(actions))
                             exceptions.append(e)
                         else:
