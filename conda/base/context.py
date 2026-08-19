@@ -885,6 +885,12 @@ class Context(Configuration):
         None means unset it.
         """
         if context.dev:
+            deprecated.topic(
+                "27.3",
+                "27.9",
+                topic="`conda.base.context.Context.dev`",
+                addendum="Set `PYTHONPATH` to the conda source root instead.",
+            )
             if pythonpath := os.environ.get("PYTHONPATH", ""):
                 pythonpath = os.pathsep.join((CONDA_SOURCE_ROOT, pythonpath))
             else:

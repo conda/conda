@@ -22,6 +22,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..base.constants import COMPATIBLE_SHELLS
     from ..common.compat import on_win
     from ..common.constants import NULL
+    from ..deprecations import deprecated
+    from .actions import NullCountAction
     from .helpers import add_parser_json
 
     summary = "Initialize conda for shell interaction."
@@ -62,7 +64,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     p.add_argument(
         "--dev",
-        action="store_true",
+        action=deprecated.action(
+            "27.3",
+            "27.9",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help=SUPPRESS,
         default=NULL,
     )
