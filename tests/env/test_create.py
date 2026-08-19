@@ -25,6 +25,7 @@ from . import remote_support_file, support_file
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import (
         CondaCLIFixture,
@@ -338,6 +339,43 @@ def test_protected_dirs_error_for_env_create(
             )
 
 
+def test_create_existing_env_requires_yes(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+):
+    install = mocker.patch("conda.cli.install.install")
+    monkeypatch.setenv("CONDA_ALWAYS_YES", "true")
+
+    with tmp_env() as prefix:
+        sentinel = prefix / "sentinel"
+        sentinel.touch()
+
+        _, _, exc = conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            support_file("just_vars.yml"),
+            raises=CondaValueError,
+        )
+        assert exc.match("prefix already exists")
+        install.assert_not_called()
+        assert sentinel.exists()
+
+        conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            support_file("just_vars.yml"),
+            "--yes",
+        )
+        install.assert_called_once()
+        assert not sentinel.exists()
+
+
 def test_create_env_from_non_existent_plugin(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -354,6 +392,7 @@ def test_create_env_from_non_existent_plugin(
                 f"--prefix={prefix}",
                 "--file",
                 support_file("example/environment_pinned.yml"),
+                "--yes",
             )
 
         assert (
@@ -396,6 +435,7 @@ def test_create_env_custom_platform(
             "--file",
             str(env_file),
             f"--platform={platform}",
+            "--yes",
         )
         prefix_data = PrefixData(prefix)
 

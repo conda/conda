@@ -127,6 +127,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     )
     from .install import install, install_clone
 
+    env_create = getattr(args, "env_create", False)
+
     # When `--clone` is present, `--file` and `packages` are not allowed
     if args.clone:
         if args.file:
@@ -187,6 +189,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise CondaValueError(
                 "Cannot `create --dry-run` with an existing conda environment"
             )
+        if env_create and not args.yes:
+            raise CondaValueError(f"prefix already exists: {prefix_data.prefix_path}")
+
+    if env_create:
+        args.yes = True
+        context._set_argparse_args(args)
+
+    if prefix_data.is_environment():
         confirm_yn(
             f"WARNING: A conda environment already exists at '{context.target_prefix}'\n\n"
             "Remove existing environment?\nThis will remove ALL directories contained within "
