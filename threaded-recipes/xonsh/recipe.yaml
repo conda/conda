@@ -1,0 +1,77 @@
+schema_version: 1
+
+context:
+  version: "0.23.1"
+
+package:
+  name: xonsh
+  version: ${{ version }}
+
+source:
+  url: https://github.com/xonsh/xonsh/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 0ac36813b47de440ba5deb86da7bb2bd2a9d8d257a76fdbc2d211264741c66b8
+
+build:
+  number: 0
+  skip: match(python, "<3.11")
+  script:
+    - if: unix
+      then: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    - if: win
+      then: '%PYTHON% -m pip install . -vv --no-deps --no-build-isolation'
+  python:
+    entry_points:
+      - xonsh = xonsh.main:main
+      - xonsh-cat = xonsh.xoreutils.cat:cat_main
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then: python
+    - if: build_platform != target_platform
+      then: cross-python_${{ target_platform }}
+  host:
+    - python
+    - pip
+    - jupyter_client
+    - setuptools
+  run:
+    - python
+    - prompt_toolkit
+    - pygments >=2.2
+    - pyperclip
+    - setproctitle
+
+tests:
+  - python:
+      imports:
+        - xonsh
+      pip_check: false
+  - requirements:
+      run:
+        - pytest
+    script:
+      - if: unix
+        then: USER=test xonsh -h
+      - if: win
+        then: xonsh -h
+
+about:
+  license: BSD-2-Clause
+  license_file: license
+  summary: Python-powered, cross-platform, Unix-gazing shell
+  description: |
+    Xonsh is a Python-powered, cross-platform, Unix-gazing shell shell language
+    and command prompt. The language is a superset of Python 3.4+ with additional
+    shell primitives that you are used to from Bash and IPython.
+  homepage: http://xon.sh
+  repository: https://github.com/xonsh/xonsh
+  documentation: http://xon.sh
+
+extra:
+  recipe-maintainers:
+    - scopatz
+    - ocefpaf
+    - melund
+    - gforsyth
+    - mitnk

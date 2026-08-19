@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000001 Mon Sep 17 00:00:00 2001
+From: conda developers <conda@conda.io>
+Date: Wed, 19 Aug 2026 00:00:00 +0000
+Subject: [PATCH] Mark libmambapy bindings module as GIL-not-used for
+ freethreaded Python 3.14t support
+
+Declares the pybind11 module with pybind11::mod_gil_not_used() so that
+the module can be imported in a freethreaded (cp314t) Python interpreter
+without triggering the GIL-required import guard introduced in
+pybind11 >= 2.13.
+
+bindings.hpp only exposes the full pybind11:: namespace (no `py` alias),
+so the full namespace qualifier is used here rather than py::mod_gil_not_used().
+
+See: https://pybind11.readthedocs.io/en/stable/advanced/misc.html#freethreading
+---
+ libmambapy/bindings/bindings.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libmambapy/bindings/bindings.cpp b/libmambapy/bindings/bindings.cpp
+index 1111111..2222222 100644
+--- a/libmambapy/bindings/bindings.cpp
++++ b/libmambapy/bindings/bindings.cpp
+@@ -6,7 +6,7 @@
+ #include "bindings.hpp"
+ 
+-PYBIND11_MODULE(bindings, m)
++PYBIND11_MODULE(bindings, m, pybind11::mod_gil_not_used())
+ {
+     mambapy::bind_submodule_utils(m.def_submodule("utils"));
+     mambapy::bind_submodule_specs(m.def_submodule("specs"));

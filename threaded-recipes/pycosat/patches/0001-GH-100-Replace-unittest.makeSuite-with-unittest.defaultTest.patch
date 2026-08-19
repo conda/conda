@@ -1,0 +1,26 @@
+From 69754b62d0fb27017f5afc39431832539573b648 Mon Sep 17 00:00:00 2001
+From: Bradley Dice <bdice@bradleydice.com>
+Date: Mon, 25 Nov 2024 10:44:40 -0600
+Subject: [PATCH] Replace unittest.makeSuite with
+ unittest.defaultTestLoader.loadTestsFromTestCase.
+
+---
+ test_pycosat.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test_pycosat.py b/test_pycosat.py
+index f1165d8..0a6969c 100644
+--- a/test_pycosat.py
++++ b/test_pycosat.py
+@@ -258,7 +258,7 @@ def run(verbosity=1, repeat=1):
+     suite = unittest.TestSuite()
+     for cls in tests:
+         for _ in range(repeat):
+-            suite.addTest(unittest.makeSuite(cls))
++            suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(cls))
+ 
+     runner = unittest.TextTestRunner(verbosity=verbosity)
+     return runner.run(suite)
+-- 
+2.45.1
+

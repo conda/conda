@@ -1,0 +1,75 @@
+schema_version: 1
+
+context:
+  name: pycosat
+  version: "0.6.6"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/conda/${{ name }}/archive/${{ version }}.tar.gz
+  sha256: b0014986321e77a36d8fe24827698aae076500c817133a700608bd677b77a998
+  patches:
+    - patches/0001-GH-100-Replace-unittest.makeSuite-with-unittest.defaultTest.patch
+
+build:
+  number: 4
+  script: ${{ PYTHON }} -m pip install . --no-deps -vv
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then: python
+    - if: build_platform != target_platform
+      then: cross-python_${{ target_platform }}
+    - ${{ compiler('c') }}
+    - ${{ stdlib("c") }}
+  host:
+    - python
+    - pip
+    - setuptools
+  run:
+    - python
+
+tests:
+  - python:
+      imports:
+        - pycosat
+      pip_check: true
+  - files:
+      recipe:
+        - qg3-08.cnf
+        - uf20-098.cnf
+        - sudoku.py
+        - test_package.py
+    requirements:
+      run:
+        - pip
+    script:
+      - python test_package.py "${{ version }}"
+
+about:
+  license: MIT
+  license_file:
+    - LICENSE
+    - COPYRIGHT
+  summary: Bindings to picosat (a SAT solver)
+  description: |
+    PicoSAT is a popular SAT solver written by Armin Biere in pure C. This
+    package provides efficient Python bindings to picosat on the C level, i.e.
+    when importing pycosat, the picosat solver becomes part of the Python
+    process itself.
+  homepage: https://github.com/conda/pycosat
+  repository: https://github.com/conda/pycosat
+  documentation: https://pypi.python.org/pypi/pycosat
+
+extra:
+  recipe-maintainers:
+    - jakirkham
+    - kalefranz
+    - mcg1969
+    - msarahan
+    - pelson
+    - nehaljwani

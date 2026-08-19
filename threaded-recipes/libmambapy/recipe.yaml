@@ -1,0 +1,91 @@
+schema_version: 1
+
+context:
+  version: "2.9.0"
+  build_number: 0
+
+package:
+  name: libmambapy
+  version: ${{ version }}
+
+source:
+  url: https://github.com/mamba-org/mamba/archive/refs/tags/${{ version }}.tar.gz
+  sha256: 57befdcc985b07f95d1a495569ac249a270c71167d111374ff08443154821e1d
+  patches:
+    - patches/0001-pybind11-gil-not-used.patch
+
+build:
+  number: ${{ build_number }}
+  string: py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  script: build_mamba
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - pybind11
+        - pybind11-abi
+  host:
+    - python
+    - scikit-build-core
+    - pip
+    - setuptools <79
+    - pybind11
+    - pybind11-abi
+    - openssl
+    - yaml-cpp
+    - cpp-expected
+    - spdlog
+    - fmt
+    - termcolor-cpp
+    - nlohmann_json >=3.12,<4.0
+    - nlohmann_json-abi
+    - libmamba ==${{ version }}
+    - libmamba-spdlog ==${{ version }}
+    # zstd is not a direct dependency but this specification is needed to
+    # distinguish builds of libmambapy for specific version of zstd.
+    - zstd
+  run:
+    - python
+    - libmamba ==${{ version }}
+    - libmamba-spdlog ==${{ version }}
+  run_exports:
+    - ${{ pin_subpackage('libmambapy', upper_bound='x.x') }}
+
+tests:
+  - package_contents:
+      files:
+        not_exists:
+          - ${{ "Library/" if win }}lib/cmake/libmamba/libmambaConfig.cmake
+          - ${{ "Library/" if win }}lib/libmamba*
+  - python:
+      imports:
+        - libmambapy
+        - libmambapy.bindings
+  - script:
+      - python -c "import libmambapy; assert libmambapy.__version__ == '${{ version }}'"
+
+about:
+  homepage: https://github.com/mamba-org/mamba
+  repository: https://github.com/mamba-org/mamba
+  documentation: https://mamba.readthedocs.io/
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+  summary: Python bindings for libmamba
+
+extra:
+  recipe-maintainers:
+    - jjerphan
+    - AntoinePrv
+    - adriendelsalle
+    - SylvainCorlay
+    - JohanMabille
+    - wolfv
+    - ericmjl

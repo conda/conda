@@ -65,10 +65,100 @@ jobs:
               - '.github/workflows/benchmarks.yml'
               - '.github/workflows/tests.yml'
 
+  # build freethreaded (cp314t) packages for blockers that lack conda-forge cp314t builds
+  build-freethreaded-deps:
+    needs: changes
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
+
+    runs-on: ${{ matrix.runs-on }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            artifact-name: freethreaded-packages-Linux-X64
+          - runs-on: macos-latest
+            artifact-name: freethreaded-packages-macOS-ARM64
+          - runs-on: windows-latest
+            artifact-name: freethreaded-packages-Windows-X64
+            shell: cmd
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+        with:
+          condarc-file: .github/condarc-conda-forge
+          miniforge-version: latest
+          run-post: false
+
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      - name: Install build tools
+        run: conda install -n base --yes rattler-build
+
+      - name: Write rattler-build variant config
+        # Two things are required:
+        #   1. c_stdlib/c_stdlib_version — resolves ${{ stdlib("c") }} in recipes
+        #   2. python: 3.14.* *_cp314t — forces the freethreaded Python ABI in
+        #      the host environment instead of the regular cp314 build.
+        # Values match conda-forge's own .ci_support files (see e.g.
+        # zstandard-feedstock/.ci_support/osx_arm64_python3.14.____cp314t.yaml).
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            printf 'c_stdlib:\n  - sysroot\nc_stdlib_version:\n  - "2.17"\npython:\n  - "3.14.* *_cp314t"\n' > /tmp/rattler-variants.yaml
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            printf 'c_stdlib:\n  - macosx_deployment_target\nc_stdlib_version:\n  - "11.0"\npython:\n  - "3.14.* *_cp314t"\n' > /tmp/rattler-variants.yaml
+          else
+            printf 'c_stdlib:\n  - vs\npython:\n  - "3.14.* *_cp314t"\n' > /tmp/rattler-variants.yaml
+          fi
+
+      - name: Build pycosat
+        shell: bash
+        run: rattler-build build --recipe threaded-recipes/pycosat --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Build menuinst
+        shell: bash
+        run: rattler-build build --recipe threaded-recipes/menuinst --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Build libmambapy
+        shell: bash
+        run: rattler-build build --recipe threaded-recipes/libmambapy --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c freethreaded-packages -c conda-forge
+
+      - name: Build xonsh
+        if: runner.os != 'Windows'
+        shell: bash
+        run: rattler-build build --recipe threaded-recipes/xonsh --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Build pywin32
+        if: runner.os == 'Windows'
+        shell: bash
+        run: rattler-build build --recipe threaded-recipes/pywin32 --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Upload Freethreaded Packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: freethreaded-packages/
+          retention-days: 1
+
   # windows test suite
   windows:
     # only run test suite if there are code changes
-    needs: changes
+    needs: [changes, build-freethreaded-deps]
     if: >-
       (!github.event.repository.fork && github.event_name == 'schedule')
       || needs.changes.outputs.code == 'true'
@@ -132,14 +222,26 @@ jobs:
         env:
           CONDA_SUBDIR: win-64
 
+      - name: Download Freethreaded Packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: freethreaded-packages-${{ runner.os }}-${{ runner.arch }}
+          path: freethreaded-packages/
+
+      - name: Index Freethreaded Packages
+        shell: bash  # use bash for consistent path handling
+        run: conda index freethreaded-packages/
+
       - name: Conda Install
+        shell: bash  # use bash so $GITHUB_WORKSPACE expands correctly
         run: >
           conda install
           --yes
-          --file tests\requirements.txt
-          --file tests\requirements-${{ runner.os }}.txt
-          --file tests\requirements-ci.txt
-          --file tests\requirements-s3.txt
+          --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
+          --file tests/requirements.txt
+          --file "tests/requirements-${{ runner.os }}.txt"
+          --file tests/requirements-ci.txt
+          --file tests/requirements-s3.txt
           python-freethreading=3.14
         env:
           CONDA_SUBDIR: win-64
@@ -205,7 +307,7 @@ jobs:
   # linux test suite
   linux:
     # only run test suite if there are code changes
-    needs: changes
+    needs: [changes, build-freethreaded-deps]
     if: >-
       (!github.event.repository.fork && github.event_name == 'schedule')
       || needs.changes.outputs.code == 'true'
@@ -266,10 +368,20 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      - name: Download Freethreaded Packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: freethreaded-packages-${{ runner.os }}-${{ runner.arch }}
+          path: freethreaded-packages/
+
+      - name: Index Freethreaded Packages
+        run: conda index freethreaded-packages/
+
       - name: Conda Install
         run: >
           conda install
           --yes
+          --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
           --file tests/requirements.txt
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
@@ -651,7 +763,7 @@ jobs:
   # macos test suite
   macos:
     # only run test suite if there are code changes
-    needs: changes
+    needs: [changes, build-freethreaded-deps]
     if: >-
       (!github.event.repository.fork && github.event_name == 'schedule')
       || needs.changes.outputs.code == 'true'
@@ -712,10 +824,20 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      - name: Download Freethreaded Packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: freethreaded-packages-${{ runner.os }}-${{ runner.arch }}
+          path: freethreaded-packages/
+
+      - name: Index Freethreaded Packages
+        run: conda index freethreaded-packages/
+
       - name: Conda Install
         run: >
           conda install
           --yes
+          --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
@@ -767,7 +889,7 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, macos]
+    needs: [changes, build-freethreaded-deps, windows, linux, macos]
     if: >-
       !cancelled()
       && (
@@ -796,7 +918,7 @@ jobs:
 
   # required check
   analyze:
-    needs: [windows, linux, macos, aggregate]
+    needs: [build-freethreaded-deps, windows, linux, macos, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-latest

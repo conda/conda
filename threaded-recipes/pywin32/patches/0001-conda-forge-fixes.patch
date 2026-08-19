@@ -1,0 +1,53 @@
+From 9a83363289d1723a4b82b189037dbc6a95157d18 Mon Sep 17 00:00:00 2001
+From: "Uwe L. Korn" <uwe.korn@quantco.com>
+Date: Sat, 13 Jun 2026 16:10:01 +0200
+Subject: [PATCH] conda-forge fixes
+
+---
+ pywin32.pth | 15 ++++++++-------
+ setup.py    |  5 +++--
+ 2 files changed, 11 insertions(+), 9 deletions(-)
+
+diff --git a/pywin32.pth b/pywin32.pth
+index 9e4a42c..02a6927 100644
+--- a/pywin32.pth
++++ b/pywin32.pth
+@@ -1,7 +1,8 @@
+-# .pth file for the PyWin32 extensions
+-win32
+-win32\lib
+-pythonwin
+-# And some hackery to deal with environments where the post_install script
+-# isn't run.
+-import pywin32_bootstrap
++# .pth file for the PyWin32 extensions
++win32
++win32\lib
++pythonwin
++# This breaks any software involving a feedback loop involving PATH and Python
++# One example of such software is the Anaconda Distribition's conda package
++# manager, so we do not do it. We fixed this in a slightly better way anyway.
++# import pywin32_bootstrap
+diff --git a/setup.py b/setup.py
+index ee27895..cd5e8c6 100644
+--- a/setup.py
++++ b/setup.py
+@@ -573,7 +573,8 @@ class my_build_ext(build_ext):
+             if ext.name == "Pythonwin":
+                 # Not sure how to make this completely generic,
+                 # and there is no need at this stage.
+-                self._build_scintilla()
++                # self._build_scintilla()
++                pass
+ 
+         # Error when too many skips
+         if len(self.excluded_extensions) > 0.3 * (
+@@ -1943,7 +1944,7 @@ packages = [
+     "pythonwin.pywin.framework.editor.color",
+     "pythonwin.pywin.idle",
+     "pythonwin.pywin.mfc",
+-    "pythonwin.pywin.scintilla",
++    # "pythonwin.pywin.scintilla",
+     "pythonwin.pywin.tools",
+     "isapi",
+     "adodbapi",
