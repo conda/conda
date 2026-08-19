@@ -263,6 +263,40 @@ def test_get_export_unset_vars(
     assert set(unset_vars) == set(map(case, vars_dict))
 
 
+@pytest.mark.parametrize(
+    "ce_m,arguments,expect_dev",
+    [
+        ("-m", ["reactivate"], True),
+        (None, ["reactivate"], False),
+        (None, ["reactivate", "--dev"], True),
+        ("-m", ["activate"], True),
+        (None, ["activate"], False),
+        ("-m", ["deactivate"], True),
+        ("-m", ["hook"], True),
+        (None, ["hook"], False),
+    ],
+)
+def test_dev_mode_inherited_from_ce_m(
+    monkeypatch: MonkeyPatch,
+    ce_m: str | None,
+    arguments: list[str],
+    expect_dev: bool,
+) -> None:
+    if ce_m is None:
+        monkeypatch.delenv("_CE_M", raising=False)
+    else:
+        monkeypatch.setenv("_CE_M", ce_m)
+    monkeypatch.delenv("CONDA_DEV", raising=False)
+    reset_context()
+
+    PosixActivator(arguments)._parse_and_set_args()
+    assert context.dev is expect_dev
+    if expect_dev:
+        assert context.conda_exe_vars_dict["_CE_M"] == "-m"
+    else:
+        assert context.conda_exe_vars_dict["_CE_M"] is None
+
+
 def test_activate_environment_not_found(tmp_path: Path):
     activator = PosixActivator()
 
