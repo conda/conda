@@ -23,7 +23,7 @@ index 1111111..2222222 100644
 +++ b/libmambapy/bindings/bindings.cpp
 @@ -6,7 +6,7 @@
  #include "bindings.hpp"
- 
+
 -PYBIND11_MODULE(bindings, m)
 +PYBIND11_MODULE(bindings, m, pybind11::mod_gil_not_used())
  {

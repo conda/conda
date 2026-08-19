@@ -18,9 +18,8 @@ index f1165d8..0a6969c 100644
          for _ in range(repeat):
 -            suite.addTest(unittest.makeSuite(cls))
 +            suite.addTest(unittest.defaultTestLoader.loadTestsFromTestCase(cls))
- 
+
      runner = unittest.TextTestRunner(verbosity=verbosity)
      return runner.run(suite)
--- 
+--
 2.45.1
-

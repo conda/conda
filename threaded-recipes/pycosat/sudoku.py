@@ -1,3 +1,5 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
 """
 The implementation of this Sudoku solver is based on the paper:
 
@@ -10,6 +12,7 @@ which calculates the 324 clauses corresponding to 9 cells, you are strongly
 encouraged to read the paper first.  The paper is very short, but contains
 all necessary information.
 """
+
 import pycosat
 
 
@@ -54,7 +57,7 @@ def sudoku_clauses():
         valid([(j, i) for j in range(1, 10)])
     # ensure 3x3 sub-grids "regions" have distinct values
     for i in 1, 4, 7:
-        for j in 1, 4 ,7:
+        for j in 1, 4, 7:
             valid([(i + k % 3, j + k // 3) for k in range(9)])
 
     assert len(res) == 81 * (1 + 36) + 27 * 324
@@ -95,23 +98,27 @@ def test():
     from pprint import pprint
 
     # hard Sudoku problem, see Fig. 3 in paper by Weber
-    hard = [[0, 2, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 6, 0, 0, 0, 0, 3],
-            [0, 7, 4, 0, 8, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 3, 0, 0, 2],
-            [0, 8, 0, 0, 4, 0, 0, 1, 0],
-            [6, 0, 0, 5, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 7, 8, 0],
-            [5, 0, 0, 0, 0, 9, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 4, 0]]
+    hard = [
+        [0, 2, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 6, 0, 0, 0, 0, 3],
+        [0, 7, 4, 0, 8, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 3, 0, 0, 2],
+        [0, 8, 0, 0, 4, 0, 0, 1, 0],
+        [6, 0, 0, 5, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 7, 8, 0],
+        [5, 0, 0, 0, 0, 9, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 4, 0],
+    ]
     solve(hard)
     pprint(hard)
-    assert [[1, 2, 6, 4, 3, 7, 9, 5, 8],
-            [8, 9, 5, 6, 2, 1, 4, 7, 3],
-            [3, 7, 4, 9, 8, 5, 1, 2, 6],
-            [4, 5, 7, 1, 9, 3, 8, 6, 2],
-            [9, 8, 3, 2, 4, 6, 5, 1, 7],
-            [6, 1, 2, 5, 7, 8, 3, 9, 4],
-            [2, 6, 9, 3, 1, 4, 7, 8, 5],
-            [5, 4, 8, 7, 6, 9, 2, 3, 1],
-            [7, 3, 1, 8, 5, 2, 6, 4, 9]] == hard
+    assert [
+        [1, 2, 6, 4, 3, 7, 9, 5, 8],
+        [8, 9, 5, 6, 2, 1, 4, 7, 3],
+        [3, 7, 4, 9, 8, 5, 1, 2, 6],
+        [4, 5, 7, 1, 9, 3, 8, 6, 2],
+        [9, 8, 3, 2, 4, 6, 5, 1, 7],
+        [6, 1, 2, 5, 7, 8, 3, 9, 4],
+        [2, 6, 9, 3, 1, 4, 7, 8, 5],
+        [5, 4, 8, 7, 6, 9, 2, 3, 1],
+        [7, 3, 1, 8, 5, 2, 6, 4, 9],
+    ] == hard

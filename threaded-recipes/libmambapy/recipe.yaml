@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "2.9.0"
+  version: 2.9.0
   build_number: 0
 
 package:

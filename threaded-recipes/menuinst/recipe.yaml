@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "2.5.2"
+  version: 2.5.2
 
 package:
   name: menuinst

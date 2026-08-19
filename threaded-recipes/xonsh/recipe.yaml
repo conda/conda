@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.23.1"
+  version: 0.23.1
 
 package:
   name: xonsh

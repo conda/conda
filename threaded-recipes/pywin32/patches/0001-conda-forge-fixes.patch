@@ -39,7 +39,7 @@ index ee27895..cd5e8c6 100644
 -                self._build_scintilla()
 +                # self._build_scintilla()
 +                pass
- 
+
          # Error when too many skips
          if len(self.excluded_extensions) > 0.3 * (
 @@ -1943,7 +1944,7 @@ packages = [

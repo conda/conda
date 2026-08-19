@@ -209,14 +209,21 @@ echo "==> Done. Built packages:"
 find "$OUTPUT_DIR" -name "*.conda" -o -name "*.tar.bz2" | sort | sed 's|^|    |'
 
 echo ""
-echo "==> To use this local channel, add to your conda install command:"
-echo "    --channel \"file://${OUTPUT_DIR}\""
+echo "==> To use this local channel, run the following from the repo root:"
 echo ""
-echo "    Example (install into active test env):"
+echo "    # Strip the 'conda' package from requirements-ci.txt (it requires cp314, not cp314t)"
+echo "    grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt"
+echo ""
 echo "    conda install \\"
+echo "      --channel-priority strict \\"
 echo "      --channel \"file://${OUTPUT_DIR}\" \\"
+echo "      --channel conda-forge \\"
 echo "      --file tests/requirements.txt \\"
-echo "      --file tests/requirements-\$(uname -s).txt \\"
-echo "      --file tests/requirements-ci.txt \\"
+echo "      --file tests/requirements-ci-freethreaded.txt \\"
 echo "      --file tests/requirements-s3.txt \\"
+if [[ "$PLATFORM" == "linux" ]]; then
+echo "      xonsh patchelf \\"
+elif [[ "$PLATFORM" == "win" ]]; then
+echo "      pywin32 \\"
+fi
 echo "      python-freethreading=3.14"

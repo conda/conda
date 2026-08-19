@@ -232,17 +232,25 @@ jobs:
         shell: bash  # use bash for consistent path handling
         run: conda index freethreaded-packages/
 
+      - name: Filter requirements-ci.txt
+        # Remove the `conda` package — it requires python_abi *_cp314 (non-freethreaded)
+        # and conflicts with the cp314t environment. conda is tested from source via pip.
+        shell: bash
+        run: grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt
+
       - name: Conda Install
         shell: bash  # use bash so $GITHUB_WORKSPACE expands correctly
         run: >
           conda install
           --yes
+          --channel-priority strict
           --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
+          --channel conda-forge
           --file tests/requirements.txt
-          --file "tests/requirements-${{ runner.os }}.txt"
-          --file tests/requirements-ci.txt
+          --file tests/requirements-ci-freethreaded.txt
           --file tests/requirements-s3.txt
           python-freethreading=3.14
+          pywin32
         env:
           CONDA_SUBDIR: win-64
 
@@ -377,16 +385,24 @@ jobs:
       - name: Index Freethreaded Packages
         run: conda index freethreaded-packages/
 
+      - name: Filter requirements-ci.txt
+        # Remove the `conda` package — it requires python_abi *_cp314 (non-freethreaded)
+        # and conflicts with the cp314t environment. conda is tested from source via pip.
+        run: grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt
+
       - name: Conda Install
         run: >
           conda install
           --yes
+          --channel-priority strict
           --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
+          --channel conda-forge
           --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
+          --file tests/requirements-ci-freethreaded.txt
           --file tests/requirements-s3.txt
           python-freethreading=3.14
+          xonsh
+          patchelf
 
       - name: Conda Info
         # view test env info (not base)
@@ -833,13 +849,20 @@ jobs:
       - name: Index Freethreaded Packages
         run: conda index freethreaded-packages/
 
+      - name: Filter requirements-ci.txt
+        # Remove the `conda` package — it requires python_abi *_cp314 (non-freethreaded)
+        # and conflicts with the cp314t environment. conda is tested from source via pip.
+        run: grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt
+
       - name: Conda Install
         run: >
           conda install
           --yes
+          --channel-priority strict
           --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
+          --channel conda-forge
           --file tests/requirements.txt
-          --file tests/requirements-ci.txt
+          --file tests/requirements-ci-freethreaded.txt
           --file tests/requirements-s3.txt
           python-freethreading=3.14
 
