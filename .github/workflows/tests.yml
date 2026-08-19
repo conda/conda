@@ -77,21 +77,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        runs-on: [windows-latest, windows-11-arm]
-        python-version: ['3.10', '3.14']
-        default-channel: [defaults, conda-forge]
+        # freethreaded Python 3.14 investigation: win-64 only, conda-forge only
+        runs-on: [windows-latest]
+        python-version: ['3.14']
+        default-channel: [conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - default-channel: conda-forge
-            python-version: '3.10'
           - test-type: unit
             test-group: 3
-          - runs-on: windows-11-arm
-            python-version: '3.10'
-          - runs-on: windows-11-arm
-            default-channel: conda-forge
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
@@ -146,7 +140,7 @@ jobs:
           --file tests\requirements-${{ runner.os }}.txt
           --file tests\requirements-ci.txt
           --file tests\requirements-s3.txt
-          python=${{ matrix.python-version }}
+          python-freethreading=3.14
         env:
           CONDA_SUBDIR: win-64
 
@@ -224,29 +218,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
+        # freethreaded Python 3.14 investigation: linux-64 only, conda-forge only
         runs-on:
           - ubuntu-latest  # linux-64
-          - ubuntu-24.04-arm  # linux-aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
-        default-channel: [defaults, conda-forge]
+        python-version: ['3.14']
+        default-channel: [conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.10'
-            default-channel: conda-forge
-          - python-version: '3.11'
-            default-channel: conda-forge
-          - python-version: '3.12'
-            default-channel: conda-forge
           - test-type: unit
             test-group: 3
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.10'
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.11'
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.12'
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -293,7 +274,7 @@ jobs:
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
+          python-freethreading=3.14
 
       - name: Conda Info
         # view test env info (not base)
@@ -356,7 +337,7 @@ jobs:
   linux-benchmarks:
     # only run benchmarks if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-22.04
     defaults:
@@ -445,7 +426,7 @@ jobs:
   linux-typing:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-22.04
     defaults:
@@ -541,9 +522,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+    if: false
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -602,7 +581,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-latest
     defaults:
@@ -685,27 +664,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & defaults & integration tests)
+        # freethreaded Python 3.14 investigation: osx-arm64 only, conda-forge only
         runs-on:
-          - macos-15-intel  # osx-64
           - macos-latest  # osx-arm64
-        python-version: ['3.10', '3.14']
-        default-channel: [defaults, conda-forge]
+        python-version: ['3.14']
+        default-channel: [conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - runs-on: macos-15-intel
-            python-version: '3.14'
-          - runs-on: macos-15-intel
-            default-channel: defaults
-          - runs-on: macos-15-intel
-            test-type: integration
-          - runs-on: macos-latest
-            python-version: '3.10'
-          - runs-on: macos-latest
-            default-channel: conda-forge
-          - runs-on: macos-latest
-            test-type: unit
           - test-type: unit
             test-group: 3
     env:
@@ -753,7 +719,7 @@ jobs:
           --file tests/requirements.txt
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
+          python-freethreading=3.14
 
       - name: Conda Info
         # view test env info (not base)
@@ -801,7 +767,7 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
+    needs: [changes, windows, linux, macos]
     if: >-
       !cancelled()
       && (
@@ -830,7 +796,7 @@ jobs:
 
   # required check
   analyze:
-    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
+    needs: [windows, linux, macos, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-latest
@@ -879,7 +845,7 @@ jobs:
   downstream:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-latest
     defaults:
