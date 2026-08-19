@@ -5,13 +5,6 @@ from shlex import split
 from ..deprecations import deprecated
 
 
-@deprecated("26.3", "26.9", addendum="Use `conda.common.compat.isiterable` instead.")
-def isiterable(obj):
-    # and not a string
-    from collections.abc import Iterable
-    return not isinstance(obj, str) and isinstance(obj, Iterable)
-
-
 # shlex.split() is a poor function to use for anything general purpose (like calling subprocess).
 # It mishandles Unicode in Python 3 but all is not lost. We can escape it, then escape the escapes
 # then call shlex.split() then un-escape that.
