@@ -2,8 +2,6 @@ from collections import OrderedDict as odict  # noqa: F401
 import os
 from shlex import split
 
-from ..deprecations import deprecated
-
 
 # shlex.split() is a poor function to use for anything general purpose (like calling subprocess).
 # It mishandles Unicode in Python 3 but all is not lost. We can escape it, then escape the escapes
