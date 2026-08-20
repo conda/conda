@@ -3706,7 +3706,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             version="1.1.1",
             channel="test",
             subdir="conda-test",
-            fn="mypkgnot-1.1.1",
+            fn="notmypkg-1.1.1",
             build="pypi_0",
             build_number=0,
             paths_data=None,
