@@ -26,7 +26,6 @@ from typing import TYPE_CHECKING
 
 from frozendict import frozendict
 
-from .. import CONDA_SOURCE_ROOT
 from .. import __version__ as CONDA_VERSION
 from ..auxlib.decorators import memoizedproperty
 from ..auxlib.ish import dals
@@ -454,7 +453,7 @@ class Context(Configuration):
     )
     _debug = ParameterLoader(PrimitiveParameter(False), aliases=["debug"])
     _trace = ParameterLoader(PrimitiveParameter(False), aliases=["trace"])
-    dev = ParameterLoader(PrimitiveParameter(False))
+    _dev = ParameterLoader(PrimitiveParameter(False), aliases=("dev",))
     dry_run = ParameterLoader(PrimitiveParameter(False))
     _error_upload_url = ParameterLoader(
         PrimitiveParameter("https://conda.io/conda-post/unexpected-error"),
@@ -603,6 +602,15 @@ class Context(Configuration):
         """
         self.plugin_manager.load_settings()
         return self.plugin_manager.get_config(self.raw_data)
+
+    @property
+    @deprecated(
+        "27.3",
+        "27.9",
+        addendum="Set `PYTHONPATH` to the conda source root instead.",
+    )
+    def dev(self) -> bool:
+        return self._dev
 
     @property
     @deprecated(
@@ -884,41 +892,22 @@ class Context(Configuration):
         The vars can refer to each other if necessary since the dict is ordered.
         None means unset it.
         """
-        if context.dev:
-            deprecated.topic(
-                "27.3",
-                "27.9",
-                topic="`conda.base.context.Context.dev`",
-                addendum="Set `PYTHONPATH` to the conda source root instead.",
-            )
-            if pythonpath := os.environ.get("PYTHONPATH", ""):
-                pythonpath = os.pathsep.join((CONDA_SOURCE_ROOT, pythonpath))
-            else:
-                pythonpath = CONDA_SOURCE_ROOT
-            return {
-                "CONDA_EXE": sys.executable,
-                "_CONDA_EXE": sys.executable,
-                # do not confuse with os.path.join, we are joining paths with ; or : delimiters
-                "PYTHONPATH": pythonpath,
-                "_CE_M": "-m",
-                "_CE_CONDA": "conda",
-                "CONDA_PYTHON_EXE": sys.executable,
-                "_CONDA_ROOT": self.conda_prefix,
-            }
-        else:
-            exe = os.path.join(
-                self.conda_prefix,
-                BIN_DIRECTORY,
-                "conda.exe" if on_win else "conda",
-            )
-            return {
-                "CONDA_EXE": exe,
-                "_CONDA_EXE": exe,
-                "_CE_M": None,
-                "_CE_CONDA": None,
-                "CONDA_PYTHON_EXE": sys.executable,
-                "_CONDA_ROOT": self.conda_prefix,
-            }
+        exe = os.path.join(
+            self.conda_prefix,
+            BIN_DIRECTORY,
+            "conda.exe" if on_win else "conda",
+        )
+        return {
+            "CONDA_EXE": exe,
+            "_CONDA_EXE": exe,
+            # Shell wrappers expand `"$CONDA_EXE" $_CE_M $_CE_CONDA` (`python -m conda`
+            # when set). None unsets leftovers; keep the keys while wrappers expand them.
+            # https://github.com/conda/conda/issues/14142
+            "_CE_M": None,
+            "_CE_CONDA": None,
+            "CONDA_PYTHON_EXE": sys.executable,
+            "_CONDA_ROOT": self.conda_prefix,
+        }
 
     @memoizedproperty
     def channel_alias(self) -> Channel:
@@ -1421,7 +1410,7 @@ class Context(Configuration):
             "allow_conda_downgrades",
             "debug",
             "trace",
-            "dev",
+            "dev",  # TODO: Remove after deprecation ended
             "default_python",
             "enable_private_envs",
             "error_upload_url",  # TODO: Remove after deprecation ended

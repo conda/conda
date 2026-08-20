@@ -1645,7 +1645,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                False,
                 False,
                 ("@CALL", path),
             )
@@ -1657,7 +1657,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                False,
                 False,
                 (".", path),
             )

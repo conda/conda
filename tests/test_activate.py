@@ -2248,6 +2248,23 @@ def test_activator_invalid_command_arguments(command_args, expected_error_messag
         activator.execute()
 
 
+@pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
+def test_dev_flag_pending_deprecation(
+    command: str,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_DEV", "0")
+    reset_context()
+    assert not context._dev
+
+    # calling with --dev should be deprecated
+    with pytest.deprecated_call():
+        PosixActivator([command, "--dev"]).execute()
+
+    # dev flag should be unset
+    assert not context._dev
+
+
 @pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))
 def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
     # Make sure local config does not affect the test; empty string -> base

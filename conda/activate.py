@@ -293,7 +293,6 @@ class _Activator(metaclass=abc.ABCMeta):
                 pass
             else:
                 del remainder_args[dev_idx]
-                context.dev = True
                 deprecated.topic(
                     "27.3",
                     "27.9",

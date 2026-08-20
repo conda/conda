@@ -157,3 +157,19 @@ def test_sorted_commands_in_error(capsys: CaptureFixture):
         )
     else:
         pytest.fail("Did not raise")
+
+
+@pytest.mark.parametrize("command", ["create", "install", "remove", "init"])
+def test_dev_flag_pending_deprecation(command: str) -> None:
+    parser = generate_parser()
+    with pytest.warns(
+        PendingDeprecationWarning, match=r"`--dev` is pending deprecation"
+    ):
+        args = parser.parse_args([command, "--dev"])
+    assert args.dev
+
+
+def test_dev_flag_absent_is_not_deprecated() -> None:
+    parser = generate_parser()
+    args = parser.parse_args(["create", "-n", "x"])
+    assert not args.dev
