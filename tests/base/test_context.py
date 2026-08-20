@@ -1070,7 +1070,7 @@ def test_conda_exe_vars_dict_unsets_ce(
 ) -> None:
     monkeypatch.setenv("CONDA_DEV", str(int(conda_dev)))
     reset_context()
-    assert context._dev == conda_dev
+    assert context._dev is conda_dev
 
     # context.dev is noop on _CE_* variables
     exe_vars = context.conda_exe_vars_dict

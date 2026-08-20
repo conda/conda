@@ -2249,20 +2249,24 @@ def test_activator_invalid_command_arguments(command_args, expected_error_messag
 
 
 @pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
-def test_dev_flag_pending_deprecation(
+@pytest.mark.parametrize("conda_dev", [False, True])
+def test_dev_flag_deprecation(
     command: str,
+    conda_dev: bool,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("CONDA_DEV", "0")
+    monkeypatch.setenv("CONDA_DEV", str(int(conda_dev)))
     reset_context()
-    assert not context._dev
+    assert context._dev is conda_dev
+
+    # calling without --dev should not be deprecated
+    PosixActivator([command]).execute()
+    assert context._dev is conda_dev
 
     # calling with --dev should be deprecated
     with pytest.deprecated_call():
         PosixActivator([command, "--dev"]).execute()
-
-    # dev flag should be unset
-    assert not context._dev
+    assert context._dev is conda_dev
 
 
 @pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))
