@@ -74,6 +74,11 @@ class BaseSolver:
     supports_exclude_newer_package: ClassVar[bool] = False
 
     def __init_subclass__(cls, **kwargs):
+        """Require solver subclasses to opt in to each policy capability.
+
+        External solvers currently inherit from ``Solver`` rather than
+        ``BaseSolver``, so they would otherwise inherit classic's capabilities.
+        """
         super().__init_subclass__(**kwargs)
         if "supports_exclude_newer_global" not in cls.__dict__:
             cls.supports_exclude_newer_global = False

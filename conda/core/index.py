@@ -146,9 +146,7 @@ class Index(UserDict):
         self.use_system = use_system
         from .exclude_newer import ExcludeNewerPolicy
 
-        self.exclude_newer_policy = (
-            exclude_newer_policy or ExcludeNewerPolicy.disabled()
-        )
+        self.exclude_newer_policy = exclude_newer_policy or ExcludeNewerPolicy()
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord, ...]:

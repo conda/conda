@@ -51,8 +51,8 @@ class _CutoffParser:
     def cutoff(self, value: str | int | float | bool) -> float:
         if isinstance(value, bool):
             raise CondaValueError(
-                f"Invalid exclude_newer value {value!r}; "
-                "use a duration, date, or timestamp"
+                f"Invalid exclude_newer value {value!r}. "
+                "Use a duration, date, or timestamp."
             )
 
         if isinstance(value, (int, float)):
@@ -61,7 +61,7 @@ class _CutoffParser:
         raw_value = value.strip()
         if not raw_value:
             raise CondaValueError(
-                "Invalid exclude_newer value ''; value must not be empty"
+                "Invalid exclude_newer value ''. Value must not be empty."
             )
 
         try:
@@ -83,32 +83,30 @@ class _CutoffParser:
     def duration_cutoff(self, duration_seconds: float, value: object) -> float:
         if duration_seconds < 0:
             raise CondaValueError(
-                f"Invalid exclude_newer value {value!r}; duration must not be negative"
+                f"Invalid exclude_newer value {value!r}. Duration must not be negative."
             )
         return self.now - duration_seconds
 
     @staticmethod
     def invalid(value: str) -> CondaValueError:
         return CondaValueError(
-            f"Invalid exclude_newer value {value!r}; use e.g. 7d, P7D, "
-            "2026-04-01, or 2026-04-01T12:00:00Z"
+            f"Invalid exclude_newer value {value!r}. Use e.g. 7d, P7D, "
+            "2026-04-01, or 2026-04-01T12:00:00Z."
         )
 
 
 @dataclass(frozen=True)
-class ChannelSelector:
+class _ChannelSelector:
     """Resolved ``channel_settings`` channel selector."""
 
     URL_GLOB_CHARS = frozenset("*?[")
 
-    value: str
     keys: frozenset[str]
     url_pattern: tuple[str, str] | None
 
     @classmethod
-    def from_value(cls, value: str) -> ChannelSelector:
+    def from_value(cls, value: str) -> _ChannelSelector:
         return cls(
-            value=value,
             keys=cls.keys_for(value),
             url_pattern=(
                 cls.url_match_parts(value)
@@ -139,7 +137,7 @@ class ChannelSelector:
     ) -> frozenset[str]:
         keys = set()
         for field in ("channel", "schannel", "url"):
-            keys.update(cls.keys_for(ExcludeNewerPolicy.record_value(record, field)))
+            keys.update(cls.keys_for(_get_value(record, field)))
         return frozenset(keys)
 
     @classmethod
@@ -197,12 +195,12 @@ class ChannelSelector:
 
 
 @dataclass(frozen=True)
-class ChannelCutoff:
+class _ChannelCutoff:
     """Resolved channel-specific ``exclude_newer`` cutoff."""
 
     SETTING_KEYS = ("exclude_newer", "exclude-newer")
 
-    selector: ChannelSelector
+    selector: _ChannelSelector
     cutoff: float | None
 
     @classmethod
@@ -210,7 +208,7 @@ class ChannelCutoff:
         cls,
         settings: Mapping[str, Any],
         parser: _CutoffParser,
-    ) -> ChannelCutoff | None:
+    ) -> _ChannelCutoff | None:
         channel = str(settings.get("channel", "")).strip()
         if not channel:
             return None
@@ -232,7 +230,7 @@ class ChannelCutoff:
             if cutoff is None:
                 return None
 
-        return cls(ChannelSelector.from_value(channel), cutoff)
+        return cls(_ChannelSelector.from_value(channel), cutoff)
 
     def matches(self, record: PackageRecord | Mapping[str, Any]) -> bool:
         return self.selector.matches(record)
@@ -248,13 +246,9 @@ class ExcludeNewerPolicy:
     """
 
     global_cutoff: float | None = None
-    channel_cutoffs: tuple[ChannelCutoff, ...] = ()
+    channel_cutoffs: tuple[_ChannelCutoff, ...] = ()
     package_cutoffs: dict[str, float | None] | None = None
     now: float = 0.0
-
-    @classmethod
-    def disabled(cls) -> ExcludeNewerPolicy:
-        return cls()
 
     @classmethod
     def from_values(
@@ -271,7 +265,7 @@ class ExcludeNewerPolicy:
         channel_cutoffs = tuple(
             channel_cutoff
             for settings in channel_settings or ()
-            if (channel_cutoff := ChannelCutoff.from_settings(settings, parser))
+            if (channel_cutoff := _ChannelCutoff.from_settings(settings, parser))
             is not None
         )
 
@@ -291,7 +285,7 @@ class ExcludeNewerPolicy:
             and not any(cutoff is not None for cutoff in package_cutoffs.values())
             and not any(cutoff.cutoff is not None for cutoff in channel_cutoffs)
         ):
-            return cls.disabled()
+            return cls()
 
         return cls(
             global_cutoff=global_cutoff,
@@ -322,19 +316,10 @@ class ExcludeNewerPolicy:
     def has_channel_overrides(self) -> bool:
         return bool(self.channel_cutoffs) and self.active
 
-    def cutoff_for(self, package_name: str | None) -> float | None:
-        if (
-            package_name
-            and self.package_cutoffs
-            and package_name in self.package_cutoffs
-        ):
-            return self.package_cutoffs[package_name]
-        return self.global_cutoff
-
-    def cutoff_for_record(
+    def _cutoff_for_record(
         self, record: PackageRecord | Mapping[str, Any]
     ) -> float | None:
-        package_name = self.record_value(record, "name")
+        package_name = _get_value(record, "name")
         if (
             package_name
             and self.package_cutoffs
@@ -349,11 +334,11 @@ class ExcludeNewerPolicy:
         return self.global_cutoff
 
     def should_include(self, record: PackageRecord | Mapping[str, Any]) -> bool:
-        cutoff = self.cutoff_for_record(record)
+        cutoff = self._cutoff_for_record(record)
         if cutoff is None:
             return True
 
-        timestamp = self.timestamp_for(record)
+        timestamp = _get_timestamp(record)
         if timestamp is None:
             return True
 
@@ -373,23 +358,19 @@ class ExcludeNewerPolicy:
             return ()
         return tuple(record for record in records if not self.should_include(record))
 
-    @staticmethod
-    def timestamp_for(record: PackageRecord | Mapping[str, Any]) -> float | None:
-        value = ExcludeNewerPolicy.record_value(
-            record, "indexed_timestamp"
-        ) or ExcludeNewerPolicy.record_value(record, "timestamp")
 
-        if not value:
-            return None
+def _get_timestamp(record: PackageRecord | Mapping[str, Any]) -> float | None:
+    value = _get_value(record, "indexed_timestamp") or _get_value(record, "timestamp")
+    if not value:
+        return None
 
-        try:
-            timestamp = normalize_timestamp_seconds(value)
-        except (TypeError, ValueError):
-            return None
-        return timestamp
+    try:
+        return normalize_timestamp_seconds(value)
+    except (TypeError, ValueError):
+        return None
 
-    @staticmethod
-    def record_value(record: PackageRecord | Mapping[str, Any], key: str) -> Any:
-        if hasattr(record, "get"):
-            return record.get(key)
-        return getattr(record, key, None)
+
+def _get_value(record: PackageRecord | Mapping[str, Any], key: str) -> Any:
+    if hasattr(record, "get"):
+        return record.get(key)
+    return getattr(record, key, None)
