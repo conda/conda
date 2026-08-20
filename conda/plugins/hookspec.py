@@ -738,7 +738,9 @@ class CondaSpecs:
             from subprocess import run
             from conda import plugins
             from conda.plugins.types import EnvironmentSpecBase
-            from conda.env.env import Environment
+            from conda.base.context import context
+            from conda.models.environment import Environment
+            from conda.models.match_spec import MatchSpec
 
             packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
 
@@ -765,10 +767,12 @@ class CondaSpecs:
                     # If more than one plugin can handle the file, the user will need to go
                     # through an additional step to select the proper plugin.
 
+                @property
                 def env(self):
                     return Environment(
+                        platform=context.subdir,
                         name="".join(random.choice("0123456789abcdef") for i in range(6)),
-                        dependencies=[random.choice(packages) for i in range(6)],
+                        requested_packages=[MatchSpec(random.choice(packages)) for i in range(6)],
                     )
 
 
