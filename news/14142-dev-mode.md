@@ -4,11 +4,11 @@
 
 ### Bug fixes
 
-* Do not rewrite `CONDA_EXE` from `--dev` or `context.dev` on `conda activate` / hook, so `CONDA_EXE` is retained across stacking and reactivate. (#14142 via #16571, #15696 via #16571)
+* Do not force `context.dev` off when `--dev` is absent from `conda activate` / hook, so `CONDA_EXE` is retained across stacking and reactivate. (#14142 via #16571, #15696 via #16571)
 
 ### Deprecations
 
-* Mark `conda activate --dev`, `conda create --dev`, `conda install --dev`, `conda remove --dev`, `conda init --dev`, `conda.base.context.Context.dev`, and `conda.utils.wrap_subprocess_call(dev_mode)` as pending deprecation, to be removed in 27.9. Those knobs warn and have no effect. Conda always unsets `_CE_M` and `_CE_CONDA`; shell expansion of those variables remains. Set `PYTHONPATH` to the conda source root instead. (#14142 via #16571)
+* Mark `conda activate --dev`, `conda create --dev`, `conda install --dev`, `conda remove --dev`, `conda.base.context.Context.dev`, and `conda.utils.wrap_subprocess_call(dev_mode)` as pending deprecation, to be removed in 27.9. Conda will stop exporting `_CE_M` and `_CE_CONDA` except when `--dev` is passed; shell expansion of those variables remains. Set `PYTHONPATH` to the conda source root instead. (#14142 via #16571)
 
 ### Docs
 

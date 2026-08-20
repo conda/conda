@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextlib import nullcontext
 from logging import getLogger
 from os.path import join
 from pathlib import Path
@@ -2259,14 +2260,19 @@ def test_dev_flag_deprecation(
     reset_context()
     assert context._dev is conda_dev
 
-    # calling without --dev should not be deprecated
-    PosixActivator([command]).execute()
+    # pickup dev_mode from context
+    with (
+        pytest.deprecated_call()
+        if conda_dev and command in ("activate", "hook")
+        else nullcontext()
+    ):
+        PosixActivator([command]).execute()
     assert context._dev is conda_dev
 
-    # calling with --dev should be deprecated
+    # pickup dev_mode from command line
     with pytest.deprecated_call():
         PosixActivator([command, "--dev"]).execute()
-    assert context._dev is conda_dev
+    assert context._dev is True
 
 
 @pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))

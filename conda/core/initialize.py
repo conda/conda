@@ -265,6 +265,9 @@ def _initialize_dev_bash(prefix, env_vars, unset_env_vars):
 
 
 def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
+    dev_arg = ""
+    if context._dev:
+        dev_arg = "--dev"
     condabin = Path(prefix, "condabin")
 
     yield (
@@ -279,12 +282,12 @@ def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
     )
 
     # initialize shell interface
-    yield f'@CALL "{condabin / "conda_hook.bat"}"'
+    yield f'@CALL "{condabin / "conda_hook.bat"}" {dev_arg}'
     yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
 
     # optionally activate environment
     if context.auto_activate:
-        yield f'@CALL "{condabin / "conda.bat"}" activate "{prefix}"'
+        yield f'@CALL "{condabin / "conda.bat"}" activate {dev_arg} "{prefix}"'
         yield "@IF %ERRORLEVEL% NEQ 0 @EXIT /B %ERRORLEVEL%"
 
 

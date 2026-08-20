@@ -199,9 +199,14 @@ def wrap_subprocess_call(
         multiline = True
     if on_win:
         comspec = get_comspec()  # fail early with KeyError if undefined
-        conda_bat = environ.get(
-            "CONDA_BAT", abspath(join(root_prefix, "condabin", "conda.bat"))
-        )
+        if dev_mode:
+            from . import CONDA_PACKAGE_ROOT
+
+            conda_bat = join(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
+        else:
+            conda_bat = environ.get(
+                "CONDA_BAT", abspath(join(root_prefix, "condabin", "conda.bat"))
+            )
         with Utf8NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as fh:
             silencer = "" if debug_wrapper_scripts else "@"
             fh.write(f"{silencer}ECHO OFF\n")
@@ -211,6 +216,17 @@ def wrap_subprocess_call(
                 f'{silencer}FOR /F "tokens=2 delims=:." %%A in (\'chcp\') do for %%B in (%%A) do set "_CONDA_OLD_CHCP=%%B"\n'
             )
             fh.write(f"{silencer}chcp 65001 > NUL\n")
+            if dev_mode:
+                from . import CONDA_SOURCE_ROOT
+
+                fh.write(f"{silencer}SET CONDA_DEV=1\n")
+                # In dev mode, conda is really:
+                # 'python -m conda'
+                # *with* PYTHONPATH set.
+                fh.write(f"{silencer}SET PYTHONPATH={CONDA_SOURCE_ROOT}\n")
+                fh.write(f"{silencer}SET CONDA_EXE={sys.executable}\n")
+                fh.write(f"{silencer}SET _CE_M=-m\n")
+                fh.write(f"{silencer}SET _CE_CONDA=conda\n")
             if debug_wrapper_scripts:
                 fh.write("echo *** environment before *** 1>&2\n")
                 fh.write("SET 1>&2\n")
@@ -264,16 +280,30 @@ def wrap_subprocess_call(
         if shell_path is None:
             raise Exception("No compatible shell found!")
 
-        conda_exe = [
-            environ.get("CONDA_EXE", abspath(join(root_prefix, "bin", "conda")))
-        ]
+        # During tests, we sometimes like to have a temp env with e.g. an old python in it
+        # and have it run tests against the very latest development sources. For that to
+        # work we need extra smarts here, we want it to be instead:
+        if dev_mode:
+            conda_exe = [abspath(join(root_prefix, "bin", "python")), "-m", "conda"]
+            dev_arg = "--dev"
+            dev_args = [dev_arg]
+        else:
+            conda_exe = [
+                environ.get("CONDA_EXE", abspath(join(root_prefix, "bin", "conda")))
+            ]
+            dev_arg = ""
+            dev_args = []
         with Utf8NamedTemporaryFile(mode="w", delete=False) as fh:
-            hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook")
+            if dev_mode:
+                from . import CONDA_SOURCE_ROOT
+
+                fh.write(">&2 export PYTHONPATH=" + CONDA_SOURCE_ROOT + "\n")
+            hook_quoted = quote_for_shell(*conda_exe, "shell.posix", "hook", *dev_args)
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment before ***'\n>&2 env\n")
                 fh.write(f'>&2 echo "$({hook_quoted})"\n')
             fh.write(f'eval "$({hook_quoted})"\n')
-            fh.write(f"conda activate {quote_for_shell(prefix)}\n")
+            fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
             if multiline:
