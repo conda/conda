@@ -163,7 +163,7 @@ def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> Sh
     legacy_packages = repodata.get("packages", {})
     conda_packages = repodata.get("packages.conda", {})
 
-    return {
+    result = {
         **repodata,
         "packages": {
             k: v
@@ -171,6 +171,20 @@ def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> Sh
             if f"{k[:-_len_tar_bz2]}{_conda}" not in conda_packages
         },
     }
+
+    if v3 := repodata.get("v3"):
+        v3_conda = v3.get("conda", {})
+        result = {
+            **result,
+            "v3": {
+                **v3,
+                "tar.bz2": {
+                    k: v for k, v in v3.get("tar.bz2", {}).items() if k not in v3_conda
+                },
+            },
+        }
+
+    return result
 
 
 def combine_batches_until_none(
