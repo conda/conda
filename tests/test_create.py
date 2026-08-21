@@ -2328,6 +2328,10 @@ def root_prefix_with_conda(
     return _conda_root_prefix_env
 
 
+@pytest.mark.skipif(
+    "conda-forge" in context.channels,
+    reason="Slow test with classic solver and conda-forge: takes ~345s on Linux CI",
+)
 @pytest.mark.parametrize(
     "remove_order",
     [("conda", "pycosat"), ("pycosat", "conda")],
