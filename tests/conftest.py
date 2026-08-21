@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -53,9 +54,29 @@ pytest_plugins = (
 @pytest.hookimpl
 def pytest_report_header(config: pytest.Config):
     # ensuring the expected development conda is being run
-    expected = Path(__file__).parent.parent / "conda" / "__init__.py"
+    source_root = Path(__file__).parent.parent
+    expected = source_root / "conda" / "__init__.py"
     assert expected.samefile(conda.__file__)
-    return f"conda.__file__: {conda.__file__}"
+
+    # shell.X hook and wrap_subprocess_call read these from CONDA_PACKAGE_ROOT
+    from conda.activate import PosixActivator
+
+    conda_sh = PosixActivator.hook_source_path
+    expected_sh = source_root / "conda" / "shell" / "etc" / "profile.d" / "conda.sh"
+    assert expected_sh.samefile(conda_sh)
+
+    conda_bat = Path(conda.CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
+    expected_bat = source_root / "conda" / "shell" / "condabin" / "conda.bat"
+    assert expected_bat.samefile(conda_bat)
+
+    lines = [
+        f"conda.__file__: {conda.__file__}",
+        f"conda.sh: {conda_sh}",
+        f"conda.bat: {conda_bat}",
+        f"CONDA_EXE: {os.environ.get('CONDA_EXE')}",
+        f"CONDA_BAT: {os.environ.get('CONDA_BAT')}",
+    ]
+    return lines
 
 
 @pytest.fixture

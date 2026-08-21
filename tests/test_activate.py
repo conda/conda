@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextlib import nullcontext
 from logging import getLogger
 from os.path import join
 from pathlib import Path
@@ -2246,6 +2247,36 @@ def test_activator_invalid_command_arguments(command_args, expected_error_messag
 
     with pytest.raises(ArgumentError, match=expected_error_message):
         activator.execute()
+
+
+@pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
+@pytest.mark.parametrize("conda_dev", [False, True])
+def test_dev_flag_deprecation(
+    command: str,
+    conda_dev: bool,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_DEV", str(int(conda_dev)))
+    reset_context()
+    assert context._dev is conda_dev
+
+    # pickup dev_mode from context
+    with (
+        pytest.deprecated_call()
+        if conda_dev and command in ("activate", "hook")
+        else nullcontext()
+    ):
+        PosixActivator([command]).execute()
+    assert context._dev is conda_dev
+
+    # pickup dev_mode from command line
+    with pytest.deprecated_call():
+        PosixActivator([command, "--dev"]).execute()
+    assert context._dev is True
+
+    # reset_context clears the override, restoring the configured value
+    reset_context()
+    assert context._dev is conda_dev
 
 
 @pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))
