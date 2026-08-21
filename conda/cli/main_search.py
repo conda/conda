@@ -257,12 +257,17 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise NoChannelsConfiguredError(
                 packages=[spec.name] if spec.get_exact_value("name") else [],
             )
-        matches = query_all(spec, channel_urls, subdirs)
+        exclude_newer_policy = context.exclude_newer_policy
+        matches = exclude_newer_policy.filter_records(
+            query_all(spec, channel_urls, subdirs)
+        )
     if not matches and not args.skip_flexible_search and spec.get_exact_value("name"):
         flex_spec = MatchSpec(spec, name=f"*{spec.name}*")
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
-        matches = query_all(flex_spec, channel_urls, subdirs)
+        matches = exclude_newer_policy.filter_records(
+            query_all(flex_spec, channel_urls, subdirs)
+        )
     if not matches:
         from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls
