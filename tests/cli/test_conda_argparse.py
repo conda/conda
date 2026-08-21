@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import warnings
 from inspect import isclass, isfunction
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -173,7 +174,9 @@ def test_dev_flag_absent_is_not_deprecated() -> None:
     assert not args.dev
 
 
-def test_init_dev_is_not_deprecated() -> None:
-    parser = generate_parser()
-    args = parser.parse_args(["init", "--dev"])
-    assert args.dev
+def test_init_dev_is_not_deprecated(conda_cli: CondaCLIFixture) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", PendingDeprecationWarning)
+        _, stderr, rc = conda_cli("init", "--dev", "--dry-run", "bash")
+
+    assert rc == 0, stderr

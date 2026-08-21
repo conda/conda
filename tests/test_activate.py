@@ -2260,24 +2260,23 @@ def test_dev_flag_deprecation(
     reset_context()
     assert context._dev is conda_dev
 
-    try:
-        # pickup dev_mode from context
-        with (
-            pytest.deprecated_call()
-            if conda_dev and command in ("activate", "hook")
-            else nullcontext()
-        ):
-            PosixActivator([command]).execute()
-        assert context._dev is conda_dev
+    # pickup dev_mode from context
+    with (
+        pytest.deprecated_call()
+        if conda_dev and command in ("activate", "hook")
+        else nullcontext()
+    ):
+        PosixActivator([command]).execute()
+    assert context._dev is conda_dev
 
-        # pickup dev_mode from command line
-        with pytest.deprecated_call():
-            PosixActivator([command, "--dev"]).execute()
-        assert context._dev is True
-    finally:
-        # context.dev = True plants instance __dict__; monkeypatch/reset_context do not undo it
-        context.__dict__.pop("_dev", None)
-        reset_context()
+    # pickup dev_mode from command line
+    with pytest.deprecated_call():
+        PosixActivator([command, "--dev"]).execute()
+    assert context._dev is True
+
+    # reset_context clears the override, restoring the configured value
+    reset_context()
+    assert context._dev is conda_dev
 
 
 @pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))

@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Do not force `context.dev` off when `--dev` is absent from `conda activate` / hook, so `CONDA_EXE` is retained across stacking and reactivate. (#14142 via #16571, #15696 via #16571)
+* Do not force `context.dev` off when `--dev` is absent from `conda activate` / hook, so configuration-backed dev mode (`CONDA_DEV` / `dev: true`) retains `CONDA_EXE` across stacking and reactivation. (#14142 via #16571, #15696 via #16571)
 
 ### Deprecations
 

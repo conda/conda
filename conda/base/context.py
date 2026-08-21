@@ -615,8 +615,7 @@ class Context(Configuration):
 
     @dev.setter
     def dev(self, value: bool) -> None:
-        self._dev = value
-        self._cache_.pop("_dev", None)
+        self._cache_["_dev"] = value
 
     @property
     @deprecated(
@@ -904,6 +903,7 @@ class Context(Configuration):
                 "27.9",
                 topic="`conda.base.context.Context.dev`",
                 addendum="Set `PYTHONPATH` to the conda source root instead.",
+                deprecation_type=FutureWarning,
             )
             if pythonpath := os.environ.get("PYTHONPATH", ""):
                 pythonpath = os.pathsep.join((CONDA_SOURCE_ROOT, pythonpath))
