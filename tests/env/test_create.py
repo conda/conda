@@ -157,22 +157,19 @@ def test_create_advanced_pip(
 @pytest.mark.filterwarnings("ignore:.*yaml_safe.*:PendingDeprecationWarning")
 @pytest.mark.integration
 def test_create_empty_env(
-    monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    with pytest.deprecated_call(
-        match=r"The environment file is not fully CEP 24 compliant",
-    ):
-        conda_cli(
-            "env",
-            "create",
-            f"--name={env_name}",
-            f"--file={support_file('empty_env.yml')}",
-        )
+    conda_cli(
+        "env",
+        "create",
+        f"--name={env_name}",
+        f"--file={support_file('empty_env.yml')}",
+        "--format=environment.yml",
+    )
 
     assert prefix.exists()
 
@@ -417,22 +414,12 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     monkeypatch: MonkeyPatch,
 ):
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
-
-    # The environment file is not fully CEP 24 compliant is pending deprecation and will be removed in 26.9. In the future, this configuration will be rejected. Please fix the following errors in order to make the configuration valid:
-    #   - Missing required field 'dependencies'
-
-    with pytest.deprecated_call(
-        match=(
-            r"(?s)The environment file is not fully CEP 24 compliant.+"
-            r"Missing required field 'dependencies'"
-        ),
-    ):
-        stdout, _, _ = conda_cli(
-            "env",
-            "create",
-            f"--prefix={path_factory()}",
-            f"--file={support_file('invalid_keys.yml')}",
-        )
+    stdout, _, _ = conda_cli(
+        "env",
+        "create",
+        f"--prefix={path_factory()}",
+        f"--file={support_file('invalid_keys.yml')}",
+    )
 
     # EnvironmentSectionNotValid should only appear once in the output
     assert stdout.count("EnvironmentSectionNotValid") == 1
