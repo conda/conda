@@ -5,8 +5,8 @@ Subject: [PATCH] conda-forge fixes
 
 ---
  pywin32.pth | 15 ++++++++-------
- setup.py    |  5 +++--
- 2 files changed, 11 insertions(+), 9 deletions(-)
+ setup.py    | 23 +++++++++++++++----------
+ 2 files changed, 24 insertions(+), 21 deletions(-)
 
 diff --git a/pywin32.pth b/pywin32.pth
 index 9e4a42c..02a6927 100644
@@ -51,3 +51,28 @@ index ee27895..cd5e8c6 100644
      "pythonwin.pywin.tools",
      "isapi",
      "adodbapi",
+@@ -2120,15 +2121,15 @@ if "build_ext" in dist.command_obj:
+     # Print the list of extension modules we skipped building.
+     excluded_extensions = dist.command_obj["build_ext"].excluded_extensions
+     if excluded_extensions:
+-        # Set of extension names that are acceptable to skip for a release build
+-        skip_whitelist = set()
+-        if is_mingw:
+-            # On MinGW, allow excluded ext/exe due to missing ATL/MFC headers (typically PythonWin)
+-            skip_whitelist |= {
+-                ext.name
+-                for ext in [*pythonwin_extensions, *W32_exe_files]
+-                if "afxwin.h" in ext.optional_headers
+-            }
++        # Set of extension names that are acceptable to skip for a release build.
++        # conda-forge's Windows builds don't provide MFC/ATL headers regardless
++        # of whether MSVC or MinGW is used, so always allow excluded ext/exe
++        # due to missing MFC headers (typically PythonWin/win32ui/win32uiole/dde).
++        skip_whitelist = {
++            ext.name
++            for ext in [*pythonwin_extensions, *W32_exe_files]
++            if "afxwin.h" in ext.optional_headers
++        }
+         skipped_ex = []
+         print(f"*** NOTE: The following extensions were NOT {what_string}:")
+         for ext, why in excluded_extensions:
