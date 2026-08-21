@@ -168,6 +168,21 @@ class TestMiscModule:
         result = filter_redundant_packages(repodata, use_only_tar_bz2=False)
         assert "pkg.tar.bz2" in result["packages"]
 
+    def test_filter_redundant_packages_v3_key_present(self):
+        repodata = {
+            "packages": {},
+            "packages.conda": {},
+            "v3": {
+                "tar.bz2": {"pkg-1.0-0": {"name": "pkg"}},
+                "conda": {"pkg-1.0-0": {"name": "pkg"}},
+                "whl": {"other-1.0-py3_0": {"name": "other"}},
+            },
+        }
+        result = filter_redundant_packages(repodata)
+        assert "pkg-1.0-0" not in result["v3"]["tar.bz2"]
+        assert "pkg-1.0-0" in result["v3"]["conda"]
+        assert "other-1.0-py3_0" in result["v3"]["whl"]
+
     def test_combine_batches_until_none(self):
         """Test combine_batches_until_none yields batches until None"""
         test_queue: SimpleQueue = queue.SimpleQueue()
