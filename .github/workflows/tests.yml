@@ -233,6 +233,9 @@ jobs:
           name: freethreaded-packages-${{ runner.os }}-${{ runner.arch }}
           path: freethreaded-packages/
 
+      - name: Install conda-index
+        run: conda install --yes conda-index
+
       - name: Index Freethreaded Packages
         shell: bash  # use bash for consistent path handling
         run: conda index freethreaded-packages/
