@@ -1,0 +1,22 @@
+### Title
+Short name for the QA scenario.
+
+### Why
+One or two sentences: user impact / regression risk.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+Channels, plugins, env vars, mock servers. Say "none" if none.
+
+### Steps
+Numbered blackbox steps a non-author can follow.
+
+### Pass criteria
+Observable success / failure conditions.
+
+### Out of scope / notes
+What not to test; pointer to automated tests if relevant.
