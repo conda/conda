@@ -677,6 +677,9 @@ class CompileMultiPycAction(MultiPathAction):
         requested_link_type,
         file_link_actions,
     ):
+        if not context.compile_pyc:
+            return ()
+
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
             noarch_py_file_re = re.compile(r"^site-packages[/\\][^\t\n\r\f\v]+\.py$")
