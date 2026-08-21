@@ -201,6 +201,7 @@ exclude = [
   "conda/auxlib",
   "tests/data/conda_format_repo",
   "tests/data/env_metadata",
+  "threaded-recipes",
 ]
 show-fixes = true
 

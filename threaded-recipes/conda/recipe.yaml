@@ -1,0 +1,120 @@
+schema_version: 1
+
+# This recipe builds `conda` itself (from the local checkout, i.e. the
+# repository this recipe lives in) as a cp314t (freethreaded Python 3.14)
+# package, so it can be tested/distributed alongside the other
+# threaded-recipes blockers (pycosat, menuinst, libmambapy, conda-pypi,
+# xonsh/pywin32).
+#
+# The version string is *not* computed via git-describe jinja helpers (those
+# are conda-build-specific and unavailable here). Instead it is forwarded in
+# from the calling shell through the CONDA_VERSION_OVERRIDE environment
+# variable -- see build-freethreaded-deps.sh, which computes it the same way
+# recipe/meta.yaml does: <tag>.<commits-since-tag>+<short-hash>.
+context:
+  version: ${{ env.get("CONDA_VERSION_OVERRIDE", default="0.0.0.dev0") }}
+
+package:
+  name: conda
+  version: ${{ version }}
+
+source:
+  # Local checkout. Only the files actually needed to build+install the
+  # `conda` distribution are copied in, both to keep the copy fast and to
+  # avoid recursively copying build outputs (e.g. freethreaded-packages/)
+  # that may live alongside the recipe in the repo root.
+  path: ../..
+  filter:
+    include:
+      - conda/**
+      - pyproject.toml
+      - README.md
+      - LICENSE
+      - AUTHORS.md
+
+build:
+  number: 0
+  script:
+    env:
+      # hatch-vcs (setuptools-scm) can't determine a version without a git
+      # history, which the filtered source copy above intentionally omits.
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content:
+      - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+      # Installs the conda shell hooks (bin/conda, activate, deactivate, ...);
+      # any files it creates under $PREFIX are automatically picked up by
+      # rattler-build.
+      - ${{ PYTHON }} -m conda init --install
+
+requirements:
+  host:
+    - python
+    - pip
+    - hatchling >=1.12.2
+    - hatch-vcs >=0.2.0
+    # imported by `conda init --install` in build/script above
+    - boltons >=23.0.0
+    - frozendict >=2.4.2
+    - menuinst >=2
+    - platformdirs >=3.10.0
+    - requests >=2.28.0,<3
+    - ruamel.yaml >=0.11.14,<0.19
+    - tqdm >=4
+  run:
+    - python
+    - archspec >=0.2.3
+    - if: match(python, "<3.14")
+      then: backports.zstd >=1.3.0
+    - boltons >=23.0.0
+    - charset-normalizer
+    - conda-package-handling >=2.2.0
+    - distro >=1.5.0
+    - frozendict >=2.4.2
+    - menuinst >=2
+    - msgpack-python >=1.1.1
+    - packaging >=23.0
+    - platformdirs >=3.10.0
+    - pluggy >=1.6.0
+    - pycosat >=0.6.3
+    - requests >=2.28.0,<3
+    - ruamel.yaml >=0.11.14,<0.19
+    - setuptools >=60.0.0
+    - tqdm >=4
+    - truststore >=0.8.0
+    # plugins bundled with conda
+    - conda-libmamba-solver >=26.4.1
+    - conda-lockfiles >=0.2.0
+    - conda-pypi >=0.10.1
+    # - conda-rattler-solver >=0.1.1
+    - conda-self >=0.2.0
+
+tests:
+  - python:
+      imports:
+        - conda
+        - conda.plugins.subcommands.doctor
+      pip_check: false
+  - script:
+      - conda --help
+      - conda info --help
+      - conda create --help
+      - conda install --help
+      - conda list --help
+      - conda remove --help
+      - conda run --help
+      - conda search --help
+      - conda update --help
+      # sanity check that this interpreter is actually free-threaded
+      - python check_freethreaded.py
+
+about:
+  homepage: https://conda.org
+  repository: https://github.com/conda/conda
+  documentation: https://conda.io/projects/conda/en/latest/
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Freethreaded (cp314t) test build of conda, built from the local checkout
+
+extra:
+  recipe-maintainers:
+    - conda

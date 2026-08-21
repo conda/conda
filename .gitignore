@@ -46,3 +46,6 @@ rever/
 
 # setuptools-scm
 conda/_version.py
+
+# build-freethreaded-deps.sh default output
+/freethreaded-packages/

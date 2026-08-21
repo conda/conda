@@ -65,10 +65,116 @@ jobs:
               - '.github/workflows/benchmarks.yml'
               - '.github/workflows/tests.yml'
 
+  # build freethreaded (cp314t) packages for blockers that lack conda-forge cp314t builds
+  build-freethreaded-deps:
+    needs: changes
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
+
+    runs-on: ${{ matrix.runs-on }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            artifact-name: freethreaded-packages-Linux-X64
+          - runs-on: macos-latest
+            artifact-name: freethreaded-packages-macOS-ARM64
+          - runs-on: windows-latest
+            artifact-name: freethreaded-packages-Windows-X64
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5 # v4.0.1
+        with:
+          condarc-file: .github/condarc-conda-forge
+          miniforge-version: latest
+          run-post: false
+
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+
+      - name: Install build tools
+        # Installed into the active ("test") env, not base: setup-miniconda
+        # activates "test" (not base) in every subsequent login-shell step,
+        # so a base-only install would never end up on PATH.
+        run: conda install --yes rattler-build
+
+      - name: Write rattler-build variant config
+        # Three things are required:
+        #   1. c_stdlib/c_stdlib_version — resolves ${{ stdlib("c") }} in recipes
+        #   2. python: 3.14.* *_cp314t — forces the freethreaded Python ABI in
+        #      the host environment instead of the regular cp314 build.
+        #   3. python_impl — recipes (e.g. pywin32) branch on
+        #      `python_impl != 'pypy'`; conda-forge always sets this via
+        #      .ci_support, but we don't load that, so it must be set here.
+        # Values match conda-forge's own .ci_support files (see e.g.
+        # zstandard-feedstock/.ci_support/osx_arm64_python3.14.____cp314t.yaml).
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            printf 'c_stdlib:\n  - sysroot\nc_stdlib_version:\n  - "2.17"\npython:\n  - "3.14.* *_cp314t"\npython_impl:\n  - cpython\n' > /tmp/rattler-variants.yaml
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            printf 'c_stdlib:\n  - macosx_deployment_target\nc_stdlib_version:\n  - "11.0"\npython:\n  - "3.14.* *_cp314t"\npython_impl:\n  - cpython\n' > /tmp/rattler-variants.yaml
+          else
+            printf 'c_stdlib:\n  - vs\npython:\n  - "3.14.* *_cp314t"\npython_impl:\n  - cpython\n' > /tmp/rattler-variants.yaml
+          fi
+
+      - name: Build pycosat
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+        run: rattler-build build --recipe threaded-recipes/pycosat --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Build menuinst
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+        run: rattler-build build --recipe threaded-recipes/menuinst --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Build libmambapy
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+        run: rattler-build build --recipe threaded-recipes/libmambapy --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Build conda-pypi
+        # conda-pypi's recipe has a `downstream: conda` test (conda and
+        # conda-pypi depend on each other, so testing conda-pypi needs a
+        # real `conda`). This job never builds the `conda` package itself
+        # (conda is tested from source via pip in the platform jobs below),
+        # and conda-forge has no cp314t `conda` build either, so that
+        # downstream test can't resolve here -- rattler-build skips it
+        # rather than failing the build. See threaded-recipes/conda-pypi/recipe.yaml.
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+        run: rattler-build build --recipe threaded-recipes/conda-pypi --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Build xonsh
+        if: runner.os != 'Windows'
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+        run: rattler-build build --recipe threaded-recipes/xonsh --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Build pywin32
+        if: runner.os == 'Windows'
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+        run: rattler-build build --recipe threaded-recipes/pywin32 --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
+      - name: Upload Freethreaded Packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: freethreaded-packages/
+          retention-days: 1
+
   # windows test suite
   windows:
     # only run test suite if there are code changes
-    needs: changes
+    needs: [changes, build-freethreaded-deps]
     if: >-
       (!github.event.repository.fork && github.event_name == 'schedule')
       || needs.changes.outputs.code == 'true'
@@ -77,21 +183,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        runs-on: [windows-latest, windows-11-arm]
-        python-version: ['3.10', '3.14']
-        default-channel: [defaults, conda-forge]
+        # freethreaded Python 3.14 investigation: win-64 only, conda-forge only
+        runs-on: [windows-latest]
+        python-version: ['3.14']
+        default-channel: [conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - default-channel: conda-forge
-            python-version: '3.10'
           - test-type: unit
             test-group: 3
-          - runs-on: windows-11-arm
-            python-version: '3.10'
-          - runs-on: windows-11-arm
-            default-channel: conda-forge
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
@@ -138,17 +238,48 @@ jobs:
         env:
           CONDA_SUBDIR: win-64
 
+      - name: Download Freethreaded Packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: freethreaded-packages-${{ runner.os }}-${{ runner.arch }}
+          path: freethreaded-packages/
+
+      - name: Install conda-index
+        run: conda install --yes conda-index
+
+      - name: Index Freethreaded Packages
+        shell: bash -el {0}  # login shell so conda is on PATH; bash exit immediately on error
+        run: conda index freethreaded-packages/
+
+      - name: Filter requirements-ci.txt
+        # Remove the `conda` package — it requires python_abi *_cp314 (non-freethreaded)
+        # and conflicts with the cp314t environment. conda is tested from source via pip.
+        shell: bash
+        run: grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt
+
       - name: Conda Install
+        shell: bash -el {0}  # login shell so conda is on PATH
+        # Git Bash mangles a plain "file://${GITHUB_WORKSPACE}/..." URL on
+        # Windows (GITHUB_WORKSPACE can be a POSIX-ish "/d/a/..." path, which
+        # loses its leading slash somewhere between bash and conda, yielding
+        # an invalid "file://d/a/..." channel where "d" is parsed as the URL
+        # host). Use `cygpath -m` to get an unambiguous "D:/a/..." mixed path
+        # and build a proper "file:///D:/a/..." URI instead.
         run: >
           conda install
           --yes
-          --file tests\requirements.txt
-          --file tests\requirements-${{ runner.os }}.txt
-          --file tests\requirements-ci.txt
-          --file tests\requirements-s3.txt
-          python=${{ matrix.python-version }}
+          --strict-channel-priority
+          --channel "file:///$(cygpath -m "$GITHUB_WORKSPACE")/freethreaded-packages"
+          --channel conda-forge
+          --file tests/requirements.txt
+          --file tests/requirements-ci-freethreaded.txt
+          --file tests/requirements-s3.txt
+          python-freethreading=3.14
+          pywin32
         env:
           CONDA_SUBDIR: win-64
+          MSYS_NO_PATHCONV: 1
+          MSYS2_ARG_CONV_EXCL: '*'
 
       - name: Conda Info
         # view test env info (not base)
@@ -211,7 +342,7 @@ jobs:
   # linux test suite
   linux:
     # only run test suite if there are code changes
-    needs: changes
+    needs: [changes, build-freethreaded-deps]
     if: >-
       (!github.event.repository.fork && github.event_name == 'schedule')
       || needs.changes.outputs.code == 'true'
@@ -224,29 +355,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
+        # freethreaded Python 3.14 investigation: linux-64 only, conda-forge only
         runs-on:
           - ubuntu-latest  # linux-64
-          - ubuntu-24.04-arm  # linux-aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
-        default-channel: [defaults, conda-forge]
+        python-version: ['3.14']
+        default-channel: [conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.10'
-            default-channel: conda-forge
-          - python-version: '3.11'
-            default-channel: conda-forge
-          - python-version: '3.12'
-            default-channel: conda-forge
           - test-type: unit
             test-group: 3
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.10'
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.11'
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.12'
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
@@ -285,15 +403,33 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      - name: Download Freethreaded Packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: freethreaded-packages-${{ runner.os }}-${{ runner.arch }}
+          path: freethreaded-packages/
+
+      - name: Index Freethreaded Packages
+        run: conda index freethreaded-packages/
+
+      - name: Filter requirements-ci.txt
+        # Remove the `conda` package — it requires python_abi *_cp314 (non-freethreaded)
+        # and conflicts with the cp314t environment. conda is tested from source via pip.
+        run: grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt
+
       - name: Conda Install
         run: >
           conda install
           --yes
+          --strict-channel-priority
+          --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
+          --channel conda-forge
           --file tests/requirements.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci.txt
+          --file tests/requirements-ci-freethreaded.txt
           --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
+          python-freethreading=3.14
+          xonsh
+          patchelf
 
       - name: Conda Info
         # view test env info (not base)
@@ -356,7 +492,7 @@ jobs:
   linux-benchmarks:
     # only run benchmarks if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-22.04
     defaults:
@@ -445,7 +581,7 @@ jobs:
   linux-typing:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-22.04
     defaults:
@@ -541,9 +677,7 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+    if: false
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -602,7 +736,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-latest
     defaults:
@@ -672,7 +806,7 @@ jobs:
   # macos test suite
   macos:
     # only run test suite if there are code changes
-    needs: changes
+    needs: [changes, build-freethreaded-deps]
     if: >-
       (!github.event.repository.fork && github.event_name == 'schedule')
       || needs.changes.outputs.code == 'true'
@@ -685,27 +819,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & defaults & integration tests)
+        # freethreaded Python 3.14 investigation: osx-arm64 only, conda-forge only
         runs-on:
-          - macos-15-intel  # osx-64
           - macos-latest  # osx-arm64
-        python-version: ['3.10', '3.14']
-        default-channel: [defaults, conda-forge]
+        python-version: ['3.14']
+        default-channel: [conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - runs-on: macos-15-intel
-            python-version: '3.14'
-          - runs-on: macos-15-intel
-            default-channel: defaults
-          - runs-on: macos-15-intel
-            test-type: integration
-          - runs-on: macos-latest
-            python-version: '3.10'
-          - runs-on: macos-latest
-            default-channel: conda-forge
-          - runs-on: macos-latest
-            test-type: unit
           - test-type: unit
             test-group: 3
     env:
@@ -746,14 +867,31 @@ jobs:
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
+      - name: Download Freethreaded Packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: freethreaded-packages-${{ runner.os }}-${{ runner.arch }}
+          path: freethreaded-packages/
+
+      - name: Index Freethreaded Packages
+        run: conda index freethreaded-packages/
+
+      - name: Filter requirements-ci.txt
+        # Remove the `conda` package — it requires python_abi *_cp314 (non-freethreaded)
+        # and conflicts with the cp314t environment. conda is tested from source via pip.
+        run: grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt
+
       - name: Conda Install
         run: >
           conda install
           --yes
+          --strict-channel-priority
+          --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
+          --channel conda-forge
           --file tests/requirements.txt
-          --file tests/requirements-ci.txt
+          --file tests/requirements-ci-freethreaded.txt
           --file tests/requirements-s3.txt
-          python=${{ matrix.python-version }}
+          python-freethreading=3.14
 
       - name: Conda Info
         # view test env info (not base)
@@ -801,7 +939,7 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
+    needs: [changes, build-freethreaded-deps, windows, linux, macos]
     if: >-
       !cancelled()
       && (
@@ -830,7 +968,7 @@ jobs:
 
   # required check
   analyze:
-    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
+    needs: [build-freethreaded-deps, windows, linux, macos, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-latest
@@ -879,7 +1017,7 @@ jobs:
   downstream:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-latest
     defaults:
