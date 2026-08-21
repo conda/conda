@@ -86,7 +86,6 @@ jobs:
             artifact-name: freethreaded-packages-macOS-ARM64
           - runs-on: windows-latest
             artifact-name: freethreaded-packages-Windows-X64
-            shell: cmd
 
     steps:
       - name: Checkout Source
@@ -127,25 +126,25 @@ jobs:
           fi
 
       - name: Build pycosat
-        shell: bash
+        shell: bash -el {0}  # bash exit immediately on error + login shell
         run: rattler-build build --recipe threaded-recipes/pycosat --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
 
       - name: Build menuinst
-        shell: bash
+        shell: bash -el {0}  # bash exit immediately on error + login shell
         run: rattler-build build --recipe threaded-recipes/menuinst --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
 
       - name: Build libmambapy
-        shell: bash
+        shell: bash -el {0}  # bash exit immediately on error + login shell
         run: rattler-build build --recipe threaded-recipes/libmambapy --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c freethreaded-packages -c conda-forge
 
       - name: Build xonsh
         if: runner.os != 'Windows'
-        shell: bash
+        shell: bash -el {0}  # bash exit immediately on error + login shell
         run: rattler-build build --recipe threaded-recipes/xonsh --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
 
       - name: Build pywin32
         if: runner.os == 'Windows'
-        shell: bash
+        shell: bash -el {0}  # bash exit immediately on error + login shell
         run: rattler-build build --recipe threaded-recipes/pywin32 --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
 
       - name: Upload Freethreaded Packages
