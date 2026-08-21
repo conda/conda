@@ -247,12 +247,18 @@ jobs:
         run: grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt
 
       - name: Conda Install
-        shell: bash -el {0}  # login shell so conda is on PATH; $GITHUB_WORKSPACE expands correctly
+        shell: bash -el {0}  # login shell so conda is on PATH
+        # Git Bash mangles a plain "file://${GITHUB_WORKSPACE}/..." URL on
+        # Windows (GITHUB_WORKSPACE can be a POSIX-ish "/d/a/..." path, which
+        # loses its leading slash somewhere between bash and conda, yielding
+        # an invalid "file://d/a/..." channel where "d" is parsed as the URL
+        # host). Use `cygpath -m` to get an unambiguous "D:/a/..." mixed path
+        # and build a proper "file:///D:/a/..." URI instead.
         run: >
           conda install
           --yes
           --strict-channel-priority
-          --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
+          --channel "file:///$(cygpath -m "$GITHUB_WORKSPACE")/freethreaded-packages"
           --channel conda-forge
           --file tests/requirements.txt
           --file tests/requirements-ci-freethreaded.txt
@@ -261,6 +267,8 @@ jobs:
           pywin32
         env:
           CONDA_SUBDIR: win-64
+          MSYS_NO_PATHCONV: 1
+          MSYS2_ARG_CONV_EXCL: '*'
 
       - name: Conda Info
         # view test env info (not base)
