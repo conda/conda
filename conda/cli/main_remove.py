@@ -241,7 +241,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 tuple(sorted(unmatched_specs)), prefix=prefix
             )
 
-        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver_backend = solver_backend = (
+            context.plugin_manager.get_cached_solver_backend()
+        )
         solver = solver_backend(prefix, channel_urls, subdirs, specs_to_remove=specs)
 
         try:

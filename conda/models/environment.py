@@ -655,7 +655,9 @@ class Environment:
 
         from ..cli.install import Repodatas
 
-        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver_backend = solver_backend = (
+            context.plugin_manager.get_cached_solver_backend()
+        )
         requested_packages = self.from_history(self.prefix)
 
         with context._override("_subdir", platform):
