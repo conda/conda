@@ -18,11 +18,13 @@ import sys
 from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
+from email.message import Message
 from importlib.metadata import distributions
 from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
+from packaging.utils import canonicalize_name
 from pluggy._manager import DistFacade
 
 from .. import __version__
@@ -105,6 +107,11 @@ if TYPE_CHECKING:
         canonical_name: str
         status: str
         hooks: list[str]
+
+    class PluginDetails(PluginInfo):
+        summary: str
+        license: str
+        homepage: str
 
 
 log = logging.getLogger(__name__)
@@ -243,6 +250,75 @@ class CondaPluginManager(pluggy.PluginManager):
             }
 
         return sorted(installed.values(), key=lambda plugin: plugin["canonical_name"])
+
+    def get_installed_plugin_info(self, name: str) -> PluginDetails:
+        """Return detailed metadata for an installed entry-point conda plugin."""
+        requested_name = name.strip()
+        requested_normalized_name = canonicalize_name(requested_name)
+
+        for plugin, dist in self.list_plugin_distinfo():
+            canonical_name = self.get_name(plugin)
+            if canonical_name is None:
+                continue
+
+            lookup_names = {
+                dist.project_name,
+                canonical_name,
+                canonicalize_name(dist.project_name),
+                canonicalize_name(canonical_name),
+            }
+            if (
+                requested_name not in lookup_names
+                and requested_normalized_name not in lookup_names
+            ):
+                continue
+
+            return {
+                "name": dist.project_name,
+                "version": dist.version,
+                "canonical_name": canonical_name,
+                "status": "disabled" if self.is_blocked(canonical_name) else "active",
+                "hooks": self.get_plugin_hook_names(plugin),
+                "summary": self._get_plugin_metadata(dist, "Summary"),
+                "license": self._get_plugin_metadata(dist, "License"),
+                "homepage": self._get_plugin_homepage(dist),
+            }
+
+        raise CondaValueError(f"No installed conda plugin found matching '{name}'.")
+
+    @staticmethod
+    def _get_plugin_distribution_metadata(dist: DistFacade) -> Message | None:
+        raw_dist = getattr(dist, "_dist", None)
+        metadata = getattr(raw_dist, "metadata", None)
+        if isinstance(metadata, Message):
+            return metadata
+
+        return None
+
+    @classmethod
+    def _get_plugin_metadata(cls, dist: DistFacade, field: str) -> str:
+        metadata = cls._get_plugin_distribution_metadata(dist)
+        if metadata is None:
+            return ""
+
+        return metadata.get(field, "") or ""
+
+    @classmethod
+    def _get_plugin_homepage(cls, dist: DistFacade) -> str:
+        metadata = cls._get_plugin_distribution_metadata(dist)
+        if metadata is None:
+            return ""
+
+        homepage = metadata.get("Home-page", "") or ""
+        if homepage:
+            return homepage
+
+        for project_url in metadata.get_all("Project-URL") or ():
+            label, separator, url = project_url.partition(",")
+            if separator and label.strip().lower() in {"home-page", "homepage"}:
+                return url.strip()
+
+        return ""
 
     def register(self, plugin, name: str | None = None) -> str | None:
         """

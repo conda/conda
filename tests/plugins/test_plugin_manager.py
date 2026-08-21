@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.exceptions import CondaValueError
+
 if TYPE_CHECKING:
     from conda.plugins.manager import CondaPluginManager
     from conda.testing.fixtures import CondaCLIFixture
@@ -42,7 +44,20 @@ def test_plugins_help(
     out, err, exc = conda_cli("plugins", "--help", raises=SystemExit)
 
     assert exc.value.code == 0
+    assert "info" in out
     assert "list" in out
+    assert not err
+
+
+def test_plugins_info_help(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+):
+    out, err, exc = conda_cli("plugins", "info", "--help", raises=SystemExit)
+
+    assert exc.value.code == 0
+    assert "Show detailed information about an installed conda plugin." in out
+    assert "NAME" in out
     assert not err
 
 
@@ -65,6 +80,64 @@ def test_plugins_list_empty(
 
     assert code == 0, f"conda plugins list failed ({code}): {err}"
     assert out == "No plugins installed.\n"
+    assert not err
+
+
+def test_plugins_info(
+    plugin_manager_with_test_plugin: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+):
+    out, err, code = conda_cli("plugins", "info", "conda-test-plugin")
+
+    assert code == 0, f"conda plugins info failed ({code}): {err}"
+    assert "Name" in out
+    assert "conda-test-plugin" in out
+    assert "Version" in out
+    assert "1.0" in out
+    assert "Status" in out
+    assert "active" in out
+    assert "Canonical name" in out
+    assert "test_plugin.success" in out
+    assert "Hooks" in out
+    assert "solvers" in out
+    assert "Summary" in out
+    assert "A test plugin" in out
+    assert not err
+
+
+def test_plugins_info_json(
+    plugin_manager_with_test_plugin: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+):
+    out, err, code = conda_cli("plugins", "info", "test_plugin.success", "--json")
+
+    assert code == 0, f"conda plugins info --json failed ({code}): {err}"
+    assert json.loads(out) == {
+        "name": "conda-test-plugin",
+        "version": "1.0",
+        "canonical_name": "test_plugin.success",
+        "status": "active",
+        "hooks": ["solvers"],
+        "summary": "A test plugin",
+        "license": "",
+        "homepage": "",
+    }
+    assert not err
+
+
+def test_plugins_info_not_found(
+    plugin_manager_with_test_plugin: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+):
+    out, err, exc = conda_cli(
+        "plugins",
+        "info",
+        "missing",
+        raises=CondaValueError,
+    )
+
+    assert "No installed conda plugin found matching 'missing'." in str(exc)
+    assert not out
     assert not err
 
 
