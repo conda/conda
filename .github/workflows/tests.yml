@@ -112,20 +112,23 @@ jobs:
         run: conda install --yes rattler-build
 
       - name: Write rattler-build variant config
-        # Two things are required:
+        # Three things are required:
         #   1. c_stdlib/c_stdlib_version — resolves ${{ stdlib("c") }} in recipes
         #   2. python: 3.14.* *_cp314t — forces the freethreaded Python ABI in
         #      the host environment instead of the regular cp314 build.
+        #   3. python_impl — recipes (e.g. pywin32) branch on
+        #      `python_impl != 'pypy'`; conda-forge always sets this via
+        #      .ci_support, but we don't load that, so it must be set here.
         # Values match conda-forge's own .ci_support files (see e.g.
         # zstandard-feedstock/.ci_support/osx_arm64_python3.14.____cp314t.yaml).
         shell: bash
         run: |
           if [[ "${{ runner.os }}" == "Linux" ]]; then
-            printf 'c_stdlib:\n  - sysroot\nc_stdlib_version:\n  - "2.17"\npython:\n  - "3.14.* *_cp314t"\n' > /tmp/rattler-variants.yaml
+            printf 'c_stdlib:\n  - sysroot\nc_stdlib_version:\n  - "2.17"\npython:\n  - "3.14.* *_cp314t"\npython_impl:\n  - cpython\n' > /tmp/rattler-variants.yaml
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            printf 'c_stdlib:\n  - macosx_deployment_target\nc_stdlib_version:\n  - "11.0"\npython:\n  - "3.14.* *_cp314t"\n' > /tmp/rattler-variants.yaml
+            printf 'c_stdlib:\n  - macosx_deployment_target\nc_stdlib_version:\n  - "11.0"\npython:\n  - "3.14.* *_cp314t"\npython_impl:\n  - cpython\n' > /tmp/rattler-variants.yaml
           else
-            printf 'c_stdlib:\n  - vs\npython:\n  - "3.14.* *_cp314t"\n' > /tmp/rattler-variants.yaml
+            printf 'c_stdlib:\n  - vs\npython:\n  - "3.14.* *_cp314t"\npython_impl:\n  - cpython\n' > /tmp/rattler-variants.yaml
           fi
 
       - name: Build pycosat
