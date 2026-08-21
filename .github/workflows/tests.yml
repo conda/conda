@@ -237,7 +237,7 @@ jobs:
         run: conda install --yes conda-index
 
       - name: Index Freethreaded Packages
-        shell: bash  # use bash for consistent path handling
+        shell: bash -el {0}  # login shell so conda is on PATH; bash exit immediately on error
         run: conda index freethreaded-packages/
 
       - name: Filter requirements-ci.txt
@@ -247,11 +247,11 @@ jobs:
         run: grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt
 
       - name: Conda Install
-        shell: bash  # use bash so $GITHUB_WORKSPACE expands correctly
+        shell: bash -el {0}  # login shell so conda is on PATH; $GITHUB_WORKSPACE expands correctly
         run: >
           conda install
           --yes
-          --channel-priority strict
+          --strict-channel-priority
           --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
           --channel conda-forge
           --file tests/requirements.txt
@@ -402,7 +402,7 @@ jobs:
         run: >
           conda install
           --yes
-          --channel-priority strict
+          --strict-channel-priority
           --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
           --channel conda-forge
           --file tests/requirements.txt
@@ -866,7 +866,7 @@ jobs:
         run: >
           conda install
           --yes
-          --channel-priority strict
+          --strict-channel-priority
           --channel "file://${GITHUB_WORKSPACE}/freethreaded-packages"
           --channel conda-forge
           --file tests/requirements.txt
