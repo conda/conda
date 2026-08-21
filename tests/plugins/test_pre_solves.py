@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import plugins
+from conda.base.constants import APP_NAME
 from conda.exceptions import DryRunExit
-from conda.plugins import solvers
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -43,8 +43,8 @@ def pre_solve_plugin(
     pre_solve_plugin = PreSolvePlugin()
     plugin_manager_with_reporter_backends.register(pre_solve_plugin)
 
-    # register solvers
-    plugin_manager_with_reporter_backends.load_plugins(solvers)
+    # classic via conda-classic-solver entry point (not deprecated conda.plugins.solvers)
+    plugin_manager_with_reporter_backends.load_entrypoints(APP_NAME)
 
     return pre_solve_plugin
 

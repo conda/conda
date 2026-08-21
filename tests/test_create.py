@@ -6,6 +6,7 @@ import os
 import platform
 import re
 import sys
+from contextlib import nullcontext
 from datetime import datetime
 from importlib.metadata import version
 from itertools import zip_longest
@@ -72,7 +73,6 @@ from conda.gateways.subprocess import Response
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
-from conda.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
 from conda.testing.integration import (
     PYTHON_BINARY,
@@ -831,6 +831,13 @@ def test_strict_channel_priority(
 
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
+    with (
+        pytest.deprecated_call()
+        if "conda.resolve" not in sys.modules
+        else nullcontext()
+    ):
+        from conda.resolve import Resolve
+
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
     index = ReducedIndex(

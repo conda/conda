@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import plugins
+from conda.base.constants import APP_NAME
 from conda.core.path_actions import Action
-from conda.plugins import package_extractors, solvers
+from conda.plugins import package_extractors
 from conda.plugins.types import CondaPostTransactionAction, CondaPreTransactionAction
 
 if TYPE_CHECKING:
@@ -57,12 +58,10 @@ class DummyPostActionPlugin:
 
 
 @pytest.fixture
-def plugin_manager_with_solvers(plugin_manager_with_reporter_backends, mocker):
-    # Explicitly load the solver, since this is a dummy plugin manager and not the default
-    plugin_manager_with_reporter_backends.load_plugins(
-        solvers,
-        *package_extractors.plugins,
-    )
+def plugin_manager_with_solvers(plugin_manager_with_reporter_backends):
+    # Dummy PM is not the default; load extractors + entry points (classic plugin).
+    plugin_manager_with_reporter_backends.load_plugins(*package_extractors.plugins)
+    plugin_manager_with_reporter_backends.load_entrypoints(APP_NAME)
 
     return plugin_manager_with_reporter_backends
 

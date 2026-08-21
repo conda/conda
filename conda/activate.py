@@ -289,7 +289,9 @@ class _Activator(metaclass=abc.ABCMeta):
             try:
                 dev_idx = remainder_args.index("--dev")
             except ValueError:
-                context.dev = False
+                # reactivate after install/update/remove does not pass --dev.
+                # Keep python -m conda when a prior --dev session exported _CE_M.
+                context.dev = os.getenv("_CE_M") == "-m"
             else:
                 del remainder_args[dev_idx]
                 context.dev = True
