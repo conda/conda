@@ -4,7 +4,12 @@
 # Builds cp314t (freethreaded Python 3.14) conda packages for the blockers
 # that are missing cp314t builds on conda-forge:
 #
-#   pycosat, menuinst, libmambapy, xonsh (Linux/macOS), pywin32 (Windows)
+#   pycosat, menuinst, libmambapy, conda-pypi, xonsh (Linux/macOS),
+#   pywin32 (Windows)
+#
+# It also builds `conda` itself (from this local checkout) as a cp314t
+# package, so the whole stack -- conda plus its freethreaded-only
+# dependencies -- can be installed and tested together.
 #
 # The built packages are placed in <repo-root>/freethreaded-packages/ and
 # indexed as a local conda channel, ready for use with:
@@ -12,14 +17,21 @@
 #   conda install --channel "file://$PWD/freethreaded-packages" ...
 #
 # Usage:
-#   ./build-freethreaded-deps.sh [--output-dir <dir>] [--clean]
+#   ./build-freethreaded-deps.sh [--output-dir <dir>] [--clean] [--upload]
+#                                 [--user <anaconda.org user>] [--label <label>]
 #
 #   --output-dir <dir>  Where to write built packages (default: freethreaded-packages/)
 #   --clean             Remove the output directory before building
+#   --upload            After building, upload all packages to anaconda.org via
+#                        upload-freethreaded-packages.sh (requires anaconda-client
+#                        to already be logged in, or ANACONDA_API_TOKEN to be set)
+#   --user <user>        anaconda.org user/org to upload to (default: whoami from anaconda-client)
+#   --label <label>      anaconda.org label to upload to (default: cp314t)
 #
 # Requirements:
 #   - conda (with conda-forge channel, e.g. miniforge)
 #   - rattler-build  (installed automatically via pixi if missing)
+#   - anaconda-client (only required when using --upload)
 
 set -euo pipefail
 
@@ -34,6 +46,9 @@ REPO_ROOT="$SCRIPT_DIR"
 # ---------------------------------------------------------------------------
 OUTPUT_DIR="$REPO_ROOT/freethreaded-packages"
 CLEAN=0
+UPLOAD=0
+UPLOAD_USER=""
+UPLOAD_LABEL="cp314t"
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -47,6 +62,18 @@ while [[ $# -gt 0 ]]; do
         --clean)
             CLEAN=1
             shift
+            ;;
+        --upload)
+            UPLOAD=1
+            shift
+            ;;
+        --user)
+            UPLOAD_USER="$2"
+            shift 2
+            ;;
+        --label)
+            UPLOAD_LABEL="$2"
+            shift 2
             ;;
         -h|--help)
             sed -n '/^# Usage:/,/^[^#]/p' "$0" | head -n -1 | sed 's/^# \?//'
@@ -148,50 +175,92 @@ fi
 mkdir -p "$OUTPUT_DIR"
 
 # ---------------------------------------------------------------------------
-# Helper: build one recipe
+# Helper: build one or more recipes.
+#
+# NOTE on cross-recipe dependencies: rattler-build's build ordering (whether
+# via multiple --recipe/-r flags or --recipe-dir) is a topological sort
+# derived *only* from declared build/host/run requirements -- there is no
+# "priority" setting to otherwise influence it (see
+# https://github.com/prefix-dev/rattler-build/issues/2492 for a case where
+# this ordering already has sharp edges). A genuine two-way requirement
+# between two recipes is therefore not something rattler-build can resolve
+# by itself, in one invocation or many: if A's build/test needs B and B's
+# build/test needs A, there is no valid order.
+#
+# conda <-> conda-pypi is exactly this shape: conda's run requirements
+# include conda-pypi, while conda-pypi's `downstream: conda` test (see
+# threaded-recipes/conda-pypi/recipe.yaml) wants a working `conda`. We break
+# the cycle by keeping conda-pypi's dependency on conda a *test-only*, soft
+# one: conda-pypi is always built (and indexed) in its own invocation first,
+# where `conda` legitimately isn't resolvable yet and its downstream test is
+# just skipped; conda is then built in a later, separate invocation, by
+# which point conda-pypi is already sitting in the local channel to satisfy
+# conda's real dependency on it.
+#
+# In short: don't try to build conda and conda-pypi together (as one
+# `rattler-build build` call, or via --recipe-dir over a directory
+# containing both) -- keep them as separate, sequential build_recipes calls,
+# in that order.
 # ---------------------------------------------------------------------------
-build_recipe() {
-    local name="$1"
-    local recipe_dir="$REPO_ROOT/threaded-recipes/$name"
-    local extra_channels="${2:-}"
+build_recipes() {
+    local names=("$@")
+    local recipe_args=()
+    local name
 
     echo ""
-    echo "==> Building $name..."
-    echo "    recipe: $recipe_dir"
+    echo "==> Building ${names[*]}..."
+    for name in "${names[@]}"; do
+        recipe_args+=(--recipe "$REPO_ROOT/threaded-recipes/$name")
+        echo "    recipe: $REPO_ROOT/threaded-recipes/$name"
+    done
 
     local channel_args=()
     # Prepend the local output dir so previously built packages are available
     # (e.g. libmambapy can see menuinst if it were a dep, and to avoid
     # re-downloading already-built packages)
     channel_args+=(-c "file://${OUTPUT_DIR}")
-    if [[ -n "$extra_channels" ]]; then
-        for ch in $extra_channels; do
-            channel_args+=(-c "$ch")
-        done
-    fi
     channel_args+=(-c conda-forge)
 
     "$RATTLER_BUILD" build \
-        --recipe "$recipe_dir" \
+        "${recipe_args[@]}" \
         --output-dir "$OUTPUT_DIR" \
         --variant-config "$VARIANT_CONFIG" \
         "${channel_args[@]}"
 }
 
 # ---------------------------------------------------------------------------
+# Compute the version for the local `conda` build, the same way
+# recipe/meta.yaml does: <tag>.<commits-since-tag>+<short-hash>
+# (e.g. 26.7.0.69+g018d2fcde). Forwarded to threaded-recipes/conda/recipe.yaml
+# via the CONDA_VERSION_OVERRIDE environment variable, since rattler-build
+# has no git-describe jinja helpers of its own.
+# ---------------------------------------------------------------------------
+GIT_DESCRIBE_TAG="$(git -C "$REPO_ROOT" describe --tags --abbrev=0)"
+GIT_DESCRIBE_NUMBER="$(git -C "$REPO_ROOT" rev-list "${GIT_DESCRIBE_TAG}..HEAD" --count)"
+GIT_DESCRIBE_HASH="g$(git -C "$REPO_ROOT" rev-parse --short HEAD)"
+export CONDA_VERSION_OVERRIDE="${GIT_DESCRIBE_TAG}.${GIT_DESCRIBE_NUMBER}+${GIT_DESCRIBE_HASH}"
+echo "==> conda version: $CONDA_VERSION_OVERRIDE"
+
+# ---------------------------------------------------------------------------
 # Build each package
 # ---------------------------------------------------------------------------
 cd "$REPO_ROOT"
 
-build_recipe pycosat
-build_recipe menuinst
+build_recipes pycosat
+build_recipes menuinst
 # libmambapy needs libmamba/libmamba-spdlog from conda-forge (already in channel_args)
-build_recipe libmambapy
+build_recipes libmambapy
+# conda-pypi first, on its own: its `downstream: conda` test can't resolve
+# `conda` yet (it isn't built until the next line) and is simply skipped.
+build_recipes conda-pypi
+# conda's run deps (menuinst, pycosat, conda-pypi) must already be built
+# above so they can be picked up from the local output channel.
+build_recipes conda
 
 if [[ "$PLATFORM" != "win" ]]; then
-    build_recipe xonsh
+    build_recipes xonsh
 else
-    build_recipe pywin32
+    build_recipes pywin32
 fi
 
 # ---------------------------------------------------------------------------
@@ -211,19 +280,29 @@ find "$OUTPUT_DIR" -name "*.conda" -o -name "*.tar.bz2" | sort | sed 's|^|    |'
 echo ""
 echo "==> To use this local channel, run the following from the repo root:"
 echo ""
-echo "    # Strip the 'conda' package from requirements-ci.txt (it requires cp314, not cp314t)"
-echo "    grep -v '^conda\b' tests/requirements-ci.txt > tests/requirements-ci-freethreaded.txt"
-echo ""
 echo "    conda install \\"
 echo "      --channel-priority strict \\"
 echo "      --channel \"file://${OUTPUT_DIR}\" \\"
 echo "      --channel conda-forge \\"
 echo "      --file tests/requirements.txt \\"
-echo "      --file tests/requirements-ci-freethreaded.txt \\"
+echo "      --file tests/requirements-ci.txt \\"
 echo "      --file tests/requirements-s3.txt \\"
 if [[ "$PLATFORM" == "linux" ]]; then
 echo "      xonsh patchelf \\"
 elif [[ "$PLATFORM" == "win" ]]; then
 echo "      pywin32 \\"
 fi
+echo "      \"conda=${CONDA_VERSION_OVERRIDE}\" \\"
 echo "      python-freethreading=3.14"
+
+# ---------------------------------------------------------------------------
+# Optionally upload everything to anaconda.org
+# ---------------------------------------------------------------------------
+if [[ $UPLOAD -eq 1 ]]; then
+    echo ""
+    UPLOAD_ARGS=(--output-dir "$OUTPUT_DIR" --label "$UPLOAD_LABEL")
+    if [[ -n "$UPLOAD_USER" ]]; then
+        UPLOAD_ARGS+=(--user "$UPLOAD_USER")
+    fi
+    "$REPO_ROOT/upload-freethreaded-packages.sh" "${UPLOAD_ARGS[@]}"
+fi

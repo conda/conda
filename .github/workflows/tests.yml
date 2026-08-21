@@ -143,6 +143,17 @@ jobs:
         shell: bash -el {0}  # bash exit immediately on error + login shell
         run: rattler-build build --recipe threaded-recipes/libmambapy --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
 
+      - name: Build conda-pypi
+        # conda-pypi's recipe has a `downstream: conda` test (conda and
+        # conda-pypi depend on each other, so testing conda-pypi needs a
+        # real `conda`). This job never builds the `conda` package itself
+        # (conda is tested from source via pip in the platform jobs below),
+        # and conda-forge has no cp314t `conda` build either, so that
+        # downstream test can't resolve here -- rattler-build skips it
+        # rather than failing the build. See threaded-recipes/conda-pypi/recipe.yaml.
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+        run: rattler-build build --recipe threaded-recipes/conda-pypi --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
+
       - name: Build xonsh
         if: runner.os != 'Windows'
         shell: bash -el {0}  # bash exit immediately on error + login shell

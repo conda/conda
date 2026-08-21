@@ -2,6 +2,9 @@ set -euxo pipefail
 
 export CXXFLAGS="${CXXFLAGS:-} -D_LIBCPP_DISABLE_AVAILABILITY=1"
 
+# "Warm up" cmake before scikit-build-core
+cmake --version
+
 if [[ $PKG_NAME == "libmamba-spdlog" ]]; then
 
     cmake -B build-lib-spdlog/ \

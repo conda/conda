@@ -1,0 +1,81 @@
+schema_version: 1
+
+context:
+  version: 0.11.0
+
+package:
+  name: conda-pypi
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/c/conda-pypi/conda_pypi-${{ version }}.tar.gz
+  sha256: 9137327ffef74aaac7a95e5940b39e4bc333c77f05d22efeb199af6767e3b481
+
+build:
+  number: 1
+  # Can't be noarch: conda-pypi writes an EXTERNALLY-MANAGED marker file into
+  # the interpreter's stdlib directory (lib/pythonX.Y/), whose path is
+  # Python-version-specific, so the package has to be built per Python
+  # version/ABI. That's also why conda-forge doesn't have a cp314t build of
+  # it yet (see conda-forge/conda-pypi-feedstock's recipe.yaml).
+  script:
+    - ${{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+  host:
+    - python
+    - pip
+    - hatchling >=1.26
+    - hatch-vcs >=0.2.0
+  run:
+    - python
+    - pip >=23.0.1
+    - packaging
+    - unearth
+    - python-build
+    - python-installer >=1.0
+    - platformdirs
+    - conda-index >=0.11.0
+    - conda-package-streaming >=0.11
+  run_constraints:
+    # This is technically a `run` dependency (it is imported), but conda
+    # already depends on conda-pypi, so pinning it as a hard `run`
+    # requirement would create a dependency cycle. Matches upstream.
+    # - conda >=26.1.0
+
+tests:
+  - python:
+      imports:
+        - conda_pypi
+        - conda_pypi.main
+      pip_check: true
+  # conda-pypi and conda depend on each other: conda's run requirements
+  # include conda-pypi, so a "conda pypi --help"-style script test here
+  # would need a working `conda` up front -- but that conda build in turn
+  # needs this conda-pypi build. A downstream test resolves the cycle: it
+  # installs `conda` (which pulls in this freshly built conda-pypi) and runs
+  # *conda's* own test suite against it. If `conda` isn't resolvable at all
+  # (e.g. this recipe is built on its own, without conda in the same
+  # rattler-build invocation), the test is simply skipped rather than
+  # failing. See https://rattler-build.prefix.dev/latest/reference/recipe_file/#downstream-tests
+  # - downstream: conda
+
+about:
+  homepage: https://github.com/conda/conda-pypi
+  repository: https://github.com/conda/conda-pypi
+  documentation: https://conda.github.io/conda-pypi
+  license: MIT
+  license_file: LICENSE
+  summary: Better PyPI interoperability for the conda ecosystem
+
+extra:
+  recipe-maintainers:
+    - danyeaw
+    - ryanskeith
+    - jaimergp
+    - jezdez
