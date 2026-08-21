@@ -138,7 +138,7 @@ jobs:
 
       - name: Build libmambapy
         shell: bash -el {0}  # bash exit immediately on error + login shell
-        run: rattler-build build --recipe threaded-recipes/libmambapy --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c freethreaded-packages -c conda-forge
+        run: rattler-build build --recipe threaded-recipes/libmambapy --output-dir freethreaded-packages --variant-config /tmp/rattler-variants.yaml -c conda-forge
 
       - name: Build xonsh
         if: runner.os != 'Windows'
