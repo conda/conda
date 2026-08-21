@@ -106,7 +106,10 @@ jobs:
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
 
       - name: Install build tools
-        run: conda install -n base --yes rattler-build
+        # Installed into the active ("test") env, not base: setup-miniconda
+        # activates "test" (not base) in every subsequent login-shell step,
+        # so a base-only install would never end up on PATH.
+        run: conda install --yes rattler-build
 
       - name: Write rattler-build variant config
         # Two things are required:
