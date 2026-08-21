@@ -179,6 +179,8 @@ def wrap_subprocess_call(
     dev_mode,
     debug_wrapper_scripts,
     arguments: Sequence[str],
+    *,
+    use_target_conda_executable: bool = False,
 ):
     # Ensure arguments is a tuple of strings
     if not isiterable(arguments):
@@ -298,8 +300,25 @@ def wrap_subprocess_call(
             fh.write(f"conda activate {dev_arg} {quote_for_shell(prefix)}\n")
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
+            if use_target_conda_executable and not dev_mode:
+                from .auxlib.ish import dals
+
+                # Keep the hook's `conda()` function, but make its command
+                # runner resolve `conda` from the activated PATH. Match the
+                # subshell body used by `__conda_exe()` in `conda.sh`:
+                # https://github.com/conda/conda/blob/main/conda/shell/etc/profile.d/conda.sh
+                # `()` isolates shell-state changes, while `{}` does not.
+                fh.write(
+                    dals(
+                        r"""
+                        __conda_exe() (
+                            command conda "$@"
+                        )
+                        """
+                    )
+                )
             if multiline:
-                # The ' '.join() is pointless since mutliline is only True when there's 1 arg
+                # The ' '.join() is pointless since multiline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
                 fh.write("{}\n".format(" ".join(arguments)))
             else:
