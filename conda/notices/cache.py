@@ -72,9 +72,9 @@ def is_notice_response_cache_expired(
             return True
         return expired_at < now
 
-    return any(
-        is_channel_notice_expired(chn.expired_at)
-        for chn in channel_notice_response.notices
+    notices = channel_notice_response.notices
+    return not notices or any(
+        is_channel_notice_expired(chn.expired_at) for chn in notices
     )
 
 
