@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Require explicit `--yes` to replace an existing environment with `conda env create`. (#15071)
