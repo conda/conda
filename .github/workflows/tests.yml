@@ -60,7 +60,6 @@ jobs:
             code:
               - 'conda/**'
               - 'tests/**'
-              - '*.py'
               - 'recipe/**'
               - '.github/workflows/benchmarks.yml'
               - '.github/workflows/tests.yml'
