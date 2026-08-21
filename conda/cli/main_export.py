@@ -14,7 +14,6 @@ from argparse import (
 
 from conda.base.constants import KNOWN_SUBDIRS
 
-from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.constants import NULL
 from ..models.environment import Environment
@@ -64,23 +63,21 @@ def epilog() -> str:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
-    from .helpers import LazyChoicesAction, add_parser_json, add_parser_prefix
+    from .helpers import LazyAction, add_parser_json, add_parser_prefix
 
     summary = "Export a conda environment to a file."
-    description = dals(
-        """
-        Export a conda environment to a file. The set of supported formats
-        depends on the plugins installed in your environment. Both portable
-        environment specs and reproducible lockfiles may be available. See
-        the epilog for the list of formats available here.
-        """
-    ).rstrip()
+    description = (
+        "The set of supported formats depends on the plugins installed in your "
+        "environment. Both portable environment specs and reproducible "
+        "lockfiles may be available. See the epilog for the list of formats "
+        "available here."
+    )
 
     p = sub_parsers.add_parser(
         "export",
         help=summary,
-        description=description,
-        epilog=epilog(),
+        description=summary + "\n\n" + description,
+        epilog_factory=epilog,
         **kwargs,
     )
 
@@ -139,8 +136,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--format",
         default=NULL,
         required=False,
-        action=LazyChoicesAction,
-        choices_func=lambda: sorted(
+        action=LazyAction,
+        choices_factory=lambda: sorted(
             context.plugin_manager.get_exporter_format_mapping()
         ),
         metavar="FORMAT",
@@ -182,7 +179,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 # TODO Make this aware of channels that were used to install packages
 def execute(args: Namespace, parser: ArgumentParser) -> int:
-    from ..base.context import env_name
+    from ..base.context import context, env_name
     from ..common.io import dashlist
     from ..core.prefix_data import PrefixData
     from ..exceptions import CondaValueError
