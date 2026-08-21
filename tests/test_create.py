@@ -2411,7 +2411,7 @@ def test_dont_remove_conda_3(
     upgrades a dependency) it could produce spurious RemoveError, blocking
     further use of conda.
     """
-    if context.solver != "libmamba" or context.solver != "classic":
+    if context.solver not in ("libmamba", "classic", "rattler"):
         pytest.skip(
             "This test can only be run with solvers that come shipped with conda"
         )
