@@ -28,7 +28,15 @@ requirements:
     - if: win and python_impl != 'pypy'
       then:
         - pip
-        - setuptools
+        # setuptools >=82 turned Extension into a dataclass, which makes
+        # WinExt instances unhashable (no __hash__ since eq=True is the
+        # dataclass default). pywin32's setup.py puts excluded extensions
+        # (e.g. win32ui/Pythonwin, skipped here since MFC/afxwin.h isn't
+        # available) into a set, which then fails with:
+        #   TypeError: cannot use 'WinExt_pythonwin' as a set element
+        #   (unhashable type: 'WinExt_pythonwin')
+        # See https://github.com/pypa/setuptools/pull/5022.
+        - setuptools <82
   run:
     - python
 
