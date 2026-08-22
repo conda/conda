@@ -35,7 +35,7 @@ function Get-CondaEnvironment {
                 [PSCustomObject] @{
                     Name = $envLine[0];
                     Active = $Active;
-                    Path = if ($Active) {$envLine[2]} else {$envLine[1]};
+                    Path = if ($Active) {[String]::Join(' ',$envLine[2..99])} else {[String]::Join(' ',$envLine[1..99])};
                 } | Write-Output;
             }
     }
