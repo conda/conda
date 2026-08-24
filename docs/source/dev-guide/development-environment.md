@@ -228,7 +228,8 @@ If you prefer to set up your development environment manually instead of using t
 
    **Option A: Set PYTHONPATH**
 
-   Set PYTHONPATH to make the conda source code available, then activate the environment:
+   Set PYTHONPATH to make the conda source code available, then activate the environment
+   (`dev/start` does this automatically):
 
    ````{tab-set}
 
