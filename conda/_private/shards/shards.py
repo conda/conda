@@ -29,13 +29,7 @@ from conda.gateways.repodata import (
 from conda.models.channel import Channel
 
 from ..zstd import capped_decompress
-from . import cache
-from .decompression import (
-    ZSTD_MAX_SHARD_INDEX_SIZE,
-    ZSTD_MAX_SHARD_WINDOW_SIZE,
-    decompress_shard,
-)
-from .decompression import ZSTD_MAX_SHARD_SIZE as ZSTD_MAX_SHARD_SIZE
+from . import cache, decompression
 from .misc import (
     _is_http_error_most_400_codes,
     _safe_urljoin_with_slash,
@@ -55,10 +49,6 @@ if TYPE_CHECKING:
     from conda.gateways.repodata import RepodataCache
 
     from .typing import RepodataDict, ShardDict, ShardsIndexDict
-
-# For reference, the largest shard "conda-forge/linux-64/vim" is 2608283 bytes
-# or < 2**19*5 decompressed (486155 bytes compressed); the index is 575219 bytes
-# decompressed (514039 bytes compressed) and is mostly uncompressible hash data.
 
 
 class ShardFetch:
@@ -173,7 +163,7 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            decompress_shard(
+            decompression.decompress_shard(
                 fetch_result.compressed_shard,
                 url=shards.url,
                 package=fetch_result.package,
@@ -708,8 +698,8 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
             shards_index: ShardsIndexDict = msgpack.loads(
                 capped_decompress(
                     shards_data,
-                    max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE,
-                    max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
+                    max_output_size=decompression.ZSTD_MAX_SHARD_INDEX_SIZE,
+                    max_window_size=decompression.ZSTD_MAX_SHARD_WINDOW_SIZE,
                 )
             )  # type: ignore
             shards = Shards(shards_index, shards_index_url)

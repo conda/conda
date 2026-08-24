@@ -9,15 +9,15 @@ from conda.exceptions import ChannelError
 
 from ..zstd import ZstdError, capped_decompress
 
-ZSTD_MAX_SHARD_SIZE = (
-    2**20 * 64
-)  # maximum decompressed size of an individual package shard
+# Individual package shards can exceed the original 16 MiB limit as channel
+# history grows.
+ZSTD_MAX_SHARD_SIZE = 2**20 * 64
 
-ZSTD_MAX_SHARD_WINDOW_SIZE = 2**20 * 16  # maximum zstd decoder window size
+# Bound decoder memory independently from total decompressed output.
+ZSTD_MAX_SHARD_WINDOW_SIZE = 2**20 * 16
 
-ZSTD_MAX_SHARD_INDEX_SIZE = (
-    2**23 * 16
-)  # maximum size necessary when compressed data has no size header
+# Allow shard-index frames without a decompressed-size header up to 128 MiB.
+ZSTD_MAX_SHARD_INDEX_SIZE = 2**23 * 16
 
 
 def decompress_shard(data: bytes, *, url: str, package: str) -> bytes:
