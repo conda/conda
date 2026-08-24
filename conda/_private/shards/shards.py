@@ -35,6 +35,7 @@ from .misc import (
     _safe_urljoin_with_slash,
     _shards_connections,
     ensure_hex_hash,
+    shard_error_context,
     spec_to_package_name,
 )
 
@@ -51,8 +52,11 @@ if TYPE_CHECKING:
     from .typing import RepodataDict, ShardDict, ShardsIndexDict
 
 ZSTD_MAX_SHARD_SIZE = (
-    2**20 * 16
-)  # maximum size necessary when compressed data has no size header
+    2**20 * 64
+)  # maximum decompressed size of an individual package shard
+
+
+ZSTD_MAX_SHARD_WINDOW_SIZE = 2**20 * 16  # maximum zstd decoder window size
 
 
 ZSTD_MAX_SHARD_INDEX_SIZE = (
@@ -178,7 +182,10 @@ class ShardFetch:
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
             capped_decompress(
-                fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
+                fetch_result.compressed_shard,
+                max_output_size=ZSTD_MAX_SHARD_SIZE,
+                max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
+                error_context=shard_error_context(shards.url, fetch_result.package),
             )
         )
         self.shard_cache.insert(fetch_result)
@@ -709,7 +716,9 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
             # basic parse (move into caller?)
             shards_index: ShardsIndexDict = msgpack.loads(
                 capped_decompress(
-                    shards_data, max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE
+                    shards_data,
+                    max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE,
+                    max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
                 )
             )  # type: ignore
             shards = Shards(shards_index, shards_index_url)

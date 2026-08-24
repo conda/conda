@@ -760,6 +760,44 @@ def test_shards_cache(tmp_path: Path):
     cache.close()
 
 
+def test_individual_shard_output_size_limit():
+    reported_shard_size = 48_984_766
+    compressed = zstd.compress(bytes(reported_shard_size))
+
+    decompressed = zstd.capped_decompress(
+        compressed,
+        max_output_size=shards.ZSTD_MAX_SHARD_SIZE,
+        max_window_size=shards.ZSTD_MAX_SHARD_WINDOW_SIZE,
+    )
+
+    assert len(decompressed) == reported_shard_size
+
+
+def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(shards_cache, "ZSTD_MAX_SHARD_SIZE", 1024)
+    monkeypatch.setattr(shards_cache, "ZSTD_MAX_SHARD_WINDOW_SIZE", 2048)
+    shard = msgpack.dumps({"payload": b"x" * 2048})
+    annotated_shard = shards_cache.AnnotatedRawShard(
+        "https://user:password@example.com/t/secret/channel/noarch/shards/hash",
+        "large-package",
+        zstd.compress(shard),
+    )
+
+    with shards_cache.ShardCache(tmp_path) as cache:
+        cache.insert(annotated_shard)
+        with pytest.raises(zstd.ZstdError) as exc_info:
+            cache.retrieve(annotated_shard.url)
+
+    message = str(exc_info.value)
+    assert "package 'large-package'" in message
+    assert "https://example.com/t/<TOKEN>/channel/noarch/shards/hash" in message
+    assert f"decompressed output is {len(shard)} bytes" in message
+    assert "output limit: 1024 bytes" in message
+    assert "decoder window limit: 2048 bytes" in message
+    assert "user:password" not in message
+    assert "/t/secret/" not in message
+
+
 def test_shards_cache_recovery(tmp_path: Path):
     """
     Test that we can recover from a bad shards database.

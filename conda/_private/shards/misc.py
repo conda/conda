@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse, urlunparse, uses_relative
 
 from conda.base.context import context
+from conda.common.url import mask_anaconda_token, remove_auth
 from conda.exceptions import InvalidMatchSpec
 from conda.models.match_spec import MatchSpec
 
@@ -39,6 +40,12 @@ log = logging.getLogger(__name__)
 _URLJOIN_SAFE_SCHEMES = frozenset(uses_relative)
 
 SHARDS_CONNECTIONS_DEFAULT = 10
+
+
+def shard_error_context(url: str, package: str) -> str:
+    """Describe a shard without exposing channel credentials."""
+    safe_url = remove_auth(mask_anaconda_token(url))
+    return f"repodata shard for package {package!r} from channel {safe_url!r}"
 
 
 def _shards_connections() -> int:

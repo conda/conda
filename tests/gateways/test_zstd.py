@@ -263,3 +263,69 @@ def test_zstd_fallback_on_invalid_zstd(
     assert not cache.state.has_format("zst")[0]
 
     assert len(json.loads(cache.cache_path_json.read_text())["packages"])
+
+
+def test_capped_decompress_uses_independent_limits():
+    original = b"x" * 4096
+    parameters = zstd._zstd.CompressionParameter
+    compressed = zstd.compress(
+        original,
+        options={
+            parameters.window_log: 11,
+            parameters.content_size_flag: 0,
+        },
+    )
+
+    assert (
+        zstd.capped_decompress(
+            compressed,
+            max_output_size=8192,
+            max_window_size=2048,
+        )
+        == original
+    )
+
+    with pytest.raises(zstd.ZstdError, match="too much memory"):
+        zstd.capped_decompress(
+            compressed,
+            max_output_size=8192,
+            max_window_size=1024,
+        )
+
+    with pytest.raises(zstd.ZstdError, match="decompressed output exceeds 4095 bytes"):
+        zstd.capped_decompress(
+            compressed,
+            max_output_size=4095,
+            max_window_size=2048,
+        )
+
+
+def test_capped_decompress_reports_declared_size():
+    compressed = zstd.compress(b"x" * 1025)
+
+    with pytest.raises(
+        zstd.ZstdError,
+        match="decompressed output is 1025 bytes, which exceeds the 1024 byte limit",
+    ):
+        zstd.capped_decompress(
+            compressed,
+            max_output_size=1024,
+            max_window_size=2048,
+        )
+
+
+def test_capped_decompress_rejects_incomplete_frame():
+    parameters = zstd._zstd.CompressionParameter
+    compressed = zstd.compress(
+        b"payload",
+        options={parameters.checksum_flag: 1},
+    )
+
+    with pytest.raises(
+        zstd.ZstdError, match="compressed input ended before the end of the frame"
+    ):
+        zstd.capped_decompress(
+            compressed[:-1],
+            max_output_size=1024,
+            max_window_size=1024,
+        )

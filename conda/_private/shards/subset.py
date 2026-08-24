@@ -73,10 +73,12 @@ from .misc import (
     combine_batches_until_none,
     exception_to_queue,
     filter_redundant_packages,
+    shard_error_context,
     spec_to_package_name,
 )
 from .shards import (
     ZSTD_MAX_SHARD_SIZE,
+    ZSTD_MAX_SHARD_WINDOW_SIZE,
     Shards,
     batch_retrieve_from_cache,
     batch_retrieve_from_network,
@@ -725,7 +727,12 @@ def network_fetch_thread(
         # msgpack.zst, insert into cache. Then put "known
         # good" shard into out queue.
         shard: ShardDict = msgpack.loads(
-            capped_decompress(data, max_output_size=ZSTD_MAX_SHARD_SIZE)
+            capped_decompress(
+                data,
+                max_output_size=ZSTD_MAX_SHARD_SIZE,
+                max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
+                error_context=shard_error_context(node_id.channel, node_id.package),
+            )
         )  # type: ignore[assign]
         # This may be a QueueCache which lets the cache thread serialize access
         # to the database:
