@@ -459,11 +459,7 @@ def test_update_env_only_pip_json_output(
         )
 
         stdout, _, _ = conda_cli(
-            "env",
-            "update",
-            f"--prefix={prefix}",
-            "--quiet",
-            "--json",
+            "env", "update", f"--prefix={prefix}", "--quiet", "--json"
         )
         output = json.loads(stdout)
 
