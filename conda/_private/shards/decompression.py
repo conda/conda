@@ -13,9 +13,6 @@ from ..zstd import ZstdError, capped_decompress
 # history grows.
 ZSTD_MAX_SHARD_SIZE = 2**20 * 64
 
-# Bound decoder memory independently from total decompressed output.
-ZSTD_MAX_SHARD_WINDOW_SIZE = 2**20 * 16
-
 # Allow shard-index frames without a decompressed-size header up to 128 MiB.
 ZSTD_MAX_SHARD_INDEX_SIZE = 2**23 * 16
 
@@ -26,13 +23,12 @@ def decompress_shard(data: bytes, *, url: str, package: str) -> bytes:
         return capped_decompress(
             data,
             max_output_size=ZSTD_MAX_SHARD_SIZE,
-            max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
         )
     except ZstdError as err:
         safe_url = remove_auth(mask_anaconda_token(url))
         message = (
             f"repodata shard for package {package!r} from channel {safe_url!r}: "
-            f"{err} (output limit: {ZSTD_MAX_SHARD_SIZE} bytes, "
-            f"decoder window limit: {ZSTD_MAX_SHARD_WINDOW_SIZE} bytes)"
+            f"{err} (output and decoder window limit: "
+            f"{ZSTD_MAX_SHARD_SIZE} bytes)"
         )
         raise ChannelError(message, caused_by=err) from err

@@ -4,8 +4,7 @@
 
 ### Bug fixes
 
-* Allow individual sharded-repodata package shards up to 64 MiB while retaining
-  a 16 MiB zstd decoder-window limit. (#16575)
+* Allow individual sharded-repodata package shards up to 64 MiB. (#16575)
 
 ### Deprecations
 

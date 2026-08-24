@@ -763,6 +763,11 @@ def test_shards_cache(tmp_path: Path):
     cache.close()
 
 
+def test_shard_size_limits():
+    assert shard_decompression.ZSTD_MAX_SHARD_SIZE == 64 * 2**20
+    assert shard_decompression.ZSTD_MAX_SHARD_INDEX_SIZE == 128 * 2**20
+
+
 def test_individual_shard_output_size_limit():
     reported_shard_size = 48_984_766
     compressed = zstd.compress(bytes(reported_shard_size))
@@ -778,7 +783,6 @@ def test_individual_shard_output_size_limit():
 
 def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(shard_decompression, "ZSTD_MAX_SHARD_SIZE", 1024)
-    monkeypatch.setattr(shard_decompression, "ZSTD_MAX_SHARD_WINDOW_SIZE", 2048)
     shard = msgpack.dumps({"payload": b"x" * 2048})
     annotated_shard = shards_cache.AnnotatedRawShard(
         "https://user:password@example.com/t/secret/channel/noarch/shards/hash",
@@ -795,8 +799,7 @@ def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
     assert "package 'large-package'" in message
     assert "https://example.com/t/<TOKEN>/channel/noarch/shards/hash" in message
     assert f"decompressed output is {len(shard)} bytes" in message
-    assert "output limit: 1024 bytes" in message
-    assert "decoder window limit: 2048 bytes" in message
+    assert "output and decoder window limit: 1024 bytes" in message
     assert "user:password" not in message
     assert "/t/secret/" not in message
 
@@ -843,9 +846,7 @@ def test_individual_shard_size_error_cli(
         f"from channel '{shard_url}': "
         f"decompressed output is {shard_size} bytes, "
         f"which exceeds the {max_output_size} byte limit "
-        f"(output limit: {max_output_size} bytes, "
-        "decoder window limit: "
-        f"{shard_decompression.ZSTD_MAX_SHARD_WINDOW_SIZE} bytes)"
+        f"(output and decoder window limit: {max_output_size} bytes)"
     )
     assert return_code == 1
     assert stderr.rstrip().endswith(expected)

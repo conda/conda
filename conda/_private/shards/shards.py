@@ -699,7 +699,6 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
                 capped_decompress(
                     shards_data,
                     max_output_size=decompression.ZSTD_MAX_SHARD_INDEX_SIZE,
-                    max_window_size=decompression.ZSTD_MAX_SHARD_WINDOW_SIZE,
                 )
             )  # type: ignore
             shards = Shards(shards_index, shards_index_url)

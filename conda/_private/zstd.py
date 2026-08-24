@@ -33,7 +33,6 @@ __all__ = [
 def capped_decompress(
     data: bytes,
     max_output_size: int,
-    max_window_size: int,
 ) -> bytes:
     """One-shot decompress of untrusted data with output and window bounds.
 
@@ -47,7 +46,7 @@ def capped_decompress(
             f"which exceeds the {max_output_size} byte limit"
         )
 
-    window_log_max = max(10, math.ceil(math.log2(max(max_window_size, 1))))
+    window_log_max = max(10, math.ceil(math.log2(max(max_output_size, 1))))
     dctx = _zstd.ZstdDecompressor(
         options={_zstd.DecompressionParameter.window_log_max: window_log_max}
     )

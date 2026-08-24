@@ -265,7 +265,7 @@ def test_zstd_fallback_on_invalid_zstd(
     assert len(json.loads(cache.cache_path_json.read_text())["packages"])
 
 
-def test_capped_decompress_uses_independent_limits():
+def test_capped_decompress_uses_output_limit_for_window():
     original = b"x" * 4096
     parameters = zstd._zstd.CompressionParameter
     compressed = zstd.compress(
@@ -280,7 +280,6 @@ def test_capped_decompress_uses_independent_limits():
         zstd.capped_decompress(
             compressed,
             max_output_size=8192,
-            max_window_size=2048,
         )
         == original
     )
@@ -288,15 +287,13 @@ def test_capped_decompress_uses_independent_limits():
     with pytest.raises(zstd.ZstdError, match="too much memory"):
         zstd.capped_decompress(
             compressed,
-            max_output_size=8192,
-            max_window_size=1024,
+            max_output_size=1024,
         )
 
     with pytest.raises(zstd.ZstdError, match="decompressed output exceeds 4095 bytes"):
         zstd.capped_decompress(
             compressed,
             max_output_size=4095,
-            max_window_size=2048,
         )
 
 
@@ -310,7 +307,6 @@ def test_capped_decompress_reports_declared_size():
         zstd.capped_decompress(
             compressed,
             max_output_size=1024,
-            max_window_size=2048,
         )
 
 
@@ -327,5 +323,4 @@ def test_capped_decompress_rejects_incomplete_frame():
         zstd.capped_decompress(
             compressed[:-1],
             max_output_size=1024,
-            max_window_size=1024,
         )
