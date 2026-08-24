@@ -183,6 +183,24 @@ class TestMiscModule:
         assert "pkg-1.0-0" in result["v3"]["conda"]
         assert "other-1.0-py3_0" in result["v3"]["whl"]
 
+    def test_filter_redundant_packages_v3_vs_classic_conda(self):
+        repodata = {
+            "packages": {},
+            "packages.conda": {"pkg-1.0-0.conda": {"name": "pkg"}},
+            "v3": {"tar.bz2": {"pkg-1.0-0": {"name": "pkg"}}, "conda": {}},
+        }
+        result = filter_redundant_packages(repodata)
+        assert "pkg-1.0-0" not in result["v3"]["tar.bz2"]
+
+    def test_filter_redundant_packages_v3_vs_classic_tar_bz2(self):
+        repodata = {
+            "packages": {"pkg-1.0-0.tar.bz2": {"name": "pkg"}},
+            "packages.conda": {},
+            "v3": {"tar.bz2": {"pkg-1.0-0": {"name": "pkg"}}, "conda": {}},
+        }
+        result = filter_redundant_packages(repodata)
+        assert "pkg-1.0-0" not in result["v3"]["tar.bz2"]
+
     def test_combine_batches_until_none(self):
         """Test combine_batches_until_none yields batches until None"""
         test_queue: SimpleQueue = queue.SimpleQueue()
