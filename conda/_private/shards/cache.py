@@ -14,8 +14,7 @@ from typing import TYPE_CHECKING
 
 import msgpack
 
-from .misc import decompress_shard
-from .shards import ZSTD_MAX_SHARD_SIZE, ZSTD_MAX_SHARD_WINDOW_SIZE
+from .decompression import decompress_shard
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -163,8 +162,6 @@ class ShardCache:
                         row["shard"],
                         url=url,
                         package=row["package"],
-                        max_output_size=ZSTD_MAX_SHARD_SIZE,
-                        max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
                     )
                 )
                 if row
@@ -188,8 +185,6 @@ class ShardCache:
                         row["shard"],
                         url=row["url"],
                         package=row["package"],
-                        max_output_size=ZSTD_MAX_SHARD_SIZE,
-                        max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
                     )
                 )
                 if row

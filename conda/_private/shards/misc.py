@@ -20,11 +20,8 @@ from typing import TYPE_CHECKING
 from urllib.parse import urljoin, urlparse, urlunparse, uses_relative
 
 from conda.base.context import context
-from conda.common.url import mask_anaconda_token, remove_auth
-from conda.exceptions import ChannelError, InvalidMatchSpec
+from conda.exceptions import InvalidMatchSpec
 from conda.models.match_spec import MatchSpec
-
-from ..zstd import ZstdError, capped_decompress
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -42,36 +39,6 @@ log = logging.getLogger(__name__)
 _URLJOIN_SAFE_SCHEMES = frozenset(uses_relative)
 
 SHARDS_CONNECTIONS_DEFAULT = 10
-
-
-def shard_error_context(url: str, package: str) -> str:
-    """Describe a shard without exposing channel credentials."""
-    safe_url = remove_auth(mask_anaconda_token(url))
-    return f"repodata shard for package {package!r} from channel {safe_url!r}"
-
-
-def decompress_shard(
-    data: bytes,
-    *,
-    url: str,
-    package: str,
-    max_output_size: int,
-    max_window_size: int,
-) -> bytes:
-    """Decompress a shard and translate backend errors for conda users."""
-    try:
-        return capped_decompress(
-            data,
-            max_output_size=max_output_size,
-            max_window_size=max_window_size,
-        )
-    except ZstdError as err:
-        message = (
-            f"{shard_error_context(url, package)}: {err} "
-            f"(output limit: {max_output_size} bytes, "
-            f"decoder window limit: {max_window_size} bytes)"
-        )
-        raise ChannelError(message, caused_by=err) from err
 
 
 def _shards_connections() -> int:

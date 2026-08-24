@@ -67,17 +67,15 @@ from conda.base.context import context
 
 from . import cache
 from .cache import AnnotatedRawShard
+from .decompression import decompress_shard
 from .misc import (
     _shards_connections,
     combine_batches_until_none,
-    decompress_shard,
     exception_to_queue,
     filter_redundant_packages,
     spec_to_package_name,
 )
 from .shards import (
-    ZSTD_MAX_SHARD_SIZE,
-    ZSTD_MAX_SHARD_WINDOW_SIZE,
     Shards,
     batch_retrieve_from_cache,
     batch_retrieve_from_network,
@@ -730,8 +728,6 @@ def network_fetch_thread(
                 data,
                 url=node_id.channel,
                 package=node_id.package,
-                max_output_size=ZSTD_MAX_SHARD_SIZE,
-                max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
             )
         )  # type: ignore[assign]
         # This may be a QueueCache which lets the cache thread serialize access

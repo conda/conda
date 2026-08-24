@@ -25,6 +25,7 @@ from requests import Request, Response
 import conda.gateways.repodata
 from conda._private import zstd
 from conda._private.shards import cache as shards_cache
+from conda._private.shards import decompression as shard_decompression
 from conda._private.shards import shards
 from conda._private.shards import subset as shards_subset
 from conda._private.shards.shards import (
@@ -766,18 +767,18 @@ def test_individual_shard_output_size_limit():
     reported_shard_size = 48_984_766
     compressed = zstd.compress(bytes(reported_shard_size))
 
-    decompressed = zstd.capped_decompress(
+    decompressed = shard_decompression.decompress_shard(
         compressed,
-        max_output_size=shards.ZSTD_MAX_SHARD_SIZE,
-        max_window_size=shards.ZSTD_MAX_SHARD_WINDOW_SIZE,
+        url="https://example.com/noarch/shards/hash",
+        package="large-package",
     )
 
     assert len(decompressed) == reported_shard_size
 
 
 def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(shards_cache, "ZSTD_MAX_SHARD_SIZE", 1024)
-    monkeypatch.setattr(shards_cache, "ZSTD_MAX_SHARD_WINDOW_SIZE", 2048)
+    monkeypatch.setattr(shard_decompression, "ZSTD_MAX_SHARD_SIZE", 1024)
+    monkeypatch.setattr(shard_decompression, "ZSTD_MAX_SHARD_WINDOW_SIZE", 2048)
     shard = msgpack.dumps({"payload": b"x" * 2048})
     annotated_shard = shards_cache.AnnotatedRawShard(
         "https://user:password@example.com/t/secret/channel/noarch/shards/hash",
@@ -815,7 +816,7 @@ def test_individual_shard_size_error_cli(
             patch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
             patch.setenv("CONDA_TOKEN", "")
             patch.setattr(
-                shards_subset,
+                shard_decompression,
                 "ZSTD_MAX_SHARD_SIZE",
                 max_output_size,
             )
@@ -843,7 +844,8 @@ def test_individual_shard_size_error_cli(
         f"decompressed output is {shard_size} bytes, "
         f"which exceeds the {max_output_size} byte limit "
         f"(output limit: {max_output_size} bytes, "
-        f"decoder window limit: {shards.ZSTD_MAX_SHARD_WINDOW_SIZE} bytes)"
+        "decoder window limit: "
+        f"{shard_decompression.ZSTD_MAX_SHARD_WINDOW_SIZE} bytes)"
     )
     assert return_code == 1
     assert stderr.rstrip().endswith(expected)
