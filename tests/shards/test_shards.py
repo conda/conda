@@ -39,7 +39,9 @@ from conda._private.shards.shards import (
     shard_mentioned_packages,
 )
 from conda.base.context import context, reset_context
+from conda.cli.main import main
 from conda.core.subdir_data import SubdirData
+from conda.exceptions import ChannelError
 from conda.models.channel import Channel
 
 from .conftest import (
@@ -785,7 +787,7 @@ def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
 
     with shards_cache.ShardCache(tmp_path) as cache:
         cache.insert(annotated_shard)
-        with pytest.raises(zstd.ZstdError) as exc_info:
+        with pytest.raises(ChannelError) as exc_info:
             cache.retrieve(annotated_shard.url)
 
     message = str(exc_info.value)
@@ -796,6 +798,59 @@ def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
     assert "decoder window limit: 2048 bytes" in message
     assert "user:password" not in message
     assert "/t/secret/" not in message
+
+
+def test_individual_shard_size_error_cli(
+    shard_factory: ShardFactory,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    channel_url = shard_factory.http_server_shards("individual_shard_size_error_cli")
+    shard_size = len(msgpack.dumps(FAKE_SHARD))
+    max_output_size = shard_size - 1
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+            patch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+            patch.setenv("CONDA_TOKEN", "")
+            patch.setattr(
+                shards_subset,
+                "ZSTD_MAX_SHARD_SIZE",
+                max_output_size,
+            )
+            reset_context()
+            capsys.readouterr()
+
+            return_code = main(
+                "search",
+                "foo",
+                "--subdir",
+                "noarch",
+                "--override-channels",
+                "--channel",
+                channel_url,
+            )
+
+            _, stderr = capsys.readouterr()
+    finally:
+        reset_context()
+
+    shard_url = f"{channel_url}noarch/repodata_shards.msgpack.zst"
+    expected = (
+        "ChannelError: repodata shard for package 'foo' "
+        f"from channel '{shard_url}': "
+        f"decompressed output is {shard_size} bytes, "
+        f"which exceeds the {max_output_size} byte limit "
+        f"(output limit: {max_output_size} bytes, "
+        f"decoder window limit: {shards.ZSTD_MAX_SHARD_WINDOW_SIZE} bytes)"
+    )
+    assert return_code == 1
+    assert stderr.rstrip().endswith(expected)
+    assert stderr.count("ChannelError:") == 1
+    assert "Traceback" not in stderr
+    assert "ERROR REPORT" not in stderr
+    assert "An unexpected error has occurred" not in stderr
 
 
 def test_shards_cache_recovery(tmp_path: Path):

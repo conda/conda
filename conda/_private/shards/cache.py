@@ -14,8 +14,7 @@ from typing import TYPE_CHECKING
 
 import msgpack
 
-from ..zstd import capped_decompress
-from .misc import shard_error_context
+from .misc import decompress_shard
 from .shards import ZSTD_MAX_SHARD_SIZE, ZSTD_MAX_SHARD_WINDOW_SIZE
 
 if TYPE_CHECKING:
@@ -160,11 +159,12 @@ class ShardCache:
             ).fetchone()
             return (
                 msgpack.loads(
-                    capped_decompress(
+                    decompress_shard(
                         row["shard"],
+                        url=url,
+                        package=row["package"],
                         max_output_size=ZSTD_MAX_SHARD_SIZE,
                         max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
-                        error_context=shard_error_context(url, row["package"]),
                     )
                 )
                 if row
@@ -184,11 +184,12 @@ class ShardCache:
         with self.conn as c:
             result: dict[str, ShardDict | None] = {
                 row["url"]: msgpack.loads(
-                    capped_decompress(
+                    decompress_shard(
                         row["shard"],
+                        url=row["url"],
+                        package=row["package"],
                         max_output_size=ZSTD_MAX_SHARD_SIZE,
                         max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
-                        error_context=shard_error_context(row["url"], row["package"]),
                     )
                 )
                 if row

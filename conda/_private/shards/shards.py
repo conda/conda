@@ -34,8 +34,8 @@ from .misc import (
     _is_http_error_most_400_codes,
     _safe_urljoin_with_slash,
     _shards_connections,
+    decompress_shard,
     ensure_hex_hash,
-    shard_error_context,
     spec_to_package_name,
 )
 
@@ -181,11 +181,12 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            capped_decompress(
+            decompress_shard(
                 fetch_result.compressed_shard,
+                url=shards.url,
+                package=fetch_result.package,
                 max_output_size=ZSTD_MAX_SHARD_SIZE,
                 max_window_size=ZSTD_MAX_SHARD_WINDOW_SIZE,
-                error_context=shard_error_context(shards.url, fetch_result.package),
             )
         )
         self.shard_cache.insert(fetch_result)
