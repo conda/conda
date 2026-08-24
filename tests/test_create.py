@@ -2312,7 +2312,11 @@ def _conda_root_prefix_env(
     session_tmp_env: TmpEnvFixture,
 ) -> Iterator[Path]:
     """Session-scoped conda env shared by the don't-remove-conda tests."""
-    with session_tmp_env("conda") as prefix:
+    with session_tmp_env(
+        "conda=1.0=0",
+        "--override-channels",
+        f"--channel={TEST_RECIPES_CHANNEL}",
+    ) as prefix:
         yield prefix
 
 
@@ -2320,6 +2324,8 @@ def _conda_root_prefix_env(
 def root_prefix_with_conda(
     monkeypatch: MonkeyPatch,
     _conda_root_prefix_env: Path,
+    test_recipes_channel: Path,
+    temp_package_cache: Path,
 ) -> Path:
     """Root prefix with conda installed; local to the don't-remove-conda tests."""
     monkeypatch.setenv("CONDA_ROOT_PREFIX", str(_conda_root_prefix_env))
@@ -2328,10 +2334,6 @@ def root_prefix_with_conda(
     return _conda_root_prefix_env
 
 
-@pytest.mark.skipif(
-    "conda-forge" in context.channels,
-    reason="Slow test with classic solver and conda-forge: takes ~345s on Linux CI",
-)
 @pytest.mark.parametrize(
     "remove_order",
     [("conda", "pycosat"), ("pycosat", "conda")],
@@ -2351,11 +2353,11 @@ def test_dont_remove_conda(
 
     assert package_is_installed(root_prefix_with_conda, "conda")
     assert package_is_installed(root_prefix_with_conda, "pycosat")
+    assert package_is_installed(root_prefix_with_conda, "dependency")
 
 
 def test_dont_remove_conda_dependency_with_dependent_packages(
     root_prefix_with_conda: Path,
-    test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
 ):
     """Removing a conda dependency is blocked even when dependents would be unlinked."""
@@ -2371,38 +2373,20 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
     assert package_is_installed(root_prefix_with_conda, "dependent")
     assert package_is_installed(root_prefix_with_conda, "another_dependent")
 
-    # Model a conda dependency that also has installed reverse dependencies.
-    conda_prec = PrefixData(root_prefix_with_conda).reload().get("conda")
-    conda_meta = (
-        root_prefix_with_conda
-        / "conda-meta"
-        / f"{conda_prec.name}-{conda_prec.version}-{conda_prec.build}.json"
-    )
-    assert conda_meta.is_file()
-    conda_record = json.loads(conda_meta.read_text())
-    original_depends = conda_record["depends"]
-    conda_record["depends"] = [*original_depends, "dependency"]
-    conda_meta.write_text(json.dumps(conda_record))
-    PrefixData._cache_.clear()
+    with pytest.raises(CondaMultiError) as exc:
+        conda_cli(
+            "remove",
+            f"--prefix={root_prefix_with_conda}",
+            "dependency",
+            "--yes",
+        )
 
-    try:
-        with pytest.raises(CondaMultiError) as exc:
-            conda_cli(
-                "remove",
-                f"--prefix={root_prefix_with_conda}",
-                "dependency",
-                "--yes",
-            )
-
-        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-        assert package_is_installed(root_prefix_with_conda, "conda")
-        assert package_is_installed(root_prefix_with_conda, "dependency")
-        assert package_is_installed(root_prefix_with_conda, "dependent")
-        assert package_is_installed(root_prefix_with_conda, "another_dependent")
-    finally:
-        conda_record["depends"] = original_depends
-        conda_meta.write_text(json.dumps(conda_record))
-        PrefixData._cache_.clear()
+    assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+    assert package_is_installed(root_prefix_with_conda, "conda")
+    assert package_is_installed(root_prefix_with_conda, "pycosat")
+    assert package_is_installed(root_prefix_with_conda, "dependency")
+    assert package_is_installed(root_prefix_with_conda, "dependent")
+    assert package_is_installed(root_prefix_with_conda, "another_dependent")
 
 
 def test_dont_remove_conda_3(

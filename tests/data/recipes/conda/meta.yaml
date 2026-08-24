@@ -1,0 +1,15 @@
+package:
+  name: conda
+  version: 1.0
+
+build:
+  noarch: generic
+  string: "0"
+
+requirements:
+  run:
+    - pycosat
+    - dependency
+
+about:
+  summary: Stub conda package for root-prefix removal protection tests
