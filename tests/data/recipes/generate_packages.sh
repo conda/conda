@@ -36,6 +36,8 @@ conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/post_link-d
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/post_link-e
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/pre_link_messages_package
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/private-package
+conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/pycosat
+conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/conda
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/python
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/run_constrained
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/sample_noarch_python
