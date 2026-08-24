@@ -179,7 +179,13 @@ def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> Sh
             "v3": {
                 **v3,
                 "tar.bz2": {
-                    k: v for k, v in v3.get("tar.bz2", {}).items() if k not in v3_conda
+                    k: v
+                    for k, v in v3.get("tar.bz2", {}).items()
+                    if (
+                        k not in v3_conda
+                        and f"{k}{_conda}" not in conda_packages
+                        and f"{k}{_tar_bz2}" not in legacy_packages
+                    )
                 },
             },
         }
