@@ -18,6 +18,7 @@ from ...common.url import (
     add_username_and_password,
     get_proxy_username_and_pass,
     split_anaconda_token,
+    split_conda_url_easy_parts,
     urlparse,
 )
 from ...exceptions import OfflineError, PluginError, ProxyError
@@ -166,6 +167,8 @@ def get_session(url: str):
     if channel_name is None:
         return CondaSession()
 
+    request_url_parts = split_conda_url_easy_parts(context.known_subdirs, url)
+
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
@@ -174,14 +177,29 @@ def get_session(url: str):
         if channel is None:
             continue
 
-        if Channel(channel).canonical_name == channel_name:
+        parsed_setting = urlparse(channel)
+        channel_name_matches = (
+            not parsed_setting.scheme and channel.rstrip("/") == channel_name
+        )
+        channel_url_matches = False
+        if parsed_setting.scheme:
+            setting_url_parts = split_conda_url_easy_parts(
+                context.known_subdirs, channel
+            )
+            channel_url_matches = (
+                setting_url_parts.scheme == request_url_parts.scheme
+                and setting_url_parts.hostname == request_url_parts.hostname
+                and setting_url_parts.port == request_url_parts.port
+                and setting_url_parts.path == request_url_parts.path
+            )
+
+        if channel_name_matches or channel_url_matches:
             # First we check for exact match
             channel_settings = settings
             continue
 
         # If we don't have an exact match, we attempt to match a URL pattern
         parsed_url = urlparse(url)
-        parsed_setting = urlparse(channel)
 
         # We require that the schemes must be identical to prevent downgrade attacks.
         # This includes the case of a scheme-less pattern like "*", which is not allowed.

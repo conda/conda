@@ -304,6 +304,48 @@ def test_get_session_with_channel_settings(mocker):
             id="no-match",
         ),
         pytest.param(
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            True,
+            id="exact-url-channel-subdir",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/pkgs/main/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            False,
+            id="exact-url-no-match-different-host",
+        ),
+        pytest.param(
+            "http://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            False,
+            id="exact-url-no-match-different-scheme",
+        ),
+        pytest.param(
+            "https://repo.anaconda.com:8443/pkgs/main/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            False,
+            id="exact-url-no-match-different-port",
+        ),
+        pytest.param(
+            "https://repo.anaconda.com/pkgs/r/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            False,
+            id="exact-url-no-match-different-channel",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/a/b/linux-64/repodata.json",
+            "https://repo.example.invalid/a%2Fb",
+            False,
+            id="exact-url-no-match-encoded-setting-path-separator",
+        ),
+        pytest.param(
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            "defaults",
+            True,
+            id="channel-name",
+        ),
+        pytest.param(
             "https://repo.some-hostname.com/channel-name",
             "https://*.com/*",
             True,
@@ -344,19 +386,7 @@ def test_get_session_with_channel_settings(mocker):
 def test_get_session_with_url_pattern(
     mocker, channel_url, channel_settings_url, expect_match
 ):
-    """
-    For channels specified by URL, we can configure channel_settings with a URL containing
-    either an exact URL match or with a glob-like pattern. In the latter case we require the
-    HTTP schemes to be identical.
-
-    Trailing slashes in either the request URL or the channel_settings URL are normalized away
-    via Channel.canonical_name before comparison, so they should never prevent a match.
-    """
-    canonical_channel_name = "https://repo.some-hostname.com/channel-name"
-    mocker.patch(
-        "conda.gateways.connection.session.get_channel_name_from_url",
-        return_value=canonical_channel_name,
-    )
+    """Test exact and glob URL matching for channel settings."""
     mocker.patch(
         "conda.base.context.Context.channel_settings",
         new_callable=mocker.PropertyMock,
@@ -383,6 +413,43 @@ def test_get_session_with_url_pattern(
 
         # We have not tried to retrieve our auth handler
         assert not get_auth_handler.mock_calls
+
+
+@pytest.mark.parametrize(
+    "channel_url, channel_settings_url",
+    [
+        pytest.param(
+            "https://some.url.somewhere/stuff/darwin/noarch/repodata.json",
+            "s3://just/cant/darwin",
+            id="migrated-custom-channel",
+        ),
+        pytest.param(
+            "ftp://new.url:8082/conda-forge/noarch/repodata.json",
+            "https://conda.anaconda.org/conda-forge",
+            id="migrated-channel-alias",
+        ),
+    ],
+)
+def test_get_session_does_not_match_migrated_url(
+    mocker,
+    context_testdata,
+    reset_conda_context,
+    channel_url,
+    channel_settings_url,
+):
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=[{"channel": channel_settings_url, "auth": "dummy_one"}],
+    )
+    get_auth_handler = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler"
+    )
+
+    session_obj = get_session(channel_url)
+
+    assert type(session_obj.auth) is CondaHttpAuth
+    assert not get_auth_handler.mock_calls
 
 
 def test_get_session_with_channel_settings_multiple(mocker):

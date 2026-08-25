@@ -1,3 +1,3 @@
-### Enhancements
+### Bug fixes
 
-* Add more robust channel name/url comparison in `channel_settings` lookup by using `Channel.canonical_name`, normalizing trailing slashes and handling missing or `None` channel values gracefully (#16510)
+* Fix `channel_settings` lookups for channel names and URLs. (#16510)
