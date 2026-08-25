@@ -102,6 +102,10 @@ def test_plugins_info(
     assert "solvers" in out
     assert "Summary" in out
     assert "A test plugin" in out
+    assert "Homepage      : https://example.com/legacy-home" in out
+    assert "Project URLs  :\n" in out
+    assert "  - Home: https://example.com/home" in out
+    assert "  - Documentation: https://example.com/docs" in out
     assert not err
 
 
@@ -120,7 +124,11 @@ def test_plugins_info_json(
         "hooks": ["solvers"],
         "summary": "A test plugin",
         "license": "",
-        "homepage": "",
+        "homepage": "https://example.com/legacy-home",
+        "project_urls": [
+            {"label": "Home", "url": "https://example.com/home"},
+            {"label": "Documentation", "url": "https://example.com/docs"},
+        ],
     }
     assert not err
 

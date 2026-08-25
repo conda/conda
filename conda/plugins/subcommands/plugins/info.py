@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from ....base.context import context
 from ....cli.helpers import add_parser_json
+from ....common.io import dashlist
 from ....common.serialize import json
 
 if TYPE_CHECKING:
@@ -48,5 +49,11 @@ def execute(args: Namespace) -> int:
     label_width = max(len(label) for label, _value in fields)
     for label, value in fields:
         print(f"{label:<{label_width}}: {value}")
+
+    project_urls = (
+        f"{project_url['label']}: {project_url['url']}"
+        for project_url in plugin["project_urls"]
+    )
+    print(f"{'Project URLs':<{label_width}}:{dashlist(project_urls) or ' None'}")
 
     return 0

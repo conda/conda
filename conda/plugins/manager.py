@@ -108,10 +108,15 @@ if TYPE_CHECKING:
         status: str
         hooks: list[str]
 
+    class PluginProjectURL(TypedDict):
+        label: str
+        url: str
+
     class PluginDetails(PluginInfo):
         summary: str
         license: str
         homepage: str
+        project_urls: list[PluginProjectURL]
 
 
 log = logging.getLogger(__name__)
@@ -282,6 +287,7 @@ class CondaPluginManager(pluggy.PluginManager):
                 "summary": self._get_plugin_metadata(dist, "Summary"),
                 "license": self._get_plugin_metadata(dist, "License"),
                 "homepage": self._get_plugin_homepage(dist),
+                "project_urls": self._get_plugin_project_urls(dist),
             }
 
         raise CondaValueError(f"No installed conda plugin found matching '{name}'.")
@@ -319,6 +325,22 @@ class CondaPluginManager(pluggy.PluginManager):
                 return url.strip()
 
         return ""
+
+    @classmethod
+    def _get_plugin_project_urls(cls, dist: DistFacade) -> list[PluginProjectURL]:
+        metadata = cls._get_plugin_distribution_metadata(dist)
+        if metadata is None:
+            return []
+
+        project_urls: list[PluginProjectURL] = []
+        for project_url in metadata.get_all("Project-URL") or ():
+            label, separator, url = project_url.partition(",")
+            label = label.strip()
+            url = url.strip()
+            if separator and label and url:
+                project_urls.append({"label": label, "url": url})
+
+        return project_urls
 
     def register(self, plugin, name: str | None = None) -> str | None:
         """

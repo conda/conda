@@ -183,7 +183,11 @@ def test_get_installed_plugin_info(name: str, plugin_manager: CondaPluginManager
         "hooks": ["solvers"],
         "summary": "A test plugin",
         "license": "",
-        "homepage": "",
+        "homepage": "https://example.com/legacy-home",
+        "project_urls": [
+            {"label": "Home", "url": "https://example.com/home"},
+            {"label": "Documentation", "url": "https://example.com/docs"},
+        ],
     }
 
 
