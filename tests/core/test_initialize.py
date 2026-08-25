@@ -402,10 +402,12 @@ def test_make_entry_point_exe(verbose, tmp_path: Path):
             NotImplementedError, match="Windows entry point stub not available"
         )
     ):
-        assert make_entry_point_exe(target_path, CONDA_PACKAGE_ROOT) == Result.MODIFIED
+        assert make_entry_point_exe(target_path, context.root_prefix) == Result.MODIFIED
         assert target_path.is_file()
 
-        assert make_entry_point_exe(target_path, CONDA_PACKAGE_ROOT) == Result.NO_CHANGE
+        assert (
+            make_entry_point_exe(target_path, context.root_prefix) == Result.NO_CHANGE
+        )
 
 
 def test_install_conda_sh(verbose):
