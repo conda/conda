@@ -18,12 +18,12 @@ import sys
 from collections.abc import Iterable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass
-from email.message import Message
 from importlib.metadata import distributions
 from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
+from packaging.metadata import InvalidMetadata, Metadata
 from packaging.utils import canonicalize_name
 from pluggy._manager import DistFacade
 
@@ -120,6 +120,17 @@ if TYPE_CHECKING:
 
 
 log = logging.getLogger(__name__)
+
+
+def _load_plugin_metadata(dist: DistFacade) -> Metadata:
+    """Load core metadata from a pluggy distribution facade."""
+    raw_metadata = (
+        dist.read_text("METADATA")
+        or dist.read_text("PKG-INFO")
+        or dist.read_text("")
+        or ""
+    )
+    return Metadata.from_email(raw_metadata, validate=False)
 
 
 @dataclass
@@ -278,69 +289,37 @@ class CondaPluginManager(pluggy.PluginManager):
             ):
                 continue
 
+            metadata = _load_plugin_metadata(dist)
+            summary = ""
+            with suppress(InvalidMetadata):
+                summary = metadata.summary or ""
+            project_urls = metadata.project_urls or {}
+            homepage = metadata.home_page or next(
+                (
+                    url
+                    for label, url in project_urls.items()
+                    if label.casefold() in {"home-page", "homepage"}
+                ),
+                "",
+            )
+
             return {
                 "name": dist.project_name,
                 "version": dist.version,
                 "canonical_name": canonical_name,
                 "status": "disabled" if self.is_blocked(canonical_name) else "active",
                 "hooks": self.get_plugin_hook_names(plugin),
-                "summary": self._get_plugin_metadata(dist, "Summary"),
-                "license": self._get_plugin_metadata(dist, "License"),
-                "homepage": self._get_plugin_homepage(dist),
-                "project_urls": self._get_plugin_project_urls(dist),
+                "summary": summary,
+                "license": metadata.license or "",
+                "homepage": homepage,
+                "project_urls": [
+                    {"label": label, "url": url}
+                    for label, url in project_urls.items()
+                    if label and url
+                ],
             }
 
         raise CondaValueError(f"No installed conda plugin found matching '{name}'.")
-
-    @staticmethod
-    def _get_plugin_distribution_metadata(dist: DistFacade) -> Message | None:
-        raw_dist = getattr(dist, "_dist", None)
-        metadata = getattr(raw_dist, "metadata", None)
-        if isinstance(metadata, Message):
-            return metadata
-
-        return None
-
-    @classmethod
-    def _get_plugin_metadata(cls, dist: DistFacade, field: str) -> str:
-        metadata = cls._get_plugin_distribution_metadata(dist)
-        if metadata is None:
-            return ""
-
-        return metadata.get(field, "") or ""
-
-    @classmethod
-    def _get_plugin_homepage(cls, dist: DistFacade) -> str:
-        metadata = cls._get_plugin_distribution_metadata(dist)
-        if metadata is None:
-            return ""
-
-        homepage = metadata.get("Home-page", "") or ""
-        if homepage:
-            return homepage
-
-        for project_url in metadata.get_all("Project-URL") or ():
-            label, separator, url = project_url.partition(",")
-            if separator and label.strip().lower() in {"home-page", "homepage"}:
-                return url.strip()
-
-        return ""
-
-    @classmethod
-    def _get_plugin_project_urls(cls, dist: DistFacade) -> list[PluginProjectURL]:
-        metadata = cls._get_plugin_distribution_metadata(dist)
-        if metadata is None:
-            return []
-
-        project_urls: list[PluginProjectURL] = []
-        for project_url in metadata.get_all("Project-URL") or ():
-            label, separator, url = project_url.partition(",")
-            label = label.strip()
-            url = url.strip()
-            if separator and label and url:
-                project_urls.append({"label": label, "url": url})
-
-        return project_urls
 
     def register(self, plugin, name: str | None = None) -> str | None:
         """

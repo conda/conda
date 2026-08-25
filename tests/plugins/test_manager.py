@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 import pluggy
 import pytest
+from packaging.metadata import Metadata
 from packaging.version import Version
 
 from conda import plugins
@@ -189,6 +190,37 @@ def test_get_installed_plugin_info(name: str, plugin_manager: CondaPluginManager
             {"label": "Documentation", "url": "https://example.com/docs"},
         ],
     }
+
+
+def test_get_installed_plugin_info_tolerates_invalid_optional_metadata(
+    plugin_manager: CondaPluginManager,
+    mocker: MockerFixture,
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    metadata = Metadata.from_email(
+        """\
+Metadata-Version: 2.1
+Name: conda-test-plugin
+Version: 1.0
+Summary: first line
+ second line
+Project-URL: Homepage, https://example.com/home
+Project-URL: Empty,
+""",
+        validate=False,
+    )
+    mocker.patch(
+        "conda.plugins.manager._load_plugin_metadata",
+        return_value=metadata,
+    )
+
+    plugin = plugin_manager.get_installed_plugin_info("conda-test-plugin")
+
+    assert plugin["summary"] == ""
+    assert plugin["homepage"] == "https://example.com/home"
+    assert plugin["project_urls"] == [
+        {"label": "Homepage", "url": "https://example.com/home"}
+    ]
 
 
 def test_get_installed_plugin_info_not_found(plugin_manager: CondaPluginManager):
