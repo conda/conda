@@ -1189,9 +1189,7 @@ def make_entry_point_exe(target_path, conda_prefix):
             f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
         )
     exe_path = target_path
-    source_exe_path = join(
-        CONDA_PACKAGE_ROOT, WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
-    )
+    source_exe_path = join(conda_prefix, WINDOWS_LAUNCHER_STUB_PATH[context.subdir])
     if isfile(exe_path):
         if compute_sum(exe_path, "md5") == compute_sum(source_exe_path, "md5"):
             return Result.NO_CHANGE
