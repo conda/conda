@@ -122,17 +122,6 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def _load_plugin_metadata(dist: DistFacade) -> Metadata:
-    """Load core metadata from a pluggy distribution facade."""
-    raw_metadata = (
-        dist.read_text("METADATA")
-        or dist.read_text("PKG-INFO")
-        or dist.read_text("")
-        or ""
-    )
-    return Metadata.from_email(raw_metadata, validate=False)
-
-
 @dataclass
 class _HookImplWrapper:
     impl: HookImpl
@@ -289,7 +278,13 @@ class CondaPluginManager(pluggy.PluginManager):
             ):
                 continue
 
-            metadata = _load_plugin_metadata(dist)
+            raw_metadata = (
+                dist.read_text("METADATA")
+                or dist.read_text("PKG-INFO")
+                or dist.read_text("")
+                or ""
+            )
+            metadata = Metadata.from_email(raw_metadata, validate=False)
             summary = ""
             with suppress(InvalidMetadata):
                 summary = metadata.summary or ""

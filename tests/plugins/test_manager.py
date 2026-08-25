@@ -210,7 +210,7 @@ Project-URL: Empty,
         validate=False,
     )
     mocker.patch(
-        "conda.plugins.manager._load_plugin_metadata",
+        "conda.plugins.manager.Metadata.from_email",
         return_value=metadata,
     )
 
