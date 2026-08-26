@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ....base.context import context
-from ....core.package_cache_data import PackageCacheData
+from ....core.package_cache_data import PackageCacheData, ProgressiveFetchExtract
 from ....core.prefix_data import PrefixData
 from ....exceptions import CondaValueError
 from ....gateways.disk.read import read_package_info
@@ -42,10 +42,21 @@ def require_installed_plugin_specs(specs: Iterable[str], command: str) -> None:
 def require_plugin_install_transaction(
     unlink_link_transaction: UnlinkLinkTransaction,
     *,
-    inspect_link_precs: bool = False,
+    prefetch_link_precs: bool = False,
 ) -> None:
     """Validate requested plugin install specs in a transaction."""
     invalid_specs = []
+    inspect_link_precs = prefetch_link_precs and not context.dry_run
+
+    if inspect_link_precs:
+        requested_link_precs = tuple(
+            link_prec
+            for setup in unlink_link_transaction.prefix_setups.values()
+            for link_prec in setup.link_precs
+            if any(spec.match(link_prec) for spec in setup.update_specs)
+        )
+        if requested_link_precs:
+            ProgressiveFetchExtract(requested_link_precs).execute()
 
     for setup in unlink_link_transaction.prefix_setups.values():
         prefix_data = PrefixData(setup.target_prefix)
