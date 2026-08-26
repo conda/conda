@@ -9,20 +9,27 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.exceptions import CondaValueError
+from conda.plugins import package_extractors, solvers
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest_mock import MockerFixture
 
     from conda.plugins.manager import CondaPluginManager
-    from conda.testing.fixtures import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 @pytest.fixture
 def plugin_manager_with_plugins_command(
-    plugin_manager: CondaPluginManager,
+    plugin_manager_with_reporter_backends: CondaPluginManager,
 ) -> CondaPluginManager:
-    plugin_manager.load_plugins(import_module("conda.plugins.subcommands.plugins"))
-    return plugin_manager
+    plugin_manager_with_reporter_backends.load_plugins(
+        *package_extractors.plugins,
+        solvers,
+        import_module("conda.plugins.subcommands.plugins"),
+    )
+    return plugin_manager_with_reporter_backends
 
 
 @pytest.fixture
@@ -149,25 +156,23 @@ def test_plugins_install_delegates_to_conda_install(
         is install_module.require_explicit_plugin_packages
     )
     assert (
-        args._validate_transaction is install_module.require_plugin_install_transaction
-    )
-    assert (
-        args._validate_prepared_transaction.func
+        args._validate_transaction.func
         is install_module.require_plugin_install_transaction
     )
-    assert args._validate_prepared_transaction.keywords == {"inspect_link_precs": True}
+    assert args._validate_transaction.keywords == {"prefetch_link_precs": True}
+    assert not hasattr(args, "_validate_prepared_transaction")
     assert parser.prog.endswith("plugins install")
     assert not out
     assert not err
 
 
 @pytest.mark.parametrize(
-    "inspect_link_precs",
+    "prefetch_link_precs",
     (False, True),
-    ids=("installed", "prepared"),
+    ids=("installed", "prefetched"),
 )
 def test_plugins_install_validation_rejects_non_plugin(
-    inspect_link_precs: bool,
+    prefetch_link_precs: bool,
     plugin_manager_with_plugins_command: CondaPluginManager,
     mocker: MockerFixture,
 ):
@@ -195,7 +200,11 @@ def test_plugins_install_validation_rejects_non_plugin(
         "is_conda_plugin_package",
         return_value=False,
     )
-    if inspect_link_precs:
+    if prefetch_link_precs:
+        progressive_fetch_extract = mocker.patch.object(
+            package_validation,
+            "ProgressiveFetchExtract",
+        )
         mocker.patch.object(
             package_validation.PackageCacheData,
             "get_entry_to_link",
@@ -211,7 +220,7 @@ def test_plugins_install_validation_rejects_non_plugin(
         PrefixSetup(
             "/prefix",
             (),
-            (record,) if inspect_link_precs else (),
+            (record,) if prefetch_link_precs else (),
             (),
             (MatchSpec("numpy"),),
             (),
@@ -221,14 +230,17 @@ def test_plugins_install_validation_rejects_non_plugin(
     with pytest.raises(CondaValueError) as exc:
         package_validation.require_plugin_install_transaction(
             transaction,
-            inspect_link_precs=inspect_link_precs,
+            prefetch_link_precs=prefetch_link_precs,
         )
 
     assert "`conda plugins install` can only install conda plugin packages" in str(exc)
     assert "numpy" in str(exc)
+    if prefetch_link_precs:
+        progressive_fetch_extract.assert_called_once_with((record,))
+        progressive_fetch_extract.return_value.execute.assert_called_once_with()
 
 
-def test_install_handle_txn_runs_prepared_validation(
+def test_install_handle_txn_runs_validation_before_confirmation(
     mocker: MockerFixture,
 ):
     from argparse import Namespace
@@ -238,16 +250,79 @@ def test_install_handle_txn_runs_prepared_validation(
     calls = []
     transaction = mocker.Mock()
     transaction.nothing_to_do = False
+    transaction.print_transaction_summary.side_effect = lambda: calls.append("summary")
     transaction.download_and_extract.side_effect = lambda: calls.append("download")
     transaction.execute.side_effect = lambda: calls.append("execute")
     validator = mocker.Mock(side_effect=lambda transaction: calls.append("validate"))
-    args = Namespace(_validate_prepared_transaction=validator)
-    mocker.patch("conda.cli.install.confirm_yn")
+    args = Namespace(_validate_transaction=validator)
+    mocker.patch(
+        "conda.cli.install.confirm_yn",
+        side_effect=lambda: calls.append("confirm"),
+    )
 
     handle_txn(transaction, "/prefix", args, newenv=False)
 
-    assert calls == ["download", "validate", "execute"]
+    assert calls == ["validate", "summary", "confirm", "download", "execute"]
     validator.assert_called_once_with(transaction)
+
+
+def test_plugins_install_rejects_before_fetching_dependencies(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+):
+    from conda.core.prefix_data import PrefixData
+
+    confirm = mocker.patch("conda.cli.install.confirm_yn")
+    with tmp_env(shallow=True) as prefix:
+        out, _, exc = conda_cli(
+            "plugins",
+            "install",
+            f"--prefix={prefix}",
+            "--solver=classic",
+            "dependent=1.0",
+            raises=CondaValueError,
+        )
+
+        assert PrefixData(prefix).get("dependent", None) is None
+        assert PrefixData(prefix).get("dependency", None) is None
+
+    confirm.assert_not_called()
+    assert "Package Plan" not in out
+    assert "Not conda plugin packages: dependent=1.0" in str(exc.value)
+    assert (tmp_pkgs_dir / "dependent-1.0-0.conda").is_file()
+    assert (tmp_pkgs_dir / "dependent-1.0-0").is_dir()
+    assert not (tmp_pkgs_dir / "dependency-1.0-0.conda").exists()
+    assert not (tmp_pkgs_dir / "dependency-1.0-0").exists()
+
+
+def test_plugins_install_dry_run_does_not_prefetch(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    tmp_pkgs_dir: Path,
+):
+    from conda.exceptions import DryRunExit
+
+    with tmp_env(shallow=True) as prefix:
+        conda_cli(
+            "plugins",
+            "install",
+            f"--prefix={prefix}",
+            "--dry-run",
+            "--solver=classic",
+            "dependent=1.0",
+            raises=DryRunExit,
+        )
+
+    assert not (tmp_pkgs_dir / "dependent-1.0-0.conda").exists()
+    assert not (tmp_pkgs_dir / "dependent-1.0-0").exists()
+    assert not (tmp_pkgs_dir / "dependency-1.0-0.conda").exists()
+    assert not (tmp_pkgs_dir / "dependency-1.0-0").exists()
 
 
 def test_plugins_info(

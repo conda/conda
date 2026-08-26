@@ -594,11 +594,6 @@ def handle_txn(
 
     try:
         unlink_link_transaction.download_and_extract()
-        if prepared_transaction_validator := getattr(
-            args, "_validate_prepared_transaction", None
-        ):
-            prepared_transaction_validator(unlink_link_transaction)
-
         if context.download_only:
             raise CondaExitZero(
                 "Package caches prepared. UnlinkLinkTransaction cancelled with "
