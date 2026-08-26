@@ -168,6 +168,7 @@ def get_session(url: str):
         return CondaSession()
 
     request_url_parts = split_conda_url_easy_parts(context.known_subdirs, url)
+    parsed_url = urlparse(url)
 
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
@@ -178,11 +179,17 @@ def get_session(url: str):
             continue
 
         parsed_setting = urlparse(channel)
+        # Detect URL globs before split_conda_url_easy_parts can remove a final
+        # path component that resembles a package or repodata filename.
+        pattern = parsed_setting.netloc + parsed_setting.path
+        is_url_pattern = any(char in pattern for char in "*?[")
         channel_name_matches = (
             not parsed_setting.scheme and channel.rstrip("/") == channel_name
         )
         channel_url_matches = False
-        if parsed_setting.scheme:
+        # Use component comparison only for exact URLs. URL globs must retain
+        # their netloc and path for the same-scheme fnmatch check below.
+        if parsed_setting.scheme and not is_url_pattern:
             setting_url_parts = split_conda_url_easy_parts(
                 context.known_subdirs, channel
             )
@@ -198,16 +205,12 @@ def get_session(url: str):
             channel_settings = settings
             continue
 
-        # If we don't have an exact match, we attempt to match a URL pattern
-        parsed_url = urlparse(url)
-
         # We require that the schemes must be identical to prevent downgrade attacks.
         # This includes the case of a scheme-less pattern like "*", which is not allowed.
         if parsed_setting.scheme != parsed_url.scheme:
             continue
 
         url_without_schema = parsed_url.netloc + parsed_url.path
-        pattern = parsed_setting.netloc + parsed_setting.path
         if fnmatch(url_without_schema, pattern):
             channel_settings = settings
 

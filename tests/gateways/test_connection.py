@@ -352,6 +352,30 @@ def test_get_session_with_channel_settings(mocker):
             id="wildcard-match-same-schema",
         ),
         pytest.param(
+            "https://repo.example.invalid/secure/repodata.json",
+            "https://repo.example.invalid/secure/repodata*.json",
+            True,
+            id="wildcard-match-recognized-extension",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/secure/noarch/unrelated.conda",
+            "https://repo.example.invalid/secure/repodata*.json",
+            False,
+            id="wildcard-no-match-recognized-extension",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/secure/repodata1.json",
+            "https://repo.example.invalid/secure/repodata[0-9].json",
+            True,
+            id="character-class-match-recognized-extension",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/secure/noarch/unrelated.conda",
+            "https://repo.example.invalid/secure/repodata[0-9].json",
+            False,
+            id="character-class-no-match-recognized-extension",
+        ),
+        pytest.param(
             "https://repo.some-hostname.com/channel-name",
             "http://*.com/*",
             False,
@@ -380,6 +404,12 @@ def test_get_session_with_channel_settings(mocker):
             "https://repo.some-hostname.com/channel-name/",
             True,
             id="exact-url-trailing-slash-in-both",
+        ),
+        pytest.param(
+            "https://[::1]/channel/noarch/repodata.json",
+            "https://[::1]/channel",
+            True,
+            id="exact-url-ipv6",
         ),
     ],
 )
