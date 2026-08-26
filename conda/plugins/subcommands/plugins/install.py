@@ -47,10 +47,9 @@ def configure_parser(parser: ArgumentParser) -> None:
 
 def execute(args: Namespace) -> int:
     args._validate_explicit_packages = require_explicit_plugin_packages
-    args._validate_transaction = require_plugin_install_transaction
-    args._validate_prepared_transaction = partial(
+    args._validate_transaction = partial(
         require_plugin_install_transaction,
-        inspect_link_precs=True,
+        prefetch_link_precs=True,
     )
     args.cmd = "install"
     return main_install.execute(args, args._plugin_parser)
