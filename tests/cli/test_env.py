@@ -425,6 +425,7 @@ def test_update_env_only_pip_json_output(
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
     wheelhouse: Path,
+    monkeypatch: MonkeyPatch,
 ):
     """
     Update an environment by adding only a pip package.
@@ -437,13 +438,15 @@ def test_update_env_only_pip_json_output(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
+            run=False,
         )
     )
-
     wheel = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
 
     # Baseline: python + pip already installed (no environment.yml create)
     with tmp_env("pip>=23") as prefix:
+        monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "1")
+
         # Desired state: same conda deps + one local pip package
         create_env(
             yaml.write(
