@@ -63,6 +63,7 @@ requirements:
     - conda-pypi >=0.10.1
     - conda-rattler-solver >=0.1.1
     - conda-self >=0.2.0
+    - nvidia-virtual-packages
   run_constrained:
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed

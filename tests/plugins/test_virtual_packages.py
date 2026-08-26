@@ -144,6 +144,21 @@ def test_no_gpu_cuda_patched(monkeypatch):
     assert pkg.to_virtual_package() is NULL
 
 
+def test_cuda_arch(monkeypatch):
+    """
+    __cuda_arch is provided by external package: nvidia-virtual-packages.
+
+    It is a default dependency, so let's make sure it works.
+    """
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA_ARCH", "5.0")
+    reset_context()
+
+    vpkgs = get_virtual_precs()
+    cuda_arch = next((pkg for pkg in vpkgs if pkg.name == "__cuda_arch"), None)
+    assert cuda_arch is not None
+    assert cuda_arch.version == "5.0"
+
+
 def get_virtual_precs() -> Iterable[PackageRecord]:
     yield from conda.core.index.Index().system_packages.values()
 
@@ -187,6 +202,7 @@ def test_subdir_override(
     monkeypatch.setenv("CONDA_SUBDIR", subdir)
     monkeypatch.setenv("CONDA_OVERRIDE_ARCHSPEC", "")
     monkeypatch.setenv("CONDA_OVERRIDE_CUDA", "")
+    monkeypatch.setenv("CONDA_OVERRIDE_CUDA_ARCH", "")
     monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "")
     reset_context()
     assert context.subdir == subdir
