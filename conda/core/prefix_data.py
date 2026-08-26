@@ -537,7 +537,7 @@ class PrefixData(metaclass=PrefixDataType):
 
         del self._prefix_records[package_name]
 
-    def get(self, package_name: str, default: T = NULL) -> PackageRecord | T:
+    def get(self, package_name: str, default: T = NULL) -> PrefixRecord | T:
         try:
             return self._prefix_records[package_name]
         except KeyError:
