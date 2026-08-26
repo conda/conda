@@ -1,0 +1,107 @@
+schema_version: 1
+
+context:
+  version: 2.5.2
+
+package:
+  name: menuinst
+  version: ${{ version }}
+
+source:
+  url: https://github.com/conda/menuinst/archive/${{ version }}.tar.gz
+  sha256: 079ea48b73530907881526240d0bda1cc012659baee344a61b62090d52465109
+
+build:
+  number: 1
+  dynamic_linking:
+    # The launcher binaries under menuinst/data/ are standalone .app templates that
+    # get copied verbatim into the shortcuts menuinst creates; they are not linked
+    # into this environment and must not be relocated. Relocation strips the
+    # /usr/lib/swift RPATH from the Swift appkit_launcher, which then fails to load
+    # libswiftCore on Intel macOS (arm64 is unaffected because dyld resolves the OS
+    # Swift runtime from the shared cache regardless). menuinst is pure Python with
+    # no other binaries, so disabling relocation is safe. See conda/menuinst#507.
+    binary_relocation: false
+  script:
+    env:
+      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+    content:
+      - if: win
+        then:
+          # Apparently these files make the post-build linkage analysis crash
+          # and we should not need them on Windows
+          - del /q "${{ SRC_DIR }}\\menuinst\\data\\osx_launcher_*"
+          - del /q "${{ SRC_DIR }}\\menuinst\\data\\appkit_launcher_*"
+      - if: linux
+        then:
+          # Delete in Linux too because we don't need them there
+          - rm -f "${{ SRC_DIR }}/menuinst/data/osx_launcher_*"
+          - rm -f "${{ SRC_DIR }}/menuinst/data/appkit_launcher_*"
+      - ${{ PYTHON }} -m pip install . -vv
+      - if: win
+        # menuinst v1 expects cwp.py in PREFIX; backwards compat fix
+        then: copy "%SP_DIR%\\menuinst\\_legacy\cwp.py" "%PREFIX%\\"
+  python:
+    entry_points:
+      - menuinst = menuinst.cli:main
+    skip_pyc_compilation:
+      - if: win
+        then: cwp.py
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+    - if: win
+      then:
+        - ${{ stdlib("c") }}
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+  host:
+    - python
+    - pip
+    - setuptools
+    - setuptools_scm
+  run:
+    - python
+    - if: match(python, "<3.11")
+      then: tomli
+    - tomli-w
+
+tests:
+  - python:
+      imports:
+        - menuinst
+        - menuinst.api
+        - if: win
+          then:
+            - menuinst._legacy
+            - menuinst.platforms.win_utils.winshortcut
+      pip_check: false
+  - script:
+      - menuinst --help
+      - if: osx
+        then:
+          - test -f "${SP_DIR}/menuinst/data/appkit_launcher_arm64"
+          - test -f "${SP_DIR}/menuinst/data/appkit_launcher_x86_64"
+          - test -f "${SP_DIR}/menuinst/data/osx_launcher_arm64"
+          - test -f "${SP_DIR}/menuinst/data/osx_launcher_x86_64"
+
+about:
+  license: BSD-3-Clause AND MIT
+  license_file:
+    - LICENSE.txt
+    - menuinst/_vendor/apipkg/LICENSE
+  summary: cross platform install of menu items
+  homepage: https://github.com/conda/menuinst/
+  documentation: https://conda.github.io/menuinst/
+
+extra:
+  recipe-maintainers:
+    - goanpeca
+    - jakirkham
+    - carlodri
+    - isuruf
+    - jaimergp

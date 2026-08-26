@@ -1,4 +1,4 @@
-conda  # for Windows shell activation tests
+# conda  # for Windows shell activation tests
 coverage
 flask >=2.2  # package server pytest fixture
 git
