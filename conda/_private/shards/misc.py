@@ -151,6 +151,9 @@ def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> Sh
     Given repodata or a single shard, remove any .tar.bz2 packages that have a
     .conda counterpart.
 
+    Also filters redundant stems under ``v3["tar.bz2"]`` when a matching stem
+    exists in ``v3["conda"]``, ``packages.conda``, or classic ``packages``.
+
     Return a shallow copy if use_only_tar_bz2==False, else unmodified input.
     """
     if use_only_tar_bz2:
@@ -159,34 +162,34 @@ def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> Sh
     _tar_bz2 = ".tar.bz2"
     _conda = ".conda"
     _len_tar_bz2 = len(_tar_bz2)
+    _len_conda = len(_conda)
 
     legacy_packages = repodata.get("packages", {})
     conda_packages = repodata.get("packages.conda", {})
 
-    result = {
+    # Stem sets so the hot loops avoid per-key lookups.
+    conda_stems = {k[:-_len_conda] for k in conda_packages}
+    legacy_stems = {k[:-_len_tar_bz2] for k in legacy_packages}
+
+    result: ShardDict = {
         **repodata,
         "packages": {
             k: v
             for k, v in legacy_packages.items()
-            if f"{k[:-_len_tar_bz2]}{_conda}" not in conda_packages
+            if k[:-_len_tar_bz2] not in conda_stems
         },
     }
 
     if v3 := repodata.get("v3"):
         v3_conda = v3.get("conda", {})
-        result = {
-            **result,
-            "v3": {
-                **v3,
-                "tar.bz2": {
-                    k: v
-                    for k, v in v3.get("tar.bz2", {}).items()
-                    if (
-                        k not in v3_conda
-                        and f"{k}{_conda}" not in conda_packages
-                        and f"{k}{_tar_bz2}" not in legacy_packages
-                    )
-                },
+        result["v3"] = {
+            **v3,
+            "tar.bz2": {
+                k: v
+                for k, v in v3.get("tar.bz2", {}).items()
+                if (
+                    k not in v3_conda and k not in conda_stems and k not in legacy_stems
+                )
             },
         }
 
