@@ -1,0 +1,435 @@
+{
+    "machine_info": {
+        "node": "Mahes-MacBook-Pro.local",
+        "processor": "arm",
+        "machine": "arm64",
+        "python_compiler": "Clang 19.1.7 ",
+        "python_implementation": "CPython",
+        "python_implementation_version": "3.10.20",
+        "python_version": "3.10.20",
+        "python_build": [
+            "main",
+            "Mar  5 2026 17:06:34"
+        ],
+        "release": "24.6.0",
+        "system": "Darwin",
+        "cpu": {
+            "python_version": "3.10.20.final.0 (64 bit)",
+            "cpuinfo_version": [
+                9,
+                0,
+                0
+            ],
+            "cpuinfo_version_string": "9.0.0",
+            "arch": "ARM_8",
+            "bits": 64,
+            "count": 10,
+            "arch_string_raw": "arm64",
+            "brand_raw": "Apple M1 Pro"
+        }
+    },
+    "commit_info": {
+        "id": "580aaaf7d2f03d932b239b22a2ba442c183fd646",
+        "time": "2026-08-27T10:21:52+02:00",
+        "author_time": "2026-08-27T10:21:52+02:00",
+        "dirty": false,
+        "project": "conda",
+        "branch": "v3"
+    },
+    "benchmarks": [
+        {
+            "group": null,
+            "name": "test_traversal_algorithm_benchmarks[python-bfs-cold]",
+            "fullname": "tests/shards/test_shards_subset.py::test_traversal_algorithm_benchmarks[python-bfs-cold]",
+            "params": {
+                "scenario": {
+                    "name": "python",
+                    "packages": [
+                        "python"
+                    ],
+                    "prefetch_packages": [],
+                    "channel": "conda-forge",
+                    "platform": "linux-64"
+                },
+                "algorithm": "bfs",
+                "cache_state": "cold"
+            },
+            "param": "python-bfs-cold",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.3726249170140363,
+                "max": 0.3726249170140363,
+                "mean": 0.3726249170140363,
+                "stddev": 0,
+                "rounds": 1,
+                "median": 0.3726249170140363,
+                "iqr": 0.0,
+                "q1": 0.3726249170140363,
+                "q3": 0.3726249170140363,
+                "iqr_outliers": 0,
+                "stddev_outliers": 0,
+                "outliers": "0;0",
+                "ld15iqr": 0.3726249170140363,
+                "hd15iqr": 0.3726249170140363,
+                "ops": 2.6836637979374074,
+                "total": 0.3726249170140363,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_traversal_algorithm_benchmarks[python-bfs-warm]",
+            "fullname": "tests/shards/test_shards_subset.py::test_traversal_algorithm_benchmarks[python-bfs-warm]",
+            "params": {
+                "scenario": {
+                    "name": "python",
+                    "packages": [
+                        "python"
+                    ],
+                    "prefetch_packages": [],
+                    "channel": "conda-forge",
+                    "platform": "linux-64"
+                },
+                "algorithm": "bfs",
+                "cache_state": "warm"
+            },
+            "param": "python-bfs-warm",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.010408999980427325,
+                "max": 0.010408999980427325,
+                "mean": 0.010408999980427325,
+                "stddev": 0,
+                "rounds": 1,
+                "median": 0.010408999980427325,
+                "iqr": 0.0,
+                "q1": 0.010408999980427325,
+                "q3": 0.010408999980427325,
+                "iqr_outliers": 0,
+                "stddev_outliers": 0,
+                "outliers": "0;0",
+                "ld15iqr": 0.010408999980427325,
+                "hd15iqr": 0.010408999980427325,
+                "ops": 96.07070822176586,
+                "total": 0.010408999980427325,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_traversal_algorithm_benchmarks[python-pipelined-cold]",
+            "fullname": "tests/shards/test_shards_subset.py::test_traversal_algorithm_benchmarks[python-pipelined-cold]",
+            "params": {
+                "scenario": {
+                    "name": "python",
+                    "packages": [
+                        "python"
+                    ],
+                    "prefetch_packages": [],
+                    "channel": "conda-forge",
+                    "platform": "linux-64"
+                },
+                "algorithm": "pipelined",
+                "cache_state": "cold"
+            },
+            "param": "python-pipelined-cold",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.20455987501190975,
+                "max": 0.20455987501190975,
+                "mean": 0.20455987501190975,
+                "stddev": 0,
+                "rounds": 1,
+                "median": 0.20455987501190975,
+                "iqr": 0.0,
+                "q1": 0.20455987501190975,
+                "q3": 0.20455987501190975,
+                "iqr_outliers": 0,
+                "stddev_outliers": 0,
+                "outliers": "0;0",
+                "ld15iqr": 0.20455987501190975,
+                "hd15iqr": 0.20455987501190975,
+                "ops": 4.888544246234892,
+                "total": 0.20455987501190975,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_traversal_algorithm_benchmarks[python-pipelined-warm]",
+            "fullname": "tests/shards/test_shards_subset.py::test_traversal_algorithm_benchmarks[python-pipelined-warm]",
+            "params": {
+                "scenario": {
+                    "name": "python",
+                    "packages": [
+                        "python"
+                    ],
+                    "prefetch_packages": [],
+                    "channel": "conda-forge",
+                    "platform": "linux-64"
+                },
+                "algorithm": "pipelined",
+                "cache_state": "warm"
+            },
+            "param": "python-pipelined-warm",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.009219416999258101,
+                "max": 0.009219416999258101,
+                "mean": 0.009219416999258101,
+                "stddev": 0,
+                "rounds": 1,
+                "median": 0.009219416999258101,
+                "iqr": 0.0,
+                "q1": 0.009219416999258101,
+                "q3": 0.009219416999258101,
+                "iqr_outliers": 0,
+                "stddev_outliers": 0,
+                "outliers": "0;0",
+                "ld15iqr": 0.009219416999258101,
+                "hd15iqr": 0.009219416999258101,
+                "ops": 108.4667284363503,
+                "total": 0.009219416999258101,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_traversal_algorithm_benchmarks[devops_automation-bfs-cold]",
+            "fullname": "tests/shards/test_shards_subset.py::test_traversal_algorithm_benchmarks[devops_automation-bfs-cold]",
+            "params": {
+                "scenario": {
+                    "name": "devops_automation",
+                    "packages": [
+                        "ansible",
+                        "pyyaml",
+                        "jinja2"
+                    ],
+                    "prefetch_packages": [
+                        "python"
+                    ],
+                    "channel": "conda-forge",
+                    "platform": "linux-64"
+                },
+                "algorithm": "bfs",
+                "cache_state": "cold"
+            },
+            "param": "devops_automation-bfs-cold",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.6046511669992469,
+                "max": 0.6046511669992469,
+                "mean": 0.6046511669992469,
+                "stddev": 0,
+                "rounds": 1,
+                "median": 0.6046511669992469,
+                "iqr": 0.0,
+                "q1": 0.6046511669992469,
+                "q3": 0.6046511669992469,
+                "iqr_outliers": 0,
+                "stddev_outliers": 0,
+                "outliers": "0;0",
+                "ld15iqr": 0.6046511669992469,
+                "hd15iqr": 0.6046511669992469,
+                "ops": 1.6538461423349002,
+                "total": 0.6046511669992469,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_traversal_algorithm_benchmarks[devops_automation-bfs-warm]",
+            "fullname": "tests/shards/test_shards_subset.py::test_traversal_algorithm_benchmarks[devops_automation-bfs-warm]",
+            "params": {
+                "scenario": {
+                    "name": "devops_automation",
+                    "packages": [
+                        "ansible",
+                        "pyyaml",
+                        "jinja2"
+                    ],
+                    "prefetch_packages": [
+                        "python"
+                    ],
+                    "channel": "conda-forge",
+                    "platform": "linux-64"
+                },
+                "algorithm": "bfs",
+                "cache_state": "warm"
+            },
+            "param": "devops_automation-bfs-warm",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.057009583979379386,
+                "max": 0.057009583979379386,
+                "mean": 0.057009583979379386,
+                "stddev": 0,
+                "rounds": 1,
+                "median": 0.057009583979379386,
+                "iqr": 0.0,
+                "q1": 0.057009583979379386,
+                "q3": 0.057009583979379386,
+                "iqr_outliers": 0,
+                "stddev_outliers": 0,
+                "outliers": "0;0",
+                "ld15iqr": 0.057009583979379386,
+                "hd15iqr": 0.057009583979379386,
+                "ops": 17.54091032065248,
+                "total": 0.057009583979379386,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_traversal_algorithm_benchmarks[devops_automation-pipelined-cold]",
+            "fullname": "tests/shards/test_shards_subset.py::test_traversal_algorithm_benchmarks[devops_automation-pipelined-cold]",
+            "params": {
+                "scenario": {
+                    "name": "devops_automation",
+                    "packages": [
+                        "ansible",
+                        "pyyaml",
+                        "jinja2"
+                    ],
+                    "prefetch_packages": [
+                        "python"
+                    ],
+                    "channel": "conda-forge",
+                    "platform": "linux-64"
+                },
+                "algorithm": "pipelined",
+                "cache_state": "cold"
+            },
+            "param": "devops_automation-pipelined-cold",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.33985312504228204,
+                "max": 0.33985312504228204,
+                "mean": 0.33985312504228204,
+                "stddev": 0,
+                "rounds": 1,
+                "median": 0.33985312504228204,
+                "iqr": 0.0,
+                "q1": 0.33985312504228204,
+                "q3": 0.33985312504228204,
+                "iqr_outliers": 0,
+                "stddev_outliers": 0,
+                "outliers": "0;0",
+                "ld15iqr": 0.33985312504228204,
+                "hd15iqr": 0.33985312504228204,
+                "ops": 2.942447564298805,
+                "total": 0.33985312504228204,
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_traversal_algorithm_benchmarks[devops_automation-pipelined-warm]",
+            "fullname": "tests/shards/test_shards_subset.py::test_traversal_algorithm_benchmarks[devops_automation-pipelined-warm]",
+            "params": {
+                "scenario": {
+                    "name": "devops_automation",
+                    "packages": [
+                        "ansible",
+                        "pyyaml",
+                        "jinja2"
+                    ],
+                    "prefetch_packages": [
+                        "python"
+                    ],
+                    "channel": "conda-forge",
+                    "platform": "linux-64"
+                },
+                "algorithm": "pipelined",
+                "cache_state": "warm"
+            },
+            "param": "devops_automation-pipelined-warm",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": false
+            },
+            "stats": {
+                "min": 0.027236458961851895,
+                "max": 0.027236458961851895,
+                "mean": 0.027236458961851895,
+                "stddev": 0,
+                "rounds": 1,
+                "median": 0.027236458961851895,
+                "iqr": 0.0,
+                "q1": 0.027236458961851895,
+                "q3": 0.027236458961851895,
+                "iqr_outliers": 0,
+                "stddev_outliers": 0,
+                "outliers": "0;0",
+                "ld15iqr": 0.027236458961851895,
+                "hd15iqr": 0.027236458961851895,
+                "ops": 36.71549232595274,
+                "total": 0.027236458961851895,
+                "iterations": 1
+            }
+        }
+    ],
+    "datetime": "2026-08-27T13:21:54.159158+00:00",
+    "version": "5.2.3"
+}
