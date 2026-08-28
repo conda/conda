@@ -3,20 +3,16 @@
 from __future__ import annotations
 
 import copy
-from contextlib import nullcontext
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 import pytest
 
 import conda
-from conda.base.constants import DEFAULTS_CHANNEL_NAME
 from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.core import index
 from conda.core.index import (
     Index,
-    calculate_channel_urls,
     dist_str_in_index,
 )
 from conda.core.prefix_data import PrefixData
@@ -251,16 +247,6 @@ def test_dist_str_in_index(test_recipes_channel: Path) -> None:
     idx = Index((Channel(str(test_recipes_channel)),), prepend=False)
     assert not dist_str_in_index(idx.data, "test-1.4.0-0")
     assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
-
-
-def test_calculate_channel_urls():
-    with pytest.deprecated_call():
-        urls = calculate_channel_urls(
-            channel_urls=[DEFAULTS_CHANNEL_NAME], use_local=False, prepend=True
-        )
-
-        assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
-        assert len(urls) == 6 if on_win else 4
 
 
 @pytest.mark.parametrize(
@@ -541,15 +527,3 @@ class TestIndex:
             # each OS has different virtual packages
             + len(context.plugin_manager.get_virtual_package_records())
         )
-
-
-@pytest.mark.parametrize(
-    "function,raises",
-    [
-        ("calculate_channel_urls", None),
-    ],
-)
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(index, function)()
