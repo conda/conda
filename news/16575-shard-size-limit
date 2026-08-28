@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Allow individual sharded-repodata package shards up to 64 MiB. (#16575)
+* Allow individual sharded-repodata package shards up to 64 MiB after decompression. (#16575)
 
 ### Deprecations
 
