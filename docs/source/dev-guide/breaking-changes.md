@@ -3,7 +3,7 @@
 
 # Breaking changes
 
-While conda strives towards providing a highly stable software and package management experience,
+While conda strives towards providing a highly stable package manager experience,
 sometimes the introduction of breaking changes cannot be avoided.
 For example, we may need to change a configuration default, update the solver,
 or remove/change a CLI subcommand or flag. While these changes are usually few and far between,
