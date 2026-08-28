@@ -16,19 +16,38 @@ from ....models.match_spec import MatchSpec
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from ....common.path import PathType
     from ....core.link import UnlinkLinkTransaction
+    from ....models.environment import Environment
     from ....models.records import PackageCacheRecord
 
 
-def require_installed_plugin_specs(specs: Iterable[str], command: str) -> None:
-    installed_names = frozenset(
-        plugin["name"] for plugin in context.plugin_manager.get_installed_plugins()
+def get_installed_plugin_package_names(prefix: PathType) -> frozenset[str]:
+    """Return conda plugin package names installed in a prefix."""
+    prefix_data = PrefixData(prefix)
+    prefix_data.assert_environment()
+    return frozenset(
+        record.name
+        for record in prefix_data.get_conda_packages()
+        if context.plugin_manager.is_conda_plugin_package(
+            record,
+            prefix=prefix_data.prefix_path,
+        )
     )
+
+
+def require_installed_plugin_specs(
+    specs: Iterable[str | MatchSpec],
+    prefix: PathType,
+    *,
+    command: str,
+) -> None:
+    installed_names = get_installed_plugin_package_names(prefix)
     invalid_specs: list[str] = []
 
     for spec in specs:
         if MatchSpec(spec).name not in installed_names:
-            invalid_specs.append(spec)
+            invalid_specs.append(str(spec))
 
     if invalid_specs:
         installed = ", ".join(sorted(installed_names)) or "none"
@@ -37,6 +56,28 @@ def require_installed_plugin_specs(specs: Iterable[str], command: str) -> None:
             f"plugin packages. Not installed as conda plugins: "
             f"{', '.join(invalid_specs)}. Installed conda plugins: {installed}."
         )
+
+
+def require_plugin_update_environment(environment: Environment) -> None:
+    """Validate requested plugin updates after merging file input."""
+    if environment.external_packages:
+        installers = ", ".join(sorted(environment.external_packages))
+        raise CondaValueError(
+            "`conda plugins update` cannot update packages managed by external "
+            f"installers. External installers: {installers}."
+        )
+
+    if environment.variables:
+        raise CondaValueError(
+            "`conda plugins update` cannot set environment variables from "
+            "environment files."
+        )
+
+    require_installed_plugin_specs(
+        environment.requested_packages,
+        environment.prefix,
+        command="update",
+    )
 
 
 def require_plugin_install_transaction(

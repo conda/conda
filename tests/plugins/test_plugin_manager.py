@@ -391,17 +391,75 @@ def test_plugins_info_not_found(
     assert not err
 
 
+def test_installed_plugin_package_names_use_target_prefix(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    mocker: MockerFixture,
+    tmp_path: Path,
+):
+    package_validation = import_module(
+        "conda.plugins.subcommands.plugins.package_validation"
+    )
+    plugin_record = mocker.Mock(name="plugin_record")
+    plugin_record.name = "target-plugin"
+    non_plugin_record = mocker.Mock(name="non_plugin_record")
+    non_plugin_record.name = "target-package"
+    prefix_data = mocker.Mock()
+    prefix_data.assert_environment = mocker.Mock()
+    prefix_data.prefix_path = tmp_path
+    prefix_data.get_conda_packages.return_value = (
+        plugin_record,
+        non_plugin_record,
+    )
+    prefix_data_factory = mocker.patch.object(
+        package_validation,
+        "PrefixData",
+        return_value=prefix_data,
+    )
+    is_conda_plugin_package = mocker.patch.object(
+        plugin_manager_with_plugins_command,
+        "is_conda_plugin_package",
+        side_effect=(True, False),
+    )
+
+    installed_names = package_validation.get_installed_plugin_package_names(tmp_path)
+
+    assert installed_names == frozenset({"target-plugin"})
+    prefix_data_factory.assert_called_once_with(tmp_path)
+    prefix_data.assert_environment.assert_called_once_with()
+    is_conda_plugin_package.assert_has_calls(
+        (
+            mocker.call(plugin_record, prefix=tmp_path),
+            mocker.call(non_plugin_record, prefix=tmp_path),
+        )
+    )
+
+
 def test_plugins_remove_delegates_to_conda_remove(
-    plugin_manager_with_test_plugin: CondaPluginManager,
+    plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    tmp_path: Path,
 ):
     remove_module = import_module("conda.plugins.subcommands.plugins.remove")
+    package_validation = import_module(
+        "conda.plugins.subcommands.plugins.package_validation"
+    )
+    installed_names = mocker.patch.object(
+        package_validation,
+        "get_installed_plugin_package_names",
+        return_value=frozenset({"conda-test-plugin"}),
+    )
     execute = mocker.patch.object(remove_module.main_remove, "execute", return_value=0)
 
-    out, err, code = conda_cli("plugins", "remove", "conda-test-plugin")
+    out, err, code = conda_cli(
+        "plugins",
+        "remove",
+        f"--prefix={tmp_path}",
+        "conda-test-plugin",
+    )
 
     assert code == 0, f"conda plugins remove failed ({code}): {err}"
+    installed_names.assert_called_once_with(str(tmp_path))
     args, parser = execute.call_args.args
     assert args.cmd == "remove"
     assert args.package_names == ["conda-test-plugin"]
@@ -413,9 +471,19 @@ def test_plugins_remove_delegates_to_conda_remove(
 
 
 def test_plugins_remove_rejects_non_plugin_package(
-    plugin_manager_with_test_plugin: CondaPluginManager,
+    plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
 ):
+    package_validation = import_module(
+        "conda.plugins.subcommands.plugins.package_validation"
+    )
+    mocker.patch.object(
+        package_validation,
+        "get_installed_plugin_package_names",
+        return_value=frozenset({"conda-test-plugin"}),
+    )
+
     out, err, exc = conda_cli(
         "plugins",
         "remove",
@@ -433,7 +501,7 @@ def test_plugins_remove_rejects_non_plugin_package(
 
 
 def test_plugins_update_delegates_to_conda_update(
-    plugin_manager_with_test_plugin: CondaPluginManager,
+    plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
 ):
@@ -447,45 +515,235 @@ def test_plugins_update_delegates_to_conda_update(
     assert args.cmd == "update"
     assert args.packages == ["conda-test-plugin"]
     assert args.update_all_plugins is False
+    assert args._validate_environment is update_module.require_plugin_update_environment
     assert parser.prog.endswith("plugins update")
     assert not out
     assert not err
 
 
-def test_plugins_update_rejects_non_plugin_package(
-    plugin_manager_with_test_plugin: CondaPluginManager,
+def test_plugins_update_validator_rejects_non_plugin_package(
+    plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+    tmp_path: Path,
 ):
-    out, err, exc = conda_cli(
-        "plugins",
-        "update",
-        "numpy",
-        raises=CondaValueError,
+    from conda.models.match_spec import MatchSpec
+
+    update_module = import_module("conda.plugins.subcommands.plugins.update")
+    package_validation = import_module(
+        "conda.plugins.subcommands.plugins.package_validation"
     )
+    mocker.patch.object(update_module.main_update, "execute", return_value=0)
+    installed_names = mocker.patch.object(
+        package_validation,
+        "get_installed_plugin_package_names",
+        return_value=frozenset({"conda-test-plugin"}),
+    )
+
+    out, err, code = conda_cli("plugins", "update", "numpy")
+    assert code == 0, f"conda plugins update failed ({code}): {err}"
+    args = update_module.main_update.execute.call_args.args[0]
+    environment = mocker.Mock(
+        requested_packages=(MatchSpec("numpy"),),
+        external_packages={},
+        prefix=tmp_path,
+        variables={},
+    )
+
+    with pytest.raises(CondaValueError) as exc:
+        args._validate_environment(environment)
 
     assert (
         "`conda plugins update` can only operate on installed conda plugin packages"
         in str(exc)
     )
     assert "numpy" in str(exc)
+    installed_names.assert_called_once_with(tmp_path)
+    assert not out
+    assert not err
+
+
+def test_plugins_update_file_validates_target_prefix(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+    tmp_path: Path,
+):
+    from conda.plugins import environment_specifiers
+
+    package_validation = import_module(
+        "conda.plugins.subcommands.plugins.package_validation"
+    )
+    plugin_manager_with_plugins_command.load_plugins(*environment_specifiers.plugins)
+    installed_names = mocker.patch.object(
+        package_validation,
+        "get_installed_plugin_package_names",
+        return_value=frozenset({"target-plugin"}),
+    )
+    specs_file = tmp_path / "specs.txt"
+    specs_file.write_text("numpy\n")
+
+    with tmp_env(shallow=True) as prefix:
+        out, err, exc = conda_cli(
+            "plugins",
+            "update",
+            f"--prefix={prefix}",
+            f"--file={specs_file}",
+            raises=CondaValueError,
+        )
+
+    assert (
+        "`conda plugins update` can only operate on installed conda plugin packages"
+        in str(exc)
+    )
+    assert "numpy" in str(exc)
+    installed_names.assert_called_once_with(str(prefix))
+    assert not out
+    assert not err
+
+
+def test_plugins_update_file_rejects_external_packages(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+    tmp_path: Path,
+):
+    from conda.plugins import environment_specifiers
+
+    package_validation = import_module(
+        "conda.plugins.subcommands.plugins.package_validation"
+    )
+    plugin_manager_with_plugins_command.load_plugins(*environment_specifiers.plugins)
+    installed_names = mocker.patch.object(
+        package_validation,
+        "get_installed_plugin_package_names",
+    )
+    environment_file = tmp_path / "environment.yml"
+    environment_file.write_text(
+        "dependencies:\n"
+        "  - pip\n"
+        "  - pip:\n"
+        "    - package @ https://user:secret@example.com/package.whl\n"
+    )
+
+    with tmp_env(shallow=True) as prefix:
+        out, err, exc = conda_cli(
+            "plugins",
+            "update",
+            f"--prefix={prefix}",
+            f"--file={environment_file}",
+            raises=CondaValueError,
+        )
+
+    assert (
+        "`conda plugins update` cannot update packages managed by external installers"
+        in str(exc)
+    )
+    assert "External installers: pip." in str(exc)
+    assert "secret" not in str(exc)
+    installed_names.assert_not_called()
+    assert not out
+    assert not err
+
+
+def test_plugins_update_file_rejects_environment_variables(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+    tmp_path: Path,
+):
+    from conda.plugins import environment_specifiers
+
+    package_validation = import_module(
+        "conda.plugins.subcommands.plugins.package_validation"
+    )
+    plugin_manager_with_plugins_command.load_plugins(*environment_specifiers.plugins)
+    installed_names = mocker.patch.object(
+        package_validation,
+        "get_installed_plugin_package_names",
+    )
+    environment_file = tmp_path / "environment.yml"
+    environment_file.write_text(
+        "dependencies:\n  - target-plugin\nvariables:\n  PLUGIN_TOKEN: secret\n"
+    )
+
+    with tmp_env(shallow=True) as prefix:
+        out, err, exc = conda_cli(
+            "plugins",
+            "update",
+            f"--prefix={prefix}",
+            f"--file={environment_file}",
+            raises=CondaValueError,
+        )
+
+    assert (
+        "`conda plugins update` cannot set environment variables from environment files"
+        in str(exc)
+    )
+    assert "secret" not in str(exc)
+    installed_names.assert_not_called()
+    assert not out
+    assert not err
+
+
+@pytest.mark.parametrize(
+    "command_args",
+    (
+        ("remove", "target-plugin"),
+        ("update", "--all"),
+    ),
+)
+def test_plugins_package_commands_reject_missing_target_prefix(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+    tmp_path: Path,
+    command_args: tuple[str, ...],
+):
+    from conda.exceptions import EnvironmentLocationNotFound
+
+    prefix = tmp_path / "missing"
+
+    out, err, exc = conda_cli(
+        "plugins",
+        *command_args,
+        f"--prefix={prefix}",
+        raises=EnvironmentLocationNotFound,
+    )
+
+    assert str(prefix) in str(exc)
     assert not out
     assert not err
 
 
 def test_plugins_update_all_uses_installed_plugin_packages(
-    plugin_manager_with_test_plugin: CondaPluginManager,
+    plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    tmp_path: Path,
 ):
     update_module = import_module("conda.plugins.subcommands.plugins.update")
+    installed_names = mocker.patch.object(
+        update_module,
+        "get_installed_plugin_package_names",
+        return_value=frozenset({"z-plugin", "a-plugin"}),
+    )
     execute = mocker.patch.object(update_module.main_update, "execute", return_value=0)
 
-    out, err, code = conda_cli("plugins", "update", "--all")
+    out, err, code = conda_cli(
+        "plugins",
+        "update",
+        f"--prefix={tmp_path}",
+        "--all",
+    )
 
     assert code == 0, f"conda plugins update --all failed ({code}): {err}"
+    installed_names.assert_called_once_with(str(tmp_path))
     args, parser = execute.call_args.args
     assert args.cmd == "update"
-    assert args.packages == ["conda-test-plugin"]
+    assert args.packages == ["a-plugin", "z-plugin"]
     assert args.update_all_plugins is True
     assert parser.prog.endswith("plugins update")
     assert not out
@@ -510,17 +768,28 @@ def test_plugins_update_all_rejects_package_names(
 
 
 def test_plugins_update_all_without_plugins(
-    plugin_manager_with_plugins_command: CondaPluginManager,
+    plugin_manager_with_test_plugin: CondaPluginManager,
     conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+    tmp_path: Path,
 ):
+    update_module = import_module("conda.plugins.subcommands.plugins.update")
+    installed_names = mocker.patch.object(
+        update_module,
+        "get_installed_plugin_package_names",
+        return_value=frozenset(),
+    )
+
     out, err, exc = conda_cli(
         "plugins",
         "update",
+        f"--prefix={tmp_path}",
         "--all",
         raises=CondaValueError,
     )
 
     assert "No installed conda plugins found to update." in str(exc)
+    installed_names.assert_called_once_with(str(tmp_path))
     assert not out
     assert not err
 

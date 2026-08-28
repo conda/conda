@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ....base.context import context
 from ....cli import main_remove
 from ....cli.helpers import (
     add_output_and_prompt_options,
@@ -70,6 +71,10 @@ def configure_parser(parser: ArgumentParser) -> None:
 
 
 def execute(args: Namespace) -> int:
-    require_installed_plugin_specs(args.package_names, "remove")
+    require_installed_plugin_specs(
+        args.package_names,
+        context.target_prefix,
+        command="remove",
+    )
     args.cmd = "remove"
     return main_remove.execute(args, args._plugin_parser)
