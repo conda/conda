@@ -17,7 +17,10 @@ from ....cli.helpers import (
 )
 from ....common.constants import NULL
 from ....exceptions import CondaValueError
-from .package_validation import require_installed_plugin_specs
+from .package_validation import (
+    get_installed_plugin_package_names,
+    require_plugin_update_environment,
+)
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -62,12 +65,12 @@ def execute(args: Namespace) -> int:
             )
 
         args.packages = sorted(
-            plugin["name"] for plugin in context.plugin_manager.get_installed_plugins()
+            get_installed_plugin_package_names(context.target_prefix)
         )
         if not args.packages:
             raise CondaValueError("No installed conda plugins found to update.")
     else:
-        require_installed_plugin_specs(args.packages, "update")
+        args._validate_environment = require_plugin_update_environment
 
     args.cmd = "update"
     return main_update.execute(args, args._plugin_parser)

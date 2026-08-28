@@ -307,15 +307,16 @@ def install(args, parser, command="install"):
         add_default_packages=command == "create" and not args.no_default_packages,
     )
 
-    # for 'conda update' make sure:
-    # 1) there are no explicit_packages specified
-    # 2) the requested specs actually exist in the prefix
-    #    and that they are name-only specs
-    if isupdate:
-        if env.explicit_packages:
-            raise CondaUpdatePackageError(env.explicit_packages)
-        if env.config.update_modifier != UpdateModifier.UPDATE_ALL:
-            ensure_update_specs_exist(prefix=env.prefix, specs=env.requested_packages)
+    if isupdate and env.explicit_packages:
+        raise CondaUpdatePackageError(env.explicit_packages)
+
+    if environment_validator := getattr(args, "_validate_environment", None):
+        environment_validator(env)
+
+    # for 'conda update' make sure the requested specs exist in the prefix
+    # and are name-only specs
+    if isupdate and env.config.update_modifier != UpdateModifier.UPDATE_ALL:
+        ensure_update_specs_exist(prefix=env.prefix, specs=env.requested_packages)
 
     if explicit_validator := getattr(args, "_validate_explicit_packages", None):
         explicit_validator(env.explicit_packages)
