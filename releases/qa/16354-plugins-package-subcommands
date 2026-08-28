@@ -1,0 +1,94 @@
+### Title
+Manage conda plugin packages in a named environment.
+
+### Why
+Verify that the plugin package commands operate on the requested environment, reject packages without conda entry points before confirmation, and preserve a working plugin across installation and update.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- A canary build of conda containing the plugin package subcommands.
+- Network access to `conda-forge`.
+- No existing environment named `qa-plugins-16354`.
+
+### Steps
+1. Create a disposable environment.
+
+   ```console
+   conda create --yes --name qa-plugins-16354 --override-channels --channel conda-forge python=3.13
+   ```
+
+2. Attempt to install a package that is not a conda plugin.
+
+   ```console
+   conda plugins install --name qa-plugins-16354 --override-channels --channel conda-forge numpy
+   ```
+
+   If a confirmation prompt appears, answer `no` and record the scenario as failed.
+
+3. Confirm that NumPy was not installed.
+
+   ```console
+   conda list --name qa-plugins-16354 numpy
+   ```
+
+4. Install a real conda plugin package.
+
+   ```console
+   conda plugins install --yes --name qa-plugins-16354 --override-channels --channel conda-forge conda-tree=1.2.0
+   ```
+
+5. Confirm that the plugin is installed and its subcommand loads.
+
+   ```console
+   conda list --name qa-plugins-16354 conda-tree
+   conda run --name qa-plugins-16354 conda tree --help
+   ```
+
+6. Exercise the update command by reinstalling the selected plugin version.
+
+   ```console
+   conda plugins update --yes --name qa-plugins-16354 --override-channels --channel conda-forge --force-reinstall conda-tree
+   conda run --name qa-plugins-16354 conda tree --help
+   ```
+
+7. Update all plugin packages in the named environment.
+
+   ```console
+   conda plugins update --yes --name qa-plugins-16354 --override-channels --channel conda-forge --all
+   ```
+
+8. Remove the plugin.
+
+   ```console
+   conda plugins remove --yes --name qa-plugins-16354 --override-channels --channel conda-forge conda-tree
+   ```
+
+9. Confirm that the package and plugin subcommand are gone.
+
+   ```console
+   conda list --name qa-plugins-16354 conda-tree
+   conda run --name qa-plugins-16354 conda tree --help
+   ```
+
+10. Remove the disposable environment.
+
+    ```console
+    conda env remove --yes --name qa-plugins-16354
+    ```
+
+### Pass criteria
+- The NumPy request exits with the non-plugin-package error before displaying a package plan or confirmation prompt.
+- Only the directly requested NumPy archive may be fetched for validation. Its dependencies are not fetched or linked.
+- NumPy is absent from the target environment after rejection.
+- `conda-tree` installs into `qa-plugins-16354`.
+- `conda tree --help` succeeds before and after the forced update.
+- Updating all plugin packages completes successfully.
+- Removing `conda-tree` leaves it absent and causes `conda tree --help` to fail with an unrecognized-command error.
+- No package is linked into the target environment before confirmation.
+
+### Out of scope / notes
+The requested archive may be downloaded and extracted into the package cache because repodata does not contain Python entry-point groups. Automated parser and validation behavior is covered in `tests/plugins/test_plugin_manager.py`.
