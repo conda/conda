@@ -20,6 +20,8 @@ if TYPE_CHECKING:
         TmpEnvFixture,
     )
 
+pytestmark = [pytest.mark.usefixtures("parametrized_solver_fixture")]
+
 
 class PostSolvePlugin:
     def post_solve_action(self) -> None:
@@ -55,7 +57,7 @@ def test_post_solve_invoked(
     path_factory: PathFactoryFixture,
 ):
     with pytest.raises(DryRunExit):
-        with tmp_env("zlib", "--solver=classic", "--dry-run"):
+        with tmp_env("zlib", "--dry-run"):
             pass
 
     assert post_solve_plugin.post_solve_action.mock_calls
@@ -79,7 +81,7 @@ def test_post_solve_action_raises_exception(
     post_solve_plugin.post_solve_action.side_effect = [Exception(exc_message)]
 
     with pytest.raises(Exception, match=exc_message):
-        with tmp_env("zlib", "--solver=classic", "--dry-run"):
+        with tmp_env("zlib", "--dry-run"):
             pass
 
     assert post_solve_plugin.post_solve_action.mock_calls

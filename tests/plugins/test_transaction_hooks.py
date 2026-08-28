@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
 
+pytestmark = [pytest.mark.usefixtures("parametrized_solver_fixture")]
+
 
 class DummyTransactionAction(Action):
     def verify(self):
@@ -102,7 +104,7 @@ def test_transaction_hooks_invoked(
     pre_verify, pre_execute, pre_reverse, pre_cleanup = pre_transaction_plugin
     post_verify, post_execute, post_reverse, post_cleanup = post_transaction_plugin
 
-    with tmp_env("small-executable", "--solver=classic"):
+    with tmp_env("small-executable"):
         pass
 
     pre_verify.assert_called_once()
@@ -128,7 +130,7 @@ def test_pre_transaction_raises_exception(
     pre_execute.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env("small-executable", "--solver=classic"):
+        with tmp_env("small-executable"):
             pass
 
     pre_verify.assert_called_once()
@@ -153,7 +155,7 @@ def test_post_transaction_raises_exception(
     post_execute.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env("small-executable", "--solver=classic"):
+        with tmp_env("small-executable"):
             pass
 
     post_verify.assert_called_once()

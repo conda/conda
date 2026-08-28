@@ -21,6 +21,9 @@ if TYPE_CHECKING:
     )
 
 
+pytestmark = [pytest.mark.usefixtures("parametrized_solver_fixture")]
+
+
 class PreSolvePlugin:
     def pre_solve_action(self) -> None:
         pass
@@ -55,7 +58,7 @@ def test_pre_solve_invoked(
     path_factory: PathFactoryFixture,
 ):
     with pytest.raises(DryRunExit):
-        with tmp_env("zlib", "--solver=classic", "--dry-run"):
+        with tmp_env("zlib", "--dry-run"):
             pass
 
     assert pre_solve_plugin.pre_solve_action.mock_calls
@@ -79,7 +82,7 @@ def test_pre_solve_action_raises_exception(
     pre_solve_plugin.pre_solve_action.side_effect = [Exception(exc_message)]
 
     with pytest.raises(Exception, match=exc_message):
-        with tmp_env("zlib", "--solver=classic", "--dry-run"):
+        with tmp_env("zlib", "--dry-run"):
             pass
 
     assert pre_solve_plugin.pre_solve_action.mock_calls
