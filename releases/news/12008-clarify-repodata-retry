@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Clarify the repodata retry message so it no longer describes the fallback as an unsuccessful attempt. (#12008 via #16599)
