@@ -25,6 +25,7 @@ from requests import Request, Response
 import conda.gateways.repodata
 from conda._private import zstd
 from conda._private.shards import cache as shards_cache
+from conda._private.shards import decompression as shard_decompression
 from conda._private.shards import shards
 from conda._private.shards import subset as shards_subset
 from conda._private.shards.shards import (
@@ -39,7 +40,9 @@ from conda._private.shards.shards import (
     shard_mentioned_packages,
 )
 from conda.base.context import context, reset_context
+from conda.cli.main import main
 from conda.core.subdir_data import SubdirData
+from conda.exceptions import ChannelError
 from conda.models.channel import Channel
 
 from .conftest import (
@@ -758,6 +761,99 @@ def test_shards_cache(tmp_path: Path):
     assert (tmp_path / shards_cache.SHARD_CACHE_NAME).exists()
 
     cache.close()
+
+
+def test_shard_size_limits():
+    assert shard_decompression.ZSTD_MAX_SHARD_SIZE == 64 * 2**20
+    assert shard_decompression.ZSTD_MAX_SHARD_INDEX_SIZE == 128 * 2**20
+
+
+def test_individual_shard_output_size_limit():
+    reported_shard_size = 48_984_766
+    compressed = zstd.compress(bytes(reported_shard_size))
+
+    decompressed = shard_decompression.decompress_shard(
+        compressed,
+        url="https://example.com/noarch/shards/hash",
+        package="large-package",
+    )
+
+    assert len(decompressed) == reported_shard_size
+
+
+def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(shard_decompression, "ZSTD_MAX_SHARD_SIZE", 1024)
+    shard = msgpack.dumps({"payload": b"x" * 2048})
+    annotated_shard = shards_cache.AnnotatedRawShard(
+        "https://user:password@example.com/t/secret/channel/noarch/shards/hash",
+        "large-package",
+        zstd.compress(shard),
+    )
+
+    with shards_cache.ShardCache(tmp_path) as cache:
+        cache.insert(annotated_shard)
+        with pytest.raises(ChannelError) as exc_info:
+            cache.retrieve(annotated_shard.url)
+
+    message = str(exc_info.value)
+    assert "package 'large-package'" in message
+    assert "https://example.com/t/<TOKEN>/channel/noarch/shards/hash" in message
+    assert f"decompressed output is {len(shard)} bytes" in message
+    assert "output and decoder window limit: 1024 bytes" in message
+    assert "user:password" not in message
+    assert "/t/secret/" not in message
+
+
+def test_individual_shard_size_error_cli(
+    shard_factory: ShardFactory,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    channel_url = shard_factory.http_server_shards("individual_shard_size_error_cli")
+    shard_size = len(msgpack.dumps(FAKE_SHARD))
+    max_output_size = shard_size - 1
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+            patch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+            patch.setenv("CONDA_TOKEN", "")
+            patch.setattr(
+                shard_decompression,
+                "ZSTD_MAX_SHARD_SIZE",
+                max_output_size,
+            )
+            reset_context()
+            capsys.readouterr()
+
+            return_code = main(
+                "search",
+                "foo",
+                "--subdir",
+                "noarch",
+                "--override-channels",
+                "--channel",
+                channel_url,
+            )
+
+            _, stderr = capsys.readouterr()
+    finally:
+        reset_context()
+
+    shard_url = f"{channel_url}noarch/repodata_shards.msgpack.zst"
+    expected = (
+        "ChannelError: repodata shard for package 'foo' "
+        f"from channel '{shard_url}': "
+        f"decompressed output is {shard_size} bytes, "
+        f"which exceeds the {max_output_size} byte limit "
+        f"(output and decoder window limit: {max_output_size} bytes)"
+    )
+    assert return_code == 1
+    assert stderr.rstrip().endswith(expected)
+    assert stderr.count("ChannelError:") == 1
+    assert "Traceback" not in stderr
+    assert "ERROR REPORT" not in stderr
+    assert "An unexpected error has occurred" not in stderr
 
 
 def test_shards_cache_recovery(tmp_path: Path):
