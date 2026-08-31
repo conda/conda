@@ -121,10 +121,12 @@ def test_process_extract_finishes_when_later_fetch_fails(
     bad_cache = mocker.MagicMock()
     good_extract = mocker.MagicMock(
         source_full_path="/tmp/good.conda",
+        verified_source_full_path="/tmp/good.conda",
         target_full_path="/tmp/good",
     )
     bad_extract = mocker.MagicMock(
         source_full_path="/tmp/bad.conda",
+        verified_source_full_path="/tmp/bad.conda",
         target_full_path="/tmp/bad",
     )
     pfe = ProgressiveFetchExtract(())
@@ -248,12 +250,14 @@ def test_process_extract_gates_each_archive_on_concurrent_verifier(
     for record in records:
         action = mocker.MagicMock(
             source_full_path=f"/tmp/{record.name}.conda",
+            verified_source_full_path=f"/tmp/{record.name}.conda",
             target_full_path=f"/tmp/{record.name}",
         )
         action.verify.side_effect = lambda name=record.name: verify(name)
         actions[record] = (None, action)
     pfe = ProgressiveFetchExtract(())
     pfe.paired_actions = actions
+    pfe._package_verifiers = (SimpleNamespace(name="test-verifier", verify=verify),)
     pfe._prepared = True
     mocker.patch.object(pfe, "_progress_bar", return_value=mocker.MagicMock())
 
@@ -278,10 +282,12 @@ def test_process_extract_does_not_start_after_interrupt(
     record = PackageRecord(name="package", version="1", build="0", build_number=0)
     extract_action = mocker.MagicMock(
         source_full_path="/tmp/package.conda",
+        verified_source_full_path="/tmp/package.conda",
         target_full_path="/tmp/package",
     )
     pfe = ProgressiveFetchExtract(())
     pfe.paired_actions = {record: (None, extract_action)}
+    pfe._package_verifiers = (mocker.MagicMock(),)
     pfe._prepared = True
 
     mocker.patch.object(
@@ -321,6 +327,95 @@ def test_process_extract_does_not_start_after_interrupt(
     extract_action.verify.assert_called_once_with()
     extract_action._prepare_extract.assert_not_called()
     extract.assert_not_called()
+
+
+@pytest.mark.parametrize("failure", ("fetch", "verify"))
+def test_package_verifier_failure_reverses_each_action_once(
+    failure: str,
+    mocker,
+):
+    record = PackageRecord(name="package", version="1", build="0", build_number=0)
+    cache_action = mocker.MagicMock(
+        url="file:/tmp/package.conda",
+        defer_cleanup=True,
+    )
+    extract_action = mocker.MagicMock(
+        source_full_path="/tmp/package.conda",
+        verified_source_full_path="/tmp/package.conda",
+        target_full_path="/tmp/package",
+    )
+    error = RuntimeError(f"{failure} failed")
+    if failure == "fetch":
+        cache_action.execute.side_effect = error
+    else:
+        extract_action.verify.side_effect = error
+
+    pfe = ProgressiveFetchExtract(())
+    pfe.paired_actions = {record: (cache_action, extract_action)}
+    pfe._package_verifiers = (mocker.MagicMock(),)
+    pfe._prepared = True
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+    mocker.patch.object(pfe, "_progress_bar", return_value=mocker.MagicMock())
+
+    with pytest.raises(CondaMultiError, match=f"{failure} failed"):
+        pfe.execute()
+
+    cache_action.reverse.assert_called_once_with()
+    extract_action.reverse.assert_called_once_with()
+
+
+@pytest.mark.parametrize("use_process_pool", (False, True), ids=("thread", "process"))
+def test_package_verifier_extraction_failure_restores_extracted_cache(
+    use_process_pool: bool,
+    mocker,
+    process_pool_as_threads,
+    tmp_pkgs_dir: Path,
+):
+    ProgressiveFetchExtract((zlib_tar_bz2_prec,)).execute()
+    extracted_dir = Path(tmp_pkgs_dir, zlib_base_fn)
+    marker = extracted_dir / "existing-cache-marker"
+    marker.write_text("existing")
+    archive_path = Path(tmp_pkgs_dir, zlib_tar_bz2_fn)
+    archive_bytes = archive_path.read_bytes()
+
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_verifiers",
+        return_value=(
+            SimpleNamespace(name="test-verifier", verify=lambda *_args: None),
+        ),
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "EXTRACT_PROCESSES",
+        2 if use_process_pool else 1,
+    )
+    if use_process_pool:
+        extract = mocker.patch.object(
+            package_cache_data,
+            "extract_conda_package_archive",
+            side_effect=RuntimeError("extraction failed"),
+        )
+    else:
+        extract = mocker.patch.object(
+            context.plugin_manager,
+            "extract_package",
+            side_effect=RuntimeError("extraction failed"),
+        )
+
+    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe.prepare()
+    extract_action = pfe.extract_actions[0]
+
+    with pytest.raises(CondaMultiError, match="extraction failed"):
+        pfe.execute()
+
+    extract.assert_called_once()
+    assert marker.read_text() == "existing"
+    assert (extracted_dir / "info" / "index.json").exists()
+    assert archive_path.read_bytes() == archive_bytes
+    assert not Path(extract_action.hold_path).exists()
+    assert not tuple(Path(tmp_pkgs_dir).glob(".conda-verify-*"))
 
 
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):
@@ -620,7 +715,7 @@ def test_package_verifier_uses_exact_retained_format(
 
 
 @pytest.mark.parametrize("checksum", ("sha256", "md5"))
-def test_package_verifier_reuses_download_checksum(
+def test_package_verifier_rechecks_downloaded_archive(
     checksum: str,
     tmp_pkgs_dir: Path,
     mocker,
@@ -649,10 +744,9 @@ def test_package_verifier_reuses_download_checksum(
     def verify(record_or_spec, source_full_path, sha256):
         assert record_or_spec is selected
         assert sha256 == zlib_tar_bz2_prec.sha256
-        if checksum == "sha256":
-            compute_checksum.assert_not_called()
-        else:
-            compute_checksum.assert_called_once_with(source_full_path, "sha256")
+        compute_checksum.assert_any_call(source_full_path, "sha256")
+        if checksum == "md5":
+            compute_checksum.assert_any_call(source_full_path, "md5")
 
     mocker.patch.object(
         context.plugin_manager,
@@ -666,17 +760,15 @@ def test_package_verifier_reuses_download_checksum(
 
     download_package.assert_called_once()
     assert download_package.call_args.kwargs[checksum] == getattr(selected, checksum)
+    archive_path = Path(compute_checksum.call_args_list[0].args[0])
+    assert archive_path.name == zlib_tar_bz2_fn
+    assert archive_path.parent.parent == tmp_pkgs_dir
+    compute_checksum.assert_any_call(str(archive_path), "sha256")
     if checksum == "sha256":
-        compute_checksum.assert_not_called()
-        extract_action = pfe.extract_actions[0]
-        extract_action._verified_checksum = ("sha256", selected.sha256)
-        extract_action.verify()
-        compute_checksum.assert_not_called()
+        assert compute_checksum.call_count == 1
     else:
-        compute_checksum.assert_called_once_with(
-            str(Path(tmp_pkgs_dir, zlib_tar_bz2_fn)),
-            "sha256",
-        )
+        compute_checksum.assert_any_call(str(archive_path), "md5")
+        assert compute_checksum.call_count == 2
 
 
 def test_package_verifier_uses_exact_read_only_archive(
@@ -716,7 +808,7 @@ def test_package_verifier_uses_exact_read_only_archive(
     pfe.execute()
 
     verify.assert_called_once()
-    assert Path(verify.call_args.args[1]).parent == tmp_pkgs_dir
+    assert Path(verify.call_args.args[1]).parent.parent == tmp_pkgs_dir
 
 
 def test_package_verifier_extracts_into_first_writable_cache(
@@ -760,7 +852,7 @@ def test_package_verifier_extracts_into_first_writable_cache(
     pfe.execute()
 
     verify.assert_called_once()
-    assert Path(verify.call_args.args[1]).parent == tmp_pkgs_dir
+    assert Path(verify.call_args.args[1]).parent.parent == tmp_pkgs_dir
     assert not stale_marker.exists()
     entry = PackageCacheData.get_entry_to_link(zlib_tar_bz2_prec)
     assert entry is not None
@@ -818,10 +910,9 @@ def test_package_verifier_rechecks_cached_package(tmp_pkgs_dir: Path, mocker):
     pfe.prepare()
     pfe.execute()
 
-    archive_path = str(Path(tmp_pkgs_dir, zlib_tar_bz2_fn))
     compute_checksum = None
 
-    def reject(*args):
+    def reject(_record_or_spec, archive_path, _sha256):
         compute_checksum.assert_called_once_with(archive_path, "sha256")
         raise CondaError("rejected")
 
@@ -829,7 +920,7 @@ def test_package_verifier_rechecks_cached_package(tmp_pkgs_dir: Path, mocker):
     mocker.patch.object(
         context.plugin_manager,
         "get_package_verifiers",
-        return_value=(SimpleNamespace(verify=verify),),
+        return_value=(SimpleNamespace(name="test-verifier", verify=verify),),
     )
     mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
     extract = mocker.patch.object(context.plugin_manager, "extract_package")
@@ -845,9 +936,10 @@ def test_package_verifier_rechecks_cached_package(tmp_pkgs_dir: Path, mocker):
 
     verify.assert_called_once()
     assert verify.call_args.args[0] is zlib_tar_bz2_prec
-    assert verify.call_args.args[1] == archive_path
+    assert Path(verify.call_args.args[1]).name == zlib_tar_bz2_fn
+    assert Path(verify.call_args.args[1]).parent.parent == tmp_pkgs_dir
     assert verify.call_args.args[2] == zlib_tar_bz2_prec.sha256
-    compute_checksum.assert_called_once_with(archive_path, "sha256")
+    compute_checksum.assert_called_once_with(verify.call_args.args[1], "sha256")
     extract.assert_not_called()
     assert Path(tmp_pkgs_dir, zlib_base_fn, "info", "index.json").exists()
 
@@ -859,7 +951,7 @@ def test_package_verifier_rechecks_cached_package(tmp_pkgs_dir: Path, mocker):
     assert extract_action is not None
 
 
-def test_package_verifier_prevents_extraction_during_cache_scan(
+def test_package_verifier_skips_archive_extraction_during_cache_scan(
     tmp_pkgs_dir: Path,
     mocker,
 ):
@@ -867,17 +959,58 @@ def test_package_verifier_prevents_extraction_during_cache_scan(
         join(CHANNEL_DIR_V1, subdir, zlib_tar_bz2_fn),
         join(tmp_pkgs_dir, zlib_tar_bz2_fn),
     )
-    mocker.patch.object(
+    verify = mocker.stub(name="verify")
+    package_verifiers = (SimpleNamespace(name="test-verifier", verify=verify),)
+    get_package_verifiers = mocker.patch.object(
         context.plugin_manager,
         "get_package_verifiers",
-        return_value=(mocker.MagicMock(),),
+        side_effect=(package_verifiers, ()),
+    )
+    read_archive_metadata = mocker.patch.object(
+        package_cache_data,
+        "read_index_json_from_tarball",
     )
 
-    record = PackageCacheData(tmp_pkgs_dir)._make_single_record(zlib_tar_bz2_fn)
+    record = PackageCacheData(tmp_pkgs_dir)._make_single_record(
+        zlib_tar_bz2_fn,
+        package_verifiers,
+    )
 
-    assert record is not None
-    assert record.is_fetched
-    assert not record.is_extracted
+    assert record is None
+    read_archive_metadata.assert_not_called()
+    assert not Path(tmp_pkgs_dir, zlib_base_fn).exists()
+
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+    pfe = ProgressiveFetchExtract((zlib_tar_bz2_prec,))
+    pfe.prepare()
+    pfe.execute()
+
+    get_package_verifiers.assert_called_once()
+    verify.assert_called_once()
+    read_archive_metadata.assert_not_called()
+    assert Path(tmp_pkgs_dir, zlib_base_fn, "info", "index.json").exists()
+
+
+def test_package_verifier_cache_scan_ignores_malformed_archive(
+    tmp_pkgs_dir: Path,
+    mocker,
+):
+    archive_path = Path(tmp_pkgs_dir, zlib_tar_bz2_fn)
+    archive_path.write_bytes(b"not a package archive")
+    package_verifiers = (mocker.MagicMock(),)
+    read_archive_metadata = mocker.patch.object(
+        package_cache_data,
+        "read_index_json_from_tarball",
+    )
+
+    record = PackageCacheData(tmp_pkgs_dir)._make_single_record(
+        zlib_tar_bz2_fn,
+        package_verifiers,
+    )
+
+    assert record is None
+    read_archive_metadata.assert_not_called()
+    assert archive_path.read_bytes() == b"not a package archive"
 
 
 def test_package_verifier_blocks_process_extraction_when_safety_checks_disabled(

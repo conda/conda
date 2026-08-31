@@ -11,6 +11,8 @@ from abc import ABC, abstractmethod
 from itertools import chain
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, normpath
+from shutil import copyfile
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -75,6 +77,8 @@ from .prefix_data import PrefixData
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+    from ..plugins.types import CondaPackageVerifier
 
 try:
     FileNotFoundError
@@ -1327,7 +1331,6 @@ class CacheUrlAction(PathAction):
         self.md5 = md5
         self.defer_cleanup = defer_cleanup
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
-        self._verified_checksum = None
         self._target_path_touched = False
         self._pending_url = None
 
@@ -1342,7 +1345,6 @@ class CacheUrlAction(PathAction):
         from .package_cache_data import PackageCacheData
 
         target_package_cache = PackageCacheData(self.target_pkgs_dir)
-        self._verified_checksum = None
 
         log.log(TRACE, "caching url %s => %s", self.url, self.target_full_path)
 
@@ -1437,10 +1439,6 @@ class CacheUrlAction(PathAction):
             progress_update_callback=progress_update_callback,
             **kwargs,
         )
-        if self.sha256:
-            self._verified_checksum = ("sha256", self.sha256)
-        elif self.md5:
-            self._verified_checksum = ("md5", self.md5)
         self.record_url(target_package_cache, self.url)
 
     def record_url(self, target_package_cache, url):
@@ -1451,7 +1449,6 @@ class CacheUrlAction(PathAction):
             target_package_cache._urls_data.add_url(url)
 
     def reverse(self):
-        self._verified_checksum = None
         if self._target_path_touched:
             rm_rf(self.target_full_path)
         if lexists(self.hold_path):
@@ -1486,6 +1483,7 @@ class ExtractPackageAction(PathAction):
         sha256,
         size,
         md5,
+        package_verifiers: tuple[CondaPackageVerifier, ...] | None = None,
     ):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
@@ -1495,16 +1493,28 @@ class ExtractPackageAction(PathAction):
         self.sha256 = sha256
         self.size = size
         self.md5 = md5
-        self._verified_checksum = None
+        self._package_verifiers = (
+            context.plugin_manager.get_package_verifiers()
+            if package_verifiers is None
+            else package_verifiers
+        )
+        self._verified_archive_dir = None
         self._target_path_touched = False
 
     def verify(self):
-        verified_checksum = self._verified_checksum
-        self._verified_checksum = None
-        verifiers = context.plugin_manager.get_package_verifiers()
+        verifiers = self._package_verifiers
         if verifiers:
+            if self._verified_archive_dir is not None:
+                self._verified_archive_dir.cleanup()
+            self._verified_archive_dir = TemporaryDirectory(
+                prefix=".conda-verify-",
+                dir=self.target_pkgs_dir,
+                ignore_cleanup_errors=True,
+            )
+            source_full_path = self.verified_source_full_path
+            copyfile(self.source_full_path, source_full_path)
             source_url = path_to_url(os.fspath(self.source_full_path))
-            actual_size = getsize(self.source_full_path)
+            actual_size = getsize(source_full_path)
             if self.size is not None and actual_size != self.size:
                 raise ChecksumMismatchError(
                     source_url,
@@ -1514,36 +1524,19 @@ class ExtractPackageAction(PathAction):
                     actual_size,
                 )
 
-            if verified_checksum and verified_checksum[0] == "sha256":
-                actual_sha256 = bytes.fromhex(verified_checksum[1]).hex()
-                expected_sha256 = (
-                    bytes.fromhex(self.sha256).hex() if self.sha256 else None
+            actual_sha256 = compute_sum(source_full_path, "sha256")
+            expected_sha256 = bytes.fromhex(self.sha256).hex() if self.sha256 else None
+            if expected_sha256 and actual_sha256 != expected_sha256:
+                raise ChecksumMismatchError(
+                    source_url,
+                    self.source_full_path,
+                    "sha256",
+                    self.sha256,
+                    actual_sha256,
                 )
-                if actual_sha256 != expected_sha256:
-                    raise ChecksumMismatchError(
-                        source_url,
-                        self.source_full_path,
-                        "sha256",
-                        self.sha256,
-                        actual_sha256,
-                    )
-            else:
-                actual_sha256 = compute_sum(self.source_full_path, "sha256")
-                if self.sha256 and actual_sha256 != self.sha256:
-                    raise ChecksumMismatchError(
-                        source_url,
-                        self.source_full_path,
-                        "sha256",
-                        self.sha256,
-                        actual_sha256,
-                    )
 
             if not self.sha256 and self.md5:
-                actual_md5 = (
-                    verified_checksum[1]
-                    if verified_checksum and verified_checksum[0] == "md5"
-                    else compute_sum(self.source_full_path, "md5")
-                )
+                actual_md5 = compute_sum(source_full_path, "md5")
                 if actual_md5 != self.md5:
                     raise ChecksumMismatchError(
                         source_url,
@@ -1557,7 +1550,7 @@ class ExtractPackageAction(PathAction):
                 try:
                     verifier.verify(
                         self.record_or_spec,
-                        self.source_full_path,
+                        source_full_path,
                         actual_sha256,
                     )
                 except CondaError:
@@ -1573,19 +1566,30 @@ class ExtractPackageAction(PathAction):
     def execute(self, progress_update_callback=None):
         self._prepare_extract()
         context.plugin_manager.extract_package(
-            self.source_full_path,
+            self.verified_source_full_path,
             self.target_full_path,
         )
         self._finish_extract()
+
+    @property
+    def verified_source_full_path(self):
+        if self._verified_archive_dir is None:
+            return self.source_full_path
+        return join(
+            self._verified_archive_dir.name,
+            basename(self.source_full_path),
+        )
 
     def _prepare_extract(self):
         log.log(
             TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
         )
 
-        self._target_path_touched = True
         if lexists(self.target_full_path):
-            rm_rf(self.target_full_path)
+            if lexists(self.hold_path):
+                rm_rf(self.hold_path)
+            backoff_rename(self.target_full_path, self.hold_path, force=True)
+        self._target_path_touched = True
 
     def _finish_extract(self):
         # I hate inline imports, but I guess it's ok since we're importing from the conda.core
@@ -1614,13 +1618,14 @@ class ExtractPackageAction(PathAction):
                 else Channel(None)
             )
             fn = basename(url)
-            sha256 = self.sha256 or compute_sum(self.source_full_path, "sha256")
-            size = getsize(self.source_full_path)
+            archive_path = self.verified_source_full_path
+            sha256 = self.sha256 or compute_sum(archive_path, "sha256")
+            size = getsize(archive_path)
             if self.size is not None and size != self.size:
                 raise RuntimeError(
                     f"Computed size ({size}) does not match expected value {self.size}"
                 )
-            md5 = self.md5 or compute_sum(self.source_full_path, "md5")
+            md5 = self.md5 or compute_sum(archive_path, "md5")
             repodata_record = PackageRecord.from_objects(
                 raw_index_json,
                 url=url,
@@ -1635,6 +1640,15 @@ class ExtractPackageAction(PathAction):
                 self.record_or_spec, raw_index_json
             )
 
+        if self._verified_archive_dir is not None:
+            backoff_rename(
+                self.verified_source_full_path,
+                self.source_full_path,
+                force=True,
+            )
+            self._verified_archive_dir.cleanup()
+            self._verified_archive_dir = None
+
         repodata_record_path = join(
             self.target_full_path, "info", "repodata_record.json"
         )
@@ -1646,9 +1660,12 @@ class ExtractPackageAction(PathAction):
             package_tarball_full_path=self.source_full_path,
             extracted_package_dir=self.target_full_path,
         )
-        target_package_cache.insert(package_cache_record)
+        target_package_cache.insert(package_cache_record, self._package_verifiers)
 
     def reverse(self):
+        if self._verified_archive_dir is not None:
+            self._verified_archive_dir.cleanup()
+            self._verified_archive_dir = None
         if self._target_path_touched:
             rm_rf(self.target_full_path)
             if lexists(self.hold_path):
@@ -1657,6 +1674,9 @@ class ExtractPackageAction(PathAction):
         self._target_path_touched = False
 
     def cleanup(self):
+        if self._verified_archive_dir is not None:
+            self._verified_archive_dir.cleanup()
+            self._verified_archive_dir = None
         rm_rf(self.hold_path)
         self._target_path_touched = False
 

@@ -3,10 +3,14 @@ Package verifiers
 =================
 
 Package verifiers inspect package archives before conda extracts them. Conda
-first validates the recorded size and SHA-256, or MD5 when SHA-256 is unavailable.
-It then passes each verifier the selected package record or explicit match
-specification, the archive path, and the archive's computed SHA-256. Every
-registered verifier must accept the archive for extraction to proceed.
+copies the selected archive into a private staging directory in the package cache
+without changing its filename. It validates each recorded size and SHA-256, or MD5
+when SHA-256 is unavailable, against that staged file. Conda then passes each
+verifier the selected package record or explicit match specification, the staged
+archive path, and the archive's computed SHA-256. Conda extracts the same staged
+file and publishes those verified bytes back to the selected cache path after
+successful extraction. Every registered verifier must accept the archive for
+extraction to proceed.
 
 Verifiers run in name order for each archive, but different archives may be
 verified concurrently, so callbacks must be thread-safe. Conda may verify the
@@ -17,6 +21,9 @@ specification, or archive. Raise
 :class:`conda.exceptions.CondaVerificationError` is available for a general
 verification failure. Conda reports any other exception as a failure in the named
 verifier plugin.
+
+As with other package-cache operations, do not run another command that modifies
+the same package cache while package verification and extraction are in progress.
 
 Package verifier hooks run independently of the ``safety_checks`` setting. When at
 least one verifier is registered, conda rechecks retained package archives instead
