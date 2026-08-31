@@ -39,7 +39,7 @@ they differ mainly in *how* conda warns users ahead of time.
 
 [CEP 9][cep9] and {doc}`Deprecations <deprecations>` give us the schedule (pending deprecation →
 deprecation → removal) and the tooling (`deprecated`, `deprecated.argument`, `deprecated.action`,
-`deprecated.constant`, `deprecated.module`, `deprecated.topic`) for deprecating a **symbol**.
+`deprecated.constant`, `deprecated.module`, `deprecated.topic`, etc.) for deprecating a **symbol**.
 
 CEP 9 alone is not enough when:
 
