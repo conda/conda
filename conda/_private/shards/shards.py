@@ -31,7 +31,7 @@ from conda.gateways.repodata import (
 from conda.models.channel import Channel
 
 from ..zstd import capped_decompress
-from . import cache
+from . import cache, decompression
 from .misc import (
     _is_http_error_most_400_codes,
     _safe_urljoin_with_slash,
@@ -51,20 +51,6 @@ if TYPE_CHECKING:
     from conda.gateways.repodata import RepodataCache
 
     from .typing import RepodataDict, ShardDict, ShardsIndexDict
-
-ZSTD_MAX_SHARD_SIZE = (
-    2**20 * 16
-)  # maximum size necessary when compressed data has no size header
-
-
-ZSTD_MAX_SHARD_INDEX_SIZE = (
-    2**23 * 16
-)  # maximum size necessary when compressed data has no size header
-
-
-# For reference, the largest shard "conda-forge/linux-64/vim" is 2608283 bytes
-# or < 2**19*5 decompressed (486155 bytes compressed); the index is 575219 bytes
-# decompressed (514039 bytes compressed) and is mostly uncompressible hash data.
 
 
 class ShardFetch:
@@ -179,8 +165,10 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            capped_decompress(
-                fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
+            decompression.decompress_shard(
+                fetch_result.compressed_shard,
+                url=shards.url,
+                package=fetch_result.package,
             )
         )
         self.shard_cache.insert(fetch_result)
@@ -632,7 +620,10 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 def _shards_from_bytes(shards_data: bytes, shards_index_url: str) -> Shards:
     """Helper func to generate shards from shards byte data"""
     shards_index: ShardsIndexDict = msgpack.loads(
-        capped_decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE)
+        capped_decompress(
+            shards_data,
+            max_output_size=decompression.ZSTD_MAX_SHARD_INDEX_SIZE,
+        )
     )  # type: ignore
     return Shards(shards_index, shards_index_url)
 

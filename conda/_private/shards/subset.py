@@ -65,9 +65,9 @@ import msgpack
 import conda.gateways.repodata
 from conda.base.context import context
 
-from ..zstd import capped_decompress
 from . import cache
 from .cache import AnnotatedRawShard
+from .decompression import decompress_shard
 from .misc import (
     _shards_connections,
     combine_batches_until_none,
@@ -76,7 +76,6 @@ from .misc import (
     spec_to_package_name,
 )
 from .shards import (
-    ZSTD_MAX_SHARD_SIZE,
     Shards,
     batch_retrieve_from_cache,
     batch_retrieve_from_network,
@@ -725,7 +724,11 @@ def network_fetch_thread(
         # msgpack.zst, insert into cache. Then put "known
         # good" shard into out queue.
         shard: ShardDict = msgpack.loads(
-            capped_decompress(data, max_output_size=ZSTD_MAX_SHARD_SIZE)
+            decompress_shard(
+                data,
+                url=node_id.channel,
+                package=node_id.package,
+            )
         )  # type: ignore[assign]
         # This may be a QueueCache which lets the cache thread serialize access
         # to the database:
