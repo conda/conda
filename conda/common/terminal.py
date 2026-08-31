@@ -8,9 +8,19 @@ import os
 import sys
 
 
-def is_tty() -> bool:
-    """Return True if stdout is connected to a TTY."""
-    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+def is_tty(*, include_stdin: bool = False, include_stderr: bool = False) -> bool:
+    """Return True if stdout is connected to a TTY.
+
+    Args:
+        include_stdin: Also require stdin to be a TTY.
+        include_stderr: Also require stderr to be a TTY.
+    """
+    streams = [sys.stdout]
+    if include_stdin:
+        streams.append(sys.stdin)
+    if include_stderr:
+        streams.append(sys.stderr)
+    return all(hasattr(stream, "isatty") and stream.isatty() for stream in streams)
 
 
 def term_dumb() -> bool:

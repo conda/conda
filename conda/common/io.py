@@ -580,7 +580,10 @@ deprecated.constant(
     "27.9",
     "IS_INTERACTIVE",
     hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
-    addendum="Use `conda.common.terminal.is_tty()` instead.",
+    addendum=(
+        "Use `conda.common.terminal.is_tty()` instead "
+        "(pass `include_stdin=True` to also require stdin to be a TTY)."
+    ),
 )
 
 

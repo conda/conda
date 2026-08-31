@@ -1,0 +1,22 @@
+### Enhancements
+
+* Add `include_stdin` and `include_stderr` keyword-only arguments to
+  `conda.common.terminal.is_tty()` so callers can additionally require stdin
+  and/or stderr to be a TTY (e.g. `is_tty(include_stdin=True)`), closing the
+  gap left after the `IS_INTERACTIVE` deprecation. (#16594)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
