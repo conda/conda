@@ -609,8 +609,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             file_mode=self.file_mode,
             path_type=PathEnum.hardlink,
             prefix_placeholder=self.prefix_placeholder,
-            # sha256_in_prefix=sha256_in_prefix,
-            # sha256_in_prefix set in execute() after codesign batch flush
+            # set in execute() after codesign batch flush
         )
 
         self._verified = True
