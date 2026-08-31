@@ -12,7 +12,6 @@ from conda import exports
 @pytest.mark.parametrize(
     "function,raises",
     [
-        ("EntityEncoder", None),
         ("input", OSError),
         ("StringIO", None),
         ("PY3", TypeError),

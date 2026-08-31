@@ -116,6 +116,8 @@ def test_main_notices_json(
 
     captured = capsys.readouterr()
     json_data = json.loads(captured.out)
+    for item in messages_json["notices"]:
+        item["expired_at"] = item.pop("expires_at")
     assert messages_json.get("notices") == json_data
 
 

@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
-from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
+from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN, REPODATA_SHARDS_FN
 from ...base.context import context
 from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
@@ -74,6 +74,11 @@ ETAG_KEY = "etag"
 CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"
 CACHE_STATE_SUFFIX = ".info.json"
+
+# used in cache state files *.info.json
+FORMAT_JSON = "json"
+FORMAT_SHARDS = "shards"
+FORMAT_ZST = "zst"
 
 # show some unparseable json in error
 ERROR_SNIPPET_LENGTH = 32
@@ -188,6 +193,20 @@ def _add_http_value_to_dict(resp, http_key, d, dict_key):
         d[dict_key] = value
 
 
+def _shard_index_exists(subdir_url: str) -> bool:
+    try:
+        session = get_session(subdir_url)
+        url = join_url(subdir_url, REPODATA_SHARDS_FN)
+        timeout = (
+            context.remote_connect_timeout_secs,
+            context.remote_read_timeout_secs,
+        )
+        response = session.head(url, timeout=timeout, proxies=session.proxies)
+        return 200 <= response.status_code < 300
+    except Exception:
+        return False
+
+
 @contextmanager
 def conda_http_errors(url, repodata_fn):
     """Use in a with: statement to translate requests exceptions to conda ones."""
@@ -257,10 +276,16 @@ Exception: {e}
                         response=e.response,
                     )
                 else:
+                    shards_only_hint = (
+                        repodata_fn == REPODATA_FN
+                        and not context.repodata_use_shards
+                        and _shard_index_exists(url)
+                    )
                     raise UnavailableInvalidChannel(
                         Channel(dirname(url)),
                         status_code,
                         response=e.response,
+                        shards_only_hint=shards_only_hint,
                     )
 
         elif status_code == 403:
@@ -492,7 +517,7 @@ class RepodataState(UserDict):
             > CHECK_ALTERNATE_FORMAT_INTERVAL
         )
         # Always check for shards if json has not been cached:
-        if format == "shards" and not should_check:
+        if format == FORMAT_SHARDS and not should_check:
             should_check = not self.cache_path_json.exists()
         return should_check
 
@@ -574,6 +599,10 @@ class RepodataCache:
             # stat (if json_data is to be trusted)
             if state_only:
                 json_data = b"" if binary else ""
+                if not cache_path.exists():
+                    self.state.clear()
+                    self.state.update(state)
+                    return json_data
             else:
                 if binary:
                     json_data = cache_path.read_bytes()
@@ -719,6 +748,10 @@ class RepodataCache:
         now = time.time_ns()
         refresh = self.state.get("refresh_ns", 0)
         return (max_age - (now - refresh)) / 1e9
+
+    def _shards_known(self) -> bool:
+        has_shards, checked = self.state.has_format(FORMAT_SHARDS)
+        return (checked is not None and has_shards) or self.cache_path_shards.exists()
 
 
 class RepodataFetch:
@@ -877,6 +910,14 @@ class RepodataFetch:
                 self.cache_path_json,
             )
 
+        # avoid network calls if repodata_json is set to False and return "{}"
+        if (
+            self.repodata_fn == REPODATA_FN
+            and not cache.state.should_check_format(FORMAT_JSON)
+            and cache.cache_path_shards.exists()
+        ):
+            return "{}", cache.state
+
         try:
             try:
                 repo = self._repo
@@ -887,8 +928,20 @@ class RepodataFetch:
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
+
+                # when self.repodata_fn==repodata.json, and RepodataIsEmpty error is raised:
+                # if shards are available, we can assume that repodata.json is not supported
+                if cache._shards_known():
+                    cache.state.set_has_format(FORMAT_JSON, False)
+
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata = None
+            except UnavailableInvalidChannel:  # for noarch case
+                if self.repodata_fn == REPODATA_FN:
+                    if cache._shards_known():
+                        cache.state.set_has_format(FORMAT_JSON, False)
+                        cache.refresh()
+                raise
             except RepodataOnDisk:
                 # used as a sentinel, not the raised exception object
                 raw_repodata = RepodataOnDisk

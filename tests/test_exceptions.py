@@ -12,7 +12,7 @@ import requests
 from pytest import CaptureFixture, MonkeyPatch
 from pytest_mock import MockerFixture
 
-from conda import CondaError, plugins
+from conda import CondaError, CondaMultiError, plugins
 from conda.auxlib.collection import AttrDict
 from conda.base.constants import PathConflict
 from conda.base.context import context, reset_context
@@ -972,6 +972,39 @@ def test_RemoveError_without_guidance() -> None:
     assert exc.guidance is None
 
 
+def test_CondaError_when_init_skipped(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    """Subclasses that skip CondaError.__init__ must still print and dump."""
+
+    class IncompleteCondaError(CondaError):
+        def __init__(self, message: str):
+            # Intentionally skip CondaError.__init__ (as some downstream
+            # subclasses historically do, e.g. DependencyNeedsBuildingError).
+            self.message = message
+
+    exc = IncompleteCondaError("boom")
+    assert exc.guidance is None
+    assert str(exc) == "boom"
+    dumped = exc.dump_map()
+    assert dumped["message"] == "boom"
+    assert dumped["caused_by"] == "None"
+    assert "guidance" not in dumped
+
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert "IncompleteCondaError: boom" in stderr
+
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    print_conda_exception(exc)
+    stdout = capsys.readouterr().out
+    assert json.loads(stdout)["exception_name"] == "IncompleteCondaError"
+
+
 def test_RemoveError_guidance_in_dump_map() -> None:
     exc = RemoveError(
         "legacy message",
@@ -1246,6 +1279,250 @@ def test_print_conda_exception_without_guidance(
     )
 
 
+def test_print_conda_multi_error_with_nested_guidance(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    """Guided nested errors must render even when wrapped in CondaMultiError."""
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    exc = CondaMultiError(
+        [
+            RemoveError(
+                "legacy message",
+                guidance={
+                    "summary": (summary := "Conda cannot remove itself."),
+                    "cause": (cause := "Would uninstall conda with no replacement."),
+                    "hints": [
+                        {
+                            "text": (text := "Install a specific conda version first."),
+                            "hint_code": (hint_code := "install_conda_version"),
+                        },
+                    ],
+                },
+            )
+        ]
+    )
+    assert exc.guidance is None
+
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            f"RemoveError: {summary}",
+            "",
+            f"Cause: {cause}",
+            "Next steps:",
+            f"  - ({hint_code}) {text}",
+            "",
+            "",
+        )
+    )
+
+
+def test_print_conda_multi_error_renders_each_nested_guidance(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    shared = {"text": "Use a non-base env.", "hint_code": "use_non_base_env"}
+    exc = CondaMultiError(
+        [
+            RemoveError(
+                "remove conda",
+                guidance={
+                    "summary": "Cannot remove conda.",
+                    "hints": [
+                        shared,
+                        {
+                            "text": "Pin a conda version.",
+                            "hint_code": "install_conda_version",
+                        },
+                    ],
+                },
+            ),
+            RemoveError(
+                "remove python",
+                guidance={
+                    "summary": "Cannot remove python.",
+                    "hints": [
+                        shared,
+                        {
+                            "text": "Avoid mixing pip and conda.",
+                            "hint_code": "pip_conda_mix",
+                        },
+                    ],
+                },
+            ),
+        ]
+    )
+
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            "RemoveError: Cannot remove conda.",
+            "",
+            "Next steps:",
+            "  - (use_non_base_env) Use a non-base env.",
+            "  - (install_conda_version) Pin a conda version.",
+            "",
+            "RemoveError: Cannot remove python.",
+            "",
+            "Next steps:",
+            "  - (use_non_base_env) Use a non-base env.",
+            "  - (pip_conda_mix) Avoid mixing pip and conda.",
+            "",
+            "",
+        )
+    )
+
+
+def test_print_conda_multi_error_json_keeps_nested_guidance_only(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+    assert context.json
+
+    exc = CondaMultiError(
+        [
+            RemoveError(
+                "legacy message",
+                guidance={
+                    "summary": "Conda cannot remove itself.",
+                    "hints": [
+                        {
+                            "text": "Install a specific conda version first.",
+                            "hint_code": "install_conda_version",
+                        },
+                    ],
+                },
+            )
+        ]
+    )
+    print_conda_exception(exc)
+    stdout, stderr = capsys.readouterr()
+    assert not stderr
+    json_obj = json.loads(stdout)
+    assert json_obj["exception_name"] == "CondaMultiError"
+    assert "guidance" not in json_obj
+    assert json_obj["errors"][0]["guidance"]["summary"] == "Conda cannot remove itself."
+
+
+def test_print_conda_multi_error_applies_plugin_hints_to_leaves(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    plugin_manager,
+) -> None:
+    class PluginHints:
+        @plugins.hookimpl
+        def conda_error_hints(self, error):
+            if isinstance(error, RemoveError):
+                yield plugins.types.CondaErrorHint(
+                    text="Plugin step.",
+                    hint_code="plugin_step",
+                )
+            if isinstance(error, CondaMultiError):
+                yield plugins.types.CondaErrorHint(
+                    text="Should not appear.",
+                    hint_code="multi_hint",
+                )
+
+    plugin_manager.register(PluginHints())
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    exc = CondaMultiError(
+        [
+            RemoveError(
+                "legacy message",
+                guidance={
+                    "summary": "Conda cannot remove itself.",
+                    "hints": [
+                        {
+                            "text": "Install a specific conda version first.",
+                            "hint_code": "install_conda_version",
+                        },
+                    ],
+                },
+            )
+        ]
+    )
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert stderr == "\n".join(
+        (
+            "",
+            "RemoveError: Conda cannot remove itself.",
+            "",
+            "Next steps:",
+            "  - (install_conda_version) Install a specific conda version first.",
+            "  - (plugin_step) Plugin step.",
+            "",
+            "",
+        )
+    )
+
+
+def test_print_conda_multi_error_json_applies_plugin_hints_to_leaves(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    plugin_manager,
+) -> None:
+    class PluginHints:
+        @plugins.hookimpl
+        def conda_error_hints(self, error):
+            if isinstance(error, RemoveError):
+                yield plugins.types.CondaErrorHint(
+                    text="Plugin step.",
+                    hint_code="plugin_step",
+                )
+
+    plugin_manager.register(PluginHints())
+    monkeypatch.setenv("CONDA_JSON", "yes")
+    reset_context()
+
+    exc = CondaMultiError(
+        [
+            RemoveError(
+                "legacy message",
+                guidance={
+                    "summary": "Conda cannot remove itself.",
+                    "hints": [
+                        {
+                            "text": "Install a specific conda version first.",
+                            "hint_code": "install_conda_version",
+                        },
+                    ],
+                },
+            )
+        ]
+    )
+    print_conda_exception(exc)
+    stdout, stderr = capsys.readouterr()
+    assert not stderr
+    json_obj = json.loads(stdout)
+    assert "guidance" not in json_obj
+    assert json_obj["errors"][0]["guidance"]["hints"] == [
+        {
+            "text": "Install a specific conda version first.",
+            "hint_code": "install_conda_version",
+        },
+        {"text": "Plugin step.", "hint_code": "plugin_step"},
+    ]
+    assert json_obj["errors"][0]["guidance"]["hint_codes"] == [
+        "install_conda_version",
+        "plugin_step",
+    ]
+
+
 def test_InvalidInstaller_with_file_guidance(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
@@ -1413,8 +1690,10 @@ def test_platform_mismatch_error_is_conda_value_error() -> None:
                 "Environment file 'env.yml' does not include packages for linux-64",
                 "Available platforms: osx-64, osx-arm64",
                 "regenerate the environment file with linux-64",
-                "    conda export --file env.yml "
-                "--platform osx-64 --platform osx-arm64 --platform linux-64",
+                (
+                    "    conda export --file env.yml "
+                    "--platform osx-64 --platform osx-arm64 --platform linux-64"
+                ),
             ),
             id="single-source",
         ),
@@ -1449,3 +1728,29 @@ def test_CondaError_interpolation_no_kwargs() -> None:
     exc = CondaError(message=message)
     assert str(exc) == message
     assert repr(exc) == "CondaError: " + message
+
+
+def test_CondaError_caused_by_keyword() -> None:
+    cause = ValueError("root")
+    exc = CondaError("boom", caused_by=cause)
+    assert exc.dump_map()["caused_by"] == repr(cause)
+
+
+def test_CondaError_caused_by_positional_pending_deprecation() -> None:
+    cause = ValueError("root")
+    with pytest.deprecated_call(match=r"caused_by.*positional.*27\.9"):
+        exc = CondaError("boom", cause)
+    assert exc.dump_map()["caused_by"] == repr(cause)
+
+
+def test_CondaError_caused_by_positional_and_keyword_rejected() -> None:
+    with (
+        pytest.deprecated_call(),
+        pytest.raises(TypeError, match="multiple values for argument 'caused_by'"),
+    ):
+        CondaError("boom", ValueError("a"), caused_by=ValueError("b"))
+
+
+def test_CondaError_too_many_positionals_rejected() -> None:
+    with pytest.raises(TypeError, match="positional arguments"):
+        CondaError("boom", ValueError("a"), ValueError("b"))

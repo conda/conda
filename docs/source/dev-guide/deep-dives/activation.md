@@ -114,6 +114,8 @@ export _CE_CONDA=''
 export CONDA_PYTHON_EXE='/Users/username/.local/anaconda/bin/python'
 ```
 
+`_CE_M` and `_CE_CONDA` are empty here (a no-op). The shell still expands them so `python -m conda` works when they are set; conda itself will stop exporting them except when `--dev` is passed. For local development, set `PYTHONPATH` to the conda source root (see `dev/start`) instead of using `--dev`.
+
 See? It only wrote some shell code to stdout, but it wasn't executed. We would need to do this to
 actually run it:
 

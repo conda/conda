@@ -31,16 +31,13 @@ def test_dont_update_explicit_packages(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2") as prefix:
+    path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
+    with tmp_env(path) as prefix:
         with pytest.raises(
             CondaUpdatePackageError,
             match=r"`conda update` only supports name-only spec",
         ):
-            conda_cli(
-                "update",
-                test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2",
-                f"--prefix={prefix}",
-            )
+            conda_cli("update", path, f"--prefix={prefix}")
 
 
 def test_dont_update_packages_with_version_constraints(
