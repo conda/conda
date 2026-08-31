@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -78,7 +79,10 @@ def test_package_verifier_runs_before_extraction(
 
     def verify(record_or_spec, source_full_path, sha256):
         assert record_or_spec == expected_record_or_spec
-        assert source_full_path == str(package_path)
+        staged_archive = Path(source_full_path)
+        assert staged_archive.name == package_path.name
+        assert staged_archive.parent.parent == tmp_path
+        assert staged_archive.parent.name.startswith(".conda-verify-")
         assert sha256 == compute_sum(package_path, "sha256")
         events.append("verify")
 
@@ -195,7 +199,8 @@ def test_explicit_package_runs_verifier(
     verify.assert_called_once()
     record_or_spec, archive_path, sha256 = verify.call_args.args
     assert isinstance(record_or_spec, MatchSpec)
-    assert Path(archive_path).parent == tmp_pkgs_dir
+    assert Path(archive_path).name == package_path.name
+    assert Path(archive_path).parent.parent == tmp_pkgs_dir
     assert sha256 == compute_sum(package_path, "sha256")
     assert (tmp_pkgs_dir / "urls.txt").read_text().splitlines() == [
         package_path.as_uri()
@@ -393,7 +398,9 @@ def test_package_integrity_mismatch_prevents_verifier(
     verify.assert_not_called()
 
 
-def test_package_archive_is_rechecked_before_extraction(
+@pytest.mark.parametrize("checksum_name", ("sha256", "md5"))
+def test_package_archive_is_rehashed_before_verifier(
+    checksum_name: str,
     package_path: Path,
     package_record: PackageRecord,
     plugin_manager: CondaPluginManager,
@@ -402,7 +409,7 @@ def test_package_archive_is_rechecked_before_extraction(
 ) -> None:
     archive_path = tmp_path / package_path.name
     archive_path.write_bytes(package_path.read_bytes())
-    expected_sha256 = compute_sum(archive_path, "sha256")
+    expected_checksum = compute_sum(archive_path, checksum_name)
     verify = mocker.stub(name="verify")
     register_verifier(
         plugin_manager,
@@ -414,19 +421,66 @@ def test_package_archive_is_rechecked_before_extraction(
         target_pkgs_dir=tmp_path,
         target_extracted_dirname="extracted",
         record_or_spec=package_record,
-        sha256=expected_sha256,
+        sha256=expected_checksum if checksum_name == "sha256" else None,
         size=None,
-        md5=None,
+        md5=expected_checksum if checksum_name == "md5" else None,
     )
-    action._verified_checksum = ("sha256", expected_sha256)
-    action.verify()
-    archive_path.write_bytes(b"replaced after verification")
+    archive_path.write_bytes(b"x" * archive_path.stat().st_size)
 
     with pytest.raises(ChecksumMismatchError):
         do_extract_action(package_record, action, mocker.MagicMock())
 
-    verify.assert_called_once()
+    verify.assert_not_called()
     extract.assert_not_called()
+
+
+def test_extractor_uses_verified_staged_archive(
+    package_path: Path,
+    plugin_manager: CondaPluginManager,
+    mocker: MockerFixture,
+    tmp_path: Path,
+) -> None:
+    archive_path = tmp_path / package_path.name
+    original_bytes = package_path.read_bytes()
+    archive_path.write_bytes(original_bytes)
+    expected_sha256 = compute_sum(archive_path, "sha256")
+    expected_md5 = compute_sum(archive_path, "md5")
+
+    def replace_cache_archive(_record_or_spec, staged_path, sha256):
+        assert Path(staged_path).name == archive_path.name
+        assert sha256 == expected_sha256
+        archive_path.write_bytes(b"replaced after verification")
+
+    register_verifier(
+        plugin_manager,
+        CondaPackageVerifier(
+            name="test-verifier",
+            verify=replace_cache_archive,
+        ),
+    )
+    plugin_manager.load_plugins(*package_extractors.plugins)
+    explicit_spec = MatchSpec(url=archive_path.as_uri())
+    action = ExtractPackageAction(
+        source_full_path=str(archive_path),
+        target_pkgs_dir=tmp_path,
+        target_extracted_dirname="extracted",
+        record_or_spec=explicit_spec,
+        sha256=expected_sha256,
+        size=None,
+        md5=None,
+    )
+
+    do_extract_action(explicit_spec, action, mocker.MagicMock())
+
+    assert archive_path.read_bytes() == original_bytes
+    assert (tmp_path / "extracted" / "info" / "index.json").exists()
+    repodata_record = json.loads(
+        (tmp_path / "extracted" / "info" / "repodata_record.json").read_text()
+    )
+    assert repodata_record["sha256"] == expected_sha256
+    assert repodata_record["md5"] == expected_md5
+    assert repodata_record["size"] == len(original_bytes)
+    assert not tuple(tmp_path.glob(".conda-verify-*"))
 
 
 def test_package_archive_is_hashed_once_for_verifiers(
@@ -446,7 +500,8 @@ def test_package_archive_is_hashed_once_for_verifiers(
 
     def verify(record_or_spec, source_full_path, sha256):
         assert sha256 == expected_sha256
-        compute_checksum.assert_called_once_with(str(archive_path), "sha256")
+        assert Path(source_full_path).name == archive_path.name
+        compute_checksum.assert_called_once_with(source_full_path, "sha256")
 
     register_verifier(
         plugin_manager,
@@ -464,4 +519,7 @@ def test_package_archive_is_hashed_once_for_verifiers(
 
     action.verify()
 
-    compute_checksum.assert_called_once_with(str(archive_path), "sha256")
+    staged_archive = Path(compute_checksum.call_args.args[0])
+    assert staged_archive.name == archive_path.name
+    assert staged_archive.parent.parent == tmp_path
+    compute_checksum.assert_called_once_with(str(staged_archive), "sha256")
