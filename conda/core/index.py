@@ -10,13 +10,12 @@ from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..common.iterators import unique
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaKeyError,
     InvalidSpec,
     PackagesNotFoundError,
 )
-from ..models.channel import Channel, all_channel_urls
+from ..models.channel import Channel
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
 from .package_cache_data import PackageCacheData
@@ -28,6 +27,7 @@ if TYPE_CHECKING:
     from typing import Any, Self
 
     from ..common.path import PathType
+    from .exclude_newer import ExcludeNewerPolicy
 
 
 log = getLogger(__name__)
@@ -85,6 +85,7 @@ class Index(UserDict):
         prefix: PathType | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
+        exclude_newer_policy: ExcludeNewerPolicy | None = None,
     ) -> None:
         """Initializes a new index with the desired components.
 
@@ -142,6 +143,9 @@ class Index(UserDict):
             self.prefix_data = PrefixData(prefix)
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.use_system = use_system
+        from .exclude_newer import ExcludeNewerPolicy
+
+        self.exclude_newer_policy = exclude_newer_policy or ExcludeNewerPolicy()
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord, ...]:
@@ -252,6 +256,11 @@ class Index(UserDict):
             prefix=self.prefix_data,
             repodata_fn=self._repodata_fn,
             use_system=self.use_system,
+            exclude_newer_policy=(
+                self.exclude_newer_policy
+                if self.exclude_newer_policy.active
+                else context.exclude_newer_policy
+            ),
         )
 
     @property
@@ -353,6 +362,8 @@ class Index(UserDict):
                 if hasattr(key, "subdir") and key.subdir != subdir_data.channel.subdir:
                     continue
                 precs.extend(subdir_data.query(key))
+        if self.exclude_newer_policy.active:
+            return list(self.exclude_newer_policy.filter_records(precs))
         return precs
 
     def _update_from_prefix(
@@ -446,6 +457,7 @@ class ReducedIndex(Index):
         prefix: PathType | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
+        exclude_newer_policy: ExcludeNewerPolicy | None = None,
     ) -> None:
         """Initialize a new reduced index.
 
@@ -463,6 +475,7 @@ class ReducedIndex(Index):
             prefix,
             repodata_fn,
             use_system,
+            exclude_newer_policy or context.exclude_newer_policy,
         )
         self.specs = specs
         self._derive_reduced_index()
@@ -610,35 +623,3 @@ def get_archspec_name() -> str | None:
         import archspec.cpu
 
         return str(archspec.cpu.host())
-
-
-@deprecated(
-    "26.3",
-    "26.9",
-    addendum="Use `conda.models.channel.all_channel_urls(context.channels)` instead.",
-)
-def calculate_channel_urls(
-    channel_urls: tuple[str] = (),
-    prepend: bool = True,
-    platform: str | None = None,
-    use_local: bool = False,
-) -> list[str]:
-    """
-    Calculate the full list of channel URLs to use based on the given parameters.
-
-    Args:
-        channel_urls: Initial list of channel URLs.
-        prepend: Whether to prepend default channels to the list.
-        platform: The target platform for the channels.
-        use_local: Whether to include the local channel.
-
-    Returns:
-        The calculated list of channel URLs.
-    """
-    if use_local:
-        channel_urls = ["local"] + list(channel_urls)
-    if prepend:
-        channel_urls += context.channels
-
-    subdirs = (platform, "noarch") if platform is not None else context.subdirs
-    return all_channel_urls(channel_urls, subdirs=subdirs)

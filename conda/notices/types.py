@@ -75,7 +75,9 @@ class ChannelNoticeResponse(NamedTuple):
                     message=notice.get("message"),
                     level=self._parse_notice_level(notice.get("level")),
                     created_at=self._parse_iso_timestamp(notice.get("created_at")),
-                    expired_at=self._parse_iso_timestamp(notice.get("expired_at")),
+                    expired_at=self._parse_iso_timestamp(
+                        notice.get("expires_at", notice.get("expired_at"))
+                    ),
                     interval=notice.get("interval"),
                 )
                 for notice in notices

@@ -5,7 +5,7 @@ Installing conda
 To install conda, you must first pick the right installer for you.
 The following are the most popular installers currently available:
 
-.. glossary::
+.. nav-glossary::
 
     `Miniconda <https://www.anaconda.com/download>`__
         Miniconda is a minimal installer provided by Anaconda. Use this installer

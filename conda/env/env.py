@@ -11,11 +11,9 @@ from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..cli import common
-from ..common.io import dashlist
 from ..common.iterators import unique
 from ..common.serialize import json, yaml
 from ..core.prefix_data import PrefixData
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaMultiError,
     EnvironmentFileEmpty,
@@ -286,22 +284,6 @@ def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
     if data is None:
         raise EnvironmentFileEmpty(filename)
 
-    # Perform schema validation. This will output a warning for any invalid schema.
-    errors = get_schema_errors(data)
-    if errors:
-        # Warn for all the schema errors in the environment
-        deprecated.topic(
-            "26.3",
-            "26.9",
-            topic="The environment file is not fully CEP 24 compliant",
-            addendum=(
-                "In the future, this configuration will be rejected. Please fix the following "
-                "errors in order to make the configuration valid: "
-                f"{dashlist(errors)}"
-            ),
-            deprecation_type=FutureWarning,
-        )
-
     data = validate_keys(data, kwargs)
 
     if kwargs is not None:
@@ -451,11 +433,6 @@ class EnvironmentYaml:
             external_packages=external_packages,
             requested_packages=requested_packages,
         )
-
-
-@deprecated("26.3", "26.9", addendum="Use `conda.env.env.EnvironmentYaml` instead.")
-class Environment(EnvironmentYaml):
-    """A class representing an ``environment.yaml`` file"""
 
 
 def print_result(args, prefix, result):

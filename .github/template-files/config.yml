@@ -19,18 +19,9 @@ conda/infrastructure:
   # [optional] canary build workflow
   - src: templates/workflows/build.yml
     dst: .github/workflows/build.yml
-    with:
-      osx_64: true
   # For noarch packages, add:
   #   with:
   #     noarch: true
-  # To toggle individual platforms:
-  #   with:
-  #     linux_64: true
-  #     linux_aarch64: true
-  #     osx_64: true
-  #     osx_arm64: true
-  #     win_64: true
   # For repos whose test workflow is not named "Tests", add:
   #   with:
   #     tests_workflow: Test
@@ -64,8 +55,8 @@ conda/infrastructure:
     dst: .github/ISSUE_TEMPLATE/epic.yml
 
   # [optional] standard PR template
-  - src: templates/pull_requests/news_tests_docs.md
-    dst: .github/template-files/templates/pull_request_template_details.md
+  # - src: templates/pull_requests/news_tests_docs.md
+  #   dst: .github/template-files/templates/pull_request_template_details.md
   - src: templates/pull_requests/base.md
     dst: .github/PULL_REQUEST_TEMPLATE.md
 
@@ -79,7 +70,7 @@ conda/infrastructure:
 
   # [optional] rever release files
   - src: templates/releases/RELEASE.md
-    dst: RELEASE.md
+    dst: releases/RELEASE.md
     with:
       canary_channel: https://anaconda.org/conda-canary
       placeholder: YY.MM.MICRO
@@ -87,4 +78,4 @@ conda/infrastructure:
   - src: templates/releases/rever.xsh
     dst: rever.xsh
   - src: templates/releases/TEMPLATE
-    dst: news/TEMPLATE
+    dst: releases/news/TEMPLATE

@@ -50,6 +50,7 @@ def epilog() -> str:
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from ..deprecations import deprecated
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
@@ -93,7 +94,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_solver(solver_mode_options)
     p.add_argument(
         "--dev",
-        action=NullCountAction,
+        action=deprecated.action(
+            "27.3",
+            "27.9",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
         "This is mainly for use during tests where we test new conda sources "
         "against old Python versions.",
@@ -114,6 +120,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
+    from ..gateways.streams import stdoutlog
     from ..reporters import confirm_yn
     from .common import (
         get_name_prefix_from_env_file,
@@ -123,6 +130,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         validate_subdir_config,
     )
     from .install import install, install_clone
+
+    env_create = getattr(args, "env_create", False)
 
     # When `--clone` is present, `--file` and `packages` are not allowed
     if args.clone:
@@ -184,6 +193,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise CondaValueError(
                 "Cannot `create --dry-run` with an existing conda environment"
             )
+        if env_create and not context.always_yes:
+            raise CondaValueError(f"prefix already exists: {prefix_data.prefix_path}")
+
+    if env_create:
+        args.yes = True
+        context._set_argparse_args(args)
+
+    if prefix_data.is_environment():
         confirm_yn(
             f"WARNING: A conda environment already exists at '{context.target_prefix}'\n\n"
             "Remove existing environment?\nThis will remove ALL directories contained within "
@@ -191,7 +208,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             default="no",
             dry_run=False,
         )
-        log.info("Removing existing environment %s", context.target_prefix)
+        if env_create:
+            stdoutlog(f"Removing existing environment at '{context.target_prefix}'.")
+        else:
+            log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
     elif prefix_data.exists():
         confirm_yn(

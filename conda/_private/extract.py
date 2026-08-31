@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import pickle
 
 # This module is imported in each spawned extraction worker. Keep imports here
 # limited to the standard library; importing conda runtime state defeats the
@@ -14,11 +15,31 @@ import os
 def extract_conda_package_archive(
     source_full_path: str | os.PathLike,
     destination_directory: str | os.PathLike,
+    *,
+    ensure_picklable_errors: bool = False,
 ) -> None:
-    """Extract a conda package archive without importing conda runtime state."""
+    """Extract a conda package archive without importing conda runtime state.
+
+    Args:
+        source_full_path: Package archive to extract.
+        destination_directory: Directory to extract into.
+        ensure_picklable_errors: Replace exceptions that cannot survive a pickle
+            round trip with a plain ``RuntimeError``.
+    """
     import conda_package_handling.api
 
-    conda_package_handling.api.extract(
-        os.fspath(source_full_path),
-        dest_dir=os.fspath(destination_directory),
-    )
+    try:
+        conda_package_handling.api.extract(
+            os.fspath(source_full_path),
+            dest_dir=os.fspath(destination_directory),
+        )
+    except Exception as error:
+        if not ensure_picklable_errors:
+            raise
+        try:
+            # Some exceptions can be serialized but not reconstructed.
+            pickle.loads(pickle.dumps(error))
+        except Exception:
+            error_type = f"{type(error).__module__}.{type(error).__qualname__}"
+            raise RuntimeError(f"{error_type}: {error}") from None
+        raise

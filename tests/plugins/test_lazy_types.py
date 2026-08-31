@@ -11,26 +11,6 @@ import textwrap
 
 import pytest
 
-_DEPRECATED_NAMES = (
-    "CondaAuthHandler",
-    "CondaEnvironmentSpecifier",
-    "CondaHealthCheck",
-    "CondaNotice",
-    "CondaPostCommand",
-    "CondaPostSolve",
-    "CondaPostTransactionAction",
-    "CondaPreCommand",
-    "CondaPrefixDataLoader",
-    "CondaPreSolve",
-    "CondaPreTransactionAction",
-    "CondaReporterBackend",
-    "CondaRequestHeader",
-    "CondaSetting",
-    "CondaSolver",
-    "CondaSubcommand",
-    "CondaVirtualPackage",
-)
-
 
 def test_plugins_types_not_imported_on_plugins_import() -> None:
     """Importing ``conda.plugins`` must not eagerly import ``conda.plugins.types``."""
@@ -74,18 +54,6 @@ def test_plugins_types_requires_explicit_import() -> None:
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == ["missing", "conda.plugins.types"]
-
-
-@pytest.mark.parametrize("name", _DEPRECATED_NAMES)
-def test_deprecated_plugin_type_access_warns(name: str) -> None:
-    """Each re-export on ``conda.plugins`` still warns and resolves to the type."""
-    import conda.plugins
-    import conda.plugins.types as types_mod
-
-    with pytest.deprecated_call():
-        value = getattr(conda.plugins, name)
-
-    assert value is getattr(types_mod, name)
 
 
 def test_unknown_attribute_raises() -> None:

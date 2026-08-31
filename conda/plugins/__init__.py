@@ -27,47 +27,6 @@ as well as conda's internal implementations of plugins.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from ..deprecations import deprecated
 from .hookspec import hookimpl
 
-if TYPE_CHECKING:
-    from types import ModuleType
-
 __all__ = ["hookimpl"]
-
-
-def _load_types() -> ModuleType:
-    return __import__("conda.plugins.types", fromlist=["types"])
-
-
-# ``deprecated.constant`` installs its own registry as module ``__getattr__``,
-# so the 17 deprecated re-exports still warn on access.
-for name in (
-    "CondaAuthHandler",
-    "CondaEnvironmentSpecifier",
-    "CondaHealthCheck",
-    "CondaNotice",
-    "CondaPostCommand",
-    "CondaPostSolve",
-    "CondaPostTransactionAction",
-    "CondaPreCommand",
-    "CondaPrefixDataLoader",
-    "CondaPreSolve",
-    "CondaPreTransactionAction",
-    "CondaReporterBackend",
-    "CondaRequestHeader",
-    "CondaSetting",
-    "CondaSolver",
-    "CondaSubcommand",
-    "CondaVirtualPackage",
-):
-    deprecated.constant(
-        "26.3",
-        "26.9",
-        name,
-        factory=lambda n=name: getattr(_load_types(), n),
-        addendum=f"Use `conda.plugins.types.{name}` instead.",
-    )
-del name
