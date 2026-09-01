@@ -270,6 +270,8 @@ def resolve_timestamp(val: Any, record: PackageRecord) -> int | float:
 
 
 def resolve_indexed_timestamp(val: Any, record: PackageRecord) -> int | float:
+    if val is None:
+        return 0
     if val and val > TS_BOUNDARY:
         return val / 1000
     return val
@@ -371,7 +373,9 @@ def coerce_and_validate(name: str, val: Any) -> Any:
             raise ValidationError(name, val)
     elif name in INTEGER_FIELDS and not isinstance(val, int):
         raise ValidationError(name, val)
-    elif name == "timestamp" and not isinstance(val, (int, float)):
+    elif name in ("timestamp", "indexed_timestamp") and not isinstance(
+        val, (int, float)
+    ):
         raise ValidationError(name, val)
     elif name in SEQUENCE_FIELDS and not isinstance(val, tuple):
         raise ValidationError(name, val)
@@ -1013,6 +1017,7 @@ def _legacy_field(name: str) -> type:
 for _name in (
     "NoarchField",
     "TimestampField",
+    "IndexedTimestampField",
     "_FeaturesField",
     "ChannelField",
     "SubdirField",

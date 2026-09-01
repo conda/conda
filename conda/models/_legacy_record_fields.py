@@ -72,6 +72,14 @@ class TimestampField(NumberField):
                 return 0
 
 
+class IndexedTimestampField(TimestampField):
+    def __get__(self, instance, instance_type):
+        try:
+            return NumberField.__get__(self, instance, instance_type)
+        except AttributeError:
+            return 0
+
+
 class _FeaturesField(ListField):
     def __init__(self, **kwargs):
         super().__init__(str, **kwargs)

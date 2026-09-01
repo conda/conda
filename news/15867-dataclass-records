@@ -14,9 +14,10 @@
 
 * Deprecate the record-specific `auxlib.Entity` field descriptors re-exported
   from `conda.models.records`: `SubdirField`, `ChannelField`, `FilenameField`,
-  `NoarchField`, `TimestampField`, `PackageTypeField`, `_FeaturesField`, and
-  `Md5Field`. They remain importable one release cycle via a lazy shim;
-  record classes themselves now use plain dataclass fields. (#15867 via #15916)
+  `NoarchField`, `TimestampField`, `IndexedTimestampField`, `PackageTypeField`,
+  `_FeaturesField`, and `Md5Field`. They remain importable one release cycle
+  via a lazy shim; record classes themselves now use plain dataclass fields.
+  (#15867 via #15916)
 * Deprecate implicit md5 auto-compute on `PackageCacheRecord.md5`. The old
   `Md5Field` descriptor hashed the tarball on attribute read when the field
   was unset; the dataclass shim preserves that behaviour for one release
