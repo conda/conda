@@ -171,7 +171,7 @@ def test_get_entry_to_link_prefers_target_prefix_device(mocker, tmp_path: Path):
     assert (
         PackageCacheData.get_entry_to_link(object(), str(target_prefix)) is local_entry
     )
-    
+
 
 @pytest.mark.parametrize("error", (FileNotFoundError, NotImplementedError))
 def test_process_pool_unavailable_falls_back_to_threads(
