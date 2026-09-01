@@ -2,10 +2,8 @@
 
 * Rewrite `PackageRecord`, `PackageCacheRecord`, `SolvedRecord`, and
   `PrefixRecord` in `conda.models.records` as `@dataclass(slots=True)`
-  classes with the same public API. Per-record instantiation is ~3× faster,
-  `dump()` serialisation is ~5× faster, and memory footprint drops by
-  26–39% depending on string duplication; at 50,000 records that's
-  ~15 MiB saved. (#15867 via #15916)
+  classes to reduce per-record construction and serialisation overhead.
+  (#15867 via #15916)
 * Unify the old `COERCIONS` / `DERIVED` / `resolve_*` coercion-and-derivation
   logic under a single `FIELD_RESOLVERS` ClassVar registry on each record
   class. (#15867 via #15916)
