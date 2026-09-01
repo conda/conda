@@ -4,7 +4,7 @@
 
 from functools import cache
 from logging import getLogger
-from os import W_OK, access, stat
+from os import W_OK, PathLike, access, stat
 from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
@@ -39,7 +39,7 @@ def file_path_is_writable(path) -> bool:
 
 
 @cache
-def paths_on_same_device(left, right) -> bool:
+def paths_on_same_device(left: str | PathLike[str], right: str | PathLike[str]) -> bool:
     """Return whether two paths reside on the same filesystem device."""
     try:
         return stat(left).st_dev == stat(right).st_dev
