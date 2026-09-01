@@ -882,11 +882,18 @@ class ProgressiveFetchExtract:
                         break
 
             if use_process_pool:
-                extract_executor = ProcessPoolExecutor(
-                    max_workers=EXTRACT_PROCESSES,
-                    mp_context=multiprocessing.get_context("spawn"),
-                )
-            else:
+                try:
+                    extract_executor = ProcessPoolExecutor(
+                        max_workers=EXTRACT_PROCESSES,
+                        mp_context=multiprocessing.get_context("spawn"),
+                    )
+                except (OSError, NotImplementedError):
+                    log.debug(
+                        "Process pool unavailable, falling back to thread pool.",
+                        exc_info=True,
+                    )
+                    use_process_pool = False
+            if not use_process_pool:
                 extract_executor = ThreadPoolExecutor(EXTRACT_THREADS)
 
             cancelled_flag = False
@@ -957,6 +964,7 @@ class ProgressiveFetchExtract:
                                     extract_conda_package_archive,
                                     extract_action.source_full_path,
                                     extract_action.target_full_path,
+                                    ensure_picklable_errors=True,
                                 )
                             except Exception as e:
                                 do_reverse(reversed(actions))
@@ -1003,6 +1011,7 @@ class ProgressiveFetchExtract:
                                 process_extract_action._finish_extract()
                                 progress_bar.update_to(1.0)
                         except Exception as e:
+                            log.debug("Package extraction failed.", exc_info=e)
                             do_reverse(reversed(actions))
                             exceptions.append(e)
                         else:

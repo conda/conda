@@ -1,5 +1,25 @@
 [//]: # (current developments)
 
+## 26.7.1 (2026-08-18)
+
+### Bug fixes
+
+* Fix `DeprecationHandler` version fallback when `packaging` raises `InvalidVersion` for unparseable versions (e.g. `None` under packaging >=26.3). (#16495)
+* Refresh cached empty channel notice responses and parse CEP 6 `expires_at` timestamps. (#16500, #16501)
+* Fall back to threaded package extraction when process synchronization
+  primitives are unavailable. (#16512)
+* Fix `CondaHttpAuth.add_binstar_token` mangling URLs that end in `notices.json` (or any filename without a platform subdir) by correcting `Channel.url()` to preserve `package_filename` when `platform` is `None`. (#16516)
+* Fix `AttributeError` when accessing `CondaError.guidance`, `__str__`, or `dump_map` on subclasses that skip `CondaError.__init__`. (#16534 via #16535)
+* Report extraction errors from process workers when they cannot cross the process boundary, and include process-pool failure causes in debug logs. (#16552)
+
+### Contributors
+
+* @jezdez
+* @kenodegard
+* @travishathaway
+
+
+
 ## 26.7.0 (2026-07-27)
 
 ### Enhancements
