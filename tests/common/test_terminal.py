@@ -169,7 +169,7 @@ def test_is_tty_rejects_positional_args():
         is_tty(True, True)
 
 
-def test_is_tty_missing_isatty_attribute_is_not_a_tty(monkeypatch):
+def test_is_tty_returns_false_without_isatty_attr(monkeypatch):
     monkeypatch.setattr("sys.stdout", FakeStream(True))
     monkeypatch.setattr("sys.stdin", object())
     assert is_tty(include_stdin=True) is False
