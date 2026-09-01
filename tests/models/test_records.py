@@ -83,7 +83,8 @@ def test_prefix_record_no_channel() -> None:
     )
 
 
-def test_timestamp_seconds() -> None:
+@pytest.mark.parametrize("field_name", ("timestamp", "indexed_timestamp"))
+def test_timestamp_seconds(field_name: str) -> None:
     ts_secs = 1507565728
     ts_millis = ts_secs * 1000
     rec = PackageRecord(
@@ -91,13 +92,14 @@ def test_timestamp_seconds() -> None:
         version="1.2.3",
         build="2",
         build_number=2,
-        timestamp=ts_secs,
+        **{field_name: ts_secs},
     )
-    assert rec.timestamp == ts_secs
-    assert rec.dump()["timestamp"] == ts_millis
+    assert getattr(rec, field_name) == ts_secs
+    assert rec.dump()[field_name] == ts_millis
 
 
-def test_timestamp_milliseconds() -> None:
+@pytest.mark.parametrize("field_name", ("timestamp", "indexed_timestamp"))
+def test_timestamp_milliseconds(field_name: str) -> None:
     ts_millis = 1507565728999
     ts_secs = ts_millis / 1000
     rec = PackageRecord(
@@ -105,10 +107,10 @@ def test_timestamp_milliseconds() -> None:
         version="1.2.3",
         build="2",
         build_number=2,
-        timestamp=ts_secs,
+        **{field_name: ts_secs},
     )
-    assert rec.timestamp == ts_secs
-    assert rec.dump()["timestamp"] == ts_millis
+    assert getattr(rec, field_name) == ts_secs
+    assert rec.dump()[field_name] == ts_millis
 
 
 def test_feature_factory() -> None:
@@ -346,6 +348,13 @@ def test_explicit_timestamp_does_not_fall_back_to_date() -> None:
     )
 
     assert rec.timestamp == 0
+
+
+def test_indexed_timestamp_none_defaults_to_zero() -> None:
+    rec = PackageRecord(**COMMON_KWARGS, indexed_timestamp=None)
+
+    assert rec.indexed_timestamp == 0
+    assert "indexed_timestamp" not in rec.dump()
 
 
 def test_from_objects_dict() -> None:
@@ -605,6 +614,7 @@ def test_requested_spec(tmp_env, test_recipes_channel):
     [
         "NoarchField",
         "TimestampField",
+        "IndexedTimestampField",
         "_FeaturesField",
         "ChannelField",
         "SubdirField",
