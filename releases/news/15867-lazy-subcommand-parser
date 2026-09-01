@@ -4,5 +4,5 @@
 
 ### Deprecations
 
-* `conda.cli.conda_argparse.configure_parser_*` re-exported function names are pending deprecation. Import `configure_parser` directly from the relevant `conda.cli.main_*` module instead. (#15867 via #15868)
-* `conda.cli.conda_argparse.user_rc_path`, `sys_rc_path`, `escaped_user_rc_path`, and `escaped_sys_rc_path` are pending deprecation. Use `conda.base.context.user_rc_path` / `sys_rc_path` instead. (#15867 via #15868)
+* Mark the `conda.cli.conda_argparse.configure_parser_*` re-exported functions as pending deprecation, to be removed in 27.9. Import `configure_parser` directly from the relevant `conda.cli.main_*` module instead. (#15867 via #15868)
+* Mark `conda.cli.conda_argparse.user_rc_path`, `sys_rc_path`, `escaped_user_rc_path`, and `escaped_sys_rc_path` as pending deprecation, to be removed in 27.9. Use `conda.base.context.user_rc_path` or `sys_rc_path` instead. (#15867 via #15868)
