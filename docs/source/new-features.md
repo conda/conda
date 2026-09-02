@@ -48,6 +48,10 @@ The `--exclude-newer` flag excludes packages published after a configured cutoff
 The flag works with `conda create`, `conda install`, and `conda update`. It can also be used as a global setting or per-channel override in your `.condarc` file. Accepted values include durations (`7d`, `3d12h`, `1w`), ISO 8601 durations (`P7D`), RFC 3339 timestamps, and date-only values (`2026-04-01`).
 
 ```bash
+conda install --exclude-newer 7d scipy
+```
+
+```bash
 # .condarc
 exclude_newer: 7d
 
@@ -56,7 +60,7 @@ channel_settings:
   - channel: conda-forge
     exclude_newer: 3d
 
-# per-package overrides: exempt or use a different cutoff
+# per-package overrides: exempt package or use a different cutoff
 exclude_newer_package:
   openssl: false
   ca-certificates: false
