@@ -29,7 +29,7 @@ def test_no_missing_files(env_ok: EnvFixture):
 def test_missing_files(env_missing_files: EnvFixture):
     """Test that missing files are detected correctly."""
     assert find_packages_with_missing_files(env_missing_files.prefix) == {
-        env_missing_files.package: [env_missing_files.bin_file]
+        f"{env_missing_files.package}=1.0=0": [env_missing_files.bin_file]
     }
 
 
@@ -42,7 +42,7 @@ def test_missing_files_action(env_missing_files: EnvFixture, capsys, verbose):
         assert str(env_missing_files.bin_file) in captured.out
         assert str(env_missing_files.ignored_file) not in captured.out
     else:
-        assert f"{env_missing_files.package}: 1" in captured.out
+        assert f"{env_missing_files.package}=1.0=0: 1" in captured.out
 
 
 @pytest.mark.parametrize("verbose", [True, False])

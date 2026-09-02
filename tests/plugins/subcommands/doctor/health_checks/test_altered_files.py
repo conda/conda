@@ -30,7 +30,7 @@ def test_no_altered_files(env_ok: EnvFixture):
 def test_altered_files(env_altered_files: EnvFixture):
     """Test that altered files are detected correctly."""
     assert find_altered_packages(env_altered_files.prefix) == {
-        env_altered_files.package: [env_altered_files.lib_file]
+        f"{env_altered_files.package}=1.0=0": [env_altered_files.lib_file]
     }
 
 
@@ -43,7 +43,7 @@ def test_altered_files_action(env_altered_files: EnvFixture, capsys, verbose):
         assert str(env_altered_files.lib_file) in captured.out
         assert str(env_altered_files.ignored_file) not in captured.out
     else:
-        assert f"{env_altered_files.package}: 1" in captured.out
+        assert f"{env_altered_files.package}=1.0=0: 1" in captured.out
 
 
 @pytest.mark.parametrize("verbose", [True, False])

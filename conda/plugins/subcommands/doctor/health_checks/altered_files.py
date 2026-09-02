@@ -74,7 +74,9 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
                 )
 
             if old_sha256 != new_sha256:
-                altered_packages.setdefault(file.stem, []).append(_path)
+                altered_packages.setdefault(
+                    f"{metadata['name']}={metadata['version']}={metadata['build']}", []
+                ).append(_path)
 
     return altered_packages
 
