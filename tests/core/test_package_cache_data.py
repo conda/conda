@@ -94,10 +94,10 @@ def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
     known_prefix = str(tmp_path / "known")
     root_prefix = str(tmp_path / "root")
     conda_prefix = str(tmp_path / "conda")
-    active_prefix = str(tmp_path / "active")
-    target_prefix = str(tmp_path / "target")
+    missing_target_prefix = str(tmp_path / "missing-target")
     softlinked_source = tmp_path / "pkgs" / "softlinked"
     untyped_source = tmp_path / "pkgs" / "untyped"
+    ignored_source = tmp_path / "pkgs" / "ignored"
     records = {
         known_prefix: (
             SimpleNamespace(
@@ -114,7 +114,15 @@ def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
             ),
             SimpleNamespace(link=SimpleNamespace(source=str(untyped_source))),
             SimpleNamespace(link=None),
-        )
+        ),
+        missing_target_prefix: (
+            SimpleNamespace(
+                link=SimpleNamespace(
+                    source=str(ignored_source),
+                    type=LinkType.softlink,
+                )
+            ),
+        ),
     }
     mocker.patch(
         "conda.core.envs_manager.list_all_known_prefixes",
@@ -122,7 +130,8 @@ def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
     )
     prefix_data = mocker.patch("conda.core.prefix_data.PrefixData")
     prefix_data.side_effect = lambda prefix, **kwargs: SimpleNamespace(
-        iter_records=lambda: records.get(prefix, ())
+        is_environment=lambda: prefix != missing_target_prefix,
+        iter_records=lambda: records.get(prefix, ()),
     )
     mocker.patch.object(
         package_cache_data,
@@ -130,8 +139,8 @@ def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
         SimpleNamespace(
             root_prefix=root_prefix,
             conda_prefix=conda_prefix,
-            active_prefix=active_prefix,
-            target_prefix=target_prefix,
+            active_prefix=None,
+            target_prefix=missing_target_prefix,
         ),
     )
 
@@ -143,8 +152,7 @@ def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
         known_prefix,
         root_prefix,
         conda_prefix,
-        active_prefix,
-        target_prefix,
+        missing_target_prefix,
     }
     assert all(
         call.kwargs == {"interoperability": False}

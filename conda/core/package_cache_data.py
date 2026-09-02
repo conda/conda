@@ -111,7 +111,10 @@ def get_softlinked_package_dirs() -> set[Path]:
 
     package_dirs = set()
     for prefix in prefixes:
-        for record in PrefixData(prefix, interoperability=False).iter_records():
+        prefix_data = PrefixData(prefix, interoperability=False)
+        if not prefix_data.is_environment():
+            continue
+        for record in prefix_data.iter_records():
             link = getattr(record, "link", None)
             # Older records may have a source without recording the link type.
             if link and getattr(link, "type", LinkType.softlink) == LinkType.softlink:
