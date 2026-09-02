@@ -186,10 +186,11 @@ def find_pkgs() -> dict[str, Any]:
 
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
-    if context.always_softlink:
+    if context.always_softlink or context.allow_softlinks:
         warnings.append(
-            "WARNING: Skipping package cache cleanup because `always_softlink` is "
-            "enabled. Removing cache packages may break environments that use symlinks."
+            "WARNING: Skipping package cache cleanup because `always_softlink` or "
+            "`allow_softlinks` is enabled. Removing cache packages may break "
+            "environments that use symlinks."
         )
         return {
             "warnings": warnings,

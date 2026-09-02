@@ -172,15 +172,22 @@ def test_clean_and_packages(
 
 @pytest.mark.skipif(on_win, reason="creating symlinks may require elevated privileges")
 @pytest.mark.parametrize("clean_arg", ("--packages", "--all"))
-def test_clean_packages_skips_when_always_softlink(
+@pytest.mark.parametrize(
+    "softlink_env_var",
+    ("CONDA_ALWAYS_SOFTLINK", "CONDA_ALLOW_SOFTLINKS"),
+)
+def test_clean_packages_skips_when_softlinking_enabled(
     clear_cache,
     test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
     clean_arg: str,
+    softlink_env_var: str,
 ):
-    monkeypatch.setenv("CONDA_ALWAYS_SOFTLINK", "true")
+    mocker.patch("conda.core.link.hardlink_supported", return_value=False)
+    monkeypatch.setenv(softlink_env_var, "true")
     reset_context()
 
     with tmp_env("small-executable") as prefix:
@@ -191,7 +198,7 @@ def test_clean_packages_skips_when_always_softlink(
 
         stdout, _, _ = conda_cli("clean", clean_arg, "--yes")
 
-        assert "Skipping package cache cleanup" in stdout
+        assert "`always_softlink` or `allow_softlinks` is enabled" in stdout
         assert activate_script.exists()
 
 
