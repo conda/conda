@@ -176,30 +176,6 @@ Remove a package
 
    conda remove <package-name>
 
-.. _exclude-newer:
-
-Control package age with ``--exclude-newer``
---------------------------------------------
-
-The ``--exclude-newer`` flag tells conda to ignore package versions published after a
-specified date, giving new releases a cooldown period before they are adopted in
-your environment.
-
-This flag can be used as a security measure. The time after a new release is
-published is a common attack surface for supply-chain incidents, where a
-malicious or broken version may be published before it is detected and pulled.
-By setting a cutoff date, you reduce exposure to freshly published packages.
-
-For example, if you use ``--exclude-newer 2025-08-01``, conda will only consider
-package versions published on or before August 1, 2025. Any versions published
-after that date will be ignored.
-
-.. code-block:: bash
-
-   conda install requests --exclude-newer 2025-08-01
-
-.. TODO: Confirm flag name and exact syntax at GA
-
 Pre-release versions
 --------------------
 
