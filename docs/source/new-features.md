@@ -20,7 +20,7 @@ The Rattler solver is on track to become conda's default solver in the near futu
 To opt in, update conda and switch your default solver to Rattler:
 
 ```bash
-conda install --name base 'conda>=26.7'
+conda install --name base 'conda>=26.5'
 conda config --set solver rattler
 ```
 
@@ -39,7 +39,32 @@ conda config --remove-key solver
 
 {bdg-light}`Available in conda 26.9 and later`
 
-TBD
+The `--exclude-newer` flag excludes packages published after a configured cutoff from environment solves and `conda search` results. This gives new releases a cooldown period before they are adopted in your environment. This setting can be used to:
+
+ - avoid pulling in brand-new package releases before regressions or malicious versions have had time to surface and be pulled
+ - pin solves to a past date for reproducibility
+ - reduce the number of packages the solver considers while creating your environment, causing faster solve times
+
+The flag works with `conda create`, `conda install`, and `conda update`. It can also be used as a global setting or per-channel override in your `.condarc` file. Accepted values include durations (`7d`, `3d12h`, `1w`), ISO 8601 durations (`P7D`), RFC 3339 timestamps, and date-only values (`2026-04-01`).
+
+```bash
+# .condarc
+exclude_newer: 7d
+
+# per-channel overrides
+channel_settings:
+  - channel: conda-forge
+    exclude_newer: 3d
+
+# per-package overrides: exempt or use a different cutoff
+exclude_newer_package:
+  openssl: false
+  ca-certificates: false
+  numpy: 30d
+```
+
+Package overrides take precedence over channel overrides, which take precedence over the global cutoff.
+
 ::::
 
 ## Install PyPI packages with `conda install`
