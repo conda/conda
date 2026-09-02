@@ -220,8 +220,8 @@ the following limitations in mind:
   artifact repository) are not currently supported.
 * **No additional vetting beyond PyPI.** The ``conda-pypi`` channel does not
   perform additional security scanning beyond what PyPI provides. Using the
-  :ref:`--exclude-newer flag <exclude-newer>` is recommended as a lightweight
-  mitigation for supply-chain risk.
+  :ref:`--exclude-newer flag <installing-packages-with-an-upload-cutoff>` 
+  is recommended as a lightweight mitigation for supply-chain risk.
 * **conda client only.** Supported in the conda CLI. Support in other clients
   (mamba, micromamba, and so on) is under active CEP discussion.
 * **Pure Python packages only.** Packages with compiled extensions must come

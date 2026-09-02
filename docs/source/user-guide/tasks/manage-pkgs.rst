@@ -90,6 +90,8 @@ If you want to use a specific Python version, it is best to use
 an environment with that version. For more information,
 see :doc:`../troubleshooting`.
 
+.. _installing-packages-with-an-upload-cutoff:
+
 Installing packages with an upload cutoff
 =========================================
 
