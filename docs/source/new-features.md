@@ -65,6 +65,8 @@ exclude_newer_package:
 
 Package overrides take precedence over channel overrides, which take precedence over the global cutoff.
 
+For more information, see {ref}`Installing packages with an upload cutoff <installing-packages-with-an-upload-cutoff>`.
+
 ::::
 
 ## Install PyPI packages with `conda install`
@@ -77,7 +79,7 @@ The new `conda-pypi` plugin lets you install PyPI packages natively with `conda 
 
 This replaces the common workaround of running `pip install` inside a conda environment, which can leave you with packages conda doesn't know about, environments that are hard to reproduce, and hard-to-debug conflicts that surface much later.
 
-For more information on installing PyPI packages with `conda install`, see [Install PyPI packages with conda](user-guide/tasks/install-pypi-packages).
+For more information on installing PyPI packages with `conda install`, see {doc}`tasks/install-pypi-packages-with-conda`.
 ::::
 
 ## Native multi-platform lockfile support
@@ -95,5 +97,5 @@ When creating or installing from a lockfile, **conda skips solving entirely** an
 
 Conda supports the `conda-lock.yaml` and `pixi.lock` formats natively. No separate plugin or third-party tool is required.
 
-For more information, see [Multi-platform lockfiles](user-guide/tasks/manage-environments#multi-platform-lockfiles)
+For more information, see {ref}`Multi-platform lockfiles <multi-platform-lockfiles>`.
 ::::

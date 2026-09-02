@@ -338,6 +338,8 @@ using explicit specification files and using lockfiles.
 Explicit spec files are usually limited to a single platform,
 but lockfiles can support multiple platforms.
 
+.. _multi-platform-lockfiles:
+
 Multi-platform lockfiles
 ------------------------
 
