@@ -581,8 +581,9 @@ deprecated.constant(
     "IS_INTERACTIVE",
     hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
     addendum=(
-        "Use `conda.common.terminal.is_tty()` instead "
-        "(pass `include_stdin=True` to also require stdin to be a TTY)."
+        "Use `conda.common.terminal.is_tty()` instead. If stdin "
+        "interactivity is also needed (e.g. before an input prompt), see "
+        "`is_stdin_tty()` and `is_interactive_tty()` in the same module."
     ),
 )
 
