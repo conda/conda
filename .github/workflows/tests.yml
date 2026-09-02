@@ -150,7 +150,7 @@ jobs:
           CONDA_SUBDIR: win-64
 
       - name: Install conda-classic-solver  # TEMP
-        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+        run: conda install conda-canary/label/dev::conda-classic-solver --yes
 
       - name: Conda Info
         # view test env info (not base)
@@ -298,7 +298,7 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install conda-classic-solver  # TEMP
-        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+        run: conda install conda-canary/label/dev::conda-classic-solver --yes
 
       - name: Conda Info
         # view test env info (not base)
@@ -416,7 +416,7 @@ jobs:
           "pytest-benchmark>=5.1.0"
 
       - name: Install conda-classic-solver  # TEMP
-        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+        run: conda install conda-canary/label/dev::conda-classic-solver --yes
 
       - name: Conda Info
         # view test env info (not base)
@@ -508,7 +508,7 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install conda-classic-solver  # TEMP
-        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+        run: conda install conda-canary/label/dev::conda-classic-solver --yes
 
       - name: Conda Info
         # view test env info (not base)
@@ -668,7 +668,7 @@ jobs:
           conda-forge::pytest-memray
 
       - name: Install conda-classic-solver  # TEMP
-        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+        run: conda install conda-canary/label/dev::conda-classic-solver --yes
 
       - name: Conda Info
         # view test env info (not base)
@@ -770,7 +770,7 @@ jobs:
           python=${{ matrix.python-version }}
 
       - name: Install conda-classic-solver  # TEMP
-        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+        run: conda install conda-canary/label/dev::conda-classic-solver --yes
 
       - name: Conda Info
         # view test env info (not base)
@@ -971,7 +971,7 @@ jobs:
           python -m pip install -e conda -e conda-build -v --no-deps
 
       - name: Install conda-classic-solver  # TEMP
-        run: pip install https://github.com/conda/conda-classic-solver/archive/main.tar.gz --no-deps
+        run: conda install conda-canary/label/dev::conda-classic-solver --yes
 
       - name: Conda Info
         run: python -m conda info --verbose
