@@ -101,7 +101,9 @@ def reinstall_packages(args, specs: list[str], **kwargs) -> int:
     args.repodata_fns = kwargs.get("repodata_fns", None)
     args.update_modifier = kwargs.get("update_modifier", NULL)
 
-    context._set_argparse_args(args)
+    argparse_args = dict(context._argparse_args or {})
+    argparse_args["force_reinstall"] = args.force_reinstall
+    context._set_argparse_args(argparse_args)
     install(args, None)
     return 0
 
