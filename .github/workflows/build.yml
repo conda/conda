@@ -14,6 +14,9 @@ on:
       - '[0-9].*.x'  # e.g., 4.14.x
       - '[0-9][0-9].*.x'  # e.g., 23.3.x
 
+  # Build canaries on demand
+  workflow_dispatch:
+
   # Build canaries after a successful test workflow run on main or feature/* branches.
   workflow_run:
     workflows:
@@ -157,7 +160,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@0f4ec1506e74c12799813dc66e613a39077ea864 # v26.7.0
+        uses: conda/actions/canary-release@d88418cd4e36358ba51e7c88f2d2d5edb9ac49e7 # v26.8.1
         env:
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
         with:

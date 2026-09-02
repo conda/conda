@@ -30,8 +30,10 @@ from conda.core.path_actions import (
     CompileMultiPycAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
+    PrefixReplaceLinkAction,
     UpdateHistoryAction,
 )
+from conda.core.portability import batch_codesign_calls
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
@@ -39,7 +41,7 @@ from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.channel import Channel
-from conda.models.enums import LinkType, NoarchType, PathEnum
+from conda.models.enums import FileMode, LinkType, NoarchType, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathDataV1, PathsData
 
@@ -607,3 +609,56 @@ def test_update_history_action_reverse_not_executed(prefix: Path):
     axn.reverse()
     assert history.is_file()
     assert history.read_text() == prior
+
+
+def test_prefix_replace_hashes_after_batched_codesign(
+    prefix: Path, pkgs_dir: Path, mocker
+):
+    mocker.patch("conda.core.portability.on_mac", True)
+
+    def fake_codesign(cmd, **kwargs):
+        for path in cmd[4:]:
+            with open(path, "ab") as fh:
+                fh.write(b"SIGN")
+
+    mocker.patch("conda.core.portability.subprocess.run", side_effect=fake_codesign)
+
+    placeholder = "/opt/" + "a" * 200
+    source_short_path = "tool"
+    source_full_path = join(pkgs_dir, source_short_path)
+    with open(source_full_path, "wb") as fh:
+        fh.write(b"\x7fELF" + placeholder.encode() + b"\0")
+
+    source_path_data = PathDataV1(
+        _path=source_short_path,
+        path_type=PathEnum.hardlink,
+        sha256=compute_sum(source_full_path, "sha256"),
+        size_in_bytes=getsize(source_full_path),
+    )
+    package_info = AttrDict(
+        extracted_package_dir=str(pkgs_dir),
+        repodata_record=AttrDict(name="testpkg", subdir="osx-arm64"),
+    )
+    axn = PrefixReplaceLinkAction(
+        {"temp_dir": join(str(prefix), "tmp")},
+        package_info,
+        str(pkgs_dir),
+        source_short_path,
+        str(prefix),
+        source_short_path,
+        LinkType.hardlink,
+        placeholder,
+        FileMode.binary,
+        source_path_data,
+    )
+    mkdir_p(axn.transaction_context["temp_dir"])
+
+    with batch_codesign_calls():
+        axn.verify()
+        before = compute_sum(axn.intermediate_path, "sha256")
+    axn.execute()
+
+    assert axn.prefix_path_data.sha256_in_prefix != before
+    assert axn.prefix_path_data.sha256_in_prefix == compute_sum(
+        axn.target_full_path, "sha256"
+    )
