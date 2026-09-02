@@ -35,9 +35,9 @@ conda config --remove-key solver
 
 ## Exclude packages newer than X time from solving and search
 ::::{card}
-:class-card: sd-rounded-3 conda-feature-card
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
 
-{bdg-light}`Available in conda 26.9 and later`
+{bdg-light}`Available in conda 26.9 and later` &nbsp; {bdg-success}`Stable`
 
 The `--exclude-newer` flag excludes packages published after a configured cutoff from environment solves and `conda search` results. This gives new releases a cooldown period before they are adopted in your environment. This setting can be used to:
 
