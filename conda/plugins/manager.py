@@ -23,6 +23,8 @@ from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
+from packaging.metadata import InvalidMetadata, Metadata
+from packaging.utils import canonicalize_name
 from pluggy._manager import DistFacade
 
 from .. import __version__
@@ -104,6 +106,16 @@ if TYPE_CHECKING:
         canonical_name: str
         status: str
         hooks: list[str]
+
+    class PluginProjectURL(TypedDict):
+        label: str
+        url: str
+
+    class PluginDetails(PluginInfo):
+        summary: str
+        license: str
+        homepage: str
+        project_urls: list[PluginProjectURL]
 
 
 log = logging.getLogger(__name__)
@@ -242,6 +254,66 @@ class CondaPluginManager(pluggy.PluginManager):
             }
 
         return sorted(installed.values(), key=lambda plugin: plugin["canonical_name"])
+
+    def get_installed_plugin_info(self, name: str) -> PluginDetails:
+        """Return detailed metadata for an installed entry-point conda plugin."""
+        requested_name = name.strip()
+        requested_normalized_name = canonicalize_name(requested_name)
+
+        for plugin, dist in self.list_plugin_distinfo():
+            canonical_name = self.get_name(plugin)
+            if canonical_name is None:
+                continue
+
+            lookup_names = {
+                dist.project_name,
+                canonical_name,
+                canonicalize_name(dist.project_name),
+                canonicalize_name(canonical_name),
+            }
+            if (
+                requested_name not in lookup_names
+                and requested_normalized_name not in lookup_names
+            ):
+                continue
+
+            raw_metadata = (
+                dist.read_text("METADATA")
+                or dist.read_text("PKG-INFO")
+                or dist.read_text("")
+                or ""
+            )
+            metadata = Metadata.from_email(raw_metadata, validate=False)
+            summary = ""
+            with suppress(InvalidMetadata):
+                summary = metadata.summary or ""
+            project_urls = metadata.project_urls or {}
+            homepage = metadata.home_page or next(
+                (
+                    url
+                    for label, url in project_urls.items()
+                    if label.casefold() in {"home-page", "homepage"}
+                ),
+                "",
+            )
+
+            return {
+                "name": dist.project_name,
+                "version": dist.version,
+                "canonical_name": canonical_name,
+                "status": "disabled" if self.is_blocked(canonical_name) else "active",
+                "hooks": self.get_plugin_hook_names(plugin),
+                "summary": summary,
+                "license": metadata.license or "",
+                "homepage": homepage,
+                "project_urls": [
+                    {"label": label, "url": url}
+                    for label, url in project_urls.items()
+                    if label and url
+                ],
+            }
+
+        raise CondaValueError(f"No installed conda plugin found matching '{name}'.")
 
     def register(self, plugin, name: str | None = None) -> str | None:
         """

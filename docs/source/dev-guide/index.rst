@@ -62,6 +62,11 @@ Guides for writing tests, managing deprecations, and cutting releases.
         Learn the conda deprecation policy and how to mark APIs and behaviors as
         pending deprecated, deprecated, or removed.
 
+    :doc:`Breaking changes <breaking-changes>`
+        Learn the process for planning, announcing, and shipping breaking changes that go
+        beyond a public API removal, such as config default changes, default solver changes,
+        and CLI removals.
+
     :doc:`Releasing <releasing>`
         Step-by-step instructions for preparing and publishing a new conda release,
         including the CalVer versioning scheme.
@@ -90,6 +95,7 @@ API reference :octicon:`code;1em;sd-text-primary`
    deep-dives/index
    writing-tests/index
    deprecations
+   breaking-changes
    releasing
    plugins/index
    previews
