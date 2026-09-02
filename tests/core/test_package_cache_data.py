@@ -29,6 +29,7 @@ from conda.core.path_actions import CacheUrlAction
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
+from conda.models.enums import LinkType
 from conda.models.match_spec import MatchSpec
 from conda.testing.helpers import CHANNEL_DIR_V1
 from conda.utils import url_path
@@ -86,6 +87,68 @@ def fresh_zlib_records():
     return (
         PackageRecord.from_objects(zlib_tar_bz2_prec),
         PackageRecord.from_objects(zlib_conda_prec),
+    )
+
+
+def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
+    known_prefix = str(tmp_path / "known")
+    root_prefix = str(tmp_path / "root")
+    conda_prefix = str(tmp_path / "conda")
+    active_prefix = str(tmp_path / "active")
+    target_prefix = str(tmp_path / "target")
+    softlinked_source = tmp_path / "pkgs" / "softlinked"
+    untyped_source = tmp_path / "pkgs" / "untyped"
+    records = {
+        known_prefix: (
+            SimpleNamespace(
+                link=SimpleNamespace(
+                    source=str(softlinked_source / ".." / "softlinked"),
+                    type=LinkType.softlink,
+                )
+            ),
+            SimpleNamespace(
+                link=SimpleNamespace(
+                    source=str(tmp_path / "pkgs" / "hardlinked"),
+                    type=LinkType.hardlink,
+                )
+            ),
+            SimpleNamespace(link=SimpleNamespace(source=str(untyped_source))),
+            SimpleNamespace(link=None),
+        )
+    }
+    mocker.patch(
+        "conda.core.envs_manager.list_all_known_prefixes",
+        return_value=[known_prefix],
+    )
+    prefix_data = mocker.patch("conda.core.prefix_data.PrefixData")
+    prefix_data.side_effect = lambda prefix, **kwargs: SimpleNamespace(
+        iter_records=lambda: records.get(prefix, ())
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "context",
+        SimpleNamespace(
+            root_prefix=root_prefix,
+            conda_prefix=conda_prefix,
+            active_prefix=active_prefix,
+            target_prefix=target_prefix,
+        ),
+    )
+
+    assert package_cache_data.get_softlinked_package_dirs() == {
+        softlinked_source.resolve(),
+        untyped_source.resolve(),
+    }
+    assert {call.args[0] for call in prefix_data.call_args_list} == {
+        known_prefix,
+        root_prefix,
+        conda_prefix,
+        active_prefix,
+        target_prefix,
+    }
+    assert all(
+        call.kwargs == {"interoperability": False}
+        for call in prefix_data.call_args_list
     )
 
 

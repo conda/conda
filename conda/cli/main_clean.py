@@ -11,6 +11,7 @@ import os
 import sys
 from logging import getLogger
 from os.path import isdir, join
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -62,8 +63,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--packages",
         action="store_true",
         help="Remove unused packages from writable package caches. "
-        "WARNING: This does not check for packages installed using "
-        "symlinks back to the package cache.",
+        "WARNING: Environments not listed by `conda info --envs` are not checked "
+        "for symlinks back to the package cache.",
     )
     removal_target_options.add_argument(
         "-t",
@@ -181,8 +182,22 @@ def find_tarballs() -> dict[str, Any]:
 
 
 def find_pkgs() -> dict[str, Any]:
+    from ..base.context import context
+
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
+    if context.always_softlink:
+        warnings.append(
+            "WARNING: Skipping package cache cleanup because `always_softlink` is "
+            "enabled. Removing cache packages may break environments that use symlinks."
+        )
+        return {
+            "warnings": warnings,
+            "pkg_sizes": pkg_sizes,
+            "pkgs_dirs": _get_pkgs_dirs(pkg_sizes),
+            "total_size": _get_total_size(pkg_sizes),
+        }
+
     for pkgs_dir in find_pkgs_dirs():
         # pkgs are directories in pkgs_dir
         _, pkgs, _ = next(os.walk(pkgs_dir))
@@ -202,6 +217,29 @@ def find_pkgs() -> dict[str, Any]:
                 pass
             else:
                 pkg_sizes.setdefault(pkgs_dir, {})[pkg] = size
+
+    if pkg_sizes:
+        from ..core.package_cache_data import get_softlinked_package_dirs
+
+        softlinked_pkgs = get_softlinked_package_dirs()
+        softlinked_pkgs_by_name: dict[str, list[Path]] = {}
+        for path in softlinked_pkgs:
+            softlinked_pkgs_by_name.setdefault(path.name.casefold(), []).append(path)
+        for pkgs_dir, pkgs in pkg_sizes.items():
+            for pkg in tuple(pkgs):
+                package_dir = Path(pkgs_dir, pkg).resolve(strict=False)
+                if package_dir in softlinked_pkgs:
+                    del pkgs[pkg]
+                    continue
+
+                for softlinked_pkg in softlinked_pkgs_by_name.get(pkg.casefold(), ()):
+                    try:
+                        matches = package_dir.samefile(softlinked_pkg)
+                    except OSError:
+                        continue
+                    if matches:
+                        del pkgs[pkg]
+                        break
 
     return {
         "warnings": warnings,

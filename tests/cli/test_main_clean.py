@@ -16,8 +16,9 @@ from conda.base.constants import (
     PACKAGE_CACHE_MAGIC_FILE,
     PARTIAL_EXTENSION,
 )
-from conda.base.context import context
-from conda.cli.main_clean import _get_size
+from conda.base.context import context, reset_context
+from conda.cli.main_clean import _get_size, find_pkgs
+from conda.common.compat import on_win
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_log_level
 
@@ -73,6 +74,14 @@ def has_pkg(name: str, contents: Iterable[str | Path]) -> bool:
     return any(Path(content).name.startswith(f"{name}-") for content in contents)
 
 
+@pytest.fixture(autouse=True)
+def known_prefixes(mocker: MockerFixture):
+    return mocker.patch(
+        "conda.core.envs_manager.list_all_known_prefixes",
+        return_value=[],
+    )
+
+
 # conda clean --force-pkgs-dirs
 def test_clean_force_pkgs_dirs(
     clear_cache,
@@ -98,6 +107,35 @@ def test_clean_force_pkgs_dirs(
 
 
 # conda clean --packages
+def test_clean_packages_without_candidates_does_not_scan_prefixes(
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+):
+    get_softlinked_package_dirs = mocker.patch(
+        "conda.core.package_cache_data.get_softlinked_package_dirs"
+    )
+
+    assert find_pkgs()["pkg_sizes"] == {}
+    get_softlinked_package_dirs.assert_not_called()
+
+
+def test_clean_packages_matches_softlinks_with_samefile(
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+):
+    package_dir = tmp_pkgs_dir / "package-1.0-0"
+    (package_dir / "info").mkdir(parents=True)
+    (package_dir / "file.txt").touch()
+    mocker.patch(
+        "conda.core.package_cache_data.get_softlinked_package_dirs",
+        return_value={Path("/different/spelling/package-1.0-0")},
+    )
+    samefile = mocker.patch.object(Path, "samefile", return_value=True)
+
+    assert find_pkgs()["pkg_sizes"] == {str(tmp_pkgs_dir): {}}
+    samefile.assert_called_once()
+
+
 def test_clean_and_packages(
     clear_cache,
     test_recipes_channel: Path,
@@ -130,6 +168,64 @@ def test_clean_and_packages(
 
     # pkg is still removed
     assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
+
+
+@pytest.mark.skipif(on_win, reason="creating symlinks may require elevated privileges")
+@pytest.mark.parametrize("clean_arg", ("--packages", "--all"))
+def test_clean_packages_skips_when_always_softlink(
+    clear_cache,
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    clean_arg: str,
+):
+    monkeypatch.setenv("CONDA_ALWAYS_SOFTLINK", "true")
+    reset_context()
+
+    with tmp_env("small-executable") as prefix:
+        activate_script = (
+            prefix / "etc" / "conda" / "activate.d" / "small_executable.sh"
+        )
+        assert activate_script.is_symlink()
+
+        stdout, _, _ = conda_cli("clean", clean_arg, "--yes")
+
+        assert "Skipping package cache cleanup" in stdout
+        assert activate_script.exists()
+
+
+@pytest.mark.skipif(on_win, reason="creating symlinks may require elevated privileges")
+def test_clean_packages_preserves_known_softlinked_environment(
+    clear_cache,
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    tmp_pkgs_dir: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    known_prefixes,
+):
+    monkeypatch.setenv("CONDA_ALWAYS_SOFTLINK", "true")
+    reset_context()
+
+    with tmp_env("small-executable") as prefix:
+        activate_script = (
+            prefix / "etc" / "conda" / "activate.d" / "small_executable.sh"
+        )
+        assert activate_script.is_symlink()
+        monkeypatch.delenv("CONDA_ALWAYS_SOFTLINK")
+        reset_context()
+        known_prefixes.return_value = [str(prefix)]
+
+        conda_cli("clean", "--packages", "--yes")
+
+        assert activate_script.exists()
+        assert has_pkg("small-executable", _get_pkgs(tmp_pkgs_dir))
+
+        conda_cli("remove", "--prefix", prefix, "small-executable", "--yes")
+        conda_cli("clean", "--packages", "--yes")
+
+        assert not has_pkg("small-executable", _get_pkgs(tmp_pkgs_dir))
 
 
 # conda clean --tarballs

@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Keep extracted cache packages referenced by soft-linked environments when running `conda clean --packages` or `conda clean --all`. (#16614)
