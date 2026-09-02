@@ -19,6 +19,10 @@ if TYPE_CHECKING:
 
     from ....types import ConfirmCallback
 
+from logging import getLogger
+
+logger = getLogger(__name__)
+
 
 def excluded_files_check(filename: str) -> bool:
     """Check if a file should be excluded from health checks."""
@@ -31,12 +35,23 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     packages_with_missing_files = {}
     prefix = Path(prefix)
     for file in (prefix / "conda-meta").glob("*.json"):
-        for file_name in json.loads(file.read_text()).get("files", []):
+        try:
+            metadata = json.loads(file.read_text())
+        except Exception as exc:
+            logger.error(
+                "Could not load the json file %s because of the following error: %s.",
+                file,
+                exc,
+            )
+            continue
+        for file_name in metadata.get("files", []):
             if (
                 not excluded_files_check(file_name)
                 and not (prefix / file_name).exists()
             ):
-                packages_with_missing_files.setdefault(file.stem, []).append(file_name)
+                packages_with_missing_files.setdefault(
+                    f"{metadata['name']}={metadata['version']}={metadata['build']}", []
+                ).append(file_name)
     return packages_with_missing_files
 
 
