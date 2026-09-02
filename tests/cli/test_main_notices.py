@@ -7,6 +7,7 @@ import glob
 import hashlib
 import json
 import os
+import shutil
 from typing import TYPE_CHECKING
 
 import pytest
@@ -462,3 +463,55 @@ def test_notices_shown_after_previous_command_error(
     out, err, _ = conda_cli("create", f"--prefix={path_factory()}", "--yes")
     assert message in out
     assert message not in err
+
+
+def test_notices_wraps_long_message(
+    capsys,
+    conda_notices_args_n_parser,
+    notices_cache_dir,
+    notices_mock_fetch_get_session,
+):
+    """
+    This test ensures that long notice messages are wrapped to the terminal width.
+    """
+    args, parser = conda_notices_args_n_parser
+
+    message = (
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
+        "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, "
+        "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo "
+        "consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse "
+        "cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat "
+        "non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+    )
+    level = "info"
+    message_id = "1234"
+    cache_file = "defaults-pkgs-main-notices.json"
+
+    bad_notices_json = {
+        "notices": [
+            {
+                "message": message,
+                "level": level,
+                "id": message_id,
+            }
+        ]
+    }
+    add_resp_to_mock(
+        notices_mock_fetch_get_session,
+        status_code=200,
+        messages_json=bad_notices_json,
+    )
+
+    create_notice_cache_files(notices_cache_dir, [cache_file], [bad_notices_json])
+
+    notices.execute(args, parser)
+
+    captured = capsys.readouterr()
+
+    assert captured.err == ""
+    assert "Retrieving" in captured.out
+
+    message_lines = captured.out.splitlines()
+    for line in message_lines:
+        assert len(line) <= shutil.get_terminal_size().columns
