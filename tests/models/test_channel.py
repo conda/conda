@@ -1372,6 +1372,44 @@ def test_url_with_credentials_preserves_filename_without_platform():
     assert channel2.url() == "https://conda.anaconda.org/channel-name/channeldata.json"
 
 
+def test_url_with_credentials_preserves_shard_filenames_with_platform():
+    """Shard URLs like /channel/linux-64/<sha256>.msgpack.zst must round-trip.
+
+    Regression test for the sharded-repodata variant of
+    https://github.com/conda/conda/issues/16516: ``.msgpack.zst`` was not a
+    recognized repodata extension, so the shard filename was absorbed into the
+    channel name instead of ``package_filename``. ``Channel.url()`` then
+    reassembled the URL in the wrong order
+    (``/t/<token>/<channel>/<filename>/<platform>``), which made every
+    authenticated request for a sharded-repodata file return HTTP 404.
+    """
+    sha256 = "45f2a9d0aa5638b6c7f31e21f552a2c9f65db35a08e1c33ff1d1a8ee0f05aa11"
+    shards_index = Channel(
+        "https://conda.anaconda.org/conda-forge/linux-64/repodata_shards.msgpack.zst"
+    )
+    shard = Channel(
+        f"https://conda.anaconda.org/conda-forge/linux-64/{sha256}.msgpack.zst"
+    )
+
+    for channel, filename in ((shards_index, "repodata_shards.msgpack.zst"), (shard, f"{sha256}.msgpack.zst")):
+        assert channel.name == "conda-forge"
+        assert channel.platform == "linux-64"
+        assert channel.package_filename == filename
+
+        # without credentials: filename is preserved in place
+        assert channel.url() == (
+            f"https://conda.anaconda.org/conda-forge/linux-64/{filename}"
+        )
+
+        # with credentials + token: token is injected before the channel,
+        # platform stays before the filename
+        channel.token = "tk-12345678-abcdefgh"
+        assert channel.url(with_credentials=True) == (
+            "https://conda.anaconda.org/t/tk-12345678-abcdefgh"
+            f"/conda-forge/linux-64/{filename}"
+        )
+
+
 def test_basic_multichannel():
     multichannel_name = "multichannel"
     channel1_name = "channel1"
