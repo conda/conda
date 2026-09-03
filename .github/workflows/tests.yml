@@ -340,26 +340,56 @@ jobs:
       # for limit-access-to-actor. Check both here since either could hang
       # silently (the action's own progress messages use core.debug(), which
       # is silent without debug logging enabled).
-      - name: Check tmate binary download + GitHub API reachability
+      # TEMP: reachability confirmed fine for both the tmate release asset
+      # and api.github.com (HTTP 200, <100ms). Bypass the JS action's opaque
+      # core.debug()-only logging (silent unless the *whole run* has debug
+      # logging enabled, which a step-level RUNNER_DEBUG env can't trigger)
+      # and manually replicate its startup sequence with bounded `timeout`
+      # wrappers, to pin down exactly which stage hangs.
+      - name: Manually replicate tmate startup, stage by stage
         if: always()
+        timeout-minutes: 5
         run: |
+          set -x
           ARCH="${{ runner.arch == 'ARM64' && 'arm64v8' || 'amd64' }}"
-          URL="https://github.com/tmate-io/tmate/releases/download/2.4.0/tmate-2.4.0-static-linux-${ARCH}.tar.xz"
-          echo "Testing $URL ..."
-          curl --connect-timeout 10 --max-time 30 -sSIL -o /dev/null -w 'HTTP %{http_code} in %{time_total}s (redirects: %{num_redirects})\n' "$URL" \
-            || echo "FAILED to reach tmate release asset"
-          echo "Testing https://api.github.com/ ..."
-          curl --connect-timeout 10 --max-time 30 -sSIL -o /dev/null -w 'HTTP %{http_code} in %{time_total}s\n' https://api.github.com/ \
-            || echo "FAILED to reach api.github.com"
+
+          echo "=== Downloading tmate binary ==="
+          timeout 30 curl -fsSL -o /tmp/tmate.tar.xz \
+            "https://github.com/tmate-io/tmate/releases/download/2.4.0/tmate-2.4.0-static-linux-${ARCH}.tar.xz"
+          echo "download exit: $?"
+          mkdir -p /tmp/tmate-bin
+          tar xf /tmp/tmate.tar.xz -C /tmp/tmate-bin --strip-components=1
+          TMATE=/tmp/tmate-bin/tmate
+          $TMATE -V || true
+
+          echo "=== GitHub API public-keys lookup (as limit-access-to-actor does) ==="
+          timeout 15 curl -sS -w '\nHTTP %{http_code} in %{time_total}s\n' \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/users/${{ github.actor }}/keys"
+          echo "keys lookup exit: $?"
+
+          echo "=== ssh-keygen ==="
+          mkdir -p ~/.ssh
+          timeout 15 bash -c "echo y | ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa_diag"
+          echo "ssh-keygen exit: $?"
+
+          echo "=== tmate new-session -d ==="
+          timeout 30 $TMATE -S /tmp/tmate-diag.sock new-session -d
+          echo "new-session exit: $?"
+
+          echo "=== tmate wait tmate-ready ==="
+          timeout 60 $TMATE -S /tmp/tmate-diag.sock wait tmate-ready
+          echo "wait tmate-ready exit: $?"
+
+          echo "=== tmate display connection string ==="
+          timeout 10 $TMATE -S /tmp/tmate-diag.sock display -p '#{tmate_ssh}' || true
+
+          echo "=== cleanup ==="
+          $TMATE -S /tmp/tmate-diag.sock kill-server || true
 
       - name: Setup tmate session
         if: always()
         timeout-minutes: 30
-        env:
-          # attempt to surface the action's own core.debug() progress
-          # messages, which are otherwise silent and would explain the
-          # appearance of a silent hang
-          RUNNER_DEBUG: '1'
         uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
         with:
           limit-access-to-actor: true
