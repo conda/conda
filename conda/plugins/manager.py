@@ -79,6 +79,7 @@ if TYPE_CHECKING:
         CondaEnvironmentSpecifier,
         CondaExceptionObserver,
         CondaHealthCheck,
+        CondaNotice,
         CondaPackageExtractor,
         CondaPlugin,
         CondaPluginWithAliases,
@@ -1389,6 +1390,23 @@ class CondaPluginManager(pluggy.PluginManager):
         raise PluginError(
             f"No registered 'package_extractors' plugin found for package: {source_full_path}"
         )
+
+    def get_notices(self) -> list[CondaNotice]:
+        """
+        Return notice items yielded by plugin hook implementations.
+
+        Each yielded :class:`~conda.plugins.types.CondaNotice` carries a
+        ``.impl`` attribute (set by the hook execution wrapper) that can be
+        used to trace back to the originating plugin via
+        ``notice.impl.plugin_name``.
+
+        :return: A list of :class:`~conda.plugins.types.CondaNotice` entries.
+        """
+        specname = f"{self.project_name}_notices"
+        hook = getattr(self.hook, specname, None)
+        if hook is None:
+            return []
+        return [notice for notices in hook() for notice in notices]
 
     def extract_package(
         self,

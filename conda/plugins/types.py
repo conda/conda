@@ -21,7 +21,7 @@ from requests.auth import AuthBase  # noqa: TID253
 from .._private.exception_guidance import GuidanceHint as _GuidanceHint
 from ..auxlib import NULL
 from ..auxlib.type_coercion import maybecall
-from ..base.constants import APP_NAME
+from ..base.constants import APP_NAME, NoticeLevel
 from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
     from collections.abc import Callable, Iterable
     from contextlib import AbstractContextManager
+    from datetime import datetime
     from types import TracebackType
     from typing import Any, ClassVar, Literal, Protocol, TypeAlias
 
@@ -987,3 +988,38 @@ class CondaExceptionObserver(CondaPlugin):
     name: str
     hook: Callable[[CondaExceptionEvent], None]
     watch_for: set[str]
+
+
+@dataclass
+class CondaNotice(CondaPlugin):
+    """
+    Return type to use when defining a conda notices plugin hook.
+
+    Represents a notice message yielded by a plugin. The ``name`` field
+    (inherited from :class:`CondaPlugin`) serves as the notice identifier
+    for deduplication and viewed-notice tracking — it is lowercased and
+    stripped by the parent class. The source plugin identity is derived
+    from the hook execution chain, not from the notice itself.
+
+    Notices are merged into the same display pipeline as channel notices,
+    gaining deduplication via viewed-ID tracking and structured output (JSON
+    or grouped text). The 24-hour channel-notice fetch interval applies only
+    to ``notices.json`` HTTP fetches, not to plugin hook collection.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_notices`.
+
+    :param name: Notice identifier (lowercased, kebab-case). Used for
+                 deduplication in the viewed-notice cache. Plugins can
+                 produce dynamic ``name`` values to control re-display.
+    :param message: The notice message text.
+    :param level: Severity level (defaults to INFO).
+    :param created_at: ISO 8601 datetime when the notice was created.
+    :param expired_at: ISO 8601 datetime when the notice expires.
+    """
+
+    name: str
+    message: str
+    level: NoticeLevel = NoticeLevel.INFO
+    created_at: datetime | None = None
+    expired_at: datetime | None = None
