@@ -3,6 +3,11 @@
 Installing PyPI packages with conda
 ====================================
 
+.. note::
+   The ``conda-pypi`` channel is free to use for all users. This channel is not
+   subject to the licensing requirements or payment obligations described in
+   Section 1 of the `Anaconda Terms of Service <https://www.anaconda.com/legal/terms/terms-of-service>`_.
+
 In conda version 26.9 and later, you can use the ``conda-pypi`` channel to
 install supported PyPI packages alongside regular conda packages directly 
 with ``conda install``.
@@ -10,27 +15,26 @@ with ``conda install``.
 .. dropdown:: What does the ``conda-pypi`` channel do?
 
    The ``conda-pypi`` channel, a community-maintained channel that is hosted on
-   anaconda.org, indexes pure Python wheels from the public PyPI index.
+   anaconda.org, indexes all pure Python wheels from the public PyPI index. The
+   channel repodata is generated from PyPI package metadata and converted into
+   a format conda understands, so the reliability and security of packages available
+   through ``conda-pypi`` matches that of PyPI directly.
+
    When you add this channel to your conda configuration, conda can resolve
    and install those packages alongside packages from conda channels like
-   ``conda-forge`` or ``defaults`` in a single operation.
-
-   The ``conda-pypi`` channel repodata tells conda what packages are available and
-   at what versions. When you install a package, conda fetches the wheel directly
-   from PyPI at install time. This is by design and keeps the channel lightweight,
-   but it means you need a PyPI connection at install time.
+   ``conda-forge`` or ``defaults`` in a single operation. The channel repodata
+   tells conda what packages are available and at what versions. When you install a 
+   package, conda fetches the wheel directly from PyPI at install time. This is by
+   design and keeps the channel lightweight, but it means you need a PyPI connection
+   at install time.
 
    One important thing to note is that **this is not a pip replacement**. Conda still
    manages the environment, the solver still handles the full dependency
    graph, and the result is a reproducible, exportable conda environment. Using
-   ``pip install`` directly inside conda environments remains problematic and should
-   be done with care. For more information on using pip with conda, see our blog
+   ``pip install`` directly inside conda environments can work initially, but 
+   conda loses track of pip-installed packages, making future environment updates 
+   and installs unreliable. For more information on using pip with conda, see our blog
    `Conda and pip are two ecosystems, not just tools <https://conda.org/blog/2026-05-07-conda-and-pip-ecosystems>`_.
-
-.. TODO: Add provenance information for the conda-pypi channel to the dropdown above: who created
-      and maintains it, how it is governed, and how the channel repodata is
-      generated. Confirm details with the team (conda GitHub org ownership,
-      governance model, repodata generation process).
 
 Prerequisites
 -------------
@@ -49,7 +53,7 @@ The ``conda-pypi`` workflow requires the following:
 
   .. code-block:: bash
 
-      conda update conda
+      conda self update
 
 - **Rattler solver:**
 
@@ -127,8 +131,6 @@ You can also use ``conda create`` with PyPI packages:
 Install with extras support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. TODO: Confirm extras support syntax and status with team — currently in development
-
 Extras (optional dependency groups defined in a package's metadata) are supported.
 Use bracket syntax as you would with pip:
 
@@ -204,9 +206,7 @@ following configuration option:
 
 .. code-block:: bash
 
-   conda config --set conda_pypi_warning false
-
-.. TODO: Confirm exact config key name for suppressing the tip
+   conda config --set conda_pypi_pip_warning false
 
 Limitations and security considerations
 ---------------------------------------
@@ -271,7 +271,7 @@ If either is below the minimum required version, update them:
 
 .. code-block:: bash
 
-   conda update conda
+   conda self update
 
 .. code-block:: bash
 
