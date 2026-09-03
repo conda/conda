@@ -10,8 +10,8 @@ from subprocess import CalledProcessError, check_output, run
 
 import pytest
 
-from conda import CONDA_PACKAGE_ROOT
 from conda.base.constants import WINDOWS_LAUNCHER_STUB_PATH
+from conda.base.context import context
 from conda.common.compat import on_win
 
 
@@ -87,7 +87,7 @@ def signtool_unsupported() -> bool:
 @pytest.mark.parametrize("stub_file_name", WINDOWS_LAUNCHER_STUB_PATH.values())
 def test_stub_exe_signatures(stub_file_name: str) -> None:
     """Verify that signtool verifies the signature of the stub exes"""
-    stub_file = Path(CONDA_PACKAGE_ROOT, stub_file_name)
+    stub_file = Path(context.root_prefix, stub_file_name)
     signtool_exe = find_signtool()
     completed_process = run([signtool_exe, "verify", "/pa", "/v", stub_file])
     assert completed_process.returncode == 0

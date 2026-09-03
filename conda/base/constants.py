@@ -107,13 +107,13 @@ PLATFORMS: Final = (
 KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
-# Windows subdir -> path under CONDA_PACKAGE_ROOT to the entry point stub exe.
+# Windows subdir -> path under $ROOT_PREFIX to the entry point stub exe.
 # Future source of truth: https://github.com/conda/conda-launchers
 WINDOWS_LAUNCHER_STUB_PATH: Final = {
-    "win-32": "shell/cli-32.exe",
-    "win-64": "shell/cli-64.exe",
-    "win-arm64": "shell/cli-64.exe",  # rely on arm64 emulation for now
-    # "win-arm64": "shell/cli-arm64.exe",  # add native arm64 support when available
+    "win-32": "share/conda-launchers/cli-64.exe",  # win-32 is only supported via emulation
+    "win-64": "share/conda-launchers/cli-64.exe",
+    "win-arm64": "share/conda-launchers/cli-64.exe",  # rely on arm64 emulation for now
+    # "win-arm64": "share/conda-launchers/cli-arm64.exe",  # add native arm64 support when available
 }
 
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")

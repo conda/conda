@@ -14,6 +14,7 @@ import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
+from conda.base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.iterators import groupby_to_dict as groupby
@@ -299,8 +300,10 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
         assert isfile(windows_exe_axn.target_full_path)
         assert is_executable(windows_exe_axn.target_full_path)
 
-        src = compute_sum(join(context.conda_prefix, "Scripts/conda.exe"), "md5")
-        assert src == compute_sum(windows_exe_axn.target_full_path, "md5")
+        assert compute_sum(
+            join(context.conda_prefix, WINDOWS_LAUNCHER_STUB_PATH[context.subdir]),
+            "md5",
+        ) == compute_sum(windows_exe_axn.target_full_path, "md5")
 
         windows_exe_axn.reverse()
         assert not isfile(windows_exe_axn.target_full_path)
