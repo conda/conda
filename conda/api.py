@@ -4,7 +4,6 @@
 
 from .base.constants import DepsModifier as _DepsModifier
 from .base.constants import UpdateModifier as _UpdateModifier
-from .base.context import context
 from .common.constants import NULL
 from .core.package_cache_data import PackageCacheData as _PackageCacheData
 from .core.prefix_data import PrefixData as _PrefixData
@@ -51,7 +50,9 @@ class Solver:
                 The set of package specs to remove from the prefix.
 
         """
-        solver_backend = context.plugin_manager.get_cached_solver_backend()
+        solver_backend = solver_backend = (
+            context.plugin_manager.get_cached_solver_backend()
+        )
         self._internal = solver_backend(
             prefix, channels, subdirs, specs_to_add, specs_to_remove
         )
