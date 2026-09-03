@@ -13,22 +13,22 @@ Verify that `conda config --clear KEY` explicitly leaves a sequence configuratio
 None.
 
 ### Steps
-1. Create a temporary condarc file with the following contents:
+1. Create a file named `condarc.yaml` in a temporary directory with the following contents:
 
        aggressive_update_packages:
-         - ca-certificates
-         - certifi
+         - python
+         - pip
 
-2. Run `conda config --file <path-to-condarc> --show aggressive_update_packages`.
-3. Confirm that both `ca-certificates` and `certifi` are shown.
-4. Run `conda config --file <path-to-condarc> --clear aggressive_update_packages`.
-5. Inspect the condarc file.
-6. Run `conda config --file <path-to-condarc> --show aggressive_update_packages`.
+2. Run `conda config --file "<temporary-directory>/condarc.yaml" --show aggressive_update_packages`.
+3. Confirm that both `python` and `pip` are shown.
+4. Run `conda config --file "<temporary-directory>/condarc.yaml" --clear aggressive_update_packages`.
+5. Inspect `<temporary-directory>/condarc.yaml`.
+6. Run `conda config --file "<temporary-directory>/condarc.yaml" --show aggressive_update_packages`.
 
 ### Pass criteria
 - The `--clear` command exits successfully without an error.
 - The condarc file contains `aggressive_update_packages: []`.
-- `conda config --show aggressive_update_packages` reports an empty value for the key.
+- `conda config --file "<temporary-directory>/condarc.yaml" --show aggressive_update_packages` reports an empty value for the key.
 - The `aggressive_update_packages` key remains present in the condarc file rather than being removed.
 
 ### Out of scope / notes
