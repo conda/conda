@@ -68,9 +68,8 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
+    if: false
 
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -229,8 +228,10 @@ jobs:
           - ubuntu-24.04-arm  # linux-aarch64
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
-        test-group: [1, 2, 3]
+        # TEMP: only integration group 1 while debugging the linux/py3.14
+        # classic-solver failure
+        test-type: [integration]
+        test-group: [1]
         exclude:
           - python-version: '3.10'
             default-channel: conda-forge
@@ -238,8 +239,6 @@ jobs:
             default-channel: conda-forge
           - python-version: '3.12'
             default-channel: conda-forge
-          - test-type: unit
-            test-group: 3
           - runs-on: ubuntu-24.04-arm
             python-version: '3.10'
           - runs-on: ubuntu-24.04-arm
@@ -323,15 +322,47 @@ jobs:
           # Initialize all shells
           python -m conda init --all
 
+      # TEMP: only the problematic test while debugging the linux/py3.14
+      # classic-solver failure
       - name: Run Tests
         run: >
           python -m pytest
           --cov=conda
           --durations-path=durations/${{ runner.os }}.json
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
+          tests/test_create.py::test_dont_remove_conda_3
           ${{ env.PYTEST_EXTRA }}
+
+      # TEMP: debugging the linux/py3.14 classic-solver failure.
+      # ssh.tmate.io:22 was confirmed reachable, but that only covers the
+      # relay connection tmate itself makes. Before it gets there, the action
+      # also downloads the tmate binary from a *different* host
+      # (github.com/tmate-io/tmate release assets) and calls api.github.com
+      # for limit-access-to-actor. Check both here since either could hang
+      # silently (the action's own progress messages use core.debug(), which
+      # is silent without debug logging enabled).
+      - name: Check tmate binary download + GitHub API reachability
+        if: always()
+        run: |
+          ARCH="${{ runner.arch == 'ARM64' && 'arm64v8' || 'amd64' }}"
+          URL="https://github.com/tmate-io/tmate/releases/download/2.4.0/tmate-2.4.0-static-linux-${ARCH}.tar.xz"
+          echo "Testing $URL ..."
+          curl --connect-timeout 10 --max-time 30 -sSIL -o /dev/null -w 'HTTP %{http_code} in %{time_total}s (redirects: %{num_redirects})\n' "$URL" \
+            || echo "FAILED to reach tmate release asset"
+          echo "Testing https://api.github.com/ ..."
+          curl --connect-timeout 10 --max-time 30 -sSIL -o /dev/null -w 'HTTP %{http_code} in %{time_total}s\n' https://api.github.com/ \
+            || echo "FAILED to reach api.github.com"
+
+      - name: Setup tmate session
+        if: always()
+        timeout-minutes: 30
+        env:
+          # attempt to surface the action's own core.debug() progress
+          # messages, which are otherwise silent and would explain the
+          # appearance of a silent hang
+          RUNNER_DEBUG: '1'
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
+        with:
+          limit-access-to-actor: true
 
       - name: Upload Coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
@@ -355,7 +386,8 @@ jobs:
   linux-benchmarks:
     # only run benchmarks if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
+    if: false
 
     runs-on: ubuntu-22.04
     defaults:
@@ -444,7 +476,8 @@ jobs:
   linux-typing:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
+    if: false
 
     runs-on: ubuntu-22.04
     defaults:
@@ -540,9 +573,8 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
+    if: false
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -601,7 +633,8 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
+    if: false
 
     runs-on: ubuntu-latest
     defaults:
@@ -672,9 +705,8 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
+    if: false
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -878,7 +910,8 @@ jobs:
   downstream:
     # only run test suite if there are code changes
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
+    if: false
 
     runs-on: ubuntu-latest
     defaults:
