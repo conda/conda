@@ -13,16 +13,22 @@ This page contains recent additions to `conda` worth your attention, including f
 ::::{card}
 :class-card: sd-rounded-3 conda-feature-card conda-feature-beta
 
-{bdg-light}`Available in conda 26.5 and later` &nbsp; {bdg-warning}`Beta`
+{bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-warning}`Beta`
 
-The Rattler solver is on track to become conda's default solver in the near future. Try it now and report any issues to help shape the transition for the wider community.
+While libmamba has been conda's default solver for the past four years and has significantly improved solve performance, we plan to make the Rattler solver the default in version 26.10.0.
+
+Rattler brings faster solves through optimized sparse repodata parsing, native support for new features like `conda-pypi` without requiring a solver switch, and a smaller Miniconda and Miniforge download size by removing the C++ libraries that libmamba required.
+
+Try it now and report any issues to help shape the transition for the wider community.
 
 To opt in, update conda and switch your default solver to Rattler:
 
 ```bash
-conda install --name base 'conda>=26.5'
+conda self update
 conda config --set solver rattler
 ```
+
+**Note**: If you are running conda older than 26.5, use `conda update conda` instead.
 
 To switch back at any time:
 
@@ -37,7 +43,7 @@ conda config --remove-key solver
 ::::{card}
 :class-card: sd-rounded-3 conda-feature-card conda-feature-stable
 
-{bdg-light}`Available in conda 26.9 and later` &nbsp; {bdg-success}`Stable`
+{bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
 
 The `--exclude-newer` flag excludes packages published after a configured cutoff from environment solves and `conda search` results. This gives new releases a cooldown period before they are adopted in your environment. This setting can be used to:
 
@@ -48,10 +54,10 @@ The `--exclude-newer` flag excludes packages published after a configured cutoff
 The flag works with `conda create`, `conda install`, and `conda update`. It can also be used as a global setting or per-channel override in your `.condarc` file. Accepted values include durations (`7d`, `3d12h`, `1w`), ISO 8601 durations (`P7D`), RFC 3339 timestamps, and date-only values (`2026-04-01`).
 
 ```bash
-conda install --exclude-newer 7d scipy
+conda install --exclude-newer 2026-08-01 scipy
 ```
 
-```bash
+```yaml
 # .condarc
 exclude_newer: 7d
 
@@ -77,7 +83,7 @@ For more information, see {ref}`Installing packages with an upload cutoff <insta
 ::::{card}
 :class-card: sd-rounded-3 conda-feature-card conda-feature-stable
 
-{bdg-light}`Available in conda 26.5 and later` &nbsp; {bdg-success}`Stable`
+{bdg-light}`Available in conda 26.5 or later` &nbsp; {bdg-success}`Stable`
 
 The new `conda-pypi` plugin lets you install PyPI packages natively with `conda install`. Conda resolves across both conda channels and PyPI in a single solve, and PyPI wheel packages behave like any other conda package once installed: they show up in `conda list`, get captured in `conda export`, and uninstall cleanly with `conda remove`.
 
@@ -91,9 +97,9 @@ For more information on installing PyPI packages with `conda install`, see {doc}
 ::::{card}
 :class-card: sd-rounded-3 conda-feature-card conda-feature-stable
 
-{bdg-light}`Available in conda 26.5 and later` &nbsp; {bdg-success}`Stable`
+{bdg-light}`Available in conda 26.5 or later` &nbsp; {bdg-success}`Stable`
 
-Available to everyone running conda 26.5. No opt-in required.
+Available to everyone running conda 26.5 or later. No opt-in required.
 
 `conda export`, `conda create`, and `conda install` now support lockfiles as a first-class artifact. A lockfile records the exact packages, versions, builds, and channels in an environment, and conda can use that lockfile to recreate that environment exactly. Lockfiles can also record the resolved packages for several platforms at once. With a multi-platform lockfile, the same file can recreate the environment on Linux, macOS, and Windows.
 
