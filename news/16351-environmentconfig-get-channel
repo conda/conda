@@ -1,0 +1,21 @@
+### Enhancements
+
+* Add `EnvironmentConfig.get_channel(name)`, a helper that looks up a configured
+  channel by its `canonical_name` and returns the value as stored (name or URL),
+  preserving configured order and returning `None` when there is no match. (#16351)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
