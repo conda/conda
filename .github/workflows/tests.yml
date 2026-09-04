@@ -215,6 +215,11 @@ jobs:
       || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
+    # TEMP: debugging the linux/py3.14 classic-solver failure. The debug
+    # shell step uses a detached tmux session; cancelling the workflow
+    # doesn't reliably kill it (especially with a client attached), so cap
+    # the whole job here to force GitHub to reclaim the runner VM.
+    timeout-minutes: 45
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -340,59 +345,26 @@ jobs:
       # for limit-access-to-actor. Check both here since either could hang
       # silently (the action's own progress messages use core.debug(), which
       # is silent without debug logging enabled).
-      # TEMP: reachability confirmed fine for both the tmate release asset
-      # and api.github.com (HTTP 200, <100ms). Bypass the JS action's opaque
-      # core.debug()-only logging (silent unless the *whole run* has debug
-      # logging enabled, which a step-level RUNNER_DEBUG env can't trigger)
-      # and manually replicate its startup sequence with bounded `timeout`
-      # wrappers, to pin down exactly which stage hangs.
-      - name: Manually replicate tmate startup, stage by stage
-        if: always()
-        timeout-minutes: 5
-        run: |
-          set -x
-          ARCH="${{ runner.arch == 'ARM64' && 'arm64v8' || 'amd64' }}"
-
-          echo "=== Downloading tmate binary ==="
-          timeout 30 curl -fsSL -o /tmp/tmate.tar.xz \
-            "https://github.com/tmate-io/tmate/releases/download/2.4.0/tmate-2.4.0-static-linux-${ARCH}.tar.xz"
-          echo "download exit: $?"
-          mkdir -p /tmp/tmate-bin
-          tar xf /tmp/tmate.tar.xz -C /tmp/tmate-bin --strip-components=1
-          TMATE=/tmp/tmate-bin/tmate
-          $TMATE -V || true
-
-          echo "=== GitHub API public-keys lookup (as limit-access-to-actor does) ==="
-          timeout 15 curl -sS -w '\nHTTP %{http_code} in %{time_total}s\n' \
-            -H "Authorization: Bearer ${{ github.token }}" \
-            "https://api.github.com/users/${{ github.actor }}/keys"
-          echo "keys lookup exit: $?"
-
-          echo "=== ssh-keygen ==="
-          mkdir -p ~/.ssh
-          timeout 15 bash -c "echo y | ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa_diag"
-          echo "ssh-keygen exit: $?"
-
-          echo "=== tmate new-session -d ==="
-          timeout 30 $TMATE -S /tmp/tmate-diag.sock new-session -d
-          echo "new-session exit: $?"
-
-          echo "=== tmate wait tmate-ready ==="
-          timeout 60 $TMATE -S /tmp/tmate-diag.sock wait tmate-ready
-          echo "wait tmate-ready exit: $?"
-
-          echo "=== tmate display connection string ==="
-          timeout 10 $TMATE -S /tmp/tmate-diag.sock display -p '#{tmate_ssh}' || true
-
-          echo "=== cleanup ==="
-          $TMATE -S /tmp/tmate-diag.sock kill-server || true
-
-      - name: Setup tmate session
+      # TEMP: confirmed `tmate wait tmate-ready` is exactly where it hangs
+      # (60s timeout hit, exit 124) even though raw TCP to ssh.tmate.io:22 is
+      # reachable and everything before it (binary download, GitHub API key
+      # lookup, ssh-keygen, `new-session -d`) succeeds instantly. Trace the
+      # actual syscalls the tmate server is blocked on during that hang to
+      # confirm whether it's stuck on a network read (relay accepted the TCP
+      # handshake but never responded at the protocol level) vs. something
+      # else. `|| true` on every guarded command so `bash -e` (job default
+      # shell) doesn't abort the script before cleanup runs.
+      # TEMP: debugging the linux/py3.14 classic-solver failure.
+      # mxschmitt/action-tmate hung indefinitely at `tmate wait tmate-ready`.
+      # Confirmed via strace + independent reproduction from an unrelated
+      # network that ssh.tmate.io itself is down (tmate.io returns HTTP 503,
+      # the SSH port accepts TCP but sends no banner) -- not a GitHub/runner
+      # network issue. Switched to a Cloudflare Tunnel-based debug shell,
+      # which has no dependency on tmate.io's infrastructure.
+      - name: Setup SSH debug session
         if: always()
         timeout-minutes: 30
-        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
-        with:
-          limit-access-to-actor: true
+        uses: valeriangalliat/action-sshd-cloudflared@69f78222a3a1a5b554316d3cfe60ca1ed9c809da # v4
 
       - name: Upload Coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
