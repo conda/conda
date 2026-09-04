@@ -182,23 +182,8 @@ def find_tarballs() -> dict[str, Any]:
 
 
 def find_pkgs() -> dict[str, Any]:
-    from ..base.context import context
-
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
-    if context.always_softlink or context.allow_softlinks:
-        warnings.append(
-            "WARNING: Skipping package cache cleanup because `always_softlink` or "
-            "`allow_softlinks` is enabled. Removing cache packages may break "
-            "environments that use symlinks."
-        )
-        return {
-            "warnings": warnings,
-            "pkg_sizes": pkg_sizes,
-            "pkgs_dirs": _get_pkgs_dirs(pkg_sizes),
-            "total_size": _get_total_size(pkg_sizes),
-        }
-
     for pkgs_dir in find_pkgs_dirs():
         # pkgs are directories in pkgs_dir
         _, pkgs, _ = next(os.walk(pkgs_dir))

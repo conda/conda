@@ -176,63 +176,39 @@ def test_clean_and_packages(
     "softlink_env_var",
     ("CONDA_ALWAYS_SOFTLINK", "CONDA_ALLOW_SOFTLINKS"),
 )
-def test_clean_packages_skips_when_softlinking_enabled(
-    clear_cache,
-    test_recipes_channel: Path,
-    conda_cli: CondaCLIFixture,
-    tmp_env: TmpEnvFixture,
-    mocker: MockerFixture,
-    monkeypatch: pytest.MonkeyPatch,
-    clean_arg: str,
-    softlink_env_var: str,
-):
-    mocker.patch("conda.core.link.hardlink_supported", return_value=False)
-    monkeypatch.setenv(softlink_env_var, "true")
-    reset_context()
-
-    with tmp_env("small-executable") as prefix:
-        activate_script = (
-            prefix / "etc" / "conda" / "activate.d" / "small_executable.sh"
-        )
-        assert activate_script.is_symlink()
-
-        stdout, _, _ = conda_cli("clean", clean_arg, "--yes")
-
-        assert "`always_softlink` or `allow_softlinks` is enabled" in stdout
-        assert activate_script.exists()
-
-
-@pytest.mark.skipif(on_win, reason="creating symlinks may require elevated privileges")
 def test_clean_packages_preserves_known_softlinked_environment(
     clear_cache,
     test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
     known_prefixes,
+    clean_arg: str,
+    softlink_env_var: str,
 ):
-    monkeypatch.setenv("CONDA_ALWAYS_SOFTLINK", "true")
+    pkg = "small-executable"
+    mocker.patch("conda.core.link.hardlink_supported", return_value=False)
+    monkeypatch.setenv(softlink_env_var, "true")
     reset_context()
 
-    with tmp_env("small-executable") as prefix:
+    with tmp_env(pkg) as prefix:
         activate_script = (
             prefix / "etc" / "conda" / "activate.d" / "small_executable.sh"
         )
         assert activate_script.is_symlink()
-        monkeypatch.delenv("CONDA_ALWAYS_SOFTLINK")
-        reset_context()
         known_prefixes.return_value = [str(prefix)]
 
-        conda_cli("clean", "--packages", "--yes")
+        conda_cli("clean", clean_arg, "--yes")
 
         assert activate_script.exists()
-        assert has_pkg("small-executable", _get_pkgs(tmp_pkgs_dir))
+        assert has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
 
-        conda_cli("remove", "--prefix", prefix, "small-executable", "--yes")
-        conda_cli("clean", "--packages", "--yes")
+        conda_cli("remove", "--prefix", prefix, pkg, "--yes")
+        conda_cli("clean", clean_arg, "--yes")
 
-        assert not has_pkg("small-executable", _get_pkgs(tmp_pkgs_dir))
+        assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
 
 
 # conda clean --tarballs
