@@ -3415,6 +3415,26 @@ def test_current_repodata_fallback(tmpdir):
         raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
+def test_current_repodata_retry_message(tmpdir, capsys: CaptureFixture):
+    if context.solver != "classic":
+        pytest.skip("retry message is specific to the classic Solver")
+
+    solver = Solver(
+        tmpdir.strpath,
+        (Channel(CHANNEL_DIR_V1),),
+        ("win-64",),
+        specs_to_add=[MatchSpec("zlib=1.2.8")],
+        repodata_fn="current_repodata.json",
+    )
+
+    with pytest.raises(ResolvePackageNotFound):
+        solver.solve_final_state()
+
+    captured = capsys.readouterr()
+    assert "retrying with next repodata source." in captured.out
+    assert "unsuccessful attempt using repodata" not in captured.out
+
+
 def test_downgrade_python_prevented_with_sane_message(tmpdir):
     specs = (MatchSpec("python=2.6"),)
     with get_solver(tmpdir, specs) as solver:

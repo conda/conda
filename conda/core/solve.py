@@ -508,10 +508,7 @@ class Solver(BaseSolver):
                 " with flexible solve.\n"
             )
         elif self._repodata_fn != REPODATA_FN:
-            fail_message = (
-                f"unsuccessful attempt using repodata from {self._repodata_fn}, retrying"
-                " with next repodata source.\n"
-            )
+            fail_message = "retrying with next repodata source.\n"
         else:
             fail_message = "failed\n"
 
