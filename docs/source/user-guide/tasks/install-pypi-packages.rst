@@ -14,8 +14,8 @@ with ``conda install``.
 
 .. dropdown:: What does the ``conda-pypi`` channel do?
 
-   The ``conda-pypi`` channel, a community-maintained channel that is hosted on
-   anaconda.org, indexes all pure Python wheels from the public PyPI index. The
+   The ``conda-pypi`` channel, a channel maintained by Anaconda and hosted for free
+   on anaconda.org, indexes all pure Python wheels from the public PyPI index. The
    channel repodata is generated from PyPI package metadata and converted into
    a format conda understands, so the reliability and security of packages available
    through ``conda-pypi`` matches that of PyPI directly.
@@ -109,83 +109,56 @@ To check whether a package is available through ``conda-pypi``:
 
 .. code-block:: bash
 
-   conda search --channel conda-pypi <package-name>
+   conda search conda-pypi::<package-name>
 
 Install PyPI and conda packages together
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
-
-   conda install numpy requests
-
-In this example, ``numpy`` comes from ``conda-forge`` (it has compiled extensions)
-and ``requests`` comes from ``conda-pypi`` (it is a pure Python package). Conda
-handles both in a single operation.
-
+ 
+   conda install <conda-forge-package> <conda-pypi-package>
+ 
+If a package is available on both ``conda-forge`` and ``conda-pypi``, conda
+will install it from ``conda-pypi`` only if the version there is newer.
+ 
 You can also use ``conda create`` with PyPI packages:
-
+ 
 .. code-block:: bash
-
-   conda create --name myenv python=3.12 numpy requests flask
+ 
+   conda create --name myenv python=3.12 <conda-forge-package> <conda-pypi-package>
 
 Install with extras support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Extras (optional dependency groups defined in a package's metadata) are supported.
-Use bracket syntax as you would with pip:
-
+Extras are named groups of optional dependencies defined in a package's
+``extra_depends`` field. When you request an extra, its dependencies are merged with
+the package's regular dependencies and resolved together. For full details,
+see `CEP 44 <https://conda.org/learn/ceps/cep-0044>`_.
+ 
+Use the following syntax to request extras:
+ 
 .. code-block:: bash
-
-   conda install "httpx[http2]"
-
-Manage your environment
------------------------
-
-The ``conda-pypi`` workflow produces a standard conda environment. All the usual
-environment management commands work as expected. For more information on
-environment management and package management, besides what is covered here,
-see :doc:`manage-environments` and :doc:`manage-pkgs`.
-
-List installed packages
-~~~~~~~~~~~~~~~~~~~~~~~~
-
+ 
+   # Single extra
+   conda install 'package[extras="EXTRA"]'
+ 
+   # Multiple extras (comma-separated string)
+   conda install 'package[extras="EXTRA1,EXTRA2"]'
+ 
+   # Multiple extras (list syntax)
+   conda install 'package[extras=["EXTRA1","EXTRA2"]]'
+ 
+For example, to install ``httpx`` with its ``http2`` and ``cli`` extras:
+ 
 .. code-block:: bash
-
-   conda list
-
-Packages installed from ``conda-pypi`` appear in the output alongside packages from
-other channels, with their channel source listed.
-
-Export and recreate an environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Export an environment specification:
-
-.. code-block:: bash
-
-   conda env export > environment.yml
-
-Recreate it on another machine (which also needs ``conda-pypi`` configured):
-
-.. code-block:: bash
-
-   conda env create --file environment.yml
-
-Remove a package
-~~~~~~~~~~~~~~~~~
-
-.. code-block:: bash
-
-   conda remove <package-name>
-
-Pre-release versions
---------------------
-
-.. TODO: Confirm pre-release handling with team.
-   Tracking issue: https://github.com/conda/conda-pypi/issues/448
-
-This section will document how to opt in to pre-release versions from
-``conda-pypi``.
+ 
+   conda install 'httpx[extras="http2,cli"]'
+ 
+.. note::
+ 
+   Extra names are case-sensitive and must match the pattern
+   ``[a-z0-9_.+-]{1,64}``. Requesting an extra that is not defined in a
+   package has no effect and doesn't produce an error.
 
 Disable the conda-pypi workflow
 ---------------------------------
@@ -235,7 +208,7 @@ Troubleshooting
 ---------------
 
 Packages not found in ``conda-pypi``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If ``conda install`` or ``conda create`` fails with a ``PackagesNotFoundInChannelsError``
 for a package you expect to be available through ``conda-pypi``, the most likely
@@ -263,11 +236,8 @@ To diagnose, check your conda and rattler-solver versions:
 
    conda list | grep rattler
 
-.. TODO: Add minimum required rattler-solver version. Example output from the
-   team's testing: ``conda-rattler-solver 0.1.1``. Confirm what the actual
-   minimum is before publishing.
-
-If either is below the minimum required version, update them:
+If either is below the minimum required version
+(26.9 for ``conda`` and 0.1.1 for ``conda-rattler-solver``), update them:
 
 .. code-block:: bash
 
@@ -275,7 +245,7 @@ If either is below the minimum required version, update them:
 
 .. code-block:: bash
 
-   conda install --name base rattler-solver
+   conda install --name base conda-rattler-solver
 
 Additional resources
 --------------------
