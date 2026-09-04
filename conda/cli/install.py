@@ -131,6 +131,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         )
 
 
+@deprecated("27.3", "27.9")
 def get_revision(arg, json=False):
     try:
         return int(arg)
@@ -414,20 +415,33 @@ def install(args, parser, command="install"):
             for fpath, file_env in fpath_envs_map.items()
             if file_env.external_packages
         ]
+        pip_sources = []
         for fpath, file_env in external_envs:
             for installer_type, pkg_specs in file_env.external_packages.items():
-                installer = get_installer(installer_type, file=fpath)
                 if installer_type == "pip":
-                    workdir = get_pip_workdir(fpath)
-                    result = installer.install(
-                        prefix, list(pkg_specs), args, file_env, workdir=workdir
-                    )
-                else:
-                    result = installer.install(prefix, list(pkg_specs), args, file_env)
+                    pip_sources.append((fpath, list(pkg_specs), get_pip_workdir(fpath)))
+                    continue
+
+                installer = get_installer(installer_type, file=fpath)
+                result = installer.install(prefix, list(pkg_specs), args, file_env)
                 if result is not None:
                     installer_results[installer_type.upper()] = result
 
-            conda_actions.update(installer_results)
+        if pip_sources:
+            installer = get_installer("pip", file=pip_sources[0][0])
+            result = installer.install(
+                prefix,
+                [],
+                args,
+                env,
+                requirements_sources=[
+                    (pkg_specs, workdir) for _, pkg_specs, workdir in pip_sources
+                ],
+            )
+            if result is not None:
+                installer_results["PIP"] = result
+
+        conda_actions.update(installer_results)
 
     if env.variables:
         PrefixData(prefix).set_environment_env_vars(env.variables)
@@ -492,9 +506,8 @@ def install_revision(args, parser):
                     prefix=prefix,
                     repodata_fn=repodata,
                 )
-            revision_idx = get_revision(args.revision)
-            with get_spinner(f"Reverting to revision {revision_idx}"):
-                unlink_link_transaction = revert_actions(prefix, revision_idx, index)
+            with get_spinner(f"Reverting to revision {args.revision}"):
+                unlink_link_transaction = revert_actions(prefix, args.revision, index)
 
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
 

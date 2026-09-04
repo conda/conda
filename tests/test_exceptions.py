@@ -1690,8 +1690,10 @@ def test_platform_mismatch_error_is_conda_value_error() -> None:
                 "Environment file 'env.yml' does not include packages for linux-64",
                 "Available platforms: osx-64, osx-arm64",
                 "regenerate the environment file with linux-64",
-                "    conda export --file env.yml "
-                "--platform osx-64 --platform osx-arm64 --platform linux-64",
+                (
+                    "    conda export --file env.yml "
+                    "--platform osx-64 --platform osx-arm64 --platform linux-64"
+                ),
             ),
             id="single-source",
         ),
@@ -1726,3 +1728,29 @@ def test_CondaError_interpolation_no_kwargs() -> None:
     exc = CondaError(message=message)
     assert str(exc) == message
     assert repr(exc) == "CondaError: " + message
+
+
+def test_CondaError_caused_by_keyword() -> None:
+    cause = ValueError("root")
+    exc = CondaError("boom", caused_by=cause)
+    assert exc.dump_map()["caused_by"] == repr(cause)
+
+
+def test_CondaError_caused_by_positional_pending_deprecation() -> None:
+    cause = ValueError("root")
+    with pytest.deprecated_call(match=r"caused_by.*positional.*27\.9"):
+        exc = CondaError("boom", cause)
+    assert exc.dump_map()["caused_by"] == repr(cause)
+
+
+def test_CondaError_caused_by_positional_and_keyword_rejected() -> None:
+    with (
+        pytest.deprecated_call(),
+        pytest.raises(TypeError, match="multiple values for argument 'caused_by'"),
+    ):
+        CondaError("boom", ValueError("a"), caused_by=ValueError("b"))
+
+
+def test_CondaError_too_many_positionals_rejected() -> None:
+    with pytest.raises(TypeError, match="positional arguments"):
+        CondaError("boom", ValueError("a"), ValueError("b"))

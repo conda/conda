@@ -22,6 +22,7 @@ from ...deprecations import deprecated
 from ..connection.download import disable_ssl_verify_warning
 from ..connection.session import get_session
 from . import (
+    FORMAT_ZST,
     URL_KEY,
     RepodataOnDisk,
     RepodataState,
@@ -166,7 +167,7 @@ def request_url_zstd_state(
                 raise
 
             # zst format is not available, so fallback to .json
-            state.set_has_format("zst", False)
+            state.set_has_format(FORMAT_ZST, False)
             is_fallback = True
             response = download_repodata(
                 withext(url, ".json"),

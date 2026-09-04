@@ -14,7 +14,11 @@ from conda.base.context import context, reset_context
 from conda.cli.condarc import MISSING, ConfigurationFile
 from conda.cli.main_config import set_keys
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
-from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
+from conda.exceptions import (
+    CondaKeyError,
+    CouldntParseError,
+    EnvironmentLocationNotFound,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -207,6 +211,61 @@ def test_config_remove_item() -> None:
     # invalid
     with pytest.raises(CondaKeyError, match=r"'changeps1': invalid parameter"):
         config.remove_item("changeps1", None)
+
+
+def test_config_clear_key() -> None:
+    config = ConfigurationFile(
+        content={
+            "channels": ["defaults", "conda-forge"],
+            "aggressive_update_packages": ["ca-certificates", "certifi"],
+        }
+    )
+
+    config.clear_key("channels")
+    assert config.content["channels"] == []
+
+    config.clear_key("aggressive_update_packages")
+    assert config.content["aggressive_update_packages"] == []
+
+    # Clearing an undefined sequence explicitly creates an empty list.
+    config.clear_key("create_default_packages")
+    assert config.content["create_default_packages"] == []
+
+    # Clearing an already-empty sequence is idempotent.
+    config.clear_key("channels")
+    assert config.content["channels"] == []
+
+
+def test_config_clear_key_alias() -> None:
+    config = ConfigurationFile(content={"disallow": ["openssl"]})
+
+    config.clear_key("disallow")
+
+    assert "disallow" not in config.content
+    assert config.content["disallowed_packages"] == []
+
+
+def test_config_clear_key_invalid() -> None:
+    config = ConfigurationFile(content={"changeps1": True})
+
+    with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
+        config.clear_key("unknown")
+
+    with pytest.raises(CondaKeyError, match=r"'changeps1': invalid parameter"):
+        config.clear_key("changeps1")
+
+    with pytest.raises(CondaKeyError, match=r"'proxy_servers': invalid parameter"):
+        config.clear_key("proxy_servers")
+
+
+def test_config_clear_key_invalid_value_type() -> None:
+    config = ConfigurationFile(content={"channels": "defaults"})
+
+    with pytest.raises(
+        CouldntParseError,
+        match=r"key 'channels' should be a list, not str",
+    ):
+        config.clear_key("channels")
 
 
 def test_config_remove_key() -> None:

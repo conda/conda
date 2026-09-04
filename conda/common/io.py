@@ -14,7 +14,7 @@ from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
-from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
+from logging import CRITICAL, WARNING, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
 from time import time
 from typing import TYPE_CHECKING
@@ -393,7 +393,7 @@ def stderr_log_level(
 
 
 def attach_stderr_handler(
-    level: int = WARN,
+    level: int = WARNING,
     logger_name: str | None = None,
     propagate: bool = False,
     formatter: Formatter | None = None,
@@ -580,7 +580,11 @@ deprecated.constant(
     "27.9",
     "IS_INTERACTIVE",
     hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
-    addendum="Use `conda.common.terminal.is_tty()` instead.",
+    addendum=(
+        "Use `conda.common.terminal.is_tty()` instead. If stdin "
+        "interactivity is also needed (e.g. before an input prompt), see "
+        "`is_stdin_tty()` and `is_interactive_tty()` in the same module."
+    ),
 )
 
 

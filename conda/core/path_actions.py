@@ -604,14 +604,12 @@ class PrefixReplaceLinkAction(LinkPathAction):
                 len(self.prefix_placeholder),
             )
 
-        sha256_in_prefix = compute_sum(self.intermediate_path, "sha256")
-
         self.prefix_path_data = PathDataV1.from_objects(
             self.prefix_path_data,
             file_mode=self.file_mode,
             path_type=PathEnum.hardlink,
             prefix_placeholder=self.prefix_placeholder,
-            sha256_in_prefix=sha256_in_prefix,
+            # set in execute() after codesign batch flush
         )
 
         self._verified = True
@@ -620,6 +618,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
         if not self._verified:
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
+        self.prefix_path_data.sha256_in_prefix = compute_sum(source_path, "sha256")
         log.log(TRACE, "linking %s => %s", source_path, self.target_full_path)
         create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True

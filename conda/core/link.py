@@ -1068,10 +1068,9 @@ class UnlinkLinkTransaction:
 
                 if prec:
                     log.error(
-                        "An error occurred while {} package '{}'.".format(
-                            "uninstalling" if is_unlink else "installing",
-                            prec.dist_str(),
-                        )
+                        "An error occurred while %s package '%s'.",
+                        "uninstalling" if is_unlink else "installing",
+                        prec.dist_str(),
                     )
 
                 # reverse all executed packages except the one that failed
@@ -1646,7 +1645,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 ("@CALL", path),
             )
@@ -1658,7 +1657,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 (".", path),
             )

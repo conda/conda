@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Fix `channel_settings` lookups for channel names and URLs. (#16510)
