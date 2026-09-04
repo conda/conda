@@ -7,7 +7,6 @@ import glob
 import hashlib
 import json
 import os
-import shutil
 from typing import TYPE_CHECKING
 
 import pytest
@@ -18,7 +17,8 @@ from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.common.url import path_to_url
 from conda.exceptions import CondaError, PackagesNotFoundError
-from conda.notices import fetch
+from conda.notices import fetch, views
+from conda.notices.types import ChannelNoticeResponse
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
@@ -465,53 +465,78 @@ def test_notices_shown_after_previous_command_error(
     assert message not in err
 
 
-def test_notices_wraps_long_message(
-    capsys,
-    conda_notices_args_n_parser,
-    notices_cache_dir,
-    notices_mock_fetch_get_session,
-):
-    """
-    This test ensures that long notice messages are wrapped to the terminal width.
-    """
-    args, parser = conda_notices_args_n_parser
-
-    message = (
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
-        "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, "
-        "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo "
-        "consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse "
-        "cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat "
-        "non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-    )
-    level = "info"
-    message_id = "1234"
-    cache_file = "defaults-pkgs-main-notices.json"
-
-    bad_notices_json = {
-        "notices": [
+@pytest.mark.parametrize(
+    ("terminal_width", "notice_json", "expected"),
+    (
+        pytest.param(
+            24,
             {
-                "message": message,
-                "level": level,
-                "id": message_id,
-            }
-        ]
-    }
-    add_resp_to_mock(
-        notices_mock_fetch_get_session,
-        status_code=200,
-        messages_json=bad_notices_json,
+                "message": "A channel notice message should remain complete after wrapping."
+            },
+            (
+                "  [info] -- \n"
+                "  A channel notice\n"
+                "  message should remain\n"
+                "  complete after\n"
+                "  wrapping.\n"
+            ),
+            id="wraps-message",
+        ),
+        pytest.param(
+            0,
+            {"message": "This notice is still shown."},
+            "  [info] -- \n  This notice is still shown.\n",
+            id="zero-width-terminal",
+        ),
+        pytest.param(
+            30,
+            {
+                "message": (
+                    "Read the documentation before continuing:\n"
+                    "\n"
+                    "https://example.com/documentation/channel-notices?source=conda"
+                )
+            },
+            (
+                "  [info] -- \n"
+                "  Read the documentation\n"
+                "  before continuing:\n"
+                "\n"
+                "  https://example.com/documentation/channel-notices?source=conda\n"
+            ),
+            id="preserves-newlines-and-url",
+        ),
+        pytest.param(
+            80,
+            {},
+            "  [info] -- \n  None\n",
+            id="missing-message",
+        ),
+        pytest.param(
+            80,
+            {"message": 42},
+            "  [info] -- \n  42\n",
+            id="non-string-message",
+        ),
+    ),
+)
+def test_print_notice_message(
+    terminal_width,
+    notice_json,
+    expected,
+    capsys,
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "conda.notices.views.shutil.get_terminal_size",
+        return_value=os.terminal_size((terminal_width, 24)),
     )
+    notice = ChannelNoticeResponse(
+        "https://example.com/notices.json",
+        "example",
+        {"notices": [notice_json]},
+    ).notices[0]
 
-    create_notice_cache_files(notices_cache_dir, [cache_file], [bad_notices_json])
+    views.print_notice_message(notice)
 
-    notices.execute(args, parser)
-
-    captured = capsys.readouterr()
-
-    assert captured.err == ""
-    assert "Retrieving" in captured.out
-
-    message_lines = captured.out.splitlines()
-    for line in message_lines:
-        assert len(line) <= shutil.get_terminal_size().columns
+    assert capsys.readouterr().out == expected

@@ -47,10 +47,23 @@ def print_notice_message(notice: ChannelNotice, indent: str = "  ") -> None:
     level = f"[{notice.level}] -- {timestamp}"
 
     terminal_width = shutil.get_terminal_size().columns
+    if terminal_width <= 0:
+        terminal_width = 80
 
-    print(
-        f"{indent}{level}\n{textwrap.fill(notice.message, terminal_width, initial_indent=indent, subsequent_indent=indent)}"
+    message = str(notice.message)
+    wrapped_message = "\n".join(
+        textwrap.fill(
+            line,
+            width=terminal_width,
+            initial_indent=indent,
+            subsequent_indent=indent,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        for line in message.split("\n")
     )
+
+    print(f"{indent}{level}\n{wrapped_message}")
 
 
 def print_more_notices_message(
