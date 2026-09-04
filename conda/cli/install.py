@@ -101,9 +101,6 @@ def reinstall_packages(args, specs: list[str], **kwargs) -> int:
     args.repodata_fns = kwargs.get("repodata_fns", None)
     args.update_modifier = kwargs.get("update_modifier", NULL)
 
-    argparse_args = dict(context._argparse_args or {})
-    argparse_args["force_reinstall"] = args.force_reinstall
-    context._set_argparse_args(argparse_args)
     install(args, None)
     return 0
 
@@ -362,7 +359,11 @@ def install(args, parser, command="install"):
                 unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,
                     update_modifier=update_modifier,
-                    force_reinstall=context.force_reinstall or context.force,
+                    force_reinstall=(
+                        getattr(args, "force_reinstall", False)
+                        or context.force_reinstall
+                        or context.force
+                    ),
                     should_retry_solve=(
                         _should_retry_unfrozen or repodata != repodata_fns[-1]
                     ),
@@ -374,7 +375,11 @@ def install(args, parser, command="install"):
                     unlink_link_transaction = solver.solve_for_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
-                        force_reinstall=context.force_reinstall or context.force,
+                        force_reinstall=(
+                            getattr(args, "force_reinstall", False)
+                            or context.force_reinstall
+                            or context.force
+                        ),
                         should_retry_solve=(repodata != repodata_fns[-1]),
                     )
                 else:
