@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context, reset_context
+from conda.cli.install import install as install_command
 from conda.cli.install import reinstall_packages
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import DryRunExit, EnvironmentIsFrozenError, UnsatisfiableError
-from conda.models.match_spec import MatchSpec
+from conda.models.environment import Environment
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
@@ -49,6 +50,7 @@ def test_pre_link_message(
 
 @pytest.mark.integration
 def test_find_conflicts_called_once(
+    test_recipes_channel: Path,
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
     path_factory: PathFactoryFixture,
@@ -57,54 +59,31 @@ def test_find_conflicts_called_once(
     if context.solver in ("libmamba", "rattler"):
         pytest.skip(f"conda-{context.solver}-solver handle conflicts differently")
 
-    bad_deps = {
-        "python": {
-            (
-                (
-                    MatchSpec("statistics"),
-                    MatchSpec("python[version='>=2.7,<2.8.0a0']"),
-                ),
-                "python=3",
-            )
-        }
-    }
+    # Side effect only needs to be UnsatisfiableError; dependency structure is irrelevant.
     mocked_find_conflicts = mocker.patch(
         "conda.resolve.Resolve.find_conflicts",
-        side_effect=UnsatisfiableError(bad_deps, strict=True),
+        side_effect=UnsatisfiableError({}, strict=True),
     )
-    channels = (
-        "--repodata-fn",
-        "current_repodata.json",
-        "--override-channels",
-        "-c",
-        "defaults",
-    )
-    with tmp_env("python=3.9", *channels) as prefix:
+    with tmp_env("versioned=2.0") as prefix:
         with pytest.raises(UnsatisfiableError):
-            # Statistics is a py27 only package allowing us a simple unsatisfiable case
-            conda_cli("install", f"--prefix={prefix}", "statistics", "--yes", *channels)
+            conda_cli("install", f"--prefix={prefix}", "unsatisfiable")
         assert mocked_find_conflicts.call_count == 1
 
         with pytest.raises(UnsatisfiableError):
             conda_cli(
                 "install",
                 f"--prefix={prefix}",
-                "statistics",
+                "unsatisfiable",
                 "--freeze-installed",
-                "--yes",
-                *channels,
             )
         assert mocked_find_conflicts.call_count == 2
 
     with pytest.raises(UnsatisfiableError):
-        # statistics seems to be available on 3.10 though
         conda_cli(
             "create",
             f"--prefix={path_factory()}",
-            "statistics",
-            "python=3.9",
-            "--yes",
-            *channels,
+            "versioned=1.0",
+            "unsatisfiable",
         )
     assert mocked_find_conflicts.call_count == 3
 
@@ -122,9 +101,9 @@ def test_emscripten_forge(
         "--platform=emscripten-wasm32",
         "--override-channels",
         "-c",
-        "https://repo.mamba.pm/emscripten-forge",
+        "https://repo.prefix.dev/emscripten-forge-4x",
         "-c",
-        "conda-forge",
+        "https://repo.prefix.dev/conda-forge",
         "pyjs",
     ) as prefix:
         assert package_is_installed(prefix, "pyjs")
@@ -265,3 +244,98 @@ def test_reinstall_packages_calls_install(tmp_path: Path, mocker: MockerFixture)
     call_args = mock_install.call_args
     assert call_args[0][0] is args  # First positional arg is args
     assert len(call_args[0]) >= 2  # Must have at least 2 positional args
+
+
+def test_reinstall_args(tmp_path: Path, mocker: MockerFixture):
+    """Test that reinstall_packages includes all required arguments when calling install."""
+
+    class EmptySolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def solve_for_transaction(self, *args, **kwargs):
+            pass
+
+    mock_solver = mocker.patch(
+        "conda.cli.install.context.plugin_manager.get_cached_solver_backend",
+        return_value=EmptySolver,
+    )
+    mock_handle_txn = mocker.patch("conda.cli.install.handle_txn", return_value=0)
+
+    # Create minimal args namespace with required attributes
+    args = Namespace(prefix=str(tmp_path), name=None, cmd="install")
+
+    reinstall_packages(args, ["some-package"], force_reinstall=True)
+    mock_solver.assert_called_once()
+    mock_handle_txn.assert_called_once()
+
+
+def test_install_combines_pip_dependencies_from_multiple_env_files(
+    tmp_path: Path,
+    mocker: MockerFixture,
+):
+    class EmptySolver:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def solve_for_transaction(self, *args, **kwargs):
+            pass
+
+    first_file = tmp_path / "one.yml"
+    second_file = tmp_path / "two.yml"
+    first_file.touch()
+    second_file.touch()
+    prefix = tmp_path / "prefix"
+    first_env = Environment(
+        platform=context.subdir,
+        external_packages={"pip": ["boto3>1.43.38"]},
+    )
+    second_env = Environment(
+        platform=context.subdir,
+        external_packages={"pip": ["aiobotocore==3.6.0"]},
+    )
+    merged_env = Environment.merge(first_env, second_env)
+
+    mocker.patch(
+        "conda.cli.install.Environment.from_cli_with_file_envs",
+        return_value=(
+            merged_env,
+            {str(first_file): first_env, str(second_file): second_env},
+        ),
+    )
+    args = Namespace(
+        cmd="create",
+        file=[str(first_file), str(second_file)],
+        name=None,
+        no_default_packages=True,
+        override_channels=False,
+        packages=[],
+        prefix=str(prefix),
+        repodata_fns=None,
+        use_local=False,
+    )
+    reset_context(argparse_args=args)
+
+    mocker.patch(
+        "conda.cli.install.context.plugin_manager.get_cached_solver_backend",
+        return_value=EmptySolver,
+    )
+    mocker.patch("conda.cli.install.handle_txn", return_value={})
+    mock_pip_installer = mocker.Mock(install=mocker.Mock(return_value=["installed"]))
+    mocker.patch(
+        "conda.env.installers.base.get_installer",
+        return_value=mock_pip_installer,
+    )
+
+    install_command(args, parser=None, command="create")
+
+    mock_pip_installer.install.assert_called_once_with(
+        str(prefix),
+        [],
+        args,
+        merged_env,
+        requirements_sources=[
+            (["boto3>1.43.38"], str(tmp_path)),
+            (["aiobotocore==3.6.0"], str(tmp_path)),
+        ],
+    )

@@ -8,7 +8,7 @@ import tempfile
 import warnings as _warnings
 from errno import EACCES, EPERM, EROFS
 from logging import getLogger
-from os.path import dirname, isdir, isfile, join, splitext
+from os.path import isdir, isfile, join
 from shutil import copyfileobj, copystat
 
 from ... import CondaError
@@ -17,7 +17,8 @@ from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
 from ...common.compat import on_win
 from ...common.constants import TRACE
-from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
+from ...common.path import expand, win_path_ok
+from ...common.path.python import is_valid_import_path
 from ...common.serialize import json
 from ...deprecations import deprecated
 from ...exceptions import (
@@ -128,6 +129,11 @@ def write_as_json_to_file(file_path, obj):
 
 
 def create_python_entry_point(target_full_path, python_full_path, module, func):
+    if not is_valid_import_path(module):
+        raise ValueError("'module' is not a valid Python import path")
+    if not is_valid_import_path(func):
+        raise ValueError("'func' is not a valid Python import path")
+
     if lexists(target_full_path):
         maybe_raise(
             BasicClobberError(
@@ -160,65 +166,6 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
         make_executable(target_full_path)
 
     return target_full_path
-
-
-@deprecated("26.3", "26.9")
-def create_application_entry_point(
-    source_full_path, target_full_path, python_full_path
-):
-    # source_full_path: where the entry point file points to
-    # target_full_path: the location of the new entry point file being created
-    if lexists(target_full_path):
-        maybe_raise(
-            BasicClobberError(
-                source_path=None,
-                target_path=target_full_path,
-                context=context,
-            ),
-            context,
-        )
-
-    entry_point = application_entry_point_template % {
-        "source_full_path": win_path_double_escape(source_full_path),
-    }
-    if not isdir(dirname(target_full_path)):
-        mkdir_p(dirname(target_full_path))
-    with open(target_full_path, "w") as fo:
-        if " " in python_full_path:
-            python_full_path = ensure_pad(python_full_path, '"')
-        fo.write(f"#!{python_full_path}\n")
-        fo.write(entry_point)
-    make_executable(target_full_path)
-
-
-@deprecated("26.3", "26.9")
-class ProgressFileWrapper:
-    def __init__(self, fileobj, progress_update_callback):
-        self.progress_file = fileobj
-        self.progress_update_callback = progress_update_callback
-        self.progress_file_size = max(1, os.fstat(fileobj.fileno()).st_size)
-        self.progress_max_pos = 0
-
-    def __getattr__(self, name):
-        return getattr(self.progress_file, name)
-
-    def __setattr__(self, name, value):
-        if name.startswith("progress_"):
-            super().__setattr__(name, value)
-        else:
-            setattr(self.progress_file, name, value)
-
-    def read(self, size=-1):
-        data = self.progress_file.read(size)
-        self.progress_update()
-        return data
-
-    def progress_update(self):
-        pos = max(self.progress_max_pos, self.progress_file.tell())
-        pos = min(pos, self.progress_file_size)
-        self.progress_max_pos = pos
-        rel_pos = pos / self.progress_file_size
-        self.progress_update_callback(rel_pos)
 
 
 @deprecated(
@@ -294,17 +241,6 @@ def _do_softlink(src, dst):
     else:
         log.log(TRACE, "soft linking %s => %s", src, dst)
         symlink(src, dst)
-
-
-@deprecated("26.3", "26.9")
-def create_fake_executable_softlink(src, dst):
-    if not on_win:
-        raise RuntimeError("Only runs on Windows.")
-    src_root, _ = splitext(src)
-    # TODO: this open will clobber, consider raising
-    with open(dst, "w") as f:
-        f.write(f'@echo off\ncall "{src_root}" %*\n')
-    return dst
 
 
 def copy(src, dst):

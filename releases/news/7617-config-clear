@@ -1,0 +1,4 @@
+### Enhancements
+
+* Add a ``conda config --clear KEY`` option to explicitly set sequence
+  configuration parameters to an empty list. (#7617 via #16499)

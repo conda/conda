@@ -228,7 +228,8 @@ If you prefer to set up your development environment manually instead of using t
 
    **Option A: Set PYTHONPATH**
 
-   Set PYTHONPATH to make the conda source code available, then activate the environment:
+   Set PYTHONPATH to make the conda source code available, then activate the environment
+   (`dev/start` does this automatically):
 
    ````{tab-set}
 
@@ -437,7 +438,7 @@ to do it manually in other modes:
 
 ```bash
 $ conda install conda-build
-$ conda-build tests/test-recipes/activate_deactivate_package tests/test-recipes/pre_link_messages_package
+$ conda-build tests/data/recipes/activate_deactivate_package tests/data/recipes/pre_link_messages_package
 ```
 
 Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.

@@ -32,9 +32,7 @@ repos:
       - id: check-yaml
         exclude: |
           (?x)^(
-            (conda\.)?recipe/meta.yaml |
-            tests/data/recipes/font-ttf-inconsolata/meta.yaml |
-            tests/data/recipes/dependent/meta.yaml
+            (conda\.)?recipe/meta.yaml
           )
       # catch git merge/rebase problems
       - id: check-merge-conflict
@@ -63,12 +61,12 @@ repos:
           )$
         args: [--license-filepath, .github/disclaimer.txt, --no-extra-eol]
   - repo: https://github.com/adamchainz/blacken-docs
-    rev: fda77690955e9b63c6687d8806bafd56a526e45f  # frozen: 1.20.0
+    rev: dda8db18cfc68df532abf33b185ecd12d5b7b326  # frozen: 1.20.0
     hooks:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: d1b833175a5d08a925900115526febd8fe71c98e  # frozen: v0.15.11
+    rev: aab412d509121cb5f7533134b7e67f9fab59c682  # frozen: v0.16.4
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
@@ -84,9 +82,10 @@ repos:
         language_version: python3.14
         additional_dependencies: [pyyaml]
         pass_filenames: false
+        # README is generated from channel artifacts, not recipe sources.
         files: |
           (?x)^(
-            tests/data/recipes/.+/meta.yaml |
+            tests/data/test-recipes/.+\.(conda|tar\.bz2) |
             tests/data/recipes/generate_recipes_readme.py |
             tests/data/recipes/README.md
           )$
@@ -111,10 +110,12 @@ repos:
           (?x)^(
             .authors.yml |
             recipe/meta.yaml |
+            .github/workflows/build.yml |
+            .github/workflows/slow-tests.yml |
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 13614ab716a3113145f1294ed259d9fbe5678ff3  # frozen: 0.37.1
+    rev: 12e63946db2c5cfcc9030fac21c3883ba88c6ed8  # frozen: 0.38.0
     hooks:
       # verify github syntaxes
       - id: check-github-workflows

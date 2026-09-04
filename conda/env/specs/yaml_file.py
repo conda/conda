@@ -8,15 +8,12 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ...common.serialize import yaml
-from ...deprecations import deprecated
 from ...exceptions import CondaValueError, PluginError
 from ...plugins.types import EnvironmentSpecBase
 from .. import env
 
 if TYPE_CHECKING:
     from ...models.environment import Environment
-    from ..env import EnvironmentYaml
-
 
 log = getLogger(__name__)
 
@@ -40,7 +37,8 @@ class YamlFileSpec(EnvironmentSpecBase):
             * the provided file exists
             * the yaml file can be loaded and is not empty
 
-        :return: True or False
+        Returns:
+            True or False
         """
         if self.filename is None:
             raise CondaValueError("No filename provided")
@@ -53,18 +51,6 @@ class YamlFileSpec(EnvironmentSpecBase):
             raise PluginError(f"{self.filename} is an empty yaml file.")
 
         return True
-
-    @property
-    @deprecated("26.3", "26.9", addendum="This method is not used anymore, use 'env'")
-    def environment(self) -> EnvironmentYaml:
-        if not self._environment:
-            if not self.can_handle():
-                raise CondaValueError(f"Cannot handle environment file: {self.msg}")
-            self._environment = env.from_file(self.filename)
-
-        if self._environment is None:
-            raise CondaValueError("Environment could not be loaded")
-        return self._environment
 
     @property
     def env(self) -> Environment:

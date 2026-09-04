@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from contextlib import nullcontext
 from logging import getLogger
 from os.path import join
 from pathlib import Path
@@ -2248,6 +2249,36 @@ def test_activator_invalid_command_arguments(command_args, expected_error_messag
         activator.execute()
 
 
+@pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
+@pytest.mark.parametrize("conda_dev", [False, True])
+def test_dev_flag_deprecation(
+    command: str,
+    conda_dev: bool,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONDA_DEV", str(int(conda_dev)))
+    reset_context()
+    assert context._dev is conda_dev
+
+    # pickup dev_mode from context
+    with (
+        pytest.deprecated_call()
+        if conda_dev and command in ("activate", "hook")
+        else nullcontext()
+    ):
+        PosixActivator([command]).execute()
+    assert context._dev is conda_dev
+
+    # pickup dev_mode from command line
+    with pytest.deprecated_call():
+        PosixActivator([command, "--dev"]).execute()
+    assert context._dev is True
+
+    # reset_context clears the override, restoring the configured value
+    reset_context()
+    assert context._dev is conda_dev
+
+
 @pytest.mark.parametrize("activator_cls", list(dict.fromkeys(activator_map.values())))
 def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
     # Make sure local config does not affect the test; empty string -> base
@@ -2268,3 +2299,21 @@ def test_activate_default_env(activator_cls, monkeypatch, conda_cli, tmp_path):
     if activator_cls == CmdExeActivator:
         output = Path(output.strip()).read_text()
     assert str(tmp_path) in output
+
+
+@pytest.mark.usefixtures("clear_plugin_manager_cache")
+@pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
+def test_plugin_hooks_skipped_when_manager_not_loaded(command: str) -> None:
+    """Plugin hooks are skipped when the plugin manager has not been loaded.
+
+    Activation commands should not initialize the plugin manager just to check
+    pre/post hooks.
+    """
+    from conda.plugins.manager import get_plugin_manager
+
+    assert get_plugin_manager.cache_info().currsize == 0
+
+    activator = PosixActivator([command])
+    activator.execute()
+
+    assert get_plugin_manager.cache_info().currsize == 0

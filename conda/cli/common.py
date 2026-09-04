@@ -22,7 +22,6 @@ from ..base.constants import (
 from ..base.context import context, env_name
 from ..common.io import swallow_broken_pipe
 from ..common.path import expand, paths_equal
-from ..deprecations import deprecated
 from ..exceptions import (
     EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
@@ -54,33 +53,6 @@ def is_active_prefix(prefix: str) -> bool:
     )
 
 
-@deprecated(
-    "26.3",
-    "26.9",
-    addendum="Use `spec = str(MatchSpec(arg))` instead",
-)
-def arg2spec(arg: str, update: bool = False) -> str:
-    try:
-        spec = MatchSpec(arg)
-    except:
-        from ..exceptions import CondaValueError
-
-        raise CondaValueError(f"invalid package specification: {arg}")
-
-    name = spec.name
-    if not spec._is_simple() and update:
-        from ..exceptions import CondaValueError
-
-        raise CondaValueError(
-            "version specifications not allowed with 'update'; use\n"
-            f"    conda update  {name:<{len(arg)}}  or\n"
-            f"    conda install {arg:<{len(name)}}"
-        )
-
-    return str(spec)
-
-
-@deprecated.argument("26.3", "26.9", "json")
 def specs_from_args(args: Iterable[str]) -> list[str]:
     return [str(MatchSpec(arg)) for arg in args]
 
@@ -127,7 +99,6 @@ def spec_from_line(line: str) -> str:
         return name
 
 
-@deprecated.argument("26.3", "26.9", "json")
 def specs_from_url(url: str) -> list[str]:
     from ..gateways.connection.download import TmpDownload
 
@@ -207,8 +178,9 @@ def validate_subdir_config():
     the native system is only allowed if it comes from the global configuration, or
     from an environment variable.
 
-    :raises OperationNotAllowed: Active environment is not allowed to request
-                                 non-native platform packages
+    Raises:
+        OperationNotAllowed: Active environment is not allowed to request
+                             non-native platform packages
     """
     if context.subdir != context._native_subdir():
         # We will only allow a different subdir if it's specified by global
@@ -293,7 +265,8 @@ def validate_environment_files_consistency(files: list[str]) -> None:
     using the conda plugin system's environment specifiers. It prevents mixing different
     environment file formats (e.g., YAML, explicit package lists, requirements.txt).
 
-    :raises EnvironmentFileTypeMismatchError: When files with different formats are found
+    Raises:
+        EnvironmentFileTypeMismatchError: When files with different formats are found
     """
     if not files or len(files) <= 1:
         return  # Nothing to validate if there are 0 or 1 files
@@ -318,8 +291,8 @@ def validate_file_exists(filename: str):
     Otherwise, it expands the given path and verifies its existence. If the file
     does not exist, an ``EnvironmentFileNotFound`` exception is raised.
 
-    Parameters:
-        filename (str): The path or URL of the environment file to validate.
+    Args:
+        filename: The path or URL of the environment file to validate.
 
     Raises:
         EnvironmentFileNotFound: If the file does not exist and is not a valid URL.

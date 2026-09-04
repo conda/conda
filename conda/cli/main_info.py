@@ -30,6 +30,8 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
+INSTALLER_INFO_FIELDS = ("name", "version", "platform", "type")
+
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..common.constants import NULL
@@ -96,7 +98,8 @@ def get_user_site() -> list[str]:  # pragma: no cover
     """
     Method used to populate ``site_dirs`` in ``conda info``.
 
-    :returns: List of directories.
+    Returns:
+        List of directories.
     """
 
     from ..common.compat import on_win
@@ -123,6 +126,29 @@ def get_user_site() -> list[str]:  # pragma: no cover
     return site_dirs
 
 
+def get_installer_info(prefix: str) -> dict[str, str] | None:
+    """Read Constructor installer metadata from a prefix."""
+    from ..common.serialize.json import JSONDecodeError, read
+
+    path = join(prefix, ".installer.info")
+    try:
+        data = read(path=path)
+    except FileNotFoundError:
+        return None
+    except (JSONDecodeError, OSError, UnicodeDecodeError) as err:
+        log.debug("Unable to read installer metadata from %s: %s", path, err)
+        return None
+
+    if not isinstance(data, dict) or any(
+        not isinstance(data.get(field), str) or not data[field]
+        for field in INSTALLER_INFO_FIELDS
+    ):
+        log.debug("Ignoring invalid installer metadata in %s", path)
+        return None
+
+    return {field: data[field] for field in INSTALLER_INFO_FIELDS}
+
+
 IGNORE_FIELDS: set[str] = {"files", "auth", "preferred_env", "priority"}
 
 SKIP_FIELDS: set[str] = {
@@ -143,8 +169,11 @@ def dump_record(prec: PackageRecord) -> dict[str, Any]:
     """
     Returns a dictionary of key/value pairs from ``prec``.  Keys included in ``IGNORE_FIELDS`` are not returned.
 
-    :param prec: A ``PackageRecord`` object.
-    :returns: A dictionary of elements dumped from ``prec``
+    Args:
+        prec: A ``PackageRecord`` object.
+
+    Returns:
+        A dictionary of elements dumped from ``prec``
     """
     return {k: v for k, v in prec.dump().items() if k not in IGNORE_FIELDS}
 
@@ -153,7 +182,8 @@ def pretty_package(prec: PackageRecord) -> None:
     """
     Pretty prints contents of a ``PackageRecord``
 
-    :param prec: A ``PackageRecord``
+    Args:
+        prec: A ``PackageRecord``
     """
 
     from ..utils import human_bytes
@@ -186,7 +216,8 @@ def get_info_dict() -> dict[str, Any]:
     """
     Returns a dictionary of contextual information.
 
-    :returns:  Dictionary of conda information to be sent to stdout.
+    Returns:
+        Dictionary of conda information to be sent to stdout.
     """
 
     from .. import CONDA_PACKAGE_ROOT
@@ -202,6 +233,7 @@ def get_info_dict() -> dict[str, Any]:
     from ..common.url import mask_anaconda_token
     from ..core.index import Index
     from ..models.channel import all_channel_urls, offline_keep
+    from ..notices.cache import get_notices_cache_dir
 
     try:
         from conda_build import __version__ as conda_build_version
@@ -267,7 +299,10 @@ def get_info_dict() -> dict[str, Any]:
         virtual_pkgs=virtual_pkgs,
         solver=solver,
         tmp_dir=gettempdir(),
+        notices_cache_dir=str(get_notices_cache_dir()),
     )
+    if installer := get_installer_info(context.root_prefix):
+        info_dict["installer"] = installer
     if on_win:
         from ..common._os.windows import is_admin_on_windows
 
@@ -314,8 +349,11 @@ def get_env_vars_str(info_dict: dict[str, Any]) -> str:
     """
     Returns a printable string representing environment variables from the dictionary returned by ``get_info_dict``.
 
-    :param info_dict:  The returned dictionary from ``get_info_dict()``.
-    :returns:  String to print.
+    Args:
+        info_dict: The returned dictionary from ``get_info_dict()``.
+
+    Returns:
+        String to print.
     """
 
     builder = []
@@ -365,10 +403,19 @@ def get_main_info_display(info_dict: dict[str, Any]) -> dict[str, str]:
         )
         writable = "writable" if info_dict["root_writable"] else "read only"
         yield ("base environment", f"{info_dict['root_prefix']}  ({writable})")
+        if installer := info_dict.get("installer"):
+            yield (
+                "distribution",
+                (
+                    f"{installer['name']} {installer['version']} "
+                    f"({installer['type']}, {installer['platform']})"
+                ),
+            )
         yield ("conda av data dir", info_dict["av_data_dir"])
         yield ("conda av metadata url", info_dict["av_metadata_url_base"])
         yield ("channel URLs", flatten(info_dict["channels"]))
         yield ("package cache", flatten(info_dict["pkgs_dirs"]))
+        yield ("notices cache", info_dict["notices_cache_dir"])
         yield ("envs directories", flatten(info_dict["envs_dirs"]))
         yield ("temporary directory", info_dict["tmp_dir"])
         yield ("platform", info_dict["platform"])
@@ -389,8 +436,11 @@ def get_main_info_str(info_dict: dict[str, Any]) -> str:
     """
     Returns a printable string of the contents of ``info_dict``.
 
-    :param info_dict:  The output of ``get_info_dict()``.
-    :returns:  String to print.
+    Args:
+        info_dict: The output of ``get_info_dict()``.
+
+    Returns:
+        String to print.
     """
     display_info = get_main_info_display(info_dict)
 
@@ -515,13 +565,16 @@ class InfoRenderer:
             f"conda location: {self._info_dict['conda_location']}",
         ]
 
-        subcommands = self._context.plugin_manager.get_subcommands()
+        plugin_manager = self._context.plugin_manager
+        subcommands = plugin_manager.get_subcommands()
         conda_build = subcommands.pop("build", None)
-        plugin_name = getattr(getattr(conda_build, "impl", None), "plugin_name", None)
-        output.append(f"conda-build: {plugin_name or '(missing)'}")
-        for name, plugin in sorted(subcommands.items()):
-            plugin_name = getattr(getattr(plugin, "impl", None), "plugin_name", None)
-            output.append(f"conda-{name}: {plugin_name or '(unknown)'}")
+        output.append(
+            f"conda-build: {plugin_manager.get_plugin_source(conda_build) or '(missing)'}"
+        )
+        for name, subcommand in sorted(subcommands.items()):
+            output.append(
+                f"conda-{name}: {plugin_manager.get_plugin_source(subcommand) or '(unknown)'}"
+            )
 
         site_dirs = self._info_dict["site_dirs"]
         if site_dirs:
@@ -547,9 +600,12 @@ def iter_info_components(args: Namespace, context: Context) -> Iterable[InfoComp
     """
     Determine which components to display.
 
-    :param args: The parsed command line arguments.
-    :param context: The conda context.
-    :returns: An iterable of components to display.
+    Args:
+        args: The parsed command line arguments.
+        context: The conda context.
+
+    Returns:
+        An iterable of components to display.
     """
     if args.base:
         yield "base"

@@ -92,13 +92,13 @@ to select the plugin using the aliased names in addition to the provided name.
 Using the Plugin
 ----------------
 Once this plugin is registered, users will be able to create environments from the
-types of files specified by the plugin. The ``conda env create``, ``conda create``,
+types of files specified by the plugin. The ``conda create``, ``conda env create``,
 and ``conda install`` commands all use these plugins when given a ``--file`` argument.
 For example to create a `random` environment using the plugin defined above:
 
 .. code-block:: bash
 
-   conda env create --file /doesnt/matter/any/way.random
+   conda create --file /doesnt/matter/any/way.random
 
 Plugin detection
 ----------------
@@ -122,8 +122,13 @@ in their plugin class
         def can_handle(self):
             return True
 
+        @property
         def env(self):
-            return Environment(name="random-environment", dependencies=["python", "numpy"])
+            return Environment(
+                platform=context.subdir,
+                name="random-environment",
+                requested_packages=[MatchSpec("python"), MatchSpec("numpy")],
+            )
 
 End users can bypass environment spec plugin detection and explicitly request a plugin to be used
 by configuring conda to use a particular installed plugin. This can be done by either:
@@ -148,7 +153,9 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
 
    from conda.plugins import hookimpl
    from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
-   from conda.env.env import Environment
+   from conda.base.context import context
+   from conda.models.environment import Environment
+   from conda.models.match_spec import MatchSpec
 
 
    class MySimpleEnvironment(BaseModel):
@@ -193,8 +200,9 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
            """Returns the Environment representation of the environment spec file"""
            data = self._parse_data()
            return Environment(
+               platform=context.subdir,
                name=data.name,
-               dependencies=data.conda_deps,
+               requested_packages=[MatchSpec(dep) for dep in data.conda_deps],
            )
 
 
@@ -219,4 +227,4 @@ Then, create the environment
 
 .. code-block:: bash
 
-   $ conda env create --file testenv.json
+   $ conda create --file testenv.json

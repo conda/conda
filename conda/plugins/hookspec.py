@@ -15,15 +15,17 @@ from typing import TYPE_CHECKING
 import pluggy
 
 from ..base.constants import APP_NAME
-from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from .. import CondaError
     from .types import (
         CondaAuthHandler,
         CondaEnvironmentExporter,
         CondaEnvironmentSpecifier,
+        CondaErrorHint,
+        CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
         CondaPostCommand,
@@ -41,13 +43,6 @@ if TYPE_CHECKING:
         CondaVirtualPackage,
     )
 
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "spec_name",
-    APP_NAME,
-    addendum="Use `conda.base.constants.APP_NAME` instead.",
-)
 
 _hookspec = pluggy.HookspecMarker(APP_NAME)
 """Decorator to mark conda plugin hook specifications, used to register plugin hook types."""
@@ -89,7 +84,8 @@ class CondaSpecs:
                     backend=VerboseSolver,
                 )
 
-        :return: An iterable of solver entries.
+        Returns:
+            An iterable of solver entries.
         """
         yield from ()
 
@@ -113,11 +109,13 @@ class CondaSpecs:
             def conda_subcommands():
                 yield plugins.types.CondaSubcommand(
                     name="example",
+                    aliases=("example-alias",),
                     summary="example command",
                     action=example_command,
                 )
 
-        :return: An iterable of subcommand entries.
+        Returns:
+            An iterable of subcommand entries.
         """
         yield from ()
 
@@ -141,7 +139,8 @@ class CondaSpecs:
                     build="x86_64",
                 )
 
-        :return: An iterable of virtual package entries.
+        Returns:
+            An iterable of virtual package entries.
         """
         yield from ()
 
@@ -149,6 +148,11 @@ class CondaSpecs:
     def conda_pre_commands(self) -> Iterable[CondaPreCommand]:
         """
         Register pre-command functions in conda.
+
+        Shell activation commands avoid loading the plugin manager for startup
+        performance. These hooks run for ``conda shell.* activate``,
+        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
+        was already loaded by another code path.
 
         **Example:**
 
@@ -175,6 +179,11 @@ class CondaSpecs:
     def conda_post_commands(self) -> Iterable[CondaPostCommand]:
         """
         Register post-command functions in conda.
+
+        Shell activation commands avoid loading the plugin manager for startup
+        performance. These hooks run for ``conda shell.* activate``,
+        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
+        was already loaded by another code path.
 
         **Example:**
 
@@ -285,7 +294,7 @@ class CondaSpecs:
 
             @plugins.hookimpl
             def conda_health_checks():
-                yield plugins.CondaHealthCheck(
+                yield plugins.types.CondaHealthCheck(
                     name="my-check",
                     action=my_health_check,
                     fixer=my_health_fix,
@@ -293,7 +302,8 @@ class CondaSpecs:
                     fix="Repair detected issues",
                 )
 
-        :return: An iterable of health check entries.
+        Returns:
+            An iterable of health check entries.
         """
         yield from ()
 
@@ -610,6 +620,53 @@ class CondaSpecs:
         yield from ()
 
     @_hookspec
+    def conda_error_hints(self, error: CondaError) -> Iterable[CondaErrorHint]:
+        """
+        Register user-facing hints for expected conda errors.
+
+        This hook is invoked while rendering a :class:`conda.CondaError`.
+        Plugins receive the current error and yield structured
+        :class:`~conda.plugins.types.CondaErrorHint` objects that conda appends
+        to the error's existing guidance. Plugins should not print directly from
+        this hook.
+
+        When a :class:`~conda.CondaMultiError` is printed, conda invokes this
+        hook once per nested leaf error (for example ``RemoveError``), not on
+        the multi-error container itself. Implementations should match concrete
+        exception types; ``isinstance(error, CondaMultiError)`` will not see
+        wrapped failures.
+
+        Conda invokes implementations in deterministic plugin-name order and
+        preserves the hint order yielded by each plugin. Existing core guidance
+        hints win when a plugin yields the same ``hint_code``. Hook wrappers are
+        skipped so conda can isolate failures per implementation.
+
+        Use this hook for user-facing next steps. Use
+        :meth:`~conda.plugins.hookspec.CondaSpecs.conda_exception_observers`
+        for telemetry, logging, demand tracking, or other side effects.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.exceptions import PackagesNotFoundInChannelsError
+
+
+            @plugins.hookimpl
+            def conda_error_hints(error):
+                if isinstance(error, PackagesNotFoundInChannelsError):
+                    yield plugins.types.CondaErrorHint(
+                        text="Check whether the package exists on your expected channel.",
+                        hint_code="check_expected_channel",
+                    )
+
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaErrorHint` entries.
+        """
+        yield from ()
+
+    @_hookspec
     def conda_prefix_data_loaders() -> Iterable[CondaPrefixDataLoader]:
         """
         Register new loaders for PrefixData
@@ -673,7 +730,9 @@ class CondaSpecs:
             from subprocess import run
             from conda import plugins
             from conda.plugins.types import EnvironmentSpecBase
-            from conda.env.env import Environment
+            from conda.base.context import context
+            from conda.models.environment import Environment
+            from conda.models.match_spec import MatchSpec
 
             packages = ["python", "numpy", "scipy", "matplotlib", "pandas", "scikit-learn"]
 
@@ -700,10 +759,12 @@ class CondaSpecs:
                     # If more than one plugin can handle the file, the user will need to go
                     # through an additional step to select the proper plugin.
 
+                @property
                 def env(self):
                     return Environment(
+                        platform=context.subdir,
                         name="".join(random.choice("0123456789abcdef") for i in range(6)),
-                        dependencies=[random.choice(packages) for i in range(6)],
+                        requested_packages=[MatchSpec(random.choice(packages)) for i in range(6)],
                     )
 
 
@@ -804,6 +865,66 @@ class CondaSpecs:
                     extract=extract_custom,
                 )
 
-        :return: An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaPackageExtractor` entries.
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_exception_observers(self) -> Iterable[CondaExceptionObserver]:
+        """
+        Register exception observer callbacks in conda.
+
+        Exception observers are invoked when any exception is handled by the
+        ``ExceptionHandler``. They are **purely observational**: they cannot
+        suppress, modify, or redirect the exception. Their return value is
+        ignored. This follows the same model as CPython's ``sys.excepthook``.
+
+        Any exception raised by an observer is caught at the ``BaseException``
+        level, logged at DEBUG, and swallowed -- a buggy plugin can never
+        disrupt conda's error reporting path.
+
+        Observers run synchronously on the error path. They **must return
+        promptly**. Network I/O, large file operations, or any potentially
+        blocking call should be deferred to a daemon thread or subprocess.
+
+        Observers receive a frozen :class:`~conda.plugins.types.CondaExceptionEvent`
+        dataclass. The exception triple (``exc_type``, ``exc_value``,
+        ``exc_traceback``) is always populated. Conda runtime fields
+        (``argv``, ``conda_version``, ``return_code``, ``active_prefix``,
+        ``target_prefix``, ``channels``, ``subdir``, ``offline``, ``dry_run``,
+        ``quiet``, ``json``) are ``None`` when the runtime isn't initialized.
+
+        ``watch_for`` controls which exceptions trigger the observer via
+        MRO matching: ``{"CondaError"}`` catches all conda errors,
+        ``{"BaseException"}`` catches everything, ``{"MemoryError"}`` catches
+        only OOM, etc. See :class:`~conda.plugins.types.CondaExceptionObserver`.
+
+        **Example:**
+
+        .. code-block:: python
+
+            import logging
+
+            from conda import plugins
+
+            log = logging.getLogger(__name__)
+
+
+            def report_missing(event):
+                log.info("Missing packages: %s", event.exc_value.packages)
+                log.info("Command was: %s", " ".join(event.argv))
+
+
+            @plugins.hookimpl
+            def conda_exception_observers():
+                yield plugins.types.CondaExceptionObserver(
+                    name="missing-package-reporter",
+                    hook=report_missing,
+                    watch_for={"PackagesNotFoundInChannelsError"},
+                )
+
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaExceptionObserver` entries.
         """
         yield from ()

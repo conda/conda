@@ -18,6 +18,7 @@ from ...common.url import (
     add_username_and_password,
     get_proxy_username_and_pass,
     split_anaconda_token,
+    split_conda_url_easy_parts,
     urlparse,
 )
 from ...exceptions import OfflineError, PluginError, ProxyError
@@ -120,8 +121,11 @@ def _validate_plugin_headers(headers: dict) -> None:
     headers are detected. This prevents plugins from compromising conda's
     core network stack.
 
-    :param headers: Dictionary of headers to validate
-    :raises PluginError: If any forbidden headers are detected
+    Args:
+        headers: Dictionary of headers to validate
+
+    Raises:
+        PluginError: If any forbidden headers are detected
     """
     for key, value in headers.items():
         key_lower = key.lower()
@@ -163,18 +167,43 @@ def get_session(url: str):
     if channel_name is None:
         return CondaSession()
 
+    request_url_parts = split_conda_url_easy_parts(context.known_subdirs, url)
+    parsed_url = urlparse(url)
+
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
-        channel = settings.get("channel", "")
-        if channel == channel_name:
+        channel = settings.get("channel")
+
+        if channel is None:
+            continue
+
+        parsed_setting = urlparse(channel)
+        # Detect URL globs before split_conda_url_easy_parts can remove a final
+        # path component that resembles a package or repodata filename.
+        pattern = parsed_setting.netloc + parsed_setting.path
+        is_url_pattern = any(char in pattern for char in "*?[")
+        channel_name_matches = (
+            not parsed_setting.scheme and channel.rstrip("/") == channel_name
+        )
+        channel_url_matches = False
+        # Use component comparison only for exact URLs. URL globs must retain
+        # their netloc and path for the same-scheme fnmatch check below.
+        if parsed_setting.scheme and not is_url_pattern:
+            setting_url_parts = split_conda_url_easy_parts(
+                context.known_subdirs, channel
+            )
+            channel_url_matches = (
+                setting_url_parts.scheme == request_url_parts.scheme
+                and setting_url_parts.hostname == request_url_parts.hostname
+                and setting_url_parts.port == request_url_parts.port
+                and setting_url_parts.path == request_url_parts.path
+            )
+
+        if channel_name_matches or channel_url_matches:
             # First we check for exact match
             channel_settings = settings
             continue
-
-        # If we don't have an exact match, we attempt to match a URL pattern
-        parsed_url = urlparse(url)
-        parsed_setting = urlparse(channel)
 
         # We require that the schemes must be identical to prevent downgrade attacks.
         # This includes the case of a scheme-less pattern like "*", which is not allowed.
@@ -182,7 +211,6 @@ def get_session(url: str):
             continue
 
         url_without_schema = parsed_url.netloc + parsed_url.path
-        pattern = parsed_setting.netloc + parsed_setting.path
         if fnmatch(url_without_schema, pattern):
             channel_settings = settings
 
@@ -247,7 +275,8 @@ class CondaSession(Session, metaclass=CondaSessionType):
         auth: AuthBase | tuple[str, str] | None = None,
     ):
         """
-        :param auth: Optionally provide ``requests.AuthBase`` compliant objects
+        Args:
+            auth: Optionally provide ``requests.AuthBase`` compliant objects
         """
         super().__init__()
 

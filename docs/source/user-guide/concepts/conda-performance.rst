@@ -40,11 +40,11 @@ Improving conda performance
 
 This section goes over some of the best practices we recommend for addressing performance challenges.
 
-1. Make your package specifications more narrow.
+1. **Make your package specifications more narrow.**
 
    For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
 
-2. Make sure you have libmamba set as your dependency solver. The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
+2. **Make sure you have libmamba set as your dependency solver.** The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
 
    To check which solver you have, run the following command:
 
@@ -82,24 +82,28 @@ This section goes over some of the best practices we recommend for addressing pe
 
 .. _concepts-performance-channel-priority:
 
-3. Use strict channel priority.
+3. **Configure channels to minimize conflicts.**
+
+   Channel configuration has a significant impact on solver performance and environment reproducibility. We recommend using a single channel as your default, such as ``conda-forge`` or ``defaults``, but not both. Mixing channels in your global configuration increases solver search space and the risk of incompatible packages.
+
+   For more information on channel configuration, see :ref:`channel-best-practices`.
+
+   If you must use both ``defaults`` and ``conda-forge`` in your channel list, setting strict channel priority reduces solver search space and helps prevent mixed-channel environments:
 
    .. code-block:: shell
 
        conda config --set channel_priority strict
 
-   Strict channel priority makes it so that if a package exists on a channel, conda ignores all packages with the same name on lower priority channels, dramatically reducing package search space and the use of improperly constrained packages.
-
    .. warning::
 
-      Setting strict channel priority might make environments unsatisfiable. Learn more about :ref:`strict`.
+      Strict channel priority can make some environments unsatisfiable and blocks fallback to lower-priority channels when a package with the same name exists in a higher-priority channel. To learn more about strict channel priority and channel configuration, see :ref:`channel configuration best practices <strict>`.
 
    .. figure:: ../../img/strict-disabled.png
        :width: 50%
    .. figure:: ../../img/strict-enabled.png
        :width: 50%
 
-4. Enable sharded repodata. This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
+4. **Enable sharded repodata.** This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
 
    .. note::
 

@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.gateways.disk.create.create_application_entry_point`, `conda.gateways.disk.create.ProgressFileWrapper`, and `conda.gateways.disk.create.create_fake_executable_softlink`, deprecated in 26.3. (#16314)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `isiterable` function from `conda.auxlib.compat`. (#16564)
+* Remove `calculate_channel_urls` function from `conda.core.index`. (#16564)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

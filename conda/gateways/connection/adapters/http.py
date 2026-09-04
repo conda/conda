@@ -33,15 +33,18 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from .. import DEFAULT_POOLBLOCK
 from .. import HTTPAdapter as BaseHTTPAdapter
 
 if TYPE_CHECKING:
     from ssl import SSLContext
+    from typing import Any
 
-    from urllib3 import PoolManager
+    from urllib3 import PoolManager, ProxyManager
 
 
 class _SSLContextAdapterMixin:
@@ -55,7 +58,7 @@ class _SSLContextAdapterMixin:
     def __init__(
         self,
         *,
-        ssl_context: Optional["SSLContext"] = None,
+        ssl_context: SSLContext | None = None,
         **kwargs: Any,
     ) -> None:
         self._ssl_context = ssl_context
@@ -67,7 +70,7 @@ class _SSLContextAdapterMixin:
         maxsize: int,
         block: bool = DEFAULT_POOLBLOCK,
         **pool_kwargs: Any,
-    ) -> "PoolManager":
+    ) -> PoolManager:
         if self._ssl_context is not None:
             pool_kwargs.setdefault("ssl_context", self._ssl_context)
         return super().init_poolmanager(  # type: ignore[misc]
@@ -76,6 +79,12 @@ class _SSLContextAdapterMixin:
             block=block,
             **pool_kwargs,
         )
+
+    def proxy_manager_for(self, proxy: str, **proxy_kwargs: Any) -> ProxyManager:
+        # requests' ProxyManager does not inherit init_poolmanager kwargs (#16252).
+        if self._ssl_context is not None:
+            proxy_kwargs.setdefault("ssl_context", self._ssl_context)
+        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
 
 class HTTPAdapter(_SSLContextAdapterMixin, BaseHTTPAdapter):

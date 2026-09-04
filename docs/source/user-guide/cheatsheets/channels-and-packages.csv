@@ -10,4 +10,3 @@ install package with OR logic,``conda install "PKGNAME [version='2.5|3.2']"``
 uninstall package,``conda uninstall PKGNAME``
 view channel sources,``conda config --show-sources``
 add channel,``conda config --add channels CHANNELNAME``
-set default channel for pkg fetching (targets first channel in channel sources),``conda config --set channel_priority strict``

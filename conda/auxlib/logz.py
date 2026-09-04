@@ -1,9 +1,9 @@
+import json
 from itertools import islice
 from logging import getLogger, INFO, Formatter, StreamHandler, DEBUG
 from sys import stderr
 
 from . import NullHandler
-from ..common.serialize import json
 from ..deprecations import deprecated
 
 log = getLogger(__name__)
@@ -49,32 +49,6 @@ def detach_stderr():
 
 def initialize_logging(level=INFO):
     attach_stderr(level)
-
-
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "DumpEncoder",
-    json.CondaJSONEncoder,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-)
-_DUMPS = json.CondaJSONEncoder(indent=2, ensure_ascii=False, sort_keys=True).encode
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "_DUMPS",
-    _DUMPS,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "jsondumps",
-    _DUMPS,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead.",
-)
-del _DUMPS
-
 
 
 def fullname(obj):

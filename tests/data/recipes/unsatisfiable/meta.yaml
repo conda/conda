@@ -1,0 +1,13 @@
+package:
+  name: unsatisfiable
+  version: 1.0
+
+build:
+  noarch: generic
+
+requirements:
+  run:
+    - versioned <1.0
+
+about:
+  summary: Depends on impossible versioned <1.0 for UnsatisfiableError

@@ -209,7 +209,6 @@ def test_comment_round_trip():
         ("yaml_safe_load", TypeError),
         ("yaml_round_trip_dump", TypeError),
         ("yaml_safe_dump", TypeError),
-        ("json_dump", TypeError),
     ],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:

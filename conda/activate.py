@@ -44,6 +44,7 @@ from .common.compat import on_win
 from .common.path import path_identity as _path_identity
 from .common.path import paths_equal, unix_path_to_win, win_path_to_unix
 from .common.serialize import json
+from .deprecations import deprecated
 from .exceptions import (
     ActivateHelp,
     ArgumentError,
@@ -124,12 +125,14 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def get_export_unset_vars(self, export_metavars=True, **kwargs):
         """
-        :param export_metavars: whether to export `conda_exe_vars` meta variables.
-        :param kwargs: environment variables to export.
-            .. if you pass and set any other variable to None, then it
-            emits it to the dict with a value of None.
+        Args:
+            export_metavars: whether to export `conda_exe_vars` meta variables.
+            kwargs: environment variables to export.
+                .. if you pass and set any other variable to None, then it
+                emits it to the dict with a value of None.
 
-        :return: A dict of env vars to export ordered the same way as kwargs.
+        Returns:
+            A dict of env vars to export ordered the same way as kwargs.
             And a list of env vars to unset.
         """
         unset_vars = []
@@ -219,10 +222,22 @@ class _Activator(metaclass=abc.ABCMeta):
         # return value meant to be written to stdout
         self._parse_and_set_args()
 
-        # invoke pre/post commands, see conda.cli.conda_argparse.do_call
-        context.plugin_manager.invoke_pre_commands(self.command)
+        # Avoid loading plugins solely to run activation hooks. If another
+        # code path has already initialized the plugin manager, preserve the
+        # existing pre/post hook behavior.
+        from .plugins.manager import get_plugin_manager
+
+        try:
+            plugins_loaded = get_plugin_manager.cache_info().currsize > 0
+        except (AttributeError, TypeError):
+            # Tests may patch the cached factory; keep hooks enabled then.
+            plugins_loaded = True
+
+        if plugins_loaded:
+            context.plugin_manager.invoke_pre_commands(self.command)
         response = getattr(self, self.command)()
-        context.plugin_manager.invoke_post_commands(self.command)
+        if plugins_loaded:
+            context.plugin_manager.invoke_post_commands(self.command)
         return response
 
     def template_unset_var(self, key: str) -> str:
@@ -275,10 +290,17 @@ class _Activator(metaclass=abc.ABCMeta):
             try:
                 dev_idx = remainder_args.index("--dev")
             except ValueError:
-                context.dev = False
+                pass
             else:
                 del remainder_args[dev_idx]
                 context.dev = True
+                deprecated.topic(
+                    "27.3",
+                    "27.9",
+                    topic=f"`conda {command} --dev`",
+                    addendum="Set `PYTHONPATH` to the conda source root instead.",
+                    deprecation_type=FutureWarning,
+                )
 
         if command == "activate":
             self.stack = context.auto_stack and context.shlvl <= context.auto_stack

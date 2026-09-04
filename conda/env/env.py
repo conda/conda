@@ -11,11 +11,9 @@ from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..cli import common
-from ..common.io import dashlist
 from ..common.iterators import unique
 from ..common.serialize import json, yaml
 from ..core.prefix_data import PrefixData
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaMultiError,
     EnvironmentFileEmpty,
@@ -148,8 +146,11 @@ def get_schema_errors(data: dict) -> list[EnvironmentFileInvalid]:
       * all required fields are present
       * all fields contain valid data
 
-    :param dict data: The contents of the environment.yaml
-    :returns errors: A list of EnvironmentFileInvalid exceptions that occurred during validation
+    Args:
+        data: The contents of the environment.yaml
+
+    Returns:
+        Validation errors for the environment file schema.
     """
     errors = []
     # Ensure all required keys are present
@@ -210,16 +211,17 @@ def validate_keys(data, kwargs):
 def from_environment(
     name, prefix, no_builds=False, ignore_channels=False, from_history=False
 ):
-    """
-        Get ``EnvironmentYaml`` object from prefix
-    Args:
-        name: The name of environment
-        prefix: The path of prefix
-        no_builds: Whether has build requirement
-        ignore_channels: whether ignore_channels
-        from_history: Whether environment file should be based on explicit specs in history
+    """Build an ``EnvironmentYaml`` from an existing environment prefix.
 
-    Returns:     EnvironmentYaml object
+    Args:
+        name: Environment name.
+        prefix: Path to the environment prefix.
+        no_builds: Omit build strings from dependency specs.
+        ignore_channels: Do not add channels from installed packages.
+        from_history: Base dependencies on explicit specs from install history.
+
+    Returns:
+        Representation of the environment suitable for export to YAML.
     """
     pd = PrefixData(prefix, interoperability=True)
     variables = pd.get_environment_env_vars()
@@ -271,31 +273,16 @@ def from_environment(
 def from_yaml(yamlstr: str, **kwargs) -> EnvironmentYaml:
     """Load and return a ``EnvironmentYaml`` from a given ``yaml`` string
 
-    :param yamlstr: The contents of the environment.yaml
-    :param raise_validation_errors: Indicates if an error should be raised if the yamlstr
-        is found to be invalid
-    :returns EnvironmentYaml: A representation of the environment file
+    Args:
+        yamlstr: The contents of the environment.yaml.
+
+    Returns:
+        A representation of the environment file
     """
     data = yaml.loads(yamlstr)
     filename = kwargs.get("filename")
     if data is None:
         raise EnvironmentFileEmpty(filename)
-
-    # Perform schema validation. This will output a warning for any invalid schema.
-    errors = get_schema_errors(data)
-    if errors:
-        # Warn for all the schema errors in the environment
-        deprecated.topic(
-            "26.3",
-            "26.9",
-            topic="The environment file is not fully CEP 24 compliant",
-            addendum=(
-                "In the future, this configuration will be rejected. Please fix the following "
-                "errors in order to make the configuration valid: "
-                f"{dashlist(errors)}"
-            ),
-            deprecation_type=FutureWarning,
-        )
 
     data = validate_keys(data, kwargs)
 
@@ -446,11 +433,6 @@ class EnvironmentYaml:
             external_packages=external_packages,
             requested_packages=requested_packages,
         )
-
-
-@deprecated("26.3", "26.9", addendum="Use `conda.env.env.EnvironmentYaml` instead.")
-class Environment(EnvironmentYaml):
-    """A class representing an ``environment.yaml`` file"""
 
 
 def print_result(args, prefix, result):

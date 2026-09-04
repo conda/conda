@@ -61,26 +61,26 @@ def test_channel_host_port():
 
 def test_channel_cache():
     Channel._reset_state()
-    assert len(Channel._cache_) == 0
+    assert Channel.from_value.cache_info().currsize == 0
     dc = Channel("defaults")
-    assert len(Channel._cache_) == 1
+    assert Channel.from_value.cache_info().currsize == 1
     dc1 = Channel("defaults")
-    assert len(Channel._cache_) == 1
+    assert Channel.from_value.cache_info().currsize == 1
     dc2 = Channel("defaults")
-    assert len(Channel._cache_) == 1
+    assert Channel.from_value.cache_info().currsize == 1
 
     assert dc1 is dc
     assert dc2 is dc
 
     dc3 = Channel(dc)
-    assert len(Channel._cache_) == 1
+    assert Channel.from_value.cache_info().currsize == 1
     assert dc3 is dc
 
     ccc = Channel("conda-canary")
-    assert len(Channel._cache_) == 2
+    assert Channel.from_value.cache_info().currsize == 2
 
     ccc1 = Channel("conda-canary")
-    assert len(Channel._cache_) == 2
+    assert Channel.from_value.cache_info().currsize == 2
     assert ccc1 is ccc
 
 
@@ -1287,7 +1287,7 @@ def test_multichannel_priority():
 
 
 def test_ppc64le_vs_ppc64():
-    Channel._cache_.clear()
+    Channel._reset_state()
 
     ppc64_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64")
     assert ppc64_channel.subdir == "linux-ppc64"
@@ -1302,8 +1302,8 @@ def test_ppc64le_vs_ppc64():
         ppc64le_channel.url(with_credentials=True)
         == "https://conda.anaconda.org/dummy-channel/linux-ppc64le"
     )
-    print(Channel._cache_)
-    Channel._cache_.clear()
+    print(Channel.from_value.cache_info())
+    Channel._reset_state()
 
     ppc64le_channel = Channel("https://conda.anaconda.org/dummy-channel/linux-ppc64le")
     assert ppc64le_channel.subdir == "linux-ppc64le"
@@ -1339,6 +1339,37 @@ def test_channel_mangles_urls():
 
     for url, expected in cases:
         assert str(Channel(url)) == expected
+
+
+def test_url_with_credentials_preserves_filename_without_platform():
+    """Channel.url() must preserve package_filename when platform is None.
+
+    Regression test for https://github.com/conda/conda/issues/16516:
+    a URL like /channel-name/notices.json has no platform subdir, so package_filename
+    is set but platform is None.  Previously url(with_credentials=True) dropped
+    the filename and appended a subdir from context.subdirs instead.
+    """
+    # notices.json — the exact reproducer from the issue
+    channel = Channel("https://conda.anaconda.org/channel-name/notices.json")
+    assert channel.name == "channel-name"
+    assert channel.platform is None
+    assert channel.package_filename == "notices.json"
+
+    # without credentials: filename is preserved, no token injected
+    assert channel.url() == "https://conda.anaconda.org/channel-name/notices.json"
+
+    # with credentials + token: token is injected and filename is still preserved
+    channel.token = "tk-12345678-abcdefgh"
+    assert (
+        channel.url(with_credentials=True)
+        == "https://conda.anaconda.org/t/tk-12345678-abcdefgh/channel-name/notices.json"
+    )
+
+    # channeldata.json without a platform subdir behaves the same way
+    channel2 = Channel("https://conda.anaconda.org/channel-name/channeldata.json")
+    assert channel2.platform is None
+    assert channel2.package_filename == "channeldata.json"
+    assert channel2.url() == "https://conda.anaconda.org/channel-name/channeldata.json"
 
 
 def test_basic_multichannel():

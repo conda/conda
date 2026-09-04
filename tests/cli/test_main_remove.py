@@ -19,7 +19,6 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.delete import path_is_clean
 from conda.testing.integration import (
-    PYTHON_BINARY,
     TEST_LOG_LEVEL,
     package_is_installed,
 )
@@ -36,27 +35,42 @@ stderr_log_level(TEST_LOG_LEVEL, "conda")
 stderr_log_level(TEST_LOG_LEVEL, "requests")
 
 
-def test_remove_all(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python") as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "python")
+def test_remove_all(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    with tmp_env("small-executable") as prefix:
+        assert (prefix / "bin" / "small").exists()
+        assert package_is_installed(prefix, "small-executable")
 
         # regression test for #2154
         with pytest.raises(PackagesNotFoundInPrefixError) as exc:
-            conda_cli("remove", f"--prefix={prefix}", "python", "foo", "numpy", "--yes")
+            conda_cli(
+                "remove",
+                f"--prefix={prefix}",
+                "small-executable",
+                "missing",
+                "nothing",
+                "--yes",
+            )
         exception_string = repr(exc.value)
         assert "PackagesNotFoundInPrefixError" in exception_string
-        assert "- numpy" in exception_string
-        assert "- foo" in exception_string
+        assert "- missing" in exception_string
+        assert "- nothing" in exception_string
 
         conda_cli("remove", f"--prefix={prefix}", "--all", "--yes")
         assert path_is_clean(prefix)
 
 
-def test_remove_all_keep_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env("python") as prefix:
-        assert (prefix / PYTHON_BINARY).exists()
-        assert package_is_installed(prefix, "python")
+def test_remove_all_keep_env(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    with tmp_env("small-executable") as prefix:
+        assert (prefix / "bin" / "small").exists()
+        assert package_is_installed(prefix, "small-executable")
 
         conda_cli("remove", f"--prefix={prefix}", "--all", "--keep-env", "--yes")
         assert not path_is_clean(prefix)

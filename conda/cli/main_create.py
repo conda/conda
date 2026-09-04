@@ -18,9 +18,41 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+def epilog() -> str:
+    """Build ``conda create`` epilog (examples and plugin-driven format list)."""
+    from ..base.context import context
+    from .formats import get_available_environment_formats
+
+    # get environment specifiers grouped by format
+    formats = context.plugin_manager.get_environment_specifiers_grouped()
+
+    # compose examples/epilog
+    examples = [
+        "Examples:",
+        "  Create from package specs:",
+        "    conda create -n myenv python=3.12 numpy",
+        "",
+        "  Create from an environment spec (solved at install time):",
+        "    conda create -n myenv --file environment.yml",
+        "",
+        "  Create from a lockfile (no solve, exact reproduction):",
+        "    conda create -n myenv --file explicit.txt",
+        "",
+        "  Clone an existing environment:",
+        "    conda create -n env2 --clone env1",
+    ]
+    # include available formats if any are registered
+    if formats:
+        examples.append("")
+        examples.append("Available input formats:")
+        examples.append(get_available_environment_formats(formats, indent=2))
+    return "\n".join(examples)
+
+
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from ..deprecations import deprecated
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
@@ -29,35 +61,27 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
-    summary = "Create a new conda environment from a list of specified packages. "
+    summary = "Create a new conda environment from a list of specified packages."
     description = dals(
         f"""
         {summary}
+
+        Environments can be created from package specs on the command line,
+        from an input file whose format is detected from its name or
+        contents, or as a clone of an existing environment. See the epilog
+        for the input formats available in your installation.
 
         To use the newly-created environment, use 'conda activate envname'.
         This command requires either the -n NAME or -p PREFIX option unless
         --dry-run or --download-only is specified.
         """
     )
-    epilog = dals(
-        """
-        Examples:
 
-        Create an environment containing the package 'sqlite'::
-
-            conda create -n myenv sqlite
-
-        Create an environment (env2) as a clone of an existing environment (env1)::
-
-            conda create -n env2 --clone path/to/file/env1
-
-        """
-    )
     p = sub_parsers.add_parser(
         "create",
         help=summary,
         description=description,
-        epilog=epilog,
+        epilog=epilog(),
         **kwargs,
     )
     p.add_argument(
@@ -72,7 +96,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_solver(solver_mode_options)
     p.add_argument(
         "--dev",
-        action=NullCountAction,
+        action=deprecated.action(
+            "27.3",
+            "27.9",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
         "This is mainly for use during tests where we test new conda sources "
         "against old Python versions.",
@@ -94,6 +123,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
+    from ..gateways.streams import stdoutlog
     from ..reporters import confirm_yn
     from .common import (
         get_name_prefix_from_env_file,
@@ -103,6 +133,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         validate_subdir_config,
     )
     from .install import install, install_clone
+
+    env_create = getattr(args, "env_create", False)
 
     # When `--clone` is present, `--file` and `packages` are not allowed
     if args.clone:
@@ -164,6 +196,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise CondaValueError(
                 "Cannot `create --dry-run` with an existing conda environment"
             )
+        if env_create and not context.always_yes:
+            raise CondaValueError(f"prefix already exists: {prefix_data.prefix_path}")
+
+    if env_create:
+        args.yes = True
+        context._set_argparse_args(args)
+
+    if prefix_data.is_environment():
         confirm_yn(
             f"WARNING: A conda environment already exists at '{context.target_prefix}'\n\n"
             "Remove existing environment?\nThis will remove ALL directories contained within "
@@ -171,7 +211,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             default="no",
             dry_run=False,
         )
-        log.info("Removing existing environment %s", context.target_prefix)
+        if env_create:
+            stdoutlog(f"Removing existing environment at '{context.target_prefix}'.")
+        else:
+            log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
     elif prefix_data.exists():
         confirm_yn(
