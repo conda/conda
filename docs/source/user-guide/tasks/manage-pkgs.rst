@@ -186,17 +186,17 @@ Installing non-conda packages
 
 If a package is not available from conda or Anaconda.org, there are a few
 options depending on the package type.
- 
+
 For supported pure Python packages, the recommended path is to install them
 directly with ``conda install`` using the ``conda-pypi`` channel, which indexes
 pure Python wheels from the public PyPI index and resolves them alongside conda
 packages in a single operation. See :doc:`install-pypi-packages` for
 setup instructions and supported workflows.
- 
+
 For packages not covered by the ``conda-pypi`` workflow, you may be able to find
 and install the package via conda-forge or with pip as a fallback. Try
 `conda-forge <https://conda-forge.org/search.html>`_ first.
- 
+
 If you still cannot install the package, you can try installing it with pip.
 The differences between pip and conda packages cause certain unavoidable limits
 in compatibility but conda works hard to be as compatible with pip as possible.
