@@ -256,6 +256,8 @@ def test_reinstall_args(tmp_path: Path, mocker: MockerFixture):
         def solve_for_transaction(self, *args, **kwargs):
             pass
 
+    spy = mocker.spy(EmptySolver, "solve_for_transaction")
+
     mock_solver = mocker.patch(
         "conda.cli.install.context.plugin_manager.get_cached_solver_backend",
         return_value=EmptySolver,
@@ -266,8 +268,12 @@ def test_reinstall_args(tmp_path: Path, mocker: MockerFixture):
     args = Namespace(prefix=str(tmp_path), name=None, cmd="install")
 
     reinstall_packages(args, ["some-package"], force_reinstall=True)
+
     mock_solver.assert_called_once()
     mock_handle_txn.assert_called_once()
+
+    spy.assert_called_once()
+    assert spy.call_args.kwargs["force_reinstall"] is True
 
 
 def test_install_combines_pip_dependencies_from_multiple_env_files(
