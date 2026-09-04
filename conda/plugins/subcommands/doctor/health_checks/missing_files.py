@@ -19,6 +19,10 @@ if TYPE_CHECKING:
 
     from ....types import ConfirmCallback
 
+from logging import getLogger
+
+logger = getLogger(__name__)
+
 
 def excluded_files_check(filename: str) -> bool:
     """Check if a file should be excluded from health checks."""
@@ -31,7 +35,16 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
     packages_with_missing_files = {}
     prefix = Path(prefix)
     for file in (prefix / "conda-meta").glob("*.json"):
-        for file_name in json.loads(file.read_text()).get("files", []):
+        try:
+            metadata = json.loads(file.read_text())
+        except Exception as exc:
+            logger.error(
+                "Could not load the json file %s because of the following error: %s.",
+                file,
+                exc,
+            )
+            continue
+        for file_name in metadata.get("files", []):
             if (
                 not excluded_files_check(file_name)
                 and not (prefix / file_name).exists()
@@ -70,8 +83,30 @@ def fix_missing_files(prefix: str, args: Namespace, confirm: ConfirmCallback) ->
     print()
     confirm("Reinstall these packages to restore missing files?")
 
-    specs = list(packages_with_missing.keys())
-    return reinstall_packages(args, specs, force_reinstall=True)
+    specs = []
+    for stem in packages_with_missing:
+        try:
+            metadata = json.loads(
+                (Path(prefix) / "conda-meta" / f"{stem}.json").read_text()
+            )
+            specs.append(
+                f"{metadata['name']}={metadata['version']}={metadata['build']}"
+            )
+        except KeyError as exc:
+            logger.error(
+                "Could not build an installable MatchSpec from conda-meta record; "
+                "missing field %s. Skipping reinstall for %s.",
+                exc,
+                stem,
+            )
+            print(
+                f"Reinstalling package {stem} failed due to missing fields in conda-meta record."
+            )
+
+    if specs:
+        return reinstall_packages(args, specs, force_reinstall=True)
+
+    return 0
 
 
 @hookimpl

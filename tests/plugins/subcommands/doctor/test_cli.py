@@ -141,7 +141,7 @@ def test_conda_doctor_fix_accepts_override_frozen(
 
     def reinstall_packages(args, specs, force_reinstall=False):
         assert context.protect_frozen_envs is False
-        assert specs == [env_missing_files.package]
+        assert specs == [f"{env_missing_files.package}=1.0=0"]
         assert force_reinstall is True
         return 0
 

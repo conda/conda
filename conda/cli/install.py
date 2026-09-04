@@ -359,7 +359,11 @@ def install(args, parser, command="install"):
                 unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,
                     update_modifier=update_modifier,
-                    force_reinstall=context.force_reinstall or context.force,
+                    force_reinstall=(
+                        getattr(args, "force_reinstall", False)
+                        or context.force_reinstall
+                        or context.force
+                    ),
                     should_retry_solve=(
                         _should_retry_unfrozen or repodata != repodata_fns[-1]
                     ),
@@ -371,7 +375,11 @@ def install(args, parser, command="install"):
                     unlink_link_transaction = solver.solve_for_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
-                        force_reinstall=context.force_reinstall or context.force,
+                        force_reinstall=(
+                            getattr(args, "force_reinstall", False)
+                            or context.force_reinstall
+                            or context.force
+                        ),
                         should_retry_solve=(repodata != repodata_fns[-1]),
                     )
                 else:
