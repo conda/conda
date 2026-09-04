@@ -192,8 +192,8 @@ directly with ``conda install`` using the ``conda-pypi`` channel, which indexes
 pure Python wheels from the public PyPI index and resolves them alongside conda
 packages in a single operation. See :doc:`install-pypi-packages` for
 setup instructions and supported workflows.
- 
-For packages not covered by the ``conda-pypi`` workflow, you may be able to use 
+
+For packages not covered by the ``conda-pypi`` workflow, you may be able to use
 pip as a fallback. The differences between pip and conda packages cause certain unavoidable limits
 in compatibility but conda works hard to be as compatible with pip as possible.
 

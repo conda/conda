@@ -23,7 +23,7 @@ with ``conda install``.
    When you add this channel to your conda configuration, conda can resolve
    and install those packages alongside packages from conda channels like
    ``conda-forge`` or ``defaults`` in a single operation. The channel repodata
-   tells conda what packages are available and at what versions. When you install a 
+   tells conda what packages are available and at what versions. When you install a
    package, conda fetches the wheel directly from PyPI at install time. This is by
    design and keeps the channel lightweight, but it means you need a PyPI connection
    at install time.
@@ -31,8 +31,8 @@ with ``conda install``.
    One important thing to note is that **this is not a pip replacement**. Conda still
    manages the environment, the solver still handles the full dependency
    graph, and the result is a reproducible, exportable conda environment. Using
-   ``pip install`` directly inside conda environments can work initially, but 
-   conda loses track of pip-installed packages, making future environment updates 
+   ``pip install`` directly inside conda environments can work initially, but
+   conda loses track of pip-installed packages, making future environment updates
    and installs unreliable. For more information on using pip with conda, see our blog
    `Conda and pip are two ecosystems, not just tools <https://conda.org/blog/2026-05-07-conda-and-pip-ecosystems>`_.
 
@@ -115,16 +115,16 @@ Install PyPI and conda packages together
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
- 
+
    conda install <conda-forge-package> <conda-pypi-package>
- 
+
 If a package is available on both ``conda-forge`` and ``conda-pypi``, conda
 will install it from ``conda-pypi`` only if the version there is newer.
- 
+
 You can also use ``conda create`` with PyPI packages:
- 
+
 .. code-block:: bash
- 
+
    conda create --name myenv python=3.12 <conda-forge-package> <conda-pypi-package>
 
 Install with extras support
@@ -134,28 +134,28 @@ Extras are named groups of optional dependencies defined in a package's
 ``extra_depends`` field. When you request an extra, its dependencies are merged with
 the package's regular dependencies and resolved together. For full details,
 see `CEP 44 <https://conda.org/learn/ceps/cep-0044>`_.
- 
+
 Use the following syntax to request extras:
- 
+
 .. code-block:: bash
- 
+
    # Single extra
    conda install 'package[extras="EXTRA"]'
- 
+
    # Multiple extras (comma-separated string)
    conda install 'package[extras="EXTRA1,EXTRA2"]'
- 
+
    # Multiple extras (list syntax)
    conda install 'package[extras=["EXTRA1","EXTRA2"]]'
- 
+
 For example, to install ``httpx`` with its ``http2`` and ``cli`` extras:
- 
+
 .. code-block:: bash
- 
+
    conda install 'httpx[extras="http2,cli"]'
- 
+
 .. note::
- 
+
    Extra names are case-sensitive and must match the pattern
    ``[a-z0-9_.+-]{1,64}``. Requesting an extra that is not defined in a
    package has no effect and doesn't produce an error.
