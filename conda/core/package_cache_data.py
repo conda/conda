@@ -8,20 +8,23 @@ import multiprocessing
 import os
 from collections import defaultdict
 from concurrent.futures import (
+    FIRST_COMPLETED,
     CancelledError,
     ProcessPoolExecutor,
     ThreadPoolExecutor,
     as_completed,
+    wait,
 )
+from contextlib import ExitStack
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
-from sys import platform
 from tarfile import ReadError
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
 from .._private.extract import extract_conda_package_archive
@@ -69,7 +72,7 @@ if TYPE_CHECKING:
     from concurrent.futures import Future
     from pathlib import Path
 
-    from ..plugins.types import ProgressBarBase
+    from ..plugins.types import CondaPackageVerifier, ProgressBarBase
 
 log = getLogger(__name__)
 
@@ -115,20 +118,32 @@ class PackageCacheData(metaclass=PackageCacheType):
 
         self._urls_data = UrlsData(pkgs_dir)
 
-    def insert(self, package_cache_record):
+    def insert(
+        self,
+        package_cache_record,
+        package_verifiers: tuple[CondaPackageVerifier, ...] | None = None,
+    ):
         meta = join(
             package_cache_record.extracted_package_dir, "info", "repodata_record.json"
         )
         write_as_json_to_file(meta, PackageRecord.from_objects(package_cache_record))
 
-        self._package_cache_records[package_cache_record] = package_cache_record
+        if self.__package_cache_records is None:
+            self.load(package_verifiers)
+        self.__package_cache_records[package_cache_record] = package_cache_record
 
-    def load(self):
+    def load(
+        self,
+        package_verifiers: tuple[CondaPackageVerifier, ...] | None = None,
+    ):
         self.__package_cache_records = _package_cache_records = {}
         self._check_writable()  # called here to create the cache if it doesn't exist
         if not isdir(self.pkgs_dir):
             # no directory exists, and we didn't have permissions to create it
             return
+
+        if package_verifiers is None:
+            package_verifiers = context.plugin_manager.get_package_verifiers()
 
         pkgs_dir_contents = tuple(entry.name for entry in scandir(self.pkgs_dir))
         for base_name in self._dedupe_pkgs_dir_contents(pkgs_dir_contents):
@@ -142,7 +157,10 @@ class PackageCacheData(metaclass=PackageCacheType):
                 and context.plugin_manager.has_package_extension(full_path)
             ):
                 try:
-                    package_cache_record = self._make_single_record(base_name)
+                    package_cache_record = self._make_single_record(
+                        base_name,
+                        package_verifiers,
+                    )
                 except ValidationError as err:
                     # ValidationError: package fields are invalid
                     log.warning(
@@ -386,9 +404,16 @@ class PackageCacheData(metaclass=PackageCacheType):
         args = (f"{key}={getattr(self, key)!r}" for key in ("pkgs_dir",))
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
-    def _make_single_record(self, package_filename):
+    def _make_single_record(
+        self,
+        package_filename,
+        package_verifiers: tuple[CondaPackageVerifier, ...] | None = None,
+    ):
         # delay-load this to help make sure libarchive can be found
         from conda_package_handling.api import InvalidArchiveError
+
+        if package_verifiers is None:
+            package_verifiers = context.plugin_manager.get_package_verifiers()
 
         package_tarball_full_path = join(self.pkgs_dir, package_filename)
         log.log(TRACE, "adding to package cache %s", package_tarball_full_path)
@@ -406,8 +431,6 @@ class PackageCacheData(metaclass=PackageCacheType):
         except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
             # EnvironmentError: info/repodata_record.json doesn't exists
             # json.JSONDecodeError: info/repodata_record.json is partially extracted or corrupted
-            #   python 2.7 raises ValueError instead of json.JSONDecodeError
-            #   ValueError("No JSON object could be decoded")
             log.debug(
                 "unable to read %s\n  because %r",
                 join(extracted_package_dir, "info", "repodata_record.json"),
@@ -420,8 +443,6 @@ class PackageCacheData(metaclass=PackageCacheType):
             except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
                 # EnvironmentError: info/index.json doesn't exist
                 # json.JSONDecodeError: info/index.json is partially extracted or corrupted
-                #   python 2.7 raises ValueError instead of json.JSONDecodeError
-                #   ValueError("No JSON object could be decoded")
                 log.debug(
                     "unable to read %s\n  because %r",
                     join(extracted_package_dir, "info", "index.json"),
@@ -437,7 +458,9 @@ class PackageCacheData(metaclass=PackageCacheType):
                     return None
 
                 try:
-                    if self.is_writable:
+                    if package_verifiers:
+                        return None
+                    elif self.is_writable:
                         if isdir(extracted_package_dir):
                             # We have a partially unpacked conda package directory. Best thing
                             # to do is remove it and try extracting.
@@ -504,7 +527,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             )
 
             # write the info/repodata_record.json file so we can short-circuit this next time
-            if self.is_writable:
+            if self.is_writable and not package_verifiers:
                 repodata_record = PackageRecord.from_objects(package_cache_record)
                 repodata_record_path = join(
                     extracted_package_dir, "info", "repodata_record.json"
@@ -572,8 +595,7 @@ class UrlsData:
 
     def add_url(self, url):
         with open(self.urls_txt_path, mode="a", encoding="utf-8") as fh:
-            linefeed = "\r\n" if platform == "win32" else "\n"
-            fh.write(url + linefeed)
+            fh.write(url + "\n")
         self._urls_data.insert(0, url)
 
     @memoizemethod
@@ -597,10 +619,16 @@ class UrlsData:
 
 class ProgressiveFetchExtract:
     @staticmethod
-    def make_actions_for_record(pref_or_spec):
+    def make_actions_for_record(
+        pref_or_spec,
+        package_verifiers: tuple[CondaPackageVerifier, ...] | None = None,
+    ):
         if pref_or_spec is None:
             raise TypeError("`pref_or_spec` cannot be None.")
         # returns a cache_action and extract_action
+
+        if package_verifiers is None:
+            package_verifiers = context.plugin_manager.get_package_verifiers()
 
         # if the pref or spec has an md5 value
         # look in all caches for package cache record that is
@@ -612,6 +640,13 @@ class ProgressiveFetchExtract:
         md5 = pref_or_spec.get("md5")
         legacy_bz2_size = pref_or_spec.get("legacy_bz2_size")
         legacy_bz2_md5 = pref_or_spec.get("legacy_bz2_md5")
+        if package_verifiers:
+            selected_url = pref_or_spec.get("url")
+            selected_filename = (
+                basename(urlsplit(selected_url).path)
+                if selected_url
+                else basename(pref_or_spec.fn)
+            )
 
         def pcrec_matches(pcrec):
             matches = True
@@ -625,16 +660,20 @@ class ProgressiveFetchExtract:
                 matches = pcrec.md5 in (md5, legacy_bz2_md5)
             return matches
 
-        extracted_pcrec = next(
-            (
-                pcrec
-                for pcrec in chain.from_iterable(
-                    PackageCacheData(pkgs_dir).query(pref_or_spec)
-                    for pkgs_dir in context.pkgs_dirs
-                )
-                if pcrec.is_extracted
-            ),
-            None,
+        extracted_pcrec = (
+            next(
+                (
+                    pcrec
+                    for pcrec in chain.from_iterable(
+                        PackageCacheData(pkgs_dir).query(pref_or_spec)
+                        for pkgs_dir in context.pkgs_dirs
+                    )
+                    if pcrec.is_extracted
+                ),
+                None,
+            )
+            if not package_verifiers
+            else None
         )
         if (
             extracted_pcrec
@@ -643,21 +682,80 @@ class ProgressiveFetchExtract:
         ):
             return None, None
 
+        if package_verifiers and (sha256 or md5):
+            exact_package_cache = None
+            for package_cache in PackageCacheData.all_caches_writable_first():
+                exact_archive = join(package_cache.pkgs_dir, selected_filename)
+                if islink(exact_archive) or not isfile(exact_archive):
+                    continue
+                if size is not None and getsize(exact_archive) != size:
+                    continue
+                if sha256 and compute_sum(exact_archive, "sha256") != sha256:
+                    continue
+                if not sha256 and md5 and compute_sum(exact_archive, "md5") != md5:
+                    continue
+                exact_package_cache = package_cache
+                break
+
+            if exact_package_cache:
+                exact_archive = join(
+                    exact_package_cache.pkgs_dir,
+                    selected_filename,
+                )
+                first_writable_cache = PackageCacheData.first_writable()
+                if exact_package_cache.pkgs_dir != first_writable_cache.pkgs_dir:
+                    cache_action = CacheUrlAction(
+                        url=path_to_url(exact_archive),
+                        target_pkgs_dir=first_writable_cache.pkgs_dir,
+                        target_package_basename=selected_filename,
+                        sha256=sha256,
+                        size=size,
+                        md5=md5,
+                        defer_cleanup=True,
+                    )
+                    return cache_action, ExtractPackageAction(
+                        source_full_path=cache_action.target_full_path,
+                        target_pkgs_dir=first_writable_cache.pkgs_dir,
+                        target_extracted_dirname=strip_pkg_extension(selected_filename)[
+                            0
+                        ],
+                        record_or_spec=pref_or_spec,
+                        sha256=sha256,
+                        size=size,
+                        md5=md5,
+                        package_verifiers=package_verifiers,
+                    )
+
+                return None, ExtractPackageAction(
+                    source_full_path=exact_archive,
+                    target_pkgs_dir=dirname(exact_archive),
+                    target_extracted_dirname=strip_pkg_extension(selected_filename)[0],
+                    record_or_spec=pref_or_spec,
+                    sha256=sha256,
+                    size=size,
+                    md5=md5,
+                    package_verifiers=package_verifiers,
+                )
+
         # there is no extracted dist that can work, so now we look for tarballs that
         #   aren't extracted
         # first we look in all writable caches, and if we find a match, we extract in place
         # otherwise, if we find a match in a non-writable cache, we link it to the first writable
         #   cache, and then extract
-        pcrec_from_writable_cache = next(
-            (
-                pcrec
-                for pcrec in chain.from_iterable(
-                    pcache.query(pref_or_spec)
-                    for pcache in PackageCacheData.writable_caches()
-                )
-                if pcrec.is_fetched
-            ),
-            None,
+        pcrec_from_writable_cache = (
+            next(
+                (
+                    pcrec
+                    for pcrec in chain.from_iterable(
+                        pcache.query(pref_or_spec)
+                        for pcache in PackageCacheData.writable_caches()
+                    )
+                    if pcrec.is_fetched
+                ),
+                None,
+            )
+            if not package_verifiers
+            else None
         )
         if (
             pcrec_from_writable_cache
@@ -677,19 +775,24 @@ class ProgressiveFetchExtract:
                 sha256=pcrec_from_writable_cache.sha256 or sha256,
                 size=pcrec_from_writable_cache.size or size,
                 md5=pcrec_from_writable_cache.md5 or md5,
+                package_verifiers=package_verifiers,
             )
             return None, extract_action
 
-        pcrec_from_read_only_cache = next(
-            (
-                pcrec
-                for pcrec in chain.from_iterable(
-                    pcache.query(pref_or_spec)
-                    for pcache in PackageCacheData.read_only_caches()
-                )
-                if pcrec.is_fetched
-            ),
-            None,
+        pcrec_from_read_only_cache = (
+            next(
+                (
+                    pcrec
+                    for pcrec in chain.from_iterable(
+                        pcache.query(pref_or_spec)
+                        for pcache in PackageCacheData.read_only_caches()
+                    )
+                    if pcrec.is_fetched
+                ),
+                None,
+            )
+            if not package_verifiers
+            else None
         )
 
         first_writable_cache = PackageCacheData.first_writable()
@@ -716,6 +819,7 @@ class ProgressiveFetchExtract:
                 sha256=pcrec_from_read_only_cache.get("sha256") or sha256,
                 size=pcrec_from_read_only_cache.get("size") or size,
                 md5=pcrec_from_read_only_cache.get("md5") or md5,
+                package_verifiers=package_verifiers,
             )
             return cache_action, extract_action
 
@@ -734,7 +838,11 @@ class ProgressiveFetchExtract:
         # PyPI URLs may include a #sha256=... fragment (e.g., file.whl#sha256=abc123);
         # strip the fragment before extracting the basename so the cached filename
         # ends with the real extension (needed for plugin-based extraction).
-        target_package_basename = basename(url.split("#")[0]) or pref_or_spec.fn
+        target_package_basename = (
+            basename(urlsplit(url).path) or basename(pref_or_spec.fn)
+            if package_verifiers
+            else basename(url.split("#")[0]) or pref_or_spec.fn
+        )
 
         cache_action = CacheUrlAction(
             url=url,
@@ -743,6 +851,7 @@ class ProgressiveFetchExtract:
             sha256=sha256,
             size=size,
             md5=md5,
+            defer_cleanup=bool(package_verifiers),
         )
         extract_action = ExtractPackageAction(
             source_full_path=cache_action.target_full_path,
@@ -752,6 +861,7 @@ class ProgressiveFetchExtract:
             sha256=sha256,
             size=size,
             md5=md5,
+            package_verifiers=package_verifiers,
         )
         return cache_action, extract_action
 
@@ -772,6 +882,7 @@ class ProgressiveFetchExtract:
         )
 
         self.paired_actions = {}  # Map[pref, Tuple(CacheUrlAction, ExtractPackageAction)]
+        self._package_verifiers = None
 
         self._prepared = False
         self._executed = False
@@ -780,6 +891,8 @@ class ProgressiveFetchExtract:
     def prepare(self):
         if self._prepared:
             return
+
+        self._package_verifiers = context.plugin_manager.get_package_verifiers()
 
         # Download largest first
         def by_size(prec: PackageRecord | MatchSpec):
@@ -793,7 +906,11 @@ class ProgressiveFetchExtract:
         largest_first = sorted(self.link_precs, key=by_size, reverse=True)
 
         self.paired_actions.update(
-            (prec, self.make_actions_for_record(prec)) for prec in largest_first
+            (
+                prec,
+                self.make_actions_for_record(prec, self._package_verifiers),
+            )
+            for prec in largest_first
         )
         self._prepared = True
 
@@ -817,6 +934,8 @@ class ProgressiveFetchExtract:
 
         if context.dry_run:
             raise RuntimeError("Cannot run .execute() in dry-run mode.")
+
+        verify_packages = bool(self._package_verifiers)
 
         with get_progress_bar_context_manager() as pbar_context:
             if self._executed:
@@ -843,6 +962,7 @@ class ProgressiveFetchExtract:
             exceptions = []
             progress_bars = {}
             futures: list[Future] = []
+            verifier_futures = {}
             extract_futures = {}
             extract_actions = self.extract_actions
             use_process_pool = (
@@ -894,11 +1014,50 @@ class ProgressiveFetchExtract:
                 return cancelled_flag
 
             with (
+                ExitStack() as package_verifier_rollback,
                 signal_handler(conda_signal_handler),
                 time_recorder("fetch_extract_execute"),
                 ThreadPoolExecutor(context.fetch_threads) as fetch_executor,
                 extract_executor,
             ):
+                if verify_packages:
+                    for actions in self.paired_actions.values():
+                        package_verifier_rollback.callback(
+                            do_reverse,
+                            reversed(actions),
+                        )
+                verifier_executor = (
+                    package_verifier_rollback.enter_context(
+                        ThreadPoolExecutor(EXTRACT_PROCESSES)
+                    )
+                    if verify_packages and use_process_pool
+                    else None
+                )
+
+                def finish_verification(verifier_future, *, submit_extract=True):
+                    actions, extract_action, progress_bar = verifier_futures.pop(
+                        verifier_future
+                    )
+                    try:
+                        verifier_future.result()
+                        if not submit_extract:
+                            return
+                        extract_action._prepare_extract()
+                        extract_future = extract_executor.submit(
+                            extract_conda_package_archive,
+                            extract_action.verified_source_full_path,
+                            extract_action.target_full_path,
+                            ensure_picklable_errors=True,
+                        )
+                    except Exception as e:
+                        exceptions.append(e)
+                    else:
+                        extract_futures[extract_future] = (
+                            actions,
+                            extract_action,
+                            progress_bar,
+                        )
+
                 for prec_or_spec, (
                     cache_action,
                     extract_action,
@@ -928,12 +1087,29 @@ class ProgressiveFetchExtract:
                             exceptions=exceptions,
                             progress_bar=progress_bar,
                             finish=True,
+                            reverse_on_error=not verify_packages,
+                            cleanup=not (
+                                cache_action
+                                and cache_action.defer_cleanup
+                                and extract_action
+                            ),
                         )
                     )
                     futures.append(future)
 
                 try:
-                    for completed_future in as_completed(futures):
+                    completed = set()
+                    while futures or verifier_futures:
+                        if not completed:
+                            completed, _ = wait(
+                                (*futures, *verifier_futures),
+                                return_when=FIRST_COMPLETED,
+                            )
+                        completed_future = completed.pop()
+                        if completed_future in verifier_futures:
+                            finish_verification(completed_future)
+                            continue
+
                         futures.remove(completed_future)
                         prec_or_spec = completed_future.result()
 
@@ -944,13 +1120,22 @@ class ProgressiveFetchExtract:
                             do_cleanup(actions)
                             progress_bar.finish()
                             progress_bar.refresh()
+                        elif verifier_executor:
+                            verifier_future = verifier_executor.submit(
+                                extract_action.verify
+                            )
+                            verifier_futures[verifier_future] = (
+                                actions,
+                                extract_action,
+                                progress_bar,
+                            )
                         elif use_process_pool:
                             try:
                                 extract_action.verify()
                                 extract_action._prepare_extract()
                                 extract_future = extract_executor.submit(
                                     extract_conda_package_archive,
-                                    extract_action.source_full_path,
+                                    extract_action.verified_source_full_path,
                                     extract_action.target_full_path,
                                     ensure_picklable_errors=True,
                                 )
@@ -975,20 +1160,27 @@ class ProgressiveFetchExtract:
                                 None,
                                 progress_bar,
                             )
+
                 except BaseException as e:
-                    # We are interested in KeyboardInterrupt delivered to
-                    # as_completed() while waiting, or any exception raised from
-                    # completed_future.result(). cancelled_flag is checked in the
-                    # progress callback to stop running transfers, shutdown() should
-                    # prevent new downloads from starting.
+                    # We are interested in KeyboardInterrupt delivered while waiting,
+                    # or any exception raised from completed_future.result().
+                    # cancelled_flag is checked in the progress callback to stop
+                    # running transfers, shutdown() should prevent new downloads from
+                    # starting.
                     cancelled_flag = True
-                    for future in futures:  # needed on top of .shutdown()
+                    for future in chain(futures, verifier_futures):
                         future.cancel()
                     # Has a Python >=3.9 cancel_futures= parameter that does not
                     # replace the above loop:
                     fetch_executor.shutdown(wait=False)
                     exceptions.append(e)
                 finally:
+                    for verifier_future in tuple(verifier_futures):
+                        finish_verification(
+                            verifier_future,
+                            submit_extract=not cancelled_flag,
+                        )
+
                     for extract_future in as_completed(extract_futures):
                         actions, process_extract_action, progress_bar = extract_futures[
                             extract_future
@@ -998,12 +1190,13 @@ class ProgressiveFetchExtract:
                             if process_extract_action:
                                 process_extract_action._finish_extract()
                                 progress_bar.update_to(1.0)
+                            do_cleanup(actions)
                         except Exception as e:
                             log.debug("Package extraction failed.", exc_info=e)
-                            do_reverse(reversed(actions))
+                            if not verify_packages:
+                                do_reverse(reversed(actions))
                             exceptions.append(e)
                         else:
-                            do_cleanup(actions)
                             progress_bar.finish()
                             progress_bar.refresh()
 
@@ -1119,6 +1312,8 @@ def done_callback(
     progress_bar: ProgressBarBase,
     exceptions: list[Exception],
     finish: bool = False,
+    cleanup: bool = True,
+    reverse_on_error: bool = True,
 ):
     try:
         future.result()
@@ -1126,10 +1321,12 @@ def done_callback(
         # if it was interrupted with CTRL-C this might be BaseException and not
         # get caught here, but conda's signal handler also converts that to
         # CondaError which is just Exception.
-        do_reverse(reversed(actions))
+        if reverse_on_error:
+            do_reverse(reversed(actions))
         exceptions.append(e)
     else:
-        do_cleanup(actions)
+        if cleanup:
+            do_cleanup(actions)
         if finish:
             progress_bar.finish()
             progress_bar.refresh()
