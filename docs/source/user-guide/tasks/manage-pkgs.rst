@@ -186,7 +186,7 @@ Installing non-conda packages
 
 If a package is not available from any of the popular conda channels, there are a few
 options depending on the package type.
- 
+
 For supported pure Python packages, the recommended path is to install them
 directly with ``conda install`` using the ``conda-pypi`` channel, which indexes
 pure Python wheels from the public PyPI index and resolves them alongside conda

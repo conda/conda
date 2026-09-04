@@ -9,7 +9,7 @@ Installing PyPI packages with conda
    Section 1 of the `Anaconda Terms of Service <https://www.anaconda.com/legal/terms/terms-of-service>`_.
 
 In conda version 26.9 and later, you can use the ``conda-pypi`` channel to
-install supported PyPI packages alongside regular conda packages directly 
+install supported PyPI packages alongside regular conda packages directly
 with ``conda install``.
 
 .. dropdown:: What does the ``conda-pypi`` channel do?
@@ -173,7 +173,7 @@ configuration:
 Suppress the conda-pypi suggestion tip
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you want to suppress the suggestion that conda displays when you install a 
+If you want to suppress the suggestion that conda displays when you install a
 package that is available through the ``conda-pypi`` channel, set the
 following configuration option:
 
@@ -193,7 +193,7 @@ the following limitations in mind:
   artifact repository) are not currently supported.
 * **No additional vetting beyond PyPI.** The ``conda-pypi`` channel does not
   perform additional security scanning beyond what PyPI provides. Using the
-  :ref:`--exclude-newer flag <installing-packages-with-an-upload-cutoff>` 
+  :ref:`--exclude-newer flag <installing-packages-with-an-upload-cutoff>`
   is recommended as a lightweight mitigation for supply-chain risk.
 * **conda client only.** Supported in the conda CLI. Support in other clients
   (mamba, micromamba, and so on) is under active CEP discussion.
