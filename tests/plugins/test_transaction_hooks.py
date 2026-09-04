@@ -7,13 +7,16 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import plugins
+from conda.base.constants import APP_NAME
 from conda.core.path_actions import Action
-from conda.plugins import package_extractors, solvers
+from conda.plugins import package_extractors
 from conda.plugins.types import CondaPostTransactionAction, CondaPreTransactionAction
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from pathlib import Path
+
+pytestmark = [pytest.mark.usefixtures("parametrized_solver_fixture")]
 
 
 class DummyTransactionAction(Action):
@@ -57,12 +60,10 @@ class DummyPostActionPlugin:
 
 
 @pytest.fixture
-def plugin_manager_with_solvers(plugin_manager_with_reporter_backends, mocker):
-    # Explicitly load the solver, since this is a dummy plugin manager and not the default
-    plugin_manager_with_reporter_backends.load_plugins(
-        solvers,
-        *package_extractors.plugins,
-    )
+def plugin_manager_with_solvers(plugin_manager_with_reporter_backends):
+    # Dummy PM is not the default; load extractors + entry points (classic plugin).
+    plugin_manager_with_reporter_backends.load_plugins(*package_extractors.plugins)
+    plugin_manager_with_reporter_backends.load_entrypoints(APP_NAME)
 
     return plugin_manager_with_reporter_backends
 
@@ -103,7 +104,7 @@ def test_transaction_hooks_invoked(
     pre_verify, pre_execute, pre_reverse, pre_cleanup = pre_transaction_plugin
     post_verify, post_execute, post_reverse, post_cleanup = post_transaction_plugin
 
-    with tmp_env("small-executable", "--solver=classic"):
+    with tmp_env("small-executable"):
         pass
 
     pre_verify.assert_called_once()
@@ -129,7 +130,7 @@ def test_pre_transaction_raises_exception(
     pre_execute.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env("small-executable", "--solver=classic"):
+        with tmp_env("small-executable"):
             pass
 
     pre_verify.assert_called_once()
@@ -154,7 +155,7 @@ def test_post_transaction_raises_exception(
     post_execute.side_effect = Exception(msg)
 
     with pytest.raises(Exception, match=msg):
-        with tmp_env("small-executable", "--solver=classic"):
+        with tmp_env("small-executable"):
             pass
 
     post_verify.assert_called_once()

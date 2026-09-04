@@ -6,6 +6,7 @@ import os
 import platform
 import re
 import sys
+from contextlib import nullcontext
 from datetime import datetime
 from importlib.metadata import version
 from itertools import zip_longest
@@ -72,7 +73,6 @@ from conda.gateways.subprocess import Response
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
-from conda.resolve import Resolve
 from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
 from conda.testing.integration import (
     PYTHON_BINARY,
@@ -831,6 +831,13 @@ def test_strict_channel_priority(
 
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
+    with (
+        pytest.deprecated_call()
+        if "conda.resolve" not in sys.modules
+        else nullcontext()
+    ):
+        from conda.resolve import Resolve
+
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
     index = ReducedIndex(
@@ -2399,12 +2406,15 @@ def test_dont_remove_conda_3(
     upgrades a dependency) it could produce spurious RemoveError, blocking
     further use of conda.
     """
-    if context.solver not in ("libmamba", "classic", "rattler"):
-        pytest.skip(
-            "This test can only be run with solvers that come shipped with conda"
-        )
+    pkgs = ["conda", "conda-pypi"]
+    if context.solver in ("classic", "pycosat"):
+        pkgs.append("conda-canary/label/dev::conda-classic-solver")
+    elif context.solver in ("libmamba", "rattler"):
+        pkgs.append(f"conda-{context.solver}-solver")
+    else:
+        pytest.skip("This test can only be run with known solvers")
 
-    with tmp_env("conda", "conda-pypi") as prefix:
+    with tmp_env(*pkgs) as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         monkeypatch.setenv("CONDA_PREFIX", str(prefix))
         monkeypatch.delenv("CONDA_DEFAULT_ENV", raising=False)
