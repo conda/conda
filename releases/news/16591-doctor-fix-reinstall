@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `conda doctor --fix` reinstalls for altered/missing files by building `name=version=build` specs from conda-meta records and syncing `force_reinstall` into context so packages are actually reinstalled. (#16591)
+* Fix `conda doctor --fix` reinstalls for altered/missing files by building installable `name=version=build` specs from conda-meta records and passing `force_reinstall` through to the solver. (#16591 via #16617)
 
 ### Deprecations
 
