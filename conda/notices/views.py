@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Handles all display/view logic."""
 
+import shutil
+import textwrap
 from collections.abc import Sequence
 
 from ..base.context import context
@@ -44,7 +46,24 @@ def print_notice_message(notice: ChannelNotice, indent: str = "  ") -> None:
 
     level = f"[{notice.level}] -- {timestamp}"
 
-    print(f"{indent}{level}\n{indent}{notice.message}")
+    terminal_width = shutil.get_terminal_size().columns
+    if terminal_width <= 0:
+        terminal_width = 80
+
+    message = str(notice.message)
+    wrapped_message = "\n".join(
+        textwrap.fill(
+            line,
+            width=terminal_width,
+            initial_indent=indent,
+            subsequent_indent=indent,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        for line in message.split("\n")
+    )
+
+    print(f"{indent}{level}\n{wrapped_message}")
 
 
 def print_more_notices_message(

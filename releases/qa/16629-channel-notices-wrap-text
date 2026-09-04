@@ -1,0 +1,38 @@
+### Title
+Channel notices should warp on the terminal
+
+### Why
+Test for issue https://github.com/conda/conda/issues/16598
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [ ] Linux
+
+### Prerequisites
+None (assumes that the default channel still has the main-x channel notice)
+
+### Steps
+Run the command:
+```
+$ conda notices -c defaults
+```
+
+### Pass criteria
+Observe that the whole notice message is readable. For example:
+```
+Channel "defaults" has the following notices:
+  [info] -- Thu Aug  6 00:00:00 2026
+  main-x (Anaconda's new authenticated channel) is now generally available, with thousands of
+  additional packages from our secure supply chain. Get started at:
+  https://anaconda.com/docs/getting-started/main-x?utm_source=channel_notices
+```
+
+The message should not be cut off, for example:
+```
+Channel "defaults" has the following notices:
+  [info] -- Thu Aug  6 00:00:00 2026
+  main-x (Anaconda's new authenticated channel) is now generally available with thousands of additional packages from s
+```
+
+### Out of scope / notes

@@ -17,7 +17,8 @@ from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.common.url import path_to_url
 from conda.exceptions import CondaError, PackagesNotFoundError
-from conda.notices import fetch
+from conda.notices import fetch, views
+from conda.notices.types import ChannelNoticeResponse
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
@@ -462,3 +463,80 @@ def test_notices_shown_after_previous_command_error(
     out, err, _ = conda_cli("create", f"--prefix={path_factory()}", "--yes")
     assert message in out
     assert message not in err
+
+
+@pytest.mark.parametrize(
+    ("terminal_width", "notice_json", "expected"),
+    (
+        pytest.param(
+            24,
+            {
+                "message": "A channel notice message should remain complete after wrapping."
+            },
+            (
+                "  [info] -- \n"
+                "  A channel notice\n"
+                "  message should remain\n"
+                "  complete after\n"
+                "  wrapping.\n"
+            ),
+            id="wraps-message",
+        ),
+        pytest.param(
+            0,
+            {"message": "This notice is still shown."},
+            "  [info] -- \n  This notice is still shown.\n",
+            id="zero-width-terminal",
+        ),
+        pytest.param(
+            30,
+            {
+                "message": (
+                    "Read the documentation before continuing:\n"
+                    "\n"
+                    "https://example.com/documentation/channel-notices?source=conda"
+                )
+            },
+            (
+                "  [info] -- \n"
+                "  Read the documentation\n"
+                "  before continuing:\n"
+                "\n"
+                "  https://example.com/documentation/channel-notices?source=conda\n"
+            ),
+            id="preserves-newlines-and-url",
+        ),
+        pytest.param(
+            80,
+            {},
+            "  [info] -- \n  None\n",
+            id="missing-message",
+        ),
+        pytest.param(
+            80,
+            {"message": 42},
+            "  [info] -- \n  42\n",
+            id="non-string-message",
+        ),
+    ),
+)
+def test_print_notice_message(
+    terminal_width,
+    notice_json,
+    expected,
+    capsys,
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "conda.notices.views.shutil.get_terminal_size",
+        return_value=os.terminal_size((terminal_width, 24)),
+    )
+    notice = ChannelNoticeResponse(
+        "https://example.com/notices.json",
+        "example",
+        {"notices": [notice_json]},
+    ).notices[0]
+
+    views.print_notice_message(notice)
+
+    assert capsys.readouterr().out == expected
