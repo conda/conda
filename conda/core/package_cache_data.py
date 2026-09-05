@@ -19,6 +19,7 @@ from itertools import chain
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
+from pathlib import Path
 from sys import platform
 from tarfile import ReadError
 from typing import TYPE_CHECKING
@@ -67,7 +68,6 @@ from .path_actions import CacheUrlAction, ExtractPackageAction
 
 if TYPE_CHECKING:
     from concurrent.futures import Future
-    from pathlib import Path
 
     from ..plugins.types import ProgressBarBase
 
@@ -89,6 +89,37 @@ EXTRACT_PROCESS_EXTENSIONS = (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
 )
+
+
+def get_softlinked_package_dirs() -> set[Path]:
+    """Return cache directories known environments may reference through symlinks."""
+    from ..models.enums import LinkType
+    from .envs_manager import list_all_known_prefixes
+    from .prefix_data import PrefixData
+
+    prefixes = set(list_all_known_prefixes())
+    prefixes.update(
+        prefix
+        for prefix in (
+            context.root_prefix,
+            context.conda_prefix,
+            context.active_prefix,
+            context.target_prefix,
+        )
+        if prefix
+    )
+
+    package_dirs = set()
+    for prefix in prefixes:
+        prefix_data = PrefixData(prefix, interoperability=False)
+        if not prefix_data.is_environment():
+            continue
+        for record in prefix_data.iter_records():
+            link = getattr(record, "link", None)
+            # Older records may have a source without recording the link type.
+            if link and getattr(link, "type", LinkType.softlink) == LinkType.softlink:
+                package_dirs.add(Path(link.source).resolve(strict=False))
+    return package_dirs
 
 
 class PackageCacheType(type):
