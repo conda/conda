@@ -425,6 +425,16 @@ class Index(UserDict):
         except (PackagesNotFoundError, KeyError):
             return False
 
+    def __bool__(self) -> bool:
+        """Return True if the index contains or can provide packages without realizing.
+
+        Avoids falling back to UserDict.__len__ which accesses self.data and forces
+        materialization of all PackageRecords across all channels.
+        """
+        if "_data" in self.__dict__:
+            return bool(self._data)
+        return bool(self.expanded_channels or self.prefix_data or self.use_system)
+
     def __copy__(self) -> Self:
         inst = self.__class__.__new__(self.__class__)
         inst.__dict__.update(self.__dict__)

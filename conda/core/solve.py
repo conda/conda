@@ -1363,7 +1363,7 @@ class Solver(BaseSolver):
         if self._prepared and prepared_specs == self._prepared_specs:
             return self._index, self._r
 
-        if hasattr(self, "_index") and self._index is not None:
+        if hasattr(self, "_index") and bool(self._index):
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
             if isinstance(self._index, Index) and not isinstance(
