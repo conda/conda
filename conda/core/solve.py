@@ -1363,9 +1363,13 @@ class Solver(BaseSolver):
         if self._prepared and prepared_specs == self._prepared_specs:
             return self._index, self._r
 
-        if hasattr(self, "_index") and self._index:
+        if hasattr(self, "_index") and self._index is not None:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
+            if isinstance(self._index, Index) and not isinstance(
+                self._index, ReducedIndex
+            ):
+                self._index = self._index.get_reduced_index(prepared_specs)
             self._r = Resolve(self._index, channels=self.channels)
         else:
             # add in required channels that aren't explicitly given in the channels list
