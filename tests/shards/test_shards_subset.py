@@ -41,6 +41,7 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
+from conda.models.match_spec import MatchSpec
 
 from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
@@ -579,61 +580,70 @@ def repodata_subset_size(channel_data):
 
 
 @pytest.mark.benchmark
-@pytest.mark.integration
+@pytest.mark.usefixtures("reset_conda_context", "temp_package_cache")
 @pytest.mark.parametrize("cache_state", ("cold", "warm"))
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
 @pytest.mark.parametrize(
-    "scenario",
-    TESTING_SCENARIOS,
-    ids=[scenario["name"] for scenario in TESTING_SCENARIOS],
+    "root_packages, expected_record_count",
+    [(["python"], 160), (["ansible", "pyyaml", "jinja2"], 1200)],
+    ids=["python", "devops"],
 )
-def test_traversal_algorithm_benchmarks(
+def test_traversal_algorithms_local_benchmark(
     benchmark: BenchmarkFixture,
     cache_state: str,
     algorithm: str,
-    scenario: dict,
+    root_packages: list[str],
+    expected_record_count: int,
+    http_server_benchmark_shards,
 ):
-    """
-    Benchmark multiple traversal algorithms for retrieving repodata shards with
-    a variety of parameter states (described below).
-
-    cache_state:
-        Either "cold" or "warm" representing shards available or not available in
-        SQLite, respectively.
-
-    algorithm:
-        Method used to fetch shards
-
-    scenario:
-        List of packages to use to create an environment
-    """
-    cache = shards_cache.ShardCache(Path(conda.gateways.repodata.create_cache_dir()))
-    if cache_state == "warm":
-        # Clean shards cache just once for "warm"; leave index cache intact.
-        cache.remove_cache()
+    """Measure traversal with fixed local shards and an empty or populated cache."""
+    channel_url, repodata = http_server_benchmark_shards
+    channel = Channel.from_url(channel_url)
+    channels = {channel.url(): channel}
 
     def setup():
-        if cache_state != "warm":
-            # For "cold", we want to clean shards cache before each round of benchmarking
-            cache.remove_cache()
+        if cache_state == "cold":
+            cache.clear_cache()
 
-        channels = [Channel(f"{scenario['channel']}/{scenario['platform']}")]
-        channel_data = fetch_channels(expand_channels(channels))
-
+        channel_data = fetch_channels(channels)
         assert channel_data is not None
-        assert len(channel_data) in (2, 4), "Expected 2 or 4 channels fetched"
-
-        subset = RepodataSubset((*channel_data.values(),))
-
+        assert len(channel_data) == 1
+        with context._override("add_pip_as_python_dependency", False):
+            subset = RepodataSubset((*channel_data.values(),))
         return (subset,), {}
 
     def target(subset: RepodataSubset):
-        with _timer(""):
-            subset.reachable(scenario["packages"], strategy=algorithm)
+        subset.reachable(root_packages, strategy=algorithm)
+        return subset
 
-    warmup_rounds = 1 if cache_state == "warm" else 0
-
-    benchmark.pedantic(target, setup=setup, rounds=1, warmup_rounds=warmup_rounds)
+    with shards_cache.ShardCache(
+        Path(conda.gateways.repodata.create_cache_dir())
+    ) as cache:
+        subset = benchmark.pedantic(
+            target, setup=setup, rounds=5, iterations=1, warmup_rounds=1
+        )
+    actual_repodata = subset.shardlikes[0].build_repodata()
+    records = {**actual_repodata["packages"], **actual_repodata["packages.conda"]}
+    package_names = {record["name"] for record in records.values()}
+    available_package_names = {
+        record["name"]
+        for group in ("packages", "packages.conda")
+        for record in repodata.get(group, {}).values()
+    }
+    dependencies = {
+        MatchSpec(dependency).name
+        for record in records.values()
+        for dependency in record.get("depends", ())
+    }
+    assert len(records) == expected_record_count
+    assert set(root_packages) <= package_names
+    assert dependencies & available_package_names <= package_names
+    for group in ("packages", "packages.conda"):
+        assert actual_repodata[group] == {
+            filename: record
+            for filename, record in repodata.get(group, {}).items()
+            if record["name"] in package_names
+        }
 
 
 @pytest.mark.parametrize(

@@ -15,7 +15,6 @@ env:
   BENCHMARK_RESULTS: benchmark_results.json
   BENCHMARK_RESULTS_ARTIFACT: benchmark-results
   PR_EVENT_ARTIFACT: benchmark-event
-  TESTBED: ubuntu-22.04
 
 jobs:
   track-base-branch:
@@ -68,6 +67,19 @@ jobs:
           && env.BENCHER_PROJECT_SLUG != ''
         uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
 
+      - name: Identify Benchmark Testbed
+        if: steps.artifact.outputs.found == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const fs = require("fs")
+            const machine = JSON.parse(fs.readFileSync(process.env.BENCHMARK_RESULTS, "utf8")).machine_info
+            const python = machine.python_version.split(".").slice(0, 2).join(".")
+            // Use the benchmark producer's hardware, not this reporting runner's hardware.
+            const name = `${machine.system}-${machine.machine}-py${python}-${machine.cpu.brand_raw}`.replace(/[^\w.-]+/g, "-")
+            const hash = require("crypto").createHash("sha256").update(name).digest("hex").slice(0, 12)
+            core.exportVariable("TESTBED", name.length <= 64 ? name : `${name.slice(0, 51)}-${hash}`)
+
       - name: Track base branch benchmarks with Bencher
         if: >-
           steps.artifact.outputs.found == 'true'
@@ -101,6 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      checks: write
       pull-requests: write
 
     env:
@@ -162,6 +175,19 @@ jobs:
           && env.BENCHER_API_TOKEN != ''
           && env.BENCHER_PROJECT_SLUG != ''
         uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
+
+      - name: Identify Benchmark Testbed
+        if: steps.artifacts.outputs.found == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const fs = require("fs")
+            const machine = JSON.parse(fs.readFileSync(process.env.BENCHMARK_RESULTS, "utf8")).machine_info
+            const python = machine.python_version.split(".").slice(0, 2).join(".")
+            // Use the benchmark producer's hardware, not this reporting runner's hardware.
+            const name = `${machine.system}-${machine.machine}-py${python}-${machine.cpu.brand_raw}`.replace(/[^\w.-]+/g, "-")
+            const hash = require("crypto").createHash("sha256").update(name).digest("hex").slice(0, 12)
+            core.exportVariable("TESTBED", name.length <= 64 ? name : `${name.slice(0, 51)}-${hash}`)
 
       - name: Track PR benchmarks with Bencher
         if: >-

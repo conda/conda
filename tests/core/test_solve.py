@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import re
 import sys
+from contextlib import ExitStack
 from importlib.metadata import version
 from pprint import pprint
 from typing import TYPE_CHECKING
@@ -56,9 +57,8 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
-@pytest.mark.benchmark
 @pytest.mark.flaky(reruns=5)
-def test_solve_1(benchmark: BenchmarkFixture, tmpdir, request):
+def test_solve_1(tmpdir):
     """
     This test is flaky with libmamba. Sometimes it gets a different Python 2.x in the solution:
 
@@ -85,48 +85,84 @@ def test_solve_1(benchmark: BenchmarkFixture, tmpdir, request):
     ```
     """
 
-    def run():
-        specs = (MatchSpec("numpy"),)
+    specs = (MatchSpec("numpy"),)
 
+    with get_solver(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-3.3.2-0",
+                "channel-1::numpy-1.7.1-py33_0",
+            )
+        )
+        assert convert_to_dist_str(final_state) == order
+
+    specs_to_add = (MatchSpec("python=2"),)
+    with get_solver(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        prefix_records=final_state,
+        history_specs=specs,
+    ) as solver:
+        final_state = solver.solve_final_state()
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.5-0",
+                "channel-1::numpy-1.7.1-py27_0",
+            )
+        )
+        assert convert_to_dist_str(final_state) == order
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("operation", ("create", "update"))
+def test_solve_benchmark(benchmark: BenchmarkFixture, tmpdir, operation: str):
+    """Measure solving with a fresh solver and untimed repodata setup."""
+    specs = (MatchSpec("numpy"),)
+    specs_to_add = specs
+    prefix_records = ()
+    history_specs = ()
+    if operation == "update":
         with get_solver(tmpdir, specs) as solver:
-            final_state = solver.solve_final_state()
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-1",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::python-3.3.2-0",
-                    "channel-1::numpy-1.7.1-py33_0",
-                )
-            )
-            assert convert_to_dist_str(final_state) == order
-
+            prefix_records = solver.solve_final_state()
         specs_to_add = (MatchSpec("python=2"),)
-        with get_solver(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            prefix_records=final_state,
-            history_specs=specs,
-        ) as solver:
-            final_state = solver.solve_final_state()
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-1",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::python-2.7.5-0",
-                    "channel-1::numpy-1.7.1-py27_0",
+        history_specs = specs
+
+    def solve(solver):
+        return solver.solve_final_state()
+
+    with ExitStack() as solver_context:
+
+        def setup():
+            solver_context.close()
+            solver = solver_context.enter_context(
+                get_solver(
+                    tmpdir,
+                    specs_to_add=specs_to_add,
+                    prefix_records=prefix_records,
+                    history_specs=history_specs,
                 )
             )
-            assert convert_to_dist_str(final_state) == order
+            return (solver,), {}
 
-    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
+        final_state = benchmark.pedantic(
+            solve, setup=setup, rounds=5, iterations=1, warmup_rounds=1
+        )
+
+    for spec in (*specs, *specs_to_add):
+        assert any(spec.match(record) for record in final_state)
 
 
 def test_solve_2(tmpdir):
