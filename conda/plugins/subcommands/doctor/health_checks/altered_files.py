@@ -110,6 +110,7 @@ def fix_altered_files(prefix: str, args: Namespace, confirm: ConfirmCallback) ->
     confirm("Reinstall these packages to restore original files?")
 
     specs = []
+    skipped = []
     for stem in altered:
         try:
             metadata = json.loads(
@@ -128,11 +129,14 @@ def fix_altered_files(prefix: str, args: Namespace, confirm: ConfirmCallback) ->
             print(
                 f"Reinstalling package {stem} failed due to missing fields in conda-meta record."
             )
+            skipped.append(stem)
 
     if specs:
-        return reinstall_packages(args, specs, force_reinstall=True)
-
-    return 0
+        result = reinstall_packages(args, specs, force_reinstall=True)
+        if skipped:
+            return 1
+        return result
+    return 1
 
 
 @hookimpl
