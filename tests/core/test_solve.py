@@ -17,6 +17,7 @@ from conda.auxlib.ish import dals
 from conda.base.constants import PREFIX_PINNED_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
+from conda.core.index import Index, ReducedIndex
 from conda.core.solve import DepsModifier, Solver, UpdateModifier, get_pinned_specs
 from conda.exceptions import (
     NoChannelsConfiguredError,
@@ -4078,6 +4079,54 @@ def _make_conda_prefix_rec(name, version, channel="test"):
         depends=[],
         constrains=[],
     )
+
+
+def test_prepare_reduces_provided_lazy_index_without_realizing(mocker) -> None:
+    solver = Solver(prefix="idontexist", channels=())
+    provided_index = Index(prepend=False)
+    first_reduced_index = mocker.Mock(spec=ReducedIndex)
+    second_reduced_index = mocker.Mock(spec=ReducedIndex)
+    get_reduced_index = mocker.patch.object(
+        provided_index,
+        "get_reduced_index",
+        side_effect=(first_reduced_index, second_reduced_index),
+    )
+    resolve = mocker.patch("conda.resolve.Resolve")
+    first_specs = {MatchSpec("first")}
+    second_specs = {MatchSpec("second")}
+    solver._index = provided_index
+
+    first_index, _ = solver._prepare(first_specs)
+    second_index, _ = solver._prepare(second_specs)
+
+    assert first_index is first_reduced_index
+    assert second_index is second_reduced_index
+    assert "_data" not in provided_index.__dict__
+    assert get_reduced_index.call_args_list == [
+        mocker.call(first_specs),
+        mocker.call(second_specs),
+    ]
+    assert resolve.call_args_list == [
+        mocker.call(first_reduced_index, channels=solver.channels),
+        mocker.call(second_reduced_index, channels=solver.channels),
+    ]
+
+
+def test_prepare_preserves_records_in_provided_realized_index(mocker) -> None:
+    solver = Solver(prefix="idontexist", channels=())
+    provided_index = Index(prepend=False)
+    record = _make_conda_prefix_rec("custom", "1.0")
+    provided_index._data = {record: record}
+    get_reduced_index = mocker.spy(provided_index, "get_reduced_index")
+    resolve = mocker.patch("conda.resolve.Resolve")
+    solver._index = provided_index
+
+    prepared_index, _ = solver._prepare({MatchSpec("custom")})
+
+    assert prepared_index is provided_index
+    assert prepared_index[record] is record
+    get_reduced_index.assert_not_called()
+    resolve.assert_called_once_with(provided_index, channels=solver.channels)
 
 
 @pytest.mark.parametrize(
