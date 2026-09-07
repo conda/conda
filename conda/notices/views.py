@@ -57,7 +57,6 @@ def print_notice_message(notice: ChannelNotice, indent: str = "  ") -> None:
             width=terminal_width,
             initial_indent=indent,
             subsequent_indent=indent,
-            break_long_words=False,
             break_on_hyphens=False,
         )
         for line in message.split("\n")

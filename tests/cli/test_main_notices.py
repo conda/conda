@@ -502,9 +502,11 @@ def test_notices_shown_after_previous_command_error(
                 "  Read the documentation\n"
                 "  before continuing:\n"
                 "\n"
-                "  https://example.com/documentation/channel-notices?source=conda\n"
+                "  https://example.com/document\n"
+                "  ation/channel-notices?source\n"
+                "  =conda\n"
             ),
-            id="preserves-newlines-and-url",
+            id="preserves-newlines-and-wraps-url",
         ),
         pytest.param(
             80,
