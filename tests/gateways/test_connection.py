@@ -92,7 +92,10 @@ def test_add_binstar_token_notices_json():
     ids=("index", "shard"),
 )
 def test_add_binstar_token_preserves_shard_filenames(
-    filename: str, mocker: MockerFixture, monkeypatch: MonkeyPatch
+    filename: str,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    reset_conda_context,
 ) -> None:
     """Preserve shard paths when inserting a stored token (#16516)."""
     monkeypatch.setenv("CONDA_ADD_ANACONDA_TOKEN", "true")
