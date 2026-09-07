@@ -193,3 +193,49 @@ def test_conda_doctor_fix_missing_files_malformed_meta(
 
     assert code == 1
     mock_reinstall.assert_not_called()
+
+
+def test_conda_doctor_fix_missing_files_mixed_meta(
+    conda_cli: CondaCLIFixture,
+    env_missing_files: EnvFixture,
+    mocker: MockerFixture,
+):
+    """Test fixer reinstalls valid packages but exits nonzero when some conda-meta records are malformed."""
+
+    (env_missing_files.prefix / "conda-meta" / "history").touch()
+
+    bad_meta = (
+        env_missing_files.prefix / "conda-meta" / f"{env_missing_files.package}.json"
+    )
+    data = json.loads(bad_meta.read_text())
+    del data["build"]
+    bad_meta.write_text(json.dumps(data))
+
+    (env_missing_files.prefix / "conda-meta" / "goodpkg.json").write_text(
+        json.dumps(
+            {
+                "name": "goodpkg",
+                "version": "2.0",
+                "build": "1",
+                "files": ["bin/goodpkg"],
+            }
+        )
+    )
+
+    mock_reinstall = mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.missing_files.reinstall_packages",
+        return_value=0,
+    )
+
+    _, _, code = conda_cli(
+        "doctor",
+        "missing-files",
+        "--fix",
+        "--yes",
+        f"--prefix={env_missing_files.prefix}",
+    )
+
+    assert code == 1
+    mock_reinstall.assert_called_once_with(
+        mocker.ANY, ["goodpkg=2.0=1"], force_reinstall=True
+    )
