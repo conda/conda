@@ -1,0 +1,35 @@
+### Title
+Clear a sequence configuration key with `conda config --clear`
+
+### Why
+Verify that `conda config --clear KEY` explicitly leaves a sequence configuration key set to an empty list instead of removing the key entirely.
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+None.
+
+### Steps
+1. Create a file named `condarc.yaml` in a temporary directory with the following contents:
+
+       aggressive_update_packages:
+         - python
+         - pip
+
+2. Run `conda config --file "<temporary-directory>/condarc.yaml" --show aggressive_update_packages`.
+3. Confirm that both `python` and `pip` are shown.
+4. Run `conda config --file "<temporary-directory>/condarc.yaml" --clear aggressive_update_packages`.
+5. Inspect `<temporary-directory>/condarc.yaml`.
+6. Run `conda config --file "<temporary-directory>/condarc.yaml" --show aggressive_update_packages`.
+
+### Pass criteria
+- The `--clear` command exits successfully without an error.
+- The condarc file contains `aggressive_update_packages: []`.
+- `conda config --file "<temporary-directory>/condarc.yaml" --show aggressive_update_packages` reports an empty value for the key.
+- The `aggressive_update_packages` key remains present in the condarc file rather than being removed.
+
+### Out of scope / notes
+Automated tests cover invalid keys, scalar parameters, aliases, plugin sequence settings, and repeated clearing. This scenario only verifies the primary user-facing CLI behavior.
