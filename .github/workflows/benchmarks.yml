@@ -69,16 +69,29 @@ jobs:
 
       - name: Identify Benchmark Testbed
         if: steps.artifact.outputs.found == 'true'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        with:
-          script: |
-            const fs = require("fs")
-            const machine = JSON.parse(fs.readFileSync(process.env.BENCHMARK_RESULTS, "utf8")).machine_info
-            const python = machine.python_version.split(".").slice(0, 2).join(".")
-            // Use the benchmark producer's hardware, not this reporting runner's hardware.
-            const name = `${machine.system}-${machine.machine}-py${python}-${machine.cpu.brand_raw}`.replace(/[^\w.-]+/g, "-")
-            const hash = require("crypto").createHash("sha256").update(name).digest("hex").slice(0, 12)
-            core.exportVariable("TESTBED", name.length <= 64 ? name : `${name.slice(0, 51)}-${hash}`)
+        shell: python
+        run: &identify-benchmark-testbed |
+          import hashlib
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          machine = json.loads(
+              Path(os.environ["BENCHMARK_RESULTS"]).read_text(encoding="utf-8")
+          )["machine_info"]
+          python = ".".join(machine["python_version"].split(".")[:2])
+          # Identify the hardware that produced the benchmark artifact.
+          name = (
+              f"{machine['system']}-{machine['machine']}-py{python}-"
+              f"{machine['cpu']['brand_raw']}"
+          )
+          name = re.sub(r"[^\w.-]+", "-", name, flags=re.ASCII)
+          if len(name) > 64:
+              digest = hashlib.sha256(name.encode()).hexdigest()[:12]
+              name = f"{name[:51]}-{digest}"
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
+              print(f"TESTBED={name}", file=env_file)
 
       - name: Track base branch benchmarks with Bencher
         if: >-
@@ -178,16 +191,8 @@ jobs:
 
       - name: Identify Benchmark Testbed
         if: steps.artifacts.outputs.found == 'true'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        with:
-          script: |
-            const fs = require("fs")
-            const machine = JSON.parse(fs.readFileSync(process.env.BENCHMARK_RESULTS, "utf8")).machine_info
-            const python = machine.python_version.split(".").slice(0, 2).join(".")
-            // Use the benchmark producer's hardware, not this reporting runner's hardware.
-            const name = `${machine.system}-${machine.machine}-py${python}-${machine.cpu.brand_raw}`.replace(/[^\w.-]+/g, "-")
-            const hash = require("crypto").createHash("sha256").update(name).digest("hex").slice(0, 12)
-            core.exportVariable("TESTBED", name.length <= 64 ? name : `${name.slice(0, 51)}-${hash}`)
+        shell: python
+        run: *identify-benchmark-testbed
 
       - name: Track PR benchmarks with Bencher
         if: >-
