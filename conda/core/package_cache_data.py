@@ -116,7 +116,7 @@ def get_softlinked_package_dirs() -> set[Path]:
             continue
         for record in prefix_data.iter_records():
             link = getattr(record, "link", None)
-            # Older records may have a source without recording the link type.
+            # A missing link type does not rule out symlinks.
             if link and getattr(link, "type", LinkType.softlink) == LinkType.softlink:
                 package_dirs.add(Path(link.source).resolve(strict=False))
     return package_dirs

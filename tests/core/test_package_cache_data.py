@@ -31,6 +31,7 @@ from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.models.enums import LinkType
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PrefixRecord
 from conda.testing.helpers import CHANNEL_DIR_V1
 from conda.utils import url_path
 
@@ -112,7 +113,13 @@ def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
                     type=LinkType.hardlink,
                 )
             ),
-            SimpleNamespace(link=SimpleNamespace(source=str(untyped_source))),
+            PrefixRecord(
+                name="untyped",
+                version="1",
+                build="0",
+                build_number=0,
+                link={"source": str(untyped_source)},
+            ),
             SimpleNamespace(link=None),
         ),
         missing_target_prefix: (
