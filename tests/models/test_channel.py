@@ -1391,7 +1391,10 @@ def test_url_with_credentials_preserves_shard_filenames_with_platform():
         f"https://conda.anaconda.org/conda-forge/linux-64/{sha256}.msgpack.zst"
     )
 
-    for channel, filename in ((shards_index, "repodata_shards.msgpack.zst"), (shard, f"{sha256}.msgpack.zst")):
+    for channel, filename in (
+        (shards_index, "repodata_shards.msgpack.zst"),
+        (shard, f"{sha256}.msgpack.zst"),
+    ):
         assert channel.name == "conda-forge"
         assert channel.platform == "linux-64"
         assert channel.package_filename == filename
