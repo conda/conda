@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from conda.base.context import context
@@ -163,3 +164,32 @@ def test_conda_doctor_fix_accepts_override_frozen(
     assert not err
     assert code == 0
     mock_reinstall.assert_called_once()
+
+
+def test_conda_doctor_fix_missing_files_malformed_meta(
+    conda_cli: CondaCLIFixture,
+    env_missing_files: EnvFixture,
+    mocker: MockerFixture,
+):
+    """Test that malformed metadata leads to reinstall failure"""
+    meta = env_missing_files.prefix / "conda-meta" / f"{env_missing_files.package}.json"
+    (env_missing_files.prefix / "conda-meta" / "history").touch()
+    data = json.loads(meta.read_text())
+    del data["version"]
+    meta.write_text(json.dumps(data))
+
+    mock_reinstall = mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.missing_files.reinstall_packages",
+        return_value=0,
+    )
+
+    out, err, code = conda_cli(
+        "doctor",
+        "missing-files",
+        "--fix",
+        "--yes",
+        f"--prefix={env_missing_files.prefix}",
+    )
+
+    assert code == 1
+    mock_reinstall.assert_not_called()
