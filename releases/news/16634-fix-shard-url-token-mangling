@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Fix `Channel.url(with_credentials=True)` mangling authenticated sharded-repodata URLs by recognizing `.msgpack.zst` as a repodata extension. (#16516 via #16634)
