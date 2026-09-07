@@ -43,7 +43,7 @@ def find_packages_with_missing_files(prefix: str | Path) -> dict[str, list[str]]
                 file,
                 exc,
             )
-            continue
+            raise
         for file_name in metadata.get("files", []):
             if (
                 not excluded_files_check(file_name)

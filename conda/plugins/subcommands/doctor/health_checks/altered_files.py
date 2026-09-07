@@ -41,7 +41,7 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
                 file,
                 exc,
             )
-            continue
+            raise
 
         try:
             paths_data = metadata["paths_data"]
