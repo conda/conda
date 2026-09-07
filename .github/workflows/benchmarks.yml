@@ -75,11 +75,9 @@ jobs:
           import json
           import os
           import re
-          from pathlib import Path
 
-          machine = json.loads(
-              Path(os.environ["BENCHMARK_RESULTS"]).read_text(encoding="utf-8")
-          )["machine_info"]
+          with open(os.environ["BENCHMARK_RESULTS"], encoding="utf-8") as results:
+              machine = json.load(results)["machine_info"]
           python = ".".join(machine["python_version"].split(".")[:2])
           # Identify the hardware that produced the benchmark artifact.
           name = (
@@ -90,8 +88,8 @@ jobs:
           if len(name) > 64:
               digest = hashlib.sha256(name.encode()).hexdigest()[:12]
               name = f"{name[:51]}-{digest}"
-          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
-              print(f"TESTBED={name}", file=env_file)
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              print(f"BENCHER_TESTBED={name}", file=env_file)
 
       - name: Track base branch benchmarks with Bencher
         if: >-
@@ -106,7 +104,6 @@ jobs:
             --token "$BENCHER_API_TOKEN" \
             --branch "$BRANCH_NAME" \
             --hash "${{ github.event.workflow_run.head_sha }}" \
-            --testbed "$TESTBED" \
             --threshold-measure latency \
             --threshold-test t_test \
             --threshold-max-sample-size 64 \
@@ -209,7 +206,6 @@ jobs:
             --start-point-hash "$PR_BASE_SHA" \
             --start-point-clone-thresholds \
             --start-point-reset \
-            --testbed "$TESTBED" \
             --ci-only-thresholds \
             --ci-only-on-alert \
             --err \
