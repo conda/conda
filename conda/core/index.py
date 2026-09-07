@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import copy as copy_module
 from collections import UserDict
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -432,7 +431,7 @@ class Index(UserDict):
             inst.__dict__["_data"] = self.__dict__["_data"].copy()
         return inst
 
-    def copy(self) -> Index:
+    def copy(self) -> Self:
         """Lazy shallow copy that does not realize unrealized package records.
 
         Overrides ``UserDict.copy``, which (on Python >= 3.13) reads
@@ -441,7 +440,7 @@ class Index(UserDict):
         of every channel — even though ``__copy__`` preserves unrealized
         state. See conda/conda-build#4961.
         """
-        return copy_module.copy(self)
+        return self.__copy__()
 
 
 class ReducedIndex(Index):

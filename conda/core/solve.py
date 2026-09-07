@@ -67,6 +67,7 @@ class BaseSolver:
     """
 
     _index: ReducedIndex | None
+    _provided_index: Index | dict | None
     _r: Resolve | None
 
     supports_exclude_newer_global: ClassVar[bool] = False
