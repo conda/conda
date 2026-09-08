@@ -1,0 +1,11 @@
+### Enhancements
+
+* Use the published `conda-launchers` package for Windows entry points, including native ARM64 launchers, and verify their package hashes before copying. (#16293)
+
+### Bug fixes
+
+### Deprecations
+
+### Docs
+
+### Other

@@ -4,6 +4,7 @@ Authors are sorted alphabetically.
 * ARF1
 * Aaron Meurer
 * Abheek Mathur
+* Adel Kaleche
 * Adrian Freund
 * Agriya Khetarpal
 * Ahmet Deger
@@ -63,6 +64,7 @@ Authors are sorted alphabetically.
 * Brad Erickson
 * Brad Nemanich
 * Brad S
+* Bradley Dice
 * Bradley Kreider
 * Brennan Chapman
 * Brent Pedersen
@@ -104,6 +106,7 @@ Authors are sorted alphabetically.
 * Dan Meador
 * Dan Yeaw
 * Daniel Bast
+* Daniel Ching
 * Daniel Holth
 * Daniel Hook
 * Daniel Wehner
@@ -470,13 +473,16 @@ Authors are sorted alphabetically.
 * Xuehai Pan
 * Xylar Asay-Davis
 * Yaroslav Dmytryk
+* Yuchen Fan
 * Yuval Reches
 * Yuvi Panda
 * Zach Heaton
 * Zahari
 * Zhiwei Liang
 * Zongyuan Zuo
+* btraven
 * dependabot[bot]
+* eeshsaxena
 * endolith
 * giumas
 * kanehira

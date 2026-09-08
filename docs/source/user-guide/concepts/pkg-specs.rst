@@ -279,12 +279,78 @@ Windows::
 Package match specifications
 ============================
 
-This match specification is not the same as the syntax used at
-the command line with ``conda install``, such as
-``conda install python=3.9``. Internally, conda translates the
-command line syntax to the spec defined in this section.
+Conda accepts package specifications on the command line with commands
+such as ``conda install`` and ``conda create``. Common command-line forms
+are described in `Command-line package specifications`_.
+
+Internally, conda translates command-line package specifications into
+canonical match specifications.
 
 EXAMPLE: python=3.9 is translated to python 3.9*.
+
+Command-line package specifications
+-----------------------------------
+
+The ``package_spec`` arguments accepted by commands such as
+``conda install`` and ``conda create`` are package match specifications
+written in a command-line friendly form. They can be as simple as a
+package name or can include version, build, channel, and subdir
+constraints.
+
+Common forms include:
+
+.. list-table::
+   :widths: 35 65
+   :header-rows: 1
+
+   * - Form
+     - Meaning
+   * - ``numpy``
+     - Match any available ``numpy`` package that is compatible with the
+       environment and configured channels.
+   * - ``numpy=1.11``
+     - Match the ``1.11`` release series. This is a fuzzy version match
+       and is translated internally to a version pattern such as
+       ``numpy 1.11*``.
+   * - ``numpy==1.11``
+     - Exact match for version 1.11. This also matches 1.11.0 and 1.11.0.0, but not 1.11.1.
+        Unlike numpy=1.11, it does not match the whole 1.11 series.
+   * - ``numpy>=1.8``
+     - Match versions greater than or equal to ``1.8``.
+   * - ``numpy>=1.8,<2``
+     - Match versions greater than or equal to ``1.8`` and less than
+       ``2``.
+   * - ``numpy=1.11.2=*nomkl*``
+     - Match ``numpy`` version ``1.11.2`` with a build string matching
+       ``*nomkl*``.
+
+   * - ``conda-forge::numpy``
+     - Match ``numpy`` from the ``conda-forge`` channel.
+   * - ``conda-forge/linux-64::numpy``
+     - Match ``numpy`` from the ``linux-64`` subdir of the
+       ``conda-forge`` channel.
+
+Supported version operators include ``<``, ``>``, ``<=``, ``>=``,
+``==``, and ``!=``. Commas separate constraints that must all be true
+(AND), while ``|`` separates alternatives (OR). Wildcards such as ``*``
+can be used in version and build string constraints.
+
+When entering package specifications in a shell, quote specifications
+that contain characters interpreted by the shell, such as ``<``, ``>``,
+``*``, or ``|``. For example::
+
+  conda install "numpy>=1.8,<2"
+  conda create -n science-env "python>=3.11" scipy
+
+If no version constraint is provided, conda attempts to install a package
+that satisfies the requested name, the configured channels, the platform,
+and the other constraints in the environment.
+
+Canonical match specifications
+------------------------------
+
+`CEP 29 <https://conda.org/learn/ceps/cep-0029/>`_ describes the
+canonical package match specification grammar used by conda.
 
 Package dependencies are specified using a match specification.
 A match specification is a space-separated string of 1, 2, or 3

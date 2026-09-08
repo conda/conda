@@ -8,8 +8,11 @@ import os
 import re
 import struct
 import subprocess
+import threading
+from contextlib import contextmanager
 from logging import getLogger
 from os.path import basename, realpath
+from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
@@ -20,6 +23,9 @@ from ..gateways.disk.update import CancelOperation, update_file_in_place_as_bina
 from ..models.enums import FileMode
 
 log = getLogger(__name__)
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 # three capture groups: whole_shebang, executable, options
@@ -123,10 +129,62 @@ def update_prefix(
     updated = update_file_in_place_as_binary(realpath(path), _update_prefix)
 
     if updated and mode == FileMode.binary and subdir == "osx-arm64" and on_mac:
-        # Apple arm64 needs signed executables
+        _codesign_or_enqueue(realpath(path))
+
+
+_codesign_batch_state = threading.local()
+
+
+def _run_codesign(paths: list[str]) -> None:
+    if not paths:
+        return
+
+    # macOS Darwin has ARG_MAX ~ 1 MB; per-path cost is typically
+    # 100-200 bytes of fully-qualified realpath. 500-path chunks stay
+    # well under the cap.
+    chunk_size = 500
+    for i in range(0, len(paths), chunk_size):
         subprocess.run(
-            ["/usr/bin/codesign", "-s", "-", "-f", realpath(path)], capture_output=True
+            ["/usr/bin/codesign", "-s", "-", "-f", *paths[i : i + chunk_size]],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
+
+
+def _codesign_or_enqueue(path: str) -> None:
+    paths = getattr(_codesign_batch_state, "paths", None)
+    if paths is None:
+        _run_codesign([path])
+    else:
+        paths.append(path)
+
+
+@contextmanager
+def batch_codesign_calls() -> Iterator[None]:
+    """Batch osx-arm64 ``codesign`` calls made by :func:`update_prefix`.
+
+    Direct ``update_prefix`` callers keep the old immediate-signing behavior.
+    Transaction verification wraps prefix rewrites in this context so the
+    rewritten intermediates can be signed with fewer subprocesses before they
+    are linked into the target prefix. See #15975.
+    """
+    parent_paths = getattr(_codesign_batch_state, "paths", None)
+    paths: list[str] = []
+    _codesign_batch_state.paths = paths
+    succeeded = False
+    try:
+        yield
+        succeeded = True
+    finally:
+        if parent_paths is None:
+            delattr(_codesign_batch_state, "paths")
+        else:
+            _codesign_batch_state.paths = parent_paths
+        if succeeded:
+            if parent_paths is None:
+                _run_codesign(paths)
+            else:
+                parent_paths.extend(paths)
 
 
 def replace_prefix(
@@ -149,7 +207,7 @@ def replace_prefix(
 
     Args:
         mode: The mode of operation.
-        original_data: The original data to be updated.
+        data: The original data to be updated.
         placeholder: The placeholder to be replaced.
         new_prefix: The new prefix to be used.
         subdir: The subdirectory to be used.
@@ -384,12 +442,26 @@ def generate_shebang_for_entry_point(
         The generated shebang line.
     """
     shebang = f"#!{executable}\n"
-    if os.environ.get("CONDA_BUILD") == "1" and "/_h_env_placehold" in executable:
-        # This is being used during a conda-build process,
-        # which uses long prefixes on purpose. This will be replaced
-        # with the real environment prefix at install time. Do not
-        # do nothing for now.
-        return shebang
+    build_prefix = os.environ.get("PREFIX")
+    build_prefix_markers = ("_h_env_placehold", "host_env_placehold")
+    executable_has_build_prefix = any(
+        path_part.startswith(build_prefix_markers)
+        for path_part in os.path.abspath(executable).split(os.sep)
+    )
+    if os.environ.get("CONDA_BUILD") == "1" and executable_has_build_prefix:
+        executable_in_prefix = True
+        if build_prefix:
+            executable_path = os.path.abspath(executable)
+            build_prefix = os.path.abspath(build_prefix)
+            try:
+                executable_in_prefix = (
+                    os.path.commonpath((executable_path, build_prefix)) == build_prefix
+                )
+            except ValueError:
+                executable_in_prefix = False
+        if executable_in_prefix:
+            # The build tool will relocate this prefix at installation time.
+            return shebang
 
     # In principle, the naive shebang will work as long as the path
     # to the python executable does not contain spaces AND it's not

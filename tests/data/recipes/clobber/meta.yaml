@@ -1,0 +1,14 @@
+package:
+  name: clobber-{{ variant }}
+  version: 1.0
+
+build:
+  noarch: generic
+  string: "0"
+  script:
+    # since this is a noarch package we don't care that this is unix
+    - mkdir -p ${PREFIX}/bin
+    - echo "clobber-{{ variant }}" > ${PREFIX}/bin/clobber-test-file
+
+about:
+  summary: Ships bin/clobber-test-file (pair with the other clobber-* for path conflicts)

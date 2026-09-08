@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from logging import WARN
+from logging import WARNING
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -364,7 +364,7 @@ def test_clean_all(
     assert not has_pkg(pkg, tars)
     assert not cache
 
-    set_log_level(WARN)  # reset verbosity
+    set_log_level(WARNING)  # reset verbosity
 
 
 # conda clean --all --verbose
@@ -404,7 +404,7 @@ def test_clean_all_mock_lstat(
         assert has_pkg(pkg, tars)
         assert cache
 
-    set_log_level(WARN)  # reset verbosity
+    set_log_level(WARNING)  # reset verbosity
 
 
 # _get_size unittest, valid file

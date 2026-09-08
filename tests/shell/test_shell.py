@@ -84,7 +84,7 @@ class Env:
 @pytest.fixture(scope="module")
 def stacking_envs(session_tmp_env: TmpEnvFixture) -> dict[str, Env]:
     # create envs using full path to avoid solver
-    path = TEST_RECIPES_CHANNEL / "noarch" / "small-executable-1.0.0-0.conda"
+    path = TEST_RECIPES_CHANNEL / "noarch" / "small-executable-1.0-0.conda"
     with (
         session_tmp_env(path) as base_env,
         session_tmp_env(path) as has_env,
@@ -168,7 +168,7 @@ def test_stacking(
             sh.sendline(f'conda activate "{env.prefix}"')
         sh.clear()
 
-        sh.sendline(f'conda run --prefix="{run.prefix}" --dev {which}')
+        sh.sendline(f'conda run --prefix="{run.prefix}" {which}')
         if not expected:
             sh.expect_exact(f"'conda run {which}' failed")
         else:

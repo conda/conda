@@ -762,7 +762,7 @@ class Resolve:
 
             reduced = nnew < nold
             if reduced:
-                log.debug("%s: pruned from %d -> %d" % (name, nold, nnew))
+                log.debug("%s: pruned from %d -> %d", name, nold, nnew)
             if any(ms.optional for ms in _specs):
                 return reduced
             elif nnew == 0:

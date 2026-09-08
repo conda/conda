@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import msgpack
 
-from ..zstd import capped_decompress
+from .decompression import decompress_shard
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -24,9 +24,6 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 SHARD_CACHE_NAME = "repodata_shards.db"
-ZSTD_MAX_SHARD_SIZE = (
-    2**20 * 16
-)  # maximum size necessary when compresed data has no size header
 
 
 @dataclass
@@ -156,10 +153,16 @@ class ShardCache:
 
     def retrieve(self, url) -> ShardDict | None:
         with self.conn as c:
-            row = c.execute("SELECT shard FROM shards WHERE url = ?", (url,)).fetchone()
+            row = c.execute(
+                "SELECT package, shard FROM shards WHERE url = ?", (url,)
+            ).fetchone()
             return (
                 msgpack.loads(
-                    capped_decompress(row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE)
+                    decompress_shard(
+                        row["shard"],
+                        url=url,
+                        package=row["package"],
+                    )
                 )
                 if row
                 else None
@@ -174,11 +177,15 @@ class ShardCache:
         if not urls:
             return {}  # this optimization does not save a noticeable amount of time.
 
-        query = f"SELECT url, shard FROM shards WHERE url IN ({','.join(('?',) * len(urls))}) ORDER BY url"
+        query = f"SELECT url, package, shard FROM shards WHERE url IN ({','.join(('?',) * len(urls))}) ORDER BY url"
         with self.conn as c:
             result: dict[str, ShardDict | None] = {
                 row["url"]: msgpack.loads(
-                    capped_decompress(row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE)
+                    decompress_shard(
+                        row["shard"],
+                        url=row["url"],
+                        package=row["package"],
+                    )
                 )
                 if row
                 else None

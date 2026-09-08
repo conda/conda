@@ -57,8 +57,8 @@ def missing_pyc_files(python_major_minor_version, files):
 
 
 def parse_entry_point_def(ep_definition):
-    cmd_mod, func = ep_definition.rsplit(":", 1)
-    command, module = cmd_mod.rsplit("=", 1)
+    command, defn = ep_definition.split("=", 1)
+    module, func = defn.strip(" \t\r\n\"'").rsplit(":", 1)
     command, module, func = command.strip(), module.strip(), func.strip()
 
     # Validate command

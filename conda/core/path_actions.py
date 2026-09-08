@@ -67,7 +67,7 @@ from ..models.records import (
     PrefixRecord,
 )
 from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
-from .launchers import get_windows_launcher_stub_path
+from .launchers import get_windows_launcher_stub, verify_windows_launcher
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 
@@ -366,7 +366,8 @@ class LinkPathAction(CreateInPrefixPathAction):
         entry_point_def,
         source_package_infos=(),
     ):
-        source_exe_path = get_windows_launcher_stub_path(
+        source_exe_path, sha256 = get_windows_launcher_stub(
+            target_prefix,
             source_prefixes=(context.conda_prefix,),
             source_package_infos=source_package_infos,
         )
@@ -381,6 +382,8 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_path_data = PathDataV1(
             _path=target_short_path,
             path_type=PathEnum.windows_python_entry_point_exe,
+            sha256=sha256,
+            sha256_in_prefix=sha256,
         )
         return cls(
             transaction_context,
@@ -515,6 +518,12 @@ class LinkPathAction(CreateInPrefixPathAction):
         self._verified = True
 
     def execute(self):
+        if (
+            self.source_path_data
+            and self.source_path_data.path_type
+            == PathEnum.windows_python_entry_point_exe
+        ):
+            verify_windows_launcher(self.source_full_path, self.source_path_data.sha256)
         log.log(TRACE, "linking %s => %s", self.source_full_path, self.target_full_path)
         create_link(
             self.source_full_path,
@@ -604,14 +613,12 @@ class PrefixReplaceLinkAction(LinkPathAction):
                 len(self.prefix_placeholder),
             )
 
-        sha256_in_prefix = compute_sum(self.intermediate_path, "sha256")
-
         self.prefix_path_data = PathDataV1.from_objects(
             self.prefix_path_data,
             file_mode=self.file_mode,
             path_type=PathEnum.hardlink,
             prefix_placeholder=self.prefix_placeholder,
-            sha256_in_prefix=sha256_in_prefix,
+            # set in execute() after codesign batch flush
         )
 
         self._verified = True
@@ -620,6 +627,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
         if not self._verified:
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
+        self.prefix_path_data.sha256_in_prefix = compute_sum(source_path, "sha256")
         log.log(TRACE, "linking %s => %s", source_path, self.target_full_path)
         create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True
@@ -1112,6 +1120,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         self.neutered_specs = neutered_specs
 
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
+        self._execute_successful = False
 
     def execute(self):
         log.log(TRACE, "updating environment history %s", self.target_full_path)
@@ -1124,12 +1133,15 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
             PrefixData(self.target_prefix).set_creation_time()
         h.update()
         h.write_specs(self.remove_specs, self.update_specs, self.neutered_specs)
+        self._execute_successful = True
 
     def reverse(self):
+        if not self._execute_successful:
+            return
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
-        if isfile(hpath := History(self.target_prefix).path):
+        elif isfile(hpath := History(self.target_prefix).path):
             rm_rf(hpath)
 
     def cleanup(self):
@@ -1472,10 +1484,14 @@ class ExtractPackageAction(PathAction):
         self._verified = True
 
     def execute(self, progress_update_callback=None):
-        # I hate inline imports, but I guess it's ok since we're importing from the conda.core
-        # The alternative is passing the the classes to ExtractPackageAction __init__
-        from .package_cache_data import PackageCacheData
+        self._prepare_extract()
+        context.plugin_manager.extract_package(
+            self.source_full_path,
+            self.target_full_path,
+        )
+        self._finish_extract()
 
+    def _prepare_extract(self):
         log.log(
             TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
         )
@@ -1483,11 +1499,10 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        # extract the package using the appropriate plugin
-        context.plugin_manager.extract_package(
-            self.source_full_path,
-            self.target_full_path,
-        )
+    def _finish_extract(self):
+        # I hate inline imports, but I guess it's ok since we're importing from the conda.core
+        # The alternative is passing the the classes to ExtractPackageAction __init__
+        from .package_cache_data import PackageCacheData
 
         try:
             raw_index_json = read_index_json(self.target_full_path)

@@ -30,7 +30,11 @@ from conda.core.path_actions import (
     CompileMultiPycAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
+    PrefixReplaceLinkAction,
+    UpdateHistoryAction,
 )
+from conda.core.portability import batch_codesign_calls
+from conda.exceptions import SafetyError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
@@ -38,7 +42,7 @@ from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.channel import Channel
-from conda.models.enums import LinkType, NoarchType, PathEnum
+from conda.models.enums import FileMode, LinkType, NoarchType, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathDataV1, PathsData
 
@@ -314,6 +318,10 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
             ("command1", "some.module", "SomeClass.method"),
         ),
         (
+            'command1 = "some.module:main"',
+            ("command1", "some.module", "main"),
+        ),
+        (
             "../bin/python=some.module:main",
             (ValueError, "simple file name"),
         ),
@@ -485,32 +493,44 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
     assert not lexists(axn.target_full_path)
 
 
+@pytest.mark.parametrize("tampered", [False, True])
 def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
-    tmp_path: Path, mocker: MockerFixture
+    tmp_path: Path, mocker: MockerFixture, tampered: bool
 ):
-    source_path = tmp_path / "source" / "cli-64.exe"
+    source_path = tmp_path / "source" / "cli-arm64.exe"
     source_path.parent.mkdir()
     source_path.write_bytes(b"launcher")
+    digest = compute_sum(source_path, "sha256")
     get_launcher = mocker.patch(
-        "conda.core.path_actions.get_windows_launcher_stub_path",
-        return_value=str(source_path),
+        "conda.core.path_actions.get_windows_launcher_stub",
+        return_value=(str(source_path), digest),
     )
-
+    target_prefix = tmp_path / "target"
+    (target_prefix / "Scripts").mkdir(parents=True)
     axn = LinkPathAction.create_python_entry_point_windows_exe_action(
         {},
         None,
-        tmp_path / "target",
+        target_prefix,
         LinkType.copy,
         "command=some.module:main",
         source_package_infos=("conda-launchers-package-info",),
     )
-
     get_launcher.assert_called_once_with(
+        target_prefix,
         source_prefixes=(context.conda_prefix,),
         source_package_infos=("conda-launchers-package-info",),
     )
-    assert axn.source_full_path == str(source_path)
-    assert axn.target_short_path == "Scripts/command.exe"
+    assert axn.verify() is None
+    assert axn.prefix_path_data.sha256 == digest
+    if tampered:
+        # Corruption after preparation and verification must still prevent copying.
+        source_path.write_bytes(b"modified")
+        with pytest.raises(SafetyError, match="SHA-256 mismatch"):
+            axn.execute()
+        assert not (target_prefix / "Scripts/command.exe").exists()
+    else:
+        axn.execute()
+        assert (target_prefix / "Scripts/command.exe").read_bytes() == b"launcher"
 
 
 def test_create_file_link_actions(tmp_path):
@@ -594,3 +614,94 @@ def test_create_file_link_actions(tmp_path):
 
     assert TARGET_SITE_PACKAGES not in file_link_actions[0].target_short_path
     assert TARGET_SITE_PACKAGES not in file_link_actions[1].target_short_path
+
+
+def test_update_history_action_reverse_prior_history(prefix: Path):
+    history = prefix / "conda-meta" / "history"
+    history.parent.mkdir(parents=True)
+    prior = "==> 2020-01-01 00:00:00 <==\n# cmd: conda create\n"
+    history.write_text(prior)
+
+    (axn,) = UpdateHistoryAction.create_actions({}, str(prefix), (), (), ())
+    axn.execute()
+    assert history.is_file()
+    assert history.read_text() != prior
+
+    axn.reverse()
+    assert history.is_file()
+    assert history.read_text() == prior
+
+
+def test_update_history_action_reverse_new_history(prefix: Path):
+    history = prefix / "conda-meta" / "history"
+    (axn,) = UpdateHistoryAction.create_actions({}, str(prefix), (), (), ())
+    axn.execute()
+    assert history.is_file()
+
+    axn.reverse()
+    assert not history.is_file()
+
+
+def test_update_history_action_reverse_not_executed(prefix: Path):
+    history = prefix / "conda-meta" / "history"
+    history.parent.mkdir(parents=True)
+    prior = "==> 2020-01-01 00:00:00 <==\n# cmd: conda create\n"
+    history.write_text(prior)
+
+    (axn,) = UpdateHistoryAction.create_actions({}, str(prefix), (), (), ())
+    axn.reverse()
+    assert history.is_file()
+    assert history.read_text() == prior
+
+
+def test_prefix_replace_hashes_after_batched_codesign(
+    prefix: Path, pkgs_dir: Path, mocker
+):
+    mocker.patch("conda.core.portability.on_mac", True)
+
+    def fake_codesign(cmd, **kwargs):
+        for path in cmd[4:]:
+            with open(path, "ab") as fh:
+                fh.write(b"SIGN")
+
+    mocker.patch("conda.core.portability.subprocess.run", side_effect=fake_codesign)
+
+    placeholder = "/opt/" + "a" * 200
+    source_short_path = "tool"
+    source_full_path = join(pkgs_dir, source_short_path)
+    with open(source_full_path, "wb") as fh:
+        fh.write(b"\x7fELF" + placeholder.encode() + b"\0")
+
+    source_path_data = PathDataV1(
+        _path=source_short_path,
+        path_type=PathEnum.hardlink,
+        sha256=compute_sum(source_full_path, "sha256"),
+        size_in_bytes=getsize(source_full_path),
+    )
+    package_info = AttrDict(
+        extracted_package_dir=str(pkgs_dir),
+        repodata_record=AttrDict(name="testpkg", subdir="osx-arm64"),
+    )
+    axn = PrefixReplaceLinkAction(
+        {"temp_dir": join(str(prefix), "tmp")},
+        package_info,
+        str(pkgs_dir),
+        source_short_path,
+        str(prefix),
+        source_short_path,
+        LinkType.hardlink,
+        placeholder,
+        FileMode.binary,
+        source_path_data,
+    )
+    mkdir_p(axn.transaction_context["temp_dir"])
+
+    with batch_codesign_calls():
+        axn.verify()
+        before = compute_sum(axn.intermediate_path, "sha256")
+    axn.execute()
+
+    assert axn.prefix_path_data.sha256_in_prefix != before
+    assert axn.prefix_path_data.sha256_in_prefix == compute_sum(
+        axn.target_full_path, "sha256"
+    )

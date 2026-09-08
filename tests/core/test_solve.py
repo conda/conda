@@ -10,6 +10,7 @@ from pprint import pprint
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
+import archspec.cpu
 import pytest
 
 from conda.auxlib.ish import dals
@@ -46,7 +47,7 @@ from conda.testing.helpers import (
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
-    from pytest import MonkeyPatch
+    from pytest import CaptureFixture, MonkeyPatch
     from pytest_benchmark.fixture import BenchmarkFixture
     from pytest_mock import MockerFixture
 
@@ -468,11 +469,12 @@ def test_archspec_call(
     # Remove CONDA_OVERRIDE_ARCHSPEC if it exists.
     monkeypatch.delenv("CONDA_OVERRIDE_ARCHSPEC", raising=False)
     reset_context()
-
-    with patch("archspec.cpu.host") as archspec:
+    archspec_value = archspec.cpu.host()
+    with patch("archspec.cpu.host") as patched_archspec:
+        patched_archspec.return_value = archspec_value
         with get_solver_cuda(tmpdir, specs) as solver:
             solver.solve_final_state()
-            archspec.assert_called()
+            patched_archspec.assert_called()
 
 
 def test_prune_1(tmpdir, request):
@@ -3514,7 +3516,7 @@ fake_index = [
         subdir="conda-test",
         fn="mypkg-0.1.1",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=[],
@@ -3526,9 +3528,9 @@ fake_index = [
         version="0.1.0",
         channel="test",
         subdir="conda-test",
-        fn="mypkg-0.1.1",
+        fn="mypkg-0.1.0",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=[],
@@ -3542,7 +3544,7 @@ fake_index = [
         subdir="conda-test",
         fn="mypkgnot-1.1.1",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=["mypkg 0.1.0"],
@@ -3598,9 +3600,9 @@ def test_determine_constricting_specs_conflicts(tmpdir):
             version="0.1.0",
             channel="test",
             subdir="conda-test",
-            fn="mypkg-0.1.1",
+            fn="mypkg-0.1.0",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3614,7 +3616,7 @@ def test_determine_constricting_specs_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.0"],
@@ -3639,7 +3641,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3653,7 +3655,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg <=0.1.1"],
@@ -3678,7 +3680,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3692,7 +3694,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg <=0.1.1"],
@@ -3704,9 +3706,9 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             version="1.1.1",
             channel="test",
             subdir="conda-test",
-            fn="mypkgnot-1.1.1",
+            fn="notmypkg-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.1"],
@@ -3732,7 +3734,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3746,7 +3748,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg >=0.1.1,<0.2.1"],
@@ -3771,7 +3773,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3785,7 +3787,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.*"],
@@ -3810,7 +3812,7 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3835,7 +3837,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3849,7 +3851,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg >=0.0.5"],
@@ -4059,3 +4061,87 @@ def test_no_channels_error(tmpdir, mocker: MockerFixture):
     assert "No channels are configured" in error_message
     assert "numpy" in error_message
     assert "conda config --append channels" in error_message
+
+
+def _make_conda_prefix_rec(name, version, channel="test"):
+    return PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC,
+        name=name,
+        version=version,
+        channel=channel,
+        subdir="noarch",
+        fn=f"{name}-{version}",
+        build="0",
+        build_number=0,
+        paths_data=None,
+        files=None,
+        depends=[],
+        constrains=[],
+    )
+
+
+@pytest.mark.parametrize(
+    "has_conda_self,is_frozen,expected,unexpected",
+    [
+        pytest.param(
+            True,
+            False,
+            "conda self update",
+            "conda update -n base",
+            id="has_conda_self",
+        ),
+        pytest.param(
+            True,
+            True,
+            "conda self update",
+            "--override-frozen",
+            id="has_conda_self, override-frozen",
+        ),
+        pytest.param(
+            False,
+            False,
+            "conda update -n base -c test conda",
+            "--override-frozen",
+            id="no_conda_self",
+        ),
+        pytest.param(
+            False, True, "--override-frozen", "conda self update", id="frozen"
+        ),
+    ],
+)
+def test_notify_conda_outdated_update_message(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    has_conda_self: bool,
+    is_frozen: bool,
+    expected: str,
+    unexpected: str,
+):
+    monkeypatch.setenv("CONDA_NOTIFY_OUTDATED_CONDA", "true")
+    monkeypatch.setenv("CONDA_QUIET", "false")
+    reset_context()
+
+    # Setup prefix data to return the current conda and conda-self records, and to indicate whether the environment is frozen
+    current_conda = _make_conda_prefix_rec("conda", "0.0.1")
+    newer_conda = _make_conda_prefix_rec("conda", "99.0.0")
+    conda_self = (
+        _make_conda_prefix_rec("conda-self", "1.0.0") if has_conda_self else None
+    )
+    mock_prefix_data = mocker.Mock()
+    mock_prefix_data.get.side_effect = lambda name, default=None: {
+        "conda": current_conda,
+        "conda-self": conda_self,
+    }.get(name, default)
+    mock_prefix_data.is_frozen.return_value = is_frozen
+    mocker.patch("conda.core.solve.PrefixData", return_value=mock_prefix_data)
+
+    # Setup SubdirData query to return a always newer version of conda
+    mocker.patch("conda.core.solve.SubdirData.query_all", return_value=[newer_conda])
+
+    solver = Solver(prefix="idontexist", channels=("test",))
+    solver._notify_conda_outdated(link_precs=())
+
+    err = capsys.readouterr().err
+    assert expected in err
+    assert unexpected not in err

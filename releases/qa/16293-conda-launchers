@@ -1,0 +1,25 @@
+### Title
+Native Windows launchers from conda-launchers.
+
+### Why
+Conda now copies signed launchers from a separate package. Fresh installations and upgrades must select the target Python architecture and preserve the signed bytes.
+
+### Platforms
+- [x] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+Windows x64 and ARM64 systems, the final conda packages, and the published conda-launchers package from the same distribution. Keep Defender and SmartScreen enabled.
+
+### Steps
+1. Install conda into a fresh prefix, run `conda init`, and activate it in cmd and PowerShell.
+2. Create native and cross-target Windows environments with `--platform`, installing Python and a noarch Python package with a console entry point.
+3. Run the entry points on a compatible system and compare their SHA-256 hashes with the selected files in `share/conda-launchers`.
+4. Upgrade conda and conda-launchers in the same transaction, then repeat activation and entry-point checks.
+
+### Pass criteria
+Activation and entry points work with the target Python architecture. Copied launchers retain the package hashes and valid signatures. Windows security software accepts the final production files.
+
+### Out of scope / notes
+Automated tests cover missing files, absent hashes, corrupt launchers, and transaction source selection. Defaults does not provide win-32 launchers, so a request for one must fail explicitly.

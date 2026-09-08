@@ -42,7 +42,7 @@ def get_test_notices(
                 "message": message,
                 "level": level,
                 "created_at": created_at.isoformat(),
-                "expired_at": expired_at.isoformat(),
+                "expires_at": expired_at.isoformat(),
             }
             for message in messages
         ]

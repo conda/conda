@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from ....base.context import context
 from ....cli.helpers import (
     add_output_and_prompt_options,
+    add_parser_frozen_env,
     add_parser_help,
     add_parser_prefix,
 )
@@ -31,6 +32,7 @@ log = logging.getLogger(__name__)
 def configure_parser(parser: ArgumentParser):
     add_parser_help(parser)
     add_parser_prefix(parser)
+    add_parser_frozen_env(parser)
     add_output_and_prompt_options(parser)  # includes --verbose, --dry-run, --yes
     parser.add_argument(
         "checks",

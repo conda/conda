@@ -63,34 +63,34 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         Examples:
 
-        Display all configuration values as calculated and compiled::
+        Display all configuration values as calculated and compiled:
 
             conda config --show
 
-        Display all identified configuration sources::
+        Display all identified configuration sources:
 
             conda config --show-sources
 
         Print the descriptions of all available configuration
-        options to your command line::
+        options to your command line:
 
             conda config --describe
 
         Print the description for the "channel_priority" configuration
-        option to your command line::
+        option to your command line:
 
             conda config --describe channel_priority
 
-        Add the conda-canary channel::
+        Add the conda-canary channel:
 
             conda config --add channels conda-canary
 
         Set the output verbosity to level 3 (highest) for
-        the current activate environment::
+        the current activate environment:
 
             conda config --set verbosity 3 --env
 
-        Add the 'conda-forge' channel as a backup to 'defaults'::
+        Add the 'conda-forge' channel as a backup to 'defaults':
 
             conda config --append channels conda-forge
 
@@ -210,6 +210,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
                 This removes all instances of the value.""",
         default=[],
         metavar=("KEY", "VALUE"),
+    )
+    config_modifiers.add_argument(
+        "--clear",
+        action="append",
+        help="""Clear all values from a list key.""",
+        default=[],
+        metavar="KEY",
     )
     config_modifiers.add_argument(
         "--remove-key",
@@ -697,6 +704,10 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     # Remove
     for key, item in args.remove:
         rc_config.remove_item(key, item)
+
+    # Clear
+    for key in args.clear or ():
+        rc_config.clear_key(key)
 
     # Remove Key
     for key in args.remove_key:

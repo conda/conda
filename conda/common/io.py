@@ -9,15 +9,13 @@ import os
 import signal
 import sys
 from collections import defaultdict
-from concurrent.futures import Executor, Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
 from errno import EPIPE, ESHUTDOWN
 from functools import partial, wraps
 from io import BytesIO, StringIO
-from logging import CRITICAL, WARN, Formatter, StreamHandler, getLogger
+from logging import CRITICAL, WARNING, Formatter, StreamHandler, getLogger
 from os.path import dirname, isdir, isfile, join
-from threading import Lock
 from time import time
 from typing import TYPE_CHECKING
 
@@ -37,14 +35,6 @@ from .constants import NULL
 from .path import expand
 
 log = getLogger(__name__)
-
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "IS_INTERACTIVE",
-    hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
-    addendum="Use `conda.common.terminal.is_tty()` instead.",
-)
 
 
 class DeltaSecondsFormatter(Formatter):
@@ -403,7 +393,7 @@ def stderr_log_level(
 
 
 def attach_stderr_handler(
-    level: int = WARN,
+    level: int = WARNING,
     logger_name: str | None = None,
     propagate: bool = False,
     formatter: Formatter | None = None,
@@ -483,76 +473,119 @@ def timeout(
         def interrupt(signum, frame):
             raise TimeoutException()
 
-        signal.signal(signal.SIGALRM, interrupt)
+        previous_handler = signal.signal(signal.SIGALRM, interrupt)
         signal.alarm(timeout_secs)
 
         try:
-            ret = func(*args, **kwargs)
-            signal.alarm(0)
-            return ret
+            return func(*args, **kwargs)
         except (TimeoutException, KeyboardInterrupt):  # pragma: no cover
             return default_return
+        finally:
+            # Always cancel the alarm and restore the previous handler, even if
+            # func() raised an unexpected exception; otherwise the alarm stays
+            # armed and can later fire during unrelated code. See #15702.
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous_handler)
 
 
-# use this for debugging, because ProcessPoolExecutor isn't pdb/ipdb friendly
-class DummyExecutor(Executor):
-    """Synchronous executor for debugging; executes tasks in the current thread."""
+def _load_concurrency() -> None:
+    """Lazily define executor classes and as_completed on first access.
 
-    def __init__(self) -> None:
-        self._shutdown = False
-        self._shutdownLock = Lock()
+    Importing concurrent.futures + threading costs ~45 modules.  Deferring
+    this to first use keeps ``import conda.common.io`` lightweight for code
+    paths that never use parallel I/O (dashlist, time_recorder, etc.).
+    """
+    from concurrent.futures import (
+        Executor,
+        Future,
+        ThreadPoolExecutor,
+        as_completed,
+    )
+    from threading import Lock
 
-    def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Future[Any]:
-        with self._shutdownLock:
-            if self._shutdown:
-                raise RuntimeError("cannot schedule new futures after shutdown")
+    class DummyExecutor(Executor):
+        """Synchronous executor for debugging; executes tasks in the current thread."""
 
-            f = Future()
+        def __init__(self) -> None:
+            self._shutdown = False
+            self._shutdownLock = Lock()
+
+        def submit(
+            self, fn: Callable[..., Any], *args: Any, **kwargs: Any
+        ) -> Future[Any]:
+            with self._shutdownLock:
+                if self._shutdown:
+                    raise RuntimeError("cannot schedule new futures after shutdown")
+
+                f = Future()
+                try:
+                    result = fn(*args, **kwargs)
+                except BaseException as e:
+                    f.set_exception(e)
+                else:
+                    f.set_result(result)
+
+                return f
+
+        def map(
+            self,
+            func: Callable[..., Any],
+            *iterables: Iterable[Any],
+        ) -> Iterator[Any]:
+            """Map function over iterables, yielding results one at a time."""
+            for iterable in iterables:
+                for thing in iterable:
+                    yield func(thing)
+
+        def shutdown(self, wait: bool = True) -> None:
+            with self._shutdownLock:
+                self._shutdown = True
+
+    class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
+        """Thread pool executor that gracefully handles thread creation limits."""
+
+        def __init__(self, max_workers: int = 10) -> None:
+            super().__init__(max_workers)
+
+        def _adjust_thread_count(self) -> None:
             try:
-                result = fn(*args, **kwargs)
-            except BaseException as e:
-                f.set_exception(e)
-            else:
-                f.set_result(result)
+                return super()._adjust_thread_count()
+            except RuntimeError:
+                # RuntimeError: can't start new thread
+                # See https://github.com/conda/conda/issues/6624
+                if len(self._threads) > 0:
+                    pass
+                else:
+                    raise
 
-            return f
-
-    def map(
-        self,
-        func: Callable[..., Any],
-        *iterables: Iterable[Any],
-    ) -> Iterator[Any]:
-        """Map function over iterables, yielding results one at a time."""
-        for iterable in iterables:
-            for thing in iterable:
-                yield func(thing)
-
-    def shutdown(self, wait: bool = True) -> None:
-        with self._shutdownLock:
-            self._shutdown = True
+    globals()["DummyExecutor"] = DummyExecutor
+    globals()["ThreadLimitedThreadPoolExecutor"] = ThreadLimitedThreadPoolExecutor
+    globals()["as_completed"] = as_completed
 
 
-class ThreadLimitedThreadPoolExecutor(ThreadPoolExecutor):
-    """Thread pool executor that gracefully handles thread creation limits."""
-
-    def __init__(self, max_workers: int = 10) -> None:
-        super().__init__(max_workers)
-
-    def _adjust_thread_count(self) -> None:
-        try:
-            return super()._adjust_thread_count()
-        except RuntimeError:
-            # RuntimeError: can't start new thread
-            # See https://github.com/conda/conda/issues/6624
-            if len(self._threads) > 0:
-                # It's ok to not be able to start new threads if we already have at least
-                # one thread alive.
-                pass
-            else:
-                raise
+_LAZY_CONCURRENCY = frozenset(
+    {"DummyExecutor", "ThreadLimitedThreadPoolExecutor", "as_completed"}
+)
 
 
-as_completed = as_completed
+def __getattr__(name: str):
+    if name in _LAZY_CONCURRENCY:
+        _load_concurrency()
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "IS_INTERACTIVE",
+    hasattr(sys.stdout, "isatty") and sys.stdout.isatty(),
+    addendum=(
+        "Use `conda.common.terminal.is_tty()` instead. If stdin "
+        "interactivity is also needed (e.g. before an input prompt), see "
+        "`is_stdin_tty()` and `is_interactive_tty()` in the same module."
+    ),
+)
 
 
 def get_instrumentation_record_file() -> str:

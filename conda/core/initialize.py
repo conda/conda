@@ -77,7 +77,7 @@ from ..gateways.disk.link import lexists
 from ..gateways.disk.permissions import make_executable
 from ..gateways.disk.read import compute_sum
 from ..gateways.subprocess import subprocess_call
-from .launchers import get_windows_launcher_stub_path
+from .launchers import get_windows_launcher_stub, verify_windows_launcher
 from .portability import generate_shebang_for_entry_point
 
 if on_win:  # pragma: no cover
@@ -264,9 +264,7 @@ def _initialize_dev_bash(prefix, env_vars, unset_env_vars):
 
 
 def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
-    dev_arg = ""
-    if context.dev:
-        dev_arg = "--dev"
+    dev_arg = "--dev"
     condabin = Path(prefix, "condabin")
 
     yield (
@@ -1183,9 +1181,11 @@ def make_entry_point(target_path, conda_prefix, module, func):
 def make_entry_point_exe(target_path, conda_prefix):
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
     exe_path = target_path
-    source_exe_path = get_windows_launcher_stub_path(source_prefixes=(conda_prefix,))
+    source_exe_path, sha256 = get_windows_launcher_stub(
+        conda_prefix, source_prefixes=(conda_prefix, context.conda_prefix)
+    )
     if isfile(exe_path):
-        if compute_sum(exe_path, "md5") == compute_sum(source_exe_path, "md5"):
+        if compute_sum(exe_path, "sha256") == sha256:
             return Result.NO_CHANGE
 
     if not context.dry_run:
@@ -1193,6 +1193,7 @@ def make_entry_point_exe(target_path, conda_prefix):
             mkdir_p(dirname(exe_path))
         # prefer copy() over create_hard_link_or_copy() because of windows file deletion issues
         # with open processes
+        verify_windows_launcher(source_exe_path, sha256)
         copy(source_exe_path, exe_path)
     return Result.MODIFIED
 

@@ -12,7 +12,7 @@ import warnings
 from collections import defaultdict
 from itertools import chain
 from logging import getLogger
-from os.path import basename, dirname, isdir, join
+from os.path import dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
@@ -64,6 +64,7 @@ from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
+from .portability import batch_codesign_calls
 from .path_actions import (
     AggregateCompileMultiPycAction,
     CompileMultiPycAction,
@@ -110,18 +111,7 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
         for trgt in prefix_record.files
     )
 
-    try:
-        extracted_package_dir = basename(prefix_record.extracted_package_dir)
-    except AttributeError:
-        try:
-            extracted_package_dir = basename(prefix_record.link.source)
-        except AttributeError:
-            # for backward compatibility only
-            extracted_package_dir = (
-                f"{prefix_record.name}-{prefix_record.version}-{prefix_record.build}"
-            )
-
-    meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")
+    meta_short_path = f"conda-meta/{prefix_record._get_json_fn()}"
     remove_conda_meta_actions = (
         RemoveLinkedPackageRecordAction(
             transaction_context, prefix_record, target_prefix, meta_short_path
@@ -325,7 +315,7 @@ class UnlinkLinkTransaction:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf(self.transaction_context["temp_dir"])
+                    self._cleanup_transaction_artifacts()
                     raise
                 log.info(exceptions)
         try:
@@ -338,9 +328,15 @@ class UnlinkLinkTransaction:
                 )
             )
         except CondaSystemExit:
-            rm_rf(self.transaction_context["temp_dir"])
+            self._cleanup_transaction_artifacts()
             raise
         self._verified = True
+
+    def _cleanup_transaction_artifacts(self):
+        """Remove the temp dir and any prefixes this transaction created."""
+        rm_rf(self.transaction_context["temp_dir"])
+        for prefix in self.transaction_context.get("created_prefixes", ()):
+            rm_rf(prefix)
 
     def _verify_pre_link_message(self, all_link_groups):
         flag_pre_link = False
@@ -369,14 +365,19 @@ class UnlinkLinkTransaction:
         if context.dry_run:
             raise RuntimeError("Cannot run .execute() with dry-run enabled.")
 
+        succeeded = False
         try:
             # innermost dict.values() is an iterable of PrefixActionGroup
             # instances; zip() is an iterable of each PrefixActionGroup
             self._execute(
                 tuple(chain(*chain(*zip(*self.prefix_action_groups.values()))))
             )
+            succeeded = True
         finally:
             rm_rf(self.transaction_context["temp_dir"])
+            if not succeeded:
+                for prefix in self.transaction_context.get("created_prefixes", ()):
+                    rm_rf(prefix)
 
     def _get_pfe(self):
         from .package_cache_data import ProgressiveFetchExtract
@@ -416,6 +417,8 @@ class UnlinkLinkTransaction:
                     "Check that you have sufficient permissions."
                     ""
                 )
+            # Remember prefixes we created in case we need to rollback changes.
+            transaction_context.setdefault("created_prefixes", set()).add(target_prefix)
 
         # gather information from disk and caches
         prefix_data = PrefixData(target_prefix)
@@ -627,20 +630,23 @@ class UnlinkLinkTransaction:
             for axngroup in action_groups
         )
 
-        # run all per-action (per-package) verify methods
-        #   one of the more important of these checks is to verify that a file listed in
-        #   the packages manifest (i.e. info/files) is actually contained within the package
         error_results = []
-        for axn in all_actions:
-            if axn.verified:
-                continue
-            error_result = axn.verify()
-            if error_result:
-                formatted_error = "".join(
-                    format_exception_only(type(error_result), error_result)
-                )
-                log.debug("Verification error in action %s\n%s", axn, formatted_error)
-                error_results.append(error_result)
+        with batch_codesign_calls():
+            # run all per-action (per-package) verify methods
+            #   one of the more important of these checks is to verify that a file listed in
+            #   the packages manifest (i.e. info/files) is actually contained within the package
+            for axn in all_actions:
+                if axn.verified:
+                    continue
+                error_result = axn.verify()
+                if error_result:
+                    formatted_error = "".join(
+                        format_exception_only(type(error_result), error_result)
+                    )
+                    log.debug(
+                        "Verification error in action %s\n%s", axn, formatted_error
+                    )
+                    error_results.append(error_result)
         return error_results
 
     @staticmethod
@@ -1063,10 +1069,9 @@ class UnlinkLinkTransaction:
 
                 if prec:
                     log.error(
-                        "An error occurred while {} package '{}'.".format(
-                            "uninstalling" if is_unlink else "installing",
-                            prec.dist_str(),
-                        )
+                        "An error occurred while %s package '%s'.",
+                        "uninstalling" if is_unlink else "installing",
+                        prec.dist_str(),
                     )
 
                 # reverse all executed packages except the one that failed
@@ -1644,7 +1649,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 ("@CALL", path),
             )
@@ -1656,7 +1661,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 (".", path),
             )

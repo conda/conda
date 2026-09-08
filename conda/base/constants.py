@@ -107,17 +107,13 @@ PLATFORMS: Final = (
 KNOWN_SUBDIRS: Final = ("noarch", *PLATFORMS)
 PLATFORM_DIRECTORIES = KNOWN_SUBDIRS
 
-deprecated.constant(
-    "26.9",
-    "27.3",
-    "WINDOWS_LAUNCHER_STUB_PATH",
-    {
-        "win-32": "Scripts/cli-32.exe",
-        "win-64": "Scripts/cli-64.exe",
-        "win-arm64": "Scripts/cli-arm64.exe",
-    },
-    addendum="Use `conda_launchers.get_launcher_short_paths()` instead.",
-)
+# Paths relative to the prefix containing the conda-launchers package.
+WINDOWS_LAUNCHER_STUB_PATH: Final = {
+    "win-32": "share/conda-launchers/cli-32.exe",
+    "win-64": "share/conda-launchers/cli-64.exe",
+    "win-arm64": "share/conda-launchers/cli-arm64.exe",
+}
+
 
 RECOGNIZED_URL_SCHEMES: Final = ("http", "https", "ftp", "s3", "file")
 
@@ -189,6 +185,7 @@ MAX_CHANNEL_PRIORITY: Final = 10000
 
 CONDA_PACKAGE_EXTENSION_V1: Final = ".tar.bz2"
 CONDA_PACKAGE_EXTENSION_V2: Final = ".conda"
+CONDA_PACKAGE_EXTRACTOR_NAME: Final = "conda-package"
 
 PARTIAL_EXTENSION: Final = ".partial"
 """Suffix appended to package filenames during incomplete downloads."""

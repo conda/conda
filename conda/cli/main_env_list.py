@@ -16,7 +16,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     description = summary
     epilog = dals(
         """
-        Examples::
+        Examples:
 
             conda env list
             conda env list --json

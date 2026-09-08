@@ -56,6 +56,23 @@ So the solver takes `MatchSpec` objects, queries the index for the best match an
 requested conda channels in a single entity. For more information, check
 [](install.md#fetching-the-index).
 
+### Excluding newer package records
+
+The `exclude_newer` policy is not represented as a `MatchSpec`. Instead, it limits the candidate
+`PackageRecord` objects that may be considered by the solver. A record is included when its
+`indexed_timestamp`, or its `timestamp` if no `indexed_timestamp` is present, is at or before the
+effective cutoff. Records without either timestamp are kept for compatibility.
+
+Different solver backends collect and reduce package records through different code paths, so this
+policy is part of the `Solver` API contract instead of only a `SubdirData` filter. A solver backend
+declares whether it supports global cutoffs, channel overrides, and package overrides. Conda raises
+an error before solving when the configured policy asks for a level that the selected backend does
+not support.
+
+After solving, conda also validates the records that would be linked into the target prefix. This
+keeps the policy enforced even if a solver backend returns a package newer than the configured
+cutoff.
+
 ## Local state: the prefix and context
 
 When you do `conda install numpy`, do you think the solver will just see something like
@@ -86,7 +103,7 @@ All of those sources of information produce a number a of `MatchSpec` objects, w
 combined and modified in very specific ways depending on the command line flags and their origin
 (e.g. specs coming from the pinned packages won't be modified, unless the user asks for it
 explicitly). This logic is intricate and will be covered in the next sections. A more technical
-description is also available in {doc}`/dev-guide/specs/solver-state`.
+description is also available in {doc}`solver-state`.
 
 ```{figure} /img/solver-deep-dive-1.png
 :name: solver-local-variables
@@ -291,7 +308,7 @@ This is currently implemented in the `conda.core.solve.Solver` class. Its main g
 populate the `specs_map` dictionary, which maps package names (`str`) to `MatchSpec` objects.
 This happens at the beginning of the `.solve_final_state()` method. The full details of the
 `specs_map` population are covered in the
-{doc}`solver state technical specification </dev-guide/specs/solver-state>`, but here's a little
+{doc}`solver state technical reference <solver-state>`, but here's a little
 map of what submethods are involved:
 
 1. Initialization of the `SolverStateContainer`: Often abbreviated as `ssc`, it's a helper

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from ..deprecations import deprecated
     from .actions import NullCountAction
     from .helpers import (
         add_parser_create_install_update,
@@ -63,15 +64,15 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Examples:
 
-        Install the package 'scipy' into the currently-active environment::
+        Install the package 'scipy' into the currently-active environment:
 
             conda install scipy
 
-        Install a list of packages into an environment, myenv::
+        Install a list of packages into an environment, myenv:
 
             conda install -n myenv scipy curl wheel
 
-        Install a specific version of 'python' into an environment, myenv::
+        Install a specific version of 'python' into an environment, myenv:
 
             conda install -p path/to/myenv python=3.11
 
@@ -90,6 +91,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store",
         help="Revert to the specified REVISION.",
         metavar="REVISION",
+        type=int,
     )
     add_parser_frozen_env(p)
 
@@ -107,7 +109,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_update_modifiers(solver_mode_options)
     p.add_argument(
         "--dev",
-        action=NullCountAction,
+        action=deprecated.action(
+            "27.3",
+            "27.9",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
         "This is mainly for use during tests where we test new conda sources "
         "against old Python versions.",
@@ -124,7 +131,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..base.context import context
     from ..exceptions import CondaValueError
     from .common import validate_environment_files_consistency
-    from .install import get_revision, install, install_revision
+    from .install import install, install_revision
 
     if context.force:
         print(
@@ -141,20 +148,18 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Ensure that users do not provide incompatible arguments.
     # revision and packages can not be specified together
-    if args.revision and (args.file or args.packages):
+    if args.revision is not None and (args.file or args.packages):
         raise CondaValueError(
             "too many arguments, must supply one of command line packages, --file or --revision"
         )
 
     # Ensure provided combination of command line arguments are valid
-    if args.revision:
-        get_revision(args.revision, json=context.json)
-    elif not (args.file or args.packages):
+    if args.revision is None and not (args.file or args.packages):
         raise CondaValueError(
             "too few arguments, must supply one of command line packages, --file or --revision"
         )
 
-    if args.revision:
+    if args.revision is not None:
         install_revision(args, parser)
     else:
         install(args, parser, "install")

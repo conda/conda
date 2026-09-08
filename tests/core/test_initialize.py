@@ -47,8 +47,9 @@ from conda.core.initialize import (
     make_install_plan,
     print_plan_results,
 )
-from conda.exceptions import CondaValueError
+from conda.exceptions import CondaValueError, SafetyError
 from conda.gateways.disk.create import create_link, mkdir_p
+from conda.gateways.disk.read import compute_sum
 from conda.models.enums import LinkType
 from conda.testing.helpers import tempdir
 
@@ -403,35 +404,47 @@ def test_make_entry_point_exe(verbose, tmp_path: Path):
             NotImplementedError, match="Windows entry point stub not available"
         )
     ):
-        assert make_entry_point_exe(target_path, CONDA_PACKAGE_ROOT) == Result.MODIFIED
+        assert (
+            make_entry_point_exe(target_path, context.conda_prefix) == Result.MODIFIED
+        )
         assert target_path.is_file()
 
-        assert make_entry_point_exe(target_path, CONDA_PACKAGE_ROOT) == Result.NO_CHANGE
+        assert (
+            make_entry_point_exe(target_path, context.conda_prefix) == Result.NO_CHANGE
+        )
 
 
+@pytest.mark.parametrize("tampered", [False, True])
 def test_make_entry_point_exe_uses_conda_launchers(
-    verbose, tmp_path: Path, mocker: MockerFixture
+    verbose, tmp_path: Path, mocker: MockerFixture, tampered: bool
 ):
-    source_path = tmp_path / "source" / "cli-64.exe"
+    source_path = tmp_path / "source" / "cli-arm64.exe"
     source_path.parent.mkdir()
     source_path.write_bytes(b"launcher")
+    digest = compute_sum(source_path, "sha256")
     get_launcher = mocker.patch(
-        "conda.core.initialize.get_windows_launcher_stub_path",
-        return_value=str(source_path),
+        "conda.core.initialize.get_windows_launcher_stub",
+        return_value=(str(source_path), digest),
     )
     conda_prefix = tmp_path / "prefix"
     target_path = conda_prefix / "Scripts" / "conda.exe"
-
-    assert make_entry_point_exe(target_path, conda_prefix) == Result.MODIFIED
-
-    get_launcher.assert_called_once_with(source_prefixes=(conda_prefix,))
-    assert target_path.read_bytes() == b"launcher"
+    if tampered:
+        source_path.write_bytes(b"modified")
+        with pytest.raises(SafetyError, match="SHA-256 mismatch"):
+            make_entry_point_exe(target_path, conda_prefix)
+        assert not target_path.exists()
+    else:
+        assert make_entry_point_exe(target_path, conda_prefix) == Result.MODIFIED
+        assert target_path.read_bytes() == b"launcher"
+        assert make_entry_point_exe(target_path, conda_prefix) == Result.NO_CHANGE
+    get_launcher.assert_called_with(
+        conda_prefix, source_prefixes=(conda_prefix, context.conda_prefix)
+    )
 
 
 def test_install_conda_sh(verbose):
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, "etc", "profile.d", "conda.sh")
-        context.dev = False
         result = install_conda_sh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 
