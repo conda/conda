@@ -77,7 +77,6 @@ from ..gateways.disk.link import lexists
 from ..gateways.disk.permissions import make_executable
 from ..gateways.disk.read import compute_sum
 from ..gateways.subprocess import subprocess_call
-from .launchers import get_windows_launcher_stub, verify_windows_launcher
 from .portability import generate_shebang_for_entry_point
 
 if on_win:  # pragma: no cover
@@ -1179,6 +1178,8 @@ def make_entry_point(target_path, conda_prefix, module, func):
 
 
 def make_entry_point_exe(target_path, conda_prefix):
+    from .launchers import get_windows_launcher_stub, verify_windows_launcher
+
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
     exe_path = target_path
     source_exe_path, sha256 = get_windows_launcher_stub(

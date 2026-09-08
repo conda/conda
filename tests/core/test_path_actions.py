@@ -504,7 +504,7 @@ def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
     source_path.write_bytes(b"launcher")
     digest = compute_sum(source_path, "sha256")
     get_launcher = mocker.patch(
-        "conda.core.path_actions.get_windows_launcher_stub",
+        "conda.core.launchers.get_windows_launcher_stub",
         return_value=(str(source_path), digest),
     )
     target_prefix = tmp_path / "target"
