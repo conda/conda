@@ -20,6 +20,7 @@ import py
 import pytest
 
 from .. import CONDA_SOURCE_ROOT
+from .._private.extract import _debug_archive
 from ..auxlib.ish import dals
 from ..base.constants import PACKAGE_CACHE_MAGIC_FILE, PREFIX_MAGIC_FILE
 from ..base.context import context, reset_context
@@ -655,7 +656,30 @@ class TmpChannelFixture:
                 else:
                     target = subdir
                     packages = subdir_packages
+                _debug_archive(
+                    "copy-source",
+                    source,
+                    record_fn=fname,
+                    expected_size=package_record.get("size"),
+                    expected_md5=package_record.get("md5"),
+                    expected_sha256=package_record.get("sha256"),
+                )
+                for extension in (".tar.bz2", ".conda"):
+                    _debug_archive(
+                        "cache-candidate",
+                        package_record.extracted_package_dir + extension,
+                    )
+                _debug_archive(
+                    "checked-in",
+                    Path(CONDA_SOURCE_ROOT)
+                    / "tests"
+                    / "data"
+                    / "test-recipes"
+                    / package_record.subdir
+                    / fname,
+                )
                 copyfile(source, target / fname)
+                _debug_archive("copy-result", target / fname)
 
                 # add package to repodata
                 key = "packages" if fname.endswith(".tar.bz2") else "packages.conda"
