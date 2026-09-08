@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Update `conda env config` help text to be consistent across available subcommands. And remove reference to invalid command `conda env config --append`. (#16642 via #16643) 
+* Update `conda env config` help text to be consistent across available subcommands. And remove reference to invalid command `conda env config --append`. (#16642 via #16643)
 
 ### Deprecations
 

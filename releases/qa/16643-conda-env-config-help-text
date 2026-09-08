@@ -13,12 +13,12 @@ conda should not suggest users to run commands that do not exist or will produce
 none
 
 ### Steps
-Run 
+Run
 ```
 conda env config --help
 ```
 
-and 
+and
 
 ```
 conda env config vars --help
