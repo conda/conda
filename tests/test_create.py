@@ -1115,12 +1115,12 @@ def test_allow_softlinks(
         assert (prefix / "etc" / "conda" / "activate.d" / "activate.sh").is_symlink()
 
 
-def test_clone_env_with_conda(tmp_env: TmpEnvFixture):
+def test_clone_env_with_conda(tmp_env: TmpEnvFixture, test_recipes_channel: Path):
     # Regression test for #14917
-    with tmp_env("--channel=conda-forge", "conda") as prefix:
-        assert package_is_installed(prefix, "conda-forge::conda")
+    with tmp_env("conda") as prefix:
+        assert package_is_installed(prefix, "conda")
         with tmp_env(f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::conda")
+            assert package_is_installed(clone, "conda")
 
 
 def test_channel_usage_replacing_python(
