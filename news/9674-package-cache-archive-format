@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Keep cached package archive paths consistent with their recorded filenames and checksums when both archive formats are present. (#9674)
