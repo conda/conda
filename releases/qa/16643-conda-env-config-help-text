@@ -1,0 +1,31 @@
+### Title
+`conda env config` help text should only suggest valid commands
+
+### Why
+conda should not suggest users to run commands that do not exist or will produce an error.
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x]] Linux
+
+### Prerequisites
+none
+
+### Steps
+Run 
+```
+conda env config --help
+```
+
+and 
+
+```
+conda env config vars --help
+```
+
+### Pass criteria
+Ensure that all help example commands are valid by running the commands in the environment.
+
+### Out of scope / notes
+ref: https://github.com/conda/conda/issues/16642
