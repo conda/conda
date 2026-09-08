@@ -95,6 +95,14 @@ class TimestampField(NumberField):
                 return 0
 
 
+class IndexedTimestampField(TimestampField):
+    def __get__(self, instance, instance_type):
+        try:
+            return NumberField.__get__(self, instance, instance_type)
+        except AttributeError:
+            return 0
+
+
 class Link(DictSafeMixin, Entity):
     source = StringField()
     type = LinkTypeField(LinkType, required=False)
@@ -436,6 +444,7 @@ class PackageRecord(DictSafeMixin, Entity):
         return self.package_type in PackageType.unmanageable_package_types()
 
     timestamp = TimestampField()
+    indexed_timestamp = IndexedTimestampField()
 
     @property
     def combined_depends(self):

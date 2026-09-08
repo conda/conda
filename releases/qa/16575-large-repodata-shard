@@ -1,0 +1,45 @@
+### Title
+Load a large individual repodata shard from `conda-pypi`.
+
+### Why
+Verify that conda can consume the live `boto3-stubs` package shard from
+`conda-pypi`. The shard is about 49 MiB after decompression and older conda
+versions reject it against the 16 MiB individual-shard limit, preventing an
+otherwise valid solve.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- A canary build of conda containing the individual-shard limit fix.
+- `conda-rattler-solver` installed and available as the `rattler` solver.
+- Network access to `conda-forge` and `conda-pypi`.
+- No existing environment named `qa-shards-16575`.
+
+### Steps
+1. Query the package whose live shard exceeds the old limit.
+
+   ```console
+   conda search --override-channels --channel conda-pypi --subdir noarch --repodata-use-shards boto3-stubs
+   ```
+
+2. Run the original solve as a dry run.
+
+   ```console
+   conda create --dry-run --name qa-shards-16575 --solver rattler --override-channels --channel conda-forge --channel conda-pypi --strict-channel-priority --repodata-use-shards python hdf5
+   ```
+
+### Pass criteria
+- The search exits successfully and lists `boto3-stubs` builds.
+- The dry-run solve exits successfully and displays a package plan.
+- Neither command reports a `ZstdError`, `ChannelError`, traceback, or
+  unexpected error.
+- The dry run does not create `qa-shards-16575`.
+
+### Out of scope / notes
+Do not download the shard URL directly. These commands must exercise conda's
+sharded-repodata reader against the live channel. Automated limit, truncated
+frame, credential sanitization, and concise error coverage remains in
+`tests/gateways/test_zstd.py` and `tests/shards/test_shards.py`.

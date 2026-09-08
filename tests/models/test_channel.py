@@ -1341,6 +1341,37 @@ def test_channel_mangles_urls():
         assert str(Channel(url)) == expected
 
 
+def test_url_with_credentials_preserves_filename_without_platform():
+    """Channel.url() must preserve package_filename when platform is None.
+
+    Regression test for https://github.com/conda/conda/issues/16516:
+    a URL like /channel-name/notices.json has no platform subdir, so package_filename
+    is set but platform is None.  Previously url(with_credentials=True) dropped
+    the filename and appended a subdir from context.subdirs instead.
+    """
+    # notices.json — the exact reproducer from the issue
+    channel = Channel("https://conda.anaconda.org/channel-name/notices.json")
+    assert channel.name == "channel-name"
+    assert channel.platform is None
+    assert channel.package_filename == "notices.json"
+
+    # without credentials: filename is preserved, no token injected
+    assert channel.url() == "https://conda.anaconda.org/channel-name/notices.json"
+
+    # with credentials + token: token is injected and filename is still preserved
+    channel.token = "tk-12345678-abcdefgh"
+    assert (
+        channel.url(with_credentials=True)
+        == "https://conda.anaconda.org/t/tk-12345678-abcdefgh/channel-name/notices.json"
+    )
+
+    # channeldata.json without a platform subdir behaves the same way
+    channel2 = Channel("https://conda.anaconda.org/channel-name/channeldata.json")
+    assert channel2.platform is None
+    assert channel2.package_filename == "channeldata.json"
+    assert channel2.url() == "https://conda.anaconda.org/channel-name/channeldata.json"
+
+
 def test_basic_multichannel():
     multichannel_name = "multichannel"
     channel1_name = "channel1"

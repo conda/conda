@@ -1,16 +1,15 @@
 package:
   name: activate_deactivate_package
-  version: 1.0.0
+  version: 1.0
 
 source:
   path: ./src
 
 build:
-  number: 0
   noarch: generic
   script:
     # since this is a noarch package we don't care that this is unix
     - cp -r etc ${PREFIX}
 
 about:
-  summary: Test activate and deactivate scripts effecting environment variables
+  summary: Activate/deactivate scripts that set environment variables

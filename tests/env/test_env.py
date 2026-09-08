@@ -308,20 +308,14 @@ def test_valid_keys():
 
 
 def test_invalid_keys():
-    with pytest.deprecated_call(
-        match=r"The environment file is not fully CEP 24 compliant",
-    ):
-        e = get_invalid_keys_environment()
-        e_dict = e.to_dict()
-        assert "name" in e_dict
-        assert len(e_dict) == 1
+    e = get_invalid_keys_environment()
+    e_dict = e.to_dict()
+    assert "name" in e_dict
+    assert len(e_dict) == 1
 
 
 def test_empty_deps():
-    with pytest.deprecated_call(
-        match=r"The environment file is not fully CEP 24 compliant",
-    ):
-        e = get_environment("empty_deps.yml")
+    e = get_environment("empty_deps.yml")
     e_dict = e.to_dict()
     assert "name" in e_dict
     assert "channels" in e_dict

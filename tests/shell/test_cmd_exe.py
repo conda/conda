@@ -16,8 +16,9 @@ from conda import __version__ as CONDA_VERSION
 from conda.base.constants import WINDOWS_PROBLEMATIC_CHARS
 from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac
+from conda.common.path import BIN_DIRECTORY
 
-from . import activate, deactivate, dev_arg, install
+from . import activate, deactivate, install
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
@@ -49,11 +50,10 @@ def test_cmd_exe_basic_integration(
 ) -> None:
     prefix, charizard, _ = shell_wrapper_integration
     conda_bat = str(Path(CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat"))
+    conda_exe = os.path.join(sys.prefix, BIN_DIRECTORY, "conda.exe")
 
     with shell.interactive() as sh:
-        sh.assert_env_var("_CE_CONDA", "conda")
-        sh.assert_env_var("_CE_M", "-m")
-        sh.assert_env_var("CONDA_EXE", escape(sys.executable))
+        sh.assert_env_var("CONDA_EXE", escape(conda_exe))
 
         # We use 'PowerShell' here because 'where conda' returns all of them and
         # shell.expect_exact does not do what you would think it does given its name.
@@ -77,9 +77,7 @@ def test_cmd_exe_basic_integration(
         sh.sendline('powershell -NoProfile -c "(Get-Command conda).Source"')
         sh.expect_exact(conda_bat)
 
-        sh.assert_env_var("_CE_CONDA", "conda")
-        sh.assert_env_var("_CE_M", "-m")
-        sh.assert_env_var("CONDA_EXE", escape(sys.executable))
+        sh.assert_env_var("CONDA_EXE", escape(conda_exe))
         sh.assert_env_var("CONDA_PREFIX", charizard, True)
         PATH2 = sh.get_env_var("PATH", "").split(os.pathsep)
         log.debug("PATH2=%s", PATH2)
@@ -88,9 +86,7 @@ def test_cmd_exe_basic_integration(
         sh.expect_exact(conda_bat)
 
         sh.sendline(f'conda {activate} "{prefix}"')
-        sh.assert_env_var("_CE_CONDA", "conda")
-        sh.assert_env_var("_CE_M", "-m")
-        sh.assert_env_var("CONDA_EXE", escape(sys.executable))
+        sh.assert_env_var("CONDA_EXE", escape(conda_exe))
         sh.assert_env_var("CONDA_SHLVL", "2")
         sh.assert_env_var("CONDA_PREFIX", prefix, True)
         sh.assert_env_var("PROMPT", rf"\({escape(prefix)}\).*")
@@ -114,7 +110,7 @@ def test_cmd_exe_basic_integration(
         sh.assert_env_var("SMALL_EXE", "small-var-cmd")
 
         # see tests/test-recipes/small-executable
-        sh.sendline(f"conda run {dev_arg} small")
+        sh.sendline("conda run small")
         sh.expect_exact("Hello!")
 
         sh.sendline(f"conda {deactivate}")
@@ -127,7 +123,6 @@ def test_cmd_exe_basic_integration(
 
 @PARAMETRIZE_CMD_EXE
 def test_cmd_exe_activate_error(shell: Shell) -> None:
-    context.dev = True
     with shell.interactive() as sh:
         sh.sendline("set")
         sh.expect(".*")
@@ -196,13 +191,11 @@ def test_legacy_activate_deactivate_cmd_exe(
     with shell.interactive() as sh:
         sh.sendline("echo off")
 
-        sh.assert_env_var("_CE_CONDA", "conda")
-
         PATH = f"{CONDA_PACKAGE_ROOT}\\shell\\Scripts;%PATH%"
 
         sh.sendline("SET PATH=" + PATH)
 
-        sh.sendline(f'activate --dev "{prefix2}"')
+        sh.sendline(f'activate "{prefix2}"')
         sh.clear()
 
         sh.assert_env_var("CONDA_SHLVL", "1")
@@ -210,20 +203,18 @@ def test_legacy_activate_deactivate_cmd_exe(
         PATH = sh.get_env_var("PATH")
         assert "charizard" in PATH
 
-        sh.assert_env_var("_CE_CONDA", "conda")
-
         sh.sendline("conda --version")
         sh.expect_exact(f"conda {CONDA_VERSION}")
 
-        sh.sendline(f'activate.bat --dev "{prefix3}"')
+        sh.sendline(f'activate.bat "{prefix3}"')
         PATH = sh.get_env_var("PATH")
         assert "venusaur" in PATH
 
-        sh.sendline("deactivate.bat --dev")
+        sh.sendline("deactivate.bat")
         PATH = sh.get_env_var("PATH")
         assert "charizard" in PATH
 
-        sh.sendline("deactivate --dev")
+        sh.sendline("deactivate")
         sh.assert_env_var("CONDA_SHLVL", "0")
 
 

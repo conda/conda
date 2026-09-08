@@ -13,6 +13,7 @@ import pytest
 from conda.base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from conda.base.context import context
 from conda.common.compat import on_win
+from conda.core.prefix_data import PrefixData
 
 
 @cache
@@ -87,7 +88,12 @@ def signtool_unsupported() -> bool:
 @pytest.mark.parametrize("stub_file_name", WINDOWS_LAUNCHER_STUB_PATH.values())
 def test_stub_exe_signatures(stub_file_name: str) -> None:
     """Verify that signtool verifies the signature of the stub exes"""
-    stub_file = Path(context.root_prefix, stub_file_name)
+    stub_file = Path(context.conda_prefix, stub_file_name)
+    record = PrefixData(context.conda_prefix).get("conda-launchers")
+    if stub_file.name == "cli-32.exe" and stub_file_name not in record.files:
+        pytest.skip("The defaults launcher package does not support win-32")
     signtool_exe = find_signtool()
-    completed_process = run([signtool_exe, "verify", "/pa", "/v", stub_file])
-    assert completed_process.returncode == 0
+    completed_process = run(
+        [signtool_exe, "verify", "/pa", "/v", stub_file], capture_output=True, text=True
+    )
+    assert completed_process.returncode == 0, completed_process.stderr

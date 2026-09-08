@@ -632,8 +632,8 @@ def test_noarch_python_package_reinstall_on_pyver_change(
 
 
 def test_noarch_generic_package(test_recipes_channel: Path, tmp_env: TmpEnvFixture):
-    with tmp_env("font-ttf-inconsolata") as prefix:
-        assert (prefix / "fonts" / "Inconsolata-Regular.ttf").is_file()
+    with tmp_env("small-executable") as prefix:
+        assert (prefix / "bin" / "small").is_file()
 
 
 def test_no_channels(
@@ -1004,7 +1004,7 @@ def test_tarball_install(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2") as prefix:
+    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.conda") as prefix:
         assert package_is_installed(prefix, "dependent")
         assert not package_is_installed(prefix, "dependency")
         conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
@@ -1012,7 +1012,9 @@ def test_tarball_install(
 
 
 def test_tarball_install_and_bad_metadata(
-    test_recipes_channel: Path, tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
 ):
     with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
         assert package_is_installed(prefix, "another_dependent")
@@ -1023,7 +1025,7 @@ def test_tarball_install_and_bad_metadata(
         assert not package_is_installed(prefix, "dependency")
         assert not package_is_installed(prefix, "another_dependent")
 
-        tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.tar.bz2"
+        tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
         with pytest.raises(DryRunExit):
             conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
 
@@ -1109,8 +1111,8 @@ def test_allow_softlinks(
     reset_context()
     assert context.allow_softlinks
 
-    with tmp_env("font-ttf-inconsolata") as prefix:
-        assert (prefix / "fonts" / "Inconsolata-Bold.ttf").is_symlink()
+    with tmp_env("activate_deactivate_package") as prefix:
+        assert (prefix / "etc" / "conda" / "activate.d" / "activate.sh").is_symlink()
 
 
 def test_clone_env_with_conda(tmp_env: TmpEnvFixture):
@@ -1677,12 +1679,12 @@ def test_create_default_packages(
     assert context.create_default_packages == ("small-executable", "dependent")
 
     prefix = path_factory()
-    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "activate_deactivate_package")
     assert not package_is_installed(prefix, "small-executable")
     assert not package_is_installed(prefix, "dependent")
 
-    with tmp_env("font-ttf-inconsolata", prefix=prefix):
-        assert package_is_installed(prefix, "font-ttf-inconsolata")
+    with tmp_env("activate_deactivate_package", prefix=prefix):
+        assert package_is_installed(prefix, "activate_deactivate_package")
         assert package_is_installed(prefix, "small-executable")
         assert package_is_installed(prefix, "dependent")
 
@@ -1699,12 +1701,12 @@ def test_create_default_packages_no_default_packages(
     assert context.create_default_packages == ("small-executable", "dependent")
 
     prefix = path_factory()
-    assert not package_is_installed(prefix, "font-ttf-inconsolata")
+    assert not package_is_installed(prefix, "activate_deactivate_package")
     assert not package_is_installed(prefix, "small-executable")
     assert not package_is_installed(prefix, "dependent")
 
-    with tmp_env("font-ttf-inconsolata", "--no-default-packages", prefix=prefix):
-        assert package_is_installed(prefix, "font-ttf-inconsolata")
+    with tmp_env("activate_deactivate_package", "--no-default-packages", prefix=prefix):
+        assert package_is_installed(prefix, "activate_deactivate_package")
         assert not package_is_installed(prefix, "small-executable")
         assert not package_is_installed(prefix, "dependent")
 
@@ -2310,7 +2312,11 @@ def _conda_root_prefix_env(
     session_tmp_env: TmpEnvFixture,
 ) -> Iterator[Path]:
     """Session-scoped conda env shared by the don't-remove-conda tests."""
-    with session_tmp_env("conda") as prefix:
+    with session_tmp_env(
+        "conda=1.0=0",
+        "--override-channels",
+        f"--channel={TEST_RECIPES_CHANNEL}",
+    ) as prefix:
         yield prefix
 
 
@@ -2318,6 +2324,8 @@ def _conda_root_prefix_env(
 def root_prefix_with_conda(
     monkeypatch: MonkeyPatch,
     _conda_root_prefix_env: Path,
+    test_recipes_channel: Path,
+    temp_package_cache: Path,
 ) -> Path:
     """Root prefix with conda installed; local to the don't-remove-conda tests."""
     monkeypatch.setenv("CONDA_ROOT_PREFIX", str(_conda_root_prefix_env))
@@ -2345,11 +2353,11 @@ def test_dont_remove_conda(
 
     assert package_is_installed(root_prefix_with_conda, "conda")
     assert package_is_installed(root_prefix_with_conda, "pycosat")
+    assert package_is_installed(root_prefix_with_conda, "dependency")
 
 
 def test_dont_remove_conda_dependency_with_dependent_packages(
     root_prefix_with_conda: Path,
-    test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
 ):
     """Removing a conda dependency is blocked even when dependents would be unlinked."""
@@ -2365,38 +2373,20 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
     assert package_is_installed(root_prefix_with_conda, "dependent")
     assert package_is_installed(root_prefix_with_conda, "another_dependent")
 
-    # Model a conda dependency that also has installed reverse dependencies.
-    conda_prec = PrefixData(root_prefix_with_conda).reload().get("conda")
-    conda_meta = (
-        root_prefix_with_conda
-        / "conda-meta"
-        / f"{conda_prec.name}-{conda_prec.version}-{conda_prec.build}.json"
-    )
-    assert conda_meta.is_file()
-    conda_record = json.loads(conda_meta.read_text())
-    original_depends = conda_record["depends"]
-    conda_record["depends"] = [*original_depends, "dependency"]
-    conda_meta.write_text(json.dumps(conda_record))
-    PrefixData._cache_.clear()
+    with pytest.raises(CondaMultiError) as exc:
+        conda_cli(
+            "remove",
+            f"--prefix={root_prefix_with_conda}",
+            "dependency",
+            "--yes",
+        )
 
-    try:
-        with pytest.raises(CondaMultiError) as exc:
-            conda_cli(
-                "remove",
-                f"--prefix={root_prefix_with_conda}",
-                "dependency",
-                "--yes",
-            )
-
-        assert any(isinstance(e, RemoveError) for e in exc.value.errors)
-        assert package_is_installed(root_prefix_with_conda, "conda")
-        assert package_is_installed(root_prefix_with_conda, "dependency")
-        assert package_is_installed(root_prefix_with_conda, "dependent")
-        assert package_is_installed(root_prefix_with_conda, "another_dependent")
-    finally:
-        conda_record["depends"] = original_depends
-        conda_meta.write_text(json.dumps(conda_record))
-        PrefixData._cache_.clear()
+    assert any(isinstance(e, RemoveError) for e in exc.value.errors)
+    assert package_is_installed(root_prefix_with_conda, "conda")
+    assert package_is_installed(root_prefix_with_conda, "pycosat")
+    assert package_is_installed(root_prefix_with_conda, "dependency")
+    assert package_is_installed(root_prefix_with_conda, "dependent")
+    assert package_is_installed(root_prefix_with_conda, "another_dependent")
 
 
 def test_dont_remove_conda_3(
@@ -2409,7 +2399,7 @@ def test_dont_remove_conda_3(
     upgrades a dependency) it could produce spurious RemoveError, blocking
     further use of conda.
     """
-    if context.solver != "libmamba" or context.solver != "classic":
+    if context.solver not in ("libmamba", "classic", "rattler"):
         pytest.skip(
             "This test can only be run with solvers that come shipped with conda"
         )
@@ -2662,7 +2652,7 @@ def test_create_env_different_platform(
     platform = f"{context.subdir.split('-')[0]}-fake"
 
     # the platform must match the defined known platforms, patch to use fake subdir
-    monkeypatch.setattr("conda.base.constants.KNOWN_SUBDIRS", [platform])
+    monkeypatch.setattr("conda.base.context.KNOWN_SUBDIRS", [platform])
     monkeypatch.setattr("conda.models.environment.PLATFORMS", [platform])
 
     # either set CONDA_SUBDIR or pass --platform
@@ -2921,8 +2911,8 @@ def test_create_download_only_without_prefix(
     assert tmp_pkgs_dir.exists()
     assert set(tmp_pkgs_dir.iterdir()) == {
         tmp_pkgs_dir / "cache",
-        tmp_pkgs_dir / "small-executable-1.0.0-0",
-        tmp_pkgs_dir / "small-executable-1.0.0-0.conda",
+        tmp_pkgs_dir / "small-executable-1.0-0",
+        tmp_pkgs_dir / "small-executable-1.0-0.conda",
         tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE,
     }
 
@@ -3129,7 +3119,7 @@ def test_python_site_packages_path(
             reason="conda-libmamba-solver does not support python_site_packages_path",
         )
     )
-    with tmp_env("python=3.99.99", "sample_noarch_python=1.0.0") as prefix:
+    with tmp_env("python=3.99.99", "sample_noarch_python=1.0") as prefix:
         sp_dir = "lib/python3.99t/site-packages"
         assert (prefix / sp_dir / "sample.py").is_file()
 

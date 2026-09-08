@@ -27,7 +27,6 @@ from .cli.helpers import (  # noqa: F401
     add_parser_prefix,
 )
 from .common import compat  # noqa: F401
-from .common.serialize.json import CondaJSONEncoder
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import (
     Index,
@@ -92,15 +91,6 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # Replacements for six exports for compatibility
 
-
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "EntityEncoder",
-    CondaJSONEncoder,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-)
-del CondaJSONEncoder
 
 deprecated.constant(
     "26.9",

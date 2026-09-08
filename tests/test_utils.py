@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import sys
+from contextlib import nullcontext
 from logging import getLogger
 from os import environ, pathsep
 from os.path import dirname, join
+from pathlib import Path
 from shutil import which
 from typing import TYPE_CHECKING
 
@@ -16,8 +18,6 @@ from conda.activate import CmdExeActivator, PosixActivator
 from conda.common.compat import on_win
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest_mock import MockerFixture
 
 SOME_PREFIX = "/some/prefix"
@@ -201,3 +201,18 @@ def test_ensure_dir_errors(mocker: MockerFixture, tmp_path: Path):
 
     with pytest.raises(CondaError, match=exc_message):
         get_test_dir()
+
+
+@pytest.mark.parametrize("dev_mode", [True, False])
+def test_wrap_subprocess_call_dev_mode_deprecation(
+    tmp_path: Path, dev_mode: bool
+) -> None:
+    with pytest.deprecated_call() if dev_mode else nullcontext():
+        script, _ = utils.wrap_subprocess_call(
+            str(tmp_path),
+            str(tmp_path),
+            dev_mode,
+            False,
+            ["echo", "ok"],
+        )
+    Path(script).unlink(missing_ok=True)

@@ -3,6 +3,7 @@
 import datetime
 import json
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from os.path import abspath, basename, dirname, join
 from pathlib import Path
 from threading import Event
@@ -120,7 +121,7 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
     mocker.patch.object(
         package_cache_data,
         "extract_conda_package_archive",
-        side_effect=lambda *args: extracted.set(),
+        side_effect=lambda *args, **kwargs: extracted.set(),
     )
     mocker.patch.object(
         package_cache_data,
@@ -140,6 +141,55 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
     good_extract._finish_extract.assert_called_once_with()
     good_extract.cleanup.assert_called_once_with()
     bad_extract._finish_extract.assert_not_called()
+
+
+@pytest.mark.parametrize("error", (FileNotFoundError, NotImplementedError))
+def test_process_pool_unavailable_falls_back_to_threads(
+    mocker, tmp_pkgs_dir: Path, error
+):
+    process_pool = mocker.patch.object(
+        package_cache_data,
+        "ProcessPoolExecutor",
+        side_effect=error,
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    _, conda_prec = fresh_zlib_records()
+
+    ProgressiveFetchExtract((conda_prec,)).execute()
+
+    process_pool.assert_called_once()
+    assert isfile(join(tmp_pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
+
+
+def test_process_extract_logs_exception_cause(mocker, tmp_pkgs_dir: Path):
+    decode_error = TypeError("cannot deserialize extraction error")
+    pool_error = BrokenProcessPool("worker result unavailable")
+    pool_error.__cause__ = decode_error
+    log_debug = mocker.patch.object(package_cache_data.log, "debug")
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    mocker.patch.object(
+        package_cache_data,
+        "extract_conda_package_archive",
+        side_effect=pool_error,
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "ProcessPoolExecutor",
+        side_effect=lambda **kwargs: ThreadPoolExecutor(kwargs["max_workers"]),
+    )
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_extractor",
+        return_value=SimpleNamespace(name="conda-package"),
+    )
+    _, conda_prec = fresh_zlib_records()
+
+    with pytest.raises(CondaMultiError) as exc_info:
+        ProgressiveFetchExtract((conda_prec,)).execute()
+
+    log_debug.assert_any_call("Package extraction failed.", exc_info=pool_error)
+    assert exc_info.value.errors == [pool_error]
+    assert pool_error.__cause__ is decode_error
 
 
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):

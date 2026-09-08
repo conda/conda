@@ -1,0 +1,3 @@
+### Other
+
+* Speed up `test_dont_remove_conda` with local `conda` and `pycosat` test packages. (#16426, #16427 via #16577)

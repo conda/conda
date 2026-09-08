@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 import pluggy
 import pytest
+from packaging.metadata import Metadata
 from packaging.version import Version
 
 from conda import plugins
@@ -146,6 +147,90 @@ def test_load_entrypoints_success(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
     assert len(plugin_manager.get_plugins()) == 1
     assert plugin_manager.list_name_plugin()[0][0] == "test_plugin.success"
+
+
+def test_get_installed_plugins(plugin_manager: CondaPluginManager):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    expected = [
+        {
+            "name": "conda-test-plugin",
+            "version": "1.0",
+            "canonical_name": "test_plugin.success",
+            "status": "active",
+            "hooks": ["solvers"],
+        }
+    ]
+    assert plugin_manager.get_installed_plugins() == expected
+
+    plugin_manager.disable_external_plugins()
+    expected[0]["status"] = "disabled"
+
+    assert plugin_manager.get_installed_plugins() == expected
+
+
+@pytest.mark.parametrize(
+    "name",
+    ("conda-test-plugin", "conda_test_plugin", "test_plugin.success"),
+)
+def test_get_installed_plugin_info(name: str, plugin_manager: CondaPluginManager):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    assert plugin_manager.get_installed_plugin_info(name) == {
+        "name": "conda-test-plugin",
+        "version": "1.0",
+        "canonical_name": "test_plugin.success",
+        "status": "active",
+        "hooks": ["solvers"],
+        "summary": "A test plugin",
+        "license": "",
+        "homepage": "https://example.com/legacy-home",
+        "project_urls": [
+            {"label": "Home", "url": "https://example.com/home"},
+            {"label": "Documentation", "url": "https://example.com/docs"},
+        ],
+    }
+
+
+def test_get_installed_plugin_info_tolerates_invalid_optional_metadata(
+    plugin_manager: CondaPluginManager,
+    mocker: MockerFixture,
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    metadata = Metadata.from_email(
+        """\
+Metadata-Version: 2.1
+Name: conda-test-plugin
+Version: 1.0
+Summary: first line
+ second line
+Project-URL: Homepage, https://example.com/home
+Project-URL: Empty,
+""",
+        validate=False,
+    )
+    mocker.patch(
+        "conda.plugins.manager.Metadata.from_email",
+        return_value=metadata,
+    )
+
+    plugin = plugin_manager.get_installed_plugin_info("conda-test-plugin")
+
+    assert plugin["summary"] == ""
+    assert plugin["homepage"] == "https://example.com/home"
+    assert plugin["project_urls"] == [
+        {"label": "Homepage", "url": "https://example.com/home"}
+    ]
+
+
+def test_get_installed_plugin_info_not_found(plugin_manager: CondaPluginManager):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    with pytest.raises(
+        CondaValueError,
+        match="No installed conda plugin found matching 'missing'.",
+    ):
+        plugin_manager.get_installed_plugin_info("missing")
 
 
 def test_load_entrypoints_importerror(

@@ -8,11 +8,8 @@ Compare the packages in an environment with the packages listed in an environmen
 from __future__ import annotations
 
 import logging
-import os
 from os.path import abspath, expanduser, expandvars
 from typing import TYPE_CHECKING
-
-from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
@@ -62,24 +59,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-@deprecated(
-    "26.3",
-    "26.9",
-    addendum="Use `conda.core.prefix_data.PrefixData.map_records` instead.",
-)
-def get_packages(prefix):
-    from ..core.prefix_data import PrefixData
-    from ..exceptions import EnvironmentLocationNotFound
-
-    if not os.path.isdir(prefix):
-        raise EnvironmentLocationNotFound(prefix)
-
-    return sorted(
-        PrefixData(prefix, interoperability=True).iter_records(),
-        key=lambda x: x.name,
-    )
-
-
 def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
     from ..models.match_spec import MatchSpec
 
@@ -96,9 +75,11 @@ def compare_packages(active_pkgs, specification_pkgs) -> tuple[int, list[str]]:
             errors.append(f"{name} not found")
     if not errors:
         return 0, [
-            "Success. All the packages in the "
-            "specification file are present in the environment "
-            "with matching version and build string."
+            (
+                "Success. All the packages in the "
+                "specification file are present in the environment "
+                "with matching version and build string."
+            )
         ]
     return 1, errors
 

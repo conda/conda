@@ -318,6 +318,8 @@ class Channel:
             base.append(self.platform)
             if self.package_filename:
                 base.append(self.package_filename)
+        elif self.package_filename:
+            base.append(self.package_filename)
         else:
             first_non_noarch = next(
                 (s for s in context.subdirs if s != "noarch"), "noarch"

@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.plugins.hookspec.spec_name`. Use `conda.base.constants.APP_NAME`. (#16314)
+* Remove type re-exports from `conda.plugins`. Import them from conda.plugins.types. (#16314)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

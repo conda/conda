@@ -515,6 +515,7 @@ class UnlinkLinkTransaction:
                     target_prefix,
                     lt,
                     specs,
+                    packages_info_to_link,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -1279,6 +1280,7 @@ class UnlinkLinkTransaction:
         target_prefix,
         requested_link_type,
         requested_spec,
+        packages_info_to_link,
         link_action_groups,
     ):
         required_quad = (
@@ -1287,7 +1289,9 @@ class UnlinkLinkTransaction:
             target_prefix,
             requested_link_type,
         )
-        return CreatePythonEntryPointAction.create_actions(*required_quad)
+        return CreatePythonEntryPointAction.create_actions(
+            *required_quad, source_package_infos=packages_info_to_link
+        )
 
     @staticmethod
     def _make_compile_actions(
@@ -1645,7 +1649,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 ("@CALL", path),
             )
@@ -1657,7 +1661,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 (".", path),
             )

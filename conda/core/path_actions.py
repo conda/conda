@@ -16,11 +16,10 @@ from uuid import uuid4
 
 from .. import CondaError
 from ..auxlib.ish import dals
-from ..base.constants import CONDA_TEMP_EXTENSION, WINDOWS_LAUNCHER_STUB_PATH
+from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
 from ..common.constants import TRACE
-from ..common.io import dashlist
 from ..common.path import (
     BIN_DIRECTORY,
     get_leaf_directories,
@@ -68,6 +67,7 @@ from ..models.records import (
     PrefixRecord,
 )
 from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
+from .launchers import get_windows_launcher_stub, verify_windows_launcher
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 
@@ -364,14 +364,15 @@ class LinkPathAction(CreateInPrefixPathAction):
         target_prefix,
         requested_link_type,
         entry_point_def,
+        source_package_infos=(),
     ):
-        if context.subdir not in WINDOWS_LAUNCHER_STUB_PATH:
-            raise NotImplementedError(
-                f"Windows entry point stub not available for subdir {context.subdir!r}. "
-                f"Supported: {dashlist(WINDOWS_LAUNCHER_STUB_PATH)}."
-            )
-        source_directory = context.root_prefix
-        source_short_path = WINDOWS_LAUNCHER_STUB_PATH[context.subdir]
+        source_exe_path, sha256 = get_windows_launcher_stub(
+            target_prefix,
+            source_prefixes=(context.conda_prefix,),
+            source_package_infos=source_package_infos,
+        )
+        source_directory = dirname(source_exe_path)
+        source_short_path = basename(source_exe_path)
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = f"Scripts/{command}.exe"
         if not normpath(target_short_path).startswith("Scripts" + os.sep):
@@ -381,6 +382,8 @@ class LinkPathAction(CreateInPrefixPathAction):
         source_path_data = PathDataV1(
             _path=target_short_path,
             path_type=PathEnum.windows_python_entry_point_exe,
+            sha256=sha256,
+            sha256_in_prefix=sha256,
         )
         return cls(
             transaction_context,
@@ -515,6 +518,12 @@ class LinkPathAction(CreateInPrefixPathAction):
         self._verified = True
 
     def execute(self):
+        if (
+            self.source_path_data
+            and self.source_path_data.path_type
+            == PathEnum.windows_python_entry_point_exe
+        ):
+            verify_windows_launcher(self.source_full_path, self.source_path_data.sha256)
         log.log(TRACE, "linking %s => %s", self.source_full_path, self.target_full_path)
         create_link(
             self.source_full_path,
@@ -604,14 +613,12 @@ class PrefixReplaceLinkAction(LinkPathAction):
                 len(self.prefix_placeholder),
             )
 
-        sha256_in_prefix = compute_sum(self.intermediate_path, "sha256")
-
         self.prefix_path_data = PathDataV1.from_objects(
             self.prefix_path_data,
             file_mode=self.file_mode,
             path_type=PathEnum.hardlink,
             prefix_placeholder=self.prefix_placeholder,
-            sha256_in_prefix=sha256_in_prefix,
+            # set in execute() after codesign batch flush
         )
 
         self._verified = True
@@ -620,6 +627,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
         if not self._verified:
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
+        self.prefix_path_data.sha256_in_prefix = compute_sum(source_path, "sha256")
         log.log(TRACE, "linking %s => %s", source_path, self.target_full_path)
         create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True
@@ -830,7 +838,12 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
     @classmethod
     def create_actions(
-        cls, transaction_context, package_info, target_prefix, requested_link_type
+        cls,
+        transaction_context,
+        package_info,
+        target_prefix,
+        requested_link_type,
+        source_package_infos=(),
     ):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
@@ -864,6 +877,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                         target_prefix,
                         requested_link_type,
                         ep_def,
+                        source_package_infos=source_package_infos,
                     )
                     for ep_def in noarch.entry_points or ()
                 )
