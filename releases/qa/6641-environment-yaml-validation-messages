@@ -1,5 +1,5 @@
 ### Title
-``environment.yaml`` should print non critical validation issues to stderr. 
+``environment.yaml`` should print non critical validation issues to stderr.
 
 ### Why
 Printing the validation issues to stdout breaks the ability to build automations/parse output when json output is enabled.
@@ -39,7 +39,7 @@ You should see:
 
 For example:
 ```
- $ conda env create --quiet --json -n test --file env.yml  --dry-run > /dev/null 
+ $ conda env create --quiet --json -n test --file env.yml  --dry-run > /dev/null
 
 EnvironmentSectionNotValid: The following section on 'env.yml' is invalid and will be ignored:
   - category
@@ -68,7 +68,7 @@ You should see just the summary of action in json format:
 
 You should see just the warnings:
 ```
- $ conda env create --quiet --json -n test --file env.yml  --dry-run > /dev/null 
+ $ conda env create --quiet --json -n test --file env.yml  --dry-run > /dev/null
 
 EnvironmentSectionNotValid: The following section on 'env.yml' is invalid and will be ignored:
   - category
