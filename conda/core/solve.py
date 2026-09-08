@@ -67,6 +67,7 @@ class BaseSolver:
     """
 
     _index: ReducedIndex | None
+    _provided_index: Index | dict | None
     _r: Resolve | None
 
     supports_exclude_newer_global: ClassVar[bool] = False
@@ -128,6 +129,7 @@ class BaseSolver:
             raise ValueError(f"Unknown subdir(s):{dashlist(sorted(unknown_subdirs))}")
         self._repodata_fn = repodata_fn
         self._index = None
+        self._provided_index = None
         self._r = None
         self._prepared = False
         self._pool_cache = {}
@@ -1363,9 +1365,31 @@ class Solver(BaseSolver):
         if self._prepared and prepared_specs == self._prepared_specs:
             return self._index, self._r
 
-        if hasattr(self, "_index") and self._index:
+        if not self._prepared and (isinstance(self._index, Index) or bool(self._index)):
+            self._provided_index = self._index
+
+        if self._provided_index is not None:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
+            if (
+                isinstance(self._provided_index, Index)
+                and not isinstance(self._provided_index, ReducedIndex)
+                and "_data" not in self._provided_index.__dict__
+                and (
+                    self._provided_index.prefix_data is None
+                    or paths_equal(
+                        self._provided_index.prefix_data.prefix_path, self.prefix
+                    )
+                )
+            ):
+                provided_index = self._provided_index
+                if provided_index.prefix_data is None:
+                    provided_index = copy.copy(provided_index)
+                    provided_index.prefix_data = PrefixData(self.prefix)
+                self._index = provided_index.get_reduced_index(prepared_specs)
+            else:
+                # Preserve explicitly supplied records, including another prefix's records.
+                self._index = self._provided_index
             self._r = Resolve(self._index, channels=self.channels)
         else:
             # add in required channels that aren't explicitly given in the channels list
