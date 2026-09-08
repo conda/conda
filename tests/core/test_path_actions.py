@@ -302,8 +302,10 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
         assert isfile(windows_exe_axn.target_full_path)
         assert is_executable(windows_exe_axn.target_full_path)
 
-        src = compute_sum(join(context.conda_prefix, "Scripts/conda.exe"), "md5")
-        assert src == compute_sum(windows_exe_axn.target_full_path, "md5")
+        assert (
+            compute_sum(windows_exe_axn.target_full_path, "sha256")
+            == windows_exe_axn.source_path_data.sha256
+        )
 
         windows_exe_axn.reverse()
         assert not isfile(windows_exe_axn.target_full_path)

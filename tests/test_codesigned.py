@@ -10,6 +10,7 @@ from subprocess import CalledProcessError, check_output, run
 
 import pytest
 
+from conda import CONDA_PACKAGE_ROOT
 from conda.base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from conda.base.context import context
 from conda.common.compat import on_win
@@ -91,7 +92,7 @@ def test_stub_exe_signatures(stub_file_name: str) -> None:
     stub_file = Path(context.conda_prefix, stub_file_name)
     record = PrefixData(context.conda_prefix).get("conda-launchers")
     if stub_file.name == "cli-32.exe" and stub_file_name not in record.files:
-        pytest.skip("The defaults launcher package does not support win-32")
+        stub_file = Path(CONDA_PACKAGE_ROOT, "shell", "cli-32.exe")
     signtool_exe = find_signtool()
     completed_process = run(
         [signtool_exe, "verify", "/pa", "/v", stub_file], capture_output=True, text=True

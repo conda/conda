@@ -1,12 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Locate and verify Windows entry point launchers from conda-launchers."""
+"""Locate and verify Windows entry point launchers."""
 
 from __future__ import annotations
 
-from os.path import isfile, join
+from os.path import isfile, join, normpath
 from typing import TYPE_CHECKING
 
+from .. import CONDA_PACKAGE_ROOT
 from ..base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from ..base.context import context
 from ..common.io import dashlist
@@ -28,7 +29,7 @@ def get_windows_launcher_stub(
     source_prefixes: Iterable[str | PathLike[str]],
     source_package_infos: Iterable[PackageInfo] = (),
 ) -> tuple[str, str]:
-    """Return the target Python's launcher path and its package SHA-256."""
+    """Return the target Python's launcher path and expected SHA-256."""
     source_package_infos = tuple(source_package_infos)
     python_record = next(
         (
@@ -48,18 +49,33 @@ def get_windows_launcher_stub(
         ) from exc
 
     # Prefer the extracted package during upgrades, before installed files are unlinked.
-    for info in source_package_infos:
-        if info.repodata_record.name == "conda-launchers":
-            if launcher := _find_launcher(
-                info.extracted_package_dir, info.paths_data, short_path
+    launcher_info = next(
+        (
+            info
+            for info in source_package_infos
+            if info.repodata_record.name == "conda-launchers"
+        ),
+        None,
+    )
+    if launcher_info is not None:
+        if launcher := _find_launcher(
+            launcher_info.extracted_package_dir, launcher_info.paths_data, short_path
+        ):
+            return launcher
+    else:
+        for prefix in source_prefixes:
+            record = PrefixData(prefix).get("conda-launchers", None)
+            if record is not None and (
+                launcher := _find_launcher(prefix, record.paths_data, short_path)
             ):
                 return launcher
 
-    for prefix in source_prefixes:
-        record = PrefixData(prefix).get("conda-launchers", None)
-        if record is not None:
-            if launcher := _find_launcher(prefix, record.paths_data, short_path):
-                return launcher
+    # Retain the bundled stub until defaults publishes a 32-bit launcher.
+    if subdir == "win-32":
+        return (
+            join(CONDA_PACKAGE_ROOT, "shell", "cli-32.exe"),
+            "0170dda609519c088b1e4619a1e1d15a01701a6c514bb55f99a85fcbbd541631",
+        )
 
     raise FileNotFoundError(
         f"Could not find {short_path!r} in the conda-launchers package. "
@@ -73,9 +89,9 @@ def _find_launcher(
     for path_data in paths_data.paths if paths_data else ():
         if path_data.path.replace("\\", "/") != short_path:
             continue
-        path = join(prefix, short_path)
+        path = normpath(join(prefix, short_path))
         if not isfile(path):
-            return None
+            raise FileNotFoundError(f"Missing conda-launchers file {path!r}.")
         if not getattr(path_data, "sha256", None):
             raise SafetyError(
                 f"Missing SHA-256 for conda-launchers file {short_path!r}."
@@ -85,6 +101,6 @@ def _find_launcher(
 
 
 def verify_windows_launcher(path: str, sha256: str) -> None:
-    """Verify the package SHA-256 immediately before copying a launcher."""
+    """Verify the expected SHA-256 immediately before copying a launcher."""
     if not sha256 or compute_sum(path, "sha256") != sha256:
-        raise SafetyError(f"SHA-256 mismatch for conda-launchers file {path!r}.")
+        raise SafetyError(f"SHA-256 mismatch for launcher file {path!r}.")

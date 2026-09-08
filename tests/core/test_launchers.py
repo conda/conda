@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
+from conda import CONDA_PACKAGE_ROOT
 from conda.base.constants import WINDOWS_LAUNCHER_STUB_PATH
 from conda.common.serialize import json
 from conda.core.launchers import get_windows_launcher_stub, verify_windows_launcher
@@ -17,8 +19,6 @@ from conda.models.package_info import PackageInfo
 from conda.models.records import PathDataV1, PathsData, PrefixRecord
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest_mock import MockerFixture
 
 
@@ -155,6 +155,66 @@ def test_launcher_requires_owned_file(
 
     with pytest.raises(FileNotFoundError, match="cli-arm64.exe"):
         get_windows_launcher_stub(target, source_prefixes=(launcher_prefix,))
+
+
+@pytest.mark.parametrize("missing", ["ownership", "package"])
+def test_launcher_win32_fallback(tmp_path: Path, launcher_prefix: Path, missing: str):
+    target = tmp_path / "target"
+    write_record(target, "python", "win-32")
+    if missing == "ownership":
+        write_record(launcher_prefix, "conda-launchers", "noarch")
+    else:
+        (launcher_prefix / "conda-meta/conda-launchers-24.7.1-h0_0.json").unlink()
+
+    path, digest = get_windows_launcher_stub(target, source_prefixes=(launcher_prefix,))
+
+    assert path == str(Path(CONDA_PACKAGE_ROOT, "shell", "cli-32.exe"))
+    verify_windows_launcher(path, digest)
+
+
+def test_launcher_win32_missing_owned_file(tmp_path: Path, launcher_prefix: Path):
+    target = tmp_path / "target"
+    write_record(target, "python", "win-32")
+    (launcher_prefix / WINDOWS_LAUNCHER_STUB_PATH["win-32"]).unlink()
+
+    with pytest.raises(FileNotFoundError, match="cli-32.exe"):
+        get_windows_launcher_stub(target, source_prefixes=(launcher_prefix,))
+
+
+def test_launcher_win32_fallback_during_upgrade(tmp_path: Path, launcher_prefix: Path):
+    target = tmp_path / "target"
+    write_record(target, "python", "win-32")
+    source = tmp_path / "extracted"
+    record = write_record(source, "conda-launchers", "noarch")
+    package_info = PackageInfo(
+        extracted_package_dir=str(source),
+        package_tarball_full_path=str(tmp_path / "launchers.conda"),
+        channel=Channel("https://example.org"),
+        url="https://example.org/noarch/launchers.conda",
+        repodata_record=record,
+        paths_data=record.paths_data,
+    )
+
+    path, digest = get_windows_launcher_stub(
+        target, source_prefixes=(launcher_prefix,), source_package_infos=(package_info,)
+    )
+
+    assert path == str(Path(CONDA_PACKAGE_ROOT, "shell", "cli-32.exe"))
+    verify_windows_launcher(path, digest)
+
+
+def test_launcher_win32_corrupt_fallback(tmp_path: Path, mocker: MockerFixture):
+    target = tmp_path / "target"
+    write_record(target, "python", "win-32")
+    bundled = tmp_path / "conda"
+    (bundled / "shell").mkdir(parents=True)
+    (bundled / "shell/cli-32.exe").write_bytes(b"corrupt launcher")
+    mocker.patch("conda.core.launchers.CONDA_PACKAGE_ROOT", str(bundled))
+
+    path, digest = get_windows_launcher_stub(target, source_prefixes=())
+
+    with pytest.raises(SafetyError, match="SHA-256 mismatch"):
+        verify_windows_launcher(path, digest)
 
 
 def test_launcher_requires_package_hash(tmp_path: Path, launcher_prefix: Path):
