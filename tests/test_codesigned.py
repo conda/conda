@@ -86,13 +86,17 @@ def signtool_unsupported() -> bool:
 
 
 @pytest.mark.skipif(signtool_unsupported(), reason=signtool_unsupported_because())
-@pytest.mark.parametrize("stub_file_name", WINDOWS_LAUNCHER_STUB_PATH.values())
+@pytest.mark.parametrize(
+    "stub_file_name", [*WINDOWS_LAUNCHER_STUB_PATH.values(), "shell/cli-64.exe"]
+)
 def test_stub_exe_signatures(stub_file_name: str) -> None:
     """Verify that signtool verifies the signature of the stub exes"""
     stub_file = Path(context.conda_prefix, stub_file_name)
     record = PrefixData(context.conda_prefix).get("conda-launchers")
-    if stub_file.name == "cli-32.exe" and stub_file_name not in record.files:
-        stub_file = Path(CONDA_PACKAGE_ROOT, "shell", "cli-32.exe")
+    if stub_file_name == "shell/cli-64.exe" or (
+        stub_file.name == "cli-32.exe" and stub_file_name not in record.files
+    ):
+        stub_file = Path(CONDA_PACKAGE_ROOT, "shell", stub_file.name)
     signtool_exe = find_signtool()
     completed_process = run(
         [signtool_exe, "verify", "/pa", "/v", stub_file], capture_output=True, text=True
