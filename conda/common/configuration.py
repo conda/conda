@@ -1418,7 +1418,13 @@ class Configuration(metaclass=ConfigurationType):
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}
         self._cache_ = {}
-        self._reset_callbacks: dict[Callable, None] = {}
+        # We preserve callback registrations across re-initialisation.
+        # reset_context() re-runs __init__ on the context singleton, and
+        # callbacks registered at import time (such as Channel._reset_state)
+        # must survive it for _reset_cache() to stay a complete reset.
+        self._reset_callbacks: dict[Callable, None] = getattr(
+            self, "_reset_callbacks", {}
+        )
         self._validation_errors = defaultdict(list)
 
         self._set_search_path(search_path, **kwargs)
