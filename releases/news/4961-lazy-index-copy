@@ -1,4 +1,0 @@
-### Enhancements
-
-* Avoid realizing all package records when copying or preparing a lazy `Index`
-  supplied by conda-build. (conda/conda-build#4961)

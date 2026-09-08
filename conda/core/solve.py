@@ -1375,9 +1375,20 @@ class Solver(BaseSolver):
                 isinstance(self._provided_index, Index)
                 and not isinstance(self._provided_index, ReducedIndex)
                 and "_data" not in self._provided_index.__dict__
+                and (
+                    self._provided_index.prefix_data is None
+                    or paths_equal(
+                        self._provided_index.prefix_data.prefix_path, self.prefix
+                    )
+                )
             ):
-                self._index = self._provided_index.get_reduced_index(prepared_specs)
+                provided_index = self._provided_index
+                if provided_index.prefix_data is None:
+                    provided_index = copy.copy(provided_index)
+                    provided_index.prefix_data = PrefixData(self.prefix)
+                self._index = provided_index.get_reduced_index(prepared_specs)
             else:
+                # Preserve explicitly supplied records, including another prefix's records.
                 self._index = self._provided_index
             self._r = Resolve(self._index, channels=self.channels)
         else:
