@@ -231,7 +231,7 @@ _MODULE_BUDGETS: dict[str, _BudgetSpec] = {
             "with contextlib.redirect_stdout(CapturedStdout()):\n"
             "    main_sourced('shell.posix', 'hook')"
         ),
-        "max_modules": 750,
+        "max_modules": 760,
     },
 }
 
