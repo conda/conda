@@ -34,7 +34,6 @@ env:
   CONDA_LIBMAMBA_SOLVER_NO_CHANNELS_FROM_INSTALLED: true
   # focused testing or any needed pytest arguments, default empty
   PYTEST_EXTRA: ''
-  CONDA_TEST_ARCHIVE_DEBUG: ${{ github.workspace }}/archive-debug
 
 jobs:
   # detect whether any code changes are included in this PR
@@ -209,16 +208,6 @@ jobs:
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
 
-      - &upload-archive-diagnostics
-        name: Upload Archive Diagnostics
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: archive-debug-${{ env.HASH }}
-          path: archive-debug
-          if-no-files-found: ignore
-          retention-days: 7
-
   # linux test suite
   linux:
     # only run test suite if there are code changes
@@ -367,8 +356,6 @@ jobs:
             durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
-
-      - *upload-archive-diagnostics
 
   # linux benchmarks
   linux-benchmarks:
@@ -835,8 +822,6 @@ jobs:
             durations/${{ runner.os }}.json
             test-report.xml
           retention-days: 1  # temporary, combined in aggregate below
-
-      - *upload-archive-diagnostics
 
   # aggregate and upload
   aggregate:

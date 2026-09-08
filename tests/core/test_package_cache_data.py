@@ -697,6 +697,37 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
     assert zlib_conda_fn in pkgs_dir_files
 
 
+@pytest.mark.parametrize("extracted_format", ("tar.bz2", "conda"))
+@pytest.mark.parametrize("archives", ("both", "other", "none"))
+@pytest.mark.parametrize("read_only", (False, True))
+def test_extracted_package_cache_record_matches_archive(
+    tmp_pkgs_dir: Path, extracted_format: str, archives: str, read_only: bool
+):
+    record, other = fresh_zlib_records()
+    if extracted_format == "conda":
+        record, other = other, record
+
+    pfe = ProgressiveFetchExtract((record,))
+    pfe.prepare()
+    pfe.execute()
+    copy(join(CHANNEL_DIR_V1, subdir, other.fn), tmp_pkgs_dir / other.fn)
+    if archives != "both":
+        (tmp_pkgs_dir / record.fn).unlink()
+    if archives == "none":
+        (tmp_pkgs_dir / other.fn).unlink()
+    if read_only:
+        make_read_only(tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE)
+
+    PackageCacheData._cache_.clear()
+    (cached,) = PackageCacheData(tmp_pkgs_dir).iter_records()
+
+    assert cached.package_tarball_full_path == str(tmp_pkgs_dir / record.fn)
+    assert cached.is_extracted
+    assert cached.is_fetched == (archives == "both")
+    for field in ("fn", "url", "md5", "sha256", "size"):
+        assert getattr(cached, field) == getattr(record, field)
+
+
 def test_instantiating_package_cache_when_unpacked_conda_exist(tmp_pkgs_dir: Path):
     """
     If .conda package exist in a writable package cache, but is unpacked,
