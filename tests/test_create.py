@@ -2404,7 +2404,11 @@ def test_dont_remove_conda_3(
             "This test can only be run with solvers that come shipped with conda"
         )
 
-    with tmp_env("conda", "conda-pypi") as prefix:
+    packages = ["conda", "conda-pypi"]
+    if on_win:
+        # The converted checkout needs conda's non-PyPI Windows dependency.
+        packages.append("conda-launchers")
+    with tmp_env(*packages) as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         monkeypatch.setenv("CONDA_PREFIX", str(prefix))
         monkeypatch.delenv("CONDA_DEFAULT_ENV", raising=False)

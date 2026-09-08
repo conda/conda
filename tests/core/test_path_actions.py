@@ -302,8 +302,10 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
         assert isfile(windows_exe_axn.target_full_path)
         assert is_executable(windows_exe_axn.target_full_path)
 
-        src = compute_sum(join(context.conda_prefix, "Scripts/conda.exe"), "md5")
-        assert src == compute_sum(windows_exe_axn.target_full_path, "md5")
+        assert (
+            compute_sum(windows_exe_axn.target_full_path, "sha256")
+            == windows_exe_axn.source_path_data.sha256
+        )
 
         windows_exe_axn.reverse()
         assert not isfile(windows_exe_axn.target_full_path)
@@ -502,7 +504,7 @@ def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
     source_path.write_bytes(b"launcher")
     digest = compute_sum(source_path, "sha256")
     get_launcher = mocker.patch(
-        "conda.core.path_actions.get_windows_launcher_stub",
+        "conda.core.launchers.get_windows_launcher_stub",
         return_value=(str(source_path), digest),
     )
     target_prefix = tmp_path / "target"

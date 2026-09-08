@@ -67,7 +67,6 @@ from ..models.records import (
     PrefixRecord,
 )
 from .envs_manager import get_user_environments_txt_file, register_env, unregister_env
-from .launchers import get_windows_launcher_stub, verify_windows_launcher
 from .portability import _PaddingError, update_prefix
 from .prefix_data import PrefixData
 
@@ -366,6 +365,8 @@ class LinkPathAction(CreateInPrefixPathAction):
         entry_point_def,
         source_package_infos=(),
     ):
+        from .launchers import get_windows_launcher_stub
+
         source_exe_path, sha256 = get_windows_launcher_stub(
             target_prefix,
             source_prefixes=(context.conda_prefix,),
@@ -523,6 +524,8 @@ class LinkPathAction(CreateInPrefixPathAction):
             and self.source_path_data.path_type
             == PathEnum.windows_python_entry_point_exe
         ):
+            from .launchers import verify_windows_launcher
+
             verify_windows_launcher(self.source_full_path, self.source_path_data.sha256)
         log.log(TRACE, "linking %s => %s", self.source_full_path, self.target_full_path)
         create_link(
