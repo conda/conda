@@ -249,6 +249,27 @@ def test_dist_str_in_index(test_recipes_channel: Path) -> None:
     assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
 
 
+def test_copy_does_not_realize_index() -> None:
+    index = Index(prepend=False)
+
+    copied = index.copy()
+
+    assert "_data" not in index.__dict__
+    assert "_data" not in copied.__dict__
+
+
+def test_copy_independently_copies_realized_data() -> None:
+    index = Index(prepend=False)
+    record = PackageRecord.feature("copied_feature")
+    index._data = {record: record}
+
+    copied = index.copy()
+    copied.data.clear()
+
+    assert copied.data == {}
+    assert index.data == {record: record}
+
+
 @pytest.mark.parametrize(
     "channel,sample_packages",
     [

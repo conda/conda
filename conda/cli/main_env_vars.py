@@ -30,7 +30,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         Examples:
 
             conda env config vars list -n my_env
-            conda env config vars set MY_VAR=something OTHER_THING=ohhhhya
+            conda env config vars set MY_VAR=foo
             conda env config vars unset MY_VAR
 
         """
@@ -72,7 +72,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Example:
 
-            conda env config vars set MY_VAR=weee
+            conda env config vars set MY_VAR=foo
 
         """
     )

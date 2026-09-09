@@ -173,14 +173,19 @@ def test_get_installed_plugins(plugin_manager: CondaPluginManager):
     "name",
     ("conda-test-plugin", "conda_test_plugin", "test_plugin.success"),
 )
-def test_get_installed_plugin_info(name: str, plugin_manager: CondaPluginManager):
+@pytest.mark.parametrize("disabled", (False, True))
+def test_get_installed_plugin_info(
+    name: str, disabled: bool, plugin_manager: CondaPluginManager
+):
     assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    if disabled:
+        plugin_manager.disable_external_plugins()
 
     assert plugin_manager.get_installed_plugin_info(name) == {
         "name": "conda-test-plugin",
         "version": "1.0",
         "canonical_name": "test_plugin.success",
-        "status": "active",
+        "status": "disabled" if disabled else "active",
         "hooks": ["solvers"],
         "summary": "A test plugin",
         "license": "",
