@@ -531,7 +531,7 @@ class PackageRecord:
         value = coerce_and_validate(name, value)
         object.__setattr__(self, name, value)
         if name in PKEY_FIELDS and hasattr(self, "_pkey_cache"):
-            self.invalidate_pkey()
+            self._invalidate_pkey()
 
     def __getitem__(self, item: str) -> Any:
         try:
@@ -593,7 +593,7 @@ class PackageRecord:
         object.__setattr__(self, "_pkey_cache", result)
         return result
 
-    def invalidate_pkey(self) -> None:
+    def _invalidate_pkey(self) -> None:
         object.__setattr__(self, "_pkey_cache", None)
         object.__setattr__(self, "_hash_cache", None)
 
