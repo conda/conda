@@ -36,7 +36,6 @@ from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
 from ..reporters import get_spinner
-from ..resolve import Resolve
 from .index import Index, ReducedIndex
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -49,13 +48,15 @@ except ImportError:
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
+    from typing import ClassVar
 
     from ..models.records import PackageRecord
+    from ..resolve import Resolve
 
 log = getLogger(__name__)
 
 
-class Solver:
+class BaseSolver:
     """
     A high-level API to conda's solving logic. Three public methods are provided to access a
     solution in various forms.
@@ -66,7 +67,26 @@ class Solver:
     """
 
     _index: ReducedIndex | None
+    _provided_index: Index | dict | None
     _r: Resolve | None
+
+    supports_exclude_newer_global: ClassVar[bool] = False
+    supports_exclude_newer_channel: ClassVar[bool] = False
+    supports_exclude_newer_package: ClassVar[bool] = False
+
+    def __init_subclass__(cls, **kwargs):
+        """Require solver subclasses to opt in to each policy capability.
+
+        External solvers currently inherit from ``Solver`` rather than
+        ``BaseSolver``, so they would otherwise inherit classic's capabilities.
+        """
+        super().__init_subclass__(**kwargs)
+        if "supports_exclude_newer_global" not in cls.__dict__:
+            cls.supports_exclude_newer_global = False
+        if "supports_exclude_newer_channel" not in cls.__dict__:
+            cls.supports_exclude_newer_channel = False
+        if "supports_exclude_newer_package" not in cls.__dict__:
+            cls.supports_exclude_newer_package = False
 
     def __init__(
         self,
@@ -109,9 +129,44 @@ class Solver:
             raise ValueError(f"Unknown subdir(s):{dashlist(sorted(unknown_subdirs))}")
         self._repodata_fn = repodata_fn
         self._index = None
+        self._provided_index = None
         self._r = None
         self._prepared = False
         self._pool_cache = {}
+        self.exclude_newer_policy = context.exclude_newer_policy
+        self._validate_exclude_newer_support()
+
+    def _validate_exclude_newer_support(self) -> None:
+        policy = self.exclude_newer_policy
+        if not policy.active:
+            return
+
+        unsupported = []
+        if policy.has_global_cutoff and not self.supports_exclude_newer_global:
+            unsupported.append("global cutoff")
+        if policy.has_channel_overrides and not self.supports_exclude_newer_channel:
+            unsupported.append("channel overrides")
+        if policy.has_package_overrides and not self.supports_exclude_newer_package:
+            unsupported.append("package overrides")
+
+        if unsupported:
+            raise CondaError(
+                f"The {context.solver} solver does not support "
+                f"--exclude-newer {' and '.join(unsupported)}. "
+                "Choose a solver that supports this policy or disable the setting."
+            )
+
+    def _validate_exclude_newer_link_precs(
+        self, link_precs: tuple[PackageRecord, ...]
+    ) -> None:
+        excluded = self.exclude_newer_policy.excluded_records(link_precs)
+        if not excluded:
+            return
+
+        raise CondaError(
+            "--exclude-newer prevented this operation because the solver returned "
+            f"package(s) newer than the configured cutoff:{dashlist(sorted(prec.dist_str() for prec in excluded))}"
+        )
 
     def solve_for_transaction(
         self,
@@ -170,6 +225,7 @@ class Solver:
             force_reinstall,
             should_retry_solve,
         )
+        self._validate_exclude_newer_link_precs(link_precs)
         # TODO: Only explicitly requested remove and update specs are being included in
         #   History right now. Do we need to include other categories from the solve?
 
@@ -252,6 +308,79 @@ class Solver:
             )
 
         return unlink_precs, link_precs
+
+    def solve_final_state(
+        self,
+        update_modifier=NULL,
+        deps_modifier=NULL,
+        prune=NULL,
+        ignore_pinned=NULL,
+        force_remove=NULL,
+        should_retry_solve=False,
+    ) -> tuple[PackageRecord, ...]:
+        """Gives the final, solved state of the environment."""
+        raise NotImplementedError
+
+    def _notify_conda_outdated(self, link_precs):
+        if not context.notify_outdated_conda or context.quiet:
+            return
+        conda_prefix_data = PrefixData(context.conda_prefix)
+        current_conda_prefix_rec = conda_prefix_data.get("conda", None)
+        if current_conda_prefix_rec:
+            channel_name = current_conda_prefix_rec.channel.canonical_name
+            if channel_name == UNKNOWN_CHANNEL:
+                channel_name = "defaults"
+
+            # only look for a newer conda in the channel conda is currently installed from
+            conda_newer_spec = MatchSpec(f"{channel_name}::conda>{CONDA_VERSION}")
+
+            if paths_equal(self.prefix, context.conda_prefix):
+                if any(conda_newer_spec.match(prec) for prec in link_precs):
+                    return
+
+            conda_newer_precs = sorted(
+                SubdirData.query_all(
+                    conda_newer_spec,
+                    self.channels,
+                    self.subdirs,
+                    repodata_fn=self._repodata_fn,
+                ),
+                key=lambda x: VersionOrder(x.version),
+                # VersionOrder is fine here rather than r.version_key because all precs
+                # should come from the same channel
+            )
+            if conda_newer_precs:
+                latest_version = conda_newer_precs[-1].version
+                if conda_prefix_data.get("conda-self", None):
+                    conda_update_message = "conda self update"
+                else:
+                    conda_update_message = (
+                        f"conda update -n base -c {channel_name} conda"
+                    )
+                    if conda_prefix_data.is_frozen():
+                        conda_update_message += " --override-frozen"
+                print(
+                    dedent(
+                        f"""
+
+                        ==> WARNING: A newer version of conda exists. <==
+                        current version: {CONDA_VERSION}
+                        latest version: {latest_version}
+
+                        Please update conda by running
+
+                            $ {conda_update_message}
+
+                        """
+                    ),
+                    file=sys.stderr,
+                )
+
+
+class Solver(BaseSolver):
+    supports_exclude_newer_global = True
+    supports_exclude_newer_channel = True
+    supports_exclude_newer_package = True
 
     def solve_final_state(
         self,
@@ -1228,68 +1357,39 @@ class Solver:
 
         return ssc
 
-    def _notify_conda_outdated(self, link_precs):
-        if not context.notify_outdated_conda or context.quiet:
-            return
-        current_conda_prefix_rec = PrefixData(context.conda_prefix).get("conda", None)
-        if current_conda_prefix_rec:
-            channel_name = current_conda_prefix_rec.channel.canonical_name
-            if channel_name == UNKNOWN_CHANNEL:
-                channel_name = "defaults"
-
-            # only look for a newer conda in the channel conda is currently installed from
-            conda_newer_spec = MatchSpec(f"{channel_name}::conda>{CONDA_VERSION}")
-
-            if paths_equal(self.prefix, context.conda_prefix):
-                if any(conda_newer_spec.match(prec) for prec in link_precs):
-                    return
-
-            conda_newer_precs = sorted(
-                SubdirData.query_all(
-                    conda_newer_spec,
-                    self.channels,
-                    self.subdirs,
-                    repodata_fn=self._repodata_fn,
-                ),
-                key=lambda x: VersionOrder(x.version),
-                # VersionOrder is fine here rather than r.version_key because all precs
-                # should come from the same channel
-            )
-            if conda_newer_precs:
-                latest_version = conda_newer_precs[-1].version
-                # If conda comes from defaults, ensure we're giving instructions to users
-                # that should resolve release timing issues between defaults and conda-forge.
-                print(
-                    dedent(
-                        f"""
-
-                ==> WARNING: A newer version of conda exists. <==
-                  current version: {CONDA_VERSION}
-                  latest version: {latest_version}
-
-                Please update conda by running
-
-                    $ conda update -n base -c {channel_name} conda
-
-                Or to minimize the number of packages updated during conda update use
-
-                     conda install conda={latest_version}
-
-                """
-                    ),
-                    file=sys.stderr,
-                )
-
     def _prepare(self, prepared_specs) -> tuple[ReducedIndex, Resolve]:
         # All of this _prepare() method is hidden away down here. Someday we may want to further
         # abstract away the use of `index` or the Resolve object.
+        from ..resolve import Resolve
 
         if self._prepared and prepared_specs == self._prepared_specs:
             return self._index, self._r
 
-        if hasattr(self, "_index") and self._index:
+        if not self._prepared and (isinstance(self._index, Index) or bool(self._index)):
+            self._provided_index = self._index
+
+        if self._provided_index is not None:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
+            if (
+                isinstance(self._provided_index, Index)
+                and not isinstance(self._provided_index, ReducedIndex)
+                and "_data" not in self._provided_index.__dict__
+                and (
+                    self._provided_index.prefix_data is None
+                    or paths_equal(
+                        self._provided_index.prefix_data.prefix_path, self.prefix
+                    )
+                )
+            ):
+                provided_index = self._provided_index
+                if provided_index.prefix_data is None:
+                    provided_index = copy.copy(provided_index)
+                    provided_index.prefix_data = PrefixData(self.prefix)
+                self._index = provided_index.get_reduced_index(prepared_specs)
+            else:
+                # Preserve explicitly supplied records, including another prefix's records.
+                self._index = self._provided_index
             self._r = Resolve(self._index, channels=self.channels)
         else:
             # add in required channels that aren't explicitly given in the channels list
@@ -1317,6 +1417,7 @@ class Solver:
                 prefix=self.prefix,
                 repodata_fn=self._repodata_fn,
                 use_system=True,
+                exclude_newer_policy=self.exclude_newer_policy,
             )
             self._r = Resolve(reduced_index, channels=self.channels)
 
@@ -1462,8 +1563,9 @@ def diff_for_unlink_link_precs(
         for prec in noarch_python_precs:
             _add_to_unlink_and_link(prec)
 
-    unlink_precs = tuple(
-        reversed(sorted(unlink_precs, key=lambda x: previous_records.index(x)))
+    unlink_precs_tuple = tuple(
+        rec for rec in reversed(previous_records) if rec in unlink_precs
     )
-    link_precs = tuple(sorted(link_precs, key=lambda x: final_precs.index(x)))
-    return unlink_precs, link_precs
+    link_precs_tuple = tuple(rec for rec in final_precs if rec in link_precs)
+
+    return unlink_precs_tuple, link_precs_tuple

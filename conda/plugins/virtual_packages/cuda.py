@@ -10,6 +10,7 @@ import itertools
 import multiprocessing
 import os
 import platform
+import warnings
 from contextlib import suppress
 from typing import TYPE_CHECKING
 
@@ -35,11 +36,28 @@ def cuda_version():
     Returns: version string (e.g., '9.2') or None if CUDA is not found.
     """
 
+    # Shortcut: CUDA is not available on macOS ARM64 (Apple Silicon)
+    system = platform.system()
+    machine = platform.machine()
+    if system == "Darwin" and machine == "arm64":
+        return NULL
+
     # Do not inherit file descriptors and handles from the parent process.
     # The `fork` start method should be considered unsafe as it can lead to
     # crashes of the subprocess. The `spawn` start method is preferred.
-    context = multiprocessing.get_context("spawn")
-    queue = context.SimpleQueue()
+    try:
+        context = multiprocessing.get_context("spawn")
+        queue = context.SimpleQueue()
+    except PermissionError as e:
+        # If we can't create multiprocessing primitives (e.g., in a sandbox),
+        # log a warning and skip CUDA detection
+        warnings.warn(
+            f"Unable to detect CUDA version due to permission error: {e}. "
+            "Assuming CUDA is not available.",
+            stacklevel=2,
+        )
+        return NULL
+
     try:
         # Spawn a subprocess to detect the CUDA version
         detector = context.Process(

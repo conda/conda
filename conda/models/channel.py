@@ -318,6 +318,8 @@ class Channel:
             base.append(self.platform)
             if self.package_filename:
                 base.append(self.package_filename)
+        elif self.package_filename:
+            base.append(self.package_filename)
         else:
             first_non_noarch = next(
                 (s for s in context.subdirs if s != "noarch"), "noarch"
@@ -735,7 +737,7 @@ def get_channel_objs(ctx: Context) -> tuple[Channel, ...]:
     return tuple(Channel(chn) for chn in ctx.channels)
 
 
-context.register_reset_callaback(Channel._reset_state)
+context.register_reset_callback(Channel._reset_state)
 
 
 deprecated.constant(

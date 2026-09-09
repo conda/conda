@@ -486,7 +486,7 @@ class TmpEnvFixture:
     @contextmanager
     def __call__(
         self,
-        *args: str,
+        *args: PathType,
         prefix: str | os.PathLike | None = None,
         name: str | None = None,
         path_prefix: str | None = None,

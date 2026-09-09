@@ -578,6 +578,11 @@ def test_native_subdir(
     ensure _native_subdir normalizes to the correct subdir string."""
     monkeypatch.setattr("conda.base.context.platform.machine", lambda: machine)
     monkeypatch.setattr("conda.base.context.sys.platform", sys_platform)
+    if sys_platform == "win32":
+        monkeypatch.setattr(
+            "conda.base.context.sysconfig.get_platform",
+            lambda: f"win-{machine.lower()}",
+        )
     context._native_subdir.cache_clear()
     try:
         assert context._native_subdir() == expected_subdir
@@ -1052,3 +1057,24 @@ def test_root_writable_false_when_magic_file_missing(
     reset_context()
 
     assert context.root_writable is False
+
+
+def test_context_dev_pending_deprecation() -> None:
+    with pytest.deprecated_call():
+        context.dev
+
+
+@pytest.mark.parametrize("conda_dev", [True, False])
+def test_conda_exe_vars_dict_dev(monkeypatch: MonkeyPatch, conda_dev: bool) -> None:
+    monkeypatch.setenv("CONDA_DEV", str(int(conda_dev)))
+    reset_context()
+    assert context._dev is conda_dev
+
+    with pytest.deprecated_call() if conda_dev else nullcontext():
+        exe_vars = context.conda_exe_vars_dict
+    if conda_dev:
+        assert exe_vars["_CE_M"] == "-m"
+        assert exe_vars["_CE_CONDA"] == "conda"
+    else:
+        assert exe_vars["_CE_M"] is None
+        assert exe_vars["_CE_CONDA"] is None

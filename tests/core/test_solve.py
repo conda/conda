@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 import sys
 from importlib.metadata import version
@@ -17,6 +18,8 @@ from conda.auxlib.ish import dals
 from conda.base.constants import PREFIX_PINNED_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
+from conda.core.index import Index, ReducedIndex
+from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier, get_pinned_specs
 from conda.exceptions import (
     NoChannelsConfiguredError,
@@ -28,7 +31,7 @@ from conda.exceptions import (
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from conda.models.records import PrefixRecord
+from conda.models.records import PackageRecord, PrefixRecord
 from conda.models.version import VersionOrder
 from conda.testing.helpers import (
     CHANNEL_DIR_V1,
@@ -47,7 +50,9 @@ from conda.testing.helpers import (
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
-    from pytest import MonkeyPatch
+    from pathlib import Path
+
+    from pytest import CaptureFixture, MonkeyPatch
     from pytest_benchmark.fixture import BenchmarkFixture
     from pytest_mock import MockerFixture
 
@@ -3516,7 +3521,7 @@ fake_index = [
         subdir="conda-test",
         fn="mypkg-0.1.1",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=[],
@@ -3528,9 +3533,9 @@ fake_index = [
         version="0.1.0",
         channel="test",
         subdir="conda-test",
-        fn="mypkg-0.1.1",
+        fn="mypkg-0.1.0",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=[],
@@ -3544,7 +3549,7 @@ fake_index = [
         subdir="conda-test",
         fn="mypkgnot-1.1.1",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=["mypkg 0.1.0"],
@@ -3600,9 +3605,9 @@ def test_determine_constricting_specs_conflicts(tmpdir):
             version="0.1.0",
             channel="test",
             subdir="conda-test",
-            fn="mypkg-0.1.1",
+            fn="mypkg-0.1.0",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3616,7 +3621,7 @@ def test_determine_constricting_specs_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.0"],
@@ -3641,7 +3646,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3655,7 +3660,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg <=0.1.1"],
@@ -3680,7 +3685,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3694,7 +3699,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg <=0.1.1"],
@@ -3706,9 +3711,9 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             version="1.1.1",
             channel="test",
             subdir="conda-test",
-            fn="mypkgnot-1.1.1",
+            fn="notmypkg-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.1"],
@@ -3734,7 +3739,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3748,7 +3753,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg >=0.1.1,<0.2.1"],
@@ -3773,7 +3778,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3787,7 +3792,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.*"],
@@ -3812,7 +3817,7 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3837,7 +3842,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3851,7 +3856,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg >=0.0.5"],
@@ -4061,3 +4066,332 @@ def test_no_channels_error(tmpdir, mocker: MockerFixture):
     assert "No channels are configured" in error_message
     assert "numpy" in error_message
     assert "conda config --append channels" in error_message
+
+
+def _make_conda_prefix_rec(name, version, channel="test"):
+    return PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC,
+        name=name,
+        version=version,
+        channel=channel,
+        subdir="noarch",
+        fn=f"{name}-{version}",
+        build="0",
+        build_number=0,
+        paths_data=None,
+        files=None,
+        depends=[],
+        constrains=[],
+    )
+
+
+@pytest.fixture
+def provided_index_channel(tmp_path: Path) -> tuple[str, dict[str, PackageRecord]]:
+    channel = tmp_path / "channel"
+    subdir = channel / "noarch"
+    subdir.mkdir(parents=True)
+    records = {
+        name: PackageRecord(
+            name=name,
+            version="1.0",
+            build="0",
+            build_number=0,
+            depends=depends,
+            channel=channel.as_uri(),
+            subdir="noarch",
+            fn=f"{name}-1.0-0.tar.bz2",
+            url=f"{subdir.as_uri()}/{name}-1.0-0.tar.bz2",
+            md5="0" * 32,
+        )
+        for name, depends in (
+            ("cached-app", ["dependency >=1"]),
+            ("requesting-app", ["cached-app >=1"]),
+            ("installed-app", ["dependency >=1"]),
+            ("dependency", ["leaf >=1"]),
+            ("leaf", []),
+            ("requested", []),
+            ("unrelated", []),
+        )
+    }
+    (subdir / "repodata.json").write_text(
+        json.dumps(
+            {
+                "info": {"subdir": "noarch"},
+                "packages": {
+                    record.fn: record.dump()
+                    for name, record in records.items()
+                    if name != "cached-app"
+                },
+                "packages.conda": {},
+            }
+        )
+    )
+    return channel.as_uri(), records
+
+
+@pytest.mark.parametrize("realized", [False, True], ids=["lazy", "realized"])
+@pytest.mark.parametrize("requested", ["cached-app", "requesting-app"])
+def test_solve_with_cached_package_in_provided_index(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_path: Path,
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    realized: bool,
+    requested: str,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    monkeypatch.setenv("CONDA_OFFLINE", "true")
+    reset_context()
+    channel, records = provided_index_channel
+    info = tmp_pkgs_dir / "cached-app-1.0-0" / "info"
+    info.mkdir(parents=True)
+    for filename in ("index.json", "repodata_record.json"):
+        (info / filename).write_text(json.dumps(records["cached-app"].dump()))
+
+    provided_index = Index(
+        channels=(channel,), prepend=False, subdirs=("noarch",), use_system=True
+    )
+    assert provided_index.use_cache
+    if realized:
+        provided_index.data
+    else:
+        mocker.patch.object(
+            Index, "_realize", side_effect=AssertionError("Eager index")
+        )
+    solver = Solver(
+        prefix=tmp_path / "prefix",
+        channels=(channel,),
+        subdirs=("noarch",),
+        specs_to_add=(requested,),
+    )
+    solver._index = provided_index
+
+    solution = solver.solve_final_state()
+
+    assert {record.name for record in solution} == {
+        requested,
+        "cached-app",
+        "dependency",
+        "leaf",
+    }
+    assert ("_data" in provided_index.__dict__) is realized
+    if not realized:
+        assert records["unrelated"] not in solver._index
+
+
+def test_reduced_index_preserves_channel_metadata_for_cached_track_features(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    monkeypatch.setenv("CONDA_OFFLINE", "true")
+    reset_context()
+    channel, records = provided_index_channel
+    record = records["requested"]
+    cached_record = PackageRecord.from_objects(
+        record, depends=["dependency"], track_features=["obsolete"]
+    )
+    assert cached_record == record
+    info = tmp_pkgs_dir / "requested-1.0-0" / "info"
+    info.mkdir(parents=True)
+    for filename in ("index.json", "repodata_record.json"):
+        (info / filename).write_text(json.dumps(cached_record.dump()))
+    provided_index = Index(channels=(channel,), prepend=False, subdirs=("noarch",))
+
+    reduced_index = provided_index.get_reduced_index(
+        (MatchSpec(track_features="obsolete"),)
+    )
+
+    assert reduced_index[record].depends == record.depends
+    assert reduced_index[record].track_features == record.track_features
+    assert "_data" not in provided_index.__dict__
+
+
+@pytest.mark.parametrize("realized", [False, True], ids=["lazy", "realized"])
+@pytest.mark.parametrize("index_prefix", [None, "target", "other"])
+def test_solve_with_installed_packages_in_provided_index(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_path: Path,
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+    realized: bool,
+    index_prefix: str | None,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    channel, records = provided_index_channel
+    prefix = tmp_path / "prefix"
+    (prefix / "conda-meta").mkdir(parents=True)
+    (prefix / "conda-meta" / "history").touch()
+    for name in ("installed-app", "dependency", "leaf"):
+        PrefixData(prefix).insert(PrefixRecord.from_objects(records[name]))
+    source_prefix = (
+        PrefixData(prefix if index_prefix == "target" else tmp_path / "other-prefix")
+        if index_prefix is not None
+        else None
+    )
+    provided_index = Index(
+        channels=(channel,),
+        prepend=False,
+        subdirs=("noarch",),
+        use_cache=False,
+        use_system=True,
+        prefix=source_prefix,
+    )
+    if realized:
+        provided_index.data
+    elif index_prefix != "other":
+        mocker.patch.object(
+            Index, "_realize", side_effect=AssertionError("Eager index")
+        )
+    solver = Solver(
+        prefix=prefix,
+        channels=(channel,),
+        subdirs=("noarch",),
+        specs_to_add=("requested",),
+    )
+    solver._index = provided_index
+
+    solution = solver.solve_final_state()
+
+    assert {record.name for record in solution} == {
+        "installed-app",
+        "dependency",
+        "leaf",
+        "requested",
+    }
+    assert provided_index.prefix_data is source_prefix
+    assert ("_data" in provided_index.__dict__) is (realized or index_prefix == "other")
+    if not realized and index_prefix != "other":
+        assert records["unrelated"] not in solver._index
+
+
+def test_prepare_reduces_provided_lazy_index_without_realizing(
+    mocker, tmp_path
+) -> None:
+    solver = Solver(prefix=tmp_path, channels=())
+    provided_index = Index(prepend=False)
+    first_reduced_index = mocker.Mock(spec=ReducedIndex)
+    second_reduced_index = mocker.Mock(spec=ReducedIndex)
+    get_reduced_index = mocker.patch.object(
+        Index,
+        "get_reduced_index",
+        autospec=True,
+        side_effect=(first_reduced_index, second_reduced_index),
+    )
+    resolve = mocker.patch("conda.resolve.Resolve")
+    first_specs = {MatchSpec("first")}
+    second_specs = {MatchSpec("second")}
+    solver._index = provided_index
+
+    first_index, _ = solver._prepare(first_specs)
+    second_index, _ = solver._prepare(second_specs)
+
+    assert first_index is first_reduced_index
+    assert second_index is second_reduced_index
+    assert "_data" not in provided_index.__dict__
+    assert provided_index.prefix_data is None
+    assert get_reduced_index.call_count == 2
+    for call, specs in zip(
+        get_reduced_index.call_args_list, (first_specs, second_specs), strict=True
+    ):
+        source_index, passed_specs = call.args
+        assert source_index is not provided_index
+        assert source_index.prefix_data.prefix_path == tmp_path
+        assert "_data" not in source_index.__dict__
+        assert passed_specs == specs
+    assert resolve.call_args_list == [
+        mocker.call(first_reduced_index, channels=solver.channels),
+        mocker.call(second_reduced_index, channels=solver.channels),
+    ]
+
+
+def test_prepare_preserves_records_in_provided_realized_index(mocker) -> None:
+    solver = Solver(prefix="idontexist", channels=())
+    provided_index = Index(prepend=False)
+    record = _make_conda_prefix_rec("custom", "1.0")
+    provided_index._data = {record: record}
+    get_reduced_index = mocker.spy(provided_index, "get_reduced_index")
+    resolve = mocker.patch("conda.resolve.Resolve")
+    solver._index = provided_index
+
+    prepared_index, _ = solver._prepare({MatchSpec("custom")})
+
+    assert prepared_index is provided_index
+    assert prepared_index[record] is record
+    get_reduced_index.assert_not_called()
+    resolve.assert_called_once_with(provided_index, channels=solver.channels)
+
+
+@pytest.mark.parametrize(
+    "has_conda_self,is_frozen,expected,unexpected",
+    [
+        pytest.param(
+            True,
+            False,
+            "conda self update",
+            "conda update -n base",
+            id="has_conda_self",
+        ),
+        pytest.param(
+            True,
+            True,
+            "conda self update",
+            "--override-frozen",
+            id="has_conda_self, override-frozen",
+        ),
+        pytest.param(
+            False,
+            False,
+            "conda update -n base -c test conda",
+            "--override-frozen",
+            id="no_conda_self",
+        ),
+        pytest.param(
+            False, True, "--override-frozen", "conda self update", id="frozen"
+        ),
+    ],
+)
+def test_notify_conda_outdated_update_message(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    has_conda_self: bool,
+    is_frozen: bool,
+    expected: str,
+    unexpected: str,
+):
+    monkeypatch.setenv("CONDA_NOTIFY_OUTDATED_CONDA", "true")
+    monkeypatch.setenv("CONDA_QUIET", "false")
+    reset_context()
+
+    # Setup prefix data to return the current conda and conda-self records, and to indicate whether the environment is frozen
+    current_conda = _make_conda_prefix_rec("conda", "0.0.1")
+    newer_conda = _make_conda_prefix_rec("conda", "99.0.0")
+    conda_self = (
+        _make_conda_prefix_rec("conda-self", "1.0.0") if has_conda_self else None
+    )
+    mock_prefix_data = mocker.Mock()
+    mock_prefix_data.get.side_effect = lambda name, default=None: {
+        "conda": current_conda,
+        "conda-self": conda_self,
+    }.get(name, default)
+    mock_prefix_data.is_frozen.return_value = is_frozen
+    mocker.patch("conda.core.solve.PrefixData", return_value=mock_prefix_data)
+
+    # Setup SubdirData query to return a always newer version of conda
+    mocker.patch("conda.core.solve.SubdirData.query_all", return_value=[newer_conda])
+
+    solver = Solver(prefix="idontexist", channels=("test",))
+    solver._notify_conda_outdated(link_precs=())
+
+    err = capsys.readouterr().err
+    assert expected in err
+    assert unexpected not in err

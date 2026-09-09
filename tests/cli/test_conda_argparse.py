@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import warnings
 from inspect import isclass, isfunction
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -44,6 +45,19 @@ def test_parse_clobber(subtests: Subtests):
         with subtests.test(command):
             args = p.parse_args([command, "--clobber"])
             assert args.clobber
+
+
+def test_console_accepts_known_backend():
+    p = generate_parser()
+    args = p.parse_args(["clean", "--console", "classic", "--all"])
+    assert args.console == "classic"
+
+
+def test_console_rejects_unknown_backend(capsys: CaptureFixture):
+    p = generate_parser()
+    with pytest.raises(SystemExit):
+        p.parse_args(["clean", "--console", "does-not-exist", "--all"])
+    assert "invalid choice: 'does-not-exist'" in capsys.readouterr().err
 
 
 def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
@@ -144,3 +158,25 @@ def test_sorted_commands_in_error(capsys: CaptureFixture):
         )
     else:
         pytest.fail("Did not raise")
+
+
+@pytest.mark.parametrize("command", ["create", "install", "remove", "run"])
+def test_dev_flag_pending_deprecation(command: str) -> None:
+    parser = generate_parser()
+    with pytest.deprecated_call():
+        args = parser.parse_args([command, "--dev"])
+    assert args.dev
+
+
+def test_dev_flag_absent_is_not_deprecated() -> None:
+    parser = generate_parser()
+    args = parser.parse_args(["create", "-n", "x"])
+    assert not args.dev
+
+
+def test_init_dev_is_not_deprecated(conda_cli: CondaCLIFixture) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", PendingDeprecationWarning)
+        _, stderr, rc = conda_cli("init", "--dev", "--dry-run", "bash")
+
+    assert rc == 0, stderr

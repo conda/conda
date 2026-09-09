@@ -13,6 +13,7 @@ import os
 import platform
 import struct
 import sys
+import sysconfig
 import warnings
 from contextlib import contextmanager, suppress
 from errno import ENOENT
@@ -86,6 +87,7 @@ if TYPE_CHECKING:
     from typing import Any, ClassVar, Literal
 
     from ..common.path import PathsType, PathType
+    from ..core.exclude_newer import ExcludeNewerPolicy
     from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
     from ..plugins.config import PluginConfig
@@ -122,8 +124,13 @@ non_x86_machines = {
     "s390x",
 }
 _arch_names = {
-    32: "x86",
-    64: "x86_64",
+    "32": "x86",
+    "64": "x86_64",
+}
+_win_sysconfig_map = {
+    "win-amd64": "win-64",
+    "win-arm64": "win-arm64",
+    "win32": "win-32",
 }
 
 user_rc_path: PathType = abspath(expanduser(f"~/{DEFAULT_CONDARC_FILENAME}"))
@@ -298,6 +305,14 @@ class Context(Configuration):
             PrimitiveParameter("", element_type=str), string_delimiter="&"
         )
     )  # TODO: consider a different string delimiter
+    exclude_newer = ParameterLoader(
+        PrimitiveParameter("", element_type=str),
+        aliases=("cooldown",),
+    )
+    exclude_newer_package = ParameterLoader(
+        MapParameter(PrimitiveParameter(None, element_type=(str, NoneType))),
+        aliases=("cooldown_exclude",),
+    )
     disallowed_packages = ParameterLoader(
         SequenceParameter(
             PrimitiveParameter("", element_type=str), string_delimiter="&"
@@ -448,7 +463,7 @@ class Context(Configuration):
     )
     _debug = ParameterLoader(PrimitiveParameter(False), aliases=["debug"])
     _trace = ParameterLoader(PrimitiveParameter(False), aliases=["trace"])
-    dev = ParameterLoader(PrimitiveParameter(False))
+    _dev = ParameterLoader(PrimitiveParameter(False), aliases=("dev",))
     dry_run = ParameterLoader(PrimitiveParameter(False))
     _error_upload_url = ParameterLoader(
         PrimitiveParameter("https://conda.io/conda-post/unexpected-error"),
@@ -598,6 +613,30 @@ class Context(Configuration):
         self.plugin_manager.load_settings()
         return self.plugin_manager.get_config(self.raw_data)
 
+    @cached_property
+    def exclude_newer_policy(self) -> ExcludeNewerPolicy:
+        """Resolved policy for excluding newly indexed package records."""
+        from ..core.exclude_newer import ExcludeNewerPolicy
+
+        return ExcludeNewerPolicy.from_values(
+            self.exclude_newer,
+            self.exclude_newer_package,
+            channel_settings=self.channel_settings,
+        )
+
+    @property
+    @deprecated(
+        "27.3",
+        "27.9",
+        addendum="Set `PYTHONPATH` to the conda source root instead.",
+    )
+    def dev(self) -> bool:
+        return self._dev
+
+    @dev.setter
+    def dev(self, value: bool) -> None:
+        self._cache_["_dev"] = value
+
     @property
     @deprecated(
         "26.9",
@@ -668,15 +707,12 @@ class Context(Configuration):
 
     @property
     def arch_name(self) -> str:
-        m = platform.machine().lower()
-        if m in non_x86_machines:
-            return m
-        else:
-            return _arch_names[self.bits]
+        arch = self._native_subdir().split("-")[1]
+        return _arch_names.get(arch, arch)
 
     @property
     def platform(self) -> str:
-        return _platform_map.get(sys.platform, "unknown")
+        return self._native_subdir().split("-")[0]
 
     @property
     def default_threads(self) -> int | None:
@@ -723,13 +759,19 @@ class Context(Configuration):
 
     @cache
     def _native_subdir(self) -> str:
+        if sys.platform == "win32":
+            return _win_sysconfig_map[sysconfig.get_platform()]
+
+        _platform = _platform_map.get(sys.platform, "unknown")
         m = platform.machine().lower()
+
         if m in non_x86_machines:
-            return f"{self.platform}-{m}"
-        elif self.platform == "zos":
-            return "zos-z"
+            arch = m
+        elif _platform == "zos":
+            arch = "z"
         else:
-            return "%s-%d" % (self.platform, self.bits)
+            arch = str(self.bits)
+        return f"{_platform}-{arch}"
 
     @property
     def subdirs(self) -> tuple[str, str]:
@@ -875,7 +917,14 @@ class Context(Configuration):
         The vars can refer to each other if necessary since the dict is ordered.
         None means unset it.
         """
-        if context.dev:
+        if self._dev:
+            deprecated.topic(
+                "27.3",
+                "27.9",
+                topic="`conda.base.context.Context.dev`",
+                addendum="Set `PYTHONPATH` to the conda source root instead.",
+                deprecation_type=FutureWarning,
+            )
             if pythonpath := os.environ.get("PYTHONPATH", ""):
                 pythonpath = os.pathsep.join((CONDA_SOURCE_ROOT, pythonpath))
             else:
@@ -890,20 +939,23 @@ class Context(Configuration):
                 "CONDA_PYTHON_EXE": sys.executable,
                 "_CONDA_ROOT": self.conda_prefix,
             }
-        else:
-            exe = os.path.join(
-                self.conda_prefix,
-                BIN_DIRECTORY,
-                "conda.exe" if on_win else "conda",
-            )
-            return {
-                "CONDA_EXE": exe,
-                "_CONDA_EXE": exe,
-                "_CE_M": None,
-                "_CE_CONDA": None,
-                "CONDA_PYTHON_EXE": sys.executable,
-                "_CONDA_ROOT": self.conda_prefix,
-            }
+
+        exe = os.path.join(
+            self.conda_prefix,
+            BIN_DIRECTORY,
+            "conda.exe" if on_win else "conda",
+        )
+        return {
+            "CONDA_EXE": exe,
+            "_CONDA_EXE": exe,
+            # Shell wrappers expand `"$CONDA_EXE" $_CE_M $_CE_CONDA` (`python -m conda`
+            # when set). None unsets leftovers; keep the keys while wrappers expand them.
+            # https://github.com/conda/conda/issues/14142
+            "_CE_M": None,
+            "_CE_CONDA": None,
+            "CONDA_PYTHON_EXE": sys.executable,
+            "_CONDA_ROOT": self.conda_prefix,
+        }
 
     @memoizedproperty
     def channel_alias(self) -> Channel:
@@ -1333,9 +1385,12 @@ class Context(Configuration):
             "ssl_verify",
         ),
         "Solver Configuration": (
+            "add_pip_as_python_dependency",
             "aggressive_update_packages",
             "auto_update_conda",
             "channel_priority",
+            "exclude_newer",
+            "exclude_newer_package",
             "create_default_packages",
             "disallowed_packages",
             "force_reinstall",
@@ -1403,10 +1458,9 @@ class Context(Configuration):
         "Hidden and Undocumented": (
             "allow_cycles",  # allow cyclical dependencies, or raise
             "allow_conda_downgrades",
-            "add_pip_as_python_dependency",
             "debug",
             "trace",
-            "dev",
+            "dev",  # TODO: Remove after deprecation ended
             "default_python",
             "enable_private_envs",
             "error_upload_url",  # TODO: Remove after deprecation ended
@@ -1443,12 +1497,12 @@ class Context(Configuration):
                 private token to enable access to private packages and channels.
                 """
             ),
-            # add_pip_as_python_dependency=dals(
-            #     """
-            #     Add pip, wheel and setuptools as dependencies of python. This ensures pip,
-            #     wheel and setuptools will always be installed any time python is installed.
-            #     """
-            # ),
+            add_pip_as_python_dependency=dals(
+                """
+                Add pip as a dependency of python. This ensures pip will always be installed any
+                time python is installed.
+                """
+            ),
             aggressive_update_packages=dals(
                 """
                 A list of packages that, if installed, are always updated to the latest possible
@@ -1557,7 +1611,9 @@ class Context(Configuration):
                 """
                 A list of mappings that allows overriding certain settings for a single channel.
                 Each list item should include at least the "channel" key and the setting you would
-                like to override.
+                like to override. The "channel" value may be a channel name, multichannel name,
+                channel URL, or glob-like URL pattern. Supported settings include auth-related
+                plugin settings and exclude_newer.
                 """
             ),
             client_ssl_cert=dals(
@@ -1583,6 +1639,31 @@ class Context(Configuration):
             conda_build=dals(
                 """
                 General configuration parameters for conda-build.
+                """
+            ),
+            exclude_newer=dals(
+                """
+                Exclude packages published more recently than the given
+                threshold. Accepts durations (7d, 3d12h, 1w, P7D),
+                ISO 8601 dates (2026-04-01), RFC 3339 timestamps
+                (2026-04-01T12:00:00Z), or a plain number of seconds.
+                Date-only values are interpreted as the start of the next
+                day in UTC. Set to 0 for no delay, using the current time as
+                the cutoff. Leave empty to disable (the default).
+                Packages without an indexed_timestamp or timestamp are included
+                for compatibility. Channel-specific cutoffs can be set with
+                exclude_newer entries in channel_settings, and per-package
+                overrides can be set with exclude_newer_package.
+                """
+            ),
+            exclude_newer_package=dals(
+                """
+                Per-package overrides for the exclude_newer policy. Maps package
+                names to a duration string (e.g. "30d"), a timestamp, or false
+                to exempt the package entirely. For example:
+                  exclude_newer_package:
+                    openssl: false
+                    numpy: 30d
                 """
             ),
             # TODO: This is a bad parameter name. Consider an alternate.
@@ -2086,6 +2167,8 @@ def reset_context(
     # reload plugin config params
     with suppress(AttributeError):
         del context.plugins
+    with suppress(AttributeError):
+        del context.exclude_newer_policy
 
     _get_render_func.cache_clear()
 

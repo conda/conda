@@ -3,20 +3,16 @@
 from __future__ import annotations
 
 import copy
-from contextlib import nullcontext
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 import pytest
 
 import conda
-from conda.base.constants import DEFAULTS_CHANNEL_NAME
 from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.core import index
 from conda.core.index import (
     Index,
-    calculate_channel_urls,
     dist_str_in_index,
 )
 from conda.core.prefix_data import PrefixData
@@ -253,14 +249,25 @@ def test_dist_str_in_index(test_recipes_channel: Path) -> None:
     assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
 
 
-def test_calculate_channel_urls():
-    with pytest.deprecated_call():
-        urls = calculate_channel_urls(
-            channel_urls=[DEFAULTS_CHANNEL_NAME], use_local=False, prepend=True
-        )
+def test_copy_does_not_realize_index() -> None:
+    index = Index(prepend=False)
 
-        assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
-        assert len(urls) == 6 if on_win else 4
+    copied = index.copy()
+
+    assert "_data" not in index.__dict__
+    assert "_data" not in copied.__dict__
+
+
+def test_copy_independently_copies_realized_data() -> None:
+    index = Index(prepend=False)
+    record = PackageRecord.feature("copied_feature")
+    index._data = {record: record}
+
+    copied = index.copy()
+    copied.data.clear()
+
+    assert copied.data == {}
+    assert index.data == {record: record}
 
 
 @pytest.mark.parametrize(
@@ -395,7 +402,7 @@ class TestIndex:
             version="1.0",
             build_number=0,
             build="0",
-            fn="dependent-1.0-0.tar.bz2",
+            fn="dependent-1.0-0.conda",
         )
 
     @pytest.fixture
@@ -407,7 +414,7 @@ class TestIndex:
             version="1.0",
             build_number=0,
             build="0",
-            fn="dependent-1.0-0.tar.bz2",
+            fn="dependent-1.0-0.conda",
         )
 
     @pytest.fixture
@@ -419,7 +426,7 @@ class TestIndex:
             version="2.0",
             build_number=0,
             build="0",
-            fn="dependent-2.0-0.tar.bz2",
+            fn="dependent-2.0-0.conda",
         )
 
     @pytest.fixture
@@ -541,15 +548,3 @@ class TestIndex:
             # each OS has different virtual packages
             + len(context.plugin_manager.get_virtual_package_records())
         )
-
-
-@pytest.mark.parametrize(
-    "function,raises",
-    [
-        ("calculate_channel_urls", None),
-    ],
-)
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(index, function)()

@@ -265,9 +265,7 @@ def _initialize_dev_bash(prefix, env_vars, unset_env_vars):
 
 
 def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
-    dev_arg = ""
-    if context.dev:
-        dev_arg = "--dev"
+    dev_arg = "--dev"
     condabin = Path(prefix, "condabin")
 
     yield (

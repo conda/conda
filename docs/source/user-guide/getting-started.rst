@@ -15,9 +15,9 @@ This guide to getting started with conda goes over the basics of starting up and
 Before you start
 ================
 
-To bootstrap a ``conda`` installation, use a minimal installer such as `Miniconda <https://docs.anaconda.com/miniconda/>`__ or `Miniforge <https://conda-forge.org/download>`__.
+To bootstrap a ``conda`` installation, use a minimal installer such as `Miniconda <https://anaconda.com/docs/getting-started/concepts/anaconda-or-miniconda>`__ or `Miniforge <https://conda-forge.org/download>`__.
 
-Conda is also included in the `Anaconda Distribution <https://docs.anaconda.com/anaconda/install/>`_.
+Conda is also included in the `Anaconda Distribution <https://anaconda.com/docs/getting-started/concepts/anaconda-or-miniconda>`_.
 
 .. note::
 

@@ -12,9 +12,6 @@ from conda.gateways.disk import create
 @pytest.mark.parametrize(
     "function,raises",
     [
-        ("create_application_entry_point", TypeError),
-        ("ProgressFileWrapper", TypeError),
-        ("create_fake_executable_softlink", TypeError),
         ("extract_tarball", TypeError),
     ],
 )

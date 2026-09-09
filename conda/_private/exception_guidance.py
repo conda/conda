@@ -8,7 +8,7 @@ so that terminal and `--json` output share the same logical cause / hint structu
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import TYPE_CHECKING
 
 from .. import CondaError
@@ -69,6 +69,33 @@ class ErrorGuidance:
         result = asdict(self)
         result["hint_codes"] = self.hint_codes
         return {k: v for k, v in result.items() if v}
+
+    @classmethod
+    def from_hints(cls, hints: Iterable[GuidanceHint]) -> ErrorGuidance | None:
+        """Create guidance from hints, deduplicating by ``hint_code``."""
+        merged_hints = []
+        seen_hint_codes = set()
+        for hint in hints:
+            if hint.hint_code in seen_hint_codes:
+                continue
+            seen_hint_codes.add(hint.hint_code)
+            merged_hints.append(hint)
+        if not merged_hints:
+            return None
+        return cls(hints=tuple(merged_hints))
+
+    def with_hints(self, hints: Iterable[GuidanceHint]) -> ErrorGuidance:
+        """Return this guidance with additional hints appended.
+
+        Existing hints keep priority when ``hint_code`` values collide.
+        """
+        hints = tuple(hints)
+        if not hints:
+            return self
+        guidance = self.from_hints((*self.hints, *hints))
+        if guidance is None or guidance.hints == self.hints:
+            return self
+        return replace(self, hints=guidance.hints)
 
     @classmethod
     def coerce(cls, value: Any) -> ErrorGuidance | None:

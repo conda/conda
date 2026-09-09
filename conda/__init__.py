@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import sys
-from json import JSONEncoder  # noqa: TID251
 from os.path import abspath, dirname
 from typing import TYPE_CHECKING
 
@@ -75,18 +74,49 @@ class CondaError(Exception):
     return_code: int = 1
     reportable: bool = False  # Exception may be reported to core maintainers
 
+    # Class defaults so subclasses that skip CondaError.__init__ still have
+    # safe attribute access in guidance / __str__ / dump_map.
+    _kwargs: dict[str, Any] | None = None
+    _caused_by: Any = None
+    _guidance: ErrorGuidance | None = None
+
     def __init__(
         self,
         message: str | None,
+        *args: Any,
         caused_by: Any = None,
-        *,
         guidance: ErrorGuidance | ErrorGuidanceTypedDict | None = None,
         **kwargs,
     ):
+        if len(args) > 1:
+            raise TypeError(
+                f"{self.__class__.__name__}.__init__() takes from 1 to 2 positional "
+                f"arguments but {len(args) + 1} were given"
+            )
+        elif args:
+            from .deprecations import deprecated
+
+            deprecated.topic(
+                "27.3",
+                "27.9",
+                topic=(
+                    "Passing caused_by as a positional argument to "
+                    "conda.CondaError.__init__"
+                ),
+                addendum="Use the caused_by keyword argument instead.",
+                stack=1,
+            )
+
+            if caused_by is not None:
+                raise TypeError(
+                    f"{self.__class__.__name__}.__init__() got multiple values for "
+                    f"argument 'caused_by'"
+                )
+            caused_by = args[0]
+
         self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
-        self._guidance = None
         if guidance:
             from ._private.exception_guidance import ErrorGuidance
 
@@ -118,7 +148,7 @@ class CondaError(Exception):
                     "message:",
                     self.message,
                     "kwargs:",
-                    str(self._kwargs),
+                    str(self._kwargs or {}),
                     "",
                 )
             )
@@ -133,14 +163,21 @@ class CondaError(Exception):
             message=str(self),
             error=repr(self),
             caused_by=repr(self._caused_by),
-            **self._kwargs,
+            **(self._kwargs or {}),
         )
-        if self._guidance is not None:
-            result["guidance"] = self._guidance.__json__()
+        if (guidance := self.guidance) is not None:
+            result["guidance"] = guidance.__json__()
         return result
 
 
 class CondaMultiError(CondaError):
+    """Container for multiple conda errors raised together.
+
+    This is a control-flow artifact, not a user-facing error type. It must not
+    carry its own ``guidance``; printers apply guidance and
+    ``conda_error_hints`` to each nested leaf error instead.
+    """
+
     def __init__(self, errors: Iterable[CondaError]):
         self.errors = errors
         super().__init__(None)
@@ -191,32 +228,3 @@ def conda_signal_handler(signum: int, frame: Any):
     from .exceptions import CondaSignalInterrupt
 
     raise CondaSignalInterrupt(signum)
-
-
-def _default(self, obj):
-    from frozendict import frozendict
-
-    from .deprecations import deprecated
-
-    if isinstance(obj, frozendict):
-        deprecated.topic(
-            "26.3",
-            "26.9",
-            topic="Monkey-patching `json.JSONEncoder` to support `frozendict`",
-            addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-        )
-        return dict(obj)
-    elif hasattr(obj, "to_json"):
-        deprecated.topic(
-            "26.3",
-            "26.9",
-            topic="Monkey-patching `json.JSONEncoder` to support `obj.to_json()`",
-            addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-        )
-        return obj.to_json()
-    return _default.default(obj)
-
-
-# FUTURE: conda 26.3, remove the following monkey patching
-_default.default = JSONEncoder().default
-JSONEncoder.default = _default

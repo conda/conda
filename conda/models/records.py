@@ -95,6 +95,14 @@ class TimestampField(NumberField):
                 return 0
 
 
+class IndexedTimestampField(TimestampField):
+    def __get__(self, instance, instance_type):
+        try:
+            return NumberField.__get__(self, instance, instance_type)
+        except AttributeError:
+            return 0
+
+
 class Link(DictSafeMixin, Entity):
     source = StringField()
     type = LinkTypeField(LinkType, required=False)
@@ -436,6 +444,7 @@ class PackageRecord(DictSafeMixin, Entity):
         return self.package_type in PackageType.unmanageable_package_types()
 
     timestamp = TimestampField()
+    indexed_timestamp = IndexedTimestampField()
 
     @property
     def combined_depends(self):
@@ -708,6 +717,9 @@ class PrefixRecord(SolvedRecord):
     auth = StringField(required=False, nullable=True)
     """Authentication information."""
 
+    def _get_json_fn(self) -> str:
+        return f"{self.name}-{self.version}-{self.build}.json"
+
     def package_size(self, prefix_path: Path) -> int:
         """
         Compute the installed size of this package within a prefix.
@@ -721,9 +733,7 @@ class PrefixRecord(SolvedRecord):
         """
         total_size = 0
 
-        meta_file = (
-            prefix_path / "conda-meta" / f"{self.name}-{self.version}-{self.build}.json"
-        )
+        meta_file = prefix_path / "conda-meta" / self._get_json_fn()
         try:
             total_size += meta_file.stat().st_size
         except OSError:

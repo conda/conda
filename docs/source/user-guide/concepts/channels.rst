@@ -7,26 +7,46 @@ Channels
 What is a "channel"?
 ====================
 
-Channels are the locations where packages are stored.
-They serve as the base for hosting and managing packages.
-Conda :doc:`packages <../concepts/packages>` are downloaded
-from remote channels, which are URLs to directories
-containing conda packages.
-The ``conda`` command searches a set of channels. By default,
-packages are automatically downloaded and updated from
-the `default channel`_, which may require a
-paid license, as described in the `repository terms of service`_.
-The ``conda-forge`` channel is free for all to use.
-You can modify which remote channels are automatically searched;
-this feature is beneficial when maintaining a private or internal channel.
-For details, see how to :ref:`modify your channel lists <config-channels>`.
+Channels are locations where conda packages are stored. A channel can be
+a public package repository, a private or internal package repository, or
+a local directory on your computer.
 
-We use conda-forge as an example channel.
-`Conda-forge <https://conda-forge.org/>`_ is a community channel
-made up of thousands of contributors. Conda-forge itself is
-analogous to PyPI but with a unified,
-automated build infrastructure and more peer review of
-recipes.
+Conda :doc:`packages <../concepts/packages>` are downloaded from channels,
+which are URLs or channel names that point to directories containing conda
+packages. The ``conda`` command searches a configured set of channels when
+you install, update, or search for packages.
+
+By default, packages are automatically downloaded and updated from the
+`default channel`_, which may require a paid license, as described in the
+`repository terms of service`_. You can modify which channels conda
+searches. For details, see how to :ref:`modify your channel lists
+<config-channels>`.
+
+Common public channels
+======================
+
+Some commonly used public channels and multichannels include:
+
+``defaults``
+    A built-in multichannel that includes Anaconda-hosted channels such as
+    ``main``, ``r``, and ``msys2`` under ``repo.anaconda.com``.
+
+``main``
+    The primary Anaconda-hosted channel under ``repo.anaconda.com``. It
+    contains many commonly used packages distributed by Anaconda.
+
+``conda-forge``
+    A community-led channel with packages maintained by thousands of
+    contributors. The `conda-forge project <https://conda-forge.org/>`_
+    provides a large collection of packages across many ecosystems.
+
+``bioconda``
+    A community channel focused on bioinformatics packages. The
+    `Bioconda project <https://bioconda.github.io/>`_ is commonly used
+    together with ``conda-forge``.
+
+You can browse public channels and search for packages on
+`Anaconda.org <https://anaconda.org/>`_.
 
 .. _`repository terms of service`: https://www.anaconda.com/terms-of-service
 
@@ -35,7 +55,7 @@ recipes.
 Specifying channels when installing packages
 ============================================
 
-* From the command line use `--channel`
+From the command line, use ``--channel`` to search a specific channel:
 
 .. code-block:: bash
 
@@ -47,61 +67,42 @@ You may specify multiple channels by passing the argument multiple times:
 
   $ conda install scipy --channel conda-forge --channel bioconda
 
-Priority decreases from left to right - the first argument is higher priority than the second.
+Priority decreases from left to right: the first argument has higher
+priority than the second.
 
-* From the command line use `--override-channels` to only search the specified channel(s), rather than any channels configured in .condarc. This also ignores conda's default channels.
+Use ``--override-channels`` to search only the specified channel or
+channels instead of any channels configured in ``.condarc``. This also
+ignores conda's default channels.
 
 .. code-block:: bash
 
-  $ conda search scipy --channel file:/<path to>/local-channel --override-channels
+  $ conda search scipy --channel conda-forge --override-channels
 
-* In .condarc, use the key ``channels`` to see a list of channels for conda to search for packages.
+In ``.condarc``, use the ``channels`` key to configure the list of
+channels conda searches for packages.
 
 Learn more about :doc:`managing channels <../tasks/manage-channels>`.
 
-.. _rss-feed:
+Local channels
+==============
 
-Conda clone channel RSS feed
-============================
+A local channel is a channel stored on your own computer or on a shared
+filesystem. Local channels are useful when you are building your own
+packages, testing packages before publishing them, or maintaining packages
+for an internal workflow.
 
-We offer a RSS feed that represents all the things
-that have been cloned by the channel clone and are
-now available behind the CDN (content delivery network).
-The RSS feed shows what has happened on a rolling,
-two-week time frame and is useful for seeing where
-packages are or if a sync has been run.
+Local channels use the same channel layout as remote channels. They contain
+platform subdirectories such as ``linux-64``, ``osx-64``, ``win-64``, and
+``noarch``. Each subdirectory contains package files and repository metadata.
 
-Let's look at the `conda-forge channel RSS feed <https://conda-static.anaconda.org/conda-forge/rss.xml>`_
-as an example.
+To use a local channel, provide a ``file://`` URL or path to the channel
+root. For example:
 
-In that feed, it will tell you every time that it runs a sync.
-The feed includes other entries for packages that were added or
-removed. Each entry is formatted to show the subdirectory
-the package is from, the action that was taken (addition or removal),
-and the name of the package. Everything has a publishing date,
-per standard RSS practice.
+.. code-block:: bash
 
-.. code-block:: xml
+  $ conda search --channel file:///opt/conda-channel --override-channels
 
-  <rss version="0.91">
-    <channel>
-      <title>conda-forge updates</title>
-      <link>https://anaconda.org</link>
-      <description>Updates in the last two weeks</description>
-      <language>en</language>
-      <copyright>Copyright 2019, Anaconda, Inc.</copyright>
-      <pubDate>30 Jul 2019 19:45:47 UTC</pubDate>
-        <item>
-          <title>running sync</title>
-          <pubDate>26 Jul 2019 19:26:36 UTC</pubDate>
-        </item>
-        <item>
-          <title>linux-64:add:jupyterlab-1.0.4-py36_0.tar.bz2</title>
-          <pubDate>26 Jul 2019 19:26:36 UTC</pubDate>
-        </item>
-        <item>
-          <title>linux-64:add:jupyterlab-1.0.4-py37_0.tar.bz2</title>
-          <pubDate>26 Jul 2019 19:26:36 UTC</pubDate>
-        </item>
+For a step-by-step example of creating and indexing a local channel, see
+:doc:`creating custom channels <../tasks/create-custom-channels>`.
 
 .. _`default channel`: https://repo.anaconda.com/pkgs/

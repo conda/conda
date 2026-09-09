@@ -22,7 +22,6 @@ from ..base.constants import (
 from ..base.context import context, env_name
 from ..common.io import swallow_broken_pipe
 from ..common.path import expand, paths_equal
-from ..deprecations import deprecated
 from ..exceptions import (
     EnvironmentFileNotFound,
     EnvironmentFileTypeMismatchError,
@@ -54,33 +53,6 @@ def is_active_prefix(prefix: str) -> bool:
     )
 
 
-@deprecated(
-    "26.3",
-    "26.9",
-    addendum="Use `spec = str(MatchSpec(arg))` instead",
-)
-def arg2spec(arg: str, update: bool = False) -> str:
-    try:
-        spec = MatchSpec(arg)
-    except:
-        from ..exceptions import CondaValueError
-
-        raise CondaValueError(f"invalid package specification: {arg}")
-
-    name = spec.name
-    if not spec._is_simple() and update:
-        from ..exceptions import CondaValueError
-
-        raise CondaValueError(
-            "version specifications not allowed with 'update'; use\n"
-            f"    conda update  {name:<{len(arg)}}  or\n"
-            f"    conda install {arg:<{len(name)}}"
-        )
-
-    return str(spec)
-
-
-@deprecated.argument("26.3", "26.9", "json")
 def specs_from_args(args: Iterable[str]) -> list[str]:
     return [str(MatchSpec(arg)) for arg in args]
 
@@ -127,7 +99,6 @@ def spec_from_line(line: str) -> str:
         return name
 
 
-@deprecated.argument("26.3", "26.9", "json")
 def specs_from_url(url: str) -> list[str]:
     from ..gateways.connection.download import TmpDownload
 

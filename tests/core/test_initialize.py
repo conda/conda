@@ -411,7 +411,6 @@ def test_make_entry_point_exe(verbose, tmp_path: Path):
 def test_install_conda_sh(verbose):
     with tempdir() as conda_prefix:
         target_path = join(conda_prefix, "etc", "profile.d", "conda.sh")
-        context.dev = False
         result = install_conda_sh(target_path, conda_prefix)
         assert result == Result.MODIFIED
 

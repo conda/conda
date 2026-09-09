@@ -1,0 +1,19 @@
+### Enhancements
+
+* Move `add_pip_as_python_dependency` from hidden settings into Solver Configuration. (#16545)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Document `add_pip_as_python_dependency`, including the planned default change in #16404. (#16545)
+
+### Other
+
+* <news item>
