@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Fix the description of `*` in version specs. A trailing `*` is a fuzzy match on version segments, so `1.4*` matches `1.4.1` but not `1.40`. Only a `*` elsewhere in the version acts as a regular expression glob. (#16619 via #16655)
+
+### Other
+
+* <news item>
