@@ -24,7 +24,7 @@ Since 25.5.0, `conda env create` silently installed into an existing prefix, des
 1. `conda create -y -n repro python`
 2. Place a sentinel file inside the env to detect deletion, e.g.:
    `touch ~/miniforge3/envs/repro/sentinel`
-   (Adjust the env root for your install layout / OS; on Windows use e.g. `New-Item %USERPROFILE%\miniforge3\envs\repro\sentinel`.)
+   (Adjust the env root for your install layout / OS. On Windows PowerShell, use e.g. `New-Item -ItemType File -Path "$env:USERPROFILE\miniforge3\envs\repro\sentinel"`.)
 3. `conda env create -n repro --file env.yml` (no `--yes`)
 4. Confirm the command fails and the sentinel file still exists.
 5. `conda env create -n repro --file env.yml --yes`
