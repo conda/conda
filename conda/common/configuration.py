@@ -46,6 +46,7 @@ from ..auxlib.exceptions import ThisShouldNeverHappenError
 from ..auxlib.type_coercion import TypeCoercionError, typify, typify_data_structure
 from ..base.constants import CMD_LINE_SOURCE, ENV_VARS_SOURCE
 from ..common.iterators import unique
+from ..deprecations import deprecated
 from .compat import isiterable, primitive_types
 from .constants import NULL
 from .serialize import yaml
@@ -1600,8 +1601,12 @@ class Configuration(metaclass=ConfigurationType):
             callback()
         return self
 
-    def register_reset_callaback(self, callback):
+    def register_reset_callback(self, callback):
         self._reset_callbacks.setdefault(callback, None)
+
+    @deprecated("27.3", "27.9", addendum="Use `register_reset_callback` instead.")
+    def register_reset_callaback(self, callback):
+        self.register_reset_callback(callback)
 
     def check_source(self, source):
         # this method ends up duplicating much of the logic of Parameter.__get__
