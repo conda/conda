@@ -247,12 +247,19 @@ class CondaPluginManager(pluggy.PluginManager):
     ) -> bool:
         """Return whether package contents declare conda plugin entry points."""
         package_root = prefix or getattr(package, "extracted_package_dir", None)
-        paths_data = getattr(package, "paths_data", None)
-        if not package_root or not paths_data:
+        if not package_root:
             return False
 
-        for path_data in paths_data.paths:
-            relative_path = PurePosixPath(path_data.path.replace("\\", "/"))
+        if prefix is not None:
+            # Installed noarch Python files have been relocated into site-packages.
+            paths = getattr(package, "files", ())
+        elif paths_data := getattr(package, "paths_data", None):
+            paths = (path_data.path for path_data in paths_data.paths)
+        else:
+            return False
+
+        for package_path in paths:
+            relative_path = PurePosixPath(package_path.replace("\\", "/"))
             if (
                 relative_path.is_absolute()
                 or relative_path.name != "entry_points.txt"

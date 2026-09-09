@@ -83,6 +83,7 @@ def test_plugins_install_help(
     assert "Install conda plugin packages into an environment." in out
     assert "package_spec" in out
     assert "--all" not in out
+    assert "--only-deps" not in out
     assert not err
 
 
@@ -120,7 +121,23 @@ def test_plugins_update_help(
     assert "Update conda plugin packages in an environment." in out
     assert "--all" in out
     assert "package_spec" in out
+    assert "--only-deps" not in out
     assert not err
+
+
+@pytest.mark.parametrize("command", ("install", "update"))
+def test_plugins_package_commands_reject_only_deps(
+    command: str,
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+):
+    out, err, exc = conda_cli(
+        "plugins", command, "--only-deps", "conda-example-plugin", raises=SystemExit
+    )
+
+    assert exc.value.code == 2
+    assert "unrecognized arguments: --only-deps" in err
+    assert not out
 
 
 def test_plugins_list_empty(

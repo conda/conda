@@ -21,7 +21,7 @@ from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
 from conda.models.enums import PathEnum
-from conda.models.records import PathDataV1, PathsData
+from conda.models.records import PathDataV1, PathsData, PrefixRecord
 from conda.plugins import solvers, virtual_packages
 from conda.plugins.types import CondaPlugin
 
@@ -122,6 +122,53 @@ def test_is_conda_plugin_package(
     )
 
     assert plugin_manager.is_conda_plugin_package(package) is expected
+
+
+@pytest.mark.parametrize(
+    "site_packages", ("lib/python3.13/site-packages", "Lib/site-packages")
+)
+@pytest.mark.parametrize("has_paths_data", (False, True))
+@pytest.mark.parametrize(
+    ("entry_points_text", "expected"),
+    (
+        ("[conda]\nexample = conda_example_plugin.plugin\n", True),
+        ("[console_scripts]\nconsole-only = console_only:main\n", False),
+    ),
+)
+def test_is_installed_conda_plugin_package(
+    site_packages: str,
+    has_paths_data: bool,
+    entry_points_text: str,
+    expected: bool,
+    plugin_manager: CondaPluginManager,
+    tmp_path,
+):
+    metadata_path = "conda_example_plugin.dist-info/entry_points.txt"
+    installed_path = f"{site_packages}/{metadata_path}"
+    entry_points = tmp_path / installed_path
+    entry_points.parent.mkdir(parents=True)
+    entry_points.write_text(entry_points_text)
+    package = PrefixRecord(
+        name="conda-example-plugin",
+        version="1.0",
+        build="0",
+        build_number=0,
+        noarch="python",
+        files=(installed_path,),
+        paths_data=PathsData(
+            paths_version=1,
+            paths=(
+                PathDataV1(
+                    _path=f"site-packages/{metadata_path}",
+                    path_type=PathEnum.hardlink,
+                ),
+            ),
+        )
+        if has_paths_data
+        else None,
+    )
+
+    assert plugin_manager.is_conda_plugin_package(package, prefix=tmp_path) is expected
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
