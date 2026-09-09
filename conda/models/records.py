@@ -616,6 +616,23 @@ class PackageCacheRecord(PackageRecord):
         """str: The basename of the local package file."""
         return basename(self.package_tarball_full_path)
 
+    def matches_metadata(self, package_ref: PackageRecord | MatchSpec) -> bool:
+        """Match available size and MD5 against the requested package.
+
+        Accept missing values and the requested package's legacy archive metadata.
+        """
+        for key in ("size", "md5"):
+            expected = package_ref.get(key)
+            if expected is None:
+                continue
+            cached = self.get(key)
+            if cached is not None and cached not in (
+                expected,
+                package_ref.get(f"legacy_bz2_{key}"),
+            ):
+                return False
+        return True
+
     def _calculate_md5sum(self):
         memoized_md5 = getattr(self, "_memoized_md5", None)
         if memoized_md5:
