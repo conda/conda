@@ -262,9 +262,7 @@ class CondaPluginManager(pluggy.PluginManager):
         requested_normalized_name = canonicalize_name(requested_name)
 
         for plugin, dist in self.list_plugin_distinfo():
-            canonical_name = self.get_name(plugin)
-            if canonical_name is None:
-                continue
+            canonical_name = self.get_name(plugin) or self.get_canonical_name(plugin)
 
             lookup_names = {
                 dist.project_name,
