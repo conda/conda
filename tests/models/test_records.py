@@ -13,9 +13,10 @@ from conda.auxlib.exceptions import ValidationError
 from conda.base.context import context
 from conda.core.prefix_data import PrefixData
 from conda.models.channel import Channel
-from conda.models.enums import NoarchType, PackageType
+from conda.models.enums import LinkType, NoarchType, PackageType
 from conda.models.match_spec import MatchSpec
 from conda.models.records import (
+    Link,
     PackageCacheRecord,
     PackageRecord,
     PrefixRecord,
@@ -378,6 +379,64 @@ def test_from_objects_entity() -> None:
     assert dc._pkey == entity._pkey
 
 
+@pytest.mark.parametrize(
+    "field_name,default,cached_value",
+    [
+        ("track_features", (), ("obsolete",)),
+        ("features", (), ("obsolete",)),
+        ("flags", (), ("obsolete",)),
+        ("timestamp", 0, 123),
+        ("indexed_timestamp", 0, 123),
+    ],
+)
+def test_from_objects_preserves_record_defaults(
+    field_name: str, default: Any, cached_value: Any
+) -> None:
+    channel_record = PackageRecord(**COMMON_KWARGS, **{field_name: default})
+    cache_record = PackageCacheRecord(**COMMON_KWARGS, **{field_name: cached_value})
+
+    merged = PackageCacheRecord.from_objects(channel_record, cache_record)
+
+    assert getattr(merged, field_name) == default
+    assert field_name not in merged.dump()
+
+
+def test_from_objects_does_not_copy_metadata() -> None:
+    record = PackageRecord(**COMMON_KWARGS, metadata={"transient"})
+
+    copied = PackageRecord.from_objects(record)
+
+    assert copied.metadata == set()
+    copied.metadata.add("new")
+    assert record.metadata == {"transient"}
+
+
+def test_from_objects_uses_cache_paths_when_prefix_paths_are_missing() -> None:
+    prefix_record = PrefixRecord(**COMMON_KWARGS)
+    cache_record = PackageCacheRecord(
+        **COMMON_KWARGS,
+        package_tarball_full_path="package-cache.conda",
+        extracted_package_dir="package-cache",
+    )
+
+    merged = PackageCacheRecord.from_objects(prefix_record, cache_record)
+
+    assert merged.package_tarball_full_path == "package-cache.conda"
+    assert merged.extracted_package_dir == "package-cache"
+
+
+@pytest.mark.parametrize("record_class", [SolvedRecord, PrefixRecord])
+def test_from_objects_preserves_requested_specs_precedence(
+    record_class: type[SolvedRecord],
+) -> None:
+    first = record_class(**COMMON_KWARGS, requested_spec="numpy>=1")
+    second = record_class(**COMMON_KWARGS, requested_specs=["numpy>=2"])
+
+    merged = record_class.from_objects(first, second)
+
+    assert merged.requested_specs == ("numpy>=1",)
+
+
 def test_from_objects_includes_inherited_dataclass_fields() -> None:
     @dataclass(slots=True)
     class BaseRecord:
@@ -595,6 +654,44 @@ def test_prefix_record_files_coercion() -> None:
     )
     assert isinstance(prec.files, tuple)
     assert prec.files == ("lib/foo.py", "bin/bar")
+
+
+@pytest.mark.parametrize("assign", [False, True], ids=["constructor", "assignment"])
+@pytest.mark.parametrize(
+    "link_data,expected_type",
+    [
+        ({"source": "package-cache"}, None),
+        ({"source": "package-cache", "type": 1}, LinkType.hardlink),
+        ({"source": "package-cache", "type": "soft"}, LinkType.softlink),
+    ],
+)
+def test_prefix_record_link_coercion(
+    link_data: dict[str, Any], expected_type: LinkType | None, assign: bool
+) -> None:
+    if assign:
+        record = PrefixRecord(**COMMON_KWARGS)
+        record.link = link_data
+    else:
+        record = PrefixRecord(**COMMON_KWARGS, link=link_data)
+
+    assert isinstance(record.link, Link)
+    assert record.link.source == "package-cache"
+    assert getattr(record.link, "type", None) == expected_type
+    expected_dump = {"source": "package-cache"}
+    if expected_type is not None:
+        expected_dump["type"] = expected_type.value
+    assert record.dump()["link"] == expected_dump
+
+
+@pytest.mark.parametrize(
+    "link", [None, Link(source="package-cache", type=LinkType.softlink)]
+)
+def test_prefix_record_preserves_link(link: Link | None) -> None:
+    record = PrefixRecord(**COMMON_KWARGS, link=link)
+    assert record.link is link
+
+    record.link = link
+    assert record.link is link
 
 
 @pytest.mark.integration

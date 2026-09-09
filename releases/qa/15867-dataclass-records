@@ -1,0 +1,42 @@
+### Title
+Load, copy, and clean installed package records
+
+### Why
+Package records now use slotted dataclasses. Loading installed metadata and
+combining channel metadata with cached records must preserve package identity,
+link information, and empty field values.
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+A conda build containing this change, access to conda-forge, and an empty
+temporary directory. Set `CONDA_PKGS_DIRS` to a new directory inside that
+temporary directory so cleanup uses a disposable package cache.
+
+### Steps
+1. Create an environment at a new temporary prefix with
+   `conda create --prefix <test-prefix> --override-channels -c conda-forge zlib`.
+2. Run `conda list --prefix <test-prefix> --json` and
+   `conda list --prefix <test-prefix> --explicit`. Save both outputs.
+3. Run `conda clean --packages --dry-run --json`, then
+   `conda clean --all --dry-run --json`.
+4. Run `conda update --prefix <test-prefix> --all --solver classic
+   --override-channels -c conda-forge --dry-run`.
+5. Repeat both `conda list` commands and compare their outputs with step 2.
+
+### Pass criteria
+Every command succeeds without record attribute errors. Cleanup and solving
+accept the installed and cached metadata. The dry runs leave the installed
+packages unchanged, including the names, versions, builds, and explicit URLs.
+
+### Out of scope / notes
+The automated `test_get_softlinked_package_dirs` test covers installed link
+metadata without a link type. The
+`test_reduced_index_preserves_channel_metadata_for_cached_track_features`
+test covers empty channel metadata taking precedence over stale cache values.
+The record tests cover link conversion on assignment and construction, along
+with copying empty features and flags and zero timestamps. Performance
+measurements are separate from this functional scenario.
