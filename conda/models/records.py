@@ -334,6 +334,12 @@ def resolve_paths_data(val: Any, record: PrefixRecord) -> Any:
     return val
 
 
+def resolve_link(val: Any, record: PrefixRecord) -> Any:
+    if isinstance(val, dict):
+        return Link(**val)
+    return val
+
+
 def dump_channel(val: Any) -> str:
     return str(val) if val else ""
 
@@ -642,6 +648,13 @@ class PackageRecord:
                 src = obj
             elif isinstance(obj, Dumpable):
                 src = obj.dump()
+                if isinstance(obj, PackageRecord):
+                    # Empty sequences and zero timestamps still take precedence.
+                    for name in FIELDS_WITHOUT_DEFAULT_IN_DUMP:
+                        if name not in src:
+                            value = getattr(obj, name, None)
+                            if value == () or value == 0:
+                                src[name] = value
             elif is_dataclass(obj):
                 src = {f.name: getattr(obj, f.name) for f in fields(obj)}
             elif hasattr(obj, "__dict__"):
@@ -972,6 +985,7 @@ class PrefixRecord(SolvedRecord):
     FIELD_RESOLVERS: ClassVar[dict[str, Callable]] = {
         **SolvedRecord.FIELD_RESOLVERS,
         "paths_data": resolve_paths_data,
+        "link": resolve_link,
     }
 
     # Local cache paths, if known.
