@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Use the published `conda-launchers` package for Windows entry points, including native ARM64 launchers, and verify their package hashes before copying. Retain bundled launchers for upgrades from released conda and for packages without a 32-bit launcher. (#16293)
+* Use the published `conda-launchers` package for Windows entry points, including native ARM64 launchers, and verify their SHA-256 hashes before copying. Use SHA-256 instead of MD5 when deciding whether `conda init` needs to replace an existing launcher. Retain bundled launchers for upgrades from released conda and for packages without a 32-bit launcher. (#16293)
 
 ### Bug fixes
 
