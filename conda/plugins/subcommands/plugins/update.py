@@ -33,7 +33,9 @@ def configure_parser(parser: ArgumentParser) -> None:
     parser.description = HELP
     add_parser_frozen_env(parser)
 
-    solver_mode_options, _, _ = add_parser_create_install_update(parser)
+    solver_mode_options, _, _ = add_parser_create_install_update(
+        parser, include_only_deps=False
+    )
     add_parser_prune(solver_mode_options)
     add_parser_solver(solver_mode_options)
     solver_mode_options.add_argument(
