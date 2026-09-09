@@ -616,8 +616,11 @@ class PackageCacheRecord(PackageRecord):
         """str: The basename of the local package file."""
         return basename(self.package_tarball_full_path)
 
-    def matches_size_and_md5(self, package_ref: PackageRecord | MatchSpec) -> bool:
-        """Match available size and MD5, accepting legacy archive metadata."""
+    def matches_metadata(self, package_ref: PackageRecord | MatchSpec) -> bool:
+        """Match available size and MD5 against the requested package.
+
+        Accept missing values and the requested package's legacy archive metadata.
+        """
         for key in ("size", "md5"):
             expected = package_ref.get(key)
             if expected is None:

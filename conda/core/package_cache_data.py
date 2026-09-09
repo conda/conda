@@ -315,7 +315,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             if target_prefix is None:
                 return pcrec
             # Cache roots share devices with their extracted package directories.
-            if pcrec.matches_size_and_md5(package_ref) and paths_on_same_device(
+            if pcrec.matches_metadata(package_ref) and paths_on_same_device(
                 dirname(pcrec.extracted_package_dir), target_prefix
             ):
                 return pcrec
@@ -666,7 +666,7 @@ class ProgressiveFetchExtract:
         )
         if (
             extracted_pcrec
-            and extracted_pcrec.matches_size_and_md5(pref_or_spec)
+            and extracted_pcrec.matches_metadata(pref_or_spec)
             and extracted_pcrec.get("url")
         ):
             return None, None
@@ -689,7 +689,7 @@ class ProgressiveFetchExtract:
         )
         if (
             pcrec_from_writable_cache
-            and pcrec_from_writable_cache.matches_size_and_md5(pref_or_spec)
+            and pcrec_from_writable_cache.matches_metadata(pref_or_spec)
             and pcrec_from_writable_cache.get("url")
         ):
             # extract in place
@@ -721,9 +721,8 @@ class ProgressiveFetchExtract:
         )
 
         first_writable_cache = PackageCacheData.first_writable()
-        if (
-            pcrec_from_read_only_cache
-            and pcrec_from_read_only_cache.matches_size_and_md5(pref_or_spec)
+        if pcrec_from_read_only_cache and pcrec_from_read_only_cache.matches_metadata(
+            pref_or_spec
         ):
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,
