@@ -16,4 +16,4 @@
 
 ### Other
 
-* Speed up `test_json_create_install_update_remove` by using `test_recipes_channel` with `private-package` and `versioned` instead of remote `zlib` and `ca-certificates`. (#16606)
+* Speed up `test_json_create_install_update_remove` by using `test_recipes_channel` with `pycosat` and `versioned` instead of remote `zlib` and `ca-certificates`. (#16606)
