@@ -306,23 +306,22 @@ class PackageCacheData(metaclass=PackageCacheType):
 
     @classmethod
     def get_entry_to_link(cls, package_ref, target_prefix=None):
-        extracted_entries = tuple(
-            pcrec for pcrec in cls.query_all(package_ref) if pcrec.is_extracted
-        )
-        if target_prefix is not None:
+        first_extracted = None
+        for pcrec in cls.query_all(package_ref):
+            if not pcrec.is_extracted:
+                continue
+            if first_extracted is None:
+                first_extracted = pcrec
+            if target_prefix is None:
+                return pcrec
             # Cache roots share devices with their extracted package directories.
-            if (
-                pc_entry := first(
-                    extracted_entries,
-                    key=lambda pcrec: paths_on_same_device(
-                        dirname(pcrec.extracted_package_dir), target_prefix
-                    ),
-                )
-            ) is not None:
-                return pc_entry
+            if pcrec.matches_size_and_md5(package_ref) and paths_on_same_device(
+                dirname(pcrec.extracted_package_dir), target_prefix
+            ):
+                return pcrec
 
-        if (pc_entry := next(iter(extracted_entries), None)) is not None:
-            return pc_entry
+        if first_extracted is not None:
+            return first_extracted
 
         # this can happen with `conda install path/to/package.tar.bz2`
         #   because dist has channel '<unknown>'
@@ -653,20 +652,6 @@ class ProgressiveFetchExtract:
         sha256 = pref_or_spec.get("sha256")
         size = pref_or_spec.get("size")
         md5 = pref_or_spec.get("md5")
-        legacy_bz2_size = pref_or_spec.get("legacy_bz2_size")
-        legacy_bz2_md5 = pref_or_spec.get("legacy_bz2_md5")
-
-        def pcrec_matches(pcrec):
-            matches = True
-            # sha256 is overkill for things that are already in the package cache.
-            #     It's just a quick match.
-            # if sha256 is not None and pcrec.sha256 is not None:
-            #     matches = sha256 == pcrec.sha256
-            if size is not None and pcrec.get("size") is not None:
-                matches = pcrec.size in (size, legacy_bz2_size)
-            if matches and md5 is not None and pcrec.get("md5") is not None:
-                matches = pcrec.md5 in (md5, legacy_bz2_md5)
-            return matches
 
         extracted_pcrec = next(
             (
@@ -681,7 +666,7 @@ class ProgressiveFetchExtract:
         )
         if (
             extracted_pcrec
-            and pcrec_matches(extracted_pcrec)
+            and extracted_pcrec.matches_size_and_md5(pref_or_spec)
             and extracted_pcrec.get("url")
         ):
             return None, None
@@ -704,7 +689,7 @@ class ProgressiveFetchExtract:
         )
         if (
             pcrec_from_writable_cache
-            and pcrec_matches(pcrec_from_writable_cache)
+            and pcrec_from_writable_cache.matches_size_and_md5(pref_or_spec)
             and pcrec_from_writable_cache.get("url")
         ):
             # extract in place
@@ -736,7 +721,10 @@ class ProgressiveFetchExtract:
         )
 
         first_writable_cache = PackageCacheData.first_writable()
-        if pcrec_from_read_only_cache and pcrec_matches(pcrec_from_read_only_cache):
+        if (
+            pcrec_from_read_only_cache
+            and pcrec_from_read_only_cache.matches_size_and_md5(pref_or_spec)
+        ):
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,
             #   and then extract
