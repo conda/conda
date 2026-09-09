@@ -76,8 +76,11 @@ def get_windows_launcher_stub(
 
     # Retain the bundled stub until defaults publishes a 32-bit launcher.
     if subdir == "win-32":
+        path = join(CONDA_PACKAGE_ROOT, "shell", "cli-32.exe")
+        if not isfile(path):
+            raise FileNotFoundError(f"Missing bundled Windows launcher {path!r}.")
         return (
-            join(CONDA_PACKAGE_ROOT, "shell", "cli-32.exe"),
+            path,
             "0170dda609519c088b1e4619a1e1d15a01701a6c514bb55f99a85fcbbd541631",
         )
 
