@@ -58,6 +58,8 @@ def get_windows_launcher_stub(
         None,
     )
     if launcher_info is not None:
+        if launcher_info.repodata_record.subdir != "noarch":
+            raise SafetyError("Expected conda-launchers from the noarch subdir.")
         if launcher := _find_launcher(
             launcher_info.extracted_package_dir, launcher_info.paths_data, short_path
         ):
@@ -65,9 +67,11 @@ def get_windows_launcher_stub(
     else:
         for prefix in source_prefixes:
             record = PrefixData(prefix).get("conda-launchers", None)
-            if record is not None and (
-                launcher := _find_launcher(prefix, record.paths_data, short_path)
-            ):
+            if record is None:
+                continue
+            if record.subdir != "noarch":
+                raise SafetyError("Expected conda-launchers from the noarch subdir.")
+            if launcher := _find_launcher(prefix, record.paths_data, short_path):
                 return launcher
 
     # Retain the bundled stub until defaults publishes a 32-bit launcher.
