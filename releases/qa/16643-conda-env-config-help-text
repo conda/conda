@@ -7,10 +7,15 @@ conda should not suggest users to run commands that do not exist or will produce
 ### Platforms
 - [x] Windows
 - [x] macOS
-- [x]] Linux
+- [x] Linux
 
 ### Prerequisites
-none
+Create and activate an environment named `my_env`:
+
+```sh
+conda create -n my_env
+conda activate my_env
+```
 
 ### Steps
 Run
