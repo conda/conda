@@ -1,0 +1,4 @@
+### Enhancements
+
+* Preserve lazy index copying and solver preparation while retaining cached-package
+  dependencies and installed package records. (#16638)
