@@ -1146,7 +1146,7 @@ class TestOverrideCacheInvalidation:
         def callback():
             calls.append(True)
 
-        context.register_reset_callaback(callback)
+        context.register_reset_callback(callback)
         try:
             reset_context(())
             context._reset_cache()
