@@ -372,6 +372,7 @@ def test_json_create_install_update_remove(
     tmp_path: Path,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
+    test_recipes_channel: Path,
 ):
     # regression test for #5384
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
@@ -397,7 +398,7 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "create",
         f"--prefix={tmp_path}",
-        "zlib",
+        "pycosat",
         "--json",
         "--dry-run",
         raises=DryRunExit,
@@ -413,7 +414,7 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "create",
         f"--prefix={tmp_path}",
-        "zlib",
+        "pycosat",
         "--json",
         "--yes",
     )
@@ -426,48 +427,48 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "install",
         f"--prefix={tmp_path}",
-        "ca-certificates<2023",
+        "versioned<2",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates<2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned<2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     # Test force reinstall
     stdout, _, _ = conda_cli(
         "install",
         f"--prefix={tmp_path}",
         "--force-reinstall",
-        "ca-certificates<2023",
+        "versioned<2",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates<2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned<2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     stdout, _, _ = conda_cli(
         "update",
         f"--prefix={tmp_path}",
-        "ca-certificates",
+        "versioned",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates>=2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned>=2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     stdout, _, _ = conda_cli(
         "remove",
         f"--prefix={tmp_path}",
-        "ca-certificates",
+        "versioned",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert not package_is_installed(tmp_path, "ca-certificates")
-    assert package_is_installed(tmp_path, "zlib")
+    assert not package_is_installed(tmp_path, "versioned")
+    assert package_is_installed(tmp_path, "pycosat")
 
     # regression test for #5825
     # contents of LINK and UNLINK is expected to have Dist format
@@ -488,8 +489,8 @@ def test_json_create_install_update_remove(
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert not package_is_installed(tmp_path, "ca-certificates")
-    assert package_is_installed(tmp_path, "zlib")
+    assert not package_is_installed(tmp_path, "versioned")
+    assert package_is_installed(tmp_path, "pycosat")
 
 
 def test_not_writable_env_raises_EnvironmentNotWritableError(
