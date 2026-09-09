@@ -39,7 +39,7 @@ You should see:
 
 For example:
 ```
- $ conda env create --quiet --json -n test --file env.yml  --dry-run > /dev/null
+ $ conda env create --quiet --json -n test --file env.yml  --dry-run
 
 EnvironmentSectionNotValid: The following section on 'env.yml' is invalid and will be ignored:
   - category
