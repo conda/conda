@@ -81,7 +81,8 @@ def test_main_subshell_no_plugins_names(monkeypatch) -> None:
     assert disabled == ["plugin-a", "plugin-b"]
 
 
-def test_main_subshell_no_plugins_option(monkeypatch) -> None:
+@pytest.mark.parametrize("option", ("--no-plugins", "--no-plugins="))
+def test_main_subshell_no_plugins_option(monkeypatch, option: str) -> None:
     """--no-plugins disables all external plugins."""
     disabled = []
     monkeypatch.setattr(
@@ -90,8 +91,9 @@ def test_main_subshell_no_plugins_option(monkeypatch) -> None:
         lambda: disabled.append(True),
     )
 
-    assert main_subshell("--no-plugins", "commands") == 0
+    assert main_subshell(option, "commands") == 0
 
+    assert context.no_plugins is True
     assert disabled
 
 

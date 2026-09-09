@@ -24,10 +24,6 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
 
     args = args or ["--help"]
     separator = args.index("--") if "--" in args else len(args)
-    args = tuple(
-        "--no-plugins=" if index < separator and arg == "--no-plugins" else arg
-        for index, arg in enumerate(args)
-    )
 
     pre_parser = generate_pre_parser(add_help=False)
     args_subset = args[:separator]
@@ -42,6 +38,8 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     }
 
     disabled_plugins = pre_args.disabled_plugins
+    if disabled_plugins is None:
+        pre_args.no_plugins = True
     context.__init__(argparse_args=pre_args)
     if context.no_plugins or disabled_plugins is None:
         context.plugin_manager.disable_external_plugins()
