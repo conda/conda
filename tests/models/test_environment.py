@@ -612,6 +612,41 @@ def test_environment_config_channels_basic():
     assert len(env_config.channels) == 2
 
 
+def test_get_channel_matches_by_canonical_name():
+    """`get_channel` returns the configured channel whose canonical name matches."""
+    config = EnvironmentConfig(channels=("conda-forge", "defaults"))
+    assert config.get_channel("conda-forge") == "conda-forge"
+    assert config.get_channel("defaults") == "defaults"
+
+
+def test_get_channel_no_match_returns_none():
+    """`get_channel` returns None when no configured channel matches (incl. empty)."""
+    config = EnvironmentConfig(channels=("conda-forge", "defaults"))
+    assert config.get_channel("conda-pypi") is None
+    assert EnvironmentConfig().get_channel("conda-forge") is None
+
+
+def test_get_channel_returns_first_match_in_order():
+    """When several entries share a canonical name, the first configured one wins.
+
+    Both entries resolve to canonical name "conda-forge"; the URL form is listed
+    first, so it is returned as stored, confirming order is preserved.
+    """
+    config = EnvironmentConfig(
+        channels=("https://conda.anaconda.org/conda-forge", "conda-forge")
+    )
+    assert config.get_channel("conda-forge") == "https://conda.anaconda.org/conda-forge"
+
+
+def test_get_channel_matches_url_by_canonical_name():
+    """A URL-form channel is matched by its canonical name and returned verbatim."""
+    config = EnvironmentConfig(
+        channels=("defaults", "https://conda.anaconda.org/conda-forge")
+    )
+    assert config.get_channel("conda-forge") == "https://conda.anaconda.org/conda-forge"
+    assert config.get_channel("defaults") == "defaults"
+
+
 def test_from_cli_empty():
     env = Environment.from_cli(
         SimpleNamespace(name=None, packages=[], file=[]),
