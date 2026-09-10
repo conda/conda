@@ -376,19 +376,18 @@ class BaseSolver:
                 )
 
     def _notify_pip_as_python_deprecation(self, link_precs):
-        if not context.add_pip_as_python_dependency or context.quiet:
+        if not context.add_pip_as_python_dependency or context.quiet or context.json:
             return
 
         spec_names = {prec.name for prec in link_precs}
-        user_configured_pip = any(
+        user_configured_add_pip_as_dep = any(
             "add_pip_as_python_dependency" in v for v in context.collect_all().values()
         )
         if (
-            context.add_pip_as_python_dependency
-            and (not user_configured_pip)
-            and ("python" in spec_names)
+            ("python" in spec_names)
             and ("pip" in spec_names)
             and "pip" not in {s.name for s in self.unmerged_specs_to_add}
+            and (not user_configured_add_pip_as_dep)
         ):
             print(
                 dedent(
