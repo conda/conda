@@ -1,7 +1,7 @@
 .. _install-pypi-packages-with-conda:
 
-Installing PyPI packages with conda
-====================================
+Installing packages from PyPI with conda
+========================================
 
 .. note::
    The ``conda-pypi`` channel is free to use for all users. This channel is not
@@ -9,15 +9,15 @@ Installing PyPI packages with conda
    Section 1 of the `Anaconda Terms of Service <https://www.anaconda.com/legal/terms/terms-of-service>`_.
 
 In conda version 26.9 and later, you can use the ``conda-pypi`` channel to
-install supported PyPI packages alongside regular conda packages directly
-with ``conda install``.
+install supported pure Python wheels from the Python Package Index (PyPI)
+alongside conda packages directly with ``conda install``.
 
 .. dropdown:: What does the ``conda-pypi`` channel do?
 
    The ``conda-pypi`` channel, a channel maintained by Anaconda and hosted for free
    on anaconda.org, indexes all pure Python wheels from the public PyPI index. The
-   channel repodata is generated from PyPI package metadata and converted into
-   a format conda understands, so the reliability and security of packages available
+   channel repodata is generated from package metadata obtained from PyPI and
+   converted into a format conda understands, so the reliability and security of packages available
    through ``conda-pypi`` matches that of PyPI directly.
 
    When you add this channel to your conda configuration, conda can resolve
@@ -66,10 +66,9 @@ The ``conda-pypi`` workflow requires the following:
 Setting up the conda-pypi channel
 ----------------------------------
 
-To gain access to compatible PyPI packages, add the ``conda-pypi`` channel to
-your conda configuration (``.condarc``) file. Append it *after* your existing
-conda channels so that conda resolves packages from conda channels first and falls
-back to ``conda-pypi`` for packages not available there:
+To make supported packages from PyPI available to conda, add the
+``conda-pypi`` channel to your conda configuration (``.condarc``) file.
+Append it after your existing channels to give it a lower channel priority:
 
 .. code-block:: bash
 
@@ -99,8 +98,8 @@ Install packages
 
 Before installing, you can check what is available in the ``conda-pypi`` channel
 using ``conda search``. Once the channel is configured, ``conda install`` resolves
-the full dependency graph across all configured channels, so conda and PyPI packages
-can be installed together in a single command.
+the full dependency graph across all configured channels, so packages from PyPI
+and conda channels can be installed together in a single command.
 
 Find available packages
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,17 +110,18 @@ To check whether a package is available through ``conda-pypi``:
 
    conda search conda-pypi::<package-name>
 
-Install PyPI and conda packages together
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Install packages from PyPI and conda channels together
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
    conda install <conda-forge-package> <conda-pypi-package>
 
-If a package is available on both ``conda-forge`` and ``conda-pypi``, conda
-will install it from ``conda-pypi`` only if the version there is newer.
+When a package is available from both ``conda-forge`` and ``conda-pypi``,
+conda selects a build according to your channel priority setting and
+the environment's dependency requirements.
 
-You can also use ``conda create`` with PyPI packages:
+You can also use ``conda create`` with packages from PyPI:
 
 .. code-block:: bash
 
@@ -130,10 +130,9 @@ You can also use ``conda create`` with PyPI packages:
 Install with extras support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Extras are named groups of optional dependencies defined in a package's
-``extra_depends`` field. When you request an extra, its dependencies are merged with
-the package's regular dependencies and resolved together. For full details,
-see `CEP 44 <https://conda.org/learn/ceps/cep-0044>`_.
+Extras are named groups of optional dependencies. When you request an extra,
+its dependencies are resolved together with the package's regular dependencies.
+For full details, see `CEP 44 <https://conda.org/learn/ceps/cep-0044>`_.
 
 Use the following syntax to request extras:
 
@@ -173,36 +172,37 @@ configuration:
 Suppress the conda-pypi suggestion tip
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you want to suppress the suggestion that conda displays when you install a
-package that is available through the ``conda-pypi`` channel, set the
-following configuration option:
+To suppress the suggestion about the ``conda-pypi`` channel shown when
+conda newly installs pip into an environment, set the following
+configuration option:
 
 .. code-block:: bash
 
-   conda config --set conda_pypi_pip_warning false
+   conda config --set plugins.conda_pypi_pip_warning false
 
 Limitations and security considerations
 ---------------------------------------
 
 The security posture of this workflow is equivalent to using pip or other PyPA
 tools to install from the public PyPI index directly. Packages are fetched from
-PyPI at install time; conda does not re-sign or additionally vet the wheels. Keep
+PyPI at install time. Conda does not re-sign or additionally vet the wheels. Keep
 the following limitations in mind:
 
-* **Public PyPI only.** Private or alternative PyPI indexes (such as a corporate
-  artifact repository) are not currently supported.
+* **Public PyPI only.** The ``conda-pypi`` channel indexes packages from PyPI.
+  It does not include packages from private or alternative package indexes
+  (such as a corporate artifact repository).
 * **No additional vetting beyond PyPI.** The ``conda-pypi`` channel does not
   perform additional security scanning beyond what PyPI provides. Using the
   :ref:`--exclude-newer flag <installing-packages-with-an-upload-cutoff>`
   is recommended as a lightweight mitigation for supply-chain risk.
 * **conda client only.** Supported in the conda CLI. Support in other clients
   (mamba, micromamba, and so on) is under active CEP discussion.
-* **Pure Python packages only.** Packages with compiled extensions must come
+* **Pure Python wheels only.** Packages with compiled extensions must come
   from conda channels.
 * **rattler solver required.** The classic conda solver is not supported for
   this workflow.
 * **PyPI connection required at install time.** The channel stores metadata
-  only; wheels are fetched from PyPI during installation.
+  only. Wheels are fetched from PyPI during installation.
 
 Troubleshooting
 ---------------

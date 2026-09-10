@@ -187,15 +187,16 @@ Installing non-conda packages
 If a package is not available from any of the popular conda channels, there are a few
 options depending on the package type.
 
-For supported pure Python packages, the recommended path is to install them
+For packages with supported pure Python wheels, the recommended path is to install them
 directly with ``conda install`` using the ``conda-pypi`` channel, which indexes
 pure Python wheels from the public PyPI index and resolves them alongside conda
-packages in a single operation. See :doc:`install-pypi-packages` for
+packages in a single operation. See :doc:`install-packages-from-pypi` for
 setup instructions and supported workflows.
 
 For packages not covered by the ``conda-pypi`` workflow, you may be able to use
-pip as a fallback. The differences between pip and conda packages cause certain unavoidable limits
-in compatibility but conda works hard to be as compatible with pip as possible.
+pip as a fallback. The differences between packages installed with pip and conda
+packages cause certain unavoidable limits in compatibility but conda works hard
+to be as compatible with pip as possible.
 
 .. note::
    Both pip and conda are included in Anaconda and Miniconda, so you do not
