@@ -226,7 +226,7 @@ def test_transaction_links_verified_cache_before_same_device_cache(
     for cache in (first_cache, same_device_cache):
         create_package_cache_directory(str(cache))
     monkeypatch.setenv("CONDA_PKGS_DIRS", f"{first_cache},{same_device_cache}")
-    reset_context()
+    reset_context([])
     monkeypatch.setattr(
         package_cache_data,
         "paths_on_same_device",
