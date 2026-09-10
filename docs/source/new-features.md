@@ -3,7 +3,7 @@
 This page contains recent additions to `conda` worth your attention, including features still in beta that we'd love your feedback on. For the full list of changes across releases, see the {doc}`release-notes`.
 
 **Stage legend**<br />
-{bdg-success}`Stable` — On by default, recommended for all users.
+{bdg-success}`Stable` — Recommended for production use. Some features require configuration.
 
 {bdg-warning}`Beta` — Opt in to test, not recommended for production. We want your feedback!
 
@@ -79,17 +79,17 @@ For more information, see {ref}`Installing packages with an upload cutoff <insta
 
 ::::
 
-## Install PyPI packages with `conda install`
+## Install packages from PyPI with `conda install`
 ::::{card}
 :class-card: sd-rounded-3 conda-feature-card conda-feature-stable
 
-{bdg-light}`Available in conda 26.5 or later` &nbsp; {bdg-success}`Stable`
+{bdg-light}`Stable in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
 
-The new `conda-pypi` plugin lets you install PyPI packages natively with `conda install`. Conda resolves across both conda channels and PyPI in a single solve, and PyPI wheel packages behave like any other conda package once installed: they show up in `conda list`, get captured in `conda export`, and uninstall cleanly with `conda remove`.
+The new `conda-pypi` plugin lets you install supported pure Python wheels from PyPI natively with `conda install`. Conda resolves across both conda channels and PyPI in a single solve, and these packages behave like any other conda package once installed: they show up in `conda list`, get captured in `conda export`, and uninstall cleanly with `conda remove`.
 
 This replaces the common workaround of running `pip install` inside a conda environment, which can leave you with packages conda doesn't know about, environments that are hard to reproduce, and hard-to-debug conflicts that surface much later.
 
-For more information on installing PyPI packages with `conda install`, see {doc}`tasks/install-pypi-packages-with-conda`.
+For more information on installing packages from PyPI with `conda install`, see {doc}`/user-guide/tasks/install-packages-from-pypi`.
 ::::
 
 ## Native multi-platform lockfile support
