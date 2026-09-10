@@ -16,9 +16,11 @@ if TYPE_CHECKING:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
+
     p = sub_parsers.add_parser(
         "deactivate",
-        help="Deactivate the current active conda environment.",
+        help=BUILTIN_SUBCOMMANDS["deactivate"]["help"],
         **kwargs,
     )
     p.set_defaults(func="conda.cli.main_mock_deactivate.execute")

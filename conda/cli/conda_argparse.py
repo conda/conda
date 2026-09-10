@@ -12,16 +12,14 @@ from argparse import (
     RawDescriptionHelpFormatter,
 )
 from argparse import ArgumentParser as ArgumentParserBase
-from functools import partial
 from importlib import import_module
 from logging import getLogger
 from subprocess import Popen
 
 from .. import __version__
-from ..auxlib.ish import dals
-from ..base.context import context, sys_rc_path, user_rc_path
 from ..common.compat import isiterable, on_win
 from ..common.constants import NULL
+from ..deprecations import deprecated
 from ..plugins.previews import is_preview_subcommand
 from .actions import ExtendConstAction, NullCountAction  # noqa: F401
 from .helpers import (  # noqa: F401
@@ -45,80 +43,236 @@ from .helpers import (  # noqa: F401
     add_parser_update_modifiers,
     add_parser_verbose,
 )
-from .main_clean import configure_parser as configure_parser_clean
-from .main_commands import configure_parser as configure_parser_commands
-from .main_compare import configure_parser as configure_parser_compare
-from .main_config import configure_parser as configure_parser_config
-from .main_create import configure_parser as configure_parser_create
-from .main_env import configure_parser as configure_parser_env
-from .main_export import configure_parser as configure_parser_export
-from .main_info import configure_parser as configure_parser_info
-from .main_init import configure_parser as configure_parser_init
-from .main_install import configure_parser as configure_parser_install
-from .main_list import configure_parser as configure_parser_list
-from .main_mock_activate import configure_parser as configure_parser_activate
-from .main_mock_deactivate import configure_parser as configure_parser_deactivate
-from .main_notices import configure_parser as configure_parser_notices
-from .main_package import configure_parser as configure_parser_package
-from .main_remove import configure_parser as configure_parser_remove
-from .main_rename import configure_parser as configure_parser_rename
-from .main_run import configure_parser as configure_parser_run
-from .main_search import configure_parser as configure_parser_search
-from .main_update import configure_parser as configure_parser_update
 
 log = getLogger(__name__)
 
-escaped_user_rc_path = user_rc_path.replace("%", "%%")
-escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
+
+# Deprecated ``configure_parser_*`` re-exports.
+#
+# These symbols were moved to their own ``conda.cli.main_*`` modules but kept
+# importable from ``conda.cli.conda_argparse`` for backwards compatibility.
+# Each is registered via ``deprecated.constant(factory=...)`` (introduced in
+# #15925) so the target ``main_*`` module is only imported on first access --
+# which, combined with the lazy subcommand parser map below, is the whole
+# point of A2/A3: ``import conda.cli.conda_argparse`` must not drag in 20+
+# subcommand modules.
+for _name, _module_path in (
+    ("configure_parser_activate", "conda.cli.main_mock_activate"),
+    ("configure_parser_clean", "conda.cli.main_clean"),
+    ("configure_parser_commands", "conda.cli.main_commands"),
+    ("configure_parser_compare", "conda.cli.main_compare"),
+    ("configure_parser_config", "conda.cli.main_config"),
+    ("configure_parser_create", "conda.cli.main_create"),
+    ("configure_parser_deactivate", "conda.cli.main_mock_deactivate"),
+    ("configure_parser_env", "conda.cli.main_env"),
+    ("configure_parser_export", "conda.cli.main_export"),
+    ("configure_parser_info", "conda.cli.main_info"),
+    ("configure_parser_init", "conda.cli.main_init"),
+    ("configure_parser_install", "conda.cli.main_install"),
+    ("configure_parser_list", "conda.cli.main_list"),
+    ("configure_parser_notices", "conda.cli.main_notices"),
+    ("configure_parser_package", "conda.cli.main_package"),
+    ("configure_parser_remove", "conda.cli.main_remove"),
+    ("configure_parser_rename", "conda.cli.main_rename"),
+    ("configure_parser_run", "conda.cli.main_run"),
+    ("configure_parser_search", "conda.cli.main_search"),
+    ("configure_parser_update", "conda.cli.main_update"),
+):
+    deprecated.constant(
+        "27.3",
+        "27.9",
+        _name,
+        factory=lambda module_path=_module_path: (
+            import_module(module_path).configure_parser
+        ),
+        addendum=f"Use `from {_module_path} import configure_parser` instead.",
+    )
+del _name, _module_path
+
+
+# Deprecated ``*_rc_path`` re-exports.
+#
+# These moved to ``conda.base.context`` but must stay importable from
+# ``conda.cli.conda_argparse``. Using ``factory=`` here defers the
+# ``conda.base.context`` import (itself on the cold-start path but still
+# avoided when nobody touches these symbols).
+def _user_rc_path() -> str:
+    from ..base.context import user_rc_path
+
+    return user_rc_path
+
+
+def _sys_rc_path() -> str:
+    from ..base.context import sys_rc_path
+
+    return sys_rc_path
+
+
+def _escaped_user_rc_path() -> str:
+    return _user_rc_path().replace("%", "%%")
+
+
+def _escaped_sys_rc_path() -> str:
+    return _sys_rc_path().replace("%", "%%")
+
+
+for _name, _factory, _addendum in (
+    (
+        "user_rc_path",
+        _user_rc_path,
+        "Use `from conda.base.context import user_rc_path` instead.",
+    ),
+    (
+        "sys_rc_path",
+        _sys_rc_path,
+        "Use `from conda.base.context import sys_rc_path` instead.",
+    ),
+    (
+        "escaped_user_rc_path",
+        _escaped_user_rc_path,
+        "Use `from conda.base.context import user_rc_path` and escape locally.",
+    ),
+    (
+        "escaped_sys_rc_path",
+        _escaped_sys_rc_path,
+        "Use `from conda.base.context import sys_rc_path` and escape locally.",
+    ),
+):
+    deprecated.constant(
+        "27.3",
+        "27.9",
+        _name,
+        factory=_factory,
+        addendum=_addendum,
+    )
+del _name, _factory, _addendum
+
+
+BUILTIN_SUBCOMMANDS: dict[str, dict] = {
+    "activate": {
+        "module": "conda.cli.main_mock_activate",
+        "help": "Activate a conda environment.",
+        "kwargs": {},
+    },
+    "clean": {
+        "module": "conda.cli.main_clean",
+        "help": "Remove unused packages and caches.",
+        "kwargs": {},
+    },
+    "commands": {
+        "module": "conda.cli.main_commands",
+        "help": "List all available conda subcommands (including those from plugins). "
+        "Generally only used by tab-completion.",
+        "kwargs": {},
+    },
+    "compare": {
+        "module": "conda.cli.main_compare",
+        "help": "Compare packages between conda environments.",
+        "kwargs": {},
+    },
+    "config": {
+        "module": "conda.cli.main_config",
+        "help": "Modify configuration values in .condarc.",
+        "kwargs": {},
+    },
+    "create": {
+        "module": "conda.cli.main_create",
+        "help": "Create a new conda environment from a list of specified packages.",
+        "kwargs": {},
+    },
+    "deactivate": {
+        "module": "conda.cli.main_mock_deactivate",
+        "help": "Deactivate the current active conda environment.",
+        "kwargs": {},
+    },
+    "env": {
+        "module": "conda.cli.main_env",
+        "help": "Create and manage conda environments.",
+        "kwargs": {},
+    },
+    "export": {
+        "module": "conda.cli.main_export",
+        "help": "Export a conda environment to a file.",
+        "kwargs": {},
+    },
+    "info": {
+        "module": "conda.cli.main_info",
+        "help": "Display information about current conda install.",
+        "kwargs": {},
+    },
+    "init": {
+        "module": "conda.cli.main_init",
+        "help": "Initialize conda for shell interaction.",
+        "kwargs": {},
+    },
+    "install": {
+        "module": "conda.cli.main_install",
+        "help": "Install a list of packages into a specified conda environment.",
+        "kwargs": {},
+    },
+    "list": {
+        "module": "conda.cli.main_list",
+        "help": "List installed packages in a conda environment.",
+        "kwargs": {},
+    },
+    "notices": {
+        "module": "conda.cli.main_notices",
+        "help": "Retrieve latest channel notifications.",
+        "kwargs": {},
+    },
+    "package": {
+        "module": "conda.cli.main_package",
+        "help": "Create low-level conda packages. (EXPERIMENTAL)",
+        "kwargs": {},
+    },
+    "remove": {
+        "module": "conda.cli.main_remove",
+        "help": "Remove a list of packages from a specified conda environment.",
+        "kwargs": {"aliases": ["uninstall"]},
+    },
+    "rename": {
+        "module": "conda.cli.main_rename",
+        "help": "Rename an existing environment.",
+        "kwargs": {},
+    },
+    "run": {
+        "module": "conda.cli.main_run",
+        "help": "Run an executable in a conda environment.",
+        "kwargs": {},
+    },
+    "search": {
+        "module": "conda.cli.main_search",
+        "help": "Search for packages and display associated information "
+        "using the MatchSpec format.",
+        "kwargs": {},
+    },
+    "update": {
+        "module": "conda.cli.main_update",
+        "help": "Update conda packages to the latest compatible version.",
+        "kwargs": {"aliases": ["upgrade"]},
+    },
+}
+"""Built-in subcommand module, help, and parser metadata."""
 
 BUILTIN_COMMANDS = {
-    "activate",  # Mock entry for shell command
-    "clean",
-    "commands",
-    "compare",
-    "config",
-    "create",
-    "deactivate",  # Mock entry for shell command
-    "env",
-    "export",
-    "info",
-    "init",
-    "install",
-    "list",
-    "notices",
-    "package",
-    "remove",
-    "rename",
-    "run",
-    "search",
-    "uninstall",  # remove alias
-    "update",
-    "upgrade",  # update alias
+    name
+    for command, subcommand in BUILTIN_SUBCOMMANDS.items()
+    for name in (command, *subcommand["kwargs"].get("aliases", ()))
 }
-"""List of built-in commands; these cannot be overridden by plugin subcommands."""
+"""Names (and aliases) of built-in commands; these cannot be overridden by plugin subcommands."""
 
-BUILTIN_COMMAND_PARSERS = {
-    "activate": configure_parser_activate,
-    "clean": configure_parser_clean,
-    "commands": configure_parser_commands,
-    "compare": configure_parser_compare,
-    "config": configure_parser_config,
-    "create": configure_parser_create,
-    "deactivate": configure_parser_deactivate,
-    "env": configure_parser_env,
-    "export": configure_parser_export,
-    "info": configure_parser_info,
-    "init": configure_parser_init,
-    "install": configure_parser_install,
-    "list": configure_parser_list,
-    "notices": configure_parser_notices,
-    "package": configure_parser_package,
-    "remove": partial(configure_parser_remove, aliases=["uninstall"]),
-    "rename": configure_parser_rename,
-    "run": configure_parser_run,
-    "search": configure_parser_search,
-    "update": partial(configure_parser_update, aliases=["upgrade"]),
-}
+_PLUGIN_FREE_BUILTIN_COMMANDS = frozenset({"activate", "deactivate", "run"})
+"""Built-in commands that intentionally skip plugin discovery."""
+
+
+def _configure_builtin_subcommand(sub_parsers, name: str) -> ArgumentParser:
+    if isinstance(sub_parsers, _LazySubParsersAction):
+        sub_parsers._ensure_loaded(name)
+        return sub_parsers._name_parser_map[name]
+    subcommand = BUILTIN_SUBCOMMANDS[name]
+    return import_module(subcommand["module"]).configure_parser(
+        sub_parsers, **subcommand["kwargs"]
+    )
 
 
 def generate_pre_parser(**kwargs) -> ArgumentParser:
@@ -162,23 +316,17 @@ def generate_parser(**kwargs) -> ArgumentParser:
         title="commands",
         description="The following built-in and plugins subcommands are available.",
         dest="cmd",
-        action=_GreedySubParsersAction,
+        action=_LazySubParsersAction,
         required=True,
     )
 
-    preview_plugin_commands = {
-        name
-        for name, plugin_subcommand in context.plugin_manager.get_subcommands().items()
-        if is_preview_subcommand(plugin_subcommand)
-    }
-
-    # We only register built-ins that are not overridden by bundled previews.
-    for builtin, config_func in BUILTIN_COMMAND_PARSERS.items():
-        if builtin not in preview_plugin_commands:
-            config_func(sub_parsers)
-
-    # Special configure call just for plugin subcommands
-    configure_parser_plugins(sub_parsers)
+    for name, subcommand in BUILTIN_SUBCOMMANDS.items():
+        sub_parsers.add_lazy_subcommand(
+            name,
+            subcommand["module"],
+            subcommand["help"],
+            **subcommand["kwargs"],
+        )
 
     return parser
 
@@ -188,6 +336,8 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
     Serves as the primary entry point for commands referred to in this file and for
     all registered plugin subcommands.
     """
+    from ..base.context import context
+
     # let's see if during the parsing phase it was discovered that the
     # called command was in fact a plugin subcommand
     if plugin_subcommand := getattr(args, "_plugin_subcommand", None):
@@ -212,7 +362,10 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
 def find_builtin_commands(parser: ArgumentParserBase) -> tuple[str, ...]:
     # ArgumentParser doesn't have an API for getting back what subparsers
     # exist, so we need to use internal properties to do so.
-    return tuple(parser._subparsers._group_actions[0].choices.keys())
+    subparser_action = parser._subparsers._group_actions[0]
+    if isinstance(subparser_action, _LazySubParsersAction):
+        subparser_action._ensure_plugins_loaded()
+    return tuple(subparser_action.choices.keys())
 
 
 class ArgumentParser(ArgumentParserBase):
@@ -224,8 +377,15 @@ class ArgumentParser(ArgumentParserBase):
             add_parser_help(self)
 
     def _check_value(self, action, value):
-        # For our greedy subparsers, sort the choices by their repr for stable output
-        if isinstance(action, _GreedySubParsersAction) and isinstance(
+        if isinstance(action, _LazySubParsersAction) and isinstance(
+            action.choices, dict
+        ):
+            # Unknown command: discover plugins before rejecting so that plugin
+            # subcommands appear in the sorted "choose from" error message.
+            if not isiterable(value) and value not in action._name_parser_map:
+                action._ensure_plugins_loaded()
+                action.choices = dict(sorted(dict.items(action._name_parser_map)))
+        elif isinstance(action, _GreedySubParsersAction) and isinstance(
             action.choices, dict
         ):
             action.choices = dict(sorted(action.choices.items()))
@@ -273,6 +433,190 @@ class _GreedySubParsersAction(argparse._SubParsersAction):
         return sorted(self._choices_actions, key=lambda action: action.dest)
 
 
+class _LazyParserMap(dict):
+    """A dict that triggers lazy parser loading on key access.
+
+    Used as the _name_parser_map for _LazySubParsersAction so that any
+    consumer reading a specific subcommand parser (e.g. sphinx-argparse
+    navigating a :path: directive) gets the fully-configured parser rather
+    than the lightweight stub registered at generate_parser() time.
+    """
+
+    def __init__(self, action):
+        super().__init__()
+        self._action = action
+
+    @property
+    def _ready(self):
+        """True once the owning action is initialized and not mid-build."""
+        action = self._action
+        return hasattr(action, "_lazy_loaders") and not getattr(
+            action, "_building", False
+        )
+
+    def _resolve(self, key):
+        """Ensure *key* is fully loaded (builtin or plugin)."""
+        if not self._ready:
+            return
+        self._action._ensure_loaded(key)
+        if not super().__contains__(key):
+            self._action._ensure_plugins_loaded()
+
+    def _resolve_all(self):
+        """Load every lazy subcommand and all plugins."""
+        if not self._ready:
+            return
+        for name in list(self._action._lazy_loaders):
+            self._action._ensure_loaded(name)
+        self._action._ensure_plugins_loaded()
+
+    def _known_names(self):
+        """Builtin names known without running any configure_parser or plugin discovery.
+
+        The union of already-materialized entries in the underlying dict (stubs and
+        real parsers), pending lazy-loader names, and aliases. Plugin-provided
+        subcommand names are not included here; callers that need them should use
+        ``items()`` / ``values()`` / ``_resolve_all()``.
+        """
+        names = set(super().keys())
+        action = self._action
+        names.update(getattr(action, "_lazy_loaders", ()))
+        names.update(getattr(action, "_lazy_aliases", ()))
+        return names
+
+    def __getitem__(self, key):
+        self._resolve(key)
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        self._resolve(key)
+        return super().get(key, default)
+
+    def __contains__(self, key):
+        # Cheap path: any known builtin name (stub parser already registered,
+        # pending lazy loader, or alias) answers without importing the
+        # subcommand module or running configure_parser.
+        if super().__contains__(key):
+            return True
+        if not self._ready:
+            return False
+        action = self._action
+        if key in action._lazy_loaders or key in action._lazy_aliases:
+            return True
+        # Unknown builtin: fall back to plugin discovery so plugin subcommand
+        # names resolve. Guarded by _plugins_loaded so this runs at most once.
+        if not action._plugins_loaded:
+            action._ensure_plugins_loaded()
+            return super().__contains__(key)
+        return False
+
+    def items(self):
+        self._resolve_all()
+        return super().items()
+
+    def values(self):
+        self._resolve_all()
+        return super().values()
+
+    def keys(self):
+        # Return known builtin names without materializing every subcommand
+        # parser or triggering plugin discovery. argparse internals call this
+        # on the hot path (help formatting, error messages); loading 20+
+        # subcommand modules + all plugins there would defeat lazy loading.
+        # Callers that need plugin subcommand names should use items()/values().
+        if not self._ready:
+            return super().keys()
+        return self._known_names()
+
+    def __iter__(self):
+        return iter(self.keys())
+
+    def __len__(self):
+        return len(self.keys())
+
+
+class _LazySubParsersAction(_GreedySubParsersAction):
+    """Extends _GreedySubParsersAction with lazy loading of subcommand parsers.
+
+    Registers lightweight stub parsers for all built-in subcommands at
+    generate_parser() time (name + help text only). The real configure_parser
+    is called on demand when a subcommand is actually invoked.
+
+    Plugin subcommand discovery is deferred until a non-builtin command is
+    requested or --help is displayed.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._name_parser_map = _LazyParserMap(self)
+        self.choices = self._name_parser_map
+        self._lazy_loaders: dict[str, tuple[str, dict]] = {}
+        self._lazy_aliases: dict[str, str] = {}
+        self._loading_name: str | None = None
+        self._plugins_loaded = False
+        self._building = False
+
+    def add_lazy_subcommand(self, name, module_path, help_text, **kwargs):
+        """Register a lazy-loaded subcommand with a stub parser."""
+        aliases = kwargs.get("aliases", ())
+        self._building = True
+        try:
+            stub = super().add_parser(name, help=help_text, **kwargs)
+        finally:
+            self._building = False
+        self._lazy_loaders[name] = (module_path, kwargs)
+        for alias in aliases:
+            self._lazy_aliases[alias] = name
+        return stub
+
+    def add_parser(self, name, **kwargs):
+        """During lazy loading, return the existing stub instead of creating a new parser."""
+        if self._loading_name is not None and name in self._name_parser_map:
+            parser = self._name_parser_map[name]
+            for attr in ("description", "epilog"):
+                if attr in kwargs:
+                    setattr(parser, attr, kwargs[attr])
+            return parser
+        return super().add_parser(name, **kwargs)
+
+    def _ensure_loaded(self, name):
+        """Load a lazy subcommand's full parser configuration."""
+        canonical = self._lazy_aliases.get(name, name)
+        if canonical not in self._lazy_loaders:
+            return
+        module_path, loader_kwargs = self._lazy_loaders.pop(canonical)
+        for alias in loader_kwargs.get("aliases", ()):
+            self._lazy_aliases.pop(alias, None)
+        self._loading_name = canonical
+        try:
+            mod = import_module(module_path)
+            mod.configure_parser(self, **loader_kwargs)
+        finally:
+            self._loading_name = None
+
+    def _ensure_plugins_loaded(self):
+        """Discover and register plugin subcommands on demand."""
+        if self._plugins_loaded:
+            return
+        self._plugins_loaded = True
+        configure_parser_plugins(self)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser_name = values[0]
+        self._ensure_loaded(parser_name)
+        if parser_name not in _PLUGIN_FREE_BUILTIN_COMMANDS:
+            # Discover plugins when a subcommand is dispatched so that the
+            # builtin-override check in configure_parser_plugins() runs even
+            # when the invoked command is a builtin (e.g. `conda info --help`).
+            self._ensure_plugins_loaded()
+        super().__call__(parser, namespace, values, option_string)
+
+    def _get_subactions(self):
+        """Ensure plugins are discovered before listing subcommands in help."""
+        self._ensure_plugins_loaded()
+        return super()._get_subactions()
+
+
 def _exec(executable_args, env_vars):
     return (_exec_win if on_win else _exec_unix)(executable_args, env_vars)
 
@@ -298,6 +642,9 @@ def configure_parser_plugins(sub_parsers) -> None:
     :meth:`~conda.plugins.types.CondaSubcommand.configure_parser`
     with the newly created subcommand specific argument parser.
     """
+    from ..auxlib.ish import dals
+    from ..base.context import context
+
     plugin_subcommands = context.plugin_manager.get_subcommands()
     plugin_names = frozenset(plugin_subcommands)
     alias_to_plugin_names: dict[str, set[str]] = {}
@@ -356,8 +703,8 @@ def configure_parser_plugins(sub_parsers) -> None:
             continue
 
         # create the parser for the subcommand
-        if preview and name in BUILTIN_COMMAND_PARSERS:
-            parser = BUILTIN_COMMAND_PARSERS[name](sub_parsers)
+        if preview and name in BUILTIN_SUBCOMMANDS:
+            parser = _configure_builtin_subcommand(sub_parsers, name)
         else:
             parser = sub_parsers.add_parser(
                 name,
