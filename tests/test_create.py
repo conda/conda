@@ -1737,7 +1737,7 @@ def test_create_dry_run(path_factory: PathFactoryFixture, conda_cli: CondaCLIFix
     # assert not stderr
     # flask pulls python+pip via the add_pip_as_python_dependency default (#16404)
     # This currently is triggering a warning on stderr, in the future it will be removed.
-    # We  will change this back to original empty stderr in the future.
+    # We  will change this back to original empty stderr shortly, most likely 26.10.0.
     assert "add_pip_as_python_dependency defaults to true" in stderr
 
 
