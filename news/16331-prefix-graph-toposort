@@ -1,0 +1,19 @@
+### Enhancements
+
+* Speed up transaction planning against very large existing environments by avoiding repeated full-graph scans during prefix graph sorting. (#16331)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

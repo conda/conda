@@ -228,23 +228,41 @@ class PrefixGraph:
         if not graph:
             return
 
-        while True:
-            no_parent_nodes = dict.fromkeys(
-                sorted(
-                    (node for node, parents in graph.items() if len(parents) == 0),
-                    key=lambda x: x.name,
-                )
-            )
-            if not no_parent_nodes:
-                break
+        node_positions = {node: position for position, node in enumerate(graph)}
+        parents_by_node = {node: set(parents) for node, parents in graph.items()}
+        children_by_node = {node: [] for node in graph}
+        for node, parents in parents_by_node.items():
+            for parent in parents:
+                if parent in children_by_node:
+                    children_by_node[parent].append(node)
 
-            for node in no_parent_nodes:
+        def sort_key(node):
+            return node.name, node_positions[node]
+
+        no_parent_nodes = sorted(
+            (node for node, parents in parents_by_node.items() if not parents),
+            key=sort_key,
+        )
+        while no_parent_nodes:
+            nodes = no_parent_nodes
+            no_parent_nodes = []
+
+            for node in nodes:
                 yield node
-                graph.pop(node, None)
+                graph.pop(node)
+                parents_by_node.pop(node)
 
-            for parents in graph.values():
-                for node in no_parent_nodes:
-                    parents.pop(node, None)
+                for child in children_by_node[node]:
+                    child_parents = parents_by_node.get(child)
+                    if child_parents is None:
+                        continue
+
+                    child_parents.discard(node)
+                    graph[child].pop(node, None)
+                    if not child_parents:
+                        no_parent_nodes.append(child)
+
+            no_parent_nodes.sort(key=sort_key)
 
         if len(graph) != 0:
             raise CyclicalDependencyError(tuple(graph))
@@ -255,7 +273,7 @@ class PrefixGraph:
         for k, v in graph.items():
             v.pop(k, None)
 
-        # disconnected nodes go first
+        # Disconnected nodes go first. Remove them before the main sort.
         nodes_that_are_parents = {
             node for parents in graph.values() for node in parents
         }
@@ -268,6 +286,8 @@ class PrefixGraph:
             ),
             key=lambda x: x.name,
         )
+        for node in disconnected_nodes:
+            graph.pop(node, None)
         yield from disconnected_nodes
 
         t = cls._toposort_raise_on_cycles(graph)
