@@ -1,0 +1,11 @@
+### Enhancements
+
+* Use Linux reflinks for copy-mode file creation during installs when the filesystem supports `FICLONE`. (#15969)
+
+### Bug fixes
+
+### Deprecations
+
+### Docs
+
+### Other
