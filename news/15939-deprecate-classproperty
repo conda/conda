@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.auxlib.decorators.classproperty` as pending deprecation for removal in 27.3. (#15939)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
