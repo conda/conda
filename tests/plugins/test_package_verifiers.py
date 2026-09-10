@@ -12,6 +12,8 @@ from conda import CondaError, CondaMultiError, plugins
 from conda.base.context import context, reset_context
 from conda.common.path import strip_pkg_extension
 from conda.common.url import path_to_url
+from conda.core import package_cache_data
+from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.package_cache_data import do_extract_action
 from conda.core.path_actions import (
     CreatePrefixRecordAction,
@@ -24,6 +26,7 @@ from conda.exceptions import (
     CondaVerificationError,
     PluginError,
 )
+from conda.gateways.disk.create import create_package_cache_directory
 from conda.gateways.disk.read import compute_sum, read_index_json_from_tarball
 from conda.misc import get_package_records_from_explicit
 from conda.models.match_spec import MatchSpec
@@ -205,6 +208,82 @@ def test_explicit_package_runs_verifier(
     assert (tmp_pkgs_dir / "urls.txt").read_text().splitlines() == [
         package_path.as_uri()
     ]
+
+
+@pytest.mark.parametrize("verifiers_enabled", (False, True))
+def test_transaction_links_verified_cache_before_same_device_cache(
+    verifiers_enabled: bool,
+    package_path: Path,
+    package_record: PackageRecord,
+    plugin_manager_with_reporter_backends: CondaPluginManager,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    tmp_pkgs_dir: Path,
+) -> None:
+    plugin_manager = plugin_manager_with_reporter_backends
+    plugin_manager.load_plugins(*package_extractors.plugins)
+    same_device_cache = tmp_path / "same-device-cache"
+    create_package_cache_directory(str(same_device_cache))
+    monkeypatch.setattr(
+        type(context),
+        "pkgs_dirs",
+        property(lambda _: (str(tmp_pkgs_dir), str(same_device_cache))),
+    )
+    monkeypatch.setattr(
+        package_cache_data,
+        "paths_on_same_device",
+        lambda cache, _prefix: Path(cache) == same_device_cache,
+    )
+    record = PackageRecord.from_objects(
+        package_record,
+        sha256=compute_sum(package_path, "sha256"),
+        md5=compute_sum(package_path, "md5"),
+        size=package_path.stat().st_size,
+    )
+    extracted_name = strip_pkg_extension(package_path.name)[0]
+    for cache in (tmp_pkgs_dir, same_device_cache):
+        archive = cache / package_path.name
+        archive.write_bytes(package_path.read_bytes())
+        action = ExtractPackageAction(
+            source_full_path=str(archive),
+            target_pkgs_dir=str(cache),
+            target_extracted_dirname=extracted_name,
+            record_or_spec=record,
+            sha256=record.sha256,
+            size=record.size,
+            md5=record.md5,
+            package_verifiers=(),
+        )
+        action.verify()
+        action.execute()
+        action.cleanup()
+
+    assert len(tuple(package_cache_data.PackageCacheData.query_all(record))) == 2
+    verified_caches = []
+
+    def verify(_record, archive_path, sha256):
+        assert sha256 == record.sha256
+        verified_caches.append(Path(archive_path).parent.parent)
+
+    if verifiers_enabled:
+        register_verifier(
+            plugin_manager,
+            CondaPackageVerifier(name="test-verifier", verify=verify),
+        )
+    prefix = str(tmp_path / "prefix")
+    transaction = UnlinkLinkTransaction(PrefixSetup(prefix, (), (record,), (), (), ()))
+    transaction.download_and_extract()
+    # Linking must use the verifier snapshot that governed extraction.
+    monkeypatch.setattr(plugin_manager, "get_package_verifiers", lambda: ())
+
+    transaction.prepare()
+
+    assert verified_caches == ([tmp_pkgs_dir] if verifiers_enabled else [])
+    expected_cache = tmp_pkgs_dir if verifiers_enabled else same_device_cache
+    (link_group,) = transaction.prefix_action_groups[prefix].link_action_groups
+    assert Path(link_group.pkg_data.extracted_package_dir) == (
+        expected_cache / extracted_name
+    )
 
 
 def test_explicit_install_rejection_prevents_prefix_changes(

@@ -27,7 +27,9 @@ the same package cache while package verification and extraction are in progress
 
 Package verifier hooks run independently of the ``safety_checks`` setting. When at
 least one verifier is registered, conda rechecks retained package archives instead
-of reusing extracted package-cache entries without verification.
+of reusing extracted package-cache entries without verification. Conda links from
+the first writable package cache where it extracted the verified archive, even if
+another cache is on the target environment's device.
 
 A plugin can enable verification by yielding a verifier only when its own setting
 or environment variable is active. If no plugin yields a verifier, conda preserves
