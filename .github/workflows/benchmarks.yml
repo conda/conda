@@ -15,7 +15,6 @@ env:
   BENCHMARK_RESULTS: benchmark_results.json
   BENCHMARK_RESULTS_ARTIFACT: benchmark-results
   PR_EVENT_ARTIFACT: benchmark-event
-  TESTBED: ubuntu-22.04
 
 jobs:
   track-base-branch:
@@ -68,6 +67,30 @@ jobs:
           && env.BENCHER_PROJECT_SLUG != ''
         uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
 
+      - name: Identify Benchmark Testbed
+        if: steps.artifact.outputs.found == 'true'
+        shell: python
+        run: &identify-benchmark-testbed |
+          import hashlib
+          import json
+          import os
+          import re
+
+          with open(os.environ["BENCHMARK_RESULTS"], encoding="utf-8") as results:
+              machine = json.load(results)["machine_info"]
+          python = ".".join(machine["python_version"].split(".")[:2])
+          # Identify the hardware that produced the benchmark artifact.
+          name = (
+              f"{machine['system']}-{machine['machine']}-py{python}-"
+              f"{machine['cpu']['brand_raw']}"
+          )
+          name = re.sub(r"[^\w.-]+", "-", name, flags=re.ASCII)
+          if len(name) > 64:
+              digest = hashlib.sha256(name.encode()).hexdigest()[:12]
+              name = f"{name[:51]}-{digest}"
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              print(f"BENCHER_TESTBED={name}", file=env_file)
+
       - name: Track base branch benchmarks with Bencher
         if: >-
           steps.artifact.outputs.found == 'true'
@@ -81,7 +104,6 @@ jobs:
             --token "$BENCHER_API_TOKEN" \
             --branch "$BRANCH_NAME" \
             --hash "${{ github.event.workflow_run.head_sha }}" \
-            --testbed "$TESTBED" \
             --threshold-measure latency \
             --threshold-test t_test \
             --threshold-max-sample-size 64 \
@@ -101,6 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
+      checks: write
       pull-requests: write
 
     env:
@@ -163,6 +186,11 @@ jobs:
           && env.BENCHER_PROJECT_SLUG != ''
         uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
 
+      - name: Identify Benchmark Testbed
+        if: steps.artifacts.outputs.found == 'true'
+        shell: python
+        run: *identify-benchmark-testbed
+
       - name: Track PR benchmarks with Bencher
         if: >-
           steps.artifacts.outputs.found == 'true'
@@ -178,7 +206,6 @@ jobs:
             --start-point-hash "$PR_BASE_SHA" \
             --start-point-clone-thresholds \
             --start-point-reset \
-            --testbed "$TESTBED" \
             --ci-only-thresholds \
             --ci-only-on-alert \
             --err \
