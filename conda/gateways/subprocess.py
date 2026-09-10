@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import signal
 import sys
 from collections import namedtuple
 from logging import getLogger
@@ -16,11 +17,15 @@ from .. import ACTIVE_SUBPROCESSES
 from ..auxlib.compat import shlex_split_unicode
 from ..auxlib.ish import dals
 from ..base.context import context
-from ..common.compat import encode_environment, isiterable
+from ..common.compat import encode_environment, isiterable, on_win
 from ..common.constants import TRACE
+from ..common.signals import signal_handler
 from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
+
+if on_win:
+    from subprocess import CREATE_NEW_PROCESS_GROUP
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -82,6 +87,7 @@ def subprocess_call(
     stdin: str | None = None,
     raise_on_error: bool = True,
     capture_output: bool = True,
+    forward_signals: bool = False,
 ):
     """This utility function should be preferred for all conda subprocessing.
     It handles multiple tricky details.
@@ -105,6 +111,13 @@ def subprocess_call(
     else:
         stdin = None
 
+    popen_kwargs = {}
+    if forward_signals:
+        if on_win:
+            popen_kwargs["creationflags"] = CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kwargs["start_new_session"] = True
+
     # spawn subprocess
     process = Popen(
         command,
@@ -115,11 +128,32 @@ def subprocess_call(
         env=env,
         text=True,  # open streams in text mode so that we don't have to decode
         errors="replace",
+        **popen_kwargs,
     )
     ACTIVE_SUBPROCESSES.add(process)
 
-    # decode output, if not PIPE, stdout/stderr will be None
-    stdout, stderr = process.communicate(input=stdin)
+    def _handler(signum, frame):
+        if process.poll() is not None:
+            return
+
+        if on_win:
+            if signum in (signal.SIGINT, getattr(signal, "SIGBREAK", None)) and hasattr(
+                signal, "CTRL_BREAK_EVENT"
+            ):
+                process.send_signal(signal.CTRL_BREAK_EVENT)
+            else:
+                process.send_signal(signum)
+        else:
+            os.killpg(os.getpgid(process.pid), signum)
+
+    if forward_signals:
+        with signal_handler(_handler):
+            # decode output, if not PIPE, stdout/stderr will be None
+            stdout, stderr = process.communicate(input=stdin)
+    else:
+        # decode output, if not PIPE, stdout/stderr will be None
+        stdout, stderr = process.communicate(input=stdin)
+
     rc = process.returncode
     ACTIVE_SUBPROCESSES.remove(process)
 

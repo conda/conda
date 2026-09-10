@@ -50,6 +50,29 @@ def test_run_returns_zero_errorlevel(
         assert not err
 
 
+@pytest.mark.skipif(on_win, reason="POSIX process groups")
+def test_run_forwards_signals_to_process_group(
+    tmp_path: Path,
+    conda_cli: CondaCLIFixture,
+    mocker,
+):
+    prefix = tmp_path / "prefix"
+    conda_meta = prefix / "conda-meta"
+    conda_meta.mkdir(parents=True)
+    (conda_meta / "history").touch()
+
+    from conda.gateways import subprocess as subprocess_gateway
+
+    spy = mocker.spy(subprocess_gateway, "subprocess_call")
+
+    stdout, stderr, err = conda_cli("run", f"--prefix={prefix}", "echo", "hi")
+
+    assert stdout
+    assert not stderr
+    assert not err
+    assert spy.call_args.kwargs["forward_signals"] is True
+
+
 def test_run_returns_nonzero_errorlevel(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
