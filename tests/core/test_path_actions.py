@@ -14,7 +14,7 @@ import pytest
 
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.iterators import groupby_to_dict as groupby
 from conda.common.path import (
@@ -490,6 +490,84 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
     assert not lexists(axn.target_full_path)
 
 
+@pytest.mark.parametrize("extra_safety_checks", (False, True))
+def test_PrefixReplaceLinkAction_sha256_in_prefix_extra_safety_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker, extra_safety_checks: bool
+):
+    source_dir = tmp_path / "pkgs"
+    target_dir = tmp_path / "target"
+    source_short_path = "bin/tool"
+    source_full_path = source_dir / "bin" / "tool"
+    source_full_path.parent.mkdir(parents=True)
+    (target_dir / "bin").mkdir(parents=True)
+
+    prefix_placeholder = "/opt/" + "a" * 200
+    source_full_path.write_bytes(
+        b"\x7fELF..." + prefix_placeholder.encode() + b"/bin/python\0"
+    )
+    source_path_data = PathDataV1(
+        _path=source_short_path,
+        path_type=PathEnum.hardlink,
+    )
+    repodata_record = PackageRecord(
+        build=0,
+        build_number=0,
+        name="test-prefix-replace",
+        version=0,
+        channel="defaults",
+        subdir="linux-64",
+        fn="test-prefix-replace-0-0.conda",
+        md5="0123456789",
+    )
+    package_info = PackageInfo(
+        extracted_package_dir=str(source_dir),
+        package_tarball_full_path=str(source_dir / "test-prefix-replace-0-0.conda"),
+        channel=Channel("defaults"),
+        repodata_record=repodata_record,
+        url="https://example.invalid/test-prefix-replace-0-0.conda",
+        paths_data=PathsData(paths_version=1, paths=[source_path_data]),
+    )
+    action = PrefixReplaceLinkAction(
+        {"temp_dir": str(tmp_path / "temp")},
+        package_info,
+        str(source_dir),
+        source_short_path,
+        str(target_dir),
+        source_short_path,
+        LinkType.hardlink,
+        prefix_placeholder,
+        FileMode.binary,
+        source_path_data,
+    )
+    compute_sum_spy = mocker.patch(
+        "conda.core.path_actions.compute_sum", wraps=compute_sum
+    )
+
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv(
+                "CONDA_EXTRA_SAFETY_CHECKS",
+                "true" if extra_safety_checks else "false",
+            )
+            reset_context()
+
+            assert context.extra_safety_checks is extra_safety_checks
+            assert action.verify() is None
+            compute_sum_spy.assert_not_called()
+            action.execute()
+    finally:
+        reset_context()
+
+    if extra_safety_checks:
+        assert action.prefix_path_data.sha256_in_prefix == compute_sum(
+            action.target_full_path, "sha256"
+        )
+        compute_sum_spy.assert_called_once_with(action.intermediate_path, "sha256")
+    else:
+        assert getattr(action.prefix_path_data, "sha256_in_prefix", None) is None
+        compute_sum_spy.assert_not_called()
+
+
 def test_create_file_link_actions(tmp_path):
     """
     Test that create_file_link_actions can pull "noarch: python" from a package,
@@ -612,8 +690,12 @@ def test_update_history_action_reverse_not_executed(prefix: Path):
 
 
 def test_prefix_replace_hashes_after_batched_codesign(
-    prefix: Path, pkgs_dir: Path, mocker
+    prefix: Path, pkgs_dir: Path, monkeypatch: pytest.MonkeyPatch, mocker
 ):
+    monkeypatch.setenv("CONDA_EXTRA_SAFETY_CHECKS", "true")
+    reset_context()
+    assert context.extra_safety_checks
+
     mocker.patch("conda.core.portability.on_mac", True)
 
     def fake_codesign(cmd, **kwargs):
