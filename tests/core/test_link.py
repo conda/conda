@@ -1,11 +1,14 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
+from types import SimpleNamespace
+
 import pytest
 
 from conda.core import link
 from conda.core.link import UnlinkLinkTransaction
-from conda.core.path_actions import RemoveLinkedPackageRecordAction
+from conda.core.path_actions import BulkClonePathAction, RemoveLinkedPackageRecordAction
+from conda.models.enums import LinkType, NoarchType, PathEnum
 from conda.models.records import PackageRecord, PrefixRecord
 
 
@@ -34,6 +37,55 @@ def test_make_unlink_actions_uses_prefix_record_json_filename_for_conda_meta():
         remove_record_action.target_short_path
         == "conda-meta/idna-3.10-py3_none_any_0.json"
     )
+
+
+def test_determine_link_type_prefers_copy_on_clone_capable_macos(monkeypatch):
+    monkeypatch.setattr(link.sys, "platform", "darwin")
+    monkeypatch.setattr(link, "clone_file_supported", lambda *args: True)
+    monkeypatch.setattr(
+        link,
+        "hardlink_supported",
+        lambda *args: pytest.fail("APFS clone should be preferred"),
+    )
+
+    assert link.determine_link_type("/package", "/prefix") == LinkType.copy
+
+
+def test_aggregate_link_actions_excludes_noarch_python():
+    action = object.__new__(link.LinkPathAction)
+    action.link_type = LinkType.copy
+    action.source_path_data = SimpleNamespace(path_type=PathEnum.hardlink)
+    action.package_info = SimpleNamespace(
+        repodata_record=SimpleNamespace(noarch=NoarchType.python),
+        package_metadata=None,
+    )
+    actions = (action,)
+
+    assert link.UnlinkLinkTransaction._aggregate_link_actions(actions) is actions
+
+
+def test_aggregate_link_actions_uses_directory_clone(monkeypatch):
+    package_info = SimpleNamespace(
+        extracted_package_dir="/package",
+        repodata_record=SimpleNamespace(noarch=None),
+        package_metadata=None,
+    )
+    action = link.LinkPathAction(
+        {},
+        package_info,
+        "/package",
+        "lib/demo.py",
+        "/prefix",
+        "lib/demo.py",
+        LinkType.copy,
+        SimpleNamespace(path_type=PathEnum.hardlink),
+    )
+    monkeypatch.setattr(link, "clone_file_supported", lambda *args: True)
+
+    actions = link.UnlinkLinkTransaction._aggregate_link_actions((action,))
+
+    assert len(actions) == 1
+    assert isinstance(actions[0], BulkClonePathAction)
 
 
 def test_calculate_change_report_revised_variant():

@@ -470,6 +470,7 @@ PathAction
   ExtractPackageAction
 
 MultiPathAction
+  BulkClonePathAction
   CompileMultiPycAction
     AggregateCompileMultiPycAction
 
@@ -497,9 +498,16 @@ the differences elsewhere (e.g. [here][hardlinks_vs_softlinks]), but for our pur
   forwarders), so it's possible that they break assumptions made in certain pieces of code.
 
 Most of the time, `conda` will try to hard link files and, if that fails, it will copy them over.
-Copying a file is an expensive disk operation, both in terms of time and space, so it should be
-the last option. However, sometimes it's the only way. Especially, when the file needs to be
-modified to be used in the target prefix.
+A full copy is an expensive disk operation, both in terms of time and space, so it should be the
+last option. However, sometimes it's the only way. Especially, when the file needs to be modified
+to be used in the target prefix.
+
+On macOS with APFS, `conda` can instead create copy-on-write clones. These remain independent
+copies from the package cache, but initially share the same storage. When possible, `conda` clones
+an entire missing package directory in one operation. It descends through existing shared
+directories and reprocesses individual files that require prefix replacement. The package record
+in `conda-meta/` records this as a copy because cloning is an implementation detail, not a separate
+link type.
 
 Ummm... what? Why would `conda` modify a file to install it? This has to do with relocatability.
 When a `conda` package is created, `conda-build` creates up to three temporary environments:
