@@ -6,10 +6,14 @@ from __future__ import annotations
 
 import argparse
 from argparse import ArgumentParser, Namespace
+from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.cli.helpers import LazyChoicesAction
+from conda.cli.helpers import LazyAction
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -37,29 +41,6 @@ def export_format_choices():
 
 
 @pytest.fixture
-def choices_func_counter():
-    """Fixture providing a choices function that counts calls."""
-    call_count = {"count": 0}
-
-    def func():
-        call_count["count"] += 1
-        return ["option1", "option2", "option3"]
-
-    func.call_count = lambda: call_count["count"]
-    return func
-
-
-@pytest.fixture
-def lazy_action(simple_choices):
-    """Fixture providing a basic LazyChoicesAction."""
-    return LazyChoicesAction(
-        option_strings=["--test"],
-        dest="test",
-        choices_func=lambda: simple_choices,
-    )
-
-
-@pytest.fixture
 def mock_parser_namespace():
     """Fixture providing mock parser and namespace objects."""
 
@@ -78,59 +59,62 @@ def mock_parser_namespace():
 
 
 def test_lazy_choices_action_initialization(simple_choices):
-    """Test basic initialization of LazyChoicesAction."""
-    choices_func = lambda: simple_choices
-    action = LazyChoicesAction(
+    """Test basic initialization of LazyAction."""
+    choices_factory = lambda: simple_choices
+    action = LazyAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=choices_func,
+        choices_factory=choices_factory,
     )
-    assert action.choices_func == choices_func
+    assert action._choices_factory == choices_factory
     assert action.dest == "test"
 
 
-def test_choices_property_evaluation(choices_func_counter):
-    """Test that choices property dynamically evaluates choices_func."""
-    action = LazyChoicesAction(
+def test_choices_property_evaluation(mocker: MockerFixture):
+    """Test that choices property dynamically evaluates choices_factory."""
+    value = ["option1", "option2", "option3"]
+    factory = mocker.Mock(return_value=value)
+    action = LazyAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=choices_func_counter,
+        choices_factory=factory,
     )
 
     # First access
-    choices1 = action.choices
-    assert choices1 == ["option1", "option2", "option3"]
-    assert choices_func_counter.call_count() == 1
+    assert action.choices == value
+    assert factory.call_count == 1
 
     # Second access - should use cached result (with caching)
-    choices2 = action.choices
-    assert choices2 == ["option1", "option2", "option3"]
-    assert choices_func_counter.call_count() == 1  # Same count due to caching
+    assert action.choices == value
+    assert factory.call_count == 1  # Same count due to caching
 
 
 def test_choices_setter_ignores_values():
     """Test that choices setter ignores attempts to set static choices."""
-    choices_func = lambda: ["dynamic1", "dynamic2"]
-    action = LazyChoicesAction(
+    dynamic_choices = ["dynamic1", "dynamic2"]
+    static_choices = ["static1", "static2"]
+
+    action = LazyAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=choices_func,
+        choices_factory=lambda: dynamic_choices,
     )
 
-    # Try to set choices (this happens during argparse init)
-    action.choices = ["static1", "static2"]
+    # Uses dynamic choices
+    assert action.choices == dynamic_choices
 
-    # Should still return dynamic choices
-    assert action.choices == ["dynamic1", "dynamic2"]
+    # Unless explicitly set
+    action.choices = static_choices
+    assert action.choices == static_choices
 
 
 @pytest.mark.parametrize("valid_choice", ["red", "green", "blue"])
 def test_valid_choice_handling(valid_choice, simple_choices, mock_parser_namespace):
     """Test action call with valid choices."""
-    action = LazyChoicesAction(
+    action = LazyAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=lambda: simple_choices,
+        choices_factory=lambda: simple_choices,
     )
     parser, namespace = mock_parser_namespace
 
@@ -143,10 +127,10 @@ def test_valid_choice_handling(valid_choice, simple_choices, mock_parser_namespa
 @pytest.mark.parametrize("invalid_choice", ["purple", "yellow", "orange"])
 def test_invalid_choice_handling(invalid_choice, simple_choices, mock_parser_namespace):
     """Test action call with invalid choices."""
-    action = LazyChoicesAction(
+    action = LazyAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=lambda: simple_choices,
+        choices_factory=lambda: simple_choices,
     )
     parser, namespace = mock_parser_namespace
 
@@ -166,12 +150,12 @@ def test_invalid_choice_handling(invalid_choice, simple_choices, mock_parser_nam
     ],
 )
 def test_argumentparser_help_integration(choices, expected_help_text):
-    """Test that LazyChoicesAction works with ArgumentParser help generation."""
+    """Test that LazyAction works with ArgumentParser help generation."""
     parser = ArgumentParser(prog="test")
     parser.add_argument(
         "--option",
-        action=LazyChoicesAction,
-        choices_func=lambda: choices,
+        action=LazyAction,
+        choices_factory=lambda: choices,
         help="Choose an option",
     )
 
@@ -192,12 +176,12 @@ def test_argumentparser_help_integration(choices, expected_help_text):
     ],
 )
 def test_argumentparser_error_handling(choices, invalid_choice):
-    """Test that LazyChoicesAction error handling works with ArgumentParser."""
+    """Test that LazyAction error handling works with ArgumentParser."""
     parser = ArgumentParser(prog="test")
     parser.add_argument(
         "--choice",
-        action=LazyChoicesAction,
-        choices_func=lambda: choices,
+        action=LazyAction,
+        choices_factory=lambda: choices,
     )
 
     # Should raise SystemExit for invalid choice
@@ -214,12 +198,12 @@ def test_argumentparser_error_handling(choices, invalid_choice):
     ],
 )
 def test_argumentparser_valid_parsing(choices, valid_choice):
-    """Test that LazyChoicesAction works correctly with valid parsing."""
+    """Test that LazyAction works correctly with valid parsing."""
     parser = ArgumentParser(prog="test")
     parser.add_argument(
         "--number",
-        action=LazyChoicesAction,
-        choices_func=lambda: choices,
+        action=LazyAction,
+        choices_factory=lambda: choices,
     )
 
     # Valid choice should parse correctly
@@ -227,16 +211,16 @@ def test_argumentparser_valid_parsing(choices, valid_choice):
     assert args.number == valid_choice
 
 
-def test_choices_func_exception_propagation():
-    """Test that exceptions in choices_func are propagated."""
+def test_choices_factory_exception_propagation():
+    """Test that exceptions in choices_factory are propagated."""
 
-    def failing_choices_func():
+    def failing_choices_factory():
         raise ValueError("Choices function failed")
 
-    action = LazyChoicesAction(
+    action = LazyAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=failing_choices_func,
+        choices_factory=failing_choices_factory,
     )
 
     # Exception should be propagated when accessing choices
@@ -246,10 +230,10 @@ def test_choices_func_exception_propagation():
 
 def test_empty_choices_behavior(mock_parser_namespace):
     """Test behavior with empty choices list."""
-    action = LazyChoicesAction(
+    action = LazyAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=lambda: [],
+        choices_factory=lambda: [],
     )
 
     parser, namespace = mock_parser_namespace
@@ -271,11 +255,11 @@ def test_empty_choices_behavior(mock_parser_namespace):
 def test_non_list_iterable_choices(
     iterable_choices, valid_choice, mock_parser_namespace
 ):
-    """Test that choices_func can return any iterable."""
-    action = LazyChoicesAction(
+    """Test that choices_factory can return any iterable."""
+    action = LazyAction(
         option_strings=["--test"],
         dest="test",
-        choices_func=lambda: iterable_choices,
+        choices_factory=lambda: iterable_choices,
     )
 
     parser, namespace = mock_parser_namespace
@@ -298,11 +282,11 @@ def test_non_list_iterable_choices(
 def test_multiple_option_strings(
     option_strings, dest, test_option, mock_parser_namespace
 ):
-    """Test LazyChoicesAction with multiple option strings."""
-    action = LazyChoicesAction(
+    """Test LazyAction with multiple option strings."""
+    action = LazyAction(
         option_strings=option_strings,
         dest=dest,
-        choices_func=lambda: ["option1", "option2"],
+        choices_factory=lambda: ["option1", "option2"],
     )
 
     parser, namespace = mock_parser_namespace
@@ -330,14 +314,14 @@ def test_multiple_option_strings(
 def test_conda_integration(
     prog, option, choices_fixture, valid_choice, help_pattern, request
 ):
-    """Test LazyChoicesAction with realistic conda scenarios."""
+    """Test LazyAction with realistic conda scenarios."""
     choices = request.getfixturevalue(choices_fixture)
 
     parser = ArgumentParser(prog=prog)
     parser.add_argument(
         option,
-        action=LazyChoicesAction,
-        choices_func=lambda: choices,
+        action=LazyAction,
+        choices_factory=lambda: choices,
         help=f"{option.lstrip('--').title()} option",
     )
 
@@ -351,12 +335,12 @@ def test_conda_integration(
 
 
 def test_conda_export_format_integration(export_format_choices):
-    """Test LazyChoicesAction with realistic conda export format choices."""
+    """Test LazyAction with realistic conda export format choices."""
     parser = ArgumentParser(prog="conda export")
     parser.add_argument(
         "--format",
-        action=LazyChoicesAction,
-        choices_func=lambda: export_format_choices,
+        action=LazyAction,
+        choices_factory=lambda: export_format_choices,
         help="Export format",
     )
 
