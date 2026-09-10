@@ -235,6 +235,7 @@ class BaseSolver:
         )
 
         self._notify_conda_outdated(link_precs)
+        self._notify_pip_as_python_deprecation(link_precs)
         return UnlinkLinkTransaction(
             PrefixSetup(
                 self.prefix,
@@ -373,6 +374,38 @@ class BaseSolver:
                     ),
                     file=sys.stderr,
                 )
+
+    def _notify_pip_as_python_deprecation(self, link_precs):
+        if not context.add_pip_as_python_dependency or context.quiet:
+            return
+
+        spec_names = {prec.name for prec in link_precs}
+        user_configured_pip = any(
+            "add_pip_as_python_dependency" in v for v in context.collect_all().values()
+        )
+        if (
+            context.add_pip_as_python_dependency
+            and (not user_configured_pip)
+            and ("python" in spec_names)
+            and ("pip" in spec_names)
+            and "pip" not in {s.name for s in self.unmerged_specs_to_add}
+        ):
+            print(
+                dedent(
+                    """
+                    ## SPECIAL BEHAVIOR CHANGE NOTICE ##
+
+                    ==> WARNING: conda is adding 'pip' because add_pip_as_python_dependency defaults to true. <==
+                    This default is scheduled to change to false in 26.10.0.
+
+                    Next steps:
+                      - Keep current behavior:  conda config --set add_pip_as_python_dependency true
+                      - Install pip only when asked: include pip in your specs (e.g. python pip)
+                      - Opt out early:          conda config --set add_pip_as_python_dependency false
+                    """
+                ),
+                file=sys.stderr,
+            )
 
 
 class Solver(BaseSolver):
