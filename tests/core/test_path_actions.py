@@ -34,6 +34,7 @@ from conda.core.path_actions import (
     UpdateHistoryAction,
 )
 from conda.core.portability import batch_codesign_calls
+from conda.exceptions import SafetyError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
@@ -47,6 +48,8 @@ from conda.models.records import PackageRecord, PathDataV1, PathsData
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import PathFactoryFixture
 
@@ -299,8 +302,10 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
         assert isfile(windows_exe_axn.target_full_path)
         assert is_executable(windows_exe_axn.target_full_path)
 
-        src = compute_sum(join(context.conda_prefix, "Scripts/conda.exe"), "md5")
-        assert src == compute_sum(windows_exe_axn.target_full_path, "md5")
+        assert (
+            compute_sum(windows_exe_axn.target_full_path, "sha256")
+            == windows_exe_axn.source_path_data.sha256
+        )
 
         windows_exe_axn.reverse()
         assert not isfile(windows_exe_axn.target_full_path)
@@ -488,6 +493,46 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     axn.reverse()
     assert not lexists(axn.target_full_path)
+
+
+@pytest.mark.parametrize("tampered", [False, True])
+def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
+    tmp_path: Path, mocker: MockerFixture, tampered: bool
+):
+    source_path = tmp_path / "source" / "cli-arm64.exe"
+    source_path.parent.mkdir()
+    source_path.write_bytes(b"launcher")
+    digest = compute_sum(source_path, "sha256")
+    get_launcher = mocker.patch(
+        "conda.core.launchers.get_windows_launcher_stub",
+        return_value=(str(source_path), digest),
+    )
+    target_prefix = tmp_path / "target"
+    (target_prefix / "Scripts").mkdir(parents=True)
+    axn = LinkPathAction.create_python_entry_point_windows_exe_action(
+        {},
+        None,
+        target_prefix,
+        LinkType.copy,
+        "command=some.module:main",
+        source_package_infos=("conda-launchers-package-info",),
+    )
+    get_launcher.assert_called_once_with(
+        target_prefix,
+        source_prefixes=(context.conda_prefix,),
+        source_package_infos=("conda-launchers-package-info",),
+    )
+    assert axn.verify() is None
+    assert axn.prefix_path_data.sha256 == digest
+    if tampered:
+        # Corruption after preparation and verification must still prevent copying.
+        source_path.write_bytes(b"modified")
+        with pytest.raises(SafetyError, match="SHA-256 mismatch"):
+            axn.execute()
+        assert not (target_prefix / "Scripts/command.exe").exists()
+    else:
+        axn.execute()
+        assert (target_prefix / "Scripts/command.exe").read_bytes() == b"launcher"
 
 
 def test_create_file_link_actions(tmp_path):
