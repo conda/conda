@@ -1680,6 +1680,17 @@ class Configuration(metaclass=ConfigurationType):
         return ()
 
     def collect_all(self) -> dict[str | Path, dict]:
+        """Collect all explicitly set parameters from all sources.  Do not include default values.
+
+        The possible sources are:
+          - Environment variables (constants.ENV_VARS_SOURCE, currently `envvars`)
+          - Command line arguments (constants.CMD_LINE_SOURCE, currently `cmd_line`)
+          - Configuration files (direct paths to the configuration files)
+
+        Returns:
+            dict[str | Path, dict]: A dictionary of all explicitly set parameters from all sources.
+            The keys are the source names, and the values are dictionaries of the parameters and their values.
+        """
         typed_values = {}
         validation_errors = {}
         for source in self.raw_data:
