@@ -1,0 +1,3 @@
+### Enhancements
+
+* Use APFS `clonefile` for copy-mode package file creation when available. (#15969)
