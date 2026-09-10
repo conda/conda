@@ -101,7 +101,7 @@ def get_notices_cache_file() -> Path:
     If the file does not exist, we create it with natural filesystem timestamps,
     then set only the modification time to be in the past. This ensures notices
     are checked and displayed immediately rather than waiting for the full
-    display interval.
+    fetch interval.
     """
     cache_dir = get_notices_cache_dir()
     notices_cache = cache_dir / NOTICES_CACHE_FN

@@ -10,8 +10,6 @@ from __future__ import annotations
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from ..notices import notices
-
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace, _SubParsersAction
 
@@ -113,7 +111,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     return p
 
 
-@notices
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     import os
     from tempfile import mktemp
