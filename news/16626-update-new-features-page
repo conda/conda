@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Update new features page to reflect the `conda-pypi` channel and workflows and multi-platform lockfiles moving from beta to stable. Add an additional card for the new ``--exclude-newer`` flag. (#16626)
+
+### Other
+
+* <news item>
