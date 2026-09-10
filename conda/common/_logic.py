@@ -5,9 +5,16 @@ from array import array
 from itertools import combinations
 from logging import DEBUG, getLogger
 
+from ..deprecations import deprecated
 from .constants import TRACE
 
 log = getLogger(__name__)
+
+deprecated.module(
+    "27.3",
+    "27.9",
+    addendum="Use the conda-classic-solver plugin instead.",
+)
 
 
 TRUE = sys.maxsize

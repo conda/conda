@@ -61,7 +61,7 @@ def test_find_conflicts_called_once(
 
     # Side effect only needs to be UnsatisfiableError; dependency structure is irrelevant.
     mocked_find_conflicts = mocker.patch(
-        "conda.resolve.Resolve.find_conflicts",
+        "conda_classic_solver.resolve.Resolve.find_conflicts",
         side_effect=UnsatisfiableError({}, strict=True),
     )
     with tmp_env("versioned=2.0") as prefix:
