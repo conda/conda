@@ -849,30 +849,14 @@ jobs:
           && steps.alls-green.outputs.result == 'failure'
         env:
           GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
+          TEST_FAILURE_ISSUE_NUMBER: '16559'
         run: |
-          DAY=$(date -u '+%Y-%m-%d')
-          TITLE="${{ github.workflow }} failed (${DAY})"
           BODY="The ${{ github.workflow }} workflow failed at $(date -u '+%Y-%m-%d %H:%M') UTC
 
-          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          existing=$(gh issue list \
+          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}"
+          gh issue comment "$TEST_FAILURE_ISSUE_NUMBER" \
             --repo "${{ github.repository }}" \
-            --state open \
-            --search "\"${TITLE}\" in:title label:source::auto sort:created-desc" \
-            --limit 1 \
-            --json number \
-            --jq '.[0].number // empty')
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" \
-              --repo "${{ github.repository }}" \
-              --body "$BODY"
-          else
-            gh issue create \
-              --repo "${{ github.repository }}" \
-              --title "$TITLE" \
-              --body "$BODY" \
-              --label "¡blocking!,type::bug,type::testing,source::auto"
-          fi
+            --body "$BODY"
 
   # check conda-build imports
   downstream:
