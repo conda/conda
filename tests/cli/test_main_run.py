@@ -180,6 +180,16 @@ def test_no_newline_in_output(
         pytest.param(["small", "-v", "-c", "spam"], "-v -c spam", id="no separator"),
         pytest.param(["small", "--version"], "--version", id="no known args"),
         pytest.param(["small", "-vvv"], "-vvv", id="vvv passthrough"),
+        pytest.param(
+            ["small", "--no-plugins"],
+            "--no-plugins",
+            id="no plugins passthrough without separator",
+        ),
+        pytest.param(
+            ["small", "--no-plugins", "info"],
+            "--no-plugins info",
+            id="no plugins passthrough with argument",
+        ),
         # with separator and conda will ignore everything after
         pytest.param(
             ["small", "--", "-v", "hello"],
@@ -202,6 +212,11 @@ def test_no_newline_in_output(
             id="double dash option",
         ),
         pytest.param(
+            ["--", "small", "--no-plugins"],
+            "--no-plugins",
+            id="no plugins passthrough",
+        ),
+        pytest.param(
             ["--", "small", "-vic", "eggs"],
             "-vic eggs",
             id="combined option",
@@ -209,6 +224,7 @@ def test_no_newline_in_output(
         pytest.param(["--", "small", "-vvv"], "-vvv", id="vvv passthrough with --"),
     ],
 )
+@pytest.mark.usefixtures("clear_plugin_manager_cache")
 def test_run_with_separator(
     request: pytest.FixtureRequest,
     test_recipes_channel: Path,
