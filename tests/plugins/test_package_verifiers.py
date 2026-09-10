@@ -218,17 +218,15 @@ def test_transaction_links_verified_cache_before_same_device_cache(
     plugin_manager_with_reporter_backends: CondaPluginManager,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    tmp_pkgs_dir: Path,
 ) -> None:
     plugin_manager = plugin_manager_with_reporter_backends
     plugin_manager.load_plugins(*package_extractors.plugins)
+    first_cache = tmp_path / "first-cache"
     same_device_cache = tmp_path / "same-device-cache"
-    create_package_cache_directory(str(same_device_cache))
-    monkeypatch.setattr(
-        type(context),
-        "pkgs_dirs",
-        property(lambda _: (str(tmp_pkgs_dir), str(same_device_cache))),
-    )
+    for cache in (first_cache, same_device_cache):
+        create_package_cache_directory(str(cache))
+    monkeypatch.setenv("CONDA_PKGS_DIRS", f"{first_cache},{same_device_cache}")
+    reset_context()
     monkeypatch.setattr(
         package_cache_data,
         "paths_on_same_device",
@@ -241,7 +239,7 @@ def test_transaction_links_verified_cache_before_same_device_cache(
         size=package_path.stat().st_size,
     )
     extracted_name = strip_pkg_extension(package_path.name)[0]
-    for cache in (tmp_pkgs_dir, same_device_cache):
+    for cache in (first_cache, same_device_cache):
         archive = cache / package_path.name
         archive.write_bytes(package_path.read_bytes())
         action = ExtractPackageAction(
@@ -278,8 +276,8 @@ def test_transaction_links_verified_cache_before_same_device_cache(
 
     transaction.prepare()
 
-    assert verified_caches == ([tmp_pkgs_dir] if verifiers_enabled else [])
-    expected_cache = tmp_pkgs_dir if verifiers_enabled else same_device_cache
+    assert verified_caches == ([first_cache] if verifiers_enabled else [])
+    expected_cache = first_cache if verifiers_enabled else same_device_cache
     (link_group,) = transaction.prefix_action_groups[prefix].link_action_groups
     assert Path(link_group.pkg_data.extracted_package_dir) == (
         expected_cache / extracted_name
