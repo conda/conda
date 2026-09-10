@@ -183,19 +183,19 @@ To install a package from Anaconda.org:
 Installing non-conda packages
 =============================
 
-If a package is not available from conda or Anaconda.org, you may be able to
-find and install the package via conda-forge or with another package manager
-like pip.
+If a package is not available from any of the popular conda channels, there are a few
+options depending on the package type.
 
-Pip packages do not have all the features of conda packages and we recommend
-first trying to install any package with conda. If the package is unavailable
-through conda, try finding and installing it with
-`conda-forge <https://conda-forge.org/search.html>`_.
+For packages with supported pure Python wheels, the recommended path is to install them
+directly with ``conda install`` using the ``conda-pypi`` channel, which indexes
+pure Python wheels from the public PyPI index and resolves them alongside conda
+packages in a single operation. See :doc:`install-packages-from-pypi` for
+setup instructions and supported workflows.
 
-If you still cannot install the package, you can try
-installing it with pip. The differences between pip and
-conda packages cause certain unavoidable limits in compatibility but conda
-works hard to be as compatible with pip as possible.
+For packages not covered by the ``conda-pypi`` workflow, you may be able to use
+pip as a fallback. The differences between packages installed with pip and conda
+packages cause certain unavoidable limits in compatibility but conda works hard
+to be as compatible with pip as possible.
 
 .. note::
    Both pip and conda are included in Anaconda and Miniconda, so you do not
