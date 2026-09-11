@@ -39,6 +39,20 @@ With `repodata_use_shards` disabled, a shards-only channel (e.g. `conda-pypi`) u
 ### Pass criteria
 - Step 2 fails with `UnavailableInvalidChannel` (or equivalent channel error), **and** guidance/cause indicates the channel appears shards-only.
 - The output includes how to enable shards, e.g. `conda config --set repodata_use_shards true` and/or `--repodata-use-shards` (hint code `enable_repodata_shards`).
+
+Example:
+   ```console
+   Loading channels: failed
+
+   UnavailableInvalidChannel: HTTP 404 Not Found for channel conda-pypi <https://conda.anaconda.org/conda-pypi>
+
+   Artifact noarch/repodata.json not found in channel conda-pypi
+
+   Cause: This channel appears to provide only sharded repodata.
+   Next steps:
+   - (enable_repodata_shards) Enable shards with `conda config --set repodata_use_shards true` or pass `--repodata-use-shards`
+   ```
+
 - Step 2 does **not** only show a generic "channel is not accessible" message with **no** enable-shards hint.
 - Step 3: either succeeds or fails for a different reason (e.g. package not found); it must **not** show the "enable shards" hint.
 
