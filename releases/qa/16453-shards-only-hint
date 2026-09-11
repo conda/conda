@@ -11,6 +11,7 @@ With `repodata_use_shards` disabled, a shards-only channel (e.g. `conda-pypi`) u
 
 ### Prerequisites
 - A conda build that includes #16471 / #16453
+-  conda-pypi is present in the channel configuration
 - Shards **disabled** for the failing command (config and/or omit `--repodata-use-shards`)
 
 ### Steps
