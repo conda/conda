@@ -609,6 +609,10 @@ def test_noarch_python_package_without_entry_points(
 
 
 @pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
+@pytest.mark.skipif(
+    context.subdir == "win-arm64" and sys.version_info < (3, 15),
+    reason="Python below 3.14 is not available for win-arm64",
+)
 def test_noarch_python_package_reinstall_on_pyver_change(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
 ):
@@ -908,6 +912,10 @@ def test_list_with_pip_no_binary(
 
 
 @pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
+@pytest.mark.skipif(
+    context.subdir == "win-arm64",
+    reason="Python 3.9 is not available for win-arm64",
+)
 def test_list_with_pip_wheel(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -2398,6 +2406,10 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
 
 
 @pytest.mark.skipif(not on_win, reason="Windows launcher upgrade")
+@pytest.mark.skipif(
+    context.subdir == "win-arm64",
+    reason="conda 26.7.2 was not released for win-arm64",
+)
 def test_upgrade_conda_creates_windows_entry_point(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -2501,6 +2513,10 @@ def test_upgrade_conda_creates_windows_entry_point(
         )
 
 
+@pytest.mark.skipif(
+    context.subdir == "win-arm64",
+    reason="No released conda package is available for win-arm64",
+)
 def test_dont_remove_conda_3(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,

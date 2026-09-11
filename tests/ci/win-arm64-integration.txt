@@ -1,5 +1,0 @@
-tests/test_create.py::test_create_install_update_remove_smoketest
-tests/test_create.py::test_run_preserves_arguments
-tests/test_create.py::test_noarch_python_package_with_entry_points
-tests/shell/test_cmd_exe.py::test_cmd_exe_basic_integration
-tests/shell/test_powershell.py::test_powershell_basic_integration
