@@ -68,6 +68,7 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
+from conda.gateways.disk.read import compute_sum
 from conda.gateways.subprocess import Response
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -566,6 +567,12 @@ def test_noarch_python_package_with_entry_points(
             prefix / BIN_DIRECTORY / ("pygmentize.exe" if on_win else "pygmentize")
         )
         assert exe_path.is_file()
+        if context.subdir == "win-arm64":
+            assert PrefixData(prefix).get("python").subdir == "win-arm64"
+            launcher = Path(
+                context.conda_prefix, "share", "conda-launchers", "cli-arm64.exe"
+            )
+            assert compute_sum(exe_path, "sha256") == compute_sum(launcher, "sha256")
         output = check_output([exe_path, "--help"], text=True)
         assert "usage: pygmentize" in output
 

@@ -73,6 +73,9 @@ jobs:
       || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
+    defaults:
+      run:
+        shell: pwsh
     strategy:
       fail-fast: false
       matrix:
@@ -80,6 +83,7 @@ jobs:
         runs-on: [windows-latest, windows-11-arm]
         python-version: ['3.10', '3.14']
         default-channel: [defaults, conda-forge]
+        subdir: [win-64]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
@@ -91,11 +95,36 @@ jobs:
             python-version: '3.10'
           - runs-on: windows-11-arm
             default-channel: conda-forge
+        include:
+          - runs-on: windows-11-arm
+            python-version: '3.14'
+            default-channel: conda-forge
+            subdir: win-arm64
+            test-type: unit
+            test-group: 1
+            test-paths: >-
+              tests/base/test_context.py
+              tests/core/test_launchers.py
+              tests/core/test_initialize.py
+              tests/core/test_path_actions.py
+              tests/test_activate.py
+          - runs-on: windows-11-arm
+            python-version: '3.14'
+            default-channel: conda-forge
+            subdir: win-arm64
+            test-type: integration
+            test-group: 1
+            test-paths: >-
+              tests/test_create.py::test_create_install_update_remove_smoketest
+              tests/test_create.py::test_run_preserves_arguments
+              tests/test_create.py::test_noarch_python_package_with_entry_points
+              tests/shell/test_cmd_exe.py::test_cmd_exe_basic_integration
+              tests/shell/test_powershell.py::test_powershell_basic_integration
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
-      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      PYTEST_SPLITS: ${{ matrix.subdir == 'win-arm64' && '1' || matrix.test-type == 'unit' && '2' || '3' }}
+      CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'libmamba' || 'libmamba,classic' }}
 
     steps:
       - name: Checkout Source
@@ -106,7 +135,7 @@ jobs:
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: |
-          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          STEM="${{ runner.os }}-${{ runner.arch }}-${{ matrix.subdir }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
           echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
@@ -125,7 +154,7 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          # A native win-arm64 conda test environment is not available yet.
+          # Use x64 Miniconda to bootstrap the test environment until a native installer is available.
           architecture: x64
         env:
           CONDA_SUBDIR: win-64
@@ -138,16 +167,68 @@ jobs:
           CONDA_SUBDIR: win-64
 
       - name: Conda Install
-        run: >
-          conda install
-          --yes
-          --file tests\requirements.txt
-          --file tests\requirements-${{ runner.os }}.txt
-          --file tests\requirements-ci.txt
-          --file tests\requirements-s3.txt
+        run: |
+          $ciRequirements = 'tests\requirements-ci.txt'
+          if ('${{ matrix.subdir }}' -eq 'win-arm64') {
+            # Run conda from the checkout and use Git supplied by the runner.
+            # Neither package is published for win-arm64 yet.
+            $ciRequirements = "$env:RUNNER_TEMP\requirements-ci-native.txt"
+            Get-Content tests\requirements-ci.txt |
+              Where-Object { $_ -notmatch '^(conda|git)(\s|$)' } |
+              Set-Content $ciRequirements
+          }
+          conda install `
+          --yes `
+          --file tests\requirements.txt `
+          --file tests\requirements-${{ runner.os }}.txt `
+          --file $ciRequirements `
+          --file tests\requirements-s3.txt `
           python=${{ matrix.python-version }}
         env:
-          CONDA_SUBDIR: win-64
+          CONDA_SUBDIR: ${{ matrix.subdir }}
+
+      - name: Initialize Native Source Conda
+        if: matrix.subdir == 'win-arm64'
+        run: python -m conda init --install
+
+      - name: Verify Native ARM64 Runtime
+        if: matrix.subdir == 'win-arm64'
+        run: |
+          git --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          minio --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          @'
+          import platform
+          import sys
+          import sysconfig
+          from pathlib import Path
+
+          import conda
+          import libmambapy
+          from conda.base.context import context
+          from conda.core.launchers import get_windows_launcher_stub
+          from conda.core.prefix_data import PrefixData
+          from conda.gateways.disk.read import compute_sum
+
+          assert sys.version_info[:2] == (3, 14), sys.version
+          assert platform.machine().lower() == 'arm64', platform.machine()
+          assert sysconfig.get_platform() == 'win-arm64', sysconfig.get_platform()
+          assert context.subdir == 'win-arm64', context.subdir
+          assert context.solver == 'libmamba', context.solver
+          assert Path(conda.__file__).samefile(Path('conda/__init__.py'))
+          assert PrefixData(sys.prefix).get('python').subdir == 'win-arm64'
+          records = tuple(PrefixData(sys.prefix).iter_records())
+          assert {record.subdir for record in records} <= {'noarch', 'win-arm64'}
+          launcher, sha256 = get_windows_launcher_stub(
+              sys.prefix, source_prefixes=(sys.prefix,)
+          )
+          assert Path(launcher).name == 'cli-arm64.exe', launcher
+          assert compute_sum(Path(sys.prefix) / 'Scripts/conda.exe', 'sha256') == sha256
+          print(f'Python: {sys.executable} ({platform.machine()})')
+          print(f'Conda: {conda.__file__} ({context.subdir}, {context.solver})')
+          print(f'Launcher: {launcher}')
+          '@ | python -
 
       - name: Conda Info
         # view test env info (not base)
@@ -179,20 +260,25 @@ jobs:
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
-        run: >
-          python -m pytest
-          --cov=conda
-          --basetemp=${{ runner.temp }}
-          --durations-path=durations\${{ runner.os }}.json
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
+        run: |
+          if ('${{ matrix.subdir }}' -eq 'win-arm64') {
+            $env:PYTHONPATH = (Get-Location).Path
+            python -m conda shell.powershell hook | Out-String | Invoke-Expression
+          }
+          python -m pytest `
+          --cov=conda `
+          --basetemp=${{ runner.temp }} `
+          --durations-path=durations\${{ runner.os }}.json `
+          --group=${{ matrix.test-group }} `
+          --splits=${{ env.PYTEST_SPLITS }} `
+          -m "${{ env.PYTEST_MARKER }}" `
+          ${{ matrix.test-paths }} `
           ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.subdir }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
 
       - name: Upload Test Results
