@@ -1,0 +1,5 @@
+tests/base/test_context.py
+tests/core/test_launchers.py
+tests/core/test_initialize.py
+tests/core/test_path_actions.py
+tests/test_activate.py
