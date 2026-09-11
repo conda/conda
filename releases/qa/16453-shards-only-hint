@@ -33,7 +33,7 @@ With `repodata_use_shards` disabled, a shards-only channel (e.g. `conda-pypi`) u
 3. Repeat with shards on and confirm the hint is **not** the failure mode:
 
    ```console
-   conda search --override-channels --channel conda-pypi --repodata-use-shards <some-package>
+   conda search --override-channels --channel conda-pypi --repodata-use-shards <some-package e.g. flask>
    ```
 
 ### Pass criteria
