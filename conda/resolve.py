@@ -1487,7 +1487,7 @@ class Resolve:
                     else:
                         not_found_packages.add(s)
             if not_found_packages:
-                raise ResolvePackageNotFound(not_found_packages)
+                raise ResolvePackageNotFound([(spec,) for spec in not_found_packages])
             elif wrong_version_packages:
                 self.find_conflicts(wrong_version_packages, specs_to_add, history_specs)
             if should_retry_solve:
