@@ -2,6 +2,7 @@ from collections.abc import Hashable
 from types import GeneratorType
 
 from functools import wraps
+from ..deprecations import deprecated
 
 
 # TODO: spend time filling out functionality and make these more robust
@@ -176,6 +177,8 @@ def memoizedproperty(func):
     return property(new_fget)
 
 
+
+@deprecated("26.9", "27.3")
 class classproperty:  # pylint: disable=C0103
     # from celery.five
 
