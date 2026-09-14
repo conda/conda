@@ -6,11 +6,13 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from itertools import chain
 from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..cli import common
+from ..common.io import dashlist
 from ..common.iterators import unique
 from ..common.serialize import json, yaml
 from ..core.prefix_data import PrefixData
@@ -182,13 +184,13 @@ def validate_keys(data, kwargs):
         filename = kwargs.get("filename")
         verb = "are" if len(invalid_keys) != 1 else "is"
         plural = "s" if len(invalid_keys) != 1 else ""
+
         print(
             f"\nEnvironmentSectionNotValid: The following section{plural} on "
             f"'{filename}' {verb} invalid and will be ignored:"
+            f"{dashlist(invalid_keys)}\n",
+            file=sys.stderr,
         )
-        for key in invalid_keys:
-            print(f" - {key}")
-        print()
 
     deps = data.get("dependencies") or []
     depsplit = re.compile(r"[<>~\s=]")
@@ -201,7 +203,8 @@ def validate_keys(data, kwargs):
                 "but you do not list pip itself as one of your conda dependencies.  Conda "
                 "may not use the correct pip to install your packages, and they may end up "
                 "in the wrong place.  Please add an explicit pip dependency.  I'm adding one"
-                " for you, but still nagging you."
+                " for you, but still nagging you.",
+                file=sys.stderr,
             )
             new_data["dependencies"].insert(0, "pip")
             break
