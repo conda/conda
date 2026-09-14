@@ -8,7 +8,7 @@ on:
       - completed
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -173,7 +173,7 @@ jobs:
           script: |
             const fs = require("fs")
             const prEvent = JSON.parse(fs.readFileSync("event.json", { encoding: "utf8" }))
-            core.exportVariable("PR_HEAD", prEvent.pull_request.head.ref)
+            core.exportVariable("PR_HEAD", `pr-${prEvent.number}`)
             core.exportVariable("PR_HEAD_SHA", prEvent.pull_request.head.sha)
             core.exportVariable("PR_BASE", prEvent.pull_request.base.ref)
             core.exportVariable("PR_BASE_SHA", prEvent.pull_request.base.sha)

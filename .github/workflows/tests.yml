@@ -372,6 +372,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Hash + Timestamp
         run: |
@@ -430,6 +431,7 @@ jobs:
         with:
           name: benchmark-results
           path: benchmark_results.json
+          if-no-files-found: error
           retention-days: 7
 
       - name: Upload GitHub Pull Request Event
@@ -438,6 +440,7 @@ jobs:
         with:
           name: benchmark-event
           path: ${{ github.event_path }}
+          if-no-files-found: error
           retention-days: 7
 
   # linux typing
