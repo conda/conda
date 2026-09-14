@@ -2,7 +2,7 @@
 Limit channel notice response cache age- #16568
 
 ### Why
-Conda's channel notices are cached until a notice's own expiry date passes, so a cache can stay "fresh" for months. If a channel publishes a new notice while an older one is still cached, the new notice stays invisible until the earlier notice's far-future expiry finally elapses. 
+Conda's channel notices are cached until a notice's own expiry date passes, so a cache can stay "fresh" for months. If a channel publishes a new notice while an older one is still cached, the new notice stays invisible until the earlier notice's far-future expiry finally elapses.
 
 ### Platforms
 - [x] Windows
@@ -74,7 +74,7 @@ To find your notices cache dir you can run the command (eg. on linux):
 
 Then you may clear the notice cache
 ```
-$ rm -rf /home/user/.cache/conda/notices/ 
+$ rm -rf /home/user/.cache/conda/notices/
 ```
 
 ### Steps
@@ -135,10 +135,10 @@ On Windows
 (Get-Item "<path to cache key file>").LastWriteTime = "2026-09-13 11:00:00"
 ```
 
-4. Retrieve channel notices again. Notice that the new channel notice. 
+4. Retrieve channel notices again. Notice that the new channel notice.
 
 ```
-$ conda notices -c file:///tmp/demo-channel --override-channels                          
+$ conda notices -c file:///tmp/demo-channel --override-channels
 Retrieving notices: done
 
 Channel "demo-channel" has the following notices:
@@ -158,5 +158,5 @@ Following the steps above, you should run into no conda errors. And the notice a
 ### Out of scope / notes
 
 Reference issues:
-* https://github.com/conda/conda/issues/16502 
+* https://github.com/conda/conda/issues/16502
 * https://github.com/conda/conda/pull/16568
