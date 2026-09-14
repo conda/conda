@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.common.compat import on_win
-from conda.exceptions import UnsatisfiableError
+from conda.exceptions import ResolvePackageNotFound, UnsatisfiableError
 from conda.models.match_spec import MatchSpec
 from conda.resolve import Resolve
 from conda.testing import helpers
@@ -72,3 +72,19 @@ def test_solve_wrong_version_calls_find_conflicts(
         "direct": set(),
         "virtual_package": set(),
     }
+
+
+def test_solve_missing_package_raises_resolve_package_not_found(
+    mocker: MockerFixture,
+) -> None:
+    """Missing packages use the dependency-chain shape expected by the exception."""
+    rec = helpers.record(name="foo", version="1.0")
+    resolve = Resolve({rec: rec})
+    spec = MatchSpec("bar")
+
+    mocker.patch("conda.resolve.Resolve.get_reduced_index", return_value={})
+
+    with pytest.raises(ResolvePackageNotFound) as exc_info:
+        resolve.solve([spec])
+
+    assert exc_info.value.bad_deps == (spec,)
