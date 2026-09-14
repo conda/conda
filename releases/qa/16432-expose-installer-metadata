@@ -1,0 +1,55 @@
+### Title
+`conda info` shows installer metadata
+
+### Why
+PR https://github.com/conda/conda/pull/16433 (closes #16432) adds a `distribution` line to `conda info` and an `installer` object to `conda info --json`, read from `$ROOT_PREFIX/.installer.info`. Malformed/missing metadata must not break `conda info`.
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+None. You will manually create `.installer.info` in your base prefix to simulate a Constructor-built installer.
+
+### Steps
+1. Find your base prefix: `conda info --base`.
+
+2. Create a valid installer metadata file in the base prefix directory's `.installer.info` file. For example `/dev/miniconda/.installer.info` If should have the contents
+   ```
+   
+   {"name": "Miniconda3", "version": "26.7.0", "platform": "linux-64", "type": "sh"}
+   ```
+   (adjust `platform` for your OS, e.g. `win-64`, `osx-64`)
+
+3. Run `conda info` and notice the entry for `distribution`
+    ```
+    $ conda info | grep dist
+    distribution : Miniconda3 26.7.0 (sh, linux-64)
+    ```
+
+4. Run `conda info --json` and notice the `installer` object with metadata about the installer. (optionally use `jq` to parse the output)
+    ```
+    $ conda info --json | jq .installer
+
+    {
+    "name": "Miniconda3",
+    "version": "26.7.0",
+    "platform": "linux-64",
+    "type": "sh"
+    }
+    ```
+
+5. Ensure that conda does not return any errors if the `installer.info` file is malformed. For example, replace the `.install.info` with invalid content e.g. the contents
+    ```
+    not valid data
+    ```
+
+5. Delete the `installer.info` file and rerun `conda info` to confirm the baseline (no-file) behavior.
+
+### Pass criteria
+
+conda should not produce any errors
+
+### Out of scope / notes
+- Note, this does not test integration with constructor directly
