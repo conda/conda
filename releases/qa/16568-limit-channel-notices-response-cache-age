@@ -1,0 +1,162 @@
+### Title
+Limit channel notice response cache age- #16568
+
+### Why
+Conda's channel notices are cached until a notice's own expiry date passes, so a cache can stay "fresh" for months. If a channel publishes a new notice while an older one is still cached, the new notice stays invisible until the earlier notice's far-future expiry finally elapses. 
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+
+#### 1. Setup a testing conda channel with notices.
+
+1.1. Create the channel
+```
+$ mkdir /tmp/demo-channel
+```
+
+1.2. Setup the required noarch subdir
+```
+$ mkdir /tmp/demo-channel/noarch
+```
+
+1.3. Add some testing repodata to the noarch subdir. Create the file `/tmp/demo-channel/noarch/repodata.json` with the contents
+```
+{
+  "info": {
+    "subdir": "noarch"
+  },
+  "packages": {
+  },
+  "packages.conda": {},
+  "removed": [],
+  "repodata_version": 1
+}
+```
+
+1.4. Create a demo `notices.json` for the channel. Create the file `/tmp/demo-channel/notices.json` with the contents
+```
+{
+  "notices": [
+    {
+      "id": "1cd1d8e5-d96c-42d1-9c29-e8120ad80823",
+      "message": "Notice 1",
+      "level": "info",
+      "created_at": "2026-04-21T11:50:34+00:00",
+      "expires_at": "2029-04-22T00:00:00+00:00"
+    },
+  ]
+}
+```
+
+1.5. Confirm that you can see the notice for the demo channel:
+```
+$ conda notices -c file:///tmp/demo-channel --override-channels
+Retrieving notices: done
+
+Channel "demo-channel" has the following notices:
+  [info] -- Tue Apr 21 11:50:34 2026
+  Notice 1
+```
+
+#### 2. Ensure that your notices cache is clear (optional)
+To ensure the test is run from a clean slate you may want to clear your existing notices cache.
+
+To find your notices cache dir you can run the command (eg. on linux):
+```
+ $ python -c "from platformdirs import user_cache_dir; print (user_cache_dir('conda', appauthor='conda'))"
+
+/home/user/.cache/conda
+```
+
+Then you may clear the notice cache
+```
+$ rm -rf /home/user/.cache/conda/notices/ 
+```
+
+### Steps
+1. Create a new notice by editing `/tmp/demo-channel/notices.json`. The contents of this file should now look like:
+```
+{
+  "notices": [
+    {
+      "id": "1cd1d8e5-d96c-42d1-9c29-e8120ad80823",
+      "message": "Notice 1",
+      "level": "info",
+      "created_at": "2026-04-21T11:50:34+00:00",
+      "expires_at": "2029-04-22T00:00:00+00:00"
+    },
+    {
+      "id": "1cd1d8e5-d96c-42d1-9c29-e8120ad80824",
+      "message": "Second notice",
+      "level": "info",
+      "created_at": "2026-04-22T11:50:34+00:00",
+      "expires_at": "2029-04-22T00:00:00+00:00"
+    }
+  ]
+}
+```
+
+2. Retrieve channel notices again. Notice that the channel notices have not changed.
+```
+$ conda notices -c file:///tmp/demo-channel --override-channels
+Retrieving notices: done
+
+Channel "demo-channel" has the following notices:
+  [info] -- Tue Apr 21 11:50:34 2026
+  Notice 1
+```
+
+3. Munge the modification time on the channel notice cache key
+
+In order to simulate 24h passing, munge the mtime for the cache key in the channel notices cache. Find the channel notices cache by following the steps:
+```
+# get the notices cache dir
+ $ python -c "from platformdirs import user_cache_dir; print (user_cache_dir('conda', appauthor='conda'))"
+/home/user/.cache/conda
+
+# find the cache key for the test channel. If you previously cleared the channel cache it will be the only .json file in the directory
+$ ls /home/user/.cache/conda/notices
+967f1ceabb10876b7e1977a1149e6f1c7faf9b97793e0e0834b6846880a656a7.json  notices.cache
+```
+
+Now you have the full path to the cache key for the temporary channel: `/home/user/.cache/conda/notices/967f1ceabb10876b7e1977a1149e6f1c7faf9b97793e0e0834b6846880a656a7.json`. We'll want to munge the time to be at least 24 h in the past to simulate time passing. With the format YYYY-MM-DD HH:MM:SS. So something like: `2026-09-13 11:00:00`
+
+On Linux/macOS
+```
+touch -m -d '2026-09-13 11:00:00' /home/user/.cache/conda/notices/967f1ceabb10876b7e1977a1149e6f1c7faf9b97793e0e0834b6846880a656a7.json
+```
+
+On Windows
+```
+(Get-Item "<path to cache key file>").LastWriteTime = "2026-09-13 11:00:00"
+```
+
+4. Retrieve channel notices again. Notice that the new channel notice. 
+
+```
+$ conda notices -c file:///tmp/demo-channel --override-channels                          
+Retrieving notices: done
+
+Channel "demo-channel" has the following notices:
+  [info] -- Tue Apr 21 11:50:34 2026
+  Notice 1
+
+  [info] -- Wed Apr 22 11:50:34 2026
+  Second notice
+```
+
+
+### Pass criteria
+
+Following the steps above, you should run into no conda errors. And the notice appears in the output only after munging the demo channel notice to simulate at least 24 hours passing.
+
+
+### Out of scope / notes
+
+Reference issues:
+* https://github.com/conda/conda/issues/16502 
+* https://github.com/conda/conda/pull/16568
