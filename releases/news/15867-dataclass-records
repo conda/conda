@@ -1,0 +1,24 @@
+### Enhancements
+
+* Rewrite `PackageRecord`, `PackageCacheRecord`, `SolvedRecord`, and
+  `PrefixRecord` in `conda.models.records` as `@dataclass(slots=True)`
+  classes to reduce per-record construction and serialisation overhead.
+  (#15867 via #15916)
+### Deprecations
+
+* Mark the record-specific `auxlib.Entity` field descriptors re-exported
+  from `conda.models.records`: `SubdirField`, `ChannelField`, `FilenameField`,
+  `NoarchField`, `TimestampField`, `IndexedTimestampField`, `PackageTypeField`,
+  `_FeaturesField`, and `Md5Field` as pending deprecation, to be removed in
+  27.9. Vendor the descriptors in downstream `Entity` subclasses if they are
+  still needed. (#15867 via #15916)
+* Mark implicit md5 auto-computation on `PackageCacheRecord.md5` as pending
+  deprecation, to be removed in 27.9. Call
+  `PackageCacheRecord.calculate_md5sum()` explicitly instead. (#15867 via #15916)
+
+### Other
+
+* Keep `PrefixRecord.extracted_package_dir` defaulting to `""` (matching the
+  original `StringField(required=False)` semantics) rather than `None`,
+  keeping `basename(extracted_package_dir)` callable on unpopulated records.
+  (#15867 via #15916)
