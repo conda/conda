@@ -17,7 +17,7 @@ None. You will manually create `.installer.info` in your base prefix to simulate
 
 2. Create a valid installer metadata file in the base prefix directory's `.installer.info` file. For example `/dev/miniconda/.installer.info` If should have the contents
    ```
-   
+
    {"name": "Miniconda3", "version": "26.7.0", "platform": "linux-64", "type": "sh"}
    ```
    (adjust `platform` for your OS, e.g. `win-64`, `osx-64`)
