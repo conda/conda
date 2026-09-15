@@ -36,6 +36,43 @@ def test_parser_basics():
     assert args.verbosity == 2
 
 
+@pytest.mark.parametrize(
+    "option,disabled_plugins",
+    [
+        ("--no-plugins", None),
+        ("--no-plugins=", None),
+        ("--no-plugins=plugin-a, plugin-b", ["plugin-a", "plugin-b"]),
+    ],
+)
+def test_parse_no_plugins(option: str, disabled_plugins: list[str] | None):
+    args = generate_parser().parse_args([option, "info"])
+
+    assert args.cmd == "info"
+    assert args.disabled_plugins == disabled_plugins
+
+
+@pytest.mark.parametrize("separator", ([], ["--"]))
+def test_parse_run_no_plugins(separator: list[str]):
+    executable_call = ["echo", "--no-plugins", "info"]
+    args = generate_parser().parse_args(["run", *separator, *executable_call])
+
+    assert args.executable_call == [*separator, *executable_call]
+
+
+@pytest.mark.parametrize(
+    "action,argv,expected",
+    (
+        ("store_true", ["--no-plugins"], True),
+        ("store", ["--no-plugins", "value"], "value"),
+    ),
+)
+def test_parse_unrelated_no_plugins_option(action: str, argv: list[str], expected):
+    parser = ArgumentParser()
+    parser.add_argument("--no-plugins", action=action)
+
+    assert parser.parse_args(argv).no_plugins == expected
+
+
 def test_parse_clobber(subtests: Subtests):
     # setup
     p = generate_parser()
