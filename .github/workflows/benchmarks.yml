@@ -154,6 +154,9 @@ jobs:
                       if omitted:
                           print(f"::warning::{omitted} {revision} benchmarks have no matching name for comparison")
                       results["benchmarks"] = [item for item in results["benchmarks"] if item["fullname"] in common]
+                      # Keep every PR measurement informational while the suite is stabilized.
+                      for item in results["benchmarks"]:
+                          item["fullname"] += "_bencher_ignore"
                       Path(os.environ["RUNNER_TEMP"], f"comparison_{revision}.json").write_text(json.dumps(results))
           with open(os.environ["GITHUB_ENV"], "a") as env_file:
               print("TRACKABLE=true", file=env_file)
@@ -167,16 +170,17 @@ jobs:
           script: |
             const summary = "No comparable base measurements are available from this runner. Head results remain in the producer's benchmark-results-v2 artifact."
             const runUrl = context.payload.workflow_run.html_url
+            const bencherUrl = "https://bencher.dev/perf/conda-tdj8rt90"
             await github.rest.checks.create({
               ...context.repo,
-              name: "Benchmark comparison",
+              name: "Benchmark measurements (informational)",
               head_sha: process.env.COMMIT_SHA,
               status: "completed",
               conclusion: "neutral",
               details_url: runUrl,
-              output: { title: "Benchmark comparison unavailable", summary: `${summary} [Producer run](${runUrl}).` },
+              output: { title: "Benchmark comparison unavailable", summary: `${summary} [Producer run](${runUrl}). [Bencher measurements](${bencherUrl}).` },
             })
-            await core.summary.addRaw(summary).addLink("Producer run", runUrl).write()
+            await core.summary.addRaw(summary).addEOL().addLink("Producer run", runUrl).write()
 
       - name: Install Bencher CLI
         if: steps.artifacts.outputs.found == 'true' && env.BENCHER_CREDENTIAL != '' && env.BENCHER_PROJECT != ''
@@ -197,6 +201,7 @@ jobs:
             --file "$RUNNER_TEMP/comparison_base.json"
 
       - name: Track benchmarks with Bencher
+        id: report
         if: >-
           steps.artifacts.outputs.found == 'true'
           && env.TRACKABLE == 'true'
@@ -211,14 +216,7 @@ jobs:
               --start-point "$PR_BASELINE"
               --start-point-hash "$PR_BASE_SHA"
               --start-point-reset
-              --threshold-measure latency
-              --threshold-test percentage
-              --threshold-min-sample-size 1
-              --threshold-max-sample-size 1
-              --threshold-upper-boundary 0.25
               --thresholds-reset
-              --ci-only-on-alert
-              --ci-number "$PR_NUMBER"
             )
             results="$RUNNER_TEMP/comparison_head.json"
           else
@@ -229,6 +227,8 @@ jobs:
               --threshold-max-sample-size 64
               --threshold-upper-boundary 0.99
               --thresholds-reset
+              --err
+              --github-actions "$GH_TOKEN"
             )
             results="$BENCHMARK_RESULTS"
           fi
@@ -238,18 +238,36 @@ jobs:
             --branch "$BRANCH" \
             --hash "$COMMIT_SHA" \
             --testbed "$BENCHER_TESTBED" \
-            --err \
             --adapter python_pytest \
-            --github-actions "$GH_TOKEN" \
             "${options[@]}" \
             --file "$results"
 
-      - name: Explain benchmark comparison
+      - name: Explain benchmark measurements
         if: always() && env.TRACKABLE == 'true' && (github.event.workflow_run.event != 'pull_request' || env.COMPARABLE == 'true')
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          UPLOAD_OUTCOME: ${{ steps.report.outcome }}
         with:
           script: |
-            const summary = process.env.PR_NUMBER
-              ? "The PR base and head used the same runner, dependencies, and benchmark suite. Alerts use an initial 25% slowdown tolerance against this run's base measurement. Smaller regressions and shared-runner noise can remain."
-              : "Historical alerts require at least 10 measurements in the same CPU and Python testbed. A green result can mean that comparison history is still incomplete."
-            await core.summary.addRaw(summary).addEOL().addLink("Producer run", context.payload.workflow_run.html_url).write()
+            const runUrl = context.payload.workflow_run.html_url
+            const bencherUrl = "https://bencher.dev/perf/conda-tdj8rt90"
+            let summary = "Historical alerts require at least 10 measurements in the same CPU and Python testbed. A green result can mean that comparison history is still incomplete."
+            if (process.env.PR_NUMBER) {
+              const uploaded = process.env.UPLOAD_OUTCOME === "success"
+              summary = "PR measurements are informational. The suite includes single-round and cache-sensitive cases, and shared-runner noise can change timings without a code change. No PR regression gate is applied. "
+                + (uploaded ? "Paired measurements were uploaded to Bencher." : "Bencher upload did not complete. Raw measurements remain in the producer artifact.")
+              await github.rest.checks.create({
+                ...context.repo,
+                name: "Benchmark measurements (informational)",
+                head_sha: process.env.COMMIT_SHA,
+                status: "completed",
+                conclusion: "neutral",
+                details_url: runUrl,
+                output: {
+                  title: uploaded ? "Informational benchmark measurements" : "Benchmark upload unavailable",
+                  summary: `${summary} [Producer run](${runUrl}). [Bencher measurements](${bencherUrl}).`,
+                },
+              })
+            }
+            await core.summary.addRaw(summary).addEOL().addLink("Producer run", runUrl)
+              .addEOL().addLink("Bencher measurements", bencherUrl).write()

@@ -81,15 +81,19 @@ PR measurements use the exact base and head commits on the same runner with
 and fixtures. Running both revisions roughly doubles the benchmark execution time.
 Only benchmark names present in both results are compared. If the base revision
 cannot run the head benchmark suite, the head results remain available and the
-`Benchmark comparison` check is neutral.
+`Benchmark measurements (informational)` check is neutral.
 
 The reporting workflow creates a separate baseline for each PR workflow run and
 attempt. Select `pr-<number>` for its comparison. This baseline never replaces the
-`main` history. PR alerts use Bencher's percentage test with one baseline
-measurement and an initial 25% slowdown tolerance, following the
-[relative benchmarking example](https://bencher.dev/docs/how-to/track-benchmarks/#relative-continuous-benchmarking).
-This is a starting tolerance for noisy shared runners, to adjust using observed
-variation. A green result does not rule out smaller regressions.
+`main` history. PR measurements are informational while the suite is stabilized.
+Single-round and cache-sensitive cases, together with shared-runner noise, can
+produce substantial timing changes without changes to the measured code.
+
+The reporter disables alerts for every paired measurement and posts a neutral
+`Benchmark measurements (informational)` check with links to the producer run and
+Bencher. A neutral check does not establish that performance is unchanged. The
+original JSON artifacts retain every measurement and benchmark name. Historical
+branch alerts remain active.
 
 Non-PR runs preserve the branch's history and use a t-test at `0.99`, with at least
 10 and at most 64 historical measurements. The `0.99` value is a statistical
