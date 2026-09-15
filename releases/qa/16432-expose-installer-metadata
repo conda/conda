@@ -10,7 +10,7 @@ PR https://github.com/conda/conda/pull/16433 (closes #16432) adds a `distributio
 - [x] Linux
 
 ### Prerequisites
-None. You will manually create `.installer.info` in your base prefix to simulate a Constructor-built installer.
+Use a disposable conda installation with a writable base prefix. You will overwrite and delete `.installer.info` in that prefix to simulate a Constructor-built installer.
 
 ### Steps
 1. Find your base prefix: `conda info --base`.
@@ -40,12 +40,8 @@ None. You will manually create `.installer.info` in your base prefix to simulate
     }
     ```
 
-5. Ensure that conda does not return any errors if the `installer.info` file is malformed. For example, replace the `.install.info` with invalid content e.g. the contents
-    ```
-    not valid data
-    ```
-
-5. Delete the `installer.info` file and rerun `conda info` to confirm the baseline (no-file) behavior.
+5. Replace `.installer.info` in the base prefix with malformed content:
+    
 
 ### Pass criteria
 
