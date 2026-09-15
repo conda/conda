@@ -67,7 +67,7 @@ result so an unintended no-op does not appear as a performance improvement.
 The `linux-benchmarks` job in the
 [Tests workflow](https://github.com/conda/conda/actions/workflows/tests.yml) runs on
 Ubuntu 24.04 with Python 3.14 when the workflow detects code changes. Its
-`benchmark-results` artifact contains the JSON measurements and runner diagnostics,
+`benchmark-results-v2` artifact contains the JSON measurements and runner diagnostics,
 retained for seven days. A successful test run can have no benchmark results if
 that job was skipped.
 
@@ -107,3 +107,6 @@ Dependencies can change between workflow runs even though each base/head pair
 shares an environment. Inspect the measurements and runner diagnostics before
 changing a threshold. Give benchmarks new names when their timed work or fixtures
 change so historical comparisons do not combine different workloads.
+
+The versioned artifact name prevents the older reporting workflow from treating
+Ubuntu 24.04 measurements as Ubuntu 22.04 results while this change is in review.
