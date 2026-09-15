@@ -41,7 +41,7 @@ Use a disposable conda installation with a writable base prefix. You will overwr
     ```
 
 5. Replace `.installer.info` in the base prefix with malformed content:
-    
+
 
 ### Pass criteria
 
