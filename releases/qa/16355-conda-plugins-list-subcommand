@@ -1,0 +1,83 @@
+### Title
+`conda plugins list` subcommand
+
+### Why
+https://github.com/conda/conda/pull/16355 adds a new subcommand, `conda plugins list` which allows users to list all the installed conda plugins.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+* The latest version of conda already comes with plugins installed. No additional steps required.
+
+### Steps
+
+1. Run `conda plugins list` to view installed plugins. For a clean conda installation, this should look something like (note that all versions are displayed and all plugins have the status `active`).:
+```
+$ conda plugins list
+Name                   Version  Status  Hooks
+---------------------------------------------
+conda_index            0.13.0  active  subcommands
+conda-libmamba-solver  26.7.0  active  solvers, subcommands
+conda-lockfiles        0.2.1   active  environment_exporters, environment_specifiers
+conda-pypi             0.12.0  active  health_checks, package_extractors, post_transaction_actions, settings, subcommands
+conda-rattler-solver   0.1.1   active  solvers
+conda-self             0.2.1   active  health_checks, settings, subcommands
+menuinst               2.5.2   active  subcommands
+```
+
+2. Ensure the json output also works. All the same plugins should be displayed with the same metadata (including name, version, status and hooks). The output should look something like:
+```
+ $ conda plugins list --json 
+ [
+  {
+    "name": "conda_index",
+    "version": "0.13.0",
+    "canonical_name": "conda_index.plugin",
+    "status": "active",
+    "hooks": [
+      "subcommands"
+    ]
+  },
+  . . .
+ ]
+```
+
+3. Check that disabling plugins works as expected by setting the env var `CONDA_NO_PLUGINS=true` and checking that the status for every plugin is `disabled`. The output should look like:
+```
+$ CONDA_NO_PLUGINS=true conda plugins list
+Name                   Version  Status    Hooks
+-----------------------------------------------
+conda_index            0.13.0  disabled  subcommands
+conda-libmamba-solver  26.7.0  disabled  solvers, subcommands
+conda-lockfiles        0.2.1   disabled  environment_exporters, environment_specifiers
+conda-pypi             0.12.0  disabled  health_checks, package_extractors, post_transaction_actions, settings, subcommands
+conda-rattler-solver   0.1.1   disabled  solvers
+conda-self             0.2.1   disabled  health_checks, settings, subcommands
+menuinst               2.5.2   disabled  subcommands
+```
+
+4. Try installing a new plugin (eg. conda-global) and verify that it is in the plugin list, is active, and has a version that matches the installed version. For example:
+```
+$ conda self install conda-global  --yes
+
+$ conda plugins list
+Name                   Version  Status  Hooks
+---------------------------------------------
+conda-global           0.2.0   active  subcommands
+conda_index            0.13.0  active  subcommands
+conda-libmamba-solver  26.7.0  active  solvers, subcommands
+conda-lockfiles        0.2.1   active  environment_exporters, environment_specifiers
+conda-pypi             0.12.0  active  health_checks, package_extractors, post_transaction_actions, settings, subcommands
+conda-rattler-solver   0.1.1   active  solvers
+conda-self             0.2.1   active  health_checks, settings, subcommands
+menuinst               2.5.2   active  subcommands
+```
+
+### Pass criteria
+* There are no failures running the steps above, and all checks pass.
+
+### Out of scope / notes
+* per plugin disabling (covered in https://github.com/conda/conda/pull/15915)
