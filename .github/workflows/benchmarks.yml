@@ -2,142 +2,42 @@ name: Track Benchmarks
 
 on:
   workflow_run:
-    workflows:
-      - Tests
-    types:
-      - completed
+    workflows: [Tests]
+    types: [completed]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
-env:
-  BENCHMARK_RESULTS: benchmark_results.json
-  BENCHMARK_RESULTS_ARTIFACT: benchmark-results
-  PR_EVENT_ARTIFACT: benchmark-event
-
 jobs:
-  track-base-branch:
+  track-benchmarks:
     if: >-
       !github.event.repository.fork
       && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')
-      && github.event.workflow_run.event == 'push'
       && (
-        github.event.workflow_run.head_branch == 'main'
-        || startsWith(github.event.workflow_run.head_branch, 'feature/')
-        || endsWith(github.event.workflow_run.head_branch, '.x')
+        github.event.workflow_run.event == 'pull_request'
+        || (
+          github.event.workflow_run.event == 'push'
+          && (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'feature/') || endsWith(github.event.workflow_run.head_branch, '.x'))
+        )
       )
-
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      checks: write
-
-    env:
-      BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
-      BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    steps:
-      - name: Locate Benchmark Results
-        id: artifact
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        env:
-          ARTIFACT_NAME: ${{ env.BENCHMARK_RESULTS_ARTIFACT }}
-        with:
-          script: |
-            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
-              ...context.repo,
-              run_id: context.payload.workflow_run.id,
-            })
-            core.setOutput("found", artifacts.some(artifact => artifact.name === process.env.ARTIFACT_NAME))
-
-      - name: Download Benchmark Results
-        if: steps.artifact.outputs.found == 'true'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: ${{ env.BENCHMARK_RESULTS_ARTIFACT }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
-
-      - name: Install Bencher CLI
-        if: >-
-          steps.artifact.outputs.found == 'true'
-          && env.BENCHER_API_TOKEN != ''
-          && env.BENCHER_PROJECT_SLUG != ''
-        uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
-
-      - name: Identify Benchmark Testbed
-        if: steps.artifact.outputs.found == 'true'
-        shell: python
-        run: &identify-benchmark-testbed |
-          import hashlib
-          import json
-          import os
-          import re
-
-          with open(os.environ["BENCHMARK_RESULTS"], encoding="utf-8") as results:
-              machine = json.load(results)["machine_info"]
-          python = ".".join(machine["python_version"].split(".")[:2])
-          # Identify the hardware that produced the benchmark artifact.
-          name = (
-              f"{machine['system']}-{machine['machine']}-py{python}-"
-              f"{machine['cpu']['brand_raw']}"
-          )
-          name = re.sub(r"[^\w.-]+", "-", name, flags=re.ASCII)
-          if len(name) > 64:
-              digest = hashlib.sha256(name.encode()).hexdigest()[:12]
-              name = f"{name[:51]}-{digest}"
-          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
-              print(f"BENCHER_TESTBED={name}", file=env_file)
-
-      - name: Track base branch benchmarks with Bencher
-        if: >-
-          steps.artifact.outputs.found == 'true'
-          && env.BENCHER_API_TOKEN != ''
-          && env.BENCHER_PROJECT_SLUG != ''
-        env:
-          BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
-        run: |
-          bencher run \
-            --project "$BENCHER_PROJECT_SLUG" \
-            --token "$BENCHER_API_TOKEN" \
-            --branch "$BRANCH_NAME" \
-            --hash "${{ github.event.workflow_run.head_sha }}" \
-            --threshold-measure latency \
-            --threshold-test t_test \
-            --threshold-max-sample-size 64 \
-            --threshold-upper-boundary 0.99 \
-            --thresholds-reset \
-            --err \
-            --adapter python_pytest \
-            --github-actions "$GH_TOKEN" \
-            --file "$BENCHMARK_RESULTS"
-
-  track-pull-request:
-    if: >-
-      !github.event.repository.fork
-      && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')
-      && github.event.workflow_run.event == 'pull_request'
-
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       checks: write
       pull-requests: write
-
     env:
-      BENCHER_API_TOKEN: ${{ secrets.BENCHER_API_TOKEN }}
-      BENCHER_PROJECT_SLUG: ${{ secrets.BENCHER_PROJECT_SLUG }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+      BENCHMARK_RESULTS: benchmark-results/benchmark_results.json
+      BASELINE_RESULTS: benchmark-results/baseline_results.json
+      BENCHER_PROJECT: ${{ secrets.BENCHER_PROJECT_SLUG }}
+      BENCHER_CREDENTIAL: ${{ secrets.BENCHER_API_TOKEN }}
 
     steps:
-      - name: Locate Benchmark Artifacts
+      - name: Locate benchmark artifacts
         id: artifacts
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-        env:
-          BENCHMARK_RESULTS_ARTIFACT: ${{ env.BENCHMARK_RESULTS_ARTIFACT }}
-          PR_EVENT_ARTIFACT: ${{ env.PR_EVENT_ARTIFACT }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
@@ -145,71 +45,195 @@ jobs:
               run_id: context.payload.workflow_run.id,
             })
             const names = new Set(artifacts.map(artifact => artifact.name))
-            core.setOutput("found", (
-              names.has(process.env.BENCHMARK_RESULTS_ARTIFACT)
-              && names.has(process.env.PR_EVENT_ARTIFACT)
+            core.setOutput("found", names.has("benchmark-results") && (
+              context.payload.workflow_run.event !== "pull_request" || names.has("benchmark-event")
             ))
 
-      - name: Download Benchmark Results
+      - name: Download benchmark results
         if: steps.artifacts.outputs.found == 'true'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ env.BENCHMARK_RESULTS_ARTIFACT }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: benchmark-results
+          path: benchmark-results
+          github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Download PR Event
-        if: steps.artifacts.outputs.found == 'true'
+      - name: Download PR event
+        if: steps.artifacts.outputs.found == 'true' && github.event.workflow_run.event == 'pull_request'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ env.PR_EVENT_ARTIFACT }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: benchmark-event
+          path: ${{ runner.temp }}/benchmark-event
+          github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Export PR Event Data
-        if: steps.artifacts.outputs.found == 'true'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+      - name: Export PR event data
+        id: pr
+        if: steps.artifacts.outputs.found == 'true' && github.event.workflow_run.event == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PR_EVENT: ${{ runner.temp }}/benchmark-event/event.json
         with:
           script: |
             const fs = require("fs")
-            const prEvent = JSON.parse(fs.readFileSync("event.json", { encoding: "utf8" }))
-            core.exportVariable("PR_HEAD", `pr-${prEvent.number}`)
-            core.exportVariable("PR_HEAD_SHA", prEvent.pull_request.head.sha)
-            core.exportVariable("PR_BASE", prEvent.pull_request.base.ref)
-            core.exportVariable("PR_BASE_SHA", prEvent.pull_request.base.sha)
+            const prEvent = JSON.parse(fs.readFileSync(process.env.PR_EVENT, { encoding: "utf8" }))
+            const eventPr = prEvent.pull_request
+            if (!Number.isSafeInteger(prEvent.number) || prEvent.number < 1) {
+              throw new Error("Invalid PR number in benchmark event")
+            }
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: prEvent.number,
+            })
+            if (pr.head.sha !== context.payload.workflow_run.head_sha) {
+              core.notice("Skipping benchmark results from an outdated PR head")
+              return
+            }
+            if (!/^[a-f0-9]{40}$/.test(eventPr.head.sha) || !/^[a-f0-9]{40}$/.test(eventPr.base.sha)
+                || pr.base.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`
+                || eventPr.base.ref !== pr.base.ref || eventPr.head.sha !== pr.head.sha
+                || pr.head.sha !== context.payload.workflow_run.head_sha
+                || pr.head.repo.full_name !== context.payload.workflow_run.head_repository.full_name) {
+              throw new Error("PR event does not match the benchmark workflow run")
+            }
+            core.setOutput("current", true)
+            core.exportVariable("BRANCH", `pr-${prEvent.number}`)
+            core.exportVariable("COMMIT_SHA", pr.head.sha)
+            core.exportVariable("PR_BASE_SHA", eventPr.base.sha)
             core.exportVariable("PR_NUMBER", prEvent.number)
+            core.exportVariable("PR_BASELINE", `pr-${prEvent.number}-base-${context.payload.workflow_run.id}-${context.payload.workflow_run.run_attempt}`)
+
+      - name: Prepare benchmark comparison
+        if: steps.artifacts.outputs.found == 'true' && (github.event.workflow_run.event != 'pull_request' || steps.pr.outputs.current == 'true')
+        shell: python
+        run: |
+          import hashlib
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          head = json.loads(Path(os.environ["BENCHMARK_RESULTS"]).read_text())
+          machine = head["machine_info"]
+          runner_file = Path(os.environ["BENCHMARK_RESULTS"]).with_name("runner_metadata.json")
+          if not runner_file.exists():
+              raise ValueError("Producer runner metadata is missing")
+          metadata = json.loads(runner_file.read_text())
+          runner = metadata["runner"]
+          if metadata["harness_sha"] != os.environ["COMMIT_SHA"]:
+              raise ValueError("Benchmark harness does not match the measured head commit")
+          if runner != "ubuntu-24.04":
+              raise ValueError("Unexpected producer runner image")
+          python = ".".join(machine["python_version"].split(".")[:2])
+          name = f"{runner}-{machine['machine']}-py{python}-{machine['cpu']['brand_raw']}"
+          name = re.sub(r"[^\w.-]+", "-", name, flags=re.ASCII)
+          if len(name) > 64:
+              name = f"{name[:51]}-{hashlib.sha256(name.encode()).hexdigest()[:12]}"
+          comparable = False
+          if os.environ.get("PR_NUMBER"):
+              if head["commit_info"]["id"] != os.environ["COMMIT_SHA"]:
+                  raise ValueError("Head results do not match the PR commit")
+              baseline_file = Path(os.environ["BASELINE_RESULTS"])
+              if baseline_file.exists():
+                  base = json.loads(baseline_file.read_text())
+                  if base["commit_info"]["id"] != os.environ["PR_BASE_SHA"]:
+                      raise ValueError("Base results do not match the PR base commit")
+                  base_machine = base["machine_info"]
+                  if any(base_machine[field] != machine[field] for field in ("system", "machine", "python_version")) or base_machine["cpu"]["brand_raw"] != machine["cpu"]["brand_raw"]:
+                      raise ValueError("Base and head results used different benchmark machines")
+                  common = {item["fullname"] for item in head["benchmarks"]} & {
+                      item["fullname"] for item in base["benchmarks"]
+                  }
+                  comparable = bool(common)
+                  for revision, results in (("base", base), ("head", head)):
+                      omitted = len(results["benchmarks"]) - len(common)
+                      if omitted:
+                          print(f"::warning::{omitted} {revision} benchmarks have no matching name for comparison")
+                      results["benchmarks"] = [item for item in results["benchmarks"] if item["fullname"] in common]
+                      Path(os.environ["RUNNER_TEMP"], f"comparison_{revision}.json").write_text(json.dumps(results))
+          with open(os.environ["GITHUB_ENV"], "a") as env_file:
+              print(f"BENCHER_TESTBED={name}", file=env_file)
+              print(f"COMPARABLE={str(comparable).lower()}", file=env_file)
+
+      - name: Report unavailable comparison
+        if: steps.artifacts.outputs.found == 'true' && steps.pr.outputs.current == 'true' && env.COMPARABLE != 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const summary = "No comparable base measurements are available from this runner. Head results remain in the producer's benchmark-results artifact."
+            const runUrl = context.payload.workflow_run.html_url
+            await github.rest.checks.create({
+              ...context.repo,
+              name: "Benchmark comparison",
+              head_sha: process.env.COMMIT_SHA,
+              status: "completed",
+              conclusion: "neutral",
+              details_url: runUrl,
+              output: { title: "Benchmark comparison unavailable", summary: `${summary} [Producer run](${runUrl}).` },
+            })
+            await core.summary.addRaw(summary).addLink("Producer run", runUrl).write()
 
       - name: Install Bencher CLI
-        if: >-
-          steps.artifacts.outputs.found == 'true'
-          && env.BENCHER_API_TOKEN != ''
-          && env.BENCHER_PROJECT_SLUG != ''
+        if: steps.artifacts.outputs.found == 'true' && env.BENCHER_CREDENTIAL != '' && env.BENCHER_PROJECT != ''
         uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
+        with:
+          version: '0.6.12'
 
-      - name: Identify Benchmark Testbed
-        if: steps.artifacts.outputs.found == 'true'
-        shell: python
-        run: *identify-benchmark-testbed
-
-      - name: Track PR benchmarks with Bencher
-        if: >-
-          steps.artifacts.outputs.found == 'true'
-          && env.BENCHER_API_TOKEN != ''
-          && env.BENCHER_PROJECT_SLUG != ''
+      - name: Record paired base benchmarks
+        if: steps.artifacts.outputs.found == 'true' && env.COMPARABLE == 'true' && env.BENCHER_CREDENTIAL != '' && env.BENCHER_PROJECT != ''
         run: |
           bencher run \
-            --project "$BENCHER_PROJECT_SLUG" \
-            --token "$BENCHER_API_TOKEN" \
-            --branch "$PR_HEAD" \
-            --hash "$PR_HEAD_SHA" \
-            --start-point "$PR_BASE" \
-            --start-point-hash "$PR_BASE_SHA" \
-            --start-point-clone-thresholds \
-            --start-point-reset \
-            --ci-only-thresholds \
-            --ci-only-on-alert \
+            --project "$BENCHER_PROJECT" \
+            --token "$BENCHER_CREDENTIAL" \
+            --branch "$PR_BASELINE" \
+            --hash "$PR_BASE_SHA" \
+            --testbed "$BENCHER_TESTBED" \
+            --adapter python_pytest \
+            --file "$RUNNER_TEMP/comparison_base.json"
+
+      - name: Track benchmarks with Bencher
+        if: >-
+          steps.artifacts.outputs.found == 'true'
+          && env.BENCHER_CREDENTIAL != '' && env.BENCHER_PROJECT != ''
+          && (github.event.workflow_run.event != 'pull_request' || env.COMPARABLE == 'true')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [[ -n "$PR_NUMBER" ]]; then
+            options=(
+              --start-point "$PR_BASELINE"
+              --start-point-hash "$PR_BASE_SHA"
+              --start-point-reset
+              --threshold-measure latency
+              --threshold-test percentage
+              --threshold-min-sample-size 1
+              --threshold-max-sample-size 1
+              --threshold-upper-boundary 0.25
+              --thresholds-reset
+              --ci-only-on-alert
+              --ci-number "$PR_NUMBER"
+            )
+            results="$RUNNER_TEMP/comparison_head.json"
+          else
+            options=(
+              --threshold-measure latency
+              --threshold-test t_test
+              --threshold-min-sample-size 10
+              --threshold-max-sample-size 64
+              --threshold-upper-boundary 0.99
+              --thresholds-reset
+            )
+            results="$BENCHMARK_RESULTS"
+          fi
+          bencher run \
+            --project "$BENCHER_PROJECT" \
+            --token "$BENCHER_CREDENTIAL" \
+            --branch "$BRANCH" \
+            --hash "$COMMIT_SHA" \
+            --testbed "$BENCHER_TESTBED" \
             --err \
             --adapter python_pytest \
             --github-actions "$GH_TOKEN" \
-            --ci-number "$PR_NUMBER" \
-            --file "$BENCHMARK_RESULTS"
+            "${options[@]}" \
+            --file "$results"

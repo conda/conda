@@ -357,7 +357,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      PYTHONHASHSEED: '0'
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -372,6 +376,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Hash + Timestamp
@@ -420,17 +425,75 @@ jobs:
       - name: Conda List
         run: conda list --show-channel-urls
 
+      - name: Install Bencher diagnostics
+        uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
+        with:
+          version: '0.6.12'
+
+      - name: Record runner noise
+        continue-on-error: true
+        run: bencher noise --duration 30 --quiet | tee "$RUNNER_TEMP/noise.txt"
+
+      - name: Record benchmark runner
+        env:
+          HARNESS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+
+          metadata = {
+              "runner": "ubuntu-24.04",
+              "image_os": os.environ["ImageOS"],
+              "image_version": os.environ["ImageVersion"],
+              "harness_sha": os.environ["HARNESS_SHA"],
+          }
+          Path(os.environ["RUNNER_TEMP"], "runner_metadata.json").write_text(json.dumps(metadata))
+
+      - name: Checkout Base Revision
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git checkout --detach "$BASE_SHA"
+          git restore --source "$HEAD_SHA" --worktree -- tests conda/testing pyproject.toml
+
+      - name: Run Base Benchmarks
+        if: github.event_name == 'pull_request'
+        id: baseline
+        continue-on-error: true
+        run: >
+          "$CONDA/envs/test/bin/python" -m pytest
+          -m benchmark
+          --benchmark-json "$RUNNER_TEMP/baseline_results.json"
+
+      - name: Discard Incomplete Base Results
+        if: github.event_name == 'pull_request' && steps.baseline.outcome != 'success'
+        run: rm -f "$RUNNER_TEMP/baseline_results.json"
+
+      - name: Checkout Head Revision
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git checkout --force --detach "$HEAD_SHA"
+
       - name: Run Benchmarks
         run: >
-          $CONDA/envs/test/bin/python -m pytest
+          "$CONDA/envs/test/bin/python" -m pytest
           -m benchmark
-          --benchmark-json benchmark_results.json
+          --benchmark-json "$RUNNER_TEMP/benchmark_results.json"
 
       - name: Upload Benchmark Results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: benchmark-results
-          path: benchmark_results.json
+          path: |
+            ${{ runner.temp }}/benchmark_results.json
+            ${{ runner.temp }}/baseline_results.json
+            ${{ runner.temp }}/runner_metadata.json
+            ${{ runner.temp }}/noise.txt
           if-no-files-found: error
           retention-days: 7
 
@@ -449,7 +512,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
