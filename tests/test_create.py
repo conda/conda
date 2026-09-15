@@ -609,10 +609,6 @@ def test_noarch_python_package_without_entry_points(
 
 
 @pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
-@pytest.mark.skipif(
-    context.subdir == "win-arm64" and sys.version_info < (3, 15),
-    reason="Python below 3.14 is not available for win-arm64",
-)
 def test_noarch_python_package_reinstall_on_pyver_change(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request: pytest.FixtureRequest
 ):
@@ -622,6 +618,13 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     """
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
+
+    if (
+        context.subdir == "win-arm64"
+        and PYTHON_SPEC_OLD == "python=3.13"
+        and context.channels == ("conda-forge",)
+    ):
+        pytest.skip("conda-forge does not provide Python 3.13 for win-arm64")
 
     with tmp_env("itsdangerous", PYTHON_SPEC_OLD) as prefix:
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC_OLD))
@@ -845,11 +848,13 @@ def test_strict_channel_priority(
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
+    # The historical anaconda package is not available for win-arm64.
+    subdirs = ("win-64", "noarch") if context.subdir == "win-arm64" else context.subdirs
     index = ReducedIndex(
         specs,
         channels=channels,
         prepend=False,
-        subdirs=context.subdirs,
+        subdirs=subdirs,
         use_local=False,
         use_cache=None,
         prefix=None,
@@ -2406,10 +2411,6 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
 
 
 @pytest.mark.skipif(not on_win, reason="Windows launcher upgrade")
-@pytest.mark.skipif(
-    context.subdir == "win-arm64",
-    reason="conda 26.7.2 was not released for win-arm64",
-)
 def test_upgrade_conda_creates_windows_entry_point(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -2513,10 +2514,6 @@ def test_upgrade_conda_creates_windows_entry_point(
         )
 
 
-@pytest.mark.skipif(
-    context.subdir == "win-arm64",
-    reason="No released conda package is available for win-arm64",
-)
 def test_dont_remove_conda_3(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -2877,6 +2874,8 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
     #   This is a way of forcing libboost to be removed.  It's a way that they achieve
     #   mutual exclusivity with the boost from defaults that works differently.
 
+    # Keep the historical Boost metadata for this dry run on win-arm64.
+    platform_args = ("--platform=win-64",) if context.subdir == "win-arm64" else ()
     # if this test passes, we'll hit the DryRunExit exception, instead of an UnsatisfiableError
     with pytest.raises(DryRunExit):
         conda_cli(
@@ -2886,6 +2885,7 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
             "--override-channels",
             "--channel=conda-forge",
             "--channel=defaults",
+            *platform_args,
             "python",
             "boost==1.82.0",
             "boost-cpp==1.82.0",
