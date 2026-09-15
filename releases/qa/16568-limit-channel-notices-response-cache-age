@@ -47,35 +47,15 @@ $ mkdir /tmp/demo-channel/noarch
       "level": "info",
       "created_at": "2026-04-21T11:50:34+00:00",
       "expires_at": "2029-04-22T00:00:00+00:00"
-    },
+    }
   ]
 }
 ```
 
-1.5. Confirm that you can see the notice for the demo channel:
-```
-$ conda notices -c file:///tmp/demo-channel --override-channels
-Retrieving notices: done
-
-Channel "demo-channel" has the following notices:
-  [info] -- Tue Apr 21 11:50:34 2026
-  Notice 1
-```
-
-#### 2. Ensure that your notices cache is clear (optional)
+1.5. Clear your notices cache (optional).
 To ensure the test is run from a clean slate you may want to clear your existing notices cache.
 
 To find your notices cache dir you can run the command (eg. on linux):
-```
- $ python -c "from platformdirs import user_cache_dir; print (user_cache_dir('conda', appauthor='conda'))"
-
-/home/user/.cache/conda
-```
-
-Then you may clear the notice cache
-```
-$ rm -rf /home/user/.cache/conda/notices/
-```
 
 ### Steps
 1. Create a new notice by editing `/tmp/demo-channel/notices.json`. The contents of this file should now look like:
