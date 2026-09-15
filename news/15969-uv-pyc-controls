@@ -1,0 +1,3 @@
+### Enhancements
+
+* Add a control to skip install-time Python bytecode compilation. (#15969 via #16352)
