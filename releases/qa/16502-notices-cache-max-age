@@ -1,0 +1,53 @@
+### Title
+Per-channel notice cache respects a 24-hour max age
+
+### Why
+Per-channel notice response caches were only invalidated once every contained notice's
+`expires_at` passed. A channel could legitimately set a long `expires_at` (e.g. 90 days),
+which meant a newly published notice could stay hidden for that entire window since no new
+request was made. #16568 bounds the per-channel cache to the same 24-hour interval used to
+throttle notice checks (`NOTICES_DECORATOR_DISPLAY_INTERVAL`), based on the cache file's
+mtime, independent of the notice's own expiry. This exercises the network + filesystem path
+that `pytest` mocks out (`time.time_ns`), so it's worth a manual pass.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- A conda build that includes this fix, run from a dev environment where `python -c "import conda"`
+  resolves to this checkout.
+- Network access to a channel currently serving an active notice, e.g. `defaults`
+  (main-x channel notice, see also `releases/qa/16629-channel-notices-wrap-text`).
+
+### Steps
+1. `conda notices -c defaults`
+   Confirm a notice is printed.
+2. List the per-channel response cache files and their mtimes:
+   ```
+   python -c "from conda.notices.cache import get_notices_cache_dir; import glob, os, time; [print(f, time.ctime(os.path.getmtime(f))) for f in glob.glob(str(get_notices_cache_dir() / '*.json'))]"
+   ```
+   Confirm one or more `<hash>.json` files are listed with a mtime of "now". (This does not
+   include `notices.cache`, the unrelated top-level viewed-notices tracker.)
+3. Backdate those same cache files by 25 hours, simulating a cache older than the 24-hour
+   interval while the cached notice itself is still far from `expires_at`:
+   ```
+   python -c "from conda.notices.cache import get_notices_cache_dir; import glob, os, time; t = time.time() - 25 * 3600; [os.utime(f, (t, t)) for f in glob.glob(str(get_notices_cache_dir() / '*.json'))]"
+   ```
+4. `conda notices -c defaults` again.
+5. Re-run the listing command from step 2.
+
+### Pass criteria
+- After step 5, every per-channel cache file's mtime is refreshed to "now", showing conda
+  re-fetched from the channel and rewrote the cache instead of serving the 25-hour-old file.
+- Without the fix, the files would keep the backdated (25-hours-ago) mtime after step 4/5,
+  since the old code only checked `os.path.isfile()` and the notice's own `expires_at`,
+  never re-fetching until that far-future expiry passed.
+
+### Out of scope / notes
+- Automated coverage: `tests/notices/test_response_cache.py::test_notice_response_cache_max_age`
+  mocks `time.time_ns` to assert the same 24-hour boundary; this snippet exercises the real
+  filesystem mtime + live network path instead.
+- Not testing the outer `notices.cache` (view-tracking) file or the notices decorator's own
+  24-hour gate on `conda install`/`create`; only the per-channel response cache introduced here.
