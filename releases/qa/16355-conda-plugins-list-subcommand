@@ -30,7 +30,7 @@ menuinst               2.5.2   active  subcommands
 
 2. Ensure the json output also works. All the same plugins should be displayed with the same metadata (including name, version, status and hooks). The output should look something like:
 ```
- $ conda plugins list --json 
+ $ conda plugins list --json
  [
   {
     "name": "conda_index",
