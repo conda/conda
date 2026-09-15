@@ -83,7 +83,8 @@ PR measurements use the exact base and head commits on the same runner with
 and fixtures. Running both revisions roughly doubles the benchmark execution time.
 Both results must contain the same benchmark names. If the base revision
 cannot run the complete head benchmark suite, the head results remain available
-and the `Benchmark measurements (informational)` check is neutral.
+and the reporting workflow posts a neutral check explaining why comparison is
+unavailable.
 
 The reporting workflow creates a separate baseline for each PR workflow run and
 attempt. Select `pr-<number>` for its comparison. This baseline never replaces the
