@@ -111,13 +111,17 @@ jobs:
           import json
           import os
           import re
+          import sys
           from pathlib import Path
 
           head = json.loads(Path(os.environ["BENCHMARK_RESULTS"]).read_text())
           machine = head["machine_info"]
           runner_file = Path(os.environ["BENCHMARK_RESULTS"]).with_name("runner_metadata.json")
           if not runner_file.exists():
-              raise ValueError("Producer runner metadata is missing")
+              print("::warning::Producer runner metadata is missing. Benchmark comparison is unavailable.")
+              with open(os.environ["GITHUB_ENV"], "a") as env_file:
+                  print("TRACKABLE=false\nCOMPARABLE=false", file=env_file)
+              sys.exit(0)
           metadata = json.loads(runner_file.read_text())
           runner = metadata["runner"]
           if metadata["harness_sha"] != os.environ["COMMIT_SHA"]:
@@ -152,6 +156,7 @@ jobs:
                       results["benchmarks"] = [item for item in results["benchmarks"] if item["fullname"] in common]
                       Path(os.environ["RUNNER_TEMP"], f"comparison_{revision}.json").write_text(json.dumps(results))
           with open(os.environ["GITHUB_ENV"], "a") as env_file:
+              print("TRACKABLE=true", file=env_file)
               print(f"BENCHER_TESTBED={name}", file=env_file)
               print(f"COMPARABLE={str(comparable).lower()}", file=env_file)
 
@@ -177,7 +182,7 @@ jobs:
         if: steps.artifacts.outputs.found == 'true' && env.BENCHER_CREDENTIAL != '' && env.BENCHER_PROJECT != ''
         uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
         with:
-          version: '0.6.12'
+          version: 0.6.12
 
       - name: Record paired base benchmarks
         if: steps.artifacts.outputs.found == 'true' && env.COMPARABLE == 'true' && env.BENCHER_CREDENTIAL != '' && env.BENCHER_PROJECT != ''
@@ -194,6 +199,7 @@ jobs:
       - name: Track benchmarks with Bencher
         if: >-
           steps.artifacts.outputs.found == 'true'
+          && env.TRACKABLE == 'true'
           && env.BENCHER_CREDENTIAL != '' && env.BENCHER_PROJECT != ''
           && (github.event.workflow_run.event != 'pull_request' || env.COMPARABLE == 'true')
         env:
@@ -237,3 +243,13 @@ jobs:
             --github-actions "$GH_TOKEN" \
             "${options[@]}" \
             --file "$results"
+
+      - name: Explain benchmark comparison
+        if: always() && env.TRACKABLE == 'true' && (github.event.workflow_run.event != 'pull_request' || env.COMPARABLE == 'true')
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const summary = process.env.PR_NUMBER
+              ? "The PR base and head used the same runner, dependencies, and benchmark suite. Alerts use an initial 25% slowdown tolerance against this run's base measurement. Smaller regressions and shared-runner noise can remain."
+              : "Historical alerts require at least 10 measurements in the same CPU and Python testbed. A green result can mean that comparison history is still incomplete."
+            await core.summary.addRaw(summary).addEOL().addLink("Producer run", context.payload.workflow_run.html_url).write()
