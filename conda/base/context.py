@@ -498,7 +498,7 @@ class Context(Configuration):
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
-    experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
+    _experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     preview = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
@@ -636,6 +636,14 @@ class Context(Configuration):
     @dev.setter
     def dev(self, value: bool) -> None:
         self._cache_["_dev"] = value
+
+    @property
+    @deprecated(
+        "27.3",
+        "27.9",
+    )
+    def experimental(self) -> str:
+        return self._experimental
 
     @property
     @deprecated(
@@ -1361,7 +1369,7 @@ class Context(Configuration):
             "use_only_tar_bz2",
             "repodata_threads",
             "fetch_threads",
-            "experimental",
+            "experimental",  # TODO: Remove after deprecation ended
             "no_lock",
             "repodata_use_zst",
             "repodata_use_shards",
