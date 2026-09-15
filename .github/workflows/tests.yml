@@ -423,7 +423,7 @@ jobs:
         run: conda config --show-sources
 
       - name: Conda List
-        run: conda list --show-channel-urls
+        run: conda list --show-channel-urls | tee "$RUNNER_TEMP/benchmark_dependencies.txt"
 
       - name: Install Bencher diagnostics
         uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
@@ -485,24 +485,20 @@ jobs:
           -m benchmark
           --benchmark-json "$RUNNER_TEMP/benchmark_results.json"
 
+      - name: Record Workflow Event
+        run: cp "$GITHUB_EVENT_PATH" "$RUNNER_TEMP/event.json"
+
       - name: Upload Benchmark Results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: benchmark-results-v2
+          name: benchmark-results-v3
           path: |
             ${{ runner.temp }}/benchmark_results.json
             ${{ runner.temp }}/baseline_results.json
             ${{ runner.temp }}/runner_metadata.json
+            ${{ runner.temp }}/benchmark_dependencies.txt
             ${{ runner.temp }}/noise.txt
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Upload GitHub Pull Request Event
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: benchmark-event
-          path: ${{ github.event_path }}
+            ${{ runner.temp }}/event.json
           if-no-files-found: error
           retention-days: 7
 

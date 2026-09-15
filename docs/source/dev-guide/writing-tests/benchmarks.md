@@ -67,21 +67,23 @@ result so an unintended no-op does not appear as a performance improvement.
 The `linux-benchmarks` job in the
 [Tests workflow](https://github.com/conda/conda/actions/workflows/tests.yml) runs on
 Ubuntu 24.04 with Python 3.14 when the workflow detects code changes. Its
-`benchmark-results-v2` artifact contains the JSON measurements and runner diagnostics,
-retained for seven days. A successful test run can have no benchmark results if
-that job was skipped.
+`benchmark-results-v3` artifact contains the JSON measurements, workflow event,
+dependency list, and runner diagnostics, retained for seven days. A successful
+test run can have no benchmark results if that job was skipped.
 
 The separate
 [Track Benchmarks workflow](https://github.com/conda/conda/actions/workflows/benchmarks.yml)
-uploads available results to the [Bencher project](https://bencher.dev/perf/conda-tdj8rt90).
+uses the shared Bencher reporting action in
+[`conda/actions`](https://github.com/conda/actions) to upload available results to the
+[Bencher project](https://bencher.dev/perf/conda-tdj8rt90).
 Select `main` for historical results, or the relevant feature or release branch.
 
 PR measurements use the exact base and head commits on the same runner with
 `PYTHONHASHSEED=0`, the head revision's resolved dependencies, benchmark tests,
 and fixtures. Running both revisions roughly doubles the benchmark execution time.
-Only benchmark names present in both results are compared. If the base revision
-cannot run the head benchmark suite, the head results remain available and the
-`Benchmark measurements (informational)` check is neutral.
+Both results must contain the same benchmark names. If the base revision
+cannot run the complete head benchmark suite, the head results remain available
+and the `Benchmark measurements (informational)` check is neutral.
 
 The reporting workflow creates a separate baseline for each PR workflow run and
 attempt. Select `pr-<number>` for its comparison. This baseline never replaces the
