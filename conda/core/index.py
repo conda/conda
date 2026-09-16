@@ -75,12 +75,10 @@ def resolve_channels(
         return tuple(heads.values())
 
     if subdirs is None:
-        subdirs = tuple(
-            dict.fromkeys(
-                subdir
-                for channel in heads.values()
-                for subdir in ((channel.subdir,) if channel.subdir else context.subdirs)
-            )
+        subdirs = (
+            subdir
+            for channel in heads.values()
+            for subdir in ((channel.subdir,) if channel.subdir else context.subdirs)
         )
     subdirs = tuple(dict.fromkeys((*subdirs, "noarch")))
     nodes = dict(heads)
