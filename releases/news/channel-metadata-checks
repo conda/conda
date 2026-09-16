@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add provider checks before shared channel metadata acquisition.
+* Add provider checks before shared channel metadata acquisition. (#16704)
 
 ### Bug fixes
 
