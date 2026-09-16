@@ -40,35 +40,6 @@ log = getLogger(__name__)
 LAST_CHANNEL_URLS = []
 
 
-def _related_channel(channel: Channel, reference: object) -> Channel:
-    if not isinstance(reference, str) or not reference.startswith("../"):
-        raise ChannelError(
-            f"Channel relation for {channel.base_url} must be a relative path starting with '../'."
-        )
-    parts = urlsplit(reference)
-    if (
-        parts.scheme
-        or parts.netloc
-        or parts.query
-        or parts.fragment
-        or "\\" in reference
-    ):
-        raise ChannelError(f"Invalid channel relation for {channel.base_url}.")
-    origin = urlsplit(channel.base_url)
-    path = normpath(f"{origin.path.rstrip('/')}/{parts.path}")
-    related = Channel(urlunsplit(origin._replace(path=path)))
-    # A path token belongs to the declaring channel. Resolve the target's token
-    # through normal channel configuration instead of forwarding that token.
-    target = urlsplit(related.base_url)
-    if (
-        channel.auth
-        and not related.auth
-        and (origin.scheme, origin.netloc) == (target.scheme, target.netloc)
-    ):
-        related = Channel(**{**related.dump(), "auth": channel.auth})
-    return related
-
-
 def resolve_channels(
     channels: Iterable[Channel | str],
     subdirs: Iterable[str] | None = None,
@@ -135,11 +106,38 @@ def resolve_channels(
                 relations = source.channel_relations
             if not isinstance(relations, Mapping):
                 raise ChannelError(f"Channel relations for {url} must be a mapping.")
-            targets = {
-                key: _related_channel(channel, relations[key])
-                for key in ("base", "overrides")
-                if key in relations
-            }
+            targets = {}
+            for key in ("base", "overrides"):
+                if key not in relations:
+                    continue
+                reference = relations[key]
+                if not isinstance(reference, str) or not reference.startswith("../"):
+                    raise ChannelError(
+                        f"Channel relation for {url} must be a relative path starting with '../'."
+                    )
+                parts = urlsplit(reference)
+                if (
+                    parts.scheme
+                    or parts.netloc
+                    or parts.query
+                    or parts.fragment
+                    or "\\" in reference
+                ):
+                    raise ChannelError(f"Invalid channel relation for {url}.")
+                origin = urlsplit(url)
+                path = normpath(f"{origin.path.rstrip('/')}/{parts.path}")
+                target = Channel(urlunsplit(origin._replace(path=path)))
+                # Resolve path tokens through the target's configuration. Basic
+                # credentials may be shared only with the same origin.
+                destination = urlsplit(target.base_url)
+                if (
+                    channel.auth
+                    and not target.auth
+                    and (origin.scheme, origin.netloc)
+                    == (destination.scheme, destination.netloc)
+                ):
+                    target = Channel(**{**target.dump(), "auth": channel.auth})
+                targets[key] = target
             if (
                 "base" in targets
                 and "overrides" in targets
@@ -286,7 +284,20 @@ class Index(UserDict):
         self._subdirs = subdirs
         self._repodata_fn = repodata_fn
         self._channel_relations_loaded = False
-        self._set_channels(self._channels)
+        self.channels: dict[str | Channel, list[SubdirData]] = {}
+        expanded_channels = {}
+        for channel in self._channels:
+            self.channels[channel] = []
+            for url in Channel(channel).urls(True, subdirs):
+                url_as_channel = Channel(url)
+                self.channels[channel].append(
+                    SubdirData(url_as_channel, repodata_fn=repodata_fn)
+                )
+                expanded_channels.setdefault(url_as_channel, None)
+        self.expanded_channels: tuple[Channel, ...] = tuple(expanded_channels)
+        # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
+        LAST_CHANNEL_URLS.clear()
+        LAST_CHANNEL_URLS.extend(self.expanded_channels)
         if prefix is None:
             self.prefix_data = None
         elif isinstance(prefix, PrefixData):
@@ -299,44 +310,48 @@ class Index(UserDict):
 
         self.exclude_newer_policy = exclude_newer_policy or ExcludeNewerPolicy()
 
-    def _set_channels(self, channels: Iterable[str | Channel]) -> None:
-        self.channels: dict[str | Channel, list[SubdirData]] = {}
-        expanded_channels = {}
-        head_labels = {
-            Channel(value).base_url: value for value in reversed(self._channels)
-        }
-        for channel in channels:
-            channel_key = head_labels.get(Channel(channel).base_url, str(channel))
-            self.channels[channel_key] = []
-            for url in Channel(channel).urls(True, self._subdirs):
-                url_as_channel = Channel(url)
-                self.channels[channel_key].append(
-                    SubdirData(url_as_channel, repodata_fn=self._repodata_fn)
-                )
-                expanded_channels.setdefault(url_as_channel, None)
-        self.expanded_channels: tuple[Channel, ...] = tuple(expanded_channels)
-        # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
-        LAST_CHANNEL_URLS.clear()
-        LAST_CHANNEL_URLS.extend(self.expanded_channels)
+    def resolve_channels(self) -> tuple[Channel, ...]:
+        """Discover related channels and return this index's expanded channel order.
 
-    def _load_channel_relations(self) -> None:
-        if not self._channel_relations_loaded:
-            channels = resolve_channels(
-                self._channels,
-                self._subdirs,
-                repodata_fn=self._repodata_fn,
-                use_shards=False,
+        Resolve once on first use, leaving construction free of metadata reads.
+        Keep the requested heads for reduced indexes and environment history.
+        Existing package records are not refreshed by this operation.
+        """
+        if self._channel_relations_loaded:
+            return self.expanded_channels
+        channels = resolve_channels(
+            self._channels,
+            self._subdirs,
+            repodata_fn=self._repodata_fn,
+            use_shards=False,
+        )
+        head_urls = tuple(
+            dict.fromkeys(
+                channel.base_url
+                for head in self._channels
+                for channel in Channel(head).channels
             )
-            head_urls = tuple(
-                dict.fromkeys(
-                    channel.base_url
-                    for head in self._channels
-                    for channel in Channel(head).channels
-                )
-            )
-            if tuple(channel.base_url for channel in channels) != head_urls:
-                self._set_channels(channels)
-            self._channel_relations_loaded = True
+        )
+        if tuple(channel.base_url for channel in channels) != head_urls:
+            head_labels = {
+                Channel(value).base_url: value for value in reversed(self._channels)
+            }
+            self.channels = {}
+            expanded_channels = {}
+            for channel in channels:
+                channel_key = head_labels.get(channel.base_url, str(channel))
+                self.channels[channel_key] = []
+                for url in channel.urls(True, self._subdirs):
+                    url_as_channel = Channel(url)
+                    self.channels[channel_key].append(
+                        SubdirData(url_as_channel, repodata_fn=self._repodata_fn)
+                    )
+                    expanded_channels.setdefault(url_as_channel, None)
+            self.expanded_channels = tuple(expanded_channels)
+            LAST_CHANNEL_URLS.clear()
+            LAST_CHANNEL_URLS.extend(self.expanded_channels)
+        self._channel_relations_loaded = True
+        return self.expanded_channels
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord, ...]:
@@ -518,7 +533,7 @@ class Index(UserDict):
                 self._data[pcrec] = pcrec
 
     def _realize(self) -> None:
-        self._load_channel_relations()
+        self.resolve_channels()
         self._data = {}
         for subdir_datas in self.channels.values():
             for subdir_data in subdir_datas:
@@ -531,7 +546,7 @@ class Index(UserDict):
             self._data.update(self.system_packages)
 
     def _retrieve_from_channels(self, key: PackageRecord) -> PackageRecord | None:
-        self._load_channel_relations()
+        self.resolve_channels()
         for subdir_datas in reversed(self.channels.values()):
             for subdir_data in subdir_datas:
                 if key.subdir != subdir_data.channel.subdir:
@@ -549,7 +564,7 @@ class Index(UserDict):
         return None
 
     def _retrieve_all_from_channels(self, key: PackageRecord) -> list[PackageRecord]:
-        self._load_channel_relations()
+        self.resolve_channels()
         precs = []
         for subdir_datas in reversed(self.channels.values()):
             for subdir_data in subdir_datas:

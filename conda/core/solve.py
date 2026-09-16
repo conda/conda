@@ -1388,7 +1388,7 @@ class Solver(BaseSolver):
                 # Preserve explicitly supplied records, including another prefix's records.
                 self._index = self._provided_index
             if isinstance(self._index, Index) and "_data" not in self._index.__dict__:
-                self._index._load_channel_relations()
+                self._index.resolve_channels()
             self._r = Resolve(
                 self._index,
                 channels=(

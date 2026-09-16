@@ -217,20 +217,27 @@ def test_invalid_relations_object(relations, value):
         ("s3://example.org/alpha", "../beta", "s3://example.org/beta"),
     ],
 )
-def test_relative_paths(url, reference, expected):
-    assert channel_index._related_channel(Channel(url), reference).base_url == expected
+def test_relative_paths(relations, url, reference, expected):
+    metadata, _ = relations
+    metadata[Channel(url).name, "noarch"] = {"base": reference}
+    result = resolve_channels([url], ["noarch"])
+    assert [channel.base_url for channel in result] == [expected, url]
 
 
-def test_token_is_not_forwarded():
+def test_token_is_not_forwarded(relations):
+    metadata, _ = relations
+    metadata["alpha", "noarch"] = {"base": "../beta"}
     source = Channel("https://example.org/t/secret/alpha")
-    target = channel_index._related_channel(source, "../beta")
+    target, _ = resolve_channels([source], ["noarch"])
     assert target.token is None
     assert target.base_url == "https://example.org/beta"
 
 
-def test_basic_credentials():
+def test_basic_credentials(relations):
+    metadata, _ = relations
+    metadata["alpha", "noarch"] = {"base": "../beta"}
     source = Channel("https://user:password@example.org/alpha")
-    target = channel_index._related_channel(source, "../beta")
+    target, _ = resolve_channels([source], ["noarch"])
     assert target.auth == "user:password"
 
 
@@ -453,6 +460,6 @@ def test_unchanged_multichannel_keeps_index_mapping(relations):
     )
     index = Index(channels=[head], subdirs=("noarch",), prepend=False)
     before = index.channels.copy()
-    index._load_channel_relations()
+    index.resolve_channels()
     assert index.channels == before
     assert tuple(index.channels) == (head,)
