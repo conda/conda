@@ -1,0 +1,3 @@
+### Enhancements
+
+* Prefer extracted package-cache entries on the target prefix's device during transaction setup. (#15969)

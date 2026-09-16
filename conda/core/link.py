@@ -427,7 +427,8 @@ class UnlinkLinkTransaction:
         # TODO: figure out if this filter shouldn't be an assert not None
         prefix_recs_to_unlink = tuple(lpd for lpd in prefix_recs_to_unlink if lpd)
         pkg_cache_recs_to_link = tuple(
-            PackageCacheData.get_entry_to_link(prec) for prec in link_precs
+            PackageCacheData.get_entry_to_link(prec, target_prefix)
+            for prec in link_precs
         )
         if not all(pkg_cache_recs_to_link):
             raise SpecNotFoundInPackageCache("Some records cannot be found in cache.")
@@ -515,6 +516,7 @@ class UnlinkLinkTransaction:
                     target_prefix,
                     lt,
                     specs,
+                    packages_info_to_link,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -1279,6 +1281,7 @@ class UnlinkLinkTransaction:
         target_prefix,
         requested_link_type,
         requested_spec,
+        packages_info_to_link,
         link_action_groups,
     ):
         required_quad = (
@@ -1287,7 +1290,9 @@ class UnlinkLinkTransaction:
             target_prefix,
             requested_link_type,
         )
-        return CreatePythonEntryPointAction.create_actions(*required_quad)
+        return CreatePythonEntryPointAction.create_actions(
+            *required_quad, source_package_infos=packages_info_to_link
+        )
 
     @staticmethod
     def _make_compile_actions(

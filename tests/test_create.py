@@ -372,6 +372,7 @@ def test_json_create_install_update_remove(
     tmp_path: Path,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
+    test_recipes_channel: Path,
 ):
     # regression test for #5384
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
@@ -397,7 +398,7 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "create",
         f"--prefix={tmp_path}",
-        "zlib",
+        "pycosat",
         "--json",
         "--dry-run",
         raises=DryRunExit,
@@ -413,7 +414,7 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "create",
         f"--prefix={tmp_path}",
-        "zlib",
+        "pycosat",
         "--json",
         "--yes",
     )
@@ -426,48 +427,48 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "install",
         f"--prefix={tmp_path}",
-        "ca-certificates<2023",
+        "versioned<2",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates<2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned<2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     # Test force reinstall
     stdout, _, _ = conda_cli(
         "install",
         f"--prefix={tmp_path}",
         "--force-reinstall",
-        "ca-certificates<2023",
+        "versioned<2",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates<2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned<2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     stdout, _, _ = conda_cli(
         "update",
         f"--prefix={tmp_path}",
-        "ca-certificates",
+        "versioned",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates>=2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned>=2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     stdout, _, _ = conda_cli(
         "remove",
         f"--prefix={tmp_path}",
-        "ca-certificates",
+        "versioned",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert not package_is_installed(tmp_path, "ca-certificates")
-    assert package_is_installed(tmp_path, "zlib")
+    assert not package_is_installed(tmp_path, "versioned")
+    assert package_is_installed(tmp_path, "pycosat")
 
     # regression test for #5825
     # contents of LINK and UNLINK is expected to have Dist format
@@ -488,8 +489,8 @@ def test_json_create_install_update_remove(
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert not package_is_installed(tmp_path, "ca-certificates")
-    assert package_is_installed(tmp_path, "zlib")
+    assert not package_is_installed(tmp_path, "versioned")
+    assert package_is_installed(tmp_path, "pycosat")
 
 
 def test_not_writable_env_raises_EnvironmentNotWritableError(
@@ -1122,12 +1123,12 @@ def test_allow_softlinks(
         assert (prefix / "etc" / "conda" / "activate.d" / "activate.sh").is_symlink()
 
 
-def test_clone_env_with_conda(tmp_env: TmpEnvFixture):
+def test_clone_env_with_conda(tmp_env: TmpEnvFixture, test_recipes_channel: Path):
     # Regression test for #14917
-    with tmp_env("--channel=conda-forge", "conda") as prefix:
-        assert package_is_installed(prefix, "conda-forge::conda")
+    with tmp_env("conda") as prefix:
+        assert package_is_installed(prefix, "conda")
         with tmp_env(f"--clone={prefix}") as clone:
-            assert package_is_installed(clone, "conda-forge::conda")
+            assert package_is_installed(clone, "conda")
 
 
 def test_channel_usage_replacing_python(
@@ -2396,6 +2397,110 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
     assert package_is_installed(root_prefix_with_conda, "another_dependent")
 
 
+@pytest.mark.skipif(not on_win, reason="Windows launcher upgrade")
+def test_upgrade_conda_creates_windows_entry_point(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """Released conda can create entry points while upgrading itself."""
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "conda-forge::pygments",
+        "--download-only",
+        "--no-deps",
+        "--yes",
+        raises=CondaExitZero,
+    )
+    pygments_package_url = next(
+        record.url
+        for record in PackageCacheData.query_all("conda-forge::pygments")
+        if record.subdir == "noarch"
+    )
+    with tmp_env("conda=26.7.2", "conda-pypi", "conda-launchers") as prefix:
+        assert not package_is_installed(prefix, "pygments")
+        python = prefix / PYTHON_BINARY
+        subprocess_env = os.environ.copy()
+        for env_var in (
+            "PYTHONPATH",
+            "PYTHONHOME",
+            "CONDA_DEFAULT_ENV",
+            "CONDA_PREFIX",
+            "CONDA_PROMPT_MODIFIER",
+            "CONDA_SHLVL",
+            "CONDA_EXE",
+            "CONDA_PYTHON_EXE",
+            "_CE_M",
+            "_CE_CONDA",
+        ):
+            subprocess_env.pop(env_var, None)
+        subprocess_env["CONDA_ROOT_PREFIX"] = str(prefix)
+        subprocess_env["CONDA_AUTO_UPDATE_CONDA"] = "false"
+
+        def run_in_prefix(*args: str | Path) -> str:
+            result = run(
+                args,
+                cwd=prefix,
+                env=subprocess_env,
+                capture_output=True,
+                text=True,
+            )
+            assert result.returncode == 0, result.stderr or result.stdout
+            return result.stdout
+
+        run_in_prefix(
+            python,
+            "-I",
+            "-m",
+            "conda",
+            "pypi",
+            "convert",
+            str(Path(__file__).resolve().parents[1]),
+        )
+        converted_packages = sorted(
+            (prefix / "conda-pypi-output").glob("conda-*.conda")
+        ) or sorted((prefix / "conda-pypi-output").glob("conda-*.tar.bz2"))
+        assert len(converted_packages) == 1
+        assert not package_is_installed(prefix, "pygments")
+
+        old_version, old_module = json.loads(
+            run_in_prefix(
+                python,
+                "-I",
+                "-c",
+                "import conda, json\n"
+                "print(json.dumps([conda.__version__, conda.__file__]))",
+            )
+        )
+        assert old_version == "26.7.2"
+        assert Path(old_module).is_relative_to(prefix)
+        old_launcher = Path(old_module).parent / "shell" / "cli-64.exe"
+        assert old_launcher.is_file()
+
+        # The old process copies its launcher after replacing conda's package files.
+        run_in_prefix(
+            python,
+            "-I",
+            "-m",
+            "conda",
+            "install",
+            f"--prefix={prefix}",
+            "--yes",
+            str(converted_packages[0]),
+            pygments_package_url,
+        )
+        assert package_is_installed(prefix, "conda").fn == converted_packages[0].name
+        assert package_is_installed(prefix, "pygments").subdir == "noarch"
+        assert old_launcher.is_file()
+        output = run_in_prefix(prefix / BIN_DIRECTORY / "pygmentize.exe", "--help")
+        assert "usage: pygmentize" in output
+        output = run_in_prefix(python, "-I", "-m", "conda", "--version")
+        assert (
+            output.strip() == f"conda {package_is_installed(prefix, 'conda').version}"
+        )
+
+
 def test_dont_remove_conda_3(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -2413,6 +2518,9 @@ def test_dont_remove_conda_3(
         pkgs.append(f"conda-{context.solver}-solver")
     else:
         pytest.skip("This test can only be run with known solvers")
+    if on_win:
+        # The converted checkout needs conda's non-PyPI Windows dependency.
+        pkgs.append("conda-launchers")
 
     with tmp_env(*pkgs) as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))

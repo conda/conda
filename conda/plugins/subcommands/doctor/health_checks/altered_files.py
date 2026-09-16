@@ -41,7 +41,7 @@ def find_altered_packages(prefix: str | Path) -> dict[str, list[str]]:
                 file,
                 exc,
             )
-            continue
+            raise
 
         try:
             paths_data = metadata["paths_data"]
@@ -109,8 +109,34 @@ def fix_altered_files(prefix: str, args: Namespace, confirm: ConfirmCallback) ->
     print()
     confirm("Reinstall these packages to restore original files?")
 
-    specs = list(altered.keys())
-    return reinstall_packages(args, specs, force_reinstall=True)
+    specs = []
+    skipped = []
+    for stem in altered:
+        try:
+            metadata = json.loads(
+                (Path(prefix) / "conda-meta" / f"{stem}.json").read_text()
+            )
+            specs.append(
+                f"{metadata['name']}={metadata['version']}={metadata['build']}"
+            )
+        except KeyError as exc:
+            logger.error(
+                "Could not build an installable MatchSpec from conda-meta record; "
+                "missing field %s. Skipping reinstall for %s.",
+                exc,
+                stem,
+            )
+            print(
+                f"Reinstalling package {stem} failed due to missing fields in conda-meta record."
+            )
+            skipped.append(stem)
+
+    if specs:
+        result = reinstall_packages(args, specs, force_reinstall=True)
+        if skipped:
+            return 1
+        return result
+    return 1
 
 
 @hookimpl

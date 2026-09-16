@@ -51,7 +51,7 @@ jobs:
       - name: Create fork
         # no-op if the repository is already forked
         run: |
-          FORK="$(gh repo fork --clone=false --default-branch-only 2>&1 | awk '{print $1}' | sed 's|^https://github.com/||')"
+          FORK="$(gh api repos/{owner}/{repo}/forks --method POST -f default_branch_only=true --jq .full_name)"
           echo "FORK=${FORK}" >> "$GITHUB_ENV"
         env:
           GH_TOKEN: ${{ secrets.SYNC_TOKEN }}

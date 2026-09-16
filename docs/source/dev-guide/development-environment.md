@@ -210,14 +210,14 @@ If you prefer to set up your development environment manually instead of using t
    ```{tab-item} Bash (macOS, Linux)
    ```bash
    # Install dependencies
-   $ ./devenv/bin/conda install -y -p ./devenv --override-channels -c conda-forge --file ./tests/requirements.txt --file ./tests/requirements-ci.txt python=3.13
+   $ ./devenv/bin/conda install -y -p ./devenv --override-channels -c conda-forge --file ./tests/requirements.txt --file ./tests/requirements-ci.txt python=3.14
    ```
 
 
    ```{tab-item} PowerShell (Windows)
    ```powershell
    # Install dependencies
-   > .\devenv\Scripts\conda.exe install -y -p .\devenv --override-channels -c conda-forge --file .\tests\requirements.txt --file .\tests\requirements-ci.txt python=3.13
+   > .\devenv\Scripts\conda.exe install -y -p .\devenv --override-channels -c conda-forge --file .\tests\requirements.txt --file .\tests\requirements-ci.txt python=3.14
    ```
 
    ````
@@ -431,6 +431,9 @@ $ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
 
 If you are not measuring code coverage, `pytest` can be run without the `--cov`
 option. The `docker compose` tests pass `--cov`.
+
+See {doc}`writing-tests/benchmarks` for running and adding performance benchmarks,
+exporting measurements, and reviewing Bencher results.
 
 Note: Some integration tests require you build a package with conda-build beforehand.
 This is taking care of if you run `docker compose run integration-tests`, but you need

@@ -31,7 +31,7 @@ from . import support_file
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pytest import MonkeyPatch
+    from pytest import CaptureFixture, MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
 
@@ -78,13 +78,32 @@ def test_with_pip():
 
 
 @pytest.mark.timeout(20)
-def test_add_pip():
+def test_add_pip(
+    capsys: CaptureFixture,
+):
+    """
+    Test that pip is added to the list of conda deps if not supplied
+    in the `dependencies` list. And ensure that the user is warned.
+    """
     e = from_file(support_file("add-pip.yml"))
     expected = {
         "conda": ["pip", "car"],
         "pip": ["foo", "baz"],
     }
+    _, stderr = capsys.readouterr()
     assert e.dependencies == expected
+    assert "Warning: you have pip-installed dependencies" in stderr
+
+
+def test_invalid_section_warning(
+    capsys: CaptureFixture,
+):
+    """
+    Test that environment validation warnings are output to stdout
+    """
+    from_file(support_file("invalid_keys.yml"))
+    _, stderr = capsys.readouterr()
+    assert "EnvironmentSectionNotValid" in stderr
 
 
 @pytest.mark.integration

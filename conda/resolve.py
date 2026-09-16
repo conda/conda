@@ -1243,8 +1243,8 @@ class Resolve:
         #       package tries to import it to create/remove a shortcut
         # 3. On windows, python noarch packages need an implicit dependency on conda added, if
         #    conda is in the list of packages for the environment.  Python noarch packages
-        #    that have entry points use conda's own conda.exe python entry point binary. If conda
-        #    is going to be updated during an operation, the unlink / link order matters.
+        #    with entry points used to use conda's own conda.exe python entry point binary.
+        #    If conda is going to be updated during an operation, the unlink / link order matters.
         #    See issue #6057.
 
         if on_win and "conda" in digraph:
@@ -1493,7 +1493,7 @@ class Resolve:
                     else:
                         not_found_packages.add(s)
             if not_found_packages:
-                raise ResolvePackageNotFound(not_found_packages)
+                raise ResolvePackageNotFound([(spec,) for spec in not_found_packages])
             elif wrong_version_packages:
                 self.find_conflicts(wrong_version_packages, specs_to_add, history_specs)
             if should_retry_solve:
