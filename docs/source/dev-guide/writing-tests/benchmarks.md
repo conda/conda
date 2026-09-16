@@ -66,26 +66,54 @@ result so an unintended no-op does not appear as a performance improvement.
 
 The `linux-benchmarks` job in the
 [Tests workflow](https://github.com/conda/conda/actions/workflows/tests.yml) runs on
-Ubuntu 22.04 with Python 3.14 when the workflow detects code changes. Its
-`benchmark-results` artifact contains the JSON measurements and is retained for
-seven days. A successful overall test run can have no benchmark results if that
-job was skipped.
+Ubuntu 24.04 with Python 3.14 when the workflow detects code changes. Its
+`benchmark-results-v3` artifact contains the JSON measurements, workflow event,
+dependency list, and runner diagnostics, retained for seven days. A successful
+test run can have no benchmark results if that job was skipped.
 
 The separate
 [Track Benchmarks workflow](https://github.com/conda/conda/actions/workflows/benchmarks.yml)
-uploads available results to the [Bencher project](https://bencher.dev/perf/conda-tdj8rt90).
-Select `main` for the main branch or `pr-<number>` for a pull request. PR results
-use the measured head commit and compare against the base branch's history.
+uses the shared Bencher reporting action in
+[`conda/actions`](https://github.com/conda/actions) to upload available results to the
+[Bencher project](https://bencher.dev/perf/conda-tdj8rt90).
+Select `main` for historical results, or the relevant feature or release branch.
 
-Each testbed identifies the producer's operating system, architecture, Python
-major/minor version, and CPU model. Compare results within the same testbed.
-A new testbed needs its own base-branch measurements before PR regressions can be
-detected. Changing the Python version or CPU model starts a separate history.
+PR measurements use the exact base and head commits on the same runner with
+`PYTHONHASHSEED=0`, the head revision's resolved dependencies, benchmark tests,
+and fixtures. Running both revisions roughly doubles the benchmark execution time.
+Both results must contain the same benchmark names. If the base revision
+cannot run the complete head benchmark suite, the head results remain available
+and the reporting workflow posts a neutral check explaining why comparison is
+unavailable.
 
-Bencher records mean latency using the `python_pytest` adapter. The latency
-threshold uses a t-test with an upper threshold of `0.99` and at most 64 historical
-measurements. Detected regressions fail the reporting workflow and generate PR
-feedback. Inspect the affected benchmark, its testbed, and its history before
-changing a threshold. See Bencher's
-[threshold documentation](https://bencher.dev/docs/explanation/thresholds/) for
-the statistical model.
+The reporting workflow creates a separate baseline for each PR workflow run and
+attempt. Select `pr-<number>` for its comparison. This baseline never replaces the
+`main` history. PR measurements are informational while the suite is stabilized.
+Single-round and cache-sensitive cases, together with shared-runner noise, can
+produce substantial timing changes without changes to the measured code.
+
+The reporter disables alerts for every paired measurement and posts a neutral
+`Benchmark measurements (informational)` check with links to the producer run and
+Bencher. A neutral check does not establish that performance is unchanged. The
+original JSON artifacts retain every measurement and benchmark name. Historical
+branch alerts remain active.
+
+Non-PR runs preserve the branch's history and use a t-test at `0.99`, with at least
+10 and at most 64 historical measurements. The `0.99` value is a statistical
+prediction level, not a 1% slowdown allowance. A new benchmark or testbed may have
+too little history to produce an alert. Missing comparison warnings remain visible.
+
+Testbeds include the producer's Ubuntu version, architecture, Python major/minor
+version, and CPU model. Ubuntu 24.04 measurements start separate histories from
+Ubuntu 22.04. Runner image versions are recorded in `runner_metadata.json` and
+`bencher noise` diagnostics in `noise.txt`, alongside the raw results. Noise
+measurements are diagnostic only and do not change timings or alert thresholds.
+
+The same CPU model can still have different contention, cache state, or frequency.
+Dependencies can change between workflow runs even though each base/head pair
+shares an environment. Inspect the measurements and runner diagnostics before
+changing a threshold. Give benchmarks new names when their timed work or fixtures
+change so historical comparisons do not combine different workloads.
+
+The versioned artifact name prevents the older reporting workflow from treating
+Ubuntu 24.04 measurements as Ubuntu 22.04 results while this change is in review.
