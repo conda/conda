@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Preserve existing configuration on write failures and reject detected intervening edits. (#16694)
+* Preserve macOS ACLs during atomic configuration writes, preserve existing configuration on failures, and reject detected intervening edits. (#16694)
 
 ### Deprecations
 
