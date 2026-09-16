@@ -35,7 +35,6 @@ from ..gateways.repodata import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
-from .channel_relations import resolve_channel_relations
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -175,12 +174,14 @@ class SubdirData(metaclass=SubdirDataType):
         Returns:
             A tuple of `PackageRecord` objects.
         """
+        from .index import resolve_channels
+
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
             channels = context.channels
         subdirs = tuple(subdirs) if subdirs is not None else None
-        channels = resolve_channel_relations(
+        channels = resolve_channels(
             channels, subdirs, repodata_fn=repodata_fn, use_shards=False
         )
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
@@ -789,10 +790,11 @@ def _search_package_via_shards(
     from ..base.context import context
     from ..models.channel import Channel, all_channel_urls
     from ..models.records import PackageRecord
+    from .index import resolve_channels
 
     if channel_urls is None:
         channel_urls = context.channels
-    channel_urls = resolve_channel_relations(channel_urls, subdirs, use_shards=True)
+    channel_urls = resolve_channels(channel_urls, subdirs, use_shards=True)
     channel_urls = all_channel_urls(channel_urls, subdirs=subdirs)
     channels = {
         channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls

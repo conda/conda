@@ -9,17 +9,19 @@ from conda._private.zstd import compress
 from conda.base.context import Context, context, reset_context
 from conda.common.configuration import ValidationError
 from conda.common.serialize import json
+from conda.core import index as channel_index
 from conda.core.index import Index
 from conda.core.solve import Solver
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import ChannelError, DryRunExit
 from conda.models.channel import Channel, MultiChannel
 
-channel_relations = pytest.importorskip(
-    "conda.core.channel_relations",
-    reason="Channel relations are unavailable in the benchmark comparison baseline",
-)
-resolve_channel_relations = channel_relations.resolve_channel_relations
+if not hasattr(channel_index, "resolve_channels"):
+    pytest.skip(
+        "Channel resolution is unavailable in the benchmark comparison baseline",
+        allow_module_level=True,
+    )
+resolve_channels = channel_index.resolve_channels
 
 
 @pytest.fixture
@@ -46,18 +48,22 @@ def test_transitive_bases(relations):
     metadata, read = relations
     metadata["alpha", "linux-64"] = {"base": "../beta", "future": "ignored"}
     metadata["beta", "noarch"] = {"base": "../gamma"}
-    assert names(
-        resolve_channel_relations(["https://example.org/alpha"], ["linux-64"])
-    ) == ["gamma", "beta", "alpha"]
+    assert names(resolve_channels(["https://example.org/alpha"], ["linux-64"])) == [
+        "gamma",
+        "beta",
+        "alpha",
+    ]
     assert read.call_count == 6
 
 
 def test_base_and_overrides(relations):
     metadata, _ = relations
     metadata["alpha", "noarch"] = {"base": "../beta", "overrides": "../gamma"}
-    assert names(
-        resolve_channel_relations(["https://example.org/alpha"], ["noarch"])
-    ) == ["beta", "alpha", "gamma"]
+    assert names(resolve_channels(["https://example.org/alpha"], ["noarch"])) == [
+        "beta",
+        "alpha",
+        "gamma",
+    ]
 
 
 @pytest.mark.parametrize("heads", [("alpha", "beta"), ("beta", "alpha")])
@@ -65,9 +71,7 @@ def test_explicit_order(relations, heads):
     metadata, _ = relations
     metadata["alpha", "noarch"] = {"base": "../beta"}
     assert names(
-        resolve_channel_relations(
-            [f"https://example.org/{name}" for name in heads], ["noarch"]
-        )
+        resolve_channels([f"https://example.org/{name}" for name in heads], ["noarch"])
     ) == list(heads)
 
 
@@ -75,7 +79,7 @@ def test_nonadjacent_explicit_order(relations):
     metadata, _ = relations
     metadata["alpha", "noarch"] = {"base": "../gamma"}
     assert names(
-        resolve_channel_relations(
+        resolve_channels(
             [f"https://example.org/{name}" for name in ("alpha", "beta", "gamma")],
             ["noarch"],
         )
@@ -99,14 +103,14 @@ def test_cycles(relations, relations_by_name):
     if "gamma" in relations_by_name:
         heads.append("https://example.org/beta")
     with pytest.raises(ChannelError, match="cycle"):
-        resolve_channel_relations(heads, ["noarch"])
+        resolve_channels(heads, ["noarch"])
 
 
 def test_same_base_and_overrides(relations):
     metadata, _ = relations
     metadata["alpha", "noarch"] = {"base": "../beta", "overrides": "../nested/../beta"}
     with pytest.raises(ChannelError, match="same base and overrides"):
-        resolve_channel_relations(["https://example.org/alpha"], ["noarch"])
+        resolve_channels(["https://example.org/alpha"], ["noarch"])
 
 
 def test_union_subdirs_and_deduplicate(relations):
@@ -114,18 +118,20 @@ def test_union_subdirs_and_deduplicate(relations):
     metadata["alpha", "linux-64"] = {"base": "../beta"}
     metadata["alpha", "noarch"] = {"overrides": "../gamma"}
     metadata["gamma", "noarch"] = {"base": "../beta"}
-    assert names(
-        resolve_channel_relations(["https://example.org/alpha"], ["linux-64"])
-    ) == ["beta", "alpha", "gamma"]
+    assert names(resolve_channels(["https://example.org/alpha"], ["linux-64"])) == [
+        "beta",
+        "alpha",
+        "gamma",
+    ]
     assert read.call_count == 6
 
 
 def test_only_requested_subdirs(relations):
     metadata, read = relations
     metadata["alpha", "win-64"] = {"base": "../unused"}
-    assert names(
-        resolve_channel_relations(["https://example.org/alpha"], ["linux-64"])
-    ) == ["alpha"]
+    assert names(resolve_channels(["https://example.org/alpha"], ["linux-64"])) == [
+        "alpha"
+    ]
     assert {call.args[0].channel.subdir for call in read.call_args_list} == {
         "linux-64",
         "noarch",
@@ -134,7 +140,7 @@ def test_only_requested_subdirs(relations):
 
 def test_explicit_platform_without_subdirs(relations):
     _, read = relations
-    resolve_channel_relations(["https://example.org/alpha/win-64"])
+    resolve_channels(["https://example.org/alpha/win-64"])
     assert {call.args[0].channel.subdir for call in read.call_args_list} == {
         "win-64",
         "noarch",
@@ -146,7 +152,7 @@ def test_multichannels(relations):
         "example",
         (Channel("https://example.org/alpha"), Channel("https://example.org/beta")),
     )
-    assert names(resolve_channel_relations([heads], ["noarch"])) == ["alpha", "beta"]
+    assert names(resolve_channels([heads], ["noarch"])) == ["alpha", "beta"]
 
 
 def test_depth_limit(relations):
@@ -154,24 +160,22 @@ def test_depth_limit(relations):
     metadata["alpha", "noarch"] = {"base": "../beta"}
     metadata["beta", "noarch"] = {"base": "../gamma"}
     with pytest.raises(ChannelError, match="depth exceeds 1"):
-        resolve_channel_relations(
-            ["https://example.org/alpha"], ["noarch"], max_depth=1
-        )
+        resolve_channels(["https://example.org/alpha"], ["noarch"], max_depth=1)
     assert read.call_count == 2
 
 
 def test_disabled_does_not_fetch(relations):
     _, read = relations
-    assert names(
-        resolve_channel_relations(["https://example.org/alpha"], max_depth=0)
-    ) == ["alpha"]
+    assert names(resolve_channels(["https://example.org/alpha"], max_depth=0)) == [
+        "alpha"
+    ]
     read.assert_not_called()
 
 
 @pytest.mark.parametrize("value", [-1, -10])
 def test_negative_depth(relations, value):
     with pytest.raises(ChannelError, match="non-negative"):
-        resolve_channel_relations([], max_depth=value)
+        resolve_channels([], max_depth=value)
 
 
 @pytest.mark.parametrize(
@@ -193,7 +197,7 @@ def test_invalid_reference(relations, reference):
     metadata, _ = relations
     metadata["alpha", "noarch"] = {"base": reference}
     with pytest.raises(ChannelError):
-        resolve_channel_relations(["https://example.org/alpha"], ["noarch"])
+        resolve_channels(["https://example.org/alpha"], ["noarch"])
 
 
 @pytest.mark.parametrize("value", [None, [], "../alpha"])
@@ -201,7 +205,7 @@ def test_invalid_relations_object(relations, value):
     metadata, _ = relations
     metadata["alpha", "noarch"] = value
     with pytest.raises(ChannelError, match="must be a mapping"):
-        resolve_channel_relations(["https://example.org/alpha"], ["noarch"])
+        resolve_channels(["https://example.org/alpha"], ["noarch"])
 
 
 @pytest.mark.parametrize(
@@ -214,21 +218,19 @@ def test_invalid_relations_object(relations, value):
     ],
 )
 def test_relative_paths(url, reference, expected):
-    assert (
-        channel_relations._related_channel(Channel(url), reference).base_url == expected
-    )
+    assert channel_index._related_channel(Channel(url), reference).base_url == expected
 
 
 def test_token_is_not_forwarded():
     source = Channel("https://example.org/t/secret/alpha")
-    target = channel_relations._related_channel(source, "../beta")
+    target = channel_index._related_channel(source, "../beta")
     assert target.token is None
     assert target.base_url == "https://example.org/beta"
 
 
 def test_basic_credentials():
     source = Channel("https://user:password@example.org/alpha")
-    target = channel_relations._related_channel(source, "../beta")
+    target = channel_index._related_channel(source, "../beta")
     assert target.auth == "user:password"
 
 
@@ -237,7 +239,7 @@ def test_policy_applies_before_fetching_related_channel(relations, mocker):
     metadata["alpha", "noarch"] = {"base": "../beta"}
     mocker.patch.object(context, "denylist_channels", ("https://example.org/beta",))
     with pytest.raises(ChannelError):
-        resolve_channel_relations(["https://example.org/alpha"], ["noarch"])
+        resolve_channels(["https://example.org/alpha"], ["noarch"])
     assert read.call_count == 1
 
 
@@ -269,7 +271,7 @@ def test_local_repodata_discovery_and_query(tmp_path, mocker):
             json.dumps({"info": {"subdir": "noarch", **info}, "packages": packages})
         )
     head = (tmp_path / "alpha").as_uri()
-    result = resolve_channel_relations([head], ["noarch"], use_shards=False)
+    result = resolve_channels([head], ["noarch"], use_shards=False)
     assert [channel.base_url for channel in result] == [
         (tmp_path / "beta").as_uri(),
         head,
@@ -290,7 +292,7 @@ def test_related_channels_stay_adjacent(relations):
     metadata, _ = relations
     metadata["alpha", "noarch"] = {"overrides": "../gamma"}
     assert names(
-        resolve_channel_relations(
+        resolve_channels(
             ["https://example.org/alpha", "https://example.org/beta"], ["noarch"]
         )
     ) == ["alpha", "gamma", "beta"]
@@ -299,7 +301,7 @@ def test_related_channels_stay_adjacent(relations):
 def test_many_explicit_heads_do_not_exceed_python_recursion_limit(relations):
     heads = [f"https://example.org/channel-{i}" for i in range(1100)]
     assert [
-        channel.base_url for channel in resolve_channel_relations(heads, ["noarch"])
+        channel.base_url for channel in resolve_channels(heads, ["noarch"])
     ] == heads
 
 
@@ -390,7 +392,7 @@ def test_local_shard_relations(tmp_path):
             compress(msgpack.dumps(index))
         )
     head = (tmp_path / "alpha").as_uri()
-    resolved = resolve_channel_relations([head], ["noarch"], use_shards=True)
+    resolved = resolve_channels([head], ["noarch"], use_shards=True)
     assert [channel.base_url for channel in resolved] == [
         (tmp_path / "beta").as_uri(),
         head,
