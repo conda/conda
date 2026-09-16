@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -723,3 +724,162 @@ def test_config_file_context_manager_exception(tmp_path: Path) -> None:
 
     # Verify file was NOT written (because exception occurred)
     assert not config_path.exists()
+
+
+def test_config_write_failure_preserves_file(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    mocker.patch("os.fsync", side_effect=OSError("simulated write failure"))
+
+    with pytest.raises(conda.exceptions.CondaError, match="simulated write failure"):
+        config.write()
+
+    assert path.read_text() == original
+    assert list(tmp_path.iterdir()) == [path]
+
+
+def test_config_replace_failure_preserves_file(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    mocker.patch("os.replace", side_effect=OSError("simulated replacement failure"))
+
+    with pytest.raises(
+        conda.exceptions.CondaError, match="simulated replacement failure"
+    ):
+        config.write()
+
+    assert path.read_text() == original
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.parametrize("initial", [None, "changeps1: true\n"])
+def test_config_write_rejects_changed_source(
+    tmp_path: Path, initial: str | None
+) -> None:
+    path = tmp_path / ".condarc"
+    if initial is not None:
+        path.write_text(initial)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    changed = "changeps1: true\nalways_yes: false\n"
+    path.write_text(changed)
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed after reading"):
+        config.write()
+
+    assert path.read_text() == changed
+    assert list(tmp_path.iterdir()) == [path]
+
+
+def test_config_write_rejects_change_during_write(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    changed = "changeps1: true\nalways_yes: false\n"
+    mocker.patch("os.fsync", side_effect=lambda fd: path.write_text(changed))
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed while writing"):
+        config.write()
+
+    assert path.read_text() == changed
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX file permissions")
+def test_config_write_preserves_permissions(tmp_path: Path) -> None:
+    from stat import S_IMODE
+
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    path.chmod(0o640)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    config.write()
+
+    assert S_IMODE(path.stat().st_mode) == 0o640
+    assert path.read_text() == "changeps1: false\n"
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or os.geteuid() == 0, reason="POSIX unprivileged permissions"
+)
+def test_config_write_respects_read_only_file(tmp_path: Path) -> None:
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    path.chmod(0o400)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+
+    with pytest.raises(
+        conda.exceptions.CondaError, match="Cannot write to condarc file"
+    ):
+        config.write()
+
+    assert path.read_text() == original
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlink privilege required")
+def test_config_write_preserves_symlink(tmp_path: Path) -> None:
+    target = tmp_path / "target"
+    target.write_text("changeps1: true\n")
+    path = tmp_path / ".condarc"
+    path.symlink_to(target.name)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    config.write()
+
+    assert path.is_symlink()
+    assert target.read_text() == "changeps1: false\n"
+
+
+def test_config_write_refreshes_read_state(tmp_path: Path) -> None:
+    path = tmp_path / ".condarc"
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    config.write()
+    config.set_key("always_yes", False)
+    config.write()
+
+    assert path.read_text() == "changeps1: false\nalways_yes: false\n"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX file permissions")
+def test_config_new_file_honors_umask(tmp_path: Path) -> None:
+    from stat import S_IMODE
+
+    reference = tmp_path / "reference"
+    reference.write_text("")
+    path = tmp_path / ".condarc"
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    config.write()
+
+    assert S_IMODE(path.stat().st_mode) == S_IMODE(reference.stat().st_mode)
+
+
+def test_config_write_other_path(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    source.write_text("changeps1: true\n")
+    path = tmp_path / ".condarc"
+    config = ConfigurationFile(path)
+    config.read(source)
+    config.set_key("always_yes", False)
+    config.write()
+
+    assert path.read_text() == "changeps1: true\nalways_yes: false\n"
+    assert source.read_text() == "changeps1: true\n"
