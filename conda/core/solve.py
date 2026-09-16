@@ -381,7 +381,7 @@ class BaseSolver:
 
         spec_names = {prec.name for prec in link_precs}
         user_configured_add_pip_as_dep = any(
-            "add_pip_as_python_dependency" in v for v in context.collect_all().values()
+            "add_pip_as_python_dependency" in v for v in context.raw_data.values()
         )
         if (
             ("python" in spec_names)
