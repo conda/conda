@@ -18,6 +18,7 @@ from ..exceptions import (
 from ..models.channel import Channel
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
+from .channel_relations import resolve_channel_relations
 from .package_cache_data import PackageCacheData
 from .prefix_data import PrefixData
 from .subdir_data import SubdirData
@@ -121,20 +122,8 @@ class Index(UserDict):
             subdirs = (platform, "noarch") if platform is not None else context.subdirs
         self._subdirs = subdirs
         self._repodata_fn = repodata_fn
-        self.channels: dict[str | Channel, list[SubdirData]] = {}
-        expanded_channels = {}
-        for channel in self._channels:
-            self.channels[channel] = []
-            for url in Channel(channel).urls(True, subdirs):
-                url_as_channel = Channel(url)
-                self.channels[channel].append(
-                    SubdirData(url_as_channel, repodata_fn=repodata_fn)
-                )
-                expanded_channels.setdefault(url_as_channel, None)
-        self.expanded_channels: tuple[Channel, ...] = tuple(expanded_channels)
-        # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
-        LAST_CHANNEL_URLS.clear()
-        LAST_CHANNEL_URLS.extend(self.expanded_channels)
+        self._channel_relations_loaded = False
+        self._set_channels(self._channels)
         if prefix is None:
             self.prefix_data = None
         elif isinstance(prefix, PrefixData):
@@ -146,6 +135,45 @@ class Index(UserDict):
         from .exclude_newer import ExcludeNewerPolicy
 
         self.exclude_newer_policy = exclude_newer_policy or ExcludeNewerPolicy()
+
+    def _set_channels(self, channels: Iterable[str | Channel]) -> None:
+        self.channels: dict[str | Channel, list[SubdirData]] = {}
+        expanded_channels = {}
+        head_labels = {
+            Channel(value).base_url: value for value in reversed(self._channels)
+        }
+        for channel in channels:
+            channel_key = head_labels.get(Channel(channel).base_url, str(channel))
+            self.channels[channel_key] = []
+            for url in Channel(channel).urls(True, self._subdirs):
+                url_as_channel = Channel(url)
+                self.channels[channel_key].append(
+                    SubdirData(url_as_channel, repodata_fn=self._repodata_fn)
+                )
+                expanded_channels.setdefault(url_as_channel, None)
+        self.expanded_channels: tuple[Channel, ...] = tuple(expanded_channels)
+        # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
+        LAST_CHANNEL_URLS.clear()
+        LAST_CHANNEL_URLS.extend(self.expanded_channels)
+
+    def _load_channel_relations(self) -> None:
+        if not self._channel_relations_loaded:
+            channels = resolve_channel_relations(
+                self._channels,
+                self._subdirs,
+                repodata_fn=self._repodata_fn,
+                use_shards=False,
+            )
+            head_urls = tuple(
+                dict.fromkeys(
+                    channel.base_url
+                    for head in self._channels
+                    for channel in Channel(head).channels
+                )
+            )
+            if tuple(channel.base_url for channel in channels) != head_urls:
+                self._set_channels(channels)
+            self._channel_relations_loaded = True
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord, ...]:
@@ -327,6 +355,7 @@ class Index(UserDict):
                 self._data[pcrec] = pcrec
 
     def _realize(self) -> None:
+        self._load_channel_relations()
         self._data = {}
         for subdir_datas in self.channels.values():
             for subdir_data in subdir_datas:
@@ -339,6 +368,7 @@ class Index(UserDict):
             self._data.update(self.system_packages)
 
     def _retrieve_from_channels(self, key: PackageRecord) -> PackageRecord | None:
+        self._load_channel_relations()
         for subdir_datas in reversed(self.channels.values()):
             for subdir_data in subdir_datas:
                 if key.subdir != subdir_data.channel.subdir:
@@ -356,6 +386,7 @@ class Index(UserDict):
         return None
 
     def _retrieve_all_from_channels(self, key: PackageRecord) -> list[PackageRecord]:
+        self._load_channel_relations()
         precs = []
         for subdir_datas in reversed(self.channels.values()):
             for subdir_data in subdir_datas:

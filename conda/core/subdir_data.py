@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pickle
 from collections import UserList, defaultdict
-from functools import partial
+from functools import cached_property, partial
 from itertools import chain
 from logging import getLogger
 from os.path import exists, getmtime, isfile, join, splitext
@@ -15,7 +15,7 @@ from time import time
 from typing import TYPE_CHECKING
 
 from ..auxlib.ish import dals
-from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
+from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN, REPODATA_SHARDS_FN
 from ..base.context import context
 from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import url_to_path
@@ -35,16 +35,18 @@ from ..gateways.repodata import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+from .channel_relations import resolve_channel_relations
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
     from typing import Any, Self
 
+    from .._private.shards.shards import Shards
     from ..gateways.repodata import RepodataCache, RepoInterface
 
 log = getLogger(__name__)
 
-REPODATA_PICKLE_VERSION = 30
+REPODATA_PICKLE_VERSION = 31
 MAX_REPODATA_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
@@ -74,7 +76,12 @@ class SubdirDataType(type):
             if cache_key[0] and cache_key[0].startswith("file://"):
                 channel_url = channel.url()
                 if channel_url:
-                    file_path = url_to_path(channel_url + "/" + repodata_fn)
+                    filename = (
+                        REPODATA_SHARDS_FN
+                        if cache_entry.__dict__.get("shards_index") is not None
+                        else repodata_fn
+                    )
+                    file_path = url_to_path(channel_url + "/" + filename)
                     if exists(file_path) and cache_entry._mtime >= getmtime(file_path):
                         return cache_entry
             else:
@@ -178,6 +185,10 @@ class SubdirData(metaclass=SubdirDataType):
         create_cache_dir()
         if channels is None:
             channels = context.channels
+        subdirs = tuple(subdirs) if subdirs is not None else None
+        channels = resolve_channel_relations(
+            channels, subdirs, repodata_fn=repodata_fn, use_shards=False
+        )
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
 
         def subdir_query(url: str) -> tuple[PackageRecord, ...]:
@@ -278,6 +289,19 @@ class SubdirData(metaclass=SubdirDataType):
         self._loaded = False
         self._key_mgr = None
 
+    @cached_property
+    def shards_index(self) -> Shards | None:
+        """The shard index, shared by relation discovery and package acquisition."""
+        from .._private.shards.shards import fetch_shards_index
+
+        return fetch_shards_index(self)
+
+    @property
+    def channel_relations(self) -> dict[str, str]:
+        """The channel relations declared by this subdir's repodata (CEP 42)."""
+        self.load()
+        return self._internal_state["channel_relations"]
+
     @property
     def _repo(self) -> RepoInterface:
         """
@@ -311,6 +335,7 @@ class SubdirData(metaclass=SubdirDataType):
         Update the instance with new information.
         """
         self._loaded = False
+        self.__dict__.pop("shards_index", None)
         self.load()
         return self
 
@@ -628,6 +653,7 @@ class SubdirData(metaclass=SubdirDataType):
 
         _internal_state = {
             "channel": self.channel,
+            "channel_relations": repodata.get("info", {}).get("channel_relations", {}),
             "url_w_subdir": self.url_w_subdir,
             "url_w_credentials": self.url_w_credentials,
             "base_url": base_url,
@@ -779,6 +805,7 @@ def _search_package_via_shards(
 
     if channel_urls is None:
         channel_urls = context.channels
+    channel_urls = resolve_channel_relations(channel_urls, subdirs, use_shards=True)
     channel_urls = all_channel_urls(channel_urls, subdirs=subdirs)
     channels = {
         channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
