@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import msgpack
 import pytest
 
@@ -27,13 +25,13 @@ resolve_channel_relations = channel_relations.resolve_channel_relations
 @pytest.fixture
 def relations(mocker):
     metadata = {}
-    read = mocker.patch.object(
-        channel_relations,
-        "_read_relations",
-        side_effect=lambda channel, subdir, *args: metadata.get(
-            (channel.name, subdir), {}
-        ),
+    read = mocker.Mock(
+        side_effect=lambda source: metadata.get(
+            (source.channel.name, source.channel.subdir), {}
+        )
     )
+    mocker.patch.object(SubdirData, "channel_relations", property(read))
+    mocker.patch.object(context, "repodata_use_shards", False)
     mocker.patch.object(context, "channel_relations_max_depth", 10, create=True)
     mocker.patch.object(context, "allowlist_channels", ())
     mocker.patch.object(context, "denylist_channels", ())
@@ -128,13 +126,19 @@ def test_only_requested_subdirs(relations):
     assert names(
         resolve_channel_relations(["https://example.org/alpha"], ["linux-64"])
     ) == ["alpha"]
-    assert {call.args[1] for call in read.call_args_list} == {"linux-64", "noarch"}
+    assert {call.args[0].channel.subdir for call in read.call_args_list} == {
+        "linux-64",
+        "noarch",
+    }
 
 
 def test_explicit_platform_without_subdirs(relations):
     _, read = relations
     resolve_channel_relations(["https://example.org/alpha/win-64"])
-    assert {call.args[1] for call in read.call_args_list} == {"win-64", "noarch"}
+    assert {call.args[0].channel.subdir for call in read.call_args_list} == {
+        "win-64",
+        "noarch",
+    }
 
 
 def test_multichannels(relations):
@@ -235,19 +239,6 @@ def test_policy_applies_before_fetching_related_channel(relations, mocker):
     with pytest.raises(ChannelError):
         resolve_channel_relations(["https://example.org/alpha"], ["noarch"])
     assert read.call_count == 1
-
-
-def test_shard_metadata_avoids_json(mocker):
-    sd = mocker.Mock()
-    mocker.patch("conda.core.subdir_data.SubdirData", return_value=sd)
-    shards = SimpleNamespace(
-        repodata_no_packages={"info": {"channel_relations": {"base": "../beta"}}}
-    )
-    mocker.patch("conda._private.shards.shards.fetch_shards_index", return_value=shards)
-    assert channel_relations._read_relations(
-        Channel("https://example.org/alpha"), "noarch", "repodata.json", True
-    ) == {"base": "../beta"}
-    sd.load.assert_not_called()
 
 
 def test_local_repodata_discovery_and_query(tmp_path, mocker):

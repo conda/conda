@@ -48,20 +48,6 @@ def _related_channel(channel: Channel, reference: object) -> Channel:
     return related
 
 
-def _read_relations(
-    channel: Channel, subdir: str, repodata_fn: str, use_shards: bool
-) -> object:
-    from .._private.shards.shards import fetch_shards_index
-    from .subdir_data import SubdirData
-
-    sd = SubdirData(
-        Channel(**{**channel.dump(), "platform": subdir}), repodata_fn=repodata_fn
-    )
-    if use_shards and (shards := fetch_shards_index(sd)) is not None:
-        return shards.repodata_no_packages.get("info", {}).get("channel_relations", {})
-    return sd.channel_relations
-
-
 def resolve_channel_relations(
     channels: Iterable[Channel | str],
     subdirs: Iterable[str] | None = None,
@@ -81,6 +67,9 @@ def resolve_channel_relations(
     Explicit ``subdirs`` override any platform in the input channels, matching
     :meth:`Channel.urls`. ``noarch`` is always included during discovery.
     """
+    from .._private.shards.shards import fetch_shards_index
+    from .subdir_data import SubdirData
+
     max_depth = context.channel_relations_max_depth if max_depth is None else max_depth
     if max_depth < 0:
         raise ChannelError("channel_relations_max_depth must be non-negative.")
@@ -114,7 +103,16 @@ def resolve_channel_relations(
         url, depth = pending.popleft()
         channel = nodes[url]
         for subdir in subdirs:
-            relations = _read_relations(channel, subdir, repodata_fn, use_shards)
+            source = SubdirData(
+                Channel(**{**channel.dump(), "platform": subdir}),
+                repodata_fn=repodata_fn,
+            )
+            if use_shards and (shards := fetch_shards_index(source)) is not None:
+                relations = shards.repodata_no_packages.get("info", {}).get(
+                    "channel_relations", {}
+                )
+            else:
+                relations = source.channel_relations
             if not isinstance(relations, Mapping):
                 raise ChannelError(f"Channel relations for {url} must be a mapping.")
             targets = {
