@@ -11,9 +11,12 @@ import pytest
 from conda.exceptions import CondaValueError
 from conda.plugins import package_extractors, solvers
 
+from .. import TEST_RECIPES_CHANNEL
+
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.plugins.manager import CondaPluginManager
@@ -151,20 +154,31 @@ def test_plugins_list_empty(
     assert not err
 
 
+@pytest.mark.parametrize("override", (None, False, True))
 def test_plugins_install_delegates_to_conda_install(
     plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
     mocker: MockerFixture,
+    override: bool | None,
 ):
     install_module = import_module("conda.plugins.subcommands.plugins.install")
     execute = mocker.patch.object(
         install_module.main_install, "execute", return_value=0
     )
 
-    out, err, code = conda_cli("plugins", "install", "conda-example-plugin")
+    options = ("-c", "first", "--channel", "second") if override is not None else ()
+    out, err, code = conda_cli(
+        "plugins",
+        "install",
+        *options,
+        *(("--override-channels",) if override else ()),
+        "conda-example-plugin",
+    )
 
     assert code == 0, f"conda plugins install failed ({code}): {err}"
     args, parser = execute.call_args.args
+    assert args.channel == (["first", "second"] if override is not None else None)
+    assert args.override_channels is bool(override)
     assert args.cmd == "install"
     assert args.packages == ["conda-example-plugin"]
     assert args.revision is None
@@ -316,14 +330,23 @@ def test_plugins_install_rejects_before_fetching_dependencies(
     assert not (tmp_pkgs_dir / "dependency-1.0-0").exists()
 
 
+@pytest.mark.parametrize("existing_condarc", (False, True))
 def test_plugins_install_dry_run_does_not_prefetch(
     plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
-    test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     tmp_pkgs_dir: Path,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    existing_condarc: bool,
 ):
     from conda.exceptions import DryRunExit
+
+    condarc = tmp_path / "condarc"
+    original = "channels: [configured]\nchannel_priority: strict\n"
+    if existing_condarc:
+        condarc.write_text(original)
+    monkeypatch.setenv("CONDARC", str(condarc))
 
     with tmp_env(shallow=True) as prefix:
         conda_cli(
@@ -331,7 +354,11 @@ def test_plugins_install_dry_run_does_not_prefetch(
             "install",
             f"--prefix={prefix}",
             "--dry-run",
+            "--offline",
             "--solver=classic",
+            "--override-channels",
+            "--channel",
+            TEST_RECIPES_CHANNEL,
             "dependent=1.0",
             raises=DryRunExit,
         )
@@ -340,6 +367,11 @@ def test_plugins_install_dry_run_does_not_prefetch(
     assert not (tmp_pkgs_dir / "dependent-1.0-0").exists()
     assert not (tmp_pkgs_dir / "dependency-1.0-0.conda").exists()
     assert not (tmp_pkgs_dir / "dependency-1.0-0").exists()
+
+    if existing_condarc:
+        assert condarc.read_text() == original
+    else:
+        assert not condarc.exists()
 
 
 def test_plugins_info(
