@@ -8,10 +8,11 @@ from threading import Lock
 from typing import TYPE_CHECKING
 
 import pytest
+from ruamel.yaml.error import YAMLError
+
 from conda import CondaError
 from conda.base.context import Context, reset_context
 from conda.common.constants import NULL
-from ruamel.yaml.error import YAMLError
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Add validated configuration reloads that retain invocation inputs and configurable pre-command ordering.
+* Add validated configuration reloads that retain invocation inputs and configurable pre-command ordering. (#16696)
 
 ### Bug fixes
 
