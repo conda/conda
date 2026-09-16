@@ -1363,6 +1363,7 @@ class Context(Configuration):
             "channels",
             "channel_alias",
             "channel_settings",
+            "channel_relations_max_depth",
             "default_channels",
             "override_channels_enabled",
             "allowlist_channels",

@@ -4336,8 +4336,10 @@ def test_prepare_reduces_provided_lazy_index_without_realizing(
     provided_index = Index(prepend=False)
     first_reduced_index = mocker.Mock(spec=ReducedIndex)
     second_reduced_index = mocker.Mock(spec=ReducedIndex)
-    first_reduced_index.expanded_channels = ()
-    second_reduced_index.expanded_channels = ()
+    first_reduced_index.expanded_channels = solver.channels
+    first_reduced_index._channel_relations_loaded = True
+    second_reduced_index.expanded_channels = solver.channels
+    second_reduced_index._channel_relations_loaded = True
     get_reduced_index = mocker.patch.object(
         Index,
         "get_reduced_index",

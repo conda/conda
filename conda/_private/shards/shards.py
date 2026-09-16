@@ -818,7 +818,7 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             for channel_url in url_to_channel
         }
         futures = {
-            executor.submit(getattr, sd, "shards_index"): channel_url
+            executor.submit(fetch_shards_index, sd): channel_url
             for channel_url, sd in subdir_data.items()
         }
         futures_non_sharded = {}

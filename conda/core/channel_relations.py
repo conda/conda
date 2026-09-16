@@ -51,12 +51,13 @@ def _related_channel(channel: Channel, reference: object) -> Channel:
 def _read_relations(
     channel: Channel, subdir: str, repodata_fn: str, use_shards: bool
 ) -> object:
+    from .._private.shards.shards import fetch_shards_index
     from .subdir_data import SubdirData
 
     sd = SubdirData(
         Channel(**{**channel.dump(), "platform": subdir}), repodata_fn=repodata_fn
     )
-    if use_shards and (shards := sd.shards_index) is not None:
+    if use_shards and (shards := fetch_shards_index(sd)) is not None:
         return shards.repodata_no_packages.get("info", {}).get("channel_relations", {})
     return sd.channel_relations
 

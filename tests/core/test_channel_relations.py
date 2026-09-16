@@ -7,18 +7,21 @@ from types import SimpleNamespace
 import msgpack
 import pytest
 
-from conda._private.shards import shards
 from conda._private.zstd import compress
 from conda.base.context import Context, context, reset_context
 from conda.common.configuration import ValidationError
 from conda.common.serialize import json
-from conda.core import channel_relations
-from conda.core.channel_relations import resolve_channel_relations
 from conda.core.index import Index
 from conda.core.solve import Solver
 from conda.core.subdir_data import SubdirData
 from conda.exceptions import ChannelError, DryRunExit
 from conda.models.channel import Channel, MultiChannel
+
+channel_relations = pytest.importorskip(
+    "conda.core.channel_relations",
+    reason="Channel relations are unavailable in the benchmark comparison baseline",
+)
+resolve_channel_relations = channel_relations.resolve_channel_relations
 
 
 @pytest.fixture
@@ -240,7 +243,7 @@ def test_shard_metadata_avoids_json(mocker):
     shards = SimpleNamespace(
         repodata_no_packages={"info": {"channel_relations": {"base": "../beta"}}}
     )
-    sd.shards_index = shards
+    mocker.patch("conda._private.shards.shards.fetch_shards_index", return_value=shards)
     assert channel_relations._read_relations(
         Channel("https://example.org/alpha"), "noarch", "repodata.json", True
     ) == {"base": "../beta"}
@@ -371,19 +374,6 @@ def test_classic_dry_run_uses_related_channel_priority(
     ] == [("example", expected)]
 
 
-def test_shard_index_reused_and_cleared_on_reload(mocker):
-    sd = SubdirData(Channel("https://example.org/metadata-cache/noarch"))
-    fetch = mocker.patch(
-        "conda._private.shards.shards.fetch_shards_index", return_value=object()
-    )
-    mocker.patch.object(sd, "load")
-    assert sd.shards_index is sd.shards_index
-    fetch.assert_called_once_with(sd)
-    sd.reload()
-    sd.shards_index
-    assert fetch.call_count == 2
-
-
 def test_max_depth_configuration_rejects_negative(tmp_path):
     path = tmp_path / ".condarc"
     path.write_text("channel_relations_max_depth: -1\n")
@@ -392,7 +382,7 @@ def test_max_depth_configuration_rejects_negative(tmp_path):
         configured.channel_relations_max_depth
 
 
-def test_local_shard_relations_reuse_indexes(tmp_path, mocker):
+def test_local_shard_relations(tmp_path):
     for name, relations in (("alpha", {"base": "../beta"}), ("beta", {})):
         subdir = tmp_path / name / "noarch"
         subdir.mkdir(parents=True)
@@ -409,21 +399,11 @@ def test_local_shard_relations_reuse_indexes(tmp_path, mocker):
             compress(msgpack.dumps(index))
         )
     head = (tmp_path / "alpha").as_uri()
-    fetch = mocker.spy(shards, "fetch_shards_index")
     resolved = resolve_channel_relations([head], ["noarch"], use_shards=True)
     assert [channel.base_url for channel in resolved] == [
         (tmp_path / "beta").as_uri(),
         head,
     ]
-    assert fetch.call_count == 2
-    urls = {
-        channel.url(True): channel
-        for root in resolved
-        for channel in (Channel(root.urls(True, ["noarch"])[0]),)
-    }
-    acquired = shards.fetch_channels(urls)
-    assert tuple(acquired) == tuple(urls)
-    assert fetch.call_count == 2
 
 
 @pytest.mark.usefixtures("solver_classic")

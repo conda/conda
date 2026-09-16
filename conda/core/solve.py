@@ -1394,6 +1394,7 @@ class Solver(BaseSolver):
                 channels=(
                     self._index.expanded_channels
                     if isinstance(self._index, Index)
+                    and self._index._channel_relations_loaded
                     else self.channels
                 ),
             )
