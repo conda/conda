@@ -723,3 +723,53 @@ def test_config_file_context_manager_exception(tmp_path: Path) -> None:
 
     # Verify file was NOT written (because exception occurred)
     assert not config_path.exists()
+
+
+@pytest.mark.parametrize(
+    "operation,item,expected",
+    [
+        ("remove", "beta", ("alpha  #!top", "gamma  #!bottom")),
+        ("append", "alpha", ("beta  # middle", "gamma  #!bottom", "alpha  #!top")),
+        ("prepend", "gamma", ("gamma  #!bottom", "alpha  #!top", "beta  # middle")),
+    ],
+)
+def test_sequence_edits_preserve_item_comments(
+    tmp_path: Path, operation: str, item: str, expected: tuple[str, ...]
+) -> None:
+    path = tmp_path / ".condarc"
+    path.write_text(
+        "channels:\n  - alpha  #!top\n  - beta  # middle\n  - gamma  #!bottom\n"
+    )
+    config = ConfigurationFile(path)
+
+    if operation == "remove":
+        config.remove_item("channels", item)
+    else:
+        config.add("channels", item, prepend=operation == "prepend")
+    config.write()
+
+    assert path.read_text() == "channels:\n" + "".join(
+        f"  - {entry}\n" for entry in expected
+    )
+
+
+def test_duplicate_add_preserves_sequence_anchor(tmp_path: Path) -> None:
+    path = tmp_path / ".condarc"
+    path.write_text(
+        "custom_multichannels:\n"
+        "  first: &shared\n"
+        "    - alpha  #!top\n"
+        "    - beta\n"
+        "  second: *shared\n"
+    )
+    config = ConfigurationFile(path)
+    config.add("custom_multichannels.first", "alpha")
+    config.write()
+
+    assert path.read_text() == (
+        "custom_multichannels:\n"
+        "  first: &shared\n"
+        "    - beta\n"
+        "    - alpha  #!top\n"
+        "  second: *shared\n"
+    )
