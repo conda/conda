@@ -800,6 +800,120 @@ def test_config_write_preserves_permissions(tmp_path: Path) -> None:
     assert path.read_text() == "changeps1: false\n"
 
 
+@pytest.mark.skipif(not Path("/usr/bin/sw_vers").exists(), reason="macOS file ACLs")
+def test_config_write_preserves_macos_acl(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    from subprocess import run
+
+    from conda.common._os.osx import copy_acl
+
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    run(
+        ["/bin/chmod", "+a", "user:nobody deny read", path],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    before = run(
+        ["/bin/ls", "-lde", path],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()[1:]
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    copy_calls = 0
+
+    def copy_and_check_mode(source_fd: int, destination_fd: int) -> None:
+        nonlocal copy_calls
+        copy_calls += 1
+        assert S_IMODE(os.fstat(destination_fd).st_mode) == 0
+        copy_acl(source_fd, destination_fd)
+
+    def check_candidate_acl(fd: int) -> None:
+        candidate = next(item for item in tmp_path.iterdir() if item != path)
+        staged = run(
+            ["/bin/ls", "-lde", candidate],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()[1:]
+        assert staged == before
+
+    mocker.patch("conda.common._os.osx.copy_acl", side_effect=copy_and_check_mode)
+    mocker.patch("os.fsync", side_effect=check_candidate_acl)
+    config.write()
+
+    after = run(
+        ["/bin/ls", "-lde", path],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()[1:]
+    assert copy_calls == 1
+    assert after == before
+
+
+@pytest.mark.skipif(not Path("/usr/bin/sw_vers").exists(), reason="macOS file ACLs")
+def test_config_write_macos_acl_failure_preserves_file(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    mocker.patch(
+        "conda.common._os.osx.copy_acl", side_effect=OSError("simulated ACL failure")
+    )
+
+    with pytest.raises(conda.exceptions.CondaError, match="simulated ACL failure"):
+        config.write()
+
+    assert path.read_text() == original
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.skipif(not Path("/usr/bin/sw_vers").exists(), reason="macOS file ACLs")
+@pytest.mark.parametrize("mutation", ("acl", "replacement"))
+def test_config_write_rejects_macos_security_change(
+    tmp_path: Path, mocker: MockerFixture, mutation: str
+) -> None:
+    from subprocess import run
+
+    from conda.common._os.osx import copy_acl
+
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+
+    def change_after_copy(source_fd: int, destination_fd: int) -> None:
+        copy_acl(source_fd, destination_fd)
+        if mutation == "acl":
+            run(
+                ["/bin/chmod", "+a", "user:nobody deny read", path],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        else:
+            replacement = tmp_path / "replacement"
+            replacement.write_text(original)
+            os.replace(replacement, path)
+
+    mocker.patch("conda.common._os.osx.copy_acl", side_effect=change_after_copy)
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed while writing"):
+        config.write()
+
+    assert path.read_text() == original
+    assert list(tmp_path.iterdir()) == [path]
+
+
 @pytest.mark.skipif(
     os.name == "nt" or os.geteuid() == 0, reason="POSIX unprivileged permissions"
 )
