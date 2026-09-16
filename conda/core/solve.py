@@ -22,6 +22,7 @@ from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
+from ..deprecations import deprecated
 from ..exceptions import (
     NoChannelsConfiguredError,
     PackagesNotFoundInChannelsError,
@@ -389,22 +390,25 @@ class BaseSolver:
             and "pip" not in {s.name for s in self.unmerged_specs_to_add}
             and (not user_configured_add_pip_as_dep)
         ):
-            print(
-                dedent(
+            deprecated.topic(
+                "26.9",
+                "26.10",
+                topic=(
+                       "\n\nSPEACIAL ANNOUNCEMENT:\n\nThe default value of add_pip_as_python_dependency "
+                       "will change from true to false.  Meaning conda will not add pip as a python depency by default."
+                       "\nadd_pip_as_python_dependency=true"
+                ),
+                addendum=dedent(
                     """
-                    ## SPECIAL BEHAVIOR CHANGE NOTICE ##
-
-                    ==> WARNING: conda is adding 'pip' because add_pip_as_python_dependency defaults to true. <==
-                    This default is scheduled to change to false in 26.10.0.
-
                     Next steps:
                       - Keep current behavior:  conda config --set add_pip_as_python_dependency true
                       - Install pip only when asked: include pip in your specs (e.g. python pip)
                       - Opt out early:          conda config --set add_pip_as_python_dependency false
                     """
                 ),
-                file=sys.stderr,
+                deprecation_type=FutureWarning,
             )
+
 
 
 class Solver(BaseSolver):
