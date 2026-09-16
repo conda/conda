@@ -15,7 +15,10 @@ from collections.abc import Sequence
 from functools import cached_property
 from logging import getLogger
 from pathlib import Path
+from shutil import copystat
+from stat import S_IMODE
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 
@@ -384,10 +387,6 @@ class ConfigurationFile:
         Raises:
             CondaError: If the file cannot be written.
         """
-        from shutil import copystat
-        from stat import S_IMODE
-        from uuid import uuid4
-
         from .. import CondaError
         from ..common.serialize import yaml
 

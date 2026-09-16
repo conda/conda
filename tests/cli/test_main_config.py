@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from stat import S_IMODE
 from typing import TYPE_CHECKING
 
 import pytest
@@ -800,8 +801,6 @@ def test_config_write_rejects_change_during_write(
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX file permissions")
 def test_config_write_preserves_permissions(tmp_path: Path) -> None:
-    from stat import S_IMODE
-
     path = tmp_path / ".condarc"
     path.write_text("changeps1: true\n")
     path.chmod(0o640)
@@ -860,8 +859,6 @@ def test_config_write_refreshes_read_state(tmp_path: Path) -> None:
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX file permissions")
 def test_config_new_file_honors_umask(tmp_path: Path) -> None:
-    from stat import S_IMODE
-
     reference = tmp_path / "reference"
     reference.write_text("")
     path = tmp_path / ".condarc"
