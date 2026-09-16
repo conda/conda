@@ -34,7 +34,9 @@ exports stable across these operations without ever passing `--dev`.
    - PowerShell: `"$Env:CONDA_EXE|$Env:_CE_M|$Env:_CE_CONDA"`
    - cmd.exe: `echo %CONDA_EXE%^|%_CE_M%^|%_CE_CONDA%`
    Record the values.
-5. Stack a second environment: `conda activate --stack qa-env-b`.
+5. Stack a second environment:
+    - POSIX/cmd.exe: `conda activate --stack qa-env-b`
+    - PowerShell: `conda activate -stack qa-env-b` (known workaround)
 6. Repeat step 4's check. Values must be unchanged from step 4.
 7. `conda deactivate` then `conda activate qa-env-a` again (reactivate path).
    Repeat step 4's check again. Values must still be unchanged.
