@@ -727,36 +727,24 @@ def test_config_file_context_manager_exception(tmp_path: Path) -> None:
     assert not config_path.exists()
 
 
+@pytest.mark.parametrize(
+    ("operation", "message"),
+    [
+        ("fsync", "simulated write failure"),
+        ("replace", "simulated replacement failure"),
+    ],
+)
 def test_config_write_failure_preserves_file(
-    tmp_path: Path, mocker: MockerFixture
+    tmp_path: Path, mocker: MockerFixture, operation: str, message: str
 ) -> None:
     path = tmp_path / ".condarc"
     original = "changeps1: true\n"
     path.write_text(original)
     config = ConfigurationFile(path)
     config.set_key("changeps1", False)
-    mocker.patch("os.fsync", side_effect=OSError("simulated write failure"))
+    mocker.patch(f"os.{operation}", side_effect=OSError(message))
 
-    with pytest.raises(conda.exceptions.CondaError, match="simulated write failure"):
-        config.write()
-
-    assert path.read_text() == original
-    assert list(tmp_path.iterdir()) == [path]
-
-
-def test_config_replace_failure_preserves_file(
-    tmp_path: Path, mocker: MockerFixture
-) -> None:
-    path = tmp_path / ".condarc"
-    original = "changeps1: true\n"
-    path.write_text(original)
-    config = ConfigurationFile(path)
-    config.set_key("changeps1", False)
-    mocker.patch("os.replace", side_effect=OSError("simulated replacement failure"))
-
-    with pytest.raises(
-        conda.exceptions.CondaError, match="simulated replacement failure"
-    ):
+    with pytest.raises(conda.exceptions.CondaError, match=message):
         config.write()
 
     assert path.read_text() == original
