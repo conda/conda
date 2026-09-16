@@ -44,7 +44,8 @@ exports stable across these operations without ever passing `--dev`.
    - cmd.exe: `set CONDA_DEV=`
    Open a new shell (or fully `conda deactivate` and reactivate), run
    `conda activate qa-env-a`, and repeat step 4's check once more.
-9. `conda remove -y -n qa-env-a --all` and `conda remove -y -n qa-env-b --all`.
+9. `conda deactivate`, then `conda remove -y -n qa-env-a --all` and
+   `conda remove -y -n qa-env-b --all`.
 
 ### Pass criteria
 - Steps 4, 6, and 7: with `CONDA_DEV=1` set and `--dev` never passed,
@@ -53,8 +54,8 @@ exports stable across these operations without ever passing `--dev`.
   `--stack`, and the deactivate/reactivate cycle. In particular, on Windows,
   `CONDA_EXE` must **not** switch to the packaged/pip-installed `conda.exe`
   during steps 5–7.
-- Step 8: with `CONDA_DEV` unset, `CONDA_EXE` resolves to the real conda
-  executable for the active environment and `_CE_M`/`_CE_CONDA` are empty —
+- Step 8: with `CONDA_DEV` unset, `CONDA_EXE` resolves to the executable
+  from conda's installation and `_CE_M`/`_CE_CONDA` are unset —
   confirming default (non-dev) behavior is unaffected by the fix.
 
 ### Out of scope / notes
