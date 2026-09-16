@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from conda.plugins import hookimpl
-from conda.plugins.hookspec import CondaSpecs
-from conda.plugins.manager import CondaPluginManager
 from conda.plugins.types import CondaPreCommand
 
 
-def test_pre_command_priority_and_stable_name_order() -> None:
+def test_pre_command_priority_and_stable_name_order(plugin_manager) -> None:
     calls = []
 
     class Plugin:
@@ -23,8 +21,6 @@ def test_pre_command_priority_and_stable_name_order() -> None:
                 "other", lambda _: calls.append("other"), {"remove"}, priority=-20
             )
 
-    manager = CondaPluginManager()
-    manager.add_hookspecs(CondaSpecs)
-    manager.register(Plugin())
-    manager.invoke_pre_commands("install")
+    plugin_manager.register(Plugin())
+    plugin_manager.invoke_pre_commands("install")
     assert calls == ["prepare", "a", "z"]
