@@ -12,7 +12,7 @@
 
 ### Docs
 
-* <news item>
+* Document temporary channel selection for plugin installation before a `.condarc` exists. (#16354)
 
 ### Other
 
