@@ -17,6 +17,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ruamel.yaml.comments import CommentedSeq
+
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 
 if TYPE_CHECKING:
@@ -431,8 +433,6 @@ class ConfigurationFile:
             CondaValueError: If the key is not a known sequence parameter.
             CouldntParseError: If the key should be a list but isn't.
         """
-        from ruamel.yaml.comments import CommentedSeq
-
         from ..exceptions import CondaValueError, CouldntParseError
 
         key, subkey = key.split(".", 1) if "." in key else (key, None)
