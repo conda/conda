@@ -175,7 +175,7 @@ filterwarnings = [
   "error::PendingDeprecationWarning",
   "error::DeprecationWarning",
   "error::FutureWarning",
-  "ignore:.*add_pip_as_python_dependency.*:PendingDeprecationWarning",
+  'ignore:[\s\S]*add_pip_as_python_dependency:PendingDeprecationWarning',
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",
