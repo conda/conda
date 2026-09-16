@@ -394,9 +394,9 @@ class BaseSolver:
                 "26.9",
                 "26.10",
                 topic=(
-                       "\n\nSPEACIAL ANNOUNCEMENT:\n\nThe default value of add_pip_as_python_dependency "
-                       "will change from true to false.  Meaning conda will not add pip as a python depency by default."
-                       "\nadd_pip_as_python_dependency=true"
+                    "\n\nSPEACIAL ANNOUNCEMENT:\n\nThe default value of add_pip_as_python_dependency "
+                    "will change from true to false.  Meaning conda will not add pip as a python depency by default."
+                    "\nadd_pip_as_python_dependency=true"
                 ),
                 addendum=dedent(
                     """
@@ -408,7 +408,6 @@ class BaseSolver:
                 ),
                 deprecation_type=FutureWarning,
             )
-
 
 
 class Solver(BaseSolver):
