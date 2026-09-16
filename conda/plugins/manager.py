@@ -639,7 +639,11 @@ class CondaPluginManager(pluggy.PluginManager):
         Args:
             command: name of the command that is currently being invoked
         """
-        for hook in self.get_hook_results("pre_commands"):
+        hooks = sorted(
+            self.get_hook_results("pre_commands"),
+            key=lambda hook: (hook.priority, hook.name),
+        )
+        for hook in hooks:
             if command in hook.run_for:
                 hook.action(command)
 
