@@ -1,0 +1,295 @@
+### Title
+`--exclude-newer` package policy: global, channel, and per-package cutoffs (#15761)
+
+### Why
+First-party supply-chain feature that lets conda exclude packages published
+more recently than a configured cutoff. It touches config parsing
+(`exclude_newer`, `exclude_newer_package`, `channel_settings`), a new CLI
+flag on `create`/`install`/`update`, `conda search` filtering, the classic
+solver's candidate filtering and final safety check, and fail-closed
+enforcement for solver backends that don't declare support. High
+blast-radius change with many interacting code paths and no prior release
+history.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [x] Linux
+
+The scenario only touches local `file://` channels and config files, so it
+should behave the same on any platform; only one platform needs to be
+checked off unless something looks suspicious.
+
+### Prerequisites
+
+#### 1. Build a local test channel with packages of known ages
+
+Pick a working directory, e.g. `/tmp/exclude-newer-channel`, and generate a
+`noarch/repodata.json` with packages at different ages relative to *now* using
+the following Python script:
+
+```python
+import json, time
+from pathlib import Path
+
+now_ms = int(time.time() * 1000)
+day_ms = 86400 * 1000
+
+channel = Path("/tmp/exclude-newer-channel")
+noarch = channel / "noarch"
+noarch.mkdir(parents=True, exist_ok=True)
+
+base = {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "d41d8cd98f00b204e9800998ecf8427e",
+    "size": 100,
+    "subdir": "noarch",
+    "version": "1.0",
+}
+
+repodata = {
+    "info": {"subdir": "noarch"},
+    "packages": {
+        "old-pkg-1.0-0.tar.bz2": {**base, "name": "old-pkg", "timestamp": now_ms - 10 * day_ms},
+        "recent-pkg-1.0-0.tar.bz2": {**base, "name": "recent-pkg", "timestamp": now_ms - 60_000},
+        "exempt-pkg-1.0-0.tar.bz2": {**base, "name": "exempt-pkg", "timestamp": now_ms - 60_000},
+        "future-pkg-1.0-0.tar.bz2": {**base, "name": "future-pkg", "timestamp": now_ms + day_ms},
+        "untimed-pkg-1.0-0.tar.bz2": {**base, "name": "untimed-pkg"},
+    },
+    "packages.conda": {},
+    "removed": [],
+    "repodata_version": 1,
+}
+(noarch / "repodata.json").write_text(json.dumps(repodata))
+```
+
+This creates 5 packages: `old-pkg` (10 days old), `recent-pkg` and
+`exempt-pkg` (1 minute old), `future-pkg` (1 day in the future, to test the
+"0 = now" cutoff without racing the clock), and `untimed-pkg` (no timestamp
+field at all, which must always be kept for compatibility).
+
+#### 2. Build a second local channel for the channel-override step
+
+```python
+import json, time
+from pathlib import Path
+
+now_ms = int(time.time() * 1000)
+channel = Path("/tmp/exclude-newer-channel-two")
+noarch = channel / "noarch"
+noarch.mkdir(parents=True, exist_ok=True)
+
+base = {
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "md5": "d41d8cd98f00b204e9800998ecf8427e",
+    "size": 100,
+    "subdir": "noarch",
+    "version": "1.0",
+}
+
+repodata = {
+    "info": {"subdir": "noarch"},
+    "packages": {
+        "channel-two-pkg-1.0-0.tar.bz2": {**base, "name": "channel-two-pkg", "timestamp": now_ms - 60_000},
+    },
+    "packages.conda": {},
+    "removed": [],
+    "repodata_version": 1,
+}
+(noarch / "repodata.json").write_text(json.dumps(repodata))
+```
+
+No actual package tarballs are needed: `conda search` only reads metadata,
+and `conda create --dry-run` never downloads anything.
+
+#### 3. Isolate `.condarc`
+
+Use a scratch `CONDARC` file per step below instead of editing your real
+`~/.condarc`, e.g. `export CONDARC=/tmp/exclude-newer-condarc.yml` (or the
+Windows PowerShell equivalent `$env:CONDARC = "..."`) before each `conda
+search` invocation that needs one. `conda create`/`install`/`update` steps
+below pass `--exclude-newer` directly on the command line instead, so no
+`CONDARC` is required for those.
+
+Note: `--exclude-newer` is only accepted by `create`, `install`, and
+`update` (it configures the solver). `conda search` applies the policy from
+config only (`exclude_newer` / `exclude_newer_package` / `channel_settings`
+in `.condarc`), independent of the active solver backend.
+
+### Steps
+
+1. **Baseline, no policy active.** Confirm all 5 packages are visible:
+
+   ```console
+   $ conda search --override-channels -c file:///tmp/exclude-newer-channel --json '*'
+   ```
+
+   Expect keys `old-pkg`, `recent-pkg`, `exempt-pkg`, `future-pkg`, and
+   `untimed-pkg` all present.
+
+2. **Global duration cutoff via `.condarc`.** Write
+   `/tmp/exclude-newer-condarc.yml`:
+
+   ```yaml
+   exclude_newer: 1d
+   ```
+
+   Then:
+
+   ```console
+   $ CONDARC=/tmp/exclude-newer-condarc.yml conda search --override-channels -c file:///tmp/exclude-newer-channel --json '*'
+   ```
+
+   Expect only `old-pkg` and `untimed-pkg`. `recent-pkg`, `exempt-pkg`, and
+   `future-pkg` (all published within the last day) must be gone.
+
+3. **Global cutoff via CLI flag, on `create` instead of `search`.** Using
+   the classic solver so the policy is actually enforced (see step 6 for why
+   this matters):
+
+   ```console
+   $ conda create -n exclude-newer-qa --dry-run --override-channels --solver classic -c file:///tmp/exclude-newer-channel --exclude-newer 1d old-pkg
+   $ conda create -n exclude-newer-qa --dry-run --override-channels --solver classic -c file:///tmp/exclude-newer-channel --exclude-newer 1d recent-pkg
+   ```
+
+   The first must produce a normal dry-run install plan for `old-pkg`. The
+   second must fail with `PackagesNotFoundInChannelsError` naming `recent-pkg`,
+   because it was filtered out of the candidate pool before the solver ran.
+
+4. **Date-only cutoff (next-UTC-day semantics) and the `0` cutoff.**
+
+   ```console
+   $ YESTERDAY=$(python3 -c "from datetime import date, timedelta; print(date.today() - timedelta(days=1))")
+   $ conda create -n exclude-newer-qa --dry-run --override-channels --solver classic -c file:///tmp/exclude-newer-channel --exclude-newer "$YESTERDAY" old-pkg
+   $ conda create -n exclude-newer-qa --dry-run --override-channels --solver classic -c file:///tmp/exclude-newer-channel --exclude-newer "$YESTERDAY" recent-pkg
+   $ conda create -n exclude-newer-qa --dry-run --override-channels --solver classic -c file:///tmp/exclude-newer-channel --exclude-newer 0 future-pkg
+   $ conda create -n exclude-newer-qa --dry-run --override-channels --solver classic -c file:///tmp/exclude-newer-channel --exclude-newer 0 recent-pkg
+   ```
+
+   Expect: `old-pkg` succeeds with yesterday's date as cutoff (it's well
+   before the cutoff); `recent-pkg` fails (it was published today, on or
+   after the start of the cutoff day). With `--exclude-newer 0`, `future-pkg`
+   fails (it's dated after "now") while `recent-pkg` succeeds (it's dated
+   before "now", so "0 delay" still lets it through).
+
+5. **Per-package overrides (exemption and a different cutoff).** Write
+   `/tmp/exclude-newer-condarc.yml`:
+
+   ```yaml
+   exclude_newer: 1d
+   exclude_newer_package:
+     exempt-pkg: false
+     recent-pkg: 30s
+   ```
+
+   ```console
+   $ CONDARC=/tmp/exclude-newer-condarc.yml conda search --override-channels -c file:///tmp/exclude-newer-channel --json '*'
+   ```
+
+   Expect `old-pkg`, `untimed-pkg`, `exempt-pkg` (exempted via `false`), and
+   `recent-pkg` (its 30s override is more lenient than the global 1d cutoff,
+   so it wins). `future-pkg` must still be excluded since it has no override
+   and is newer than the global cutoff.
+
+6. **Channel-level override.** Append to the same file so it now reads:
+
+   ```yaml
+   exclude_newer: 1d
+   channel_settings:
+     - channel: exclude-newer-channel-two
+       exclude_newer: false
+   ```
+
+   (Use the bare channel name here, not the `file://` URL — matching by
+   channel name avoids an unrelated pre-existing crash in conda's
+   `channel_settings`-aware session lookup when a `file://` URL is used as
+   the selector. This is not part of this PR; it's worth a separate report
+   if not already tracked, but keep this scenario limited to `#15761`.)
+
+   ```console
+   $ CONDARC=/tmp/exclude-newer-condarc.yml conda search --override-channels -c file:///tmp/exclude-newer-channel -c file:///tmp/exclude-newer-channel-two --json '*'
+   ```
+
+   Expect `old-pkg`, `untimed-pkg`, and `channel-two-pkg` (exempted at the
+   channel level despite being as recent as `recent-pkg`). `recent-pkg`,
+   `exempt-pkg`, and `future-pkg` from the first channel are governed by the
+   global cutoff only in this step (no package overrides configured here),
+   so they're excluded.
+
+7. **Fail-closed behavior for solvers that don't support the policy.** Run
+   the same install with the *default* solver (do not pass `--solver`):
+
+   ```console
+   $ conda create -n exclude-newer-qa --dry-run --override-channels -c file:///tmp/exclude-newer-channel --exclude-newer 1d old-pkg
+   ```
+
+   As of this PR, only the classic solver declares
+   `supports_exclude_newer_*`; conda-libmamba-solver and conda-rattler-solver
+   support is tracked separately in #15759 and was not available at the time
+   of this PR. Expect the command to fail immediately with a `CondaError`
+   resembling:
+
+   ```
+   CondaError: The <solver> solver does not support --exclude-newer global cutoff. Choose a solver that supports this policy or disable the setting.
+   ```
+
+   instead of silently ignoring `--exclude-newer` and solving anyway. If a
+   newer conda-libmamba-solver/conda-rattler-solver that *does* declare
+   support is installed, this specific check is out of scope (see below) —
+   confirm instead that the plan still avoids `recent-pkg`/`future-pkg`.
+
+8. **Invalid value handling.**
+
+   ```console
+   $ conda create -n exclude-newer-qa --dry-run --override-channels --solver classic -c file:///tmp/exclude-newer-channel --exclude-newer notavalue old-pkg
+   ```
+
+   Expect a `CondaValueError` naming the invalid value and listing accepted
+   formats (e.g. `7d`, `P7D`, a date, or a timestamp), not a traceback.
+
+9. Clean up: remove `/tmp/exclude-newer-channel`, `/tmp/exclude-newer-channel-two`,
+   `/tmp/exclude-newer-condarc.yml`, and the `exclude-newer-qa` environment if
+   it was ever actually created (it shouldn't be, since all `create` steps use
+   `--dry-run`).
+
+### Pass criteria
+- Step 1: all 5 packages appear with no policy active.
+- Step 2: only `old-pkg` and `untimed-pkg` remain with `exclude_newer: 1d`.
+- Step 3: `old-pkg` install plan succeeds; `recent-pkg` fails with
+  `PackagesNotFoundInChannelsError`.
+- Step 4: date-only and `0` cutoffs behave as described — no unhandled
+  exceptions, and the include/exclude split matches the expectations above.
+- Step 5: `exempt-pkg` and `recent-pkg` become visible again due to their
+  package-level overrides; `future-pkg` stays excluded.
+- Step 6: `channel-two-pkg` is exempted purely by channel identity while the
+  primary channel's global cutoff still applies to its own packages.
+- Step 7: the default solver rejects the active policy up front with a clear
+  `CondaError` naming the unsupported scope, rather than solving as if
+  `--exclude-newer` were never passed.
+- Step 8: invalid `--exclude-newer` values raise `CondaValueError` with a
+  helpful message, not a stack trace.
+- No step should produce an unhandled traceback ("unexpected error report").
+
+### Out of scope / notes
+- conda-libmamba-solver and conda-rattler-solver support is tracked in
+  conda-libmamba-solver#905 and conda-rattler-solver#49 respectively (see
+  meta-issue #15759) and is not part of this PR; don't block on those.
+- `indexed_timestamp` (CEP 47) preference over `timestamp` is exercised by
+  `tests/test_exclude_newer.py` and `tests/common/test_datetime.py`; this
+  session only used `timestamp` for simplicity. No manual coverage added
+  here for that fallback ordering.
+- The final `link_precs` safety validation (`CondaError: --exclude-newer
+  prevented this operation...`) only fires if a package cache hit or a
+  backend bypass slips an excluded record past candidate filtering; this is
+  covered by unit tests and is not easily reproduced blackbox without
+  pre-populating the package cache, so it's left to automated tests.
+- conda-build / rattler-build integration (issue #6119 and friends) is
+  separate downstream work and out of scope here.
+- The `file://` + `channel_settings` crash noted in step 6 lives in
+  `conda/gateways/connection/session.py` (`get_session`), unrelated to
+  `conda/core/exclude_newer.py`; flag it separately if it isn't already
+  known, but it isn't this PR's regression.
