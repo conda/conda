@@ -386,6 +386,13 @@ class ShardLike(ShardBase):
                 name = record["name"]
                 shards[name][group_name][package] = record
 
+        for section_name, group in repodata.get("v3", {}).items():
+            for key, record in group.items():
+                name = record["name"]
+                shards[name].setdefault("v3", {}).setdefault(section_name, {})[key] = (
+                    record
+                )
+
         # defaultdict behavior no longer wanted
         self.shards: dict[str, ShardDict] = dict(shards)  # type: ignore
 
