@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Resolve channel priority relations from repodata and shard indexes as specified by CEP 42. (conda/ceps#155)
+* Resolve channel priority relations from repodata and shard indexes as specified by CEP 42. (#16697)
 
 ### Bug fixes
 
@@ -15,5 +15,3 @@
 
 
 ### Other
-
-
