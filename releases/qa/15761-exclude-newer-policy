@@ -7,9 +7,7 @@ more recently than a configured cutoff. It touches config parsing
 (`exclude_newer`, `exclude_newer_package`, `channel_settings`), a new CLI
 flag on `create`/`install`/`update`, `conda search` filtering, the classic
 solver's candidate filtering and final safety check, and fail-closed
-enforcement for solver backends that don't declare support. High
-blast-radius change with many interacting code paths and no prior release
-history.
+enforcement for solver backends that don't declare support.
 
 ### Platforms
 - [ ] Windows
@@ -273,17 +271,11 @@ in `.condarc`), independent of the active solver backend.
 
 ### Out of scope / notes
 - conda-libmamba-solver and conda-rattler-solver support is tracked in
-  conda-libmamba-solver#905 and conda-rattler-solver#49 respectively (see
-  meta-issue #15759) and is not part of this PR; don't block on those.
+  conda-libmamba-solver#905 and conda-rattler-solver#49 (see meta-issue #15759).
 - `indexed_timestamp` (CEP 47) preference over `timestamp` is exercised by
   `tests/test_exclude_newer.py` and `tests/common/test_datetime.py`; this
-  session only used `timestamp` for simplicity. No manual coverage added
-  here for that fallback ordering.
-- The final `link_precs` safety validation (`CondaError: --exclude-newer
-  prevented this operation...`) only fires if a package cache hit or a
-  backend bypass slips an excluded record past candidate filtering; this is
-  covered by unit tests and is not easily reproduced blackbox without
-  pre-populating the package cache, so it's left to automated tests.
+  session only used `timestamp` for simplicity.
+- The final `link_precs` safety validation is covered by unit tests
 - conda-build / rattler-build integration (issue #6119 and friends) is
   separate downstream work and out of scope here.
 - The step 6 `file://` selector crash is a pre-existing bug, #16698.
