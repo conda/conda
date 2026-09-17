@@ -632,7 +632,8 @@
   aliases:
   - Jacob
   alternate_emails:
-  - jhultman@novateurresearch.comgit config --global user.email jhultman@novateurresearch.com
+  - jhultman@novateurresearch.comgit config --global user.email 
+    jhultman@novateurresearch.com
 - name: Stan Seibert
   email: stan.seibert@continuum.io
   num_commits: 7
@@ -2726,3 +2727,21 @@
   github: carterbox
   num_commits: 1
   first_commit: 2026-07-25 15:16:56
+- name: Samartha
+  email: samarthat9@gmail.com
+  github: GruffElixir
+- name: Daniel
+  email: 55808718+codewithdaniel1@users.noreply.github.com
+  github: codewithdaniel1
+- name: paperbenni
+  email: paperbenni@gmail.com
+  github: paperbenni
+- name: Andre
+  email: andre.x.ruizloera@gmail.com
+  github: andreruizloera
+- name: Julien Jerphanion
+  email: git@jjerphan.xyz
+  github: jjerphan
+- name: Mike Taves
+  email: mwtoews@gmail.com
+  github: mwtoews
