@@ -20,7 +20,7 @@ $ conda plugins info conda-libmamba-solver
 Name          : conda-libmamba-solver
 Version       : 26.7.0
 Status        : active
-Canonical name: conda-libmamba-solver
+Canonical name: conda_libmamba_solver.plugin
 Hooks         : solvers, subcommands
 Summary       : The conda libmamba solver.
 License       : BSD-3-Clause
@@ -36,7 +36,7 @@ $ conda plugins info conda-libmamba-solver --json
 {
   "name": "conda-libmamba-solver",
   "version": "26.7.0",
-  "canonical_name": "conda-libmamba-solver",
+  "canonical_name": "conda_libmamba_solver.plugin",
   "status": "active",
   "hooks": [
     "solvers",
@@ -60,9 +60,9 @@ $ conda plugins info conda-libmamba-solver --json
 
 3. Check that name normalization works by using a non-canonical spelling, e.g. `conda plugins info conda_libmamba_solver` (underscores instead of dashes). The same plugin details as in step 1 should be displayed.
 
-4. Check that disabling plugins works as expected by setting the env var `CONDA_NO_PLUGINS=true` and checking that the status is `disabled`:
+4. Check that disabling plugins works as expected by passing `--no-plugins` and checking that the status is `disabled`:
 ```
-$ CONDA_NO_PLUGINS=true conda plugins info conda-libmamba-solver
+$ conda --no-plugins plugins info conda-libmamba-solver
 Name          : conda-libmamba-solver
 Version       : 26.7.0
 Status        : disabled
