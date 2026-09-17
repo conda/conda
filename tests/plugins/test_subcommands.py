@@ -12,6 +12,7 @@ from conda import plugins
 from conda.auxlib.ish import dals
 from conda.base.context import context
 from conda.cli.conda_argparse import (
+    _PLUGIN_FREE_BUILTIN_COMMANDS,
     BUILTIN_COMMANDS,
     find_builtin_commands,
     generate_parser,
@@ -179,18 +180,23 @@ def test_cannot_override_builtin_commands(command, plugin_manager, mocker, conda
         conda_cli(command, "--help")
 
     # assertions; make sure we got the right error messages and didn't invoke the custom command
-    assert mock_log.error.mock_calls == [
-        mocker.call(
-            dals(
-                f"""
-                The plugin '{command}' is trying to override the built-in command
-                with the same name, which is not allowed.
+    expected_log_calls = (
+        []
+        if command in _PLUGIN_FREE_BUILTIN_COMMANDS
+        else [
+            mocker.call(
+                dals(
+                    f"""
+                    The plugin '{command}' is trying to override the built-in command
+                    with the same name, which is not allowed.
 
-                Please uninstall the plugin to stop seeing this error message.
-                """
+                    Please uninstall the plugin to stop seeing this error message.
+                    """
+                )
             )
-        )
-    ]
+        ]
+    )
+    assert mock_log.error.mock_calls == expected_log_calls
 
     assert mocked.mock_calls == []
 

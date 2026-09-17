@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Speed up `test_update_env_no_action_json_output` by using `tmp_env` with `ca-certificates` instead of creating an environment with `pip` and PyPI `click`. (#16605)

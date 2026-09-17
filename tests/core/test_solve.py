@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 import sys
+from contextlib import ExitStack
 from importlib.metadata import version
 from pprint import pprint
 from typing import TYPE_CHECKING
@@ -17,6 +19,8 @@ from conda.auxlib.ish import dals
 from conda.base.constants import PREFIX_PINNED_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
+from conda.core.index import Index, ReducedIndex
+from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier, get_pinned_specs
 from conda.exceptions import (
     NoChannelsConfiguredError,
@@ -28,7 +32,7 @@ from conda.exceptions import (
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from conda.models.records import PrefixRecord
+from conda.models.records import PackageRecord, PrefixRecord
 from conda.models.version import VersionOrder
 from conda.testing.helpers import (
     CHANNEL_DIR_V1,
@@ -47,6 +51,8 @@ from conda.testing.helpers import (
 from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import CaptureFixture, MonkeyPatch
     from pytest_benchmark.fixture import BenchmarkFixture
     from pytest_mock import MockerFixture
@@ -56,9 +62,8 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
-@pytest.mark.benchmark
 @pytest.mark.flaky(reruns=5)
-def test_solve_1(benchmark: BenchmarkFixture, tmpdir, request):
+def test_solve_1(tmpdir):
     """
     This test is flaky with libmamba. Sometimes it gets a different Python 2.x in the solution:
 
@@ -85,48 +90,84 @@ def test_solve_1(benchmark: BenchmarkFixture, tmpdir, request):
     ```
     """
 
-    def run():
-        specs = (MatchSpec("numpy"),)
+    specs = (MatchSpec("numpy"),)
 
+    with get_solver(tmpdir, specs) as solver:
+        final_state = solver.solve_final_state()
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-3.3.2-0",
+                "channel-1::numpy-1.7.1-py33_0",
+            )
+        )
+        assert convert_to_dist_str(final_state) == order
+
+    specs_to_add = (MatchSpec("python=2"),)
+    with get_solver(
+        tmpdir,
+        specs_to_add=specs_to_add,
+        prefix_records=final_state,
+        history_specs=specs,
+    ) as solver:
+        final_state = solver.solve_final_state()
+        order = add_subdir_to_iter(
+            (
+                "channel-1::openssl-1.0.1c-0",
+                "channel-1::readline-6.2-0",
+                "channel-1::sqlite-3.7.13-0",
+                "channel-1::system-5.8-1",
+                "channel-1::tk-8.5.13-0",
+                "channel-1::zlib-1.2.7-0",
+                "channel-1::python-2.7.5-0",
+                "channel-1::numpy-1.7.1-py27_0",
+            )
+        )
+        assert convert_to_dist_str(final_state) == order
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("operation", ("create", "update"))
+def test_solve_benchmark(benchmark: BenchmarkFixture, tmpdir, operation: str):
+    """Measure solving with a fresh solver and untimed repodata setup."""
+    specs = (MatchSpec("numpy"),)
+    specs_to_add = specs
+    prefix_records = ()
+    history_specs = ()
+    if operation == "update":
         with get_solver(tmpdir, specs) as solver:
-            final_state = solver.solve_final_state()
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-1",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::python-3.3.2-0",
-                    "channel-1::numpy-1.7.1-py33_0",
-                )
-            )
-            assert convert_to_dist_str(final_state) == order
-
+            prefix_records = solver.solve_final_state()
         specs_to_add = (MatchSpec("python=2"),)
-        with get_solver(
-            tmpdir,
-            specs_to_add=specs_to_add,
-            prefix_records=final_state,
-            history_specs=specs,
-        ) as solver:
-            final_state = solver.solve_final_state()
-            order = add_subdir_to_iter(
-                (
-                    "channel-1::openssl-1.0.1c-0",
-                    "channel-1::readline-6.2-0",
-                    "channel-1::sqlite-3.7.13-0",
-                    "channel-1::system-5.8-1",
-                    "channel-1::tk-8.5.13-0",
-                    "channel-1::zlib-1.2.7-0",
-                    "channel-1::python-2.7.5-0",
-                    "channel-1::numpy-1.7.1-py27_0",
+        history_specs = specs
+
+    def solve(solver):
+        return solver.solve_final_state()
+
+    with ExitStack() as solver_context:
+
+        def setup():
+            solver_context.close()
+            solver = solver_context.enter_context(
+                get_solver(
+                    tmpdir,
+                    specs_to_add=specs_to_add,
+                    prefix_records=prefix_records,
+                    history_specs=history_specs,
                 )
             )
-            assert convert_to_dist_str(final_state) == order
+            return (solver,), {}
 
-    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)
+        final_state = benchmark.pedantic(
+            solve, setup=setup, rounds=5, iterations=1, warmup_rounds=1
+        )
+
+    for spec in (*specs, *specs_to_add):
+        assert any(spec.match(record) for record in final_state)
 
 
 def test_solve_2(tmpdir):
@@ -3415,6 +3456,26 @@ def test_current_repodata_fallback(tmpdir):
         raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
+def test_current_repodata_retry_message(tmpdir, capsys: CaptureFixture):
+    if context.solver != "classic":
+        pytest.skip("retry message is specific to the classic Solver")
+
+    solver = Solver(
+        tmpdir.strpath,
+        (Channel(CHANNEL_DIR_V1),),
+        ("win-64",),
+        specs_to_add=[MatchSpec("zlib=1.2.8")],
+        repodata_fn="current_repodata.json",
+    )
+
+    with pytest.raises(ResolvePackageNotFound):
+        solver.solve_final_state()
+
+    captured = capsys.readouterr()
+    assert "retrying with next repodata source." in captured.out
+    assert "unsuccessful attempt using repodata" not in captured.out
+
+
 def test_downgrade_python_prevented_with_sane_message(tmpdir):
     specs = (MatchSpec("python=2.6"),)
     with get_solver(tmpdir, specs) as solver:
@@ -4078,6 +4139,251 @@ def _make_conda_prefix_rec(name, version, channel="test"):
         depends=[],
         constrains=[],
     )
+
+
+@pytest.fixture
+def provided_index_channel(tmp_path: Path) -> tuple[str, dict[str, PackageRecord]]:
+    channel = tmp_path / "channel"
+    subdir = channel / "noarch"
+    subdir.mkdir(parents=True)
+    records = {
+        name: PackageRecord(
+            name=name,
+            version="1.0",
+            build="0",
+            build_number=0,
+            depends=depends,
+            channel=channel.as_uri(),
+            subdir="noarch",
+            fn=f"{name}-1.0-0.tar.bz2",
+            url=f"{subdir.as_uri()}/{name}-1.0-0.tar.bz2",
+            md5="0" * 32,
+        )
+        for name, depends in (
+            ("cached-app", ["dependency >=1"]),
+            ("requesting-app", ["cached-app >=1"]),
+            ("installed-app", ["dependency >=1"]),
+            ("dependency", ["leaf >=1"]),
+            ("leaf", []),
+            ("requested", []),
+            ("unrelated", []),
+        )
+    }
+    (subdir / "repodata.json").write_text(
+        json.dumps(
+            {
+                "info": {"subdir": "noarch"},
+                "packages": {
+                    record.fn: record.dump()
+                    for name, record in records.items()
+                    if name != "cached-app"
+                },
+                "packages.conda": {},
+            }
+        )
+    )
+    return channel.as_uri(), records
+
+
+@pytest.mark.parametrize("realized", [False, True], ids=["lazy", "realized"])
+@pytest.mark.parametrize("requested", ["cached-app", "requesting-app"])
+def test_solve_with_cached_package_in_provided_index(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_path: Path,
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    realized: bool,
+    requested: str,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    monkeypatch.setenv("CONDA_OFFLINE", "true")
+    reset_context()
+    channel, records = provided_index_channel
+    info = tmp_pkgs_dir / "cached-app-1.0-0" / "info"
+    info.mkdir(parents=True)
+    for filename in ("index.json", "repodata_record.json"):
+        (info / filename).write_text(json.dumps(records["cached-app"].dump()))
+
+    provided_index = Index(
+        channels=(channel,), prepend=False, subdirs=("noarch",), use_system=True
+    )
+    assert provided_index.use_cache
+    if realized:
+        provided_index.data
+    else:
+        mocker.patch.object(
+            Index, "_realize", side_effect=AssertionError("Eager index")
+        )
+    solver = Solver(
+        prefix=tmp_path / "prefix",
+        channels=(channel,),
+        subdirs=("noarch",),
+        specs_to_add=(requested,),
+    )
+    solver._index = provided_index
+
+    solution = solver.solve_final_state()
+
+    assert {record.name for record in solution} == {
+        requested,
+        "cached-app",
+        "dependency",
+        "leaf",
+    }
+    assert ("_data" in provided_index.__dict__) is realized
+    if not realized:
+        assert records["unrelated"] not in solver._index
+
+
+def test_reduced_index_preserves_channel_metadata_for_cached_track_features(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    monkeypatch.setenv("CONDA_OFFLINE", "true")
+    reset_context()
+    channel, records = provided_index_channel
+    record = records["requested"]
+    cached_record = PackageRecord.from_objects(
+        record, depends=["dependency"], track_features=["obsolete"]
+    )
+    assert cached_record == record
+    info = tmp_pkgs_dir / "requested-1.0-0" / "info"
+    info.mkdir(parents=True)
+    for filename in ("index.json", "repodata_record.json"):
+        (info / filename).write_text(json.dumps(cached_record.dump()))
+    provided_index = Index(channels=(channel,), prepend=False, subdirs=("noarch",))
+
+    reduced_index = provided_index.get_reduced_index(
+        (MatchSpec(track_features="obsolete"),)
+    )
+
+    assert reduced_index[record].depends == record.depends
+    assert reduced_index[record].track_features == record.track_features
+    assert "_data" not in provided_index.__dict__
+
+
+@pytest.mark.parametrize("realized", [False, True], ids=["lazy", "realized"])
+@pytest.mark.parametrize("index_prefix", [None, "target", "other"])
+def test_solve_with_installed_packages_in_provided_index(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_path: Path,
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+    realized: bool,
+    index_prefix: str | None,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    channel, records = provided_index_channel
+    prefix = tmp_path / "prefix"
+    (prefix / "conda-meta").mkdir(parents=True)
+    (prefix / "conda-meta" / "history").touch()
+    for name in ("installed-app", "dependency", "leaf"):
+        PrefixData(prefix).insert(PrefixRecord.from_objects(records[name]))
+    source_prefix = (
+        PrefixData(prefix if index_prefix == "target" else tmp_path / "other-prefix")
+        if index_prefix is not None
+        else None
+    )
+    provided_index = Index(
+        channels=(channel,),
+        prepend=False,
+        subdirs=("noarch",),
+        use_cache=False,
+        use_system=True,
+        prefix=source_prefix,
+    )
+    if realized:
+        provided_index.data
+    elif index_prefix != "other":
+        mocker.patch.object(
+            Index, "_realize", side_effect=AssertionError("Eager index")
+        )
+    solver = Solver(
+        prefix=prefix,
+        channels=(channel,),
+        subdirs=("noarch",),
+        specs_to_add=("requested",),
+    )
+    solver._index = provided_index
+
+    solution = solver.solve_final_state()
+
+    assert {record.name for record in solution} == {
+        "installed-app",
+        "dependency",
+        "leaf",
+        "requested",
+    }
+    assert provided_index.prefix_data is source_prefix
+    assert ("_data" in provided_index.__dict__) is (realized or index_prefix == "other")
+    if not realized and index_prefix != "other":
+        assert records["unrelated"] not in solver._index
+
+
+def test_prepare_reduces_provided_lazy_index_without_realizing(
+    mocker, tmp_path
+) -> None:
+    solver = Solver(prefix=tmp_path, channels=())
+    provided_index = Index(prepend=False)
+    first_reduced_index = mocker.Mock(spec=ReducedIndex)
+    second_reduced_index = mocker.Mock(spec=ReducedIndex)
+    get_reduced_index = mocker.patch.object(
+        Index,
+        "get_reduced_index",
+        autospec=True,
+        side_effect=(first_reduced_index, second_reduced_index),
+    )
+    resolve = mocker.patch("conda.resolve.Resolve")
+    first_specs = {MatchSpec("first")}
+    second_specs = {MatchSpec("second")}
+    solver._index = provided_index
+
+    first_index, _ = solver._prepare(first_specs)
+    second_index, _ = solver._prepare(second_specs)
+
+    assert first_index is first_reduced_index
+    assert second_index is second_reduced_index
+    assert "_data" not in provided_index.__dict__
+    assert provided_index.prefix_data is None
+    assert get_reduced_index.call_count == 2
+    for call, specs in zip(
+        get_reduced_index.call_args_list, (first_specs, second_specs), strict=True
+    ):
+        source_index, passed_specs = call.args
+        assert source_index is not provided_index
+        assert source_index.prefix_data.prefix_path == tmp_path
+        assert "_data" not in source_index.__dict__
+        assert passed_specs == specs
+    assert resolve.call_args_list == [
+        mocker.call(first_reduced_index, channels=solver.channels),
+        mocker.call(second_reduced_index, channels=solver.channels),
+    ]
+
+
+def test_prepare_preserves_records_in_provided_realized_index(mocker) -> None:
+    solver = Solver(prefix="idontexist", channels=())
+    provided_index = Index(prepend=False)
+    record = _make_conda_prefix_rec("custom", "1.0")
+    provided_index._data = {record: record}
+    get_reduced_index = mocker.spy(provided_index, "get_reduced_index")
+    resolve = mocker.patch("conda.resolve.Resolve")
+    solver._index = provided_index
+
+    prepared_index, _ = solver._prepare({MatchSpec("custom")})
+
+    assert prepared_index is provided_index
+    assert prepared_index[record] is record
+    get_reduced_index.assert_not_called()
+    resolve.assert_called_once_with(provided_index, channels=solver.channels)
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,23 @@
+### Enhancements
+
+* Add `conda.common.terminal.is_stdin_tty()`, `is_stderr_tty()`, and
+  `is_interactive_tty()` helpers alongside the existing `is_tty()` (which
+  remains stdout-only) so callers can check stdin/stderr TTY-ness, or
+  stdout+stdin together for interactive prompts, without hand-rolling
+  `sys.stdin.isatty()` checks. (#16594)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

@@ -14,12 +14,11 @@ if TYPE_CHECKING:
 
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
+
     p = sub_parsers.add_parser(
         "commands",
-        help=(
-            "List all available conda subcommands (including those from plugins). "
-            "Generally only used by tab-completion."
-        ),
+        help=BUILTIN_SUBCOMMANDS["commands"]["help"],
         **kwargs,
     )
     p.set_defaults(func="conda.cli.main_commands.execute")
@@ -29,6 +28,11 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
 def execute(args: Namespace, parser: ArgumentParser) -> int:
     from .conda_argparse import find_builtin_commands
+
+    # Ensure plugin subcommands are discovered before listing
+    sub_parsers_action = parser._subparsers._group_actions[0]
+    if hasattr(sub_parsers_action, "_ensure_plugins_loaded"):
+        sub_parsers_action._ensure_plugins_loaded()
 
     print(
         *sorted(find_builtin_commands(parser)),

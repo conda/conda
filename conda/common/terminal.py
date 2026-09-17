@@ -8,9 +8,34 @@ import os
 import sys
 
 
+def _stream_is_tty(stream) -> bool:
+    """Return True if the given stream object is connected to a TTY."""
+    return hasattr(stream, "isatty") and stream.isatty()
+
+
 def is_tty() -> bool:
     """Return True if stdout is connected to a TTY."""
-    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+    return _stream_is_tty(sys.stdout)
+
+
+def is_stdin_tty() -> bool:
+    """Return True if stdin is connected to a TTY."""
+    return _stream_is_tty(sys.stdin)
+
+
+def is_stderr_tty() -> bool:
+    """Return True if stderr is connected to a TTY."""
+    return _stream_is_tty(sys.stderr)
+
+
+def is_interactive_tty() -> bool:
+    """Return True if both stdout and stdin are connected to a TTY.
+
+    Use this before showing an interactive prompt that reads from stdin, so
+    the prompt is skipped (instead of hanging or erroring) when either
+    stream has been redirected, e.g. ``some-command < /dev/null``.
+    """
+    return is_tty() and is_stdin_tty()
 
 
 def term_dumb() -> bool:

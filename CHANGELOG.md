@@ -1,5 +1,17 @@
 [//]: # (current developments)
 
+## 26.7.2 (2026-09-03)
+
+### Bug fixes
+
+* Allow individual sharded-repodata package shards up to 64 MiB after decompression. (#16575)
+
+### Contributors
+
+* @jezdez
+
+
+
 ## 26.7.1 (2026-08-18)
 
 ### Bug fixes

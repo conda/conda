@@ -11,6 +11,7 @@ Tasks
    manage-channels
    authenticated-channels
    manage-pkgs
+   install-packages-from-pypi
    manage-python
    manage-virtual
    create-custom-channels
@@ -39,6 +40,9 @@ Common Tasks
 
     :doc:`Managing packages <manage-pkgs>`
         Details related to how to find, install, remove, and update packages in a given environment
+
+    :doc:`Installing packages from PyPI <install-packages-from-pypi>`
+        How to install packages from PyPI with conda, including extras support and environment management
 
     :doc:`Managing python <manage-python>`
         Supported versions of Python and tips for updating and using multiple Python versions
