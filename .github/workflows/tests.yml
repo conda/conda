@@ -144,14 +144,6 @@ jobs:
         env:
           CONDA_SUBDIR: win-64
 
-      - name: Prepare Native Environment
-        if: matrix.subdir == 'win-arm64'
-        run: |
-          # Use the runner's Git until conda-forge publishes a native package.
-          (Get-Content tests\requirements-ci.txt) -notmatch '^git(\s|$)' | Set-Content tests\requirements-ci.txt
-          # Shell tests need Git's bash and cygpath together on PATH.
-          "$(Split-Path (Split-Path (Get-Command git).Source))\usr\bin" | Add-Content $env:GITHUB_PATH
-
       - name: Conda Install
         run: >
           conda install
