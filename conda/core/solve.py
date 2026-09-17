@@ -391,15 +391,14 @@ class BaseSolver:
             and (not user_configured_add_pip_as_dep)
         ):
             deprecated.topic(
-                "26.9",
-                "26.10",
-                topic=(
-                    "\n\nSPEACIAL ANNOUNCEMENT:\n\nThe default value of add_pip_as_python_dependency "
-                    "will change from true to false.  Meaning conda will not add pip as a python depency by default."
-                    "\nadd_pip_as_python_dependency=true"
-                ),
+                "27.3",
+                "27.9",
+                topic="Implicit installation of pip as a Python dependency",
                 addendum=dedent(
                     """
+                    conda is adding pip because add_pip_as_python_dependency defaults to true.
+                    This default will change to false in conda 27.9.0.
+
                     Next steps:
                       - Keep current behavior:  conda config --set add_pip_as_python_dependency true
                       - Install pip only when asked: include pip in your specs (e.g. python pip)

@@ -8,7 +8,9 @@
 
 ### Deprecations
 
-* Warn that `add_pip_as_python_dependency` will default to `false` in conda 26.10.0.
+* Mark implicit installation of pip as a Python dependency as pending deprecation.
+  Deprecate this behavior in conda 27.3 and change the default of
+  `add_pip_as_python_dependency` to `false` in conda 27.9.
   To keep installing pip automatically with Python, run
   `conda config --set add_pip_as_python_dependency true`.
   To request pip explicitly, include it in the package specs, for example
