@@ -1,0 +1,113 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+param(
+    [string] $InstallDir
+)
+
+$ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
+$Version = "@CONDA_RUNTIME_VERSION@"
+$Repository = "https://github.com/conda/conda"
+
+if (-not $InstallDir) {
+    $InstallDir = Join-Path $HOME ".local\bin"
+}
+
+if (-not [Environment]::Is64BitOperatingSystem) {
+    throw "The conda runtime requires 64-bit Windows"
+}
+
+New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+$InstallDir = [IO.Path]::GetFullPath($InstallDir)
+$Destination = Join-Path $InstallDir "conda.exe"
+if (Test-Path -LiteralPath $Destination) {
+    throw @"
+Refusing to replace existing executable at $Destination.
+Use 'conda self update' for this runtime.
+For recovery, move it aside and use the installer from the same runtime release.
+"@
+}
+
+$AssetName = "conda-x86_64-pc-windows-msvc.exe"
+$DownloadBase = "$Repository/releases/download/$Version"
+$TemporaryDir = Join-Path ([IO.Path]::GetTempPath()) "conda-runtime-$([Guid]::NewGuid())"
+$InstallTemporary = $null
+
+New-Item -ItemType Directory -Path $TemporaryDir | Out-Null
+
+try {
+    $AssetPath = Join-Path $TemporaryDir $AssetName
+    $ChecksumsPath = Join-Path $TemporaryDir "SHA256SUMS"
+    Invoke-WebRequest -UseBasicParsing -Uri "$DownloadBase/$AssetName" -OutFile $AssetPath
+    Invoke-WebRequest -UseBasicParsing -Uri "$DownloadBase/SHA256SUMS" -OutFile $ChecksumsPath
+
+    [string[]] $ExpectedChecksums = @(
+        Get-Content -LiteralPath $ChecksumsPath | ForEach-Object {
+            if ($_ -match "^([0-9a-fA-F]{64})  (.+)$" -and $Matches[2] -eq $AssetName) {
+                $Matches[1].ToLowerInvariant()
+            }
+        }
+    )
+    if ($ExpectedChecksums.Count -ne 1) {
+        throw "SHA256SUMS does not contain exactly one entry for $AssetName"
+    }
+
+    $ActualChecksum = (Get-FileHash -Algorithm SHA256 -LiteralPath $AssetPath).Hash.ToLowerInvariant()
+    if ($ActualChecksum -ne $ExpectedChecksums[0]) {
+        throw "Checksum verification failed for $AssetName"
+    }
+
+    $InstallTemporary = Join-Path $InstallDir ".conda.exe.$PID"
+    Copy-Item -LiteralPath $AssetPath -Destination $InstallTemporary
+    Move-Item -LiteralPath $InstallTemporary -Destination $Destination
+    $InstallTemporary = $null
+
+    $UpdateEnvironment = @{
+        CONDA_SHIP_INTERNAL_UPDATE = "v1/record-installation"
+        CONDA_SHIP_INTERNAL_UPDATE_OWNERSHIP = "direct"
+        CONDA_SHIP_INTERNAL_UPDATE_INSTALLATION = "standalone"
+        CONDA_SHIP_INTERNAL_UPDATE_EXECUTABLE = $Destination
+        CONDA_SHIP_INTERNAL_UPDATE_INSTRUCTION = $null
+    }
+    $PreviousUpdateEnvironment = @{}
+    foreach ($Name in $UpdateEnvironment.Keys) {
+        $PreviousUpdateEnvironment[$Name] = [Environment]::GetEnvironmentVariable($Name)
+        if ($null -eq $UpdateEnvironment[$Name]) {
+            Remove-Item -LiteralPath "Env:$Name" -ErrorAction SilentlyContinue
+        } else {
+            [Environment]::SetEnvironmentVariable($Name, $UpdateEnvironment[$Name])
+        }
+    }
+    try {
+        & $Destination | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "The conda runtime could not record the binary installation"
+        }
+    } catch {
+        Remove-Item -Force -LiteralPath $Destination -ErrorAction SilentlyContinue
+        throw
+    } finally {
+        foreach ($Name in $PreviousUpdateEnvironment.Keys) {
+            if ($null -eq $PreviousUpdateEnvironment[$Name]) {
+                Remove-Item -LiteralPath "Env:$Name" -ErrorAction SilentlyContinue
+            } else {
+                [Environment]::SetEnvironmentVariable($Name, $PreviousUpdateEnvironment[$Name])
+            }
+        }
+    }
+
+    Write-Output "Installed conda $Version to $Destination"
+    $ResolvedConda = Get-Command conda -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $ResolvedConda) {
+        Write-Output "Add $InstallDir to PATH to run conda."
+    } elseif ([IO.Path]::GetFullPath($ResolvedConda.Source) -ne $Destination) {
+        Write-Output "conda currently resolves to $($ResolvedConda.Source)."
+        Write-Output "Put $InstallDir before its directory in PATH to use this installation."
+    }
+} finally {
+    Remove-Item -Recurse -Force -LiteralPath $TemporaryDir -ErrorAction SilentlyContinue
+    if ($InstallTemporary) {
+        Remove-Item -Force -LiteralPath $InstallTemporary -ErrorAction SilentlyContinue
+    }
+}

@@ -1,0 +1,158 @@
+#!/bin/sh
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
+set -eu
+
+version="@CONDA_RUNTIME_VERSION@"
+repository="https://github.com/conda/conda"
+
+if [ "$#" -gt 1 ]; then
+    echo "usage: install.sh [INSTALL_DIR]" >&2
+    exit 2
+fi
+
+if [ "$#" -eq 1 ]; then
+    install_dir=$1
+else
+    install_dir="$HOME/.local/bin"
+fi
+
+case "$(uname -s):$(uname -m)" in
+    Linux:x86_64|Linux:amd64)
+        target="x86_64-unknown-linux-gnu"
+        ;;
+    Linux:aarch64|Linux:arm64)
+        target="aarch64-unknown-linux-gnu"
+        ;;
+    Darwin:x86_64|Darwin:amd64)
+        target="x86_64-apple-darwin"
+        ;;
+    Darwin:arm64|Darwin:aarch64)
+        target="aarch64-apple-darwin"
+        ;;
+    *)
+        echo "unsupported platform: $(uname -s) $(uname -m)" >&2
+        exit 1
+        ;;
+esac
+
+if [ "$(uname -s)" = "Linux" ]; then
+    musl=false
+    if command -v ldd >/dev/null 2>&1 && ldd --version 2>&1 | grep -qi musl; then
+        musl=true
+    else
+        for loader in /lib/ld-musl-*.so.1 /usr/lib/ld-musl-*.so.1; do
+            if [ -e "$loader" ]; then
+                musl=true
+                break
+            fi
+        done
+    fi
+    if [ "$musl" = "true" ]; then
+        echo "unsupported Linux C library: conda requires a glibc-based system" >&2
+        exit 1
+    fi
+fi
+
+mkdir -p "$install_dir"
+install_dir=$(CDPATH='' cd -P "$install_dir" && pwd)
+destination="${install_dir}/conda"
+if [ -e "$destination" ] || [ -L "$destination" ]; then
+    echo "refusing to replace existing executable at ${destination}" >&2
+    echo "Use 'conda self update' for this runtime." >&2
+    echo "For recovery, move it aside and use the installer from the same runtime release." >&2
+    exit 1
+fi
+
+asset_name="conda-${target}"
+download_base="${repository}/releases/download/${version}"
+temporary_dir=$(mktemp -d)
+install_temporary=
+
+cleanup() {
+    rm -rf "$temporary_dir"
+    if [ -n "$install_temporary" ]; then
+        rm -f "$install_temporary"
+    fi
+}
+trap cleanup EXIT HUP INT TERM
+
+download() {
+    if command -v curl >/dev/null 2>&1; then
+        curl --fail --location --silent --show-error --output "$2" "$1"
+    elif command -v wget >/dev/null 2>&1; then
+        wget --quiet --output-document="$2" "$1"
+    else
+        echo "install.sh requires curl or wget" >&2
+        exit 1
+    fi
+}
+
+asset_path="${temporary_dir}/${asset_name}"
+checksums_path="${temporary_dir}/SHA256SUMS"
+download "${download_base}/${asset_name}" "$asset_path"
+download "${download_base}/SHA256SUMS" "$checksums_path"
+
+expected_checksum=$(
+    awk -v name="$asset_name" '
+        $2 == name {
+            checksum = $1
+            matches += 1
+        }
+        END {
+            if (matches != 1) {
+                exit 1
+            }
+            print checksum
+        }
+    ' "$checksums_path"
+) || {
+    echo "SHA256SUMS does not contain exactly one entry for ${asset_name}" >&2
+    exit 1
+}
+
+if command -v sha256sum >/dev/null 2>&1; then
+    actual_checksum=$(sha256sum "$asset_path" | awk '{ print $1 }')
+elif command -v shasum >/dev/null 2>&1; then
+    actual_checksum=$(shasum -a 256 "$asset_path" | awk '{ print $1 }')
+else
+    echo "install.sh requires sha256sum or shasum" >&2
+    exit 1
+fi
+
+if [ "$actual_checksum" != "$expected_checksum" ]; then
+    echo "checksum verification failed for ${asset_name}" >&2
+    exit 1
+fi
+install_temporary="${install_dir}/.conda.$$"
+cp "$asset_path" "$install_temporary"
+chmod 755 "$install_temporary"
+mv -n "$install_temporary" "$destination"
+if [ -e "$install_temporary" ]; then
+    echo "refusing to replace executable created during installation at ${destination}" >&2
+    exit 1
+fi
+install_temporary=
+
+if ! (
+    unset CONDA_SHIP_INTERNAL_UPDATE_INSTRUCTION
+    CONDA_SHIP_INTERNAL_UPDATE="v1/record-installation" \
+        CONDA_SHIP_INTERNAL_UPDATE_OWNERSHIP="direct" \
+        CONDA_SHIP_INTERNAL_UPDATE_INSTALLATION="standalone" \
+        CONDA_SHIP_INTERNAL_UPDATE_EXECUTABLE="$destination" \
+        "$destination" >/dev/null
+); then
+    rm -f "$destination"
+    echo "The conda runtime could not record the binary installation." >&2
+    exit 1
+fi
+
+echo "Installed conda ${version} to ${destination}"
+resolved_conda=$(command -v conda 2>/dev/null || true)
+if [ -z "$resolved_conda" ]; then
+    echo "Add ${install_dir} to PATH to run conda."
+elif [ ! "$resolved_conda" -ef "$destination" ]; then
+    echo "conda currently resolves to ${resolved_conda}."
+    echo "Put ${install_dir} before its directory in PATH to use this installation."
+fi

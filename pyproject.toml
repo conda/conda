@@ -256,6 +256,8 @@ select = [
   "ANN",  # flake8-annotations
   "D1",  # pydocstyle
 ]
+"runtime/scripts/*" = ["ANN", "D1", "TID251"]
+"runtime/tests/*" = ["ANN", "D1", "S101", "TID251", "TID253"]
 "tests/*" = [
   "ANN",  # flake8-annotations
   "D1",  # pydocstyle
@@ -272,3 +274,7 @@ banned-module-level-imports = ["requests"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "json".msg = "Use `conda.common.serialize.json` instead."
+
+[tool.ruff.per-file-target-version]
+"runtime/scripts/*" = "py312"
+"runtime/tests/*" = "py312"

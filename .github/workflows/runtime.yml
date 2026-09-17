@@ -1,0 +1,479 @@
+name: Conda binaries
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional rehearsal version, defaults to the next patch after the latest stable tag
+        required: false
+        type: string
+  pull_request:
+    paths:
+      - .github/workflows/runtime.yml
+      - runtime/**
+      - recipe/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  prepare:
+    if: github.event_name != 'release' || (github.repository == 'conda/conda' && !github.event.release.prerelease)
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      timestamp: ${{ steps.release.outputs.timestamp }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Identify release source
+        id: release
+        env:
+          VERSION: ${{ github.event.release.tag_name || inputs.version }}
+          RELEASE: ${{ github.event_name == 'release' }}
+        shell: python
+        run: |
+          import os
+          import re
+          import subprocess
+
+          version = os.environ["VERSION"]
+          if not version:
+              tags = subprocess.check_output(["git", "tag", "--merged", "HEAD", "--sort=-version:refname"], text=True).splitlines()
+              latest = next(tag for tag in tags if re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", tag))
+              major, minor, patch = latest.split(".")
+              version = f"{major}.{minor}.{int(patch) + 1}"
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+              raise SystemExit("Binary releases require X.Y.Z")
+          if os.environ["RELEASE"] == "true":
+              tag = subprocess.check_output(["git", "rev-parse", f"refs/tags/{version}^{{commit}}"], text=True).strip()
+              head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+              if tag != head:
+                  raise SystemExit("Checkout does not match the release tag")
+          timestamp = subprocess.check_output(["git", "show", "-s", "--format=%ct", "HEAD"], text=True).strip()
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"version={version}\ntimestamp={timestamp}\n")
+
+  test:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
+        with:
+          pixi-version: v0.81.0
+          manifest-path: runtime/updater/pyproject.toml
+      - name: Test updater and release scripts
+        run: pixi run --manifest-path runtime/updater/pyproject.toml --locked python -m pytest -c runtime/updater/pyproject.toml runtime/updater/tests runtime/tests
+
+  build-updater:
+    needs: prepare
+    runs-on: ubuntu-latest
+    env:
+      CONDA_RUNTIME_VERSION: ${{ needs.prepare.outputs.version }}
+      SOURCE_DATE_EPOCH: ${{ needs.prepare.outputs.timestamp }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
+        with:
+          pixi-version: v0.81.0
+          manifest-path: runtime/updater/pyproject.toml
+      - name: Build the bundled updater
+        run: >-
+          pixi run --manifest-path runtime/updater/pyproject.toml --locked
+          rattler-build build --recipe runtime/recipes/conda-runtime-updater/recipe.yaml
+          --channel conda-forge --output-dir source-packages
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: source-updater
+          path: source-packages/noarch/*.conda
+          if-no-files-found: error
+
+  build-conda:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - subdir: linux-64
+            os: ubuntu-latest
+          - subdir: linux-aarch64
+            os: ubuntu-24.04-arm
+          - subdir: osx-64
+            os: macos-15-intel
+          - subdir: osx-arm64
+            os: macos-15
+          - subdir: win-64
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      CONDA_CHANNELS: conda-forge
+      CONDA_RUNTIME_VERSION: ${{ needs.prepare.outputs.version }}
+      SOURCE_DATE_EPOCH: ${{ needs.prepare.outputs.timestamp }}
+      _CONDA_BUILD_ISOLATED_ACTIVATION: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
+        with:
+          pixi-version: v0.81.0
+          manifest-path: runtime/updater/pyproject.toml
+      - name: Build conda from this source commit
+        run: >-
+          pixi run --manifest-path runtime/updater/pyproject.toml --locked
+          conda build recipe --python 3.12 --override-channels --channel conda-forge
+          --no-anaconda-upload --output-folder source-packages
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: source-conda-${{ matrix.subdir }}
+          path: source-packages/${{ matrix.subdir }}/*.conda
+          if-no-files-found: error
+
+  source-packages:
+    needs: [prepare, test, build-conda, build-updater]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: source-*
+          path: collected
+      - name: Preserve conda subdirectories
+        shell: bash
+        run: |
+          mkdir -p source-packages/noarch
+          cp collected/source-updater/*.conda source-packages/noarch/
+          for subdir in linux-64 linux-aarch64 osx-64 osx-arm64 win-64; do
+            mkdir -p "source-packages/$subdir"
+            cp "collected/source-conda-$subdir/"*.conda "source-packages/$subdir/"
+          done
+      - name: Attest source packages
+        if: github.event_name == 'release'
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: source-packages/**/*.conda
+      - name: Publish packages at their durable download URLs
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: python runtime/scripts/publish-github-assets.py source-packages "$VERSION" --source-packages
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: source-packages
+          path: source-packages
+          if-no-files-found: error
+
+  build-runtime:
+    needs: [prepare, source-packages]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - subdir: linux-64
+            os: ubuntu-latest
+          - subdir: linux-aarch64
+            os: ubuntu-24.04-arm
+          - subdir: osx-64
+            os: macos-15-intel
+          - subdir: osx-arm64
+            os: macos-15
+          - subdir: win-64
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      SOURCE_DATE_EPOCH: ${{ needs.prepare.outputs.timestamp }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: source-packages
+          path: source-packages
+      - uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
+        with:
+          pixi-version: v0.81.0
+          manifest-path: runtime/updater/pyproject.toml
+      - name: Resolve the exact runtime package set
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SUBDIR: ${{ matrix.subdir }}
+          PUBLISH: ${{ github.event_name == 'release' }}
+        run: |
+          args=()
+          if [ "$PUBLISH" = true ]; then
+            args+=(--release-url "https://github.com/conda/conda/releases/download/$VERSION")
+          fi
+          pixi run --manifest-path runtime/updater/pyproject.toml --locked \
+            python runtime/scripts/prepare-runtime.py \
+            --version "$VERSION" --subdir "$SUBDIR" \
+            --packages-dir source-packages --output-dir runtime-build "${args[@]}"
+          pixi lock --manifest-path runtime-build/pixi.toml
+      - name: Build with released conda-ship
+        id: ship
+        uses: conda-incubator/conda-ship@b556f2f36b17b0c629ab4a3806b05bb1915ec1bf # 0.9.2
+        with:
+          conda-ship-version: 0.9.2
+          root: runtime-build
+      - name: Stage finalized executable and inventory
+        shell: bash
+        env:
+          BINARY: ${{ steps.ship.outputs.binary-path }}
+          SBOM: ${{ steps.ship.outputs.sbom-path }}
+          LOCK: ${{ steps.ship.outputs.lock-path }}
+          SUBDIR: ${{ matrix.subdir }}
+        run: |
+          mkdir -p staged/release-assets "staged/build-records/$SUBDIR"
+          cp "$BINARY" "$SBOM" staged/release-assets/
+          cp "$LOCK" runtime-build/pixi.toml runtime-build/pixi.lock "staged/build-records/$SUBDIR/"
+      - name: Prove offline bootstrap and output modes
+        shell: bash
+        env:
+          BINARY: ${{ steps.ship.outputs.binary-path }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          CONDA_OFFLINE: '1'
+          CONDA_SHIP_PREFIX: ${{ runner.temp }}/runtime-smoke
+          CONDA_PKGS_DIRS: ${{ runner.temp }}/runtime-smoke-pkgs
+          CONDA_ENVS_PATH: ${{ runner.temp }}/runtime-smoke-envs
+        run: |
+          "$BINARY" info --json > info.json
+          pixi run --manifest-path runtime/updater/pyproject.toml --locked \
+            python -c 'import json, os; assert json.load(open("info.json"))["conda_version"] == os.environ["VERSION"]'
+          "$BINARY" --version
+          "$BINARY" self --help
+      - name: Verify macOS signature
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          BINARY: ${{ steps.ship.outputs.binary-path }}
+        run: codesign --verify --strict --verbose=2 "$BINARY"
+      - name: Package finalized executable for updates
+        shell: bash
+        env:
+          BINARY: ${{ steps.ship.outputs.binary-path }}
+          CS: ${{ steps.ship.outputs.cs-path }}
+          INFO: ${{ steps.ship.outputs.info-path }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SUBDIR: ${{ matrix.subdir }}
+        run: |
+          mkdir -p "staged/update-packages/$SUBDIR"
+          "$CS" package-update --info "$INFO" --binary "$BINARY" \
+            --out-dir "staged/update-packages/$SUBDIR" --json > package.json
+          pixi run --manifest-path runtime/updater/pyproject.toml --locked \
+            python runtime/scripts/verify-update-package.py package.json "$BINARY" \
+            "staged/update-packages/$SUBDIR/conda-runtime-$VERSION-0.conda" "$VERSION" "$SUBDIR"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runtime-${{ matrix.subdir }}
+          path: staged
+          if-no-files-found: error
+
+  verify-runtime:
+    needs: [prepare, build-runtime]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: runtime-*
+          path: staged
+          merge-multiple: true
+      - name: Validate complete distribution and generate installers
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: python runtime/scripts/verify-runtime-artifacts.py staged "$VERSION" --write-checksums
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: validated-runtime
+          path: staged
+          if-no-files-found: error
+
+  installers:
+    needs: [prepare, verify-runtime]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: validated-runtime
+          path: staged
+      - name: Prove native installation and refusal to overwrite
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: python runtime/scripts/prove-installers.py staged/release-assets "$VERSION"
+
+  update-proof:
+    needs: [prepare, source-packages]
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - subdir: linux-64
+            os: ubuntu-latest
+          - subdir: osx-arm64
+            os: macos-15
+          - subdir: win-64
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: source-packages
+          path: source-packages
+      - uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
+        with:
+          pixi-version: v0.81.0
+          manifest-path: runtime/updater/pyproject.toml
+      - name: Prepare two generations against a local update channel
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SUBDIR: ${{ matrix.subdir }}
+        run: |
+          pixi run --manifest-path runtime/updater/pyproject.toml --locked \
+            python runtime/scripts/prepare-runtime.py \
+            --version "$VERSION" --subdir "$SUBDIR" \
+            --packages-dir source-packages --output-dir candidate
+          pixi lock --manifest-path candidate/pixi.toml
+          pixi run --manifest-path runtime/updater/pyproject.toml --locked \
+            python runtime/scripts/prove-runtime-update.py prepare \
+            --work "${RUNNER_TEMP}/runtime-proof" --platform "$SUBDIR" \
+            --gen2-root candidate
+      - name: Build baseline conda 26.5.2
+        id: baseline
+        uses: conda-incubator/conda-ship@b556f2f36b17b0c629ab4a3806b05bb1915ec1bf # 0.9.2
+        with:
+          conda-ship-version: 0.9.2
+          root: ${{ runner.temp }}/runtime-proof/gen1
+      - name: Preserve baseline executable
+        id: preserve
+        shell: bash
+        env:
+          BINARY: ${{ steps.baseline.outputs.binary-path }}
+        run: |
+          binary="${RUNNER_TEMP}/baseline-conda"
+          if [ "$RUNNER_OS" = Windows ]; then
+            binary="${binary}.exe"
+          fi
+          cp "$BINARY" "$binary"
+          echo "binary=$binary" >> "$GITHUB_OUTPUT"
+      - name: Build current conda source
+        id: current
+        uses: conda-incubator/conda-ship@b556f2f36b17b0c629ab4a3806b05bb1915ec1bf # 0.9.2
+        with:
+          conda-ship-version: 0.9.2
+          root: ${{ runner.temp }}/runtime-proof/gen2
+      - name: Prove inner and outer updates and recovery
+        shell: bash
+        env:
+          CS: ${{ steps.current.outputs.cs-path }}
+          BASELINE: ${{ steps.preserve.outputs.binary }}
+          CURRENT: ${{ steps.current.outputs.binary-path }}
+          INFO: ${{ steps.current.outputs.info-path }}
+          SUBDIR: ${{ matrix.subdir }}
+        run: |
+          pixi run --manifest-path runtime/updater/pyproject.toml --locked \
+            python runtime/scripts/prove-runtime-update.py full \
+            --work "${RUNNER_TEMP}/runtime-proof" --platform "$SUBDIR" \
+            --cs-path "$CS" --gen1-binary "$BASELINE" \
+            --gen2-binary "$CURRENT" --gen2-info "$INFO"
+
+  publish-github:
+    if: github.event_name == 'release'
+    needs: [prepare, installers, update-proof]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: validated-runtime
+          path: staged
+      - name: Attest executable, SBOM, installers, and checksums
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: staged/release-assets/*
+      - name: Attest native update packages
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: staged/update-packages/**/*.conda
+      - name: Publish conda binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: python runtime/scripts/publish-github-assets.py staged/release-assets "$VERSION"
+
+  publish-channel:
+    needs: [prepare, publish-github]
+    runs-on: ubuntu-latest
+    environment: runtime
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: validated-runtime
+          path: staged
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: source-packages
+          path: staged/source-packages
+      - uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
+        with:
+          pixi-version: v0.81.0
+          manifest-path: runtime/updater/pyproject.toml
+      - name: Publish conda and updater packages, then native updates
+        env:
+          ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_ORG_CONDA_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          python runtime/scripts/check-anaconda-token.py
+          pixi run --manifest-path runtime/updater/pyproject.toml --environment publish --locked \
+            python runtime/scripts/publish-runtime-packages.py staged "$VERSION"

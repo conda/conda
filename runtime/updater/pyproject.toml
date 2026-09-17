@@ -1,0 +1,86 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling>=1.27"]
+
+[project]
+authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dependencies = ["conda>=26.1.1"]
+description = "Coordinate conda binary updates with root-prefix transactions."
+license = "BSD-3-Clause"
+name = "conda-runtime-updater"
+readme = "README.md"
+requires-python = ">=3.10"
+version = "0.1.0"
+
+[project.entry-points.conda]
+conda-runtime-updater = "conda_runtime_updater.plugin"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8",
+  "ruff>=0.12",
+]
+
+[project.urls]
+repository = "https://github.com/conda/conda"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/conda_runtime_updater"]
+
+[tool.pixi.dependencies]
+conda = ">=26.1.1"
+conda-build = ">=26.3.0"
+conda-index = ">=0.7.0"
+hatchling = ">=1.27"
+pytest = ">=8"
+python = "3.12.*"
+rattler-build = "0.70.*"
+ruff = ">=0.12"
+
+[tool.pixi.environments]
+publish = {features = ["publish"], no-default-feature = true}
+
+[tool.pixi.feature.publish]
+platforms = ["linux-64"]
+
+[tool.pixi.feature.publish.dependencies]
+anaconda-client = "==1.14.1"
+python = "3.12.*"
+
+[tool.pixi.pypi-dependencies]
+conda-runtime-updater = {path = ".", editable = true}
+
+[tool.pixi.tasks]
+build-conda-package = {cmd = "rattler-build build --recipe ../recipes/conda-runtime-updater/recipe.yaml --channel conda-forge", env = {CONDA_RUNTIME_VERSION = "0.1.0"}, description = "Build a development updater conda package"}
+format-check = {cmd = "ruff format --check .", description = "Verify updater formatting"}
+lint = {cmd = "ruff check .", description = "Check updater code style"}
+test = {cmd = "pytest", description = "Run updater tests"}
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "FA", "I", "RUF100", "T10", "TCH", "UP", "W"]
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = []
+strict = true
