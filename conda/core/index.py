@@ -9,7 +9,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.context import context
-from ..common.iterators import unique
+from ..common.iterators import groupby_to_dict, unique
 from ..exceptions import (
     CondaKeyError,
     InvalidSpec,
@@ -431,6 +431,17 @@ class Index(UserDict):
             inst.__dict__["_data"] = self.__dict__["_data"].copy()
         return inst
 
+    def copy(self) -> Self:
+        """Lazy shallow copy that does not realize unrealized package records.
+
+        Overrides ``UserDict.copy``, which reads ``self.data`` and calls
+        ``update`` and therefore forces
+        ``Index._realize()`` — constructing a PackageRecord for every package
+        of every channel — even though ``__copy__`` preserves unrealized
+        state. See conda/conda-build#4961.
+        """
+        return self.__copy__()
+
 
 class ReducedIndex(Index):
     """Index that contains a subset of available packages.
@@ -490,6 +501,11 @@ class ReducedIndex(Index):
         collected_track_features = set()
         pending_names = set()
         pending_track_features = set()
+        cache_records = (
+            groupby_to_dict(lambda record: record.name, self.cache_entries)
+            if self.use_cache
+            else {}
+        )
 
         def push_specs(*specs: MatchSpec | str) -> None:
             """
@@ -547,7 +563,11 @@ class ReducedIndex(Index):
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
                 new_records = dict.fromkeys(self._retrieve_all_from_channels(spec))
-                push_records(*new_records)
+                for record in new_records:
+                    push_records(record)
+                for record in cache_records.get(name, ()):
+                    if record not in new_records:
+                        push_records(record)
                 records.update(new_records)
 
             while pending_track_features:
@@ -558,7 +578,12 @@ class ReducedIndex(Index):
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
                 new_records = dict.fromkeys(self._retrieve_all_from_channels(spec))
-                push_records(*new_records)
+                for record in new_records:
+                    push_records(record)
+                for records_for_name in cache_records.values():
+                    for record in records_for_name:
+                        if record not in new_records and spec.match(record):
+                            push_records(record)
                 records.update(new_records)
 
         self._data = {rec: rec for rec in records}

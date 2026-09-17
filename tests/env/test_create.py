@@ -505,15 +505,15 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     monkeypatch: MonkeyPatch,
 ):
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
-    stdout, _, _ = conda_cli(
+    _, stderr, _ = conda_cli(
         "env",
         "create",
         f"--prefix={path_factory()}",
         f"--file={support_file('invalid_keys.yml')}",
     )
 
-    # EnvironmentSectionNotValid should only appear once in the output
-    assert stdout.count("EnvironmentSectionNotValid") == 1
+    # EnvironmentSectionNotValid should only appear once in stderr
+    assert stderr.count("EnvironmentSectionNotValid") == 1
 
 
 @pytest.mark.integration

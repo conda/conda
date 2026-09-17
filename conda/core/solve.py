@@ -22,6 +22,7 @@ from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
+from ..deprecations import deprecated
 from ..exceptions import (
     NoChannelsConfiguredError,
     PackagesNotFoundInChannelsError,
@@ -67,6 +68,7 @@ class BaseSolver:
     """
 
     _index: ReducedIndex | None
+    _provided_index: Index | dict | None
     _r: Resolve | None
 
     supports_exclude_newer_global: ClassVar[bool] = False
@@ -128,6 +130,7 @@ class BaseSolver:
             raise ValueError(f"Unknown subdir(s):{dashlist(sorted(unknown_subdirs))}")
         self._repodata_fn = repodata_fn
         self._index = None
+        self._provided_index = None
         self._r = None
         self._prepared = False
         self._pool_cache = {}
@@ -235,6 +238,7 @@ class BaseSolver:
         )
 
         self._notify_conda_outdated(link_precs)
+        self._notify_pip_as_python_deprecation(link_precs)
         return UnlinkLinkTransaction(
             PrefixSetup(
                 self.prefix,
@@ -374,6 +378,38 @@ class BaseSolver:
                     file=sys.stderr,
                 )
 
+    def _notify_pip_as_python_deprecation(self, link_precs):
+        if not context.add_pip_as_python_dependency or context.quiet or context.json:
+            return
+
+        spec_names = {prec.name for prec in link_precs}
+        user_configured_add_pip_as_dep = any(
+            "add_pip_as_python_dependency" in v for v in context.raw_data.values()
+        )
+        if (
+            ("python" in spec_names)
+            and ("pip" in spec_names)
+            and "pip" not in {s.name for s in self.unmerged_specs_to_add}
+            and (not user_configured_add_pip_as_dep)
+        ):
+            deprecated.topic(
+                "27.3",
+                "27.9",
+                topic="Implicit installation of pip as a Python dependency",
+                addendum=dedent(
+                    """
+                    conda is adding pip because add_pip_as_python_dependency defaults to true.
+                    This default will change to false in conda 27.9.0.
+
+                    Next steps:
+                      - Keep current behavior:  conda config --set add_pip_as_python_dependency true
+                      - Install pip only when asked: include pip in your specs (e.g. python pip)
+                      - Opt out early:          conda config --set add_pip_as_python_dependency false
+                    """
+                ),
+                deprecation_type=FutureWarning,
+            )
+
 
 class Solver(BaseSolver):
     supports_exclude_newer_global = True
@@ -508,10 +544,7 @@ class Solver(BaseSolver):
                 " with flexible solve.\n"
             )
         elif self._repodata_fn != REPODATA_FN:
-            fail_message = (
-                f"unsuccessful attempt using repodata from {self._repodata_fn}, retrying"
-                " with next repodata source.\n"
-            )
+            fail_message = "retrying with next repodata source.\n"
         else:
             fail_message = "failed\n"
 
@@ -1363,9 +1396,31 @@ class Solver(BaseSolver):
         if self._prepared and prepared_specs == self._prepared_specs:
             return self._index, self._r
 
-        if hasattr(self, "_index") and self._index:
+        if not self._prepared and (isinstance(self._index, Index) or bool(self._index)):
+            self._provided_index = self._index
+
+        if self._provided_index is not None:
             # added in install_actions for conda-build back-compat
             self._prepared_specs = prepared_specs
+            if (
+                isinstance(self._provided_index, Index)
+                and not isinstance(self._provided_index, ReducedIndex)
+                and "_data" not in self._provided_index.__dict__
+                and (
+                    self._provided_index.prefix_data is None
+                    or paths_equal(
+                        self._provided_index.prefix_data.prefix_path, self.prefix
+                    )
+                )
+            ):
+                provided_index = self._provided_index
+                if provided_index.prefix_data is None:
+                    provided_index = copy.copy(provided_index)
+                    provided_index.prefix_data = PrefixData(self.prefix)
+                self._index = provided_index.get_reduced_index(prepared_specs)
+            else:
+                # Preserve explicitly supplied records, including another prefix's records.
+                self._index = self._provided_index
             self._r = Resolve(self._index, channels=self.channels)
         else:
             # add in required channels that aren't explicitly given in the channels list

@@ -474,9 +474,8 @@ def test_update_env_only_pip_json_output(
 
 
 @pytest.mark.integration
-@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_update_env_no_action_json_output(
-    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
 ):
@@ -486,18 +485,14 @@ def test_update_env_no_action_json_output(
     """
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
-    prefix = path_factory()
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
+
+    with tmp_env("ca-certificates") as prefix:
+        create_env(ENVIRONMENT_CA_CERTIFICATES)
+        stdout, _, _ = conda_cli(
+            "env", "update", f"--prefix={prefix}", "--quiet", "--json"
         )
-    )
-    create_env(ENVIRONMENT_PIP_CLICK)
-    conda_cli("env", "create", f"--prefix={prefix}", "--json", "--yes")
-    stdout, _, _ = conda_cli("env", "update", f"--prefix={prefix}", "--quiet", "--json")
-    output = json.loads(stdout)
-    assert output["message"] == "All requested packages already installed."
+        output = json.loads(stdout)
+        assert output["message"] == "All requested packages already installed."
 
 
 @pytest.mark.integration
