@@ -123,7 +123,7 @@ jobs:
             os: windows-latest
     runs-on: ${{ matrix.os }}
     env:
-      CONDARC: ${{ github.workspace }}/.github/condarc-conda-forge
+      CONDA_CHANNELS: conda-forge
       CONDA_RUNTIME_VERSION: ${{ needs.prepare.outputs.version }}
       SOURCE_DATE_EPOCH: ${{ needs.prepare.outputs.timestamp }}
       _CONDA_BUILD_ISOLATED_ACTIVATION: '1'
