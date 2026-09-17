@@ -1,0 +1,46 @@
+context:
+  version: ${{ env.get("CONDA_RUNTIME_VERSION", default="0.1.0") }}
+  python_min: '3.10'
+
+package:
+  name: conda-runtime-updater
+  version: ${{ version }}
+
+source:
+  path: ../../updater
+
+build:
+  number: 0
+  string: py_0
+  noarch: python
+  script:
+    env:
+      CONDA_RUNTIME_VERSION: ${{ version }}
+    content: ${{ PYTHON }} build-package.py
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - hatchling >=1.27
+  run:
+    - python >=${{ python_min }}
+    - conda >=26.1.1
+
+tests:
+  - python:
+      imports:
+        - conda_runtime_updater
+        - conda_runtime_updater.helper
+        - conda_runtime_updater.locking
+        - conda_runtime_updater.metadata
+        - conda_runtime_updater.plugin
+      pip_check: true
+      python_version: ${{ python_min }}.*
+
+about:
+  homepage: https://github.com/conda/conda
+  repository: https://github.com/conda/conda
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Coordinate standalone conda executable updates with root-prefix transactions.

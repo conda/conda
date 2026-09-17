@@ -1,7 +1,9 @@
+{% set runtime_version = os.getenv("CONDA_RUNTIME_VERSION") %}
+
 package:
   name: conda
   # VERSION_OVERRIDE is used by the canary release workflow
-  version: {{ os.getenv("VERSION_OVERRIDE") or GIT_DESCRIBE_TAG }}.{{ GIT_DESCRIBE_NUMBER }}+{{ GIT_DESCRIBE_HASH }}
+  version: {{ runtime_version or ((os.getenv("VERSION_OVERRIDE") or GIT_DESCRIBE_TAG) ~ "." ~ GIT_DESCRIBE_NUMBER ~ "+" ~ GIT_DESCRIBE_HASH) }}
 
 source:
   # git_url only captures committed code
@@ -9,6 +11,12 @@ source:
   folder: conda-src
 
 build:
+  {% if runtime_version %}
+  # Release assets share one directory, so each native package needs a unique name.
+  string: runtime_{{ target_platform | replace("-", "_") }}_0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ runtime_version }}
+  {% endif %}
   script: {{ PYTHON }} -m pip install conda-src/ --no-deps --no-build-isolation -vv && {{ PYTHON }} -m conda init --install
   # These are present when the new environment is created
   # so we have to exempt them from the list of initial files

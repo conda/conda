@@ -1,0 +1,26 @@
+### Title
+Install and update conda release binaries.
+
+### Why
+The release workflow adds an executable distribution with a managed conda prefix and a separate executable update step.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+Two successful binary releases with packages visible in the official conda channel. Use a disposable account or isolated `CONDA_SHIP_PREFIX`, `CONDA_ENVS_PATH`, and `CONDA_PKGS_DIRS`.
+
+### Steps
+1. Install the first release into an empty executable directory.
+2. Disable network access and run `conda --version` and `conda info --json` to bootstrap its prefix.
+3. Restore network access, run `conda self update --dry-run --yes`, and decline a subsequent interactive update.
+4. Run `conda self update --json --yes` and invoke the executable again after completion.
+5. Clear the package cache and exercise `conda self reset --snapshot installer-exact`.
+
+### Pass criteria
+Versions and root prefix match the installed release. Dry runs and declined updates leave executable and prefix unchanged. Successful updates change both versions and emit valid JSON. Reset can download original packages from GitHub after cache cleanup.
+
+### Out of scope / notes
+The workflow separately proves recovery and external replacement against a local channel. These checks cover published URLs and channel propagation.
