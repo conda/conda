@@ -1,0 +1,84 @@
+### Title
+`conda plugins info` subcommand
+
+### Why
+https://github.com/conda/conda/pull/16356 adds a new subcommand, `conda plugins info <name>`, which shows detailed metadata for a single installed conda plugin.
+
+### Platforms
+- [X] Windows
+- [X] macOS
+- [X] Linux
+
+### Prerequisites
+None
+
+### Steps
+
+1. Run `conda plugins info conda-libmamba-solver` to view details for one installed plugin. The output should look something like (version, summary, license, homepage, and project URLs will vary by plugin):
+```
+$ conda plugins info conda-libmamba-solver
+Name          : conda-libmamba-solver
+Version       : 26.7.0
+Status        : active
+Canonical name: conda-libmamba-solver
+Hooks         : solvers, subcommands
+Summary       : The conda libmamba solver.
+License       : BSD-3-Clause
+Homepage      : https://github.com/conda/conda-libmamba-solver
+Project URLs  :
+  - Documentation: https://conda.github.io/conda-libmamba-solver
+  - Source: https://github.com/conda/conda-libmamba-solver
+```
+
+2. Ensure the json output also works. The same plugin should be displayed with the same metadata (including name, version, canonical name, status, hooks, summary, license, homepage, and project URLs). The output should look something like:
+```
+$ conda plugins info conda-libmamba-solver --json
+{
+  "name": "conda-libmamba-solver",
+  "version": "26.7.0",
+  "canonical_name": "conda-libmamba-solver",
+  "status": "active",
+  "hooks": [
+    "solvers",
+    "subcommands"
+  ],
+  "summary": "The conda libmamba solver.",
+  "license": "BSD-3-Clause",
+  "homepage": "https://github.com/conda/conda-libmamba-solver",
+  "project_urls": [
+    {
+      "label": "Documentation",
+      "url": "https://conda.github.io/conda-libmamba-solver"
+    },
+    {
+      "label": "Source",
+      "url": "https://github.com/conda/conda-libmamba-solver"
+    }
+  ]
+}
+```
+
+3. Check that name normalization works by using a non-canonical spelling, e.g. `conda plugins info conda_libmamba_solver` (underscores instead of dashes). The same plugin details as in step 1 should be displayed.
+
+4. Check that disabling plugins works as expected by setting the env var `CONDA_NO_PLUGINS=true` and checking that the status is `disabled`:
+```
+$ CONDA_NO_PLUGINS=true conda plugins info conda-libmamba-solver
+Name          : conda-libmamba-solver
+Version       : 26.7.0
+Status        : disabled
+...
+```
+
+5. Check that querying a plugin that is not installed fails with a clear error and a non-zero exit code:
+```
+$ conda plugins info not-a-real-plugin
+CondaValueError: No installed conda plugin found matching 'not-a-real-plugin'.
+```
+
+### Pass criteria
+* There are no failures running the steps above, and all checks pass.
+
+### Out of scope / notes
+* Listing all plugins (covered in https://github.com/conda/conda/pull/16355).
+* per plugin disabling (covered in https://github.com/conda/conda/pull/15915).
+* The `packaging >= 26.3` minimum version bump is enforced by the package requirements and covered by automated tests.
