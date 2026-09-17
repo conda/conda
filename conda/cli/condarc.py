@@ -17,10 +17,11 @@ from logging import getLogger
 from pathlib import Path
 from shutil import copystat
 from stat import S_IMODE
+from threading import Lock
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from ..common.compat import on_mac
+from ..common.compat import on_mac, on_win
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 
 if TYPE_CHECKING:
@@ -30,6 +31,65 @@ if TYPE_CHECKING:
     from ..common.configuration import Configuration
 
 log = getLogger(__name__)
+_write_lock = Lock()
+
+
+def _reset_write_lock() -> None:
+    global _write_lock
+    _write_lock = Lock()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_write_lock)
+
+
+def _file_version(metadata: os.stat_result | None) -> tuple[int, ...]:
+    if metadata is None:
+        return ()
+    return (
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_mode,
+        metadata.st_uid,
+        metadata.st_gid,
+        metadata.st_size,
+        getattr(metadata, "st_flags", 0),
+        getattr(metadata, "st_file_attributes", 0),
+        metadata.st_mtime_ns,
+        metadata.st_ctime_ns,
+    )
+
+
+def _read_file(path: Path) -> tuple[Path, str | None, os.stat_result | None]:
+    """Read one file version, checking its descriptor and resolved path."""
+    from .. import CondaError
+
+    target = path.resolve()
+    try:
+        source = target.open()
+    except FileNotFoundError:
+        if path.resolve() == target and not target.exists():
+            return target, None, None
+    else:
+        with source:
+            before = os.fstat(source.fileno())
+            text = source.read()
+            after = os.fstat(source.fileno())
+            try:
+                current = target.stat()
+            except FileNotFoundError:
+                current = None
+            if (
+                path.resolve() == target
+                and _file_version(before) == _file_version(after)
+                and _file_version(after) == _file_version(current)
+            ):
+                return target, text, after
+
+    raise CondaError(
+        f"Cannot read condarc file at {path}: file changed while reading. "
+        "Read the file again before retrying."
+    )
 
 
 def _register_enum_representers() -> None:
@@ -214,7 +274,7 @@ class ConfigurationFile:
     ) -> None:
         self._path = path
         self._content = content
-        self._read_state: tuple[Path, Path, str | None] | None = None
+        self._read_state: tuple[Path, Path, str | None, tuple[int, ...]] | None = None
 
         self._context = context
         self._context_params: ParameterTypeGroups | None = None
@@ -368,14 +428,10 @@ class ConfigurationFile:
 
         path = Path(path or self._path)
 
-        target = path.resolve()
-        try:
-            text = path.read_text()
-        except FileNotFoundError:
-            text = None
+        target, text, metadata = _read_file(path)
 
         self._content = (yaml.read(text=text) or {}) if text is not None else {}
-        self._read_state = (path.absolute(), target, text)
+        self._read_state = (path.absolute(), target, text, _file_version(metadata))
         return self._content
 
     def write(self, path: str | os.PathLike[str] | Path | None = None) -> None:
@@ -390,134 +446,166 @@ class ConfigurationFile:
         """
         from .. import CondaError
         from ..common.serialize import yaml
+        from ..gateways.disk.lock import lock
 
         path = Path(path or self._path)
         source_fd = None
         temporary = None
+        temporary_metadata = None
 
-        def current_state() -> tuple[Path, str | None]:
-            target = path.resolve()
-            try:
-                text = target.read_text()
-            except FileNotFoundError:
-                text = None
-            return target, text
+        def conflict(when: str) -> CondaError:
+            return CondaError(
+                f"Cannot write to condarc file at {path}: file changed {when}. "
+                "Read the file again before retrying."
+            )
 
         try:
             text = yaml.write(self.content)
-            if on_mac:
-                target = path.resolve()
-                try:
-                    source_fd = os.open(target, os.O_RDONLY)
-                except FileNotFoundError:
-                    metadata = None
-                    previous_text = None
-                else:
-                    with os.fdopen(os.dup(source_fd)) as source:
-                        previous_text = source.read()
-                    metadata = os.fstat(source_fd)
-                    try:
-                        current_metadata = target.stat()
-                    except FileNotFoundError:
-                        current_metadata = None
-                    if current_metadata is None or not os.path.samestat(
-                        metadata, current_metadata
-                    ):
-                        raise CondaError(
-                            f"Cannot write to condarc file at {path}: "
-                            "file changed while reading"
-                        )
-            else:
-                target, previous_text = current_state()
-                try:
-                    metadata = target.stat()
-                except FileNotFoundError:
-                    metadata = None
+            target, previous_text, metadata = _read_file(path)
+            state = (target, previous_text, _file_version(metadata))
             if self._read_state is not None:
-                read_path, read_target, read_text = self._read_state
-                if read_path == path.absolute() and (target, previous_text) != (
-                    read_target,
-                    read_text,
-                ):
-                    raise CondaError(
-                        f"Cannot write to condarc file at {path}: file changed after reading"
-                    )
+                read_path, *read_state = self._read_state
+                if (
+                    read_path == path.absolute() or read_state[0] == target
+                ) and state != tuple(read_state):
+                    raise conflict("after reading")
             if text == previous_text:
+                self._read_state = (path.absolute(), *state)
                 return
 
-            if metadata is not None:
-                write_fd = os.open(target, os.O_WRONLY)
-                os.close(write_fd)
-
             def source_changed() -> bool:
-                if current_state() != (target, previous_text):
-                    return True
-                if source_fd is None or metadata is None:
-                    return False
-                try:
-                    current_metadata = target.stat()
-                except FileNotFoundError:
-                    return True
-                open_metadata = os.fstat(source_fd)
-                return (
-                    not os.path.samestat(open_metadata, current_metadata)
-                    or open_metadata.st_ctime_ns != metadata.st_ctime_ns
+                current_target, current_text, current_metadata = _read_file(path)
+                return state != (
+                    current_target,
+                    current_text,
+                    _file_version(current_metadata),
                 )
 
-            candidate = target.with_name(f".{target.name}.{uuid4().hex}.tmp")
-            if metadata is None:
-                mode = 0o666
-            else:
-                mode = 0 if on_mac else S_IMODE(metadata.st_mode)
-            fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
-            temporary = candidate
-            with os.fdopen(fd, "w") as stream:
-                if metadata is not None:
-                    if on_mac:
-                        from ..common._os.osx import copy_acl
+            parent_metadata = target.parent.stat()
+            lock_path = target.with_name(f"{target.name}.lock")
+            # POSIX record locks are per process. Keep all opens and closes of
+            # the persistent lock file inside the thread lock as well.
+            with (
+                _write_lock,
+                lock_path.open("a+") as lock_file,
+                lock(lock_file, required=True),
+            ):
+                lock_metadata = os.fstat(lock_file.fileno())
 
-                        copy_acl(source_fd, stream.fileno())
-                    if hasattr(os, "chown"):
-                        temporary_metadata = os.fstat(stream.fileno())
-                        if (temporary_metadata.st_uid, temporary_metadata.st_gid) != (
-                            metadata.st_uid,
-                            metadata.st_gid,
-                        ):
-                            os.chown(temporary, metadata.st_uid, metadata.st_gid)
-                    copystat(target, temporary)
-                    if on_mac:
-                        if source_changed():
-                            raise CondaError(
-                                f"Cannot write to condarc file at {path}: "
-                                "file changed while writing"
-                            )
-                stream.write(text)
-                stream.flush()
-                if metadata is not None and on_mac:
-                    if source_changed():
-                        raise CondaError(
-                            f"Cannot write to condarc file at {path}: "
-                            "file changed while writing"
+                def paths_changed() -> bool:
+                    try:
+                        return not (
+                            os.path.samestat(parent_metadata, target.parent.stat())
+                            and os.path.samestat(lock_metadata, lock_path.lstat())
                         )
-                os.fsync(stream.fileno())
+                    except FileNotFoundError:
+                        return True
 
-            if source_changed():
-                raise CondaError(
-                    f"Cannot write to condarc file at {path}: file changed while writing"
+                if paths_changed() or source_changed():
+                    raise conflict("while waiting to write")
+                if metadata is not None:
+                    write_fd = os.open(target, os.O_WRONLY)
+                    os.close(write_fd)
+                    if on_mac:
+                        source_fd = os.open(target, os.O_RDONLY)
+                        if _file_version(os.fstat(source_fd)) != _file_version(
+                            metadata
+                        ):
+                            raise conflict("while writing")
+
+                candidate = target.with_name(f".{target.name}.{uuid4().hex}.tmp")
+                if metadata is None:
+                    mode = 0o666
+                else:
+                    mode = 0 if on_mac else S_IMODE(metadata.st_mode)
+                fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
+                temporary = candidate
+                temporary_metadata = os.fstat(fd)
+                with os.fdopen(fd, "w") as stream:
+                    if metadata is not None:
+                        if on_mac:
+                            from ..common._os.osx import copy_acl
+
+                            copy_acl(source_fd, stream.fileno())
+                        if hasattr(os, "chown"):
+                            if (
+                                temporary_metadata.st_uid,
+                                temporary_metadata.st_gid,
+                            ) != (metadata.st_uid, metadata.st_gid):
+                                os.chown(temporary, metadata.st_uid, metadata.st_gid)
+                        copystat(target, temporary)
+                        if source_changed():
+                            raise conflict("while writing")
+                    stream.write(text)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                    staged_metadata = os.fstat(stream.fileno())
+
+                _, staged_text, closed_metadata = _read_file(temporary)
+                # Windows can finalize timestamps when the writing handle closes.
+                # Contents, identity, and access metadata must still match.
+                version_end = -2 if on_win else None
+                if (
+                    staged_text != text
+                    or closed_metadata is None
+                    or _file_version(staged_metadata)[:version_end]
+                    != _file_version(closed_metadata)[:version_end]
+                ):
+                    raise conflict("while writing")
+                staged_metadata = closed_metadata
+                if (
+                    paths_changed()
+                    or source_changed()
+                    or _file_version(temporary.lstat())
+                    != _file_version(staged_metadata)
+                ):
+                    raise conflict("while writing")
+                if source_fd is not None:
+                    os.close(source_fd)
+                    source_fd = None
+                os.replace(temporary, target)
+                temporary = None
+                self._read_state = (
+                    path.absolute(),
+                    target,
+                    text,
+                    _file_version(staged_metadata),
                 )
-            if source_fd is not None:
-                os.close(source_fd)
-                source_fd = None
-            os.replace(temporary, target)
-            temporary = None
-            self._read_state = (path.absolute(), target, text)
+                # Rename may change ctime. Only refresh it from our staged file,
+                # never from a replacement or different contents written later.
+                try:
+                    committed_target, committed_text, committed_metadata = _read_file(
+                        path
+                    )
+                except (OSError, CondaError):
+                    pass
+                else:
+                    if (
+                        committed_target == target
+                        and committed_text == text
+                        and committed_metadata is not None
+                        and _file_version(staged_metadata)[:-1]
+                        == _file_version(committed_metadata)[:-1]
+                    ):
+                        self._read_state = (
+                            path.absolute(),
+                            target,
+                            text,
+                            _file_version(committed_metadata),
+                        )
         except OSError as e:
             raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
         finally:
             if source_fd is not None:
                 os.close(source_fd)
             if temporary is not None:
-                temporary.unlink(missing_ok=True)
+                try:
+                    if temporary_metadata is not None and os.path.samestat(
+                        temporary_metadata, temporary.lstat()
+                    ):
+                        temporary.unlink()
+                except FileNotFoundError:
+                    pass
 
     def key_exists(self, key: str) -> bool:
         """

@@ -749,7 +749,7 @@ def test_config_write_failure_preserves_file(
         config.write()
 
     assert path.read_text() == original
-    assert list(tmp_path.iterdir()) == [path]
+    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}
 
 
 @pytest.mark.parametrize("initial", [None, "changeps1: true\n"])
@@ -785,7 +785,7 @@ def test_config_write_rejects_change_during_write(
         config.write()
 
     assert path.read_text() == changed
-    assert list(tmp_path.iterdir()) == [path]
+    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}
 
 
 @pytest.mark.skipif(on_win, reason="POSIX file permissions")
@@ -834,7 +834,7 @@ def test_config_write_preserves_macos_acl(
         copy_acl(source_fd, destination_fd)
 
     def check_candidate_acl(fd: int) -> None:
-        candidate = next(item for item in tmp_path.iterdir() if item != path)
+        candidate = next(tmp_path.glob("*.tmp"))
         staged = run(
             ["/bin/ls", "-lde", candidate],
             check=True,
@@ -874,7 +874,7 @@ def test_config_write_macos_acl_failure_preserves_file(
         config.write()
 
     assert path.read_text() == original
-    assert list(tmp_path.iterdir()) == [path]
+    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}
 
 
 @pytest.mark.skipif(not on_mac, reason="macOS file ACLs")
@@ -912,7 +912,7 @@ def test_config_write_rejects_macos_security_change(
         config.write()
 
     assert path.read_text() == original
-    assert list(tmp_path.iterdir()) == [path]
+    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}
 
 
 @pytest.mark.skipif(
@@ -932,7 +932,7 @@ def test_config_write_respects_read_only_file(tmp_path: Path) -> None:
         config.write()
 
     assert path.read_text() == original
-    assert list(tmp_path.iterdir()) == [path]
+    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}
 
 
 @pytest.mark.skipif(on_win, reason="symlink privilege required")
@@ -983,3 +983,369 @@ def test_config_write_other_path(tmp_path: Path) -> None:
 
     assert path.read_text() == "changeps1: true\nalways_yes: false\n"
     assert source.read_text() == "changeps1: true\n"
+
+
+@pytest.mark.parametrize("changeps1", [True, False])
+def test_config_write_rejects_same_content_replacement(
+    tmp_path: Path, changeps1: bool
+) -> None:
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", changeps1)
+    replacement = tmp_path / "replacement"
+    replacement.write_text(original)
+    os.replace(replacement, path)
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed after reading"):
+        config.write()
+
+    assert path.read_text() == original
+    assert set(tmp_path.iterdir()) == {path}
+
+
+@pytest.mark.skipif(on_win, reason="POSIX file permissions")
+def test_config_write_rejects_permissions_changed_after_read(tmp_path: Path) -> None:
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    path.chmod(0o600)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    path.chmod(0o640)
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed after reading"):
+        config.write()
+
+    assert path.read_text() == "changeps1: true\n"
+    assert S_IMODE(path.stat().st_mode) == 0o640
+
+
+@pytest.mark.skipif(on_win, reason="Windows ctime is creation time on Python 3.10")
+def test_config_write_rejects_restored_contents_and_mtime(tmp_path: Path) -> None:
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    before = path.stat()
+    path.write_text("changeps1: false\n")
+    path.write_text(original)
+    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+    if path.stat().st_ctime_ns == before.st_ctime_ns:
+        pytest.skip("The filesystem did not record a distinct metadata change time")
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed after reading"):
+        config.write()
+
+    assert path.read_text() == original
+
+
+@pytest.mark.skipif(on_win, reason="symlink privilege required")
+def test_config_write_rejects_retargeted_symlink(tmp_path: Path) -> None:
+    original = "changeps1: true\n"
+    target = tmp_path / "target"
+    target.write_text(original)
+    other = tmp_path / "other"
+    other.write_text(original)
+    path = tmp_path / ".condarc"
+    path.symlink_to(target.name)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    path.unlink()
+    path.symlink_to(other.name)
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed after reading"):
+        config.write()
+
+    assert path.resolve() == other
+    assert target.read_text() == other.read_text() == original
+
+
+@pytest.mark.skipif(on_win, reason="symlink privilege required")
+@pytest.mark.parametrize("same_target", [True, False])
+def test_config_write_checks_read_state_through_symlink(
+    tmp_path: Path, same_target: bool
+) -> None:
+    source = tmp_path / "source"
+    source.write_text("changeps1: true\n")
+    config = ConfigurationFile(source)
+    config.set_key("changeps1", False)
+    changed = "changeps1: true\nalways_yes: true\n"
+    source.write_text(changed)
+    target = source if same_target else tmp_path / "other"
+    if not same_target:
+        target.write_text("always_yes: false\n")
+    alias = tmp_path / "alias"
+    alias.symlink_to(target.name)
+
+    if same_target:
+        with pytest.raises(
+            conda.exceptions.CondaError, match="file changed after reading"
+        ):
+            config.write(alias)
+    else:
+        config.write(alias)
+        assert target.read_text() == "changeps1: false\n"
+
+    assert source.read_text() == changed
+    assert alias.is_symlink()
+
+
+def test_config_read_rejects_change_during_read(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    config = ConfigurationFile(path)
+    fstat = os.fstat
+    changed = False
+
+    def change_after_stat(fd: int) -> os.stat_result:
+        nonlocal changed
+        result = fstat(fd)
+        if not changed:
+            changed = True
+            path.write_text("changeps1: false\nalways_yes: true\n")
+        return result
+
+    mocker.patch("os.fstat", side_effect=change_after_stat)
+    with pytest.raises(conda.exceptions.CondaError, match="file changed while reading"):
+        config.read()
+
+    assert config._read_state is None
+    assert config._content is None
+
+
+def test_config_write_rejects_same_content_replacement_during_write(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+
+    def replace_source(fd: int) -> None:
+        replacement = tmp_path / "replacement"
+        replacement.write_text(original)
+        os.replace(replacement, path)
+
+    mocker.patch("os.fsync", side_effect=replace_source)
+    with pytest.raises(conda.exceptions.CondaError, match="file changed while writing"):
+        config.write()
+
+    assert path.read_text() == original
+    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}
+
+
+@pytest.mark.skipif(on_win, reason="Replacing an open temporary file requires POSIX")
+def test_config_write_leaves_replaced_temporary_file(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+
+    def replace_temporary(fd: int) -> None:
+        candidate = next(tmp_path.glob("*.tmp"))
+        candidate.unlink()
+        candidate.write_text("another writer's file\n")
+
+    mocker.patch("os.fsync", side_effect=replace_temporary)
+    with pytest.raises(conda.exceptions.CondaError, match="file changed while writing"):
+        config.write()
+
+    assert path.read_text() == original
+    assert next(tmp_path.glob("*.tmp")).read_text() == "another writer's file\n"
+
+
+@pytest.mark.parametrize(
+    "later_text", ["changeps1: false\n", "changeps1: false\nalways_yes: true\n"]
+)
+def test_config_write_does_not_adopt_later_replacement(
+    tmp_path: Path, mocker: MockerFixture, later_text: str
+) -> None:
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    replace = os.replace
+
+    def replace_again(source: Path, destination: Path) -> None:
+        replace(source, destination)
+        later = tmp_path / "later"
+        later.write_text(later_text)
+        replace(later, destination)
+
+    mocker.patch("os.replace", side_effect=replace_again)
+    config.write()
+    config.set_key("always_yes", False)
+    with pytest.raises(conda.exceptions.CondaError, match="file changed after reading"):
+        config.write()
+
+    assert path.read_text() == later_text
+
+
+@pytest.mark.skipif(on_win, reason="POSIX directory permissions")
+def test_config_write_noop_does_not_need_writable_directory(tmp_path: Path) -> None:
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    config = ConfigurationFile(path)
+    config.read()
+    tmp_path.chmod(0o500)
+    try:
+        config.write()
+        assert set(tmp_path.iterdir()) == {path}
+    finally:
+        tmp_path.chmod(0o700)
+
+
+def test_config_write_serializes_threads(tmp_path: Path, mocker: MockerFixture) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    from conda.cli import condarc
+
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    first = ConfigurationFile(path)
+    first.set_key("changeps1", False)
+    second = ConfigurationFile(path)
+    second.set_key("always_yes", True)
+    replacing = Event()
+    second_waiting = Event()
+    write_lock = condarc._write_lock
+    replace = os.replace
+
+    class ObservedLock:
+        def __enter__(self):
+            if replacing.is_set():
+                second_waiting.set()
+            return write_lock.__enter__()
+
+        def __exit__(self, *args):
+            return write_lock.__exit__(*args)
+
+    def wait_for_second_writer(source: Path, destination: Path) -> None:
+        replacing.set()
+        assert second_waiting.wait(10)
+        replace(source, destination)
+
+    mocker.patch.object(condarc, "_write_lock", ObservedLock())
+    mocker.patch("os.replace", side_effect=wait_for_second_writer)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first_write = executor.submit(first.write)
+        assert replacing.wait(10)
+        second_write = executor.submit(second.write)
+        first_write.result(timeout=10)
+        with pytest.raises(
+            conda.exceptions.CondaError, match="file changed while waiting to write"
+        ):
+            second_write.result(timeout=10)
+
+    assert path.read_text() == "changeps1: false\n"
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
+def test_config_write_after_fork_with_lock_held_by_thread(tmp_path: Path) -> None:
+    import signal
+    from multiprocessing import get_context
+    from threading import Event, Thread
+
+    from conda.cli import condarc
+
+    path = tmp_path / ".condarc"
+    held = Event()
+    release = Event()
+
+    def hold_lock() -> None:
+        with condarc._write_lock:
+            held.set()
+            release.wait(20)
+
+    multiprocessing = get_context("fork")
+    parent, child = multiprocessing.Pipe(duplex=False)
+
+    def write_in_child() -> None:
+        signal.alarm(5)
+        try:
+            ConfigurationFile(path, content={"changeps1": False}).write()
+            child.send("written")
+        except Exception as error:
+            child.send(type(error).__name__)
+        finally:
+            child.close()
+
+    thread = Thread(target=hold_lock)
+    process = multiprocessing.Process(target=write_in_child)
+    thread.start()
+    try:
+        assert held.wait(5)
+        process.start()
+        assert parent.poll(10)
+        assert parent.recv() == "written"
+        process.join(5)
+        assert process.exitcode == 0
+        assert path.read_text() == "changeps1: false\n"
+    finally:
+        release.set()
+        thread.join(5)
+        if process.is_alive():
+            process.terminate()
+            process.join(5)
+        parent.close()
+        child.close()
+
+
+def test_config_write_accepts_windows_timestamps_finalized_on_close(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    from types import SimpleNamespace
+
+    from conda.cli import condarc
+
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    fsync = os.fsync
+    fstat = os.fstat
+    pending_fd = None
+    changed = 0
+
+    def sync_with_pending_timestamps(fd: int) -> None:
+        nonlocal pending_fd
+        fsync(fd)
+        pending_fd = fd
+
+    def stat_with_pending_timestamps(fd: int):
+        nonlocal pending_fd, changed
+        metadata = fstat(fd)
+        if fd != pending_fd:
+            return metadata
+        pending_fd = None
+        changed += 1
+        pending = SimpleNamespace(
+            **{
+                name: getattr(metadata, name)
+                for name in dir(metadata)
+                if name.startswith("st_")
+            }
+        )
+        pending.st_mtime_ns -= 1
+        pending.st_ctime_ns -= 1
+        return pending
+
+    mocker.patch.object(condarc, "on_win", True)
+    mocker.patch.object(condarc, "on_mac", False)
+    mocker.patch("os.fsync", side_effect=sync_with_pending_timestamps)
+    mocker.patch("os.fstat", side_effect=stat_with_pending_timestamps)
+    config.write()
+    config.set_key("always_yes", False)
+    config.write()
+
+    assert changed == 2
+    assert path.read_text() == "changeps1: false\nalways_yes: false\n"
