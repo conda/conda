@@ -31,4 +31,4 @@ jobs:
         with:
           skip-label: no-news
           require-pr-number: true
-          news-directory: news
+          news-directory: 'releases/news'
