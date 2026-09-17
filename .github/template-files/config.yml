@@ -19,6 +19,8 @@ conda/infrastructure:
   # [optional] canary build workflow
   - src: templates/workflows/build.yml
     dst: .github/workflows/build.yml
+    with:
+      win_arm64: true
   # For noarch packages, add:
   #   with:
   #     noarch: true
