@@ -20,11 +20,11 @@ conda pypi index /tmp/mychannel
 ### Steps
 1. Ensure that conda can search the channels for pyfig. conda should show the same version of pyfig from the channel named `mychannel`.
 ```
- $ conda search --override-channels -c file://tmp/mychannel -c conda-forge pyfig 
+ $ conda search --override-channels -c file://tmp/mychannel -c conda-forge pyfig
 
 Loading channels: done
-# Name                       Version           Build  Channel             
-pyfig                          1.0.2  py3_none_any_0  mychannel 
+# Name                       Version           Build  Channel
+pyfig                          1.0.2  py3_none_any_0  mychannel
 ```
 
 2. Try creating an environment with pyfig. conda should be installing pyfig from the channel named `mychannel`.
@@ -33,7 +33,7 @@ $ conda create -n test --override-channels -c file://tmp/mychannel -c conda-forg
 . . .
 The following NEW packages will be INSTALLED:
 . . .
-  pyfig              mychannel/noarch::pyfig-1.0.2-py3_none_any_0 
+  pyfig              mychannel/noarch::pyfig-1.0.2-py3_none_any_0
 . . .
 ```
 
