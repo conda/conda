@@ -204,11 +204,8 @@ in `.condarc`), independent of the active solver backend.
        exclude_newer: false
    ```
 
-   (Use the bare channel name here, not the `file://` URL — matching by
-   channel name avoids an unrelated pre-existing crash in conda's
-   `channel_settings`-aware session lookup when a `file://` URL is used as
-   the selector. This is not part of this PR; it's worth a separate report
-   if not already tracked, but keep this scenario limited to `#15761`.)
+   (Use the bare channel name, not the `file://` URL. `file://` selectors in
+   `channel_settings` crash with a `TypeError`, a pre-existing bug (#16698).)
 
    ```console
    $ CONDARC=/tmp/exclude-newer-condarc.yml conda search --override-channels -c file:///tmp/exclude-newer-channel -c file:///tmp/exclude-newer-channel-two --json '*'
@@ -289,7 +286,4 @@ in `.condarc`), independent of the active solver backend.
   pre-populating the package cache, so it's left to automated tests.
 - conda-build / rattler-build integration (issue #6119 and friends) is
   separate downstream work and out of scope here.
-- The `file://` + `channel_settings` crash noted in step 6 lives in
-  `conda/gateways/connection/session.py` (`get_session`), unrelated to
-  `conda/core/exclude_newer.py`; flag it separately if it isn't already
-  known, but it isn't this PR's regression.
+- The step 6 `file://` selector crash is a pre-existing bug, #16698.
