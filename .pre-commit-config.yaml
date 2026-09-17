@@ -111,6 +111,7 @@ repos:
             .authors.yml |
             recipe/meta.yaml |
             .github/workflows/build.yml |
+            .github/workflows/check-news.yml |
             .github/workflows/prepare-authors.yml |
             .github/workflows/prepare-release.yml |
             .github/workflows/slow-tests.yml |
