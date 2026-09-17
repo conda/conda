@@ -143,7 +143,7 @@ def test_runtime_discovery_fails_closed_on_ambiguity(tmp_path):
     write_metadata(tmp_path, executable, name="conda")
     write_metadata(tmp_path, executable, name="other")
 
-    with pytest.raises(CondaError, match="Multiple standalone conda runtime records"):
+    with pytest.raises(CondaError, match="Multiple conda runtime records"):
         plugin.discover_runtime(tmp_path)
 
 

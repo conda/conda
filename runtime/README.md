@@ -1,6 +1,6 @@
 # Conda binaries
 
-The `Conda binaries` workflow builds ready-to-use conda executables when a stable `X.Y.Z` GitHub release is published. It ports the executable distribution and updater from [conda-runtime](https://github.com/jezdez/conda-runtime). It is separate from [conda-standalone](https://github.com/conda/conda-standalone).
+The `Conda binaries` workflow builds ready-to-use conda executables when a stable `X.Y.Z` GitHub release is published. It ports the executable distribution and updater from [conda-runtime](https://github.com/jezdez/conda-runtime).
 
 Each executable contains Python, conda built from the release tag, conda's packaged plugins, and `conda-runtime-updater`. The released conda-ship 0.9.2 builder and templates provide the executable and embedded bootstrap. Conda-ship is not installed in the managed prefix.
 

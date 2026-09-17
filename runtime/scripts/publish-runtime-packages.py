@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Publish standalone conda packages to the official Anaconda.org channel."""
+"""Publish conda runtime packages to the official Anaconda.org channel."""
 
 from __future__ import annotations
 

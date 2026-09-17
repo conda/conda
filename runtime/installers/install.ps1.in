@@ -14,7 +14,7 @@ if (-not $InstallDir) {
 }
 
 if (-not [Environment]::Is64BitOperatingSystem) {
-    throw "The standalone conda runtime requires 64-bit Windows"
+    throw "The conda runtime requires 64-bit Windows"
 }
 
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
@@ -81,7 +81,7 @@ try {
     try {
         & $Destination | Out-Null
         if ($LASTEXITCODE -ne 0) {
-            throw "The conda runtime could not record the standalone installation"
+            throw "The conda runtime could not record the binary installation"
         }
     } catch {
         Remove-Item -Force -LiteralPath $Destination -ErrorAction SilentlyContinue

@@ -144,7 +144,7 @@ if ! (
         "$destination" >/dev/null
 ); then
     rm -f "$destination"
-    echo "The conda runtime could not record the standalone installation." >&2
+    echo "The conda runtime could not record the binary installation." >&2
     exit 1
 fi
 

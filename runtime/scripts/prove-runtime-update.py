@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Prove standalone conda runtime updates against one temporary channel."""
+"""Prove conda runtime updates against one temporary channel."""
 
 from __future__ import annotations
 
@@ -352,7 +352,7 @@ build:
   noarch: generic
 
 about:
-  summary: Test-only candidate used to prove standalone runtime version pinning
+  summary: Test-only candidate used to prove runtime version pinning
   license: BSD-3-Clause
 """,
         encoding="utf-8",
@@ -752,8 +752,8 @@ def prove_direct_update(
     if "updating conda (installed:" in quiet_output or any(
         message in quiet_output
         for message in (
-            "update the standalone conda runtime",
-            "standalone conda executable",
+            "update the conda runtime",
+            "conda binary",
             "requires recovery",
         )
     ):
@@ -770,10 +770,7 @@ def prove_direct_update(
         check=False,
     )
     prompt = f"{declined.stdout}\n{declined.stderr}".lower()
-    if (
-        declined.returncode != 0
-        or prompt.count("update the standalone conda runtime") != 1
-    ):
+    if declined.returncode != 0 or prompt.count("update the conda runtime") != 1:
         raise RuntimeError(
             "declined update did not exit cleanly after one runtime prompt: "
             f"exit code {declined.returncode}\n{tail(prompt)}"

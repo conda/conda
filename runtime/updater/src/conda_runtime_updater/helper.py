@@ -51,22 +51,18 @@ def invoke_helper(
             timeout=600,
         )
     except subprocess.TimeoutExpired as error:
-        raise CondaError(
-            f"Standalone conda executable {action} timed out after 600 seconds."
-        ) from error
+        raise CondaError(f"Conda binary {action} timed out after 600 seconds.") from error
     except OSError as error:
-        raise CondaError(
-            f"Could not start the standalone conda executable for {action}: {error}"
-        ) from error
+        raise CondaError(f"Could not start the conda binary for {action}: {error}") from error
     if result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip() or "unknown helper error"
-        raise CondaError(f"Standalone conda executable {action} failed: {detail}")
+        raise CondaError(f"Conda binary {action} failed: {detail}")
     try:
         response = json.loads(result.stdout)
     except json.JSONDecodeError as error:
-        raise CondaError(f"Standalone conda executable {action} returned invalid JSON.") from error
+        raise CondaError(f"Conda binary {action} returned invalid JSON.") from error
     if not isinstance(response, dict):
-        raise CondaError(f"Standalone conda executable {action} returned invalid data.")
+        raise CondaError(f"Conda binary {action} returned invalid data.")
     return response
 
 
@@ -77,9 +73,9 @@ def validate_check(
     """Validate the check fields used by the coordinator."""
 
     if not isinstance(response.get("available"), bool):
-        raise CondaError("Standalone conda executable check omitted update availability.")
+        raise CondaError("Conda binary check omitted update availability.")
     if response.get("ownership") != runtime.ownership:
-        raise CondaError("Standalone conda executable ownership changed during the update check.")
+        raise CondaError("Conda binary ownership changed during the update check.")
     if not response["available"]:
         return response
 
@@ -88,15 +84,15 @@ def validate_check(
     build_number = response.get("build_number")
     instruction = response.get("instruction")
     if not isinstance(version, str) or not version:
-        raise CondaError("Standalone conda executable check omitted the candidate version.")
+        raise CondaError("Conda binary check omitted the candidate version.")
     if (
         not isinstance(digest, str)
         or len(digest) != 64
         or any(character not in "0123456789abcdef" for character in digest)
     ):
-        raise CondaError("Standalone conda executable check returned an invalid SHA-256 digest.")
+        raise CondaError("Conda binary check returned an invalid SHA-256 digest.")
     if not isinstance(build_number, int) or isinstance(build_number, bool) or build_number < 0:
-        raise CondaError("Standalone conda executable check returned an invalid build number.")
+        raise CondaError("Conda binary check returned an invalid build number.")
     if instruction is not None and (not isinstance(instruction, str) or not instruction.strip()):
-        raise CondaError("Standalone conda executable check returned an invalid instruction.")
+        raise CondaError("Conda binary check returned an invalid instruction.")
     return response

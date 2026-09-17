@@ -43,4 +43,4 @@ about:
   repository: https://github.com/conda/conda
   license: BSD-3-Clause
   license_file: LICENSE
-  summary: Coordinate standalone conda executable updates with root-prefix transactions.
+  summary: Coordinate conda binary updates with root-prefix transactions.

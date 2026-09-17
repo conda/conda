@@ -98,7 +98,7 @@ def prove_installers(assets: Path, version: str) -> None:
             "instruction": None,
         }
         if any(update.get(key) != value for key, value in expected.items()):
-            raise SystemExit("installer did not record standalone ownership")
+            raise SystemExit("installer did not record direct ownership")
         if Path(update.get("executable", "")).resolve() != destination:
             raise SystemExit("installer recorded a different executable")
         result = subprocess.run(
@@ -116,7 +116,7 @@ def prove_installers(assets: Path, version: str) -> None:
             raise SystemExit("installer did not refuse an existing executable")
         if sha256(destination) != expected_hash:
             raise SystemExit("refused installation changed the executable")
-    print(f"Verified offline standalone installation of conda {version}.")
+    print(f"Verified offline binary installation of conda {version}.")
 
 
 def main() -> None:

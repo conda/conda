@@ -40,7 +40,7 @@ def discover_runtime(prefix: Path) -> RuntimeMetadata | None:
 
     if len(matches) > 1:
         paths = ", ".join(str(runtime.path) for runtime in matches)
-        raise CondaError(f"Multiple standalone conda runtime records were found: {paths}")
+        raise CondaError(f"Multiple conda runtime records were found: {paths}")
     return matches[0] if matches else None
 
 
@@ -131,5 +131,5 @@ def conda_version_from_runtime(version: str) -> str:
 
     match = re.fullmatch(r"(?P<conda>[0-9]+\.[0-9]+\.[0-9]+)(?:\.post[0-9]+)?", version)
     if match is None:
-        raise CondaError(f"Standalone conda runtime version is invalid: {version!r}")
+        raise CondaError(f"Conda runtime version is invalid: {version!r}")
     return match["conda"]

@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = ["hatchling>=1.27"]
 
 [project]
-authors = [{name = "Jannis Leidel", email = "jannis@leidel.info"}]
+authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "License :: OSI Approved :: BSD License",
@@ -15,7 +15,7 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
 ]
 dependencies = ["conda>=26.1.1"]
-description = "Coordinate standalone conda executable updates with root-prefix transactions."
+description = "Coordinate conda binary updates with root-prefix transactions."
 license = "BSD-3-Clause"
 name = "conda-runtime-updater"
 readme = "README.md"

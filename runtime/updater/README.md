@@ -1,7 +1,7 @@
 # conda-runtime-updater
 
 `conda-runtime-updater` is the transaction coordinator installed inside the
-managed prefix of the standalone conda runtime.
+managed prefix of the conda runtime.
 
 It has no user-facing subcommand. For root-prefix conda updates, it coordinates
 the stamped outer executable with conda's existing pre-solve and post-command
@@ -34,8 +34,8 @@ If the inner transaction fails, the old executable remains usable. The next
 runtime invocation and update attempt recover or discard the interrupted
 state.
 
-The plugin is packaged separately from conda and installed only in standalone
-runtimes. Its source lives in the [conda repository](https://github.com/conda/conda).
+The plugin is packaged separately from conda and installed only in the managed
+prefixes of conda binaries. Its source lives in the [conda repository](https://github.com/conda/conda).
 
 Run the focused tests with
 `pixi run --manifest-path runtime/updater/pyproject.toml --locked test`.

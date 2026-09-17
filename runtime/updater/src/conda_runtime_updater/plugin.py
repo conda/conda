@@ -71,9 +71,7 @@ def pre_solve(
     if runtime is None:
         return
     if context.ignore_pinned:
-        raise CondaError(
-            "The standalone conda runtime update cannot be coordinated with --no-pin."
-        )
+        raise CondaError("The conda runtime update cannot be coordinated with --no-pin.")
     if context.dry_run:
         pin_runtime_conda(runtime.version)
         return
@@ -102,7 +100,7 @@ def pre_solve(
         if not context.json:
             try:
                 confirm_yn(
-                    f"Update the standalone conda runtime to {candidate_version} together with "
+                    f"Update the conda runtime to {candidate_version} together with "
                     "its managed conda installation?",
                     default="yes",
                 )
@@ -112,7 +110,7 @@ def pre_solve(
 
         staged = invoke_helper(runtime, "stage", candidate=check["sha256"])
         if staged.get("staged") is not True:
-            raise CondaError("The standalone conda executable update was not staged.")
+            raise CondaError("The conda binary update was not staged.")
 
         pin_runtime_conda(candidate_version)
         _session = UpdateSession(runtime=runtime, lock=lock)
@@ -137,7 +135,7 @@ def post_command(command: str) -> None:
     try:
         applied = invoke_helper(session.runtime, "apply")
         if applied.get("applied") is not True and applied.get("replacement_pending") is not True:
-            raise CondaError("The standalone conda executable update was not applied.")
+            raise CondaError("The conda binary update was not applied.")
     except Exception as error:
         failure = error
     try:
