@@ -15,6 +15,7 @@ from conda.base.constants import SafetyChecks
 from conda.base.context import context, reset_context
 from conda.cli.condarc import MISSING, ConfigurationFile
 from conda.cli.main_config import set_keys
+from conda.common.compat import on_mac, on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.exceptions import (
     CondaKeyError,
@@ -787,7 +788,7 @@ def test_config_write_rejects_change_during_write(
     assert list(tmp_path.iterdir()) == [path]
 
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX file permissions")
+@pytest.mark.skipif(on_win, reason="POSIX file permissions")
 def test_config_write_preserves_permissions(tmp_path: Path) -> None:
     path = tmp_path / ".condarc"
     path.write_text("changeps1: true\n")
@@ -800,7 +801,7 @@ def test_config_write_preserves_permissions(tmp_path: Path) -> None:
     assert path.read_text() == "changeps1: false\n"
 
 
-@pytest.mark.skipif(not Path("/usr/bin/sw_vers").exists(), reason="macOS file ACLs")
+@pytest.mark.skipif(not on_mac, reason="macOS file ACLs")
 def test_config_write_preserves_macos_acl(
     tmp_path: Path, mocker: MockerFixture
 ) -> None:
@@ -856,7 +857,7 @@ def test_config_write_preserves_macos_acl(
     assert after == before
 
 
-@pytest.mark.skipif(not Path("/usr/bin/sw_vers").exists(), reason="macOS file ACLs")
+@pytest.mark.skipif(not on_mac, reason="macOS file ACLs")
 def test_config_write_macos_acl_failure_preserves_file(
     tmp_path: Path, mocker: MockerFixture
 ) -> None:
@@ -876,7 +877,7 @@ def test_config_write_macos_acl_failure_preserves_file(
     assert list(tmp_path.iterdir()) == [path]
 
 
-@pytest.mark.skipif(not Path("/usr/bin/sw_vers").exists(), reason="macOS file ACLs")
+@pytest.mark.skipif(not on_mac, reason="macOS file ACLs")
 @pytest.mark.parametrize("mutation", ("acl", "replacement"))
 def test_config_write_rejects_macos_security_change(
     tmp_path: Path, mocker: MockerFixture, mutation: str
@@ -915,7 +916,7 @@ def test_config_write_rejects_macos_security_change(
 
 
 @pytest.mark.skipif(
-    os.name == "nt" or os.geteuid() == 0, reason="POSIX unprivileged permissions"
+    on_win or os.geteuid() == 0, reason="POSIX unprivileged permissions"
 )
 def test_config_write_respects_read_only_file(tmp_path: Path) -> None:
     path = tmp_path / ".condarc"
@@ -934,7 +935,7 @@ def test_config_write_respects_read_only_file(tmp_path: Path) -> None:
     assert list(tmp_path.iterdir()) == [path]
 
 
-@pytest.mark.skipif(os.name == "nt", reason="symlink privilege required")
+@pytest.mark.skipif(on_win, reason="symlink privilege required")
 def test_config_write_preserves_symlink(tmp_path: Path) -> None:
     target = tmp_path / "target"
     target.write_text("changeps1: true\n")
@@ -959,7 +960,7 @@ def test_config_write_refreshes_read_state(tmp_path: Path) -> None:
     assert path.read_text() == "changeps1: false\nalways_yes: false\n"
 
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX file permissions")
+@pytest.mark.skipif(on_win, reason="POSIX file permissions")
 def test_config_new_file_honors_umask(tmp_path: Path) -> None:
     reference = tmp_path / "reference"
     reference.write_text("")

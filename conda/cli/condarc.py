@@ -20,6 +20,7 @@ from stat import S_IMODE
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from ..common.compat import on_mac
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 
 if TYPE_CHECKING:
@@ -404,7 +405,7 @@ class ConfigurationFile:
 
         try:
             text = yaml.write(self.content)
-            if sys.platform == "darwin":
+            if on_mac:
                 target = path.resolve()
                 try:
                     source_fd = os.open(target, os.O_RDONLY)
@@ -467,12 +468,12 @@ class ConfigurationFile:
             if metadata is None:
                 mode = 0o666
             else:
-                mode = 0 if sys.platform == "darwin" else S_IMODE(metadata.st_mode)
+                mode = 0 if on_mac else S_IMODE(metadata.st_mode)
             fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
             temporary = candidate
             with os.fdopen(fd, "w") as stream:
                 if metadata is not None:
-                    if sys.platform == "darwin":
+                    if on_mac:
                         from ..common._os.osx import copy_acl
 
                         copy_acl(source_fd, stream.fileno())
@@ -484,7 +485,7 @@ class ConfigurationFile:
                         ):
                             os.chown(temporary, metadata.st_uid, metadata.st_gid)
                     copystat(target, temporary)
-                    if sys.platform == "darwin":
+                    if on_mac:
                         if source_changed():
                             raise CondaError(
                                 f"Cannot write to condarc file at {path}: "
@@ -492,7 +493,7 @@ class ConfigurationFile:
                             )
                 stream.write(text)
                 stream.flush()
-                if metadata is not None and sys.platform == "darwin":
+                if metadata is not None and on_mac:
                     if source_changed():
                         raise CondaError(
                             f"Cannot write to condarc file at {path}: "
