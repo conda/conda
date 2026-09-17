@@ -32,7 +32,7 @@ jobs:
         uses: conda/actions/prepare-release@d88418cd4e36358ba51e7c88f2d2d5edb9ac49e7 #v26.8.1
         with:
           token: ${{ secrets.SYNC_TOKEN }}
-          news-directory: news
+          news-directory: releases/news
           changelog-path: CHANGELOG.md
           release-branch-pattern: |
             [0-9].*.x
