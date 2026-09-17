@@ -1,0 +1,11 @@
+### Enhancements
+
+* Build and publish ready-to-use conda binaries with embedded bootstrap and coordinated executable updates when a stable release is published. (#16715)
+
+### Bug fixes
+
+### Deprecations
+
+### Docs
+
+### Other
