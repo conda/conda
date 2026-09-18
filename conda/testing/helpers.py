@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
@@ -28,7 +28,6 @@ from ..gateways.disk.read import lexists
 from ..history import History
 from ..models.channel import Channel
 from ..models.records import PackageRecord, PrefixRecord
-from ..resolve import Resolve
 
 # The default value will only work if we have installed conda in development mode!
 TEST_DATA_DIR = os.environ.get(
@@ -259,6 +258,15 @@ def _get_index_r_base(
     add_pip=False,
     merge_noarch=False,
 ):
+    # Module deprecation warns only on first import; later callers must not
+    # expect another warning (collection or earlier tests may have imported it).
+    with (
+        pytest.deprecated_call()
+        if "conda.resolve" not in sys.modules
+        else nullcontext()
+    ):
+        from ..resolve import Resolve
+
     if isinstance(json_filename_or_packages, (str, os.PathLike)):
         with open(join(TEST_DATA_DIR, json_filename_or_packages)) as fi:
             all_packages = json.load(fi)

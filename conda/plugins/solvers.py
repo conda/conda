@@ -3,8 +3,15 @@
 """Register the classic conda solver."""
 
 from ..base.constants import CLASSIC_SOLVER
+from ..deprecations import deprecated
 from . import hookimpl
 from .types import CondaSolver
+
+deprecated.module(
+    "27.3",
+    "27.9",
+    addendum="Use the conda-classic-solver plugin instead.",
+)
 
 
 @hookimpl(tryfirst=True)  # make sure the classic solver can't be overwritten

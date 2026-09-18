@@ -44,6 +44,7 @@ from .exceptions import (
     LockError,
     PaddingError,
     PathNotFoundError,
+    ResolvePackageNotFound,
     UnsatisfiableError,
 )
 from .gateways.connection.download import TmpDownload  # noqa: F401
@@ -57,19 +58,50 @@ from .misc import untracked, walk_prefix  # noqa: F401
 from .models.channel import Channel, get_conda_build_local_url  # noqa: F401
 from .models.dist import Dist
 from .models.enums import FileMode, PathEnum  # noqa: F401
+from .models.match_spec import MatchSpec
 from .models.version import VersionOrder, normalized_version  # noqa: F401
-from .resolve import (  # noqa: F401
-    MatchSpec,
-    Resolve,
-    ResolvePackageNotFound,
-    Unsatisfiable,
-)
 from .utils import human_bytes, url_path  # noqa: F401
 
 reset_context()  # initialize context when conda.exports is imported
 
 
-NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
+def _resolve():
+    from . import resolve
+
+    return resolve
+
+
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "Resolve",
+    factory=lambda: _resolve().Resolve,
+    addendum="Use `conda-classic-solver` instead.",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "ResolvePackageNotFound",
+    ResolvePackageNotFound,
+    addendum="Use `conda.exports.ResolvePackageNotFound` instead.",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "NoPackagesFound",
+    ResolvePackageNotFound,
+    addendum="Use `conda.exports.ResolvePackageNotFound` instead.",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "NoPackagesFoundError",
+    ResolvePackageNotFound,
+    addendum="Use `conda.exports.ResolvePackageNotFound` instead.",
+)
+del ResolvePackageNotFound
+
+
 non_x86_linux_machines = non_x86_machines
 arch_name = context.arch_name
 binstar_upload = context.anaconda_upload
@@ -263,6 +295,20 @@ deprecated.constant(
     "UnsatisfiableError",
     UnsatisfiableError,
     addendum="Use `conda.exceptions.UnsatisfiableError` instead.",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "UnsatisfiableError",
+    UnsatisfiableError,
+    addendum="Use `conda.exports.UnsatisfiableError` instead.",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "Unsatisfiable",
+    UnsatisfiableError,
+    addendum="Use `conda.exports.UnsatisfiableError` instead.",
 )
 del UnsatisfiableError
 

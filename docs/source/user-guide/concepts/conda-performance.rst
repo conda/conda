@@ -44,7 +44,13 @@ This section goes over some of the best practices we recommend for addressing pe
 
    For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
 
-2. **Make sure you have libmamba set as your dependency solver.** The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than conda's classic solver, especially for large environments.
+2. **Make sure you have libmamba set as your dependency solver.** The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than the classic solver, especially for large environments.
+
+   .. note::
+
+      The classic solver is now provided by the standalone `conda-classic-solver
+      <https://github.com/conda/conda-classic-solver>`_ plugin rather than being registered by
+      conda itself.
 
    To check which solver you have, run the following command:
 

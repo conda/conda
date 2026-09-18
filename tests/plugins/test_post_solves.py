@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import plugins
+from conda.base.constants import APP_NAME
 from conda.exceptions import DryRunExit
-from conda.plugins import solvers
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -19,6 +19,8 @@ if TYPE_CHECKING:
         PathFactoryFixture,
         TmpEnvFixture,
     )
+
+pytestmark = [pytest.mark.usefixtures("parametrized_solver_fixture")]
 
 
 class PostSolvePlugin:
@@ -43,8 +45,8 @@ def post_solve_plugin(
     post_solve_plugin = PostSolvePlugin()
     plugin_manager_with_reporter_backends.register(post_solve_plugin)
 
-    # register solvers
-    plugin_manager_with_reporter_backends.load_plugins(solvers)
+    # classic via conda-classic-solver entry point (not deprecated conda.plugins.solvers)
+    plugin_manager_with_reporter_backends.load_entrypoints(APP_NAME)
 
     return post_solve_plugin
 
@@ -55,7 +57,7 @@ def test_post_solve_invoked(
     path_factory: PathFactoryFixture,
 ):
     with pytest.raises(DryRunExit):
-        with tmp_env("zlib", "--solver=classic", "--dry-run"):
+        with tmp_env("zlib", "--dry-run"):
             pass
 
     assert post_solve_plugin.post_solve_action.mock_calls
@@ -79,7 +81,7 @@ def test_post_solve_action_raises_exception(
     post_solve_plugin.post_solve_action.side_effect = [Exception(exc_message)]
 
     with pytest.raises(Exception, match=exc_message):
-        with tmp_env("zlib", "--solver=classic", "--dry-run"):
+        with tmp_env("zlib", "--dry-run"):
             pass
 
     assert post_solve_plugin.post_solve_action.mock_calls

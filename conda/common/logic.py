@@ -29,8 +29,15 @@ through the Require and Prevent functions.
 
 from itertools import chain
 
+from ..deprecations import deprecated
 from ._logic import FALSE, TRUE
 from ._logic import Clauses as _Clauses
+
+deprecated.module(
+    "27.3",
+    "27.9",
+    addendum="Use the conda-classic-solver plugin instead.",
+)
 
 # TODO: We may want to turn the user-facing {TRUE,FALSE} values into an Enum and
 #       hide the _logic.{TRUE,FALSE} values as an implementation detail.
