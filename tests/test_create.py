@@ -2590,6 +2590,7 @@ def test_dont_remove_conda_3(
             check=True,
             capture_output=True,
             text=True,
+            cwd=prefix,
         )
         assert package_is_installed(prefix, lightweight_dependency)
         install_output = (install_exc.stdout or "") + (install_exc.stderr or "")
@@ -2611,6 +2612,7 @@ def test_dont_remove_conda_3(
             check=True,
             capture_output=True,
             text=True,
+            cwd=prefix,
         )
         assert not package_is_installed(prefix, lightweight_dependency)
         remove_output = (remove_exc.stdout or "") + (remove_exc.stderr or "")
