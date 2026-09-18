@@ -18,6 +18,7 @@ from ..core.prefix_data import PrefixData
 from ..exceptions import CondaValueError, PlatformMismatchError
 from ..history import History
 from ..misc import get_package_records_from_explicit
+from .channel import Channel
 from .match_spec import MatchSpec
 
 if TYPE_CHECKING:
@@ -75,6 +76,26 @@ class EnvironmentConfig:
     update_modifier: UpdateModifier | None = None
 
     use_only_tar_bz2: bool | None = None
+
+    def get_channel(self, name: str) -> str | None:
+        """
+        **Experimental** While experimental, expect both major and minor changes across minor releases.
+
+        Look up a configured channel by its canonical name.
+
+        ``channels`` is an ordered sequence of channel references stored exactly as
+        configured (a channel name such as ``"conda-forge"`` or a URL such as
+        ``"https://conda.anaconda.org/conda-forge"``). This resolves each entry to a
+        :class:`~conda.models.channel.Channel` and compares its
+        :attr:`~conda.models.channel.Channel.canonical_name` against ``name``.
+
+        Returns the first matching entry in configured order, preserving the original
+        configured value, or ``None`` when no configured channel resolves to ``name``.
+        """
+        for channel in self.channels:
+            if Channel.from_value(channel).canonical_name == name:
+                return channel
+        return None
 
     def _append_without_duplicates(
         self, first: Iterable[T], second: Iterable[T]
