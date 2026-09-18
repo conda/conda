@@ -60,6 +60,7 @@ requirements:
     - tqdm >=4
     - truststore >=0.8.0
     # Plugins to bundle with conda
+    - conda-classic-solver >=0.0.0
     - conda-libmamba-solver >=26.4.1
     - conda-lockfiles >=0.2.0
     - conda-pypi >=0.10.1
