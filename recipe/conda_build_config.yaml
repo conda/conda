@@ -1,6 +1,6 @@
 python:
-  - '3.10'
-  - '3.11'
-  - '3.12'
-  - '3.13'
+  - '3.10'  # [not (win and arm64)]
+  - '3.11'  # [not (win and arm64)]
+  - '3.12'  # [not (win and arm64)]
+  - '3.13'  # [not (win and arm64)]
   - '3.14'
