@@ -8,7 +8,7 @@
 
 ### Deprecations
 
-* Mark `conda.plugins.solvers`, `conda.resolve`, and `conda.common._logic` as pending deprecation, to be removed in 27.9. Depend on [`conda-classic-solver`](https://github.com/conda/conda-classic-solver) instead. (#14170 via #16520)
+* Mark `conda.plugins.solvers`, `conda.resolve`, `conda.common.logic`, and `conda.common._logic` as pending deprecation, to be removed in 27.9. Depend on [`conda-classic-solver`](https://github.com/conda/conda-classic-solver) instead. (#14170 via #16520)
 
 ### Docs
 
