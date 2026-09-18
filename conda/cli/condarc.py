@@ -17,6 +17,8 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ruamel.yaml.comments import CommentedSeq
+
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 
 if TYPE_CHECKING:
@@ -453,20 +455,27 @@ class ConfigurationFile:
             bad = self.content[key].__class__.__name__
             raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
 
+        comment = None
         if item in arglist:
             # Right now, all list keys should not contain duplicates
             location = "top" if prepend else "bottom"
             message_key = key + "." + subkey if subkey is not None else key
             message = f"Warning: '{item}' already in '{message_key}' list, moving to the {location}"
 
-            if subkey is None:
-                arglist = self.content[key] = [p for p in arglist if p != item]
-            else:
-                arglist = self.content[key][subkey] = [p for p in arglist if p != item]
+            item_index = arglist.index(item)
+            item = arglist[item_index]
+            if isinstance(arglist, CommentedSeq):
+                comment = arglist.ca.items.get(item_index)
+            for index in reversed(range(len(arglist))):
+                if arglist[index] == item:
+                    del arglist[index]
 
             self.warning_handler(msg=message)
 
-        arglist.insert(0 if prepend else len(arglist), item)
+        index = 0 if prepend else len(arglist)
+        arglist.insert(index, item)
+        if comment is not None:
+            arglist.ca.items[index] = comment
 
     def get_key(
         self,
@@ -592,9 +601,10 @@ class ConfigurationFile:
                 raise CondaKeyError(
                     parameter_name, f"value {item!r} not present in config"
                 )
-            base_config[parameter_name] = [
-                i for i in base_config[parameter_name] if i != item
-            ]
+            arglist = base_config[parameter_name]
+            for index in reversed(range(len(arglist))):
+                if arglist[index] == item:
+                    del arglist[index]
         else:
             raise CondaKeyError(key, "invalid parameter")
 
