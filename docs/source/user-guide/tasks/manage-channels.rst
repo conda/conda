@@ -160,4 +160,33 @@ we recommend the following approach:
       with the same name exists in a higher-priority channel. This includes
       channels that supply packages not available as conda packages.
 
+Installing release candidates with strict channel priority
+==========================================================
+
+Some channel providers publish pre-release packages in label channels. Conda
+treats each label as a separate channel, so its position in the channel list
+affects package selection. With strict channel priority, if a package name is
+present in a higher-priority label channel, builds of that package in
+lower-priority channels are excluded from consideration.
+
+Prefer a package-specific pre-release label, when the channel provider offers
+one, and place it immediately before the corresponding stable channel. For
+example:
+
+.. code-block:: yaml
+
+   channel_priority: strict
+   channels:
+     - <owner>/label/<package>-rc
+     - <owner>
+
+When that label contains only builds for the package being tested, unrelated
+package names remain eligible from the stable channel. A general-purpose
+``rc`` label can contain unrelated packages and unintentionally override or
+exclude their stable builds.
+
+Label names and contents are controlled by the channel provider. Check the
+provider's documentation before adding a label, and avoid mixing labels or
+channels whose packages are not built to be compatible.
+
 .. _`default channel`: https://repo.anaconda.com/pkgs/
