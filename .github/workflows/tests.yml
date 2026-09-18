@@ -68,10 +68,14 @@ jobs:
   windows:
     # only run test suite if there are code changes
     needs: changes
-    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
-    if: false
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
+    defaults:
+      run:
+        shell: pwsh
     strategy:
       fail-fast: false
       matrix:
@@ -88,13 +92,17 @@ jobs:
             test-group: 3
           - runs-on: windows-11-arm
             python-version: '3.10'
+        include:
+          - subdir: win-64
           - runs-on: windows-11-arm
             default-channel: conda-forge
+            subdir: win-arm64
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SUBDIR: ${{ matrix.subdir }}
 
     steps:
       - name: Checkout Source
@@ -105,7 +113,7 @@ jobs:
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: |
-          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          STEM="${{ runner.os }}-${{ runner.arch }}-${{ matrix.subdir }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
           echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
@@ -124,7 +132,7 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          # A native win-arm64 conda test environment is not available yet.
+          # Use x64 Miniconda to bootstrap the test environment until a native installer is available.
           architecture: x64
         env:
           CONDA_SUBDIR: win-64
@@ -146,7 +154,7 @@ jobs:
           --file tests\requirements-s3.txt
           python=${{ matrix.python-version }}
         env:
-          CONDA_SUBDIR: win-64
+          CONDA_SUBDIR: ${{ matrix.subdir }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -178,20 +186,21 @@ jobs:
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
-        run: >
-          python -m pytest
-          --cov=conda
-          --basetemp=${{ runner.temp }}
-          --durations-path=durations\${{ runner.os }}.json
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
+        run: |
+          $env:CONDA_EXE = "$env:CONDA_PREFIX\Scripts\conda.exe"
+          python -m pytest `
+          --cov=conda `
+          --basetemp=${{ runner.temp }} `
+          --durations-path=durations\${{ runner.os }}.json `
+          --group=${{ matrix.test-group }} `
+          --splits=${{ env.PYTEST_SPLITS }} `
+          -m "${{ env.PYTEST_MARKER }}" `
           ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.subdir }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
 
       - name: Upload Test Results
@@ -215,11 +224,6 @@ jobs:
       || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
-    # TEMP: debugging the linux/py3.14 classic-solver failure. The debug
-    # shell step uses a detached tmux session; cancelling the workflow
-    # doesn't reliably kill it (especially with a client attached), so cap
-    # the whole job here to force GitHub to reclaim the runner VM.
-    timeout-minutes: 45
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -233,10 +237,8 @@ jobs:
           - ubuntu-24.04-arm  # linux-aarch64
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         default-channel: [defaults, conda-forge]
-        # TEMP: only integration group 1 while debugging the linux/py3.14
-        # classic-solver failure
-        test-type: [integration]
-        test-group: [1]
+        test-type: [unit, integration]
+        test-group: [1, 2, 3]
         exclude:
           - python-version: '3.10'
             default-channel: conda-forge
@@ -244,6 +246,8 @@ jobs:
             default-channel: conda-forge
           - python-version: '3.12'
             default-channel: conda-forge
+          - test-type: unit
+            test-group: 3
           - runs-on: ubuntu-24.04-arm
             python-version: '3.10'
           - runs-on: ubuntu-24.04-arm
@@ -327,14 +331,14 @@ jobs:
           # Initialize all shells
           python -m conda init --all
 
-      # TEMP: only the problematic test while debugging the linux/py3.14
-      # classic-solver failure
       - name: Run Tests
         run: >
           python -m pytest
           --cov=conda
           --durations-path=durations/${{ runner.os }}.json
-          tests/test_create.py::test_dont_remove_conda_3
+          --group=${{ matrix.test-group }}
+          --splits=${{ env.PYTEST_SPLITS }}
+          -m "${{ env.PYTEST_MARKER }}"
           ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
@@ -359,8 +363,7 @@ jobs:
   linux-benchmarks:
     # only run benchmarks if there are code changes
     needs: changes
-    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
-    if: false
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-24.04
     permissions:
@@ -511,8 +514,7 @@ jobs:
   linux-typing:
     # only run test suite if there are code changes
     needs: changes
-    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
-    if: false
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-24.04
     defaults:
@@ -608,8 +610,9 @@ jobs:
   linux-qemu:
     # only run test suite if there are code changes
     needs: changes
-    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
-    if: false
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -668,8 +671,7 @@ jobs:
   linux-memray:
     # only run test suite if there are code changes
     needs: changes
-    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
-    if: false
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -740,8 +742,9 @@ jobs:
   macos:
     # only run test suite if there are code changes
     needs: changes
-    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
-    if: false
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -945,8 +948,7 @@ jobs:
   downstream:
     # only run test suite if there are code changes
     needs: changes
-    # TEMP: disabled while debugging the linux/py3.14 classic-solver failure
-    if: false
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
