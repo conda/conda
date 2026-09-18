@@ -2514,7 +2514,7 @@ def test_dont_remove_conda_3(
     upgrades a dependency) it could produce spurious RemoveError, blocking
     further use of conda.
     """
-    pkgs = ["conda", "conda-pypi"]
+    pkgs = ["conda>=26", "conda-pypi"]
     if context.solver in ("classic", "pycosat"):
         pkgs.append("conda-canary/label/dev::conda-classic-solver")
     elif context.solver in ("libmamba", "rattler"):
