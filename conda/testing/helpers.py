@@ -166,7 +166,7 @@ def _export_subdir_data_to_repodata(subdir_data: SubdirData):
     packages = {}
     packages_conda = {}
     for pkg in subdir_data.iter_records():
-        if pkg.timestamp:
+        if pkg.timestamp and hasattr(pkg, "__fields__"):
             # ensure timestamp is dumped as int in milliseconds
             # (pkg.timestamp is a kept as a float in seconds)
             pkg.__fields__["timestamp"]._in_dump = True
