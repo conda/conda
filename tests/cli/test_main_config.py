@@ -1349,3 +1349,95 @@ def test_config_write_accepts_windows_timestamps_finalized_on_close(
 
     assert changed == 2
     assert path.read_text() == "changeps1: false\nalways_yes: false\n"
+
+
+def test_config_write_windows_ctime_uses_consistent_api(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    from types import SimpleNamespace
+
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    fstat = os.fstat
+
+    def stat_with_change_time(fd: int):
+        metadata = fstat(fd)
+        result = SimpleNamespace(
+            **{
+                name: getattr(metadata, name)
+                for name in dir(metadata)
+                if name.startswith("st_")
+            }
+        )
+        result.st_ctime_ns += 1
+        return result
+
+    mocker.patch("os.fstat", side_effect=stat_with_change_time)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    config.write()
+    config.set_key("always_yes", False)
+    config.write()
+
+    assert path.read_text() == "changeps1: false\nalways_yes: false\n"
+
+
+@pytest.mark.parametrize("field", ["st_size", "st_mtime_ns", "st_ctime_ns"])
+def test_config_read_rejects_descriptor_metadata_change(
+    tmp_path: Path, mocker: MockerFixture, field: str
+) -> None:
+    from types import SimpleNamespace
+
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    metadata = path.stat()
+    changed = SimpleNamespace(
+        **{
+            name: getattr(metadata, name)
+            for name in dir(metadata)
+            if name.startswith("st_")
+        }
+    )
+    setattr(changed, field, getattr(changed, field) + 1)
+    mocker.patch("os.fstat", side_effect=[metadata, changed])
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed while reading"):
+        ConfigurationFile(path).read()
+
+
+@pytest.mark.parametrize("mutation", ["contents", "mtime"])
+def test_config_write_rejects_staged_file_change(
+    tmp_path: Path, mocker: MockerFixture, mutation: str
+) -> None:
+    from conda.cli import condarc
+
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    read_file = condarc._read_file
+    staged = None
+
+    def change_after_staged_read(candidate: Path):
+        nonlocal staged
+        result = read_file(candidate)
+        if candidate.suffix == ".tmp":
+            staged = candidate
+        elif candidate == path and staged is not None:
+            if mutation == "contents":
+                staged.write_text("another writer's contents\n")
+            else:
+                metadata = staged.stat()
+                os.utime(
+                    staged,
+                    ns=(metadata.st_atime_ns, metadata.st_mtime_ns + 1_000_000_000),
+                )
+        return result
+
+    mocker.patch.object(condarc, "_read_file", side_effect=change_after_staged_read)
+    with pytest.raises(conda.exceptions.CondaError, match="file changed while writing"):
+        config.write()
+
+    assert path.read_text() == original
+    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}

@@ -74,15 +74,19 @@ def _read_file(path: Path) -> tuple[Path, str | None, os.stat_result | None]:
         with source:
             before = os.fstat(source.fileno())
             text = source.read()
-            after = os.fstat(source.fileno())
             try:
                 current = target.stat()
             except FileNotFoundError:
                 current = None
+            resolved = path.resolve()
+            after = os.fstat(source.fileno())
+            # Windows stat and fstat can report different meanings of ctime.
+            # Compare versions through descriptors and paths by identity only.
             if (
-                path.resolve() == target
+                resolved == target
+                and current is not None
+                and os.path.samestat(after, current)
                 and _file_version(before) == _file_version(after)
-                and _file_version(after) == _file_version(current)
             ):
                 return target, text, after
 
@@ -553,13 +557,15 @@ class ConfigurationFile:
                 ):
                     raise conflict("while writing")
                 staged_metadata = closed_metadata
-                if (
-                    paths_changed()
-                    or source_changed()
-                    or _file_version(temporary.lstat())
-                    != _file_version(staged_metadata)
-                ):
-                    raise conflict("while writing")
+                with temporary.open() as staged:
+                    if (
+                        paths_changed()
+                        or source_changed()
+                        or not os.path.samestat(staged_metadata, temporary.lstat())
+                        or _file_version(os.fstat(staged.fileno()))
+                        != _file_version(staged_metadata)
+                    ):
+                        raise conflict("while writing")
                 if source_fd is not None:
                     os.close(source_fd)
                     source_fd = None
