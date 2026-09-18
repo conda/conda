@@ -60,20 +60,30 @@ def _file_version(metadata: os.stat_result | None) -> tuple[int, ...]:
     )
 
 
-def _read_file(path: Path) -> tuple[Path, str | None, os.stat_result | None]:
+def _read_file(
+    path: Path,
+) -> tuple[Path, str | None, os.stat_result | None, bytes | None]:
     """Read one file version, checking its descriptor and resolved path."""
     from .. import CondaError
+    from ..common._os.windows import get_file_security
 
     target = path.resolve()
     try:
         source = target.open()
     except FileNotFoundError:
         if path.resolve() == target and not target.exists():
-            return target, None, None
+            return target, None, None, None
     else:
         with source:
             before = os.fstat(source.fileno())
+            security = None
+            if on_win:
+                security = get_file_security(source.fileno())
             text = source.read()
+            if on_win and get_file_security(source.fileno()) != security:
+                raise CondaError(
+                    f"Cannot read condarc file at {path}: file security changed"
+                )
             try:
                 current = target.stat()
             except FileNotFoundError:
@@ -88,7 +98,7 @@ def _read_file(path: Path) -> tuple[Path, str | None, os.stat_result | None]:
                 and os.path.samestat(after, current)
                 and _file_version(before) == _file_version(after)
             ):
-                return target, text, after
+                return target, text, after, security
 
     raise CondaError(
         f"Cannot read condarc file at {path}: file changed while reading. "
@@ -278,7 +288,9 @@ class ConfigurationFile:
     ) -> None:
         self._path = path
         self._content = content
-        self._read_state: tuple[Path, Path, str | None, tuple[int, ...]] | None = None
+        self._read_state: (
+            tuple[Path, Path, str | None, tuple[int, ...], bytes | None] | None
+        ) = None
 
         self._context = context
         self._context_params: ParameterTypeGroups | None = None
@@ -432,10 +444,16 @@ class ConfigurationFile:
 
         path = Path(path or self._path)
 
-        target, text, metadata = _read_file(path)
+        target, text, metadata, security = _read_file(path)
 
         self._content = (yaml.read(text=text) or {}) if text is not None else {}
-        self._read_state = (path.absolute(), target, text, _file_version(metadata))
+        self._read_state = (
+            path.absolute(),
+            target,
+            text,
+            _file_version(metadata),
+            security,
+        )
         return self._content
 
     def write(self, path: str | os.PathLike[str] | Path | None = None) -> None:
@@ -449,6 +467,7 @@ class ConfigurationFile:
             CondaError: If the file cannot be written.
         """
         from .. import CondaError
+        from ..common._os.windows import get_file_security
         from ..common.serialize import yaml
         from ..gateways.disk.lock import lock
 
@@ -465,8 +484,8 @@ class ConfigurationFile:
 
         try:
             text = yaml.write(self.content)
-            target, previous_text, metadata = _read_file(path)
-            state = (target, previous_text, _file_version(metadata))
+            target, previous_text, metadata, security = _read_file(path)
+            state = (target, previous_text, _file_version(metadata), security)
             if self._read_state is not None:
                 read_path, *read_state = self._read_state
                 if (
@@ -478,11 +497,14 @@ class ConfigurationFile:
                 return
 
             def source_changed() -> bool:
-                current_target, current_text, current_metadata = _read_file(path)
+                current_target, current_text, current_metadata, current_security = (
+                    _read_file(path)
+                )
                 return state != (
                     current_target,
                     current_text,
                     _file_version(current_metadata),
+                    current_security,
                 )
 
             parent_metadata = target.parent.stat()
@@ -510,19 +532,37 @@ class ConfigurationFile:
                 if metadata is not None:
                     write_fd = os.open(target, os.O_WRONLY)
                     os.close(write_fd)
-                    if on_mac:
+                    if on_mac or on_win:
                         source_fd = os.open(target, os.O_RDONLY)
                         if _file_version(os.fstat(source_fd)) != _file_version(
                             metadata
                         ):
                             raise conflict("while writing")
+                        if on_win:
+                            if get_file_security(source_fd) != security:
+                                raise conflict("while writing")
 
                 candidate = target.with_name(f".{target.name}.{uuid4().hex}.tmp")
                 if metadata is None:
                     mode = 0o666
                 else:
                     mode = 0 if on_mac else S_IMODE(metadata.st_mode)
-                fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
+                if on_win and security is not None and metadata is not None:
+                    from stat import FILE_ATTRIBUTE_ENCRYPTED
+
+                    from ..common._os.windows import create_file_with_security
+
+                    fd = create_file_with_security(
+                        candidate,
+                        security,
+                        encrypted_source=(
+                            target
+                            if metadata.st_file_attributes & FILE_ATTRIBUTE_ENCRYPTED
+                            else None
+                        ),
+                    )
+                else:
+                    fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
                 temporary = candidate
                 temporary_metadata = os.fstat(fd)
                 with os.fdopen(fd, "w") as stream:
@@ -544,14 +584,20 @@ class ConfigurationFile:
                     stream.flush()
                     os.fsync(stream.fileno())
                     staged_metadata = os.fstat(stream.fileno())
+                    staged_security = None
+                    if on_win:
+                        staged_security = get_file_security(stream.fileno())
+                        if security is not None and staged_security != security:
+                            raise conflict("while writing")
 
-                _, staged_text, closed_metadata = _read_file(temporary)
+                _, staged_text, closed_metadata, closed_security = _read_file(temporary)
                 # Windows can finalize timestamps when the writing handle closes.
                 # Contents, identity, and access metadata must still match.
                 version_end = -2 if on_win else None
                 if (
                     staged_text != text
                     or closed_metadata is None
+                    or closed_security != staged_security
                     or _file_version(staged_metadata)[:version_end]
                     != _file_version(closed_metadata)[:version_end]
                 ):
@@ -562,6 +608,10 @@ class ConfigurationFile:
                         paths_changed()
                         or source_changed()
                         or not os.path.samestat(staged_metadata, temporary.lstat())
+                        or (
+                            on_win
+                            and get_file_security(staged.fileno()) != staged_security
+                        )
                         or _file_version(os.fstat(staged.fileno()))
                         != _file_version(staged_metadata)
                     ):
@@ -576,13 +626,17 @@ class ConfigurationFile:
                     target,
                     text,
                     _file_version(staged_metadata),
+                    staged_security,
                 )
                 # Rename may change ctime. Only refresh it from our staged file,
                 # never from a replacement or different contents written later.
                 try:
-                    committed_target, committed_text, committed_metadata = _read_file(
-                        path
-                    )
+                    (
+                        committed_target,
+                        committed_text,
+                        committed_metadata,
+                        committed_security,
+                    ) = _read_file(path)
                 except (OSError, CondaError):
                     pass
                 else:
@@ -590,6 +644,7 @@ class ConfigurationFile:
                         committed_target == target
                         and committed_text == text
                         and committed_metadata is not None
+                        and committed_security == staged_security
                         and _file_version(staged_metadata)[:-1]
                         == _file_version(committed_metadata)[:-1]
                     ):
@@ -598,6 +653,7 @@ class ConfigurationFile:
                             target,
                             text,
                             _file_version(committed_metadata),
+                            committed_security,
                         )
         except OSError as e:
             raise CondaError(f"Cannot write to condarc file at {path}\nCaused by {e!r}")
