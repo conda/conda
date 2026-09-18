@@ -81,12 +81,14 @@ class _ValidatePackages(_StoreAction):
         super().__call__(parser, namespace, values, option_string)
 
 
-def add_parser_create_install_update(p, prefix_required=False):
+def add_parser_create_install_update(
+    p, prefix_required=False, *, include_only_deps=True
+):
     from ..common.constants import NULL
 
     add_parser_prefix(p, prefix_required)
     channel_options = add_parser_channels(p)
-    solver_mode_options = add_parser_solver_mode(p)
+    solver_mode_options = add_parser_solver_mode(p, include_only_deps=include_only_deps)
     package_install_options = add_parser_package_install_options(p)
     add_parser_networking(p)
 
@@ -346,7 +348,9 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
     return channel_customization_options
 
 
-def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
+def add_parser_solver_mode(
+    p: ArgumentParser, *, include_only_deps: bool = True
+) -> _ArgumentGroup:
     from ..base.constants import DepsModifier
     from ..common.constants import NULL
 
@@ -386,14 +390,15 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
         "to broken environments and inconsistent behavior. Use at your own risk.",
         default=NULL,
     )
-    deps_modifiers.add_argument(
-        "--only-deps",
-        action="store_const",
-        const=DepsModifier.ONLY_DEPS,
-        dest="deps_modifier",
-        help="Only install dependencies.",
-        default=NULL,
-    )
+    if include_only_deps:
+        deps_modifiers.add_argument(
+            "--only-deps",
+            action="store_const",
+            const=DepsModifier.ONLY_DEPS,
+            dest="deps_modifier",
+            help="Only install dependencies.",
+            default=NULL,
+        )
     solver_mode_options.add_argument(
         "--no-pin",
         action="store_true",
@@ -416,7 +421,11 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
     return solver_mode_options
 
 
-def add_parser_update_modifiers(solver_mode_options: ArgumentParser):
+def add_parser_update_modifiers(
+    solver_mode_options: ArgumentParser,
+    *,
+    include_update_all: bool = True,
+):
     from ..base.constants import UpdateModifier
     from ..common.constants import NULL
 
@@ -451,15 +460,16 @@ def add_parser_update_modifiers(solver_mode_options: ArgumentParser):
         "'conda config --describe aggressive_update_packages' to view your setting. "
         "--satisfied-skip-solve is similar to the default behavior of 'pip install'.",
     )
-    update_modifiers.add_argument(
-        "--update-all",
-        "--all",
-        action="store_const",
-        const=UpdateModifier.UPDATE_ALL,
-        dest="update_modifier",
-        help="Update all installed packages in the environment.",
-        default=NULL,
-    )
+    if include_update_all:
+        update_modifiers.add_argument(
+            "--update-all",
+            "--all",
+            action="store_const",
+            const=UpdateModifier.UPDATE_ALL,
+            dest="update_modifier",
+            help="Update all installed packages in the environment.",
+            default=NULL,
+        )
     update_modifiers.add_argument(
         "--update-specs",
         action="store_const",
