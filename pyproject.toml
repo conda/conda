@@ -177,6 +177,8 @@ filterwarnings = [
   "error::PendingDeprecationWarning",
   "error::DeprecationWarning",
   "error::FutureWarning",
+  "ignore:Implicit installation of pip as a Python dependency:PendingDeprecationWarning",
+  "ignore:Implicit installation of pip as a Python dependency:FutureWarning",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",

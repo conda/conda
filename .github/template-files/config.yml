@@ -40,6 +40,10 @@ conda/infrastructure:
   # [optional] news fragment validation on PRs
   - src: templates/workflows/check-news.yml
     dst: .github/workflows/check-news.yml
+  # For repos whose news directory is not "news", add:
+    with:
+      news_directory: releases/news
+
 
   # [optional] aggregate news fragments into CHANGELOG on release branches
   - src: templates/workflows/prepare-release.yml
@@ -47,6 +51,9 @@ conda/infrastructure:
   # For repos whose test workflow is not named "Tests", add:
   #   with:
   #     tests_workflow: Test
+  # For repos whose news directory is not "news", add:
+    with:
+      news_directory: releases/news
 
   # [optional] keep .authors.yml current (weekly PR)
   - src: templates/workflows/prepare-authors.yml

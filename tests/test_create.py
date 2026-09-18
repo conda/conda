@@ -68,6 +68,7 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
+from conda.gateways.disk.read import compute_sum
 from conda.gateways.subprocess import Response
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -566,6 +567,12 @@ def test_noarch_python_package_with_entry_points(
             prefix / BIN_DIRECTORY / ("pygmentize.exe" if on_win else "pygmentize")
         )
         assert exe_path.is_file()
+        if context.subdir == "win-arm64":
+            assert PrefixData(prefix).get("python").subdir == "win-arm64"
+            launcher = Path(
+                context.conda_prefix, "share", "conda-launchers", "cli-arm64.exe"
+            )
+            assert compute_sum(exe_path, "sha256") == compute_sum(launcher, "sha256")
         output = check_output([exe_path, "--help"], text=True)
         assert "usage: pygmentize" in output
 
@@ -611,6 +618,13 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     """
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
+
+    if (
+        context.subdir == "win-arm64"
+        and PYTHON_SPEC_OLD == "python=3.13"
+        and context.channels == ("conda-forge",)
+    ):
+        pytest.skip("conda-forge does not provide Python 3.13 for win-arm64")
 
     with tmp_env("itsdangerous", PYTHON_SPEC_OLD) as prefix:
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC_OLD))
@@ -834,11 +848,13 @@ def test_strict_channel_priority(
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
+    # The historical anaconda package is not available for win-arm64.
+    subdirs = ("win-64", "noarch") if context.subdir == "win-arm64" else context.subdirs
     index = ReducedIndex(
         specs,
         channels=channels,
         prepend=False,
-        subdirs=context.subdirs,
+        subdirs=subdirs,
         use_local=False,
         use_cache=None,
         prefix=None,
@@ -901,6 +917,10 @@ def test_list_with_pip_no_binary(
 
 
 @pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
+@pytest.mark.skipif(
+    context.subdir == "win-arm64",
+    reason="Python 3.9 is not available for win-arm64",
+)
 def test_list_with_pip_wheel(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -2854,6 +2874,8 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
     #   This is a way of forcing libboost to be removed.  It's a way that they achieve
     #   mutual exclusivity with the boost from defaults that works differently.
 
+    # Keep the historical Boost metadata for this dry run on win-arm64.
+    platform_args = ("--platform=win-64",) if context.subdir == "win-arm64" else ()
     # if this test passes, we'll hit the DryRunExit exception, instead of an UnsatisfiableError
     with pytest.raises(DryRunExit):
         conda_cli(
@@ -2863,6 +2885,7 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
             "--override-channels",
             "--channel=conda-forge",
             "--channel=defaults",
+            *platform_args,
             "python",
             "boost==1.82.0",
             "boost-cpp==1.82.0",
