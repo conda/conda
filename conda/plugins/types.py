@@ -51,6 +51,11 @@ if TYPE_CHECKING:
         None,
     ]
 
+    PackageVerify: TypeAlias = Callable[
+        [PackageRecord | MatchSpec, PathType, str],
+        None,
+    ]
+
     SinglePlatformEnvironmentExport = Callable[[Environment], str]
     MultiPlatformEnvironmentExport = Callable[[Iterable[Environment]], str]
 
@@ -856,6 +861,30 @@ class CondaEnvironmentExporter(CondaPlugin):
         # Set default description to name if not provided
         if self.description is None:
             self.description = self.name
+
+
+@dataclass
+class CondaPackageVerifier(CondaPlugin):
+    """
+    Return type to use when defining a conda package verifier plugin hook.
+
+    Package verifiers inspect package archives before extraction. All registered
+    verifiers must accept the package for extraction to proceed.
+
+    For details on how this is used, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_package_verifiers`.
+
+    Args:
+        name: Verifier name.
+        verify: Callable that verifies a package archive. It receives the selected
+            package record or explicit match specification, the archive path, and
+            the archive's computed SHA-256. It must raise
+            :class:`conda.CondaError` or a subclass to reject the package and must
+            not mutate the record, match specification, or archive.
+    """
+
+    name: str
+    verify: PackageVerify
 
 
 @dataclass
