@@ -4,6 +4,10 @@
 
 from __future__ import annotations
 
+import contextlib
+import os
+import shutil
+import tempfile
 from functools import cache
 from io import StringIO
 from pathlib import Path
@@ -86,10 +90,34 @@ def write(
         _yaml().dump(obj, stream=stream)
         text = stream.getvalue()
         if path is not None:
-            Path(path).write_text(text)
+            _atomic_write_text(Path(path), text)
             return None
         else:
             return text
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    """Write text to path atomically.
+
+    Write to a temporary file in the same directory first, then replace the
+    target. A failure partway through (e.g. disk full, RLIMIT_FSIZE) leaves
+    any existing file untouched instead of truncating it.
+    """
+    fd, tmp_path = tempfile.mkstemp(
+        dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
+    )
+    try:
+        with open(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        if path.exists():
+            shutil.copymode(path, tmp_path)
+        os.replace(tmp_path, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp_path)
+        raise
 
 
 def dump(obj: Any, fp: IO[str]) -> None:

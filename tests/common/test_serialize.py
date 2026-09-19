@@ -215,3 +215,48 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(serialize, function)()
+
+
+def test_yaml_write_path_is_atomic_on_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """A failure partway through yaml.write(path=...) must not truncate
+    an existing file (gh-16694).
+    """
+    import os
+
+    test_file = tmp_path / "condarc"
+    test_file.write_text("channels:\n  - conda-forge\n")
+
+    real_fsync = os.fsync
+
+    def failing_fsync(fd: int) -> None:
+        real_fsync(fd)
+        raise OSError(27, "File too large")
+
+    monkeypatch.setattr(os, "fsync", failing_fsync)
+    with pytest.raises(OSError, match="File too large"):
+        yaml.write(OBJ1, path=test_file)
+
+    # original contents are untouched
+    assert test_file.read_text() == "channels:\n  - conda-forge\n"
+    # no temporary files are left behind
+    assert list(tmp_path.iterdir()) == [test_file]
+
+
+def test_yaml_write_path_preserves_file_mode(tmp_path: Path):
+    """yaml.write(path=...) keeps the existing file's permissions."""
+    import os
+    import stat
+
+    test_file = tmp_path / "condarc"
+    test_file.write_text("channels:\n  - conda-forge\n")
+    mode = test_file.stat().st_mode
+    # make the file's mode distinctive (group/other read-only vs default)
+    os.chmod(test_file, mode | stat.S_IRGRP)
+
+    yaml.write(OBJ1, path=test_file)
+
+    assert yaml.read(path=test_file) == OBJ1
+    assert test_file.stat().st_mode == (mode | stat.S_IRGRP)
