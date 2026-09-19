@@ -1010,6 +1010,7 @@ def test_init_sh_user_unix(verbose):
 
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
+            __conda_env_keep="$CONDA_PREFIX"
             __conda_setup="$('{prefix}/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
             if [ $? -eq 0 ]; then
                 eval "$__conda_setup"
@@ -1021,6 +1022,8 @@ def test_init_sh_user_unix(verbose):
                 fi
             fi
             unset __conda_setup
+            [ -n "$__conda_env_keep" ] && conda activate "$__conda_env_keep"
+            unset __conda_env_keep
             # <<< conda initialize <<<
 
             # . etc/profile.d/conda.sh  # commented out by conda initialize
@@ -1119,9 +1122,12 @@ def test_init_sh_user_windows(verbose):
 
             # >>> conda initialize >>>
             # !! Contents within this block are managed by 'conda init' !!
+            __conda_env_keep="$CONDA_PREFIX"
             if [ -f '{cygpath_conda_prefix}/Scripts/conda.exe' ]; then
                 eval "$('{cygpath_conda_prefix}/Scripts/conda.exe' 'shell.bash' 'hook')"
             fi
+            [ -n "$__conda_env_keep" ] && conda activate "$__conda_env_keep"
+            unset __conda_env_keep
             # <<< conda initialize <<<
 
             # . etc/profile.d/conda.sh  # commented out by conda initialize
