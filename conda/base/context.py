@@ -1200,8 +1200,8 @@ class Context(Configuration):
         sentinel = object()
         previous = self.__dict__.get(key, sentinel)
         self.__dict__[key] = value
-        self._reset_cache()
         try:
+            self._reset_cache()
             yield
         finally:
             if previous is sentinel:
