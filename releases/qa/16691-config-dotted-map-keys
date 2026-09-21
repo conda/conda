@@ -1,0 +1,52 @@
+### Title
+`conda config` set/get/remove-key work with map keys containing periods
+
+### Why
+`conda config --set/--get/--remove-key` previously could not address map entries whose names contain periods (e.g. `custom_channels.science.v1`). Confirm the CLI round-trips dotted keys as literal map entries while nested-key access still works.
+
+### Platforms
+- [X] Windows
+- [X] macOS
+- [X] Linux
+
+### Prerequisites
+- None
+
+### Steps
+1. Create an empty config file for the test, e.g. `touch qa.rc` (`New-Item qa.rc` on Windows PowerShell).
+2. `conda config --file qa.rc --set custom_channels.science.v1 https://example.net`
+3. Open `qa.rc` and confirm it contains a literal dotted key:
+   ```yaml
+   custom_channels:
+     science.v1: https://example.net
+   ```
+4. `conda config --file qa.rc --get custom_channels.science.v1`
+5. `conda config --file qa.rc --remove-key custom_channels.science.v1` and confirm `qa.rc` now shows an empty `custom_channels: {}` mapping.
+6. Hand-edit `qa.rc` to the nested form:
+   ```yaml
+   custom_channels:
+     science:
+       v1: https://example.net
+   ```
+   then repeat step 4.
+7. Precedence check: set `qa.rc` to contain both forms:
+   ```yaml
+   custom_channels:
+     science.v1: https://literal.example.net
+     science:
+       v1: https://nested.example.net
+   ```
+   then run step 4, then step 5, then step 4 again.
+8. Clean up: delete `qa.rc`.
+
+### Pass criteria
+- Step 2 succeeds (no `CondaKeyError: invalid parameter`).
+- Step 3 shows the key written literally as `science.v1`, not nested `science: {v1: ...}`.
+- Step 4 prints `--set custom_channels.science.v1 https://example.net`.
+- Step 5 removes the literal entry without touching other keys.
+- Step 6 still returns the value via nested lookup (fallback preserved).
+- Step 7: first `--get` returns the literal value; after `--remove-key`, the second `--get` returns the nested value.
+
+### Out of scope / notes
+- Unit coverage in `tests/cli/test_main_config.py` (`test_config_literal_dotted_map_key`, `test_config_literal_map_key_precedes_nested_key`) covers the same behavior; this snippet verifies the real CLI and file output.
+- Do not test keys whose dotted prefix is itself a literal key with nesting beneath it (e.g. top-level `a.b: {c: 1}`); only suffix-literal lookup is supported.
