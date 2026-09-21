@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Invalidate context-derived caches on entering and exiting `Context._override()`, so that `memoizedproperty` values (such as `custom_multichannels` and `custom_channels`) and the `Channel.from_value` cache follow the temporary override, instead of masking it or leaking past it. (#16631)
+* Invalidate context-derived caches on entering and exiting `Context._override()`, so that `memoizedproperty` values (such as `custom_multichannels` and `custom_channels`) and the `Channel.from_value` cache follow the temporary override, instead of masking it or leaking past it. (#16631 via #16651)
 
 ### Deprecations
 
