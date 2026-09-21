@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Ensure v3 packages are available when mixing sharded and unsharded repos. (#16688 via #16676)
+* Ensure v3 packages are available when mixing sharded and unsharded repos. (#16676 via #16688)
 
 ### Deprecations
 
