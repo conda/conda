@@ -7,9 +7,23 @@ from pathlib import Path
 import pytest
 
 from conda.common.compat import on_win
+from conda.gateways.disk import test as disk_test
 from conda.gateways.disk.link import islink, link, readlink, symlink
-from conda.gateways.disk.test import softlink_supported
+from conda.gateways.disk.test import paths_on_same_device, softlink_supported
 from conda.gateways.disk.update import touch
+
+
+def test_paths_on_same_device_caches_stat(mocker, tmp_path: Path):
+    left = tmp_path / "left"
+    right = tmp_path / "right"
+    left.mkdir()
+    right.mkdir()
+    paths_on_same_device.cache_clear()
+    stat = mocker.spy(disk_test, "stat")
+
+    assert paths_on_same_device(left, right) is True
+    assert paths_on_same_device(left, right) is True
+    assert stat.call_args_list == [mocker.call(left), mocker.call(right)]
 
 
 def test_hard_link(tmp_path: Path):

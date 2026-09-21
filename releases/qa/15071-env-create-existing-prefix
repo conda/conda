@@ -1,0 +1,46 @@
+### Title
+`conda env create` requires confirmation to replace an existing environment
+
+### Why
+Since 25.5.0, `conda env create` silently installed into an existing prefix, destroying the previous environment. Confirm it now refuses unless `--yes` or `always_yes` authorizes replacement, and that an authorized replacement reports the removal.
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+- `always_yes` is not enabled: `conda config --show always_yes` should show `always_yes: false`
+- An `env.yml` file:
+  ```yaml
+  name: repro
+  channels:
+    - conda-forge
+  dependencies:
+    - python
+  ```
+
+### Steps
+1. `conda create -y -n repro python`
+2. Place a sentinel file inside the env to detect deletion, e.g.:
+   `touch ~/miniforge3/envs/repro/sentinel`
+   (Adjust the env root for your install layout / OS. On Windows PowerShell, use e.g. `New-Item -ItemType File -Path "$env:USERPROFILE\miniforge3\envs\repro\sentinel"`.)
+3. `conda env create -n repro --file env.yml` (no `--yes`)
+4. Confirm the command fails and the sentinel file still exists.
+5. `conda env create -n repro --file env.yml --yes`
+6. Confirm the output includes `Removing existing environment at '<prefix>'.` and the sentinel file is gone.
+7. `conda remove -n repro --all -y`, then repeat steps 1-2.
+8. `conda config --set always_yes true`
+9. `conda env create -n repro --file env.yml` (no `--yes`)
+10. `conda config --remove-key always_yes`
+11. Clean up: `conda remove -n repro --all -y`
+
+### Pass criteria
+- Step 3 fails with `CondaValueError: prefix already exists: <path>`; the env is unmodified (sentinel still present).
+- Step 5 prints `Removing existing environment at '<prefix>'.`, deletes the sentinel, and successfully creates the env from the file.
+- Step 9 behaves like step 5 without `--yes` on the command line.
+- Without `--yes`/`always_yes` the existing environment is never touched.
+
+### Out of scope / notes
+- `--json` output suppressing the removal message is covered by automated tests (`tests/env/test_create.py::test_create_existing_env_replacement_json_output`).
+- Original issue: https://github.com/conda/conda/issues/15071; fix: https://github.com/conda/conda/pull/16565

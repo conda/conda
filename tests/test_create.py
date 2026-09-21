@@ -68,6 +68,7 @@ from conda.exceptions import (
 )
 from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
+from conda.gateways.disk.read import compute_sum
 from conda.gateways.subprocess import Response
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
@@ -372,6 +373,7 @@ def test_json_create_install_update_remove(
     tmp_path: Path,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
+    test_recipes_channel: Path,
 ):
     # regression test for #5384
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
@@ -397,7 +399,7 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "create",
         f"--prefix={tmp_path}",
-        "zlib",
+        "pycosat",
         "--json",
         "--dry-run",
         raises=DryRunExit,
@@ -413,7 +415,7 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "create",
         f"--prefix={tmp_path}",
-        "zlib",
+        "pycosat",
         "--json",
         "--yes",
     )
@@ -426,48 +428,48 @@ def test_json_create_install_update_remove(
     stdout, _, _ = conda_cli(
         "install",
         f"--prefix={tmp_path}",
-        "ca-certificates<2023",
+        "versioned<2",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates<2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned<2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     # Test force reinstall
     stdout, _, _ = conda_cli(
         "install",
         f"--prefix={tmp_path}",
         "--force-reinstall",
-        "ca-certificates<2023",
+        "versioned<2",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates<2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned<2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     stdout, _, _ = conda_cli(
         "update",
         f"--prefix={tmp_path}",
-        "ca-certificates",
+        "versioned",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert package_is_installed(tmp_path, "ca-certificates>=2023")
-    assert package_is_installed(tmp_path, "zlib")
+    assert package_is_installed(tmp_path, "versioned>=2")
+    assert package_is_installed(tmp_path, "pycosat")
 
     stdout, _, _ = conda_cli(
         "remove",
         f"--prefix={tmp_path}",
-        "ca-certificates",
+        "versioned",
         "--json",
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert not package_is_installed(tmp_path, "ca-certificates")
-    assert package_is_installed(tmp_path, "zlib")
+    assert not package_is_installed(tmp_path, "versioned")
+    assert package_is_installed(tmp_path, "pycosat")
 
     # regression test for #5825
     # contents of LINK and UNLINK is expected to have Dist format
@@ -488,8 +490,8 @@ def test_json_create_install_update_remove(
         "--yes",
     )
     assert is_json_parsable(stdout)
-    assert not package_is_installed(tmp_path, "ca-certificates")
-    assert package_is_installed(tmp_path, "zlib")
+    assert not package_is_installed(tmp_path, "versioned")
+    assert package_is_installed(tmp_path, "pycosat")
 
 
 def test_not_writable_env_raises_EnvironmentNotWritableError(
@@ -565,6 +567,12 @@ def test_noarch_python_package_with_entry_points(
             prefix / BIN_DIRECTORY / ("pygmentize.exe" if on_win else "pygmentize")
         )
         assert exe_path.is_file()
+        if context.subdir == "win-arm64":
+            assert PrefixData(prefix).get("python").subdir == "win-arm64"
+            launcher = Path(
+                context.conda_prefix, "share", "conda-launchers", "cli-arm64.exe"
+            )
+            assert compute_sum(exe_path, "sha256") == compute_sum(launcher, "sha256")
         output = check_output([exe_path, "--help"], text=True)
         assert "usage: pygmentize" in output
 
@@ -610,6 +618,13 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     """
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
+
+    if (
+        context.subdir == "win-arm64"
+        and PYTHON_SPEC_OLD == "python=3.13"
+        and context.channels == ("conda-forge",)
+    ):
+        pytest.skip("conda-forge does not provide Python 3.13 for win-arm64")
 
     with tmp_env("itsdangerous", PYTHON_SPEC_OLD) as prefix:
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC_OLD))
@@ -833,11 +848,13 @@ def test_strict_channel_priority(
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
+    # The historical anaconda package is not available for win-arm64.
+    subdirs = ("win-64", "noarch") if context.subdir == "win-arm64" else context.subdirs
     index = ReducedIndex(
         specs,
         channels=channels,
         prepend=False,
-        subdirs=context.subdirs,
+        subdirs=subdirs,
         use_local=False,
         use_cache=None,
         prefix=None,
@@ -900,6 +917,10 @@ def test_list_with_pip_no_binary(
 
 
 @pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
+@pytest.mark.skipif(
+    context.subdir == "win-arm64",
+    reason="Python 3.9 is not available for win-arm64",
+)
 def test_list_with_pip_wheel(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
@@ -2389,6 +2410,110 @@ def test_dont_remove_conda_dependency_with_dependent_packages(
     assert package_is_installed(root_prefix_with_conda, "another_dependent")
 
 
+@pytest.mark.skipif(not on_win, reason="Windows launcher upgrade")
+def test_upgrade_conda_creates_windows_entry_point(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+):
+    """Released conda can create entry points while upgrading itself."""
+    conda_cli(
+        "create",
+        f"--prefix={path_factory()}",
+        "conda-forge::pygments",
+        "--download-only",
+        "--no-deps",
+        "--yes",
+        raises=CondaExitZero,
+    )
+    pygments_package_url = next(
+        record.url
+        for record in PackageCacheData.query_all("conda-forge::pygments")
+        if record.subdir == "noarch"
+    )
+    with tmp_env("conda=26.7.2", "conda-pypi", "conda-launchers") as prefix:
+        assert not package_is_installed(prefix, "pygments")
+        python = prefix / PYTHON_BINARY
+        subprocess_env = os.environ.copy()
+        for env_var in (
+            "PYTHONPATH",
+            "PYTHONHOME",
+            "CONDA_DEFAULT_ENV",
+            "CONDA_PREFIX",
+            "CONDA_PROMPT_MODIFIER",
+            "CONDA_SHLVL",
+            "CONDA_EXE",
+            "CONDA_PYTHON_EXE",
+            "_CE_M",
+            "_CE_CONDA",
+        ):
+            subprocess_env.pop(env_var, None)
+        subprocess_env["CONDA_ROOT_PREFIX"] = str(prefix)
+        subprocess_env["CONDA_AUTO_UPDATE_CONDA"] = "false"
+
+        def run_in_prefix(*args: str | Path) -> str:
+            result = run(
+                args,
+                cwd=prefix,
+                env=subprocess_env,
+                capture_output=True,
+                text=True,
+            )
+            assert result.returncode == 0, result.stderr or result.stdout
+            return result.stdout
+
+        run_in_prefix(
+            python,
+            "-I",
+            "-m",
+            "conda",
+            "pypi",
+            "convert",
+            str(Path(__file__).resolve().parents[1]),
+        )
+        converted_packages = sorted(
+            (prefix / "conda-pypi-output").glob("conda-*.conda")
+        ) or sorted((prefix / "conda-pypi-output").glob("conda-*.tar.bz2"))
+        assert len(converted_packages) == 1
+        assert not package_is_installed(prefix, "pygments")
+
+        old_version, old_module = json.loads(
+            run_in_prefix(
+                python,
+                "-I",
+                "-c",
+                "import conda, json\n"
+                "print(json.dumps([conda.__version__, conda.__file__]))",
+            )
+        )
+        assert old_version == "26.7.2"
+        assert Path(old_module).is_relative_to(prefix)
+        old_launcher = Path(old_module).parent / "shell" / "cli-64.exe"
+        assert old_launcher.is_file()
+
+        # The old process copies its launcher after replacing conda's package files.
+        run_in_prefix(
+            python,
+            "-I",
+            "-m",
+            "conda",
+            "install",
+            f"--prefix={prefix}",
+            "--yes",
+            str(converted_packages[0]),
+            pygments_package_url,
+        )
+        assert package_is_installed(prefix, "conda").fn == converted_packages[0].name
+        assert package_is_installed(prefix, "pygments").subdir == "noarch"
+        assert old_launcher.is_file()
+        output = run_in_prefix(prefix / BIN_DIRECTORY / "pygmentize.exe", "--help")
+        assert "usage: pygmentize" in output
+        output = run_in_prefix(python, "-I", "-m", "conda", "--version")
+        assert (
+            output.strip() == f"conda {package_is_installed(prefix, 'conda').version}"
+        )
+
+
 def test_dont_remove_conda_3(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -2404,7 +2529,11 @@ def test_dont_remove_conda_3(
             "This test can only be run with solvers that come shipped with conda"
         )
 
-    with tmp_env("conda", "conda-pypi") as prefix:
+    packages = ["conda", "conda-pypi"]
+    if on_win:
+        # The converted checkout needs conda's non-PyPI Windows dependency.
+        packages.append("conda-launchers")
+    with tmp_env(*packages) as prefix:
         monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
         monkeypatch.setenv("CONDA_PREFIX", str(prefix))
         monkeypatch.delenv("CONDA_DEFAULT_ENV", raising=False)
@@ -2745,6 +2874,8 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
     #   This is a way of forcing libboost to be removed.  It's a way that they achieve
     #   mutual exclusivity with the boost from defaults that works differently.
 
+    # Keep the historical Boost metadata for this dry run on win-arm64.
+    platform_args = ("--platform=win-64",) if context.subdir == "win-arm64" else ()
     # if this test passes, we'll hit the DryRunExit exception, instead of an UnsatisfiableError
     with pytest.raises(DryRunExit):
         conda_cli(
@@ -2754,6 +2885,7 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
             "--override-channels",
             "--channel=conda-forge",
             "--channel=defaults",
+            *platform_args,
             "python",
             "boost==1.82.0",
             "boost-cpp==1.82.0",

@@ -875,7 +875,7 @@ def test_export_platforms(monkeypatch: MonkeyPatch):
 
 @pytest.mark.parametrize(
     "function,raises",
-    [("error_upload_url", TypeError)],
+    [("error_upload_url", TypeError), ("experimental", TypeError)],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
