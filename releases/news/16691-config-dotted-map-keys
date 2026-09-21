@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Allow configuration map entries containing periods to be set, read, and removed without losing nested-key access. (#16691)
+* Allow configuration map entries containing periods to be set, read, and removed without losing nested-key access. (#16691 via #16693)
 
 ### Deprecations
 
