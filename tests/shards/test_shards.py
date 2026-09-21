@@ -1375,7 +1375,8 @@ def test_shards_connections(monkeypatch):
     monkeypatch.setattr("conda._private.shards.misc.SHARDS_CONNECTIONS_DEFAULT", 7)
     assert _shards_connections() == 7
 
-    monkeypatch.setattr(context, "_repodata_threads", 4)
+    monkeypatch.setenv("CONDA_REPODATA_THREADS", "4")
+    reset_context()
     assert _shards_connections() == 4
 
 
