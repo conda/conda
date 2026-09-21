@@ -1086,7 +1086,7 @@ def _parse_spec_str_v3(spec_str):
         spec_str = spec_str.replace(brackets_str, "")
         brackets_str = brackets_str[1:-1]
         m3b = list(_BRACKETS_KV_RE_V3.finditer(brackets_str))
-        for match in m3b:
+        for i, match in enumerate(m3b):
             groups = match.groupdict()
             key = groups["key"]
             if key in brackets:
@@ -1104,35 +1104,49 @@ def _parse_spec_str_v3(spec_str):
                 if (value[0] == "[") ^ (value[-1] == "]"):
                     # mismatched single-item list, raise
                     raise InvalidSpec(f"'{key}' value has unbalanced brackets: {value}")
-                inner = value.strip("[]")
-                if _LIST_EMPTY_ITEM_RE.search(inner):
-                    raise InvalidSpec(f"'{key}' list has an empty item: {value!r}")
-                value = tuple(
-                    str(x) if x is not None else "null"
-                    for x in yaml.loads(f"[{inner}]")
+                next_start = (
+                    m3b[i + 1].start() if i + 1 < len(m3b) else len(brackets_str)
                 )
+                # Unquoted extras/flags stop at the first comma in the KV regex
+                # (e.g. extras=http2,cli). Collect names until the next key.
+                if groups["value_list"] is None and not groups["quote_s"]:
+                    if match.end() > match.end("value"):
+                        continuation = brackets_str[match.end() - 1 : next_start]
+                    else:
+                        continuation = ""
+                    if continuation:
+                        remainder = continuation.strip(", ")
+                        if "=" in continuation or not continuation.lstrip().startswith(
+                            ","
+                        ):
+                            raise InvalidSpec(
+                                f"Unrecognized content in brackets: {remainder!r}"
+                            )
+                        if _LIST_EMPTY_ITEM_RE.search(continuation):
+                            raise InvalidSpec(
+                                f"'{key}' list has an empty item: {continuation!r}"
+                            )
+                        inner = f"{value}{continuation}"
+                    else:
+                        inner = value
+                else:
+                    inner = value.strip("[]")
+                    if _LIST_EMPTY_ITEM_RE.search(inner):
+                        raise InvalidSpec(f"'{key}' list has an empty item: {value!r}")
+                try:
+                    value = tuple(
+                        str(x) if x is not None else "null"
+                        for x in yaml.loads(f"[{inner}]")
+                    )
+                except yaml.YAMLError as exc:
+                    raise InvalidSpec(f"Invalid '{key}' list: {inner!r}") from exc
             elif key == "when":
                 _validate_when_spec(value)
             brackets[key] = value
         if m3b:
             remainder = brackets_str[m3b[-1].end() :].strip(", ")
-            if remainder:
-                last_key = m3b[-1].group("key")
-                # Unquoted extras/flags stop at the first comma in the KV regex
-                # (e.g. extras=http2,cli). Fold the leftover names into the list.
-                if last_key not in ("flags", "extras") or "=" in remainder:
-                    raise InvalidSpec(
-                        f"Unrecognized content in brackets: {remainder!r}"
-                    )
-                if _LIST_EMPTY_ITEM_RE.search(remainder):
-                    raise InvalidSpec(
-                        f"'{last_key}' list has an empty item: {remainder!r}"
-                    )
-                extra_items = tuple(
-                    str(x) if x is not None else "null"
-                    for x in yaml.loads(f"[{remainder}]")
-                )
-                brackets[last_key] = (*brackets[last_key], *extra_items)
+            if remainder and m3b[-1].group("key") not in ("flags", "extras"):
+                raise InvalidSpec(f"Unrecognized content in brackets: {remainder!r}")
         if not brackets:
             # No key-value pairs found but there was a outer square brackets match?
             # That's invalid syntax (e.g. accidental `package[extra]`)

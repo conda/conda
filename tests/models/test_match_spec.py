@@ -1920,6 +1920,48 @@ def test_extra_specs(match_spec_v3):
         MatchSpec("package[a,b]")
 
 
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "pkg[extras=a,b,flags=cpu,gpu]",
+        "pkg[flags=cpu,gpu,extras=a,b]",
+    ],
+)
+def test_unquoted_extras_and_flags(spec, match_spec_v3):
+    ms = MatchSpec(spec)
+    assert ms.get("extras") == ("a", "b")
+    assert ms.get("flags") == ("cpu", "gpu")
+    assert str(ms) == str(MatchSpec("pkg[extras=[a,b],flags=[cpu,gpu]]"))
+
+
+def test_unquoted_extras_with_other_fields(match_spec_v3):
+    listed = str(MatchSpec("pkg[extras=[a,b],version='1.0']"))
+    assert str(MatchSpec("pkg[extras=a,b,version='1.0']")) == listed
+    assert str(MatchSpec("pkg[version='1.0',extras=a,b]")) == listed
+
+    with_when = str(MatchSpec("pkg[extras=[a,b],when=__win]"))
+    assert str(MatchSpec("pkg[extras=a,b,when=__win]")) == with_when
+    assert str(MatchSpec("pkg[when=__win,extras=a,b]")) == with_when
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+def test_unquoted_list_invalid_separators(key, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}=a,,b]")
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}=a,b,,]")
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}=a b]")
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+def test_unquoted_list_invalid_yaml(key, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec, match="Invalid"):
+        MatchSpec(f'pkg[{key}=a,"b]')
+    with pytest.raises(InvalidMatchSpec, match="Invalid"):
+        MatchSpec(f"pkg[{key}=a,*b]")
+
+
 @pytest.mark.xfail(reason="Pending implementation")
 def test_extras_specs_merge(match_spec_v3):
     merged, unmerged = MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"])
