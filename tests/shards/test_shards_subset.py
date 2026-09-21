@@ -526,6 +526,9 @@ def test_query_all_monolithic_v3_search(
     assert results[0].build == "py3_none_any_0"
     assert results[0].fn == "pyfig-1.0.2-py3-none-any.whl"
     assert results[0].subdir == "noarch"
+    assert results[0].url == http_test_server.get_url(
+        "noarch/pyfig-1.0.2-py3-none-any.whl"
+    )
 
 
 class TestAddPipAsPythonDependency:

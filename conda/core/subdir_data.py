@@ -833,16 +833,14 @@ def _search_package_via_shards(
             if context.use_only_tar_bz2 and section_tuple[1] != "packages":
                 continue
 
-            # Inject the fn into package records if available. For repodata v1,
-            # the filename is associated with the key of the section tuple. For
-            # repodata v3 it is not.
+            record_data = {"subdir": channels[channel].subdir, **record}
+
+            # For repodata v1, the filename is the section key. Repodata v3
+            # stores it in the record instead.
             if section_tuple[1] in ["packages", "packages.conda"]:
-                rec = PackageRecord(channel=channel, fn=section_tuple[0], **record)
-            else:
-                rec = PackageRecord(
-                    channel=channel,
-                    **{"subdir": channels[channel].subdir, **record},
-                )
+                record_data["fn"] = section_tuple[0]
+            record_data.setdefault("url", join_url(shard.base_url, record_data["fn"]))
+            rec = PackageRecord(channel=channel, **record_data)
             if spec.match(rec):
                 records.append(rec)
     return records
