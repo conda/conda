@@ -477,6 +477,7 @@ def test_query_all_sharded_search(
 @pytest.mark.parametrize("search_spec", ["pyfig", "*"])
 def test_query_all_monolithic_v3_search(
     search_spec,
+    http_test_server,
     monkeypatch,
     mocker,
     tmp_path,
@@ -484,8 +485,7 @@ def test_query_all_monolithic_v3_search(
     """Search v3 records when no channel provides sharded repodata."""
     from conda.core import subdir_data
 
-    channel_root = tmp_path / "channel"
-    noarch = channel_root / "noarch"
+    noarch = http_test_server.directory / "noarch"
     noarch.mkdir(parents=True)
     (noarch / "repodata.json").write_text(
         json.dumps(
@@ -509,28 +509,23 @@ def test_query_all_monolithic_v3_search(
             }
         )
     )
-    httpd = _run_test_server(str(channel_root))
-    try:
-        host, port = httpd.socket.getsockname()[:2]
-        channel = Channel.from_url(f"http://{host}:{port}/noarch")
-        monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
-        monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
-        reset_context()
-        classic_search = mocker.spy(subdir_data, "_search_package")
+    channel = Channel.from_url(http_test_server.get_url("noarch"))
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    reset_context()
+    classic_search = mocker.spy(subdir_data, "_search_package")
 
-        results = subdir_data.query_all(
-            MatchSpec(search_spec), [channel], subdirs=["noarch"]
-        )
+    results = subdir_data.query_all(
+        MatchSpec(search_spec), [channel], subdirs=["noarch"]
+    )
 
-        classic_search.assert_not_called()
-        assert len(results) == 1
-        assert results[0].name == "pyfig"
-        assert results[0].version == "1.0.2"
-        assert results[0].build == "py3_none_any_0"
-        assert results[0].fn == "pyfig-1.0.2-py3-none-any.whl"
-        assert results[0].subdir == "noarch"
-    finally:
-        httpd.shutdown()
+    classic_search.assert_not_called()
+    assert len(results) == 1
+    assert results[0].name == "pyfig"
+    assert results[0].version == "1.0.2"
+    assert results[0].build == "py3_none_any_0"
+    assert results[0].fn == "pyfig-1.0.2-py3-none-any.whl"
+    assert results[0].subdir == "noarch"
 
 
 class TestAddPipAsPythonDependency:
