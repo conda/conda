@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Parse unquoted comma-separated MatchSpec extras as a list (e.g. `pkg[extras=http2,cli]`). (#16722)
+* Parse unquoted comma-separated MatchSpec extras as a list (e.g. `pkg[extras=http2,cli]`). (#16722 via #16730)
 
 ### Deprecations
 
