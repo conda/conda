@@ -1884,6 +1884,18 @@ def test_extra_specs(match_spec_v3):
         assert ms.get("extras") == ("a", "b")
         assert str(ms) == "python[extras=['a', 'b']]"
 
+    for value in (
+        '"a,b"',
+        "'a,b'",
+        '"a, b"',
+        "'a, b'",
+    ):
+        ms = MatchSpec(f"python[extras={value}]")
+        assert ms.get("extras") == ("a", "b")
+
+    assert MatchSpec("httpx[extras=http2,cli]").get("extras") == ("http2", "cli")
+    assert MatchSpec("python[extras=a,b]").get("extras") == ("a", "b")
+
     # Trailing comma is accepted (YAML flow-sequence semantics) and normalizes silently
     assert MatchSpec("pkg[extras=[a,]]").get("extras") == ("a",)
 

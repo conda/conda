@@ -1117,7 +1117,22 @@ def _parse_spec_str_v3(spec_str):
         if m3b:
             remainder = brackets_str[m3b[-1].end() :].strip(", ")
             if remainder:
-                raise InvalidSpec(f"Unrecognized content in brackets: {remainder!r}")
+                last_key = m3b[-1].group("key")
+                # Unquoted extras/flags stop at the first comma in the KV regex
+                # (e.g. extras=http2,cli). Fold the leftover names into the list.
+                if last_key not in ("flags", "extras") or "=" in remainder:
+                    raise InvalidSpec(
+                        f"Unrecognized content in brackets: {remainder!r}"
+                    )
+                if _LIST_EMPTY_ITEM_RE.search(remainder):
+                    raise InvalidSpec(
+                        f"'{last_key}' list has an empty item: {remainder!r}"
+                    )
+                extra_items = tuple(
+                    str(x) if x is not None else "null"
+                    for x in yaml.loads(f"[{remainder}]")
+                )
+                brackets[last_key] = (*brackets[last_key], *extra_items)
         if not brackets:
             # No key-value pairs found but there was a outer square brackets match?
             # That's invalid syntax (e.g. accidental `package[extra]`)
