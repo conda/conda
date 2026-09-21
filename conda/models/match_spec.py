@@ -1145,8 +1145,20 @@ def _parse_spec_str_v3(spec_str):
             brackets[key] = value
         if m3b:
             remainder = brackets_str[m3b[-1].end() :].strip(", ")
-            if remainder and m3b[-1].group("key") not in ("flags", "extras"):
-                raise InvalidSpec(f"Unrecognized content in brackets: {remainder!r}")
+            if remainder:
+                last = m3b[-1]
+                last_groups = last.groupdict()
+                # Unquoted extras/flags already folded this leftover in the loop.
+                # Quoted / [list] extras must still reject trailing junk.
+                unquoted_list = (
+                    last.group("key") in ("flags", "extras")
+                    and last_groups["value_list"] is None
+                    and not last_groups["quote_s"]
+                )
+                if not unquoted_list:
+                    raise InvalidSpec(
+                        f"Unrecognized content in brackets: {remainder!r}"
+                    )
         if not brackets:
             # No key-value pairs found but there was a outer square brackets match?
             # That's invalid syntax (e.g. accidental `package[extra]`)

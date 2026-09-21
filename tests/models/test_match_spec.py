@@ -1962,6 +1962,16 @@ def test_unquoted_list_invalid_yaml(key, match_spec_v3):
         MatchSpec(f"pkg[{key}=a,*b]")
 
 
+@pytest.mark.parametrize("key", ["extras", "flags"])
+def test_quoted_or_list_rejects_trailing_junk(key, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec, match="Unrecognized content"):
+        MatchSpec(f'pkg[{key}="a",b]')
+    with pytest.raises(InvalidMatchSpec, match="Unrecognized content"):
+        MatchSpec(f"pkg[{key}=[a],b]")
+    with pytest.raises(InvalidMatchSpec, match="Unrecognized content"):
+        MatchSpec(f"pkg[{key}=[a,b],junk]")
+
+
 @pytest.mark.xfail(reason="Pending implementation")
 def test_extras_specs_merge(match_spec_v3):
     merged, unmerged = MatchSpec.merge(["pkg[extras=[a]]", "pkg[extras=[b]]"])
