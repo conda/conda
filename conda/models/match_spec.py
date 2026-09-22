@@ -1114,7 +1114,7 @@ def _parse_spec_str_v3(spec_str):
                         continuation = brackets_str[match.end() - 1 : next_start]
                     else:
                         continuation = ""
-                    if continuation:
+                    if continuation.strip():
                         remainder = continuation.strip(", ")
                         if "=" in continuation or not continuation.lstrip().startswith(
                             ","
