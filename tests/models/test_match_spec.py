@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from ruamel.yaml import YAML
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 
@@ -1918,6 +1919,33 @@ def test_extra_specs(match_spec_v3):
         MatchSpec("package[a]")
     with pytest.raises(InvalidMatchSpec, match=r"did you mean `extras=\[a,b\]`"):
         MatchSpec("package[a,b]")
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+@pytest.mark.parametrize("yaml_version", [(1, 1), (1, 2)])
+@pytest.mark.parametrize(
+    "value,yaml11,yaml12",
+    [
+        ("true", "True", "True"),
+        ("false", "False", "False"),
+        ("null", "null", "null"),
+        ("yes", "True", "yes"),
+        ("no", "False", "no"),
+        ("on", "True", "on"),
+        ("off", "False", "off"),
+        ("y", "True", "y"),
+        ("n", "False", "n"),
+    ],
+)
+def test_list_yaml_scalars(
+    key, yaml_version, value, yaml11, yaml12, match_spec_v3, mocker
+):
+    parser = YAML(typ="rt")
+    parser.version = yaml_version
+    mocker.patch("conda.common.serialize.yaml._yaml", return_value=parser)
+
+    expected = yaml11 if yaml_version == (1, 1) else yaml12
+    assert MatchSpec(f"pkg[{key}={value}]").get(key) == (expected,)
 
 
 @pytest.mark.parametrize(
