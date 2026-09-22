@@ -21,11 +21,11 @@ Conda has introduced native support for **win-arm64**, the Windows on ARM platfo
 
 ```bash
 # Create a win-64 environment
-conda create --platform win-64 --name myenv python
+# Create a win-64 environment
+conda create --platform win-64 --name myenv-x64 python
 
 # Create a win-arm64 environment
-conda create --platform win-arm64 --name myenv python
-```
+conda create --platform win-arm64 --name myenv-arm64 python
 
 **As a persistent setting**, configure the `subdir` key in your `.condarc`:
 
