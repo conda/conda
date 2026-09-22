@@ -13,7 +13,7 @@
 ### Docs
 
 * Require CEP 9 notice periods for breaking changes to implicit defaults and document
-  announcements throughout the transition. (#16570)
+  announcements throughout the transition. (#16570 via #16717)
 
 ### Other
 
