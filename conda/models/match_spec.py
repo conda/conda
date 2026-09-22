@@ -1021,6 +1021,27 @@ def _parse_spec_str(spec_str):
     return components
 
 
+_PLAIN_LIST_ITEM_RE: re.Pattern[str] = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]*")
+_YAML_SCALAR_WORDS = frozenset(
+    {"true", "false", "null", "yes", "no", "on", "off", "y", "n"}
+)
+
+
+def _parse_list_of_str(inner: str) -> tuple[str, ...]:
+    """Parse extras or flags, using YAML for values that need it."""
+    # YAML permits one trailing comma.
+    content = inner.rstrip(" ").removesuffix(",")
+    items = tuple(item.strip(" ") for item in content.split(","))
+    if all(
+        _PLAIN_LIST_ITEM_RE.fullmatch(item) and item.lower() not in _YAML_SCALAR_WORDS
+        for item in items
+    ):
+        return items
+    return tuple(
+        str(item) if item is not None else "null" for item in yaml.loads(f"[{inner}]")
+    )
+
+
 def _parse_spec_str_v3(spec_str):
     """
     New parser engine only used
