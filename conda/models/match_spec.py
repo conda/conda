@@ -1155,10 +1155,7 @@ def _parse_spec_str_v3(spec_str):
                     if _LIST_EMPTY_ITEM_RE.search(inner):
                         raise InvalidSpec(f"'{key}' list has an empty item: {value!r}")
                 try:
-                    value = tuple(
-                        str(x) if x is not None else "null"
-                        for x in yaml.loads(f"[{inner}]")
-                    )
+                    value = _parse_list_of_str(inner)
                 except yaml.YAMLError as exc:
                     raise InvalidSpec(f"Invalid '{key}' list: {inner!r}") from exc
             elif key == "when":
