@@ -257,7 +257,7 @@ class Exporters:
 def plugin_manager_with_exporters(
     plugin_manager_with_reporter_backends: CondaPluginManager,
 ) -> CondaPluginManager:
-    # Prefer entry points (conda-classic-solver) over deprecated conda.plugins.solvers
+    # Prefer entry points (conda-pycosat-solver) over deprecated conda.plugins.solvers
     # so classic is not registered twice when the external plugin is installed.
     plugin_manager_with_reporter_backends.load_plugins(
         *environment_exporters.plugins,

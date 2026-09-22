@@ -10,7 +10,7 @@ from .types import CondaSolver
 deprecated.module(
     "27.3",
     "27.9",
-    addendum="Use the conda-classic-solver plugin instead.",
+    addendum="Use the conda-pycosat-solver plugin instead.",
 )
 
 

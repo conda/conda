@@ -45,7 +45,7 @@ def post_solve_plugin(
     post_solve_plugin = PostSolvePlugin()
     plugin_manager_with_reporter_backends.register(post_solve_plugin)
 
-    # classic via conda-classic-solver entry point (not deprecated conda.plugins.solvers)
+    # classic via conda-pycosat-solver entry point (not deprecated conda.plugins.solvers)
     plugin_manager_with_reporter_backends.load_entrypoints(APP_NAME)
 
     return post_solve_plugin

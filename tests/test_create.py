@@ -2536,7 +2536,9 @@ def test_dont_remove_conda_3(
     """
     pkgs = ["conda>=26", "conda-pypi"]
     if context.solver in ("classic", "pycosat"):
-        pkgs.append("conda-canary/label/dev::conda-classic-solver")
+        pkgs.append(
+            "conda-canary/label/conda-conda-pycosat-solver-pr-75::conda-pycosat-solver"
+        )
     elif context.solver in ("libmamba", "rattler"):
         pkgs.append(f"conda-{context.solver}-solver")
     else:

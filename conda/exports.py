@@ -76,7 +76,7 @@ deprecated.constant(
     "27.9",
     "Resolve",
     factory=lambda: _resolve().Resolve,
-    addendum="Use `conda-classic-solver` instead.",
+    addendum="Use `conda-pycosat-solver` instead.",
 )
 deprecated.constant(
     "27.3",

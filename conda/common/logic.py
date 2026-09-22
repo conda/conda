@@ -36,7 +36,7 @@ from ._logic import Clauses as _Clauses
 deprecated.module(
     "27.3",
     "27.9",
-    addendum="Use the conda-classic-solver plugin instead.",
+    addendum="Use the conda-pycosat-solver plugin instead.",
 )
 
 # TODO: We may want to turn the user-facing {TRUE,FALSE} values into an Enum and

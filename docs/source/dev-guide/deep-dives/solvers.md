@@ -297,10 +297,10 @@ a different approach and is not documented here. Please refer to
 ```
 
 ```{admonition} Note
-The classic solver is now provided by the standalone
-[`conda-classic-solver`](https://github.com/conda/conda-classic-solver) plugin rather than being
-registered by conda itself. `conda-classic-solver` builds on `conda.core.solve.Solver`, so this
-deep dive remains a useful reference for its implementation.
+The classic solver, now named `pycosat` (`classic` remains a supported alias), is provided by the
+standalone [`conda-pycosat-solver`](https://github.com/conda/conda-pycosat-solver) plugin rather
+than being registered by conda itself. `conda-pycosat-solver` builds on `conda.core.solve.Solver`,
+so this deep dive remains a useful reference for its implementation.
 ```
 
 This is where most of the intricacies of the `conda` logic are defined. In this step, the

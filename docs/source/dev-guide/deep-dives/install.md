@@ -245,9 +245,9 @@ optimization step also takes longer the bigger the index gets.
 ```
 
 ```{admonition} Note
-The classic solver is now provided by the standalone
-[`conda-classic-solver`](https://github.com/conda/conda-classic-solver) plugin rather than being
-registered by conda itself.
+The classic solver, now named `pycosat` (`classic` remains a supported alias), is provided by the
+standalone [`conda-pycosat-solver`](https://github.com/conda/conda-pycosat-solver) plugin rather
+than being registered by conda itself.
 ```
 
 ### Channel priorities
