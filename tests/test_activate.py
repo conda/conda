@@ -1161,7 +1161,7 @@ def test_posix_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1263,7 +1263,7 @@ def test_cmd_exe_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1377,7 +1377,7 @@ def test_csh_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1499,7 +1499,7 @@ def test_xonsh_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1634,7 +1634,7 @@ def test_fish_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1737,7 +1737,7 @@ def test_powershell_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1825,7 +1825,7 @@ def test_json_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -2074,7 +2074,7 @@ def test_msys2_shell_stdout_reconfiguration(capsys) -> None:
 
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_force_uppercase(monkeypatch: MonkeyPatch, force_uppercase_boolean):
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase is force_uppercase_boolean
 
@@ -2103,7 +2103,7 @@ def test_force_uppercase(monkeypatch: MonkeyPatch, force_uppercase_boolean):
 def test_metavars_force_uppercase(
     mocker: MockerFixture, monkeypatch: MonkeyPatch, force_uppercase_boolean: bool
 ):
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase is force_uppercase_boolean
 
