@@ -21,20 +21,20 @@ etc.).
 
    ```bash
    mkdir -p /tmp/repro-channel/noarch
-    cat > /tmp/repro-channel/noarch/repodata.json <<'EOF'
-    {"info": {"subdir": "noarch"}, "packages": {}, "packages.conda": {}, "removed": [], "repodata_version": 1}
-    EOF
+   cat > /tmp/repro-channel/noarch/repodata.json <<'EOF'
+   {"info": {"subdir": "noarch"}, "packages": {}, "packages.conda": {}, "removed": [], "repodata_version": 1}
+   EOF
    ```
 
 2. Create a `.condarc` that identifies the channel in `channel_settings` by its
    `file://` URL rather than a bare channel name:
 
    ```bash
-    cat > /tmp/repro.condarc.yml <<'EOF'
-    channel_settings:
-      - channel: file:///tmp/repro-channel
-        exclude_newer: false
-    EOF
+   cat > /tmp/repro.condarc.yml <<'EOF'
+   channel_settings:
+     - channel: file:///tmp/repro-channel
+       exclude_newer: false
+   EOF
    ```
 
 3. Run a search against that channel with the `.condarc` active:

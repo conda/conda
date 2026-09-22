@@ -300,31 +300,34 @@ def test_get_session_returns_default():
     assert type(session_obj) is CondaSession
 
 
-def test_get_session_channel_settings_file_url(mocker):
-    """
-    Local channels included in channel settings should not raise errors.
-
-    Regression test for https://github.com/conda/conda/issues/16698
-    """
-    channel_url = "file:///tmp/repro-channel"
+@pytest.mark.parametrize(
+    "channel_settings_url, expect_match",
+    [
+        ("file:///tmp/repro-channel", True),
+        ("file:///tmp/other-channel", False),
+        ("file:///tmp/repro-channel/*", True),
+    ],
+)
+def test_get_session_channel_settings_file_url(
+    mocker, channel_settings_url, expect_match
+):
+    """Handle exact, glob, and nonmatching local channel settings (#16698)."""
     mock_context = mocker.patch("conda.gateways.connection.session.context")
     mock_context.known_subdirs = context.known_subdirs
-    mock_context.channel_settings = ({"channel": channel_url, "auth": "dummy_one"},)
+    mock_context.channel_settings = (
+        {"channel": channel_settings_url, "auth": "dummy_one"},
+    )
 
-    url = f"{channel_url}/noarch/repodata.json"
-
-    session_obj = get_session(url)
+    session_obj = get_session("file:///tmp/repro-channel/noarch/repodata.json")
 
     assert type(session_obj) is CondaSession
-
-    # For session objects with a custom auth handler it will not be set to CondaHttpAuth
-    assert type(session_obj.auth) is not CondaHttpAuth
-
-    # Make sure we tried to retrieve our auth handler in this function
-    assert (
-        mocker.call("dummy_one")
-        in mock_context.plugin_manager.get_auth_handler.mock_calls
-    )
+    get_auth_handler = mock_context.plugin_manager.get_auth_handler
+    if expect_match:
+        assert type(session_obj.auth) is not CondaHttpAuth
+        get_auth_handler.assert_called_once_with("dummy_one")
+    else:
+        assert type(session_obj.auth) is CondaHttpAuth
+        get_auth_handler.assert_not_called()
 
 
 def test_get_session_with_channel_settings(mocker):
