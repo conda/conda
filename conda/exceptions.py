@@ -79,14 +79,14 @@ deprecated.constant(
     "27.9",
     "NoPackagesFound",
     ResolvePackageNotFound,
-    addendum="Use `conda.exports.ResolvePackageNotFound` instead.",
+    addendum="Use `conda.exceptions.ResolvePackageNotFound` instead.",
 )
 deprecated.constant(
     "27.3",
     "27.9",
     "NoPackagesFoundError",
     ResolvePackageNotFound,
-    addendum="Use `conda.exports.ResolvePackageNotFound` instead.",
+    addendum="Use `conda.exceptions.ResolvePackageNotFound` instead.",
 )
 
 
