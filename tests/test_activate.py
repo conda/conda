@@ -1191,7 +1191,7 @@ def test_posix_basic(
         + (f". \"`cygpath '{activate1}'`\"\n" if on_win else f'. "{activate1}"\n')
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1295,7 +1295,7 @@ def test_cmd_exe_basic(
         f"_CONDA_SCRIPT={activate1}\n"
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1410,7 +1410,7 @@ def test_csh_basic(
         )
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1537,7 +1537,7 @@ def test_xonsh_basic(
         f'{sourcer} "{activate1}"\n'
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1662,7 +1662,7 @@ def test_fish_basic(
         f'source "{activate1}";\n'
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1763,7 +1763,7 @@ def test_powershell_basic(
         f'. "{activate1}"\n'
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1861,7 +1861,7 @@ def test_json_basic(
         },
     }
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
