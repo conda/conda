@@ -17,8 +17,6 @@ This page contains recent additions to `conda` worth your attention, including f
 
 Conda has introduced native support for **win-arm64**, the Windows on ARM platform, and can now resolve and install packages natively for the win-arm64 architecture. This means you no longer need to rely on workarounds like WSL2, x86-64 emulation, or manual compilation to run your Python data science toolchain on ARM hardware.
 
-### Switch between platforms
-
 **At the command line**, use the `--platform` flag with `conda create`:
 
 ```bash
