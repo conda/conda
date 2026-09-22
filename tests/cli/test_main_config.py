@@ -983,3 +983,34 @@ def test_config_write_other_path(tmp_path: Path) -> None:
 
     assert path.read_text() == "changeps1: true\nalways_yes: false\n"
     assert source.read_text() == "changeps1: true\n"
+
+
+@pytest.mark.parametrize(
+    "parameter,entry",
+    [("custom_channels", "science.v1"), ("proxy_servers", "https://example.org")],
+)
+def test_config_literal_dotted_map_key(parameter: str, entry: str) -> None:
+    config = ConfigurationFile(content={})
+    key = f"{parameter}.{entry}"
+    config.set_key(key, "https://example.net")
+
+    assert config.content == {parameter: {entry: "https://example.net"}}
+    assert config.get_key(key) == (key, "https://example.net")
+
+    config.remove_key(key)
+    assert config.content == {parameter: {}}
+
+
+def test_config_literal_map_key_precedes_nested_key() -> None:
+    config = ConfigurationFile(
+        content={"conda_build": {"foo.bar": 1, "foo": {"bar": 2}}}
+    )
+    key = "conda_build.foo.bar"
+
+    assert config.get_key(key) == (key, 1)
+    config.remove_key(key)
+    assert config.content == {"conda_build": {"foo": {"bar": 2}}}
+
+    assert config.get_key(key) == (key, 2)
+    config.remove_key(key)
+    assert config.content == {"conda_build": {"foo": {}}}

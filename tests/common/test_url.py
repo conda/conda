@@ -86,18 +86,30 @@ class UrlTest(NamedTuple):
     password: str = None
     hostname: str = None
     port: int | str = None
+    netloc: str = None
 
 
 URLPARSE_TEST_DATA = [
     (
         "192.168.1.1:8080/path/to/resource",
-        UrlTest(scheme="", hostname="192.168.1.1", port=8080, path="/path/to/resource"),
+        UrlTest(
+            scheme="",
+            hostname="192.168.1.1",
+            port=8080,
+            path="/path/to/resource",
+            netloc="192.168.1.1:8080",
+        ),
     ),
     (
         "https://conda.io/happy/path",
-        UrlTest(scheme="https", hostname="conda.io", path="/happy/path"),
+        UrlTest(
+            scheme="https", hostname="conda.io", path="/happy/path", netloc="conda.io"
+        ),
     ),
-    ("file:///opt/happy/path", UrlTest(scheme="file", path="/opt/happy/path")),
+    (
+        "file:///opt/happy/path",
+        UrlTest(scheme="file", path="/opt/happy/path", netloc=None),
+    ),
     (
         "https://u:p@conda.io/t/x1029384756/more/path",
         UrlTest(
@@ -106,6 +118,7 @@ URLPARSE_TEST_DATA = [
             path="/t/x1029384756/more/path",
             username="u",
             password="p",
+            netloc="conda.io",
         ),
     ),
 ]
@@ -148,7 +161,10 @@ URL_OBJ_UNPARSE_DATA = [
 @pytest.mark.parametrize("test_url_obj, expected_url", URL_OBJ_UNPARSE_DATA)
 def test_url_obj_unparse(test_url_obj, expected_url):
     """Tests the variety of object instantiations for the `conda.common.url.Url`."""
-    url_obj = Url(*test_url_obj)
+    # `netloc` is a computed property on `Url`, not a constructor argument.
+    fields = test_url_obj._asdict()
+    fields.pop("netloc")
+    url_obj = Url(**fields)
 
     assert str(url_obj) == expected_url
 

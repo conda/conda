@@ -181,7 +181,7 @@ def get_session(url: str):
         parsed_setting = urlparse(channel)
         # Detect URL globs before split_conda_url_easy_parts can remove a final
         # path component that resembles a package or repodata filename.
-        pattern = parsed_setting.netloc + parsed_setting.path
+        pattern = (parsed_setting.netloc or "") + parsed_setting.path
         is_url_pattern = any(char in pattern for char in "*?[")
         channel_name_matches = (
             not parsed_setting.scheme and channel.rstrip("/") == channel_name
@@ -210,7 +210,7 @@ def get_session(url: str):
         if parsed_setting.scheme != parsed_url.scheme:
             continue
 
-        url_without_schema = parsed_url.netloc + parsed_url.path
+        url_without_schema = (parsed_url.netloc or "") + parsed_url.path
         if fnmatch(url_without_schema, pattern):
             channel_settings = settings
 
