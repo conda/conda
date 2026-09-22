@@ -716,7 +716,10 @@ class ConfigurationFile:
 
         sub_config = self.content
         try:
-            for part in key_parts:
+            for index, part in enumerate(key_parts):
+                remainder = ".".join(key_parts[index:])
+                if remainder in sub_config:
+                    return key, sub_config[remainder]
                 sub_config = sub_config[part]
         except KeyError:
             pass
@@ -767,8 +770,8 @@ class ConfigurationFile:
                 parameter_name, item, "--set parameter"
             )
 
-        elif parameter_type == "map" and len(rest) == 1:
-            base_config.setdefault(parameter_name, {})[rest[0]] = item
+        elif parameter_type == "map" and rest:
+            base_config.setdefault(parameter_name, {})[".".join(rest)] = item
 
         else:
             raise CondaKeyError(key, "invalid parameter")
@@ -901,7 +904,11 @@ class ConfigurationFile:
 
         sub_config = self.content
         try:
-            for part in key_parts[:-1]:
+            for index, part in enumerate(key_parts[:-1]):
+                remainder = ".".join(key_parts[index:])
+                if remainder in sub_config:
+                    del sub_config[remainder]
+                    return
                 sub_config = sub_config[part]
             del sub_config[key_parts[-1]]
         except KeyError:

@@ -1,0 +1,25 @@
+### Title
+Search v3.whl packages on monolithic repodata channels
+
+### Why
+Searching wasn't working on monolithic repodata channels. Since the only production channel (conda-pypi) is sharded only, this test ensures that users can create local channels with wheel packages successfully.
+
+### Platforms
+- [X] Windows
+- [X] macOS
+- [X] Linux
+
+### Prerequisites
+- Latest canary conda
+- conda-pypi >= 0.12.0
+
+### Steps
+1. pip download --dest mychannel/noarch pyfig
+1. conda pypi index mychannel
+1. conda search --override-channels -c file:///mychannel pyfig
+
+### Pass criteria
+1. conda search finds pyfig
+
+### Out of scope / notes
+What not to test; pointer to automated tests if relevant.

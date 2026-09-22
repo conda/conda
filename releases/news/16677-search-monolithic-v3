@@ -1,0 +1,11 @@
+### Enhancements
+
+### Bug fixes
+
+* Find v3 package records when searching channels without sharded repodata. (#16677 via #16731)
+
+### Deprecations
+
+### Docs
+
+### Other
