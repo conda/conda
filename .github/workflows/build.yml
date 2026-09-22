@@ -164,12 +164,14 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@c08bcbfb744ccc5d942439ca0241efcd37add5ab # conda/actions#514, pending release
+        uses: conda/actions/canary-release@893f680ad5f2a3cb1f3a64560fc1af13a07da202 # conda/actions#514, pending release
         env:
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
+          base-architecture: ${{ matrix.subdir == 'win-arm64' && 'x64' || '' }}
+          conda-build-arguments: ${{ matrix.subdir == 'win-arm64' && '--override-channels -c conda-forge --python 3.14' || '' }}
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
