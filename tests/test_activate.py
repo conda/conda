@@ -471,7 +471,7 @@ def test_build_deactivate_dont_use_PATH(
     activator = PosixActivator()
     # Ensure that deactivating does not clobber PATH
     monkeypatch.setenv("CONDA_PREFIX", prefix)
-    monkeypatch.setenv("CONDA_SHLVL", 1)
+    monkeypatch.setenv("CONDA_SHLVL", "1")
 
     deactivate = activator.build_deactivate()
     assert "PATH" not in deactivate["unset_vars"]
@@ -653,7 +653,7 @@ def test_build_activate_shlvl_1(
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     monkeypatch.setenv("CONDA_PREFIX_1", old_prefix)
-    monkeypatch.setenv("CONDA_SHLVL", 2)
+    monkeypatch.setenv("CONDA_SHLVL", "2")
     monkeypatch.setenv("CONDA_DEFAULT_ENV", prefix)
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     # write_pkgs
@@ -750,7 +750,7 @@ def test_build_stack_shlvl_1(
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     monkeypatch.setenv("CONDA_PREFIX_1", old_prefix)
-    monkeypatch.setenv("CONDA_SHLVL", 2)
+    monkeypatch.setenv("CONDA_SHLVL", "2")
     monkeypatch.setenv("CONDA_DEFAULT_ENV", prefix)
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     monkeypatch.setenv("CONDA_STACKED_2", "true")
@@ -1101,7 +1101,7 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     monkeypatch.setenv("CONDA_PREFIX_1", old_prefix)
-    monkeypatch.setenv("CONDA_SHLVL", 2)
+    monkeypatch.setenv("CONDA_SHLVL", "2")
     monkeypatch.setenv("CONDA_DEFAULT_ENV", prefix)
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     monkeypatch.setenv("__CONDA_SHLVL_1_ENV_ONE", "already_set_env_var")
