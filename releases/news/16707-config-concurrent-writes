@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Detect concurrent configuration replacements and coordinate cooperating writers through a persistent lock file. (#16707)
+* Detect concurrent configuration replacements and coordinate cooperating writers through a persistent lock file. (#16707 via #16709)
 
 ### Deprecations
 
