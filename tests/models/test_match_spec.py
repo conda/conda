@@ -1955,6 +1955,25 @@ def test_unquoted_list_invalid_separators(key, match_spec_v3):
 
 
 @pytest.mark.parametrize("key", ["extras", "flags"])
+def test_unquoted_space_separated_fields(key, match_spec_v3):
+    ms = MatchSpec(f"pkg[{key}=a version='1.0']")
+    assert ms.get(key) == ("a",)
+    assert str(ms) == str(MatchSpec(f"pkg[{key}=[a],version='1.0']"))
+
+    if key == "extras":
+        ms = MatchSpec("pkg[extras=a flags=cpu]")
+        assert ms.get("extras") == ("a",)
+        assert ms.get("flags") == ("cpu",)
+    else:
+        ms = MatchSpec("pkg[flags=cpu extras=a]")
+        assert ms.get("flags") == ("cpu",)
+        assert ms.get("extras") == ("a",)
+
+    ms = MatchSpec(f"pkg[{key}=a ]")
+    assert ms.get(key) == ("a",)
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
 def test_unquoted_list_invalid_yaml(key, match_spec_v3):
     with pytest.raises(InvalidMatchSpec, match="Invalid"):
         MatchSpec(f'pkg[{key}=a,"b]')
