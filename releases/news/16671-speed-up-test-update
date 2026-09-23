@@ -16,4 +16,4 @@
 
 ### Other
 
-* Speed up `test_update` by using `test_recipes_channel` with `small-executable` and `dependency` instead of remote `ca-certificates` and `zlib`. (#16671)
+* Speed up `test_update` by using `test_recipes_channel` with `small-executable` and `dependency` instead of remote `ca-certificates` and `zlib`. (#16671 via #16743)
