@@ -456,8 +456,49 @@ class PaddingError(CondaError):
 
 
 class LinkError(CondaError):
-    def __init__(self, message: str):
-        super().__init__(message)
+    def __init__(self, message: str, **kwargs):
+        super().__init__(message, **kwargs)
+
+
+class LinkSourceNotFoundError(CondaError):
+    """Raised when linking a path whose source is missing from the package cache.
+
+    Carries the missing ``src`` path so callers can remediate (e.g. remove the
+    corrupt package cache entry) without parsing the error message.
+    """
+
+    def __init__(self, src: str, **kwargs):
+        self.src = src
+        super().__init__(
+            f"Cannot link a source that does not exist. {src}\n"
+            "Running `conda clean --packages` may resolve your problem.",
+            **kwargs,
+        )
+
+
+class LinkScriptError(LinkError):
+    """Raised when a pre-link or post-link script exits non-zero.
+
+    Carries structured information about the failure (the script's ``action``,
+    the ``prec`` it ran for and the ``path`` of the script) so callers can
+    dispatch on the type and fields instead of parsing the message.
+
+    Failing unlink scripts only log a warning and report failure by returning
+    ``False``, so ``action`` is always ``"pre-link"`` or ``"post-link"``.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        action: str,
+        prec: PackageRecord,
+        path: str,
+        **kwargs,
+    ):
+        self.action = action
+        self.prec = prec
+        self.path = path
+        super().__init__(message, **kwargs)
 
 
 class CondaOSError(CondaError, OSError):
