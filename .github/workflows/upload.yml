@@ -11,7 +11,7 @@ concurrency:
   # concurrency group while a previous build is running it will be canceled.
   # Repeated pushes to a PR will cancel all previous builds, while multiple
   # merges to main will not cancel.
-  group: ${{ github.workflow }}-${{ github.ref_name || github.sha }}
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name || github.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     env:
-      ARCHIVE_NAME: ${{ github.event.repository.name }}-${{ github.ref_name }}
+      ARCHIVE_NAME: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,6 +50,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh release upload
-          --clobber "${{ github.ref_name }}"
+          --clobber "${{ github.event.release.tag_name }}"
           --repo "${{ github.repository }}"
           release/*

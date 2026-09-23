@@ -104,3 +104,9 @@ conda/infrastructure:
     dst: rever.xsh
   - src: templates/releases/TEMPLATE
     dst: releases/news/TEMPLATE
+
+  # [optional] stable git archive (scm version detection + checksummed release uploads)
+  - src: templates/.git_archival.txt
+    dst: .git_archival.txt
+  - src: templates/workflows/upload.yml
+    dst: .github/workflows/upload.yml
