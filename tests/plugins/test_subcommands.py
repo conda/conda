@@ -318,6 +318,42 @@ def test_parser_no_plugin_specific(plugin_manager):
     assert args.cmd == "beta"
 
 
+@pytest.mark.parametrize("command", ("custom", "alternate"))
+def test_bare_no_plugins_preserves_enabled_command(
+    plugin_manager, conda_cli: CondaCLIFixture, command: str
+):
+    calls = []
+
+    class EnabledCommand:
+        @plugins.hookimpl
+        def conda_subcommands(self):
+            yield CondaSubcommand(
+                name="custom",
+                aliases=("alternate",),
+                summary="Custom command.",
+                action=calls.append,
+            )
+
+    class BrokenCommand:
+        @plugins.hookimpl
+        def conda_subcommands(self):
+            raise AssertionError("Disabled hooks must not run during argument parsing")
+
+    plugin_manager.register(EnabledCommand(), "enabled.plugin")
+    plugin_manager.register(BrokenCommand(), "broken.plugin")
+
+    _, stderr, rc = conda_cli(
+        "--enable-plugins=enabled.plugin",
+        "--no-plugins",
+        command,
+        "some-arg",
+        "--child-option",
+    )
+
+    assert rc is None, stderr
+    assert calls == [("some-arg", "--child-option")]
+
+
 def test_custom_plugin_not_extend_parser(
     plugin_manager,
     conda_cli: CondaCLIFixture,

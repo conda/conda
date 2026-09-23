@@ -219,7 +219,7 @@ class ExceptionHandler:
                     "",
                     "For commands that need a solver, keep an installed solver plugin enabled:",
                     "",
-                    "Example: conda --no-plugins --plugins conda-libmamba-solver install --solver=libmamba <package>",
+                    "Example: conda --no-plugins --enable-plugins conda-libmamba-solver install --solver=libmamba <package>",
                     "",
                 ]
             )

@@ -122,12 +122,6 @@ BUILTIN_COMMAND_PARSERS = {
 }
 
 
-def _parse_disabled_plugins(value: str) -> list[str] | None:
-    if value == "":
-        return None
-    return comma_separated_stripped(value)
-
-
 def generate_pre_parser(*, with_plugins: bool = True, **kwargs) -> ArgumentParser:
     pre_parser = ArgumentParser(
         prog="conda",
@@ -148,16 +142,21 @@ def generate_pre_parser(*, with_plugins: bool = True, **kwargs) -> ArgumentParse
 
     pre_parser.add_argument(
         "--no-plugins",
-        dest="disabled_plugins",
-        nargs="?",
-        const=None,
+        action="store_true",
         default=NULL,
-        metavar="PLUGIN[,PLUGIN...]",
-        type=_parse_disabled_plugins,
-        help="Disable all external plugins, or the comma-separated plugins listed.",
+        help="Disable all plugins that are not built into conda.",
     )
     pre_parser.add_argument(
-        "--plugins",
+        "--disable-plugins",
+        dest="disabled_plugins",
+        action="extend",
+        default=[],
+        metavar="PLUGIN[,PLUGIN...]",
+        type=comma_separated_stripped,
+        help="Disable the listed plugins. Can be used multiple times.",
+    )
+    pre_parser.add_argument(
+        "--enable-plugins",
         dest="enabled_plugins",
         action="extend",
         default=[],
@@ -245,17 +244,6 @@ class ArgumentParser(ArgumentParserBase):
 
         if add_help:
             add_parser_help(self)
-
-    def _parse_optional(self, arg_string):
-        if (
-            arg_string == "--no-plugins"
-            and (action := self._option_string_actions.get(arg_string)) is not None
-            and action.dest == "disabled_plugins"
-        ):
-            # Bare --no-plugins must not consume the following command. Interpret
-            # it as an empty value without modifying arguments passed to a child.
-            arg_string += "="
-        return super()._parse_optional(arg_string)
 
     def _check_value(self, action, value):
         # For our greedy subparsers, sort the choices by their repr for stable output

@@ -67,8 +67,8 @@ def test_main_subshell_no_plugins_flag(monkeypatch) -> None:
     assert disabled
 
 
-def test_main_subshell_no_plugins_names(monkeypatch) -> None:
-    """--no-plugins=<names> disables the named plugins."""
+def test_main_subshell_disable_plugins_names(monkeypatch) -> None:
+    """--disable-plugins=<names> disables the named plugins."""
     disabled = []
     monkeypatch.setattr(
         context.plugin_manager,
@@ -77,13 +77,69 @@ def test_main_subshell_no_plugins_names(monkeypatch) -> None:
     )
 
     with pytest.raises(SystemExit):
-        main_subshell("--no-plugins=plugin-a, plugin-b", "--help")
+        main_subshell("--disable-plugins=plugin-a, plugin-b", "--help")
 
     assert disabled == ["plugin-a", "plugin-b"]
 
 
-@pytest.mark.parametrize("option", ("--no-plugins", "--no-plugins="))
-def test_main_subshell_no_plugins_option(monkeypatch, option: str) -> None:
+@pytest.mark.parametrize(
+    "options,disabled_plugins,no_plugins",
+    [
+        (["--disable-plugins", "conda-test-plugin"], ["conda-test-plugin"], False),
+        (
+            ["--disable-plugins", "conda-test-plugin, other.plugin"],
+            ["conda-test-plugin", "other.plugin"],
+            False,
+        ),
+        (
+            ["--disable-plugins=conda-test-plugin", "--disable-plugins=other.plugin"],
+            ["conda-test-plugin", "other.plugin"],
+            False,
+        ),
+        (
+            [
+                "--disable-plugins",
+                "conda-test-plugin",
+                "--disable-plugins",
+                "other.plugin",
+            ],
+            ["conda-test-plugin", "other.plugin"],
+            False,
+        ),
+        (
+            ["--no-plugins", "--disable-plugins=conda-test-plugin"],
+            ["conda-test-plugin"],
+            True,
+        ),
+        (
+            ["--disable-plugins=conda-test-plugin", "--no-plugins"],
+            ["conda-test-plugin"],
+            True,
+        ),
+    ],
+)
+def test_main_subshell_disable_multiple_plugins(
+    plugin_manager, capsys, options, disabled_plugins, no_plugins
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    plugin_manager.register(object(), "other.plugin")
+    plugin_manager.register(object(), "unrelated.plugin")
+
+    def check_args(args, parser):
+        assert args.disabled_plugins == disabled_plugins
+        assert context.no_plugins is no_plugins
+
+    rc = main_subshell(*options, "commands", post_parse_hook=check_args)
+    assert rc == 0, capsys.readouterr().err
+
+    assert not plugin_manager.has_plugin("test_plugin.success")
+    assert plugin_manager.has_plugin("other.plugin") is (
+        not no_plugins and "other.plugin" not in disabled_plugins
+    )
+    assert plugin_manager.has_plugin("unrelated.plugin") is (not no_plugins)
+
+
+def test_main_subshell_no_plugins_option(monkeypatch) -> None:
     """--no-plugins disables all external plugins."""
     disabled = []
     monkeypatch.setattr(
@@ -92,7 +148,7 @@ def test_main_subshell_no_plugins_option(monkeypatch, option: str) -> None:
         lambda **kwargs: disabled.append(True),
     )
 
-    assert main_subshell(option, "commands") == 0
+    assert main_subshell("--no-plugins", "commands") == 0
 
     assert context.no_plugins is True
     assert disabled
@@ -106,9 +162,19 @@ def test_main_subshell_no_plugins_option(monkeypatch, option: str) -> None:
     [
         ([], "false", True),
         (["--no-plugins"], "false", False),
-        (["--no-plugins="], "false", False),
         ([], "true", False),
-        (["--no-plugins=conda-test-plugin,other.plugin"], "false", False),
+        (["--disable-plugins=conda-test-plugin,other.plugin"], "false", False),
+        (
+            [
+                "--disable-plugins",
+                "conda-test-plugin",
+                "--disable-plugins",
+                "other.plugin",
+            ],
+            "false",
+            False,
+        ),
+        (["--no-plugins", "--disable-plugins=conda-test-plugin"], "false", False),
     ],
 )
 @pytest.mark.parametrize("enable_first", (False, True))
@@ -122,7 +188,7 @@ def test_main_subshell_enabled_plugins(
     builtin = object()
     plugin_manager.register(other, "other.plugin")
     plugin_manager.register(builtin, "conda.plugins.test_builtin")
-    enabled = ["--plugins", name]
+    enabled = ["--enable-plugins", name]
     args = [*enabled, *options] if enable_first else [*options, *enabled]
 
     def check_args(parsed_args, parser):
@@ -142,7 +208,7 @@ def test_main_subshell_enabled_plugin_unavailable(plugin_manager, name):
     assert plugin_manager.load_entrypoints("test_plugin", "importerror") == 0
 
     with pytest.raises(PluginError, match="No registered plugin matching"):
-        main_subshell("--no-plugins", f"--plugins={name}", "commands")
+        main_subshell("--no-plugins", f"--enable-plugins={name}", "commands")
 
     assert plugin_manager.has_plugin("test_plugin.success")
 
@@ -156,7 +222,9 @@ def test_main_subshell_enabled_plugin_multiple_modules(plugin_manager):
         "second.plugin",
     }
 
-    assert main_subshell("--no-plugins", "--plugins=multi-plugin", "commands") == 0
+    assert (
+        main_subshell("--no-plugins", "--enable-plugins=multi-plugin", "commands") == 0
+    )
 
     assert plugin_manager.has_plugin("test_plugin.success")
     assert plugin_manager.has_plugin("second.plugin")

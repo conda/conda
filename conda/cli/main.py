@@ -46,23 +46,21 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
         "verbosity": pre_args.verbosity,
     }
 
-    disabled_plugins = pre_args.disabled_plugins
-    if disabled_plugins is None:
-        pre_args.no_plugins = True
     context.__init__(argparse_args=pre_args)
-    if context.no_plugins or disabled_plugins is None:
+    if context.no_plugins:
         context.plugin_manager.disable_external_plugins(
             except_plugins=pre_args.enabled_plugins,
         )
-    elif disabled_plugins or pre_args.enabled_plugins:
+    elif pre_args.disabled_plugins or pre_args.enabled_plugins:
         context.plugin_manager.disable_plugins(
-            disabled_plugins or (),
+            pre_args.disabled_plugins,
             except_plugins=pre_args.enabled_plugins,
         )
 
     parser = generate_parser(add_help=True)
-    # The extend action must not append to the selections from pre-parsing.
+    # Accumulating actions must not append to the selections from pre-parsing.
     del pre_args.enabled_plugins
+    del pre_args.disabled_plugins
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     context.__init__(argparse_args=args)
