@@ -92,19 +92,40 @@ see :doc:`../troubleshooting`.
 
 .. _installing-packages-with-an-upload-cutoff:
 
-Installing packages with an upload cutoff
-=========================================
+Installing packages with a timestamp cutoff
+===========================================
 
 .. versionadded:: 26.9.0
 
-Use ``--exclude-newer`` to ignore package records published after a
+Use ``--exclude-newer`` to ignore package records with timestamps after a
 configured cutoff for one ``conda create``, ``conda install``, or
-``conda update`` command. This can reduce exposure to packages that were
-uploaded very recently while still allowing older package records to be
-selected.
+``conda update`` command.
 
-To install a package while ignoring package records uploaded in the last
-7 days:
+Conda prefers the channel-provided ``indexed_timestamp``, which is intended to
+record when the package first became available in the channel index. If it is
+absent or zero, conda falls back to the builder-controlled ``timestamp``, which
+records build time rather than publication time. Records without a usable
+timestamp remain eligible.
+
+For artifacts predating `CEP 47
+<https://conda.org/learn/ceps/cep-0047/#channel-server-requirements>`_, channels
+may seed ``indexed_timestamp`` from build timestamps or other historical
+signals. These values may not reflect the exact time a package became available.
+
+The fallback can still reduce exposure to newly built malicious packages when
+build timestamps are accurate, giving time for detection and removal. This is
+a best-effort security benefit, not a reliable full cooldown after publication.
+An old build uploaded today can pass the cutoff, and a malicious publisher can
+backdate the build timestamp. For example, with a 7-day cutoff, a package built
+6 days before publication has only about 1 day of delay after publication.
+A cutoff can also delay legitimate security fixes.
+
+Timestamp filtering does not guarantee package safety.
+It can support reproducible resolution, but does not by itself guarantee an
+exact reconstruction of a channel's past state.
+
+To install a package while ignoring package records whose effective timestamps
+fall within the last 7 days:
 
 .. code-block:: bash
 
@@ -116,8 +137,8 @@ To update packages while applying the same cutoff:
 
    conda update --exclude-newer 7d --all
 
-To create an environment using only package records published on or before a
-specific date:
+To create an environment while excluding package records with effective
+timestamps after a specific date:
 
 .. code-block:: bash
 

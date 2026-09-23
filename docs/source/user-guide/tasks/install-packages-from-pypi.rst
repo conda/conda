@@ -192,9 +192,13 @@ the following limitations in mind:
   It does not include packages from private or alternative package indexes
   (such as a corporate artifact repository).
 * **No additional vetting beyond PyPI.** The ``conda-pypi`` channel does not
-  perform additional security scanning beyond what PyPI provides. Using the
+  perform additional security scanning beyond what PyPI provides. The
   :ref:`--exclude-newer flag <installing-packages-with-an-upload-cutoff>`
-  is recommended as a lightweight mitigation for supply-chain risk.
+  can reduce exposure to recent malicious packages when usable, accurate
+  timestamps are available, but is not a substitute for security scanning.
+  A reliable publication cooldown requires channel-provided
+  ``indexed_timestamp`` values. The fallback ``timestamp`` is builder-controlled,
+  and records without a usable timestamp remain eligible.
 * **conda client only.** Supported in the conda CLI. Support in other clients
   (mamba, micromamba, and so on) is under active CEP discussion.
 * **Pure Python wheels only.** Packages with compiled extensions must come
