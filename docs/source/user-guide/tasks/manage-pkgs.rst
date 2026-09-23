@@ -112,10 +112,15 @@ For artifacts predating `CEP 47
 may seed ``indexed_timestamp`` from build timestamps or other historical
 signals. These values may not reflect the exact time a package became available.
 
-The fallback allows filtering on channels without ``indexed_timestamp``
-support, but cannot enforce a reliable publication cooldown. An old build
-uploaded today can pass the cutoff, and a malicious publisher can backdate
-the build timestamp. Timestamp filtering does not guarantee package safety.
+The fallback can still reduce exposure to newly built malicious packages when
+build timestamps are accurate, giving time for detection and removal. This is
+a best-effort security benefit, not a reliable full cooldown after publication.
+An old build uploaded today can pass the cutoff, and a malicious publisher can
+backdate the build timestamp. For example, with a 7-day cutoff, a package built
+6 days before publication has only about 1 day of delay after publication.
+A cutoff can also delay legitimate security fixes.
+
+Timestamp filtering does not guarantee package safety.
 It can support reproducible resolution, but does not by itself guarantee an
 exact reconstruction of a channel's past state.
 

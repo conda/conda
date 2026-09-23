@@ -194,8 +194,9 @@ the following limitations in mind:
 * **No additional vetting beyond PyPI.** The ``conda-pypi`` channel does not
   perform additional security scanning beyond what PyPI provides. The
   :ref:`--exclude-newer flag <installing-packages-with-an-upload-cutoff>`
-  filters package records by timestamp, but is not a substitute for security
-  scanning. A reliable publication cooldown requires channel-provided
+  can reduce exposure to recent malicious packages when usable, accurate
+  timestamps are available, but is not a substitute for security scanning.
+  A reliable publication cooldown requires channel-provided
   ``indexed_timestamp`` values. The fallback ``timestamp`` is builder-controlled,
   and records without a usable timestamp remain eligible.
 * **conda client only.** Supported in the conda CLI. Support in other clients

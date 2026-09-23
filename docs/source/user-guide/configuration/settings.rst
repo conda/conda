@@ -597,10 +597,11 @@ the cutoff. Leave it empty to disable the policy, which is the default.
 
 Conda prefers the channel-provided ``indexed_timestamp`` and falls back to
 ``timestamp`` if ``indexed_timestamp`` is absent or zero. The fallback is a
-builder-controlled build time, not a publication time, so it cannot enforce
-a reliable publication cooldown. Records without a usable timestamp remain
-eligible. See :ref:`installing-packages-with-an-upload-cutoff` for details and
-limitations.
+builder-controlled build time, not a publication time. Accurate build timestamps
+can still delay newly built malicious packages, but cannot enforce a reliable
+full cooldown after publication. Records without a usable timestamp remain
+eligible. See :ref:`installing-packages-with-an-upload-cutoff` for security
+benefits, tradeoffs, and limitations.
 
 **Example:**
 

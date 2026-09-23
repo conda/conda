@@ -55,7 +55,9 @@ Conda prefers the channel-provided `indexed_timestamp`, which is intended to rec
 
 For artifacts predating [CEP 47](https://conda.org/learn/ceps/cep-0047/#channel-server-requirements), channels may seed `indexed_timestamp` from build timestamps or other historical signals. These values may not reflect the exact time a package became available.
 
-The fallback still filters packages on channels without `indexed_timestamp` support, but it cannot enforce a reliable publication cooldown. An old build uploaded today can pass the cutoff, and a malicious publisher can backdate the build timestamp. Timestamp filtering does not guarantee package safety. It can support reproducible resolution, but does not by itself guarantee an exact reconstruction of a channel's past state.
+The fallback can still reduce exposure to newly built malicious packages when build timestamps are accurate, giving time for detection and removal. This is a best-effort security benefit, not a reliable full cooldown after publication. An old build uploaded today can pass the cutoff, and a malicious publisher can backdate the build timestamp. A cutoff can also delay legitimate security fixes.
+
+Timestamp filtering does not guarantee package safety. It can support reproducible resolution, but does not by itself guarantee an exact reconstruction of a channel's past state.
 
 The flag works with `conda create`, `conda install`, and `conda update`. It can also be used as a global setting or per-channel override in your `.condarc` file. Accepted values include durations (`7d`, `3d12h`, `1w`), ISO 8601 durations (`P7D`), RFC 3339 timestamps, and date-only values (`2026-04-01`).
 
