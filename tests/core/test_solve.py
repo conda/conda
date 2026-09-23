@@ -1588,11 +1588,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
                     if pkg.name == "conda":
                         assert VersionOrder(pkg.version) < VersionOrder("4.4.10")
                     elif pkg.name == "python":
-                        assert pkg.version == (
-                            "3.6.2"
-                            if context.solver in ("libmamba", "rattler")
-                            else "3.6.6"
-                        )
+                        assert pkg.version == "3.6.2"
                     elif pkg.name == "conda-build":
                         assert pkg.version == "3.12.1"
                     elif pkg.name == "itsdangerous":
