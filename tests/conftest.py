@@ -53,7 +53,7 @@ pytest_plugins = (
 )
 
 
-@pytest.hookimpl
+@pytest.hookimpl(optionalhook=True)
 def pytest_report_header(config: pytest.Config):
     # ensuring the expected development conda is being run
     source_root = Path(__file__).parent.parent
