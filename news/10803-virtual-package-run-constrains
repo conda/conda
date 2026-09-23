@@ -1,0 +1,23 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* The classic solver now enforces `run_constrained`/`constrains` entries that
+  reference virtual packages (e.g. a `constrains` on `__cuda`). Because virtual
+  packages model always-present host state, such a constraint is now honored
+  during resolution instead of being silently ignored, so an environment that
+  violates it correctly fails as unsatisfiable. (#10803)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
