@@ -92,19 +92,29 @@ see :doc:`../troubleshooting`.
 
 .. _installing-packages-with-an-upload-cutoff:
 
-Installing packages with an upload cutoff
-=========================================
+Installing packages with a timestamp cutoff
+===========================================
 
 .. versionadded:: 26.9.0
 
-Use ``--exclude-newer`` to ignore package records published after a
+Use ``--exclude-newer`` to ignore package records with timestamps after a
 configured cutoff for one ``conda create``, ``conda install``, or
-``conda update`` command. This can reduce exposure to packages that were
-uploaded very recently while still allowing older package records to be
-selected.
+``conda update`` command.
 
-To install a package while ignoring package records uploaded in the last
-7 days:
+Conda prefers the channel-provided ``indexed_timestamp``, which records when
+the package became available in the channel index. If it is absent or zero,
+conda falls back to the builder-controlled ``timestamp``, which records build
+time rather than publication time. Records without a usable timestamp remain
+eligible.
+
+The fallback allows filtering on channels without ``indexed_timestamp``
+support, but cannot enforce a reliable publication cooldown. An old build
+uploaded today can pass the cutoff, and a malicious publisher can backdate
+the build timestamp. Timestamp filtering alone does not guarantee package
+safety or reproduce the channel as it existed at a past date.
+
+To install a package while ignoring package records whose effective timestamps
+fall within the last 7 days:
 
 .. code-block:: bash
 
@@ -116,8 +126,8 @@ To update packages while applying the same cutoff:
 
    conda update --exclude-newer 7d --all
 
-To create an environment using only package records published on or before a
-specific date:
+To create an environment while excluding package records with effective
+timestamps after a specific date:
 
 .. code-block:: bash
 

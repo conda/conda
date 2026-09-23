@@ -1,0 +1,3 @@
+### Docs
+
+* Clarify the ``exclude_newer`` build-timestamp fallback and its publication-cooldown limitations. (#16739)
