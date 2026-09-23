@@ -22,6 +22,7 @@ from ..common.io import dashlist, time_recorder
 from ..common.iterators import groupby_to_dict as groupby
 from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
+from ..deprecations import deprecated
 from ..exceptions import (
     NoChannelsConfiguredError,
     PackagesNotFoundInChannelsError,
@@ -237,6 +238,7 @@ class BaseSolver:
         )
 
         self._notify_conda_outdated(link_precs)
+        self._notify_pip_as_python_deprecation(link_precs)
         return UnlinkLinkTransaction(
             PrefixSetup(
                 self.prefix,
@@ -376,6 +378,38 @@ class BaseSolver:
                     file=sys.stderr,
                 )
 
+    def _notify_pip_as_python_deprecation(self, link_precs):
+        if not context.add_pip_as_python_dependency or context.quiet or context.json:
+            return
+
+        spec_names = {prec.name for prec in link_precs}
+        user_configured_add_pip_as_dep = any(
+            "add_pip_as_python_dependency" in v for v in context.raw_data.values()
+        )
+        if (
+            ("python" in spec_names)
+            and ("pip" in spec_names)
+            and "pip" not in {s.name for s in self.unmerged_specs_to_add}
+            and (not user_configured_add_pip_as_dep)
+        ):
+            deprecated.topic(
+                "27.3",
+                "27.9",
+                topic="Implicit installation of pip as a Python dependency",
+                addendum=dedent(
+                    """
+                    conda is adding pip because add_pip_as_python_dependency defaults to true.
+                    This default will change to false in conda 27.9.0.
+
+                    Next steps:
+                      - Keep current behavior:  conda config --set add_pip_as_python_dependency true
+                      - Install pip only when asked: include pip in your specs (e.g. python pip)
+                      - Opt out early:          conda config --set add_pip_as_python_dependency false
+                    """
+                ),
+                deprecation_type=FutureWarning,
+            )
+
 
 class Solver(BaseSolver):
     supports_exclude_newer_global = True
@@ -510,10 +544,7 @@ class Solver(BaseSolver):
                 " with flexible solve.\n"
             )
         elif self._repodata_fn != REPODATA_FN:
-            fail_message = (
-                f"unsuccessful attempt using repodata from {self._repodata_fn}, retrying"
-                " with next repodata source.\n"
-            )
+            fail_message = "retrying with next repodata source.\n"
         else:
             fail_message = "failed\n"
 

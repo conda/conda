@@ -86,6 +86,32 @@ def test_add_binstar_token_notices_json():
         remove_binstar_token("https://api.anaconda.test")
 
 
+@pytest.mark.parametrize(
+    "filename",
+    ("repodata_shards.msgpack.zst", f"{'a' * 64}.msgpack.zst"),
+    ids=("index", "shard"),
+)
+def test_add_binstar_token_preserves_shard_filenames(
+    filename: str,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    reset_conda_context,
+) -> None:
+    """Preserve shard paths when inserting a stored token (#16637)."""
+    monkeypatch.setenv("CONDA_ADD_ANACONDA_TOKEN", "true")
+    reset_context()
+    mocker.patch(
+        "conda.gateways.connection.session.read_binstar_tokens",
+        return_value={"https://conda.anaconda.test": "example-token"},
+    )
+    subpath = f"conda-forge/linux-64/{filename}"
+    url = f"https://conda.anaconda.test/{subpath}"
+
+    assert CondaHttpAuth.add_binstar_token(url) == (
+        f"https://conda.anaconda.test/t/example-token/{subpath}"
+    )
+
+
 def test_local_file_adapter_404():
     session = CondaSession()
     test_path = "file:///some/location/doesnt/exist"
@@ -272,6 +298,36 @@ def test_get_session_returns_default():
     session_obj = get_session(url)
 
     assert type(session_obj) is CondaSession
+
+
+@pytest.mark.parametrize(
+    "channel_settings_url, expect_match",
+    [
+        ("file:///tmp/repro-channel", True),
+        ("file:///tmp/other-channel", False),
+        ("file:///tmp/repro-channel/*", True),
+    ],
+)
+def test_get_session_channel_settings_file_url(
+    mocker, channel_settings_url, expect_match
+):
+    """Handle exact, glob, and nonmatching local channel settings (#16698)."""
+    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context.known_subdirs = context.known_subdirs
+    mock_context.channel_settings = (
+        {"channel": channel_settings_url, "auth": "dummy_one"},
+    )
+
+    session_obj = get_session("file:///tmp/repro-channel/noarch/repodata.json")
+
+    assert type(session_obj) is CondaSession
+    get_auth_handler = mock_context.plugin_manager.get_auth_handler
+    if expect_match:
+        assert type(session_obj.auth) is not CondaHttpAuth
+        get_auth_handler.assert_called_once_with("dummy_one")
+    else:
+        assert type(session_obj.auth) is CondaHttpAuth
+        get_auth_handler.assert_not_called()
 
 
 def test_get_session_with_channel_settings(mocker):

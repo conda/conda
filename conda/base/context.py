@@ -498,7 +498,7 @@ class Context(Configuration):
     _verbosity = ParameterLoader(
         PrimitiveParameter(0, element_type=int), aliases=("verbose", "verbosity")
     )
-    experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
+    _experimental = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     preview = ParameterLoader(SequenceParameter(PrimitiveParameter("", str)))
     no_lock = ParameterLoader(PrimitiveParameter(False))
     repodata_use_zst = ParameterLoader(PrimitiveParameter(True))
@@ -636,6 +636,14 @@ class Context(Configuration):
     @dev.setter
     def dev(self, value: bool) -> None:
         self._cache_["_dev"] = value
+
+    @property
+    @deprecated(
+        "27.3",
+        "27.9",
+    )
+    def experimental(self) -> str:
+        return self._experimental
 
     @property
     @deprecated(
@@ -1190,17 +1198,25 @@ class Context(Configuration):
         non-data descriptors used by the context) have no ``__set__``: a
         plain ``setattr`` would shadow the descriptor permanently in
         ``__dict__`` and ``reset_context()`` could not restore it.
+
+        Caches derived from context values (``memoizedproperty`` results
+        and the registered reset callbacks, such as the ``Channel.from_value``
+        cache) are invalidated on entry and again on exit, so that values
+        computed before the override do not mask it and values computed
+        during it do not outlive it.
         """
         sentinel = object()
         previous = self.__dict__.get(key, sentinel)
         self.__dict__[key] = value
         try:
+            self._reset_cache()
             yield
         finally:
             if previous is sentinel:
                 self.__dict__.pop(key, None)
             else:
                 self.__dict__[key] = previous
+            self._reset_cache()
 
     @memoizedproperty
     def requests_version(self) -> str:
@@ -1361,7 +1377,7 @@ class Context(Configuration):
             "use_only_tar_bz2",
             "repodata_threads",
             "fetch_threads",
-            "experimental",
+            "experimental",  # TODO: Remove after deprecation ended
             "no_lock",
             "repodata_use_zst",
             "repodata_use_shards",

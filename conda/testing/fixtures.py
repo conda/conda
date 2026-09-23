@@ -270,20 +270,21 @@ class CondaCLIFixture:
         if self.capsys:
             self.capsys.readouterr()
 
-        # run command
-        code = None
-        with pytest.raises(raises) if raises else nullcontext() as exception:
-            code = main_subshell(*self._cast_args(argv))
-        # capture output
-        if self.capsys:
-            out, err = self.capsys.readouterr()
-        else:
-            out = err = None
+        try:
+            # run command
+            code = None
+            with pytest.raises(raises) if raises else nullcontext() as exception:
+                code = main_subshell(*self._cast_args(argv))
+            # capture output
+            if self.capsys:
+                out, err = self.capsys.readouterr()
+            else:
+                out = err = None
 
-        # restore to prior state
-        reset_context()
-
-        return out, err, exception if raises else code
+            return out, err, exception if raises else code
+        finally:
+            # restore to prior state even when the command raises unexpectedly
+            reset_context()
 
     @staticmethod
     def _cast_args(argv: tuple[PathType, ...]) -> Iterable[str]:

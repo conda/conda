@@ -73,6 +73,9 @@ jobs:
       || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
+    defaults:
+      run:
+        shell: pwsh
     strategy:
       fail-fast: false
       matrix:
@@ -89,13 +92,17 @@ jobs:
             test-group: 3
           - runs-on: windows-11-arm
             python-version: '3.10'
+        include:
+          - subdir: win-64
           - runs-on: windows-11-arm
             default-channel: conda-forge
+            subdir: win-arm64
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SUBDIR: ${{ matrix.subdir }}
 
     steps:
       - name: Checkout Source
@@ -106,7 +113,7 @@ jobs:
       - name: Hash + Timestamp
         shell: bash  # use bash to run date command
         run: |
-          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
+          STEM="${{ runner.os }}-${{ runner.arch }}-${{ matrix.subdir }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
           echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
           echo "HASH=${STEM}-${{ matrix.test-type }}-${{ matrix.test-group }}" >> $GITHUB_ENV
 
@@ -125,7 +132,7 @@ jobs:
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
           run-post: false  # skip post cleanup
-          # A native win-arm64 conda test environment is not available yet.
+          # Use x64 Miniconda to bootstrap the test environment until a native installer is available.
           architecture: x64
         env:
           CONDA_SUBDIR: win-64
@@ -147,7 +154,7 @@ jobs:
           --file tests\requirements-s3.txt
           python=${{ matrix.python-version }}
         env:
-          CONDA_SUBDIR: win-64
+          CONDA_SUBDIR: ${{ matrix.subdir }}
 
       - name: Conda Info
         # view test env info (not base)
@@ -179,20 +186,21 @@ jobs:
       - name: Run Tests
         # Windows is sensitive to long paths, using `--basetemp=${{ runner.temp }} to
         # keep the test directories shorter
-        run: >
-          python -m pytest
-          --cov=conda
-          --basetemp=${{ runner.temp }}
-          --durations-path=durations\${{ runner.os }}.json
-          --group=${{ matrix.test-group }}
-          --splits=${{ env.PYTEST_SPLITS }}
-          -m "${{ env.PYTEST_MARKER }}"
+        run: |
+          $env:CONDA_EXE = "$env:CONDA_PREFIX\Scripts\conda.exe"
+          python -m pytest `
+          --cov=conda `
+          --basetemp=${{ runner.temp }} `
+          --durations-path=durations\${{ runner.os }}.json `
+          --group=${{ matrix.test-group }} `
+          --splits=${{ env.PYTEST_SPLITS }} `
+          -m "${{ env.PYTEST_MARKER }}" `
           ${{ env.PYTEST_EXTRA }}
 
       - name: Upload Coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.subdir }},${{ matrix.python-version }},${{ matrix.test-type }}
           token: ${{ secrets.CODECOV_TOKEN }}  # required
 
       - name: Upload Test Results
@@ -357,7 +365,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      PYTHONHASHSEED: '0'
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -372,6 +384,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Hash + Timestamp
         run: |
@@ -417,27 +431,83 @@ jobs:
         run: conda config --show-sources
 
       - name: Conda List
-        run: conda list --show-channel-urls
+        run: conda list --show-channel-urls | tee "$RUNNER_TEMP/benchmark_dependencies.txt"
+
+      - name: Install Bencher diagnostics
+        uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
+        with:
+          version: 0.6.12
+
+      - name: Record runner noise
+        continue-on-error: true
+        run: bencher noise --duration 30 --quiet | tee "$RUNNER_TEMP/noise.txt"
+
+      - name: Record benchmark runner
+        env:
+          HARNESS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: python
+        run: |
+          import json
+          import os
+          from pathlib import Path
+
+          metadata = {
+              "runner": "ubuntu-24.04",
+              "image_os": os.environ["ImageOS"],
+              "image_version": os.environ["ImageVersion"],
+              "harness_sha": os.environ["HARNESS_SHA"],
+          }
+          Path(os.environ["RUNNER_TEMP"], "runner_metadata.json").write_text(json.dumps(metadata))
+
+      - name: Checkout Base Revision
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git checkout --detach "$BASE_SHA"
+          git restore --source "$HEAD_SHA" --worktree -- tests conda/testing pyproject.toml
+
+      - name: Run Base Benchmarks
+        if: github.event_name == 'pull_request'
+        id: baseline
+        continue-on-error: true
+        run: >
+          "$CONDA/envs/test/bin/python" -m pytest
+          -m benchmark
+          --benchmark-json "$RUNNER_TEMP/baseline_results.json"
+
+      - name: Discard Incomplete Base Results
+        if: github.event_name == 'pull_request' && steps.baseline.outcome != 'success'
+        run: rm -f "$RUNNER_TEMP/baseline_results.json"
+
+      - name: Checkout Head Revision
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: git checkout --force --detach "$HEAD_SHA"
 
       - name: Run Benchmarks
         run: >
-          $CONDA/envs/test/bin/python -m pytest
+          "$CONDA/envs/test/bin/python" -m pytest
           -m benchmark
-          --benchmark-json benchmark_results.json
+          --benchmark-json "$RUNNER_TEMP/benchmark_results.json"
+
+      - name: Record Workflow Event
+        run: cp "$GITHUB_EVENT_PATH" "$RUNNER_TEMP/event.json"
 
       - name: Upload Benchmark Results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: benchmark-results
-          path: benchmark_results.json
-          retention-days: 7
-
-      - name: Upload GitHub Pull Request Event
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: benchmark-event
-          path: ${{ github.event_path }}
+          name: benchmark-results-v3
+          path: |
+            ${{ runner.temp }}/benchmark_results.json
+            ${{ runner.temp }}/baseline_results.json
+            ${{ runner.temp }}/runner_metadata.json
+            ${{ runner.temp }}/benchmark_dependencies.txt
+            ${{ runner.temp }}/noise.txt
+            ${{ runner.temp }}/event.json
+          if-no-files-found: error
           retention-days: 7
 
   # linux typing
@@ -446,7 +516,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
@@ -569,7 +639,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
         with:
           platforms: linux/${{ matrix.platform }}
 

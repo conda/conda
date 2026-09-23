@@ -109,18 +109,40 @@ def test_plugins_info(
     assert not err
 
 
-def test_plugins_info_json(
+def test_plugins_info_disabled(
     plugin_manager_with_test_plugin: CondaPluginManager,
     conda_cli: CondaCLIFixture,
 ):
-    out, err, code = conda_cli("plugins", "info", "test_plugin.success", "--json")
+    out, err, code = conda_cli("--no-plugins", "plugins", "info", "conda-test-plugin")
+
+    assert code == 0, f"conda plugins info failed ({code}): {err}"
+    assert "conda-test-plugin" in out
+    assert "disabled" in out
+    assert "test_plugin.success" in out
+    assert "solvers" in out
+    assert not err
+
+
+@pytest.mark.parametrize("no_plugins", (False, True))
+def test_plugins_info_json(
+    no_plugins: bool,
+    plugin_manager_with_test_plugin: CondaPluginManager,
+    conda_cli: CondaCLIFixture,
+):
+    out, err, code = conda_cli(
+        *(("--no-plugins",) if no_plugins else ()),
+        "plugins",
+        "info",
+        "test_plugin.success",
+        "--json",
+    )
 
     assert code == 0, f"conda plugins info --json failed ({code}): {err}"
     assert json.loads(out) == {
         "name": "conda-test-plugin",
         "version": "1.0",
         "canonical_name": "test_plugin.success",
-        "status": "active",
+        "status": "disabled" if no_plugins else "active",
         "hooks": ["solvers"],
         "summary": "A test plugin",
         "license": "",

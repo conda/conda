@@ -24,6 +24,7 @@ from conda.base.constants import (
     PathConflict,
 )
 from conda.base.context import (
+    Context,
     ContextStack,
     channel_alias_validation,
     context,
@@ -42,7 +43,7 @@ from conda.common.serialize import yaml
 from conda.common.url import join_url, path_to_url
 from conda.exceptions import ChannelDenied, ChannelNotAllowed
 from conda.gateways.disk.permissions import make_read_only
-from conda.models.channel import Channel
+from conda.models.channel import Channel, MultiChannel
 from conda.models.match_spec import MatchSpec
 from conda.utils import on_win
 
@@ -874,7 +875,7 @@ def test_export_platforms(monkeypatch: MonkeyPatch):
 
 @pytest.mark.parametrize(
     "function,raises",
-    [("error_upload_url", TypeError)],
+    [("error_upload_url", TypeError), ("experimental", TypeError)],
 )
 def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
@@ -1078,3 +1079,99 @@ def test_conda_exe_vars_dict_dev(monkeypatch: MonkeyPatch, conda_dev: bool) -> N
     else:
         assert exe_vars["_CE_M"] is None
         assert exe_vars["_CE_CONDA"] is None
+
+
+@pytest.fixture
+def custom_multichannel_override():
+    return {
+        "custom": (
+            "https://example.invalid/subchannel-a",
+            "https://example.invalid/subchannel-b",
+        )
+    }
+
+
+def _assert_original_channel_caches():
+    assert "custom" not in context.custom_multichannels
+    assert {"subchannel-a", "subchannel-b"}.isdisjoint(context.custom_channels)
+    assert not isinstance(Channel("custom"), MultiChannel)
+
+
+@pytest.mark.parametrize("raise_error", [False, True])
+def test_override_invalidates_caches(custom_multichannel_override, raise_error):
+    reset_context(())
+    _assert_original_channel_caches()
+    with pytest.raises(RuntimeError, match="boom") if raise_error else nullcontext():
+        with context._override("_custom_multichannels", custom_multichannel_override):
+            assert [c.base_url for c in context.custom_multichannels["custom"]] == list(
+                custom_multichannel_override["custom"]
+            )
+            assert {
+                name: context.custom_channels[name].base_url
+                for name in ("subchannel-a", "subchannel-b")
+            } == {
+                "subchannel-a": "https://example.invalid/subchannel-a",
+                "subchannel-b": "https://example.invalid/subchannel-b",
+            }
+            assert isinstance(Channel("custom"), MultiChannel)
+            if raise_error:
+                raise RuntimeError("boom")
+    _assert_original_channel_caches()
+
+
+@pytest.mark.parametrize("existing_override", [False, True])
+def test_override_restores_attribute_when_reset_callback_fails(existing_override):
+    test_context = Context(search_path=())
+    key = "add_pip_as_python_dependency"
+    original = test_context.add_pip_as_python_dependency
+    if existing_override:
+        test_context.__dict__[key] = original
+
+    def callback():
+        if test_context.add_pip_as_python_dependency is not original:
+            raise RuntimeError("cache reset failed")
+
+    test_context.register_reset_callback(callback)
+    with pytest.raises(RuntimeError, match="cache reset failed"):
+        with test_context._override(key, not original):
+            pytest.fail("Override body ran after the entry callback failed")
+    assert test_context.add_pip_as_python_dependency is original
+    assert (key in test_context.__dict__) is existing_override
+
+
+def test_nested_overrides(custom_multichannel_override):
+    reset_context(())
+    inner = {"nested": ("https://example.invalid/nested",)}
+    with context._override("_custom_multichannels", custom_multichannel_override):
+        assert "custom" in context.custom_multichannels
+        with context._override("_custom_multichannels", inner):
+            assert "nested" in context.custom_multichannels
+            assert "custom" not in context.custom_multichannels
+        assert "custom" in context.custom_multichannels
+        assert "nested" not in context.custom_multichannels
+    _assert_original_channel_caches()
+
+
+def test_reset_context_inside_override_is_preserved(custom_multichannel_override):
+    reset_context(())
+    with context._override("_custom_multichannels", custom_multichannel_override):
+        reset_context(())
+        assert "custom" in context.custom_multichannels
+        assert isinstance(Channel("custom"), MultiChannel)
+    _assert_original_channel_caches()
+
+
+def test_reset_callbacks_survive_reset_context():
+    calls = []
+
+    def callback():
+        calls.append(True)
+
+    context.register_reset_callback(callback)
+    try:
+        reset_context(())
+        context._reset_cache()
+        assert calls
+        assert Channel._reset_state in context._reset_callbacks
+    finally:
+        context._reset_callbacks.pop(callback, None)

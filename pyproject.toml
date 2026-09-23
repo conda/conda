@@ -26,6 +26,8 @@ dependencies = [
   "backports.zstd >=1.3.0; python_version < '3.14'",
   "boltons >=23.0.0",
   "charset-normalizer",
+  # Disabled due to conda-launchers not being available on PyPI
+  # "conda-launchers >=24.7.1; sys_platform == 'win32'",
   # Disabled due to conda-libmamba-solver not being available on PyPI
   # "conda-libmamba-solver >=26.4.1",
   "conda-package-handling >=2.2.0",
@@ -175,6 +177,8 @@ filterwarnings = [
   "error::PendingDeprecationWarning",
   "error::DeprecationWarning",
   "error::FutureWarning",
+  "ignore:Implicit installation of pip as a Python dependency:PendingDeprecationWarning",
+  "ignore:Implicit installation of pip as a Python dependency:FutureWarning",
 ]
 markers = [
   "integration: integration tests that usually require an internet connect",

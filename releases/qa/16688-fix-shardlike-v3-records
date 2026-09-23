@@ -1,0 +1,44 @@
+### Title
+Ensure v3 packages are available when mixing sharded and unsharded repos
+
+### Why
+This is a bug fix so that users may use monolithic and sharded channels with v3 repodata.
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+Setup a demo monolithic channel with wheel records (uses v3 repodata). With conda-pypi install (`conda install -n base conda-pypi`):
+
+```
+pip download --dest /tmp/mychannel/noarch pyfig
+conda pypi index /tmp/mychannel
+```
+
+### Steps
+1. Ensure that conda can search the channels for pyfig. conda should show the same version of pyfig from the channel named `mychannel`.
+```
+ $ conda search --override-channels -c file:///tmp/mychannel -c conda-forge pyfig
+
+Loading channels: done
+# Name                       Version           Build  Channel
+pyfig                          1.0.2  py3_none_any_0  mychannel
+```
+
+2. Try creating an environment with pyfig. conda should be installing pyfig from the channel named `mychannel`.
+```
+$ conda create -n test --override-channels -c file:///tmp/mychannel -c conda-forge --dry-run pyfig
+. . .
+The following NEW packages will be INSTALLED:
+. . .
+  pyfig              mychannel/noarch::pyfig-1.0.2-py3_none_any_0
+. . .
+```
+
+### Pass criteria
+* There are no failures running the steps above, and all checks pass.
+
+### Out of scope / notes
+reference issue: https://github.com/conda/conda/issues/16676
