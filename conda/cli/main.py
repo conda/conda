@@ -18,6 +18,8 @@ def init_loggers():
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
+    from argparse import REMAINDER
+
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
     from ..base.context import context
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
@@ -26,8 +28,15 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     separator = args.index("--") if "--" in args else len(args)
 
     pre_parser = generate_pre_parser(add_help=False)
+    # Plugin selection is global. Do not interpret child arguments in `conda run`.
+    pre_parser.add_argument("_command_args", nargs=REMAINDER)
     args_subset = args[:separator]
     pre_args, _ = pre_parser.parse_known_args(args_subset)
+    del pre_args._command_args
+    # Preserve logging and JSON options supplied after the subcommand.
+    logging_parser = generate_pre_parser(add_help=False, with_plugins=False)
+    logging_args, _ = logging_parser.parse_known_args(args_subset)
+    vars(pre_args).update(vars(logging_args))
 
     # the arguments that we want to pass to the main parser later on
     override_args = {
@@ -42,11 +51,18 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
         pre_args.no_plugins = True
     context.__init__(argparse_args=pre_args)
     if context.no_plugins or disabled_plugins is None:
-        context.plugin_manager.disable_external_plugins()
-    elif disabled_plugins:
-        context.plugin_manager.disable_plugins(disabled_plugins)
+        context.plugin_manager.disable_external_plugins(
+            except_plugins=pre_args.enabled_plugins,
+        )
+    elif disabled_plugins or pre_args.enabled_plugins:
+        context.plugin_manager.disable_plugins(
+            disabled_plugins or (),
+            except_plugins=pre_args.enabled_plugins,
+        )
 
     parser = generate_parser(add_help=True)
+    # The extend action must not append to the selections from pre-parsing.
+    del pre_args.enabled_plugins
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
     context.__init__(argparse_args=args)

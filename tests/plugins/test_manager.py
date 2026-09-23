@@ -149,7 +149,7 @@ def test_load_entrypoints_success(plugin_manager: CondaPluginManager):
     assert plugin_manager.list_name_plugin()[0][0] == "test_plugin.success"
 
 
-@pytest.mark.parametrize("alias", ("success", "conda-test-plugin"))
+@pytest.mark.parametrize("alias", ("success", "conda-test-plugin", "Conda_Test.Plugin"))
 def test_disable_entrypoint_plugin_by_alias(
     plugin_manager: CondaPluginManager, alias: str
 ):

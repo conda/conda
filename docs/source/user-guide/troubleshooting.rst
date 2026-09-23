@@ -2,6 +2,38 @@
 Troubleshooting
 ===============
 
+Recovering from plugin errors
+=============================
+
+To disable all external plugins for one invocation, use ``--no-plugins`` or set
+``CONDA_NO_PLUGINS=true``. Built-in plugins remain enabled::
+
+    conda --no-plugins info
+
+Commands that solve an environment still need a solver. Keep an installed solver
+plugin enabled with ``--plugins``, and select its solver explicitly::
+
+    conda --no-plugins --plugins conda-libmamba-solver install --solver=libmamba numpy
+
+If ``conda-pycosat-solver`` is installed, it can be selected instead::
+
+    conda --no-plugins --plugins conda-pycosat-solver install --solver=pycosat numpy
+
+The same override works when ``CONDA_NO_PLUGINS=true`` is set. To disable only
+selected plugins, use ``--no-plugins=NAME[,NAME...]``. Both options accept
+distribution names, entry-point names, or canonical registered names.
+``--plugins`` accepts a comma-separated list and can be repeated. Its selections
+override disabling regardless of option order. Without disabling, it leaves
+other plugins enabled. An unknown or unsuccessfully loaded enable target is an
+error.
+
+Place plugin selection options before the conda subcommand. Arguments passed to
+an executable through ``conda run`` are not plugin selection options for conda.
+
+These options disable plugin hooks after entry points are imported. They do not
+prevent import-time errors or side effects, and enabling a plugin enables all of
+its hooks, not just its solver.
+
 Using conda in Windows Batch script exits early
 ===============================================
 

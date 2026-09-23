@@ -128,7 +128,7 @@ def _parse_disabled_plugins(value: str) -> list[str] | None:
     return comma_separated_stripped(value)
 
 
-def generate_pre_parser(**kwargs) -> ArgumentParser:
+def generate_pre_parser(*, with_plugins: bool = True, **kwargs) -> ArgumentParser:
     pre_parser = ArgumentParser(
         prog="conda",
         description="conda is a tool for managing and deploying applications,"
@@ -143,6 +143,9 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
         default=NULL,
         help=SUPPRESS,
     )
+    if not with_plugins:
+        return pre_parser
+
     pre_parser.add_argument(
         "--no-plugins",
         dest="disabled_plugins",
@@ -152,6 +155,15 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
         metavar="PLUGIN[,PLUGIN...]",
         type=_parse_disabled_plugins,
         help="Disable all external plugins, or the comma-separated plugins listed.",
+    )
+    pre_parser.add_argument(
+        "--plugins",
+        dest="enabled_plugins",
+        action="extend",
+        default=[],
+        metavar="PLUGIN[,PLUGIN...]",
+        type=comma_separated_stripped,
+        help="Keep the listed plugins enabled, overriding --no-plugins and CONDA_NO_PLUGINS.",
     )
 
     return pre_parser

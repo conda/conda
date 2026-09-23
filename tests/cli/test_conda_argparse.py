@@ -51,9 +51,25 @@ def test_parse_no_plugins(option: str, disabled_plugins: list[str] | None):
     assert args.disabled_plugins == disabled_plugins
 
 
+@pytest.mark.parametrize(
+    "options",
+    [
+        ["--plugins=plugin-a, plugin-b"],
+        ["--plugins", "plugin-a, plugin-b"],
+        ["--plugins=plugin-a", "--plugins=plugin-b"],
+    ],
+)
+def test_parse_enabled_plugins(options: list[str]):
+    args = generate_parser().parse_args([*options, "info"])
+
+    assert args.cmd == "info"
+    assert args.enabled_plugins == ["plugin-a", "plugin-b"]
+
+
 @pytest.mark.parametrize("separator", ([], ["--"]))
-def test_parse_run_no_plugins(separator: list[str]):
-    executable_call = ["echo", "--no-plugins", "info"]
+@pytest.mark.parametrize("option", ("--no-plugins", "--plugins"))
+def test_parse_run_no_plugins(separator: list[str], option: str):
+    executable_call = ["echo", option, "info"]
     args = generate_parser().parse_args(["run", *separator, *executable_call])
 
     assert args.executable_call == [*separator, *executable_call]

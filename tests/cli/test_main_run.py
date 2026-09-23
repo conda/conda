@@ -190,6 +190,21 @@ def test_no_newline_in_output(
             "--no-plugins info",
             id="no plugins passthrough with argument",
         ),
+        pytest.param(
+            ["small", "--plugins", "child-plugin"],
+            "--plugins child-plugin",
+            id="plugins passthrough with argument",
+        ),
+        pytest.param(
+            ["small", "--plugins"],
+            "--plugins",
+            id="plugins passthrough without argument",
+        ),
+        pytest.param(
+            ["--", "small", "--plugins=child-plugin"],
+            "--plugins=child-plugin",
+            id="plugins passthrough with separator",
+        ),
         # with separator and conda will ignore everything after
         pytest.param(
             ["small", "--", "-v", "hello"],
