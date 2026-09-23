@@ -8,6 +8,39 @@ This page contains recent additions to `conda` worth your attention, including f
 {bdg-warning}`Beta` — Opt in to test, not recommended for production. We want your feedback!
 
 ---
+## Native win-arm64 platform support
+
+::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
+
+{bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
+
+Conda has introduced native support for **win-arm64**, the Windows on ARM platform, and can now resolve and install packages natively for the win-arm64 architecture. This means you no longer need to rely on workarounds like WSL2, x86-64 emulation, or manual compilation to run your Python data science toolchain on ARM hardware.
+
+**At the command line**, use the `--platform` flag with `conda create`:
+
+```bash
+# Create a win-64 environment
+# Create a win-64 environment
+conda create --platform win-64 --name myenv-x64 python
+
+# Create a win-arm64 environment
+conda create --platform win-arm64 --name myenv-arm64 python
+
+**As a persistent setting**, configure the `subdir` key in your `.condarc`:
+
+```bash
+# Switch to win-64
+conda config --set subdir win-64
+
+# Switch to win-arm64
+conda config --set subdir win-arm64
+
+# Restore the default (auto-detected from your system)
+conda config --remove-key subdir
+```
+::::
+
 ## Faster solves with Rattler solver
 
 ::::{card}

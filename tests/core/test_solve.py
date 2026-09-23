@@ -1467,12 +1467,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
             unlink_order = (
                 # no conda downgrade
             )
-            if context.solver == "rattler":
-                link_order = add_subdir_to_iter(
-                    ("channel-4::itsdangerous-0.24-py37_1",)
-                )
-            else:
-                link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
+            link_order = ("channel-2/noarch::itsdangerous-0.24-py_0",)
             assert convert_to_dist_str(unlink_precs) == unlink_order
             assert convert_to_dist_str(link_precs) == link_order
 
@@ -1593,9 +1588,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
                     if pkg.name == "conda":
                         assert VersionOrder(pkg.version) < VersionOrder("4.4.10")
                     elif pkg.name == "python":
-                        assert pkg.version == (
-                            "3.6.2" if context.solver == "libmamba" else "3.6.6"
-                        )
+                        assert pkg.version == "3.6.2"
                     elif pkg.name == "conda-build":
                         assert pkg.version == "3.12.1"
                     elif pkg.name == "itsdangerous":

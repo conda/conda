@@ -471,7 +471,7 @@ def test_build_deactivate_dont_use_PATH(
     activator = PosixActivator()
     # Ensure that deactivating does not clobber PATH
     monkeypatch.setenv("CONDA_PREFIX", prefix)
-    monkeypatch.setenv("CONDA_SHLVL", 1)
+    monkeypatch.setenv("CONDA_SHLVL", "1")
 
     deactivate = activator.build_deactivate()
     assert "PATH" not in deactivate["unset_vars"]
@@ -653,7 +653,7 @@ def test_build_activate_shlvl_1(
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     monkeypatch.setenv("CONDA_PREFIX_1", old_prefix)
-    monkeypatch.setenv("CONDA_SHLVL", 2)
+    monkeypatch.setenv("CONDA_SHLVL", "2")
     monkeypatch.setenv("CONDA_DEFAULT_ENV", prefix)
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     # write_pkgs
@@ -750,7 +750,7 @@ def test_build_stack_shlvl_1(
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     monkeypatch.setenv("CONDA_PREFIX_1", old_prefix)
-    monkeypatch.setenv("CONDA_SHLVL", 2)
+    monkeypatch.setenv("CONDA_SHLVL", "2")
     monkeypatch.setenv("CONDA_DEFAULT_ENV", prefix)
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     monkeypatch.setenv("CONDA_STACKED_2", "true")
@@ -1101,7 +1101,7 @@ def test_build_activate_restore_unset_env_vars(
     monkeypatch.setenv("PATH", new_path)
     monkeypatch.setenv("CONDA_PREFIX", prefix)
     monkeypatch.setenv("CONDA_PREFIX_1", old_prefix)
-    monkeypatch.setenv("CONDA_SHLVL", 2)
+    monkeypatch.setenv("CONDA_SHLVL", "2")
     monkeypatch.setenv("CONDA_DEFAULT_ENV", prefix)
     monkeypatch.setenv("CONDA_PROMPT_MODIFIER", conda_prompt_modifier)
     monkeypatch.setenv("__CONDA_SHLVL_1_ENV_ONE", "already_set_env_var")
@@ -1161,7 +1161,7 @@ def test_posix_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1191,7 +1191,7 @@ def test_posix_basic(
         + (f". \"`cygpath '{activate1}'`\"\n" if on_win else f'. "{activate1}"\n')
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1263,7 +1263,7 @@ def test_cmd_exe_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1295,7 +1295,7 @@ def test_cmd_exe_basic(
         f"_CONDA_SCRIPT={activate1}\n"
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1377,7 +1377,7 @@ def test_csh_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1410,7 +1410,7 @@ def test_csh_basic(
         )
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1499,7 +1499,7 @@ def test_xonsh_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1537,7 +1537,7 @@ def test_xonsh_basic(
         f'{sourcer} "{activate1}"\n'
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1634,7 +1634,7 @@ def test_fish_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1662,7 +1662,7 @@ def test_fish_basic(
         f'source "{activate1}";\n'
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1737,7 +1737,7 @@ def test_powershell_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1763,7 +1763,7 @@ def test_powershell_basic(
         f'. "{activate1}"\n'
     )
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -1825,7 +1825,7 @@ def test_json_basic(
     capsys: CaptureFixture,
     force_uppercase_boolean: bool,
 ) -> None:
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase == force_uppercase_boolean
 
@@ -1861,7 +1861,7 @@ def test_json_basic(
         },
     }
 
-    monkeypatch.setenv("CONDA_PREFIX", empty_env)
+    monkeypatch.setenv("CONDA_PREFIX", str(empty_env))
     monkeypatch.setenv("CONDA_SHLVL", "1")
     monkeypatch.setenv("PATH", os.pathsep.join((*new_path_parts, os.environ["PATH"])))
 
@@ -2074,7 +2074,7 @@ def test_msys2_shell_stdout_reconfiguration(capsys) -> None:
 
 @pytest.mark.parametrize("force_uppercase_boolean", [True, False])
 def test_force_uppercase(monkeypatch: MonkeyPatch, force_uppercase_boolean):
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase is force_uppercase_boolean
 
@@ -2103,7 +2103,7 @@ def test_force_uppercase(monkeypatch: MonkeyPatch, force_uppercase_boolean):
 def test_metavars_force_uppercase(
     mocker: MockerFixture, monkeypatch: MonkeyPatch, force_uppercase_boolean: bool
 ):
-    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", force_uppercase_boolean)
+    monkeypatch.setenv("CONDA_ENVVARS_FORCE_UPPERCASE", str(force_uppercase_boolean))
     reset_context()
     assert context.envvars_force_uppercase is force_uppercase_boolean
 

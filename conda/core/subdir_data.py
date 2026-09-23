@@ -771,7 +771,7 @@ def _search_package_via_shards(
     channel_urls: tuple[str, ...] | list[str],
     subdirs: tuple[str, ...] | list[str],
 ) -> tuple[PackageRecord, ...]:
-    from .._private.shards.shards import fetch_channels
+    from .._private.shards.shards import Shards, fetch_channels
     from .._private.shards.subset import RepodataSubset
     from ..base.context import context
     from ..models.channel import Channel, all_channel_urls
@@ -784,9 +784,7 @@ def _search_package_via_shards(
         channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
     }
 
-    subset_dict = fetch_channels(channels)
-    if subset_dict is None:
-        return _search_package(spec, channel_urls, subdirs)
+    subset_dict = fetch_channels(channels, require_shards=False) or {}
 
     if not spec.get_exact_value("name"):
         # Needed if MatchSpec() includes a wildcard, otherwise root_packages =
@@ -800,7 +798,9 @@ def _search_package_via_shards(
         # MatchSpec.match(dict) does create a new PackageRecord(), match against
         # name only to defer version etc. filter until later.
         raw_name = spec.get_raw_value("name")
-        if raw_name == "*":  # Refuse instead of fetching all shards
+        if raw_name == "*" and any(
+            isinstance(shard_base, Shards) for shard_base in subset_dict.values()
+        ):
             from ..exceptions import CondaValueError
 
             raise CondaValueError(
@@ -833,13 +833,14 @@ def _search_package_via_shards(
             if context.use_only_tar_bz2 and section_tuple[1] != "packages":
                 continue
 
-            # Inject the fn into package records if available. For repodata v1,
-            # the filename is associated with the key of the section tuple. For
-            # repodata v3 it is not.
+            record_data = {"subdir": channels[channel].subdir, **record}
+
+            # For repodata v1, the filename is the section key. Repodata v3
+            # stores it in the record instead.
             if section_tuple[1] in ["packages", "packages.conda"]:
-                rec = PackageRecord(channel=channel, fn=section_tuple[0], **record)
-            else:
-                rec = PackageRecord(channel=channel, **record)
+                record_data["fn"] = section_tuple[0]
+            record_data.setdefault("url", join_url(shard.base_url, record_data["fn"]))
+            rec = PackageRecord(channel=channel, **record_data)
             if spec.match(rec):
                 records.append(rec)
     return records

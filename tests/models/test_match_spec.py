@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from ruamel.yaml import YAML
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
 
@@ -1884,6 +1885,18 @@ def test_extra_specs(match_spec_v3):
         assert ms.get("extras") == ("a", "b")
         assert str(ms) == "python[extras=['a', 'b']]"
 
+    for value in (
+        '"a,b"',
+        "'a,b'",
+        '"a, b"',
+        "'a, b'",
+    ):
+        ms = MatchSpec(f"python[extras={value}]")
+        assert ms.get("extras") == ("a", "b")
+
+    assert MatchSpec("httpx[extras=http2,cli]").get("extras") == ("http2", "cli")
+    assert MatchSpec("python[extras=a,b]").get("extras") == ("a", "b")
+
     # Trailing comma is accepted (YAML flow-sequence semantics) and normalizes silently
     assert MatchSpec("pkg[extras=[a,]]").get("extras") == ("a",)
 
@@ -1906,6 +1919,104 @@ def test_extra_specs(match_spec_v3):
         MatchSpec("package[a]")
     with pytest.raises(InvalidMatchSpec, match=r"did you mean `extras=\[a,b\]`"):
         MatchSpec("package[a,b]")
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+@pytest.mark.parametrize("yaml_version", [(1, 1), (1, 2)])
+@pytest.mark.parametrize(
+    "value,yaml11,yaml12",
+    [
+        ("true", "True", "True"),
+        ("false", "False", "False"),
+        ("null", "null", "null"),
+        ("yes", "True", "yes"),
+        ("no", "False", "no"),
+        ("on", "True", "on"),
+        ("off", "False", "off"),
+        ("y", "True", "y"),
+        ("n", "False", "n"),
+    ],
+)
+def test_list_yaml_scalars(
+    key, yaml_version, value, yaml11, yaml12, match_spec_v3, mocker
+):
+    parser = YAML(typ="rt")
+    parser.version = yaml_version
+    mocker.patch("conda.common.serialize.yaml._yaml", return_value=parser)
+
+    expected = yaml11 if yaml_version == (1, 1) else yaml12
+    assert MatchSpec(f"pkg[{key}={value}]").get(key) == (expected,)
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        "pkg[extras=a,b,flags=cpu,gpu]",
+        "pkg[flags=cpu,gpu,extras=a,b]",
+    ],
+)
+def test_unquoted_extras_and_flags(spec, match_spec_v3):
+    ms = MatchSpec(spec)
+    assert ms.get("extras") == ("a", "b")
+    assert ms.get("flags") == ("cpu", "gpu")
+    assert str(ms) == str(MatchSpec("pkg[extras=[a,b],flags=[cpu,gpu]]"))
+
+
+def test_unquoted_extras_with_other_fields(match_spec_v3):
+    listed = str(MatchSpec("pkg[extras=[a,b],version='1.0']"))
+    assert str(MatchSpec("pkg[extras=a,b,version='1.0']")) == listed
+    assert str(MatchSpec("pkg[version='1.0',extras=a,b]")) == listed
+
+    with_when = str(MatchSpec("pkg[extras=[a,b],when=__win]"))
+    assert str(MatchSpec("pkg[extras=a,b,when=__win]")) == with_when
+    assert str(MatchSpec("pkg[when=__win,extras=a,b]")) == with_when
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+def test_unquoted_list_invalid_separators(key, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}=a,,b]")
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}=a,b,,]")
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}=a b]")
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+def test_unquoted_space_separated_fields(key, match_spec_v3):
+    ms = MatchSpec(f"pkg[{key}=a version='1.0']")
+    assert ms.get(key) == ("a",)
+    assert str(ms) == str(MatchSpec(f"pkg[{key}=[a],version='1.0']"))
+
+    if key == "extras":
+        ms = MatchSpec("pkg[extras=a flags=cpu]")
+        assert ms.get("extras") == ("a",)
+        assert ms.get("flags") == ("cpu",)
+    else:
+        ms = MatchSpec("pkg[flags=cpu extras=a]")
+        assert ms.get("flags") == ("cpu",)
+        assert ms.get("extras") == ("a",)
+
+    ms = MatchSpec(f"pkg[{key}=a ]")
+    assert ms.get(key) == ("a",)
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+def test_unquoted_list_invalid_yaml(key, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec, match="Invalid"):
+        MatchSpec(f'pkg[{key}=a,"b]')
+    with pytest.raises(InvalidMatchSpec, match="Invalid"):
+        MatchSpec(f"pkg[{key}=a,*b]")
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+def test_quoted_or_list_rejects_trailing_junk(key, match_spec_v3):
+    with pytest.raises(InvalidMatchSpec, match="Unrecognized content"):
+        MatchSpec(f'pkg[{key}="a",b]')
+    with pytest.raises(InvalidMatchSpec, match="Unrecognized content"):
+        MatchSpec(f"pkg[{key}=[a],b]")
+    with pytest.raises(InvalidMatchSpec, match="Unrecognized content"):
+        MatchSpec(f"pkg[{key}=[a,b],junk]")
 
 
 @pytest.mark.xfail(reason="Pending implementation")
