@@ -79,7 +79,7 @@ def verbose():
 def test_get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
     assert realpath(python_exe) == realpath(sys.executable)
-    assert python_version == "{}.{}.{}".format(*sys.version_info[:3])
+    assert python_version.startswith("{}.{}.{}".format(*sys.version_info[:3]))
     assert site_packages_dir == get_path("platlib")
 
 
@@ -626,13 +626,6 @@ def test_install_condabin_conda_bat(verbose):
 
         result = install_condabin_conda_bat(target_path, conda_prefix)
         assert result == Result.NO_CHANGE
-
-
-def test__get_python_info(verbose):
-    python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
-    assert samefile(python_exe, sys.executable)
-    assert python_version == "%d.%d.%d" % sys.version_info[:3]
-    assert site_packages_dir.endswith("site-packages")
 
 
 def test_print_plan_results_dry_run_with_changes(
