@@ -59,7 +59,7 @@ if TYPE_CHECKING:
 
     from pytest_benchmark.plugin import BenchmarkFixture
 
-    from conda._private.shards.typing import ShardDict
+    from conda._private.shards.typing import RepodataDict, ShardDict
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -543,6 +543,113 @@ class TestAddPipAsPythonDependency:
         assert "python-3.10-0.tar.bz2" not in filtered["packages"]
         # .conda versions should remain
         assert "python-3.10-0.conda" in filtered["packages.conda"]
+
+
+def _root_extras_repodata() -> RepodataDict:
+    """
+    Small hand-built repodata: "httpx" depends on "core-dep" and offers two
+    CEP 44 extras groups ("cli" -> "cli-dep", "http2" -> "http2-dep"), each
+    with no further dependencies of their own.
+    """
+    return {
+        "info": {"base_url": ""},
+        "packages": {},
+        "packages.conda": {
+            "httpx-0.28.0-0.conda": {
+                "name": "httpx",
+                "version": "0.28.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["core-dep"],
+                "extra_depends": {
+                    "cli": ["cli-dep"],
+                    "http2": ["http2-dep"],
+                },
+            },
+            "core-dep-1.0-0.conda": {
+                "name": "core-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+            "cli-dep-1.0-0.conda": {
+                "name": "cli-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+            "http2-dep-1.0-0.conda": {
+                "name": "http2-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+        },
+        "repodata_version": 2,
+    }  # type: ignore[typeddict-item]
+
+
+class TestRootExtras:
+    """
+    Tests for root-only CEP 44 extras traversal, e.g. a root MatchSpec like
+    `httpx[extras=cli]` should also pull in shards for httpx's "cli"
+    extra_depends group, but not other, unrequested extras groups.
+    """
+
+    @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+    def test_root_extras_fetches_only_requested_group(self, algorithm):
+        shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+        subset = RepodataSubset([shardlike])
+        subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["cli"]})
+
+        assert "httpx" in shardlike.visited
+        assert "core-dep" in shardlike.visited
+        assert "cli-dep" in shardlike.visited
+        assert "http2-dep" not in shardlike.visited
+
+    @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+    def test_no_root_extras_is_backward_compatible(self, algorithm):
+        """Omitting root_extras behaves exactly as before this feature."""
+        shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+        subset = RepodataSubset([shardlike])
+        subset.reachable(["httpx"], strategy=algorithm)
+
+        assert "httpx" in shardlike.visited
+        assert "core-dep" in shardlike.visited
+        assert "cli-dep" not in shardlike.visited
+        assert "http2-dep" not in shardlike.visited
+
+    @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+    def test_root_extras_unknown_root_package_ignored(self, algorithm):
+        """root_extras for a package name absent from root_packages is a no-op."""
+        shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+        subset = RepodataSubset([shardlike])
+        subset.reachable(
+            ["httpx"], strategy=algorithm, root_extras={"unrelated": ["cli"]}
+        )
+
+        assert "cli-dep" not in shardlike.visited
+        assert "http2-dep" not in shardlike.visited
+
+    def test_build_repodata_subset_root_extras(self, monkeypatch):
+        """Cover the public build_repodata_subset() API, not just RepodataSubset."""
+        shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+        monkeypatch.setattr(
+            shards_subset,
+            "fetch_channels",
+            lambda channels: {shardlike.url: shardlike},
+        )
+
+        channel_data = build_repodata_subset(
+            ["httpx"], {}, root_extras={"httpx": ["cli"]}
+        )
+
+        assert channel_data is not None
+        assert "cli-dep" in shardlike.visited
+        assert "http2-dep" not in shardlike.visited
 
 
 def clean_cache(conda_cli: CondaCLIFixture):
@@ -1109,7 +1216,9 @@ def test_pipelined_uses_offline_worker(monkeypatch):
     actual_network_worker = None
 
     class RepodataSubsetRememberWorker(RepodataSubset):
-        def _reachable_pipelined(self, root_packages, network_worker, cache):
+        def _reachable_pipelined(
+            self, root_packages, network_worker, cache, root_extras=None
+        ):
             nonlocal actual_network_worker
 
             actual_network_worker = network_worker

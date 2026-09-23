@@ -237,6 +237,57 @@ def shard_mentioned_packages(
     yield from extra
 
 
+def shard_extra_depends_packages(
+    shard: ShardDict,
+    extras: Iterable[str],
+    spec_to_package_name=spec_to_package_name,
+    repodata_version: int = 1,
+) -> Iterable[str]:
+    """
+    Return dependency names mentioned in the CEP 44 ``extra_depends`` groups
+    named by ``extras``, across every record (all builds/versions) in
+    ``shard``.
+
+    This only looks at ``extra_depends`` groups attached directly to records
+    in this shard (i.e. extras requested for *this* package, typically because
+    it was named in a root/user-requested MatchSpec, e.g.
+    ``httpx[extras=cli]``). It does not recurse into ``extras=[...]`` that may
+    appear nested inside individual dependency spec strings elsewhere in the
+    graph; that is out of scope here.
+
+    Unions ``extra_depends`` across all builds/versions present in the shard
+    rather than trying to match the specific version a MatchSpec requested,
+    matching the "overgenerous" traversal philosophy documented in
+    ``conda._private.shards.subset`` (already true of ``depends`` traversal,
+    which does not filter by version either).
+    """
+    unique_specs: set[str] = set()
+    wanted = set(extras)
+    if not wanted:
+        return
+
+    def _yield_record(record):
+        extra_depends = record.get("extra_depends")
+        if not extra_depends:
+            return
+        for extra_name in wanted:
+            for spec in extra_depends.get(extra_name, ()):
+                if spec not in unique_specs:
+                    unique_specs.add(spec)
+                    name = spec_to_package_name(spec)
+                    if name is not None:
+                        yield name
+
+    for record in shard["packages"].values():
+        yield from _yield_record(record)
+    for record in shard["packages.conda"].values():
+        yield from _yield_record(record)
+    if repodata_version >= 3 and (v3_data := shard.get("v3")):
+        for group in v3_data.values():
+            for record in group.values():
+                yield from _yield_record(record)
+
+
 class ShardBase(abc.ABC):
     """
     Abstract base class for shard-like objects.

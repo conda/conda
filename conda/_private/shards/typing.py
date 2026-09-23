@@ -29,6 +29,7 @@ class PackageRecordDict(TypedDict):
     md5: NotRequired[str | bytes]
     depends: NotRequired[list[str]]
     constrains: NotRequired[list[str]]
+    extra_depends: NotRequired[dict[str, list[str]]]
     noarch: NotRequired[str]
 
 
