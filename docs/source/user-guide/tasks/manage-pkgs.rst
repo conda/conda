@@ -101,17 +101,23 @@ Use ``--exclude-newer`` to ignore package records with timestamps after a
 configured cutoff for one ``conda create``, ``conda install``, or
 ``conda update`` command.
 
-Conda prefers the channel-provided ``indexed_timestamp``, which records when
-the package became available in the channel index. If it is absent or zero,
-conda falls back to the builder-controlled ``timestamp``, which records build
-time rather than publication time. Records without a usable timestamp remain
-eligible.
+Conda prefers the channel-provided ``indexed_timestamp``, which is intended to
+record when the package first became available in the channel index. If it is
+absent or zero, conda falls back to the builder-controlled ``timestamp``, which
+records build time rather than publication time. Records without a usable
+timestamp remain eligible.
+
+For artifacts predating `CEP 47
+<https://conda.org/learn/ceps/cep-0047/#channel-server-requirements>`_, channels
+may seed ``indexed_timestamp`` from build timestamps or other historical
+signals. These values may not reflect the exact time a package became available.
 
 The fallback allows filtering on channels without ``indexed_timestamp``
 support, but cannot enforce a reliable publication cooldown. An old build
 uploaded today can pass the cutoff, and a malicious publisher can backdate
-the build timestamp. Timestamp filtering alone does not guarantee package
-safety or reproduce the channel as it existed at a past date.
+the build timestamp. Timestamp filtering does not guarantee package safety.
+It can support reproducible resolution, but does not by itself guarantee an
+exact reconstruction of a channel's past state.
 
 To install a package while ignoring package records whose effective timestamps
 fall within the last 7 days:
