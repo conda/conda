@@ -1,3 +1,5 @@
+# edit this in https://github.com/conda/infrastructure
+
 name: Upload release
 
 on:
@@ -14,20 +16,24 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.release.tag_name || github.sha }}
   cancel-in-progress: true
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   # create source archive and upload it to the published release
   # URL to the archive: https://github.com/conda/<repo>/releases/download/<tag>/<repo>-<tag>.tar.gz
   upload:
+    name: Upload source archive
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to upload source archives and checksums to releases.
     env:
       ARCHIVE_NAME: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Create Release Directory
         run: mkdir -p release
@@ -35,21 +41,22 @@ jobs:
       - name: Archive Source
         run: >
           git archive
-          --prefix="${{ env.ARCHIVE_NAME }}/"
-          --output="release/${{ env.ARCHIVE_NAME }}.tar.gz"
+          --prefix="$ARCHIVE_NAME/"
+          --output="release/$ARCHIVE_NAME.tar.gz"
           HEAD
 
       - name: Compute Checksum
         run: >
-          sha256sum "release/${{ env.ARCHIVE_NAME }}.tar.gz"
+          sha256sum "release/$ARCHIVE_NAME.tar.gz"
           | awk '{print $1}'
-          > "release/${{ env.ARCHIVE_NAME }}.tar.gz.sha256sum"
+          > "release/$ARCHIVE_NAME.tar.gz.sha256sum"
 
       - name: Upload Archive
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: >
           gh release upload
-          --clobber "${{ github.event.release.tag_name }}"
-          --repo "${{ github.repository }}"
+          --clobber "$RELEASE_TAG"
+          --repo "$GITHUB_REPOSITORY"
           release/*
