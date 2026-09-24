@@ -2,9 +2,11 @@ archspec >=0.2.3
 backports.zstd >=1.3.0
 boltons >=23.0.0
 charset-normalizer
+conda-canary/label/conda-conda-pycosat-solver-pr-75::conda-pycosat-solver
 conda-launchers >=24.7.1  # [win]
 conda-libmamba-solver >=26.4.1
 conda-package-handling >=2.2.0
+conda-pypi >=0.10.1
 distro >=1.5.0
 frozendict >=2.4.2
 menuinst >=2
