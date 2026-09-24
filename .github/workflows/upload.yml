@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Required to upload source archives and checksums to releases.
+      attestations: write  # Required to publish artifact attestations to GitHub.
+      id-token: write  # Required to sign attestations with GitHub's OIDC identity.
     env:
       ARCHIVE_NAME: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}
     steps:
@@ -50,6 +52,11 @@ jobs:
           sha256sum "release/$ARCHIVE_NAME.tar.gz"
           | awk '{print $1}'
           > "release/$ARCHIVE_NAME.tar.gz.sha256sum"
+
+      - name: Attest Release Artifacts
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: release/*
 
       - name: Upload Archive
         env:

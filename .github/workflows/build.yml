@@ -103,6 +103,7 @@ jobs:
           - runs-on: windows-latest
             subdir: win-64
           # template-files-endif
+          # template-files-if
           # template-files-endif
     runs-on: ${{ matrix.runs-on }}
     steps:
@@ -115,11 +116,11 @@ jobs:
           clean: true
           fetch-depth: 0
 
-      # Explicitly use Python 3.11 since each of the OSes has a different default Python
+      # Use Python 3.14 on Windows ARM64 and Python 3.11 elsewhere.
       - name: Setup Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.subdir == 'win-arm64' && '3.14' || '3.11' }}
 
       - name: Detect Label
         shell: python
@@ -160,12 +161,14 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@210fa69f0b174ee4ea463a3a5402ec5a1d95d6db # v26.9.0
+        uses: conda/actions/canary-release@9d24f559de1480d4759dee5500dfe4b24ac93992 # v26.9.3
         env:
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
         with:
           package-name: ${{ github.event.repository.name }}
           subdir: ${{ matrix.subdir }}
+          base-architecture: ${{ matrix.subdir == 'win-arm64' && 'x64' || '' }}
+          # template-files-if
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
