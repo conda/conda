@@ -1,0 +1,24 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Raise a clear `ValueError` from `_build_activate_stack` when `CONDA_SHLVL`
+  is set but `CONDA_PREFIX` is empty, instead of crashing inside
+  `ntpath.join(None, …)` with `TypeError: expected str, bytes or os.PathLike
+  object, not NoneType`. This broken state is most often hit on Windows when
+  shell-init blocks for different shells fight with each other (e.g.
+  `cmd.exe` + `xonsh`). Reported via xonsh/xonsh#3676.
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
