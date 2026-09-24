@@ -21,7 +21,7 @@ conda/infrastructure:
     dst: .github/workflows/build.yml
     with:
       win_arm64: true
-      conda_build_arguments: ${{ matrix.subdir == 'win-arm64' && '--override-channels -c conda-forge --python 3.14' || '' }}
+      conda_build_arguments: ${{ matrix.subdir == 'win-arm64' && '--override-channels -c conda-forge' || '' }}
   # For noarch packages, add:
   #   with:
   #     noarch: true
