@@ -310,12 +310,15 @@ def test_execute_failure_removes_created_prefixes(tmp_path, mocker):
     assert preexisting.exists()
 
 
-def _package(name: str) -> PackageRecord:
+def named_package(name: str) -> PackageRecord:
+    """Build a package record whose only meaningful field is its name."""
     return PackageRecord(name=name, version="1.0", build="0", build_number=0)
 
 
-def _conda_root(tmp_path, monkeypatch, depends: tuple[str, ...]) -> str:
-    """Prefix that conda treats as its own root, with a conda record installed."""
+def root_prefix_with_conda_record(
+    tmp_path, monkeypatch, depends: tuple[str, ...]
+) -> str:
+    """Create a prefix conda treats as the environment it is running from."""
     prefix = tmp_path / "root"
     (prefix / "conda-meta").mkdir(parents=True)
     monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
@@ -342,7 +345,10 @@ def _conda_root(tmp_path, monkeypatch, depends: tuple[str, ...]) -> str:
     return prefix_str
 
 
-def _verify(prefix: str, *, link_precs=(), unlink_precs=()) -> list:
+def remove_errors_for_prefix_change(
+    prefix: str, *, link_precs=(), unlink_precs=()
+) -> list:
+    """Return RemoveError results for one prefix change."""
     setup = PrefixSetup(prefix, tuple(unlink_precs), tuple(link_precs), (), (), ())
     return [
         exc
@@ -353,14 +359,19 @@ def _verify(prefix: str, *, link_precs=(), unlink_precs=()) -> list:
 
 def test_missing_conda_dependency_does_not_block_other_changes(tmp_path, monkeypatch):
     """A conda dependency absent from conda-meta is not a removal (#14051)."""
-    prefix = _conda_root(tmp_path, monkeypatch, ("missing-dep",))
+    prefix = root_prefix_with_conda_record(tmp_path, monkeypatch, ("missing-dep",))
 
-    assert _verify(prefix, link_precs=(_package("small-executable"),)) == []
+    assert (
+        remove_errors_for_prefix_change(
+            prefix, link_precs=(named_package("small-executable"),)
+        )
+        == []
+    )
 
 
 def test_unlinking_conda_dependency_is_still_blocked(tmp_path, monkeypatch):
     """Replacing conda while dropping one of its dependencies is still rejected."""
-    prefix = _conda_root(tmp_path, monkeypatch, ())
+    prefix = root_prefix_with_conda_record(tmp_path, monkeypatch, ())
     replacement = PackageRecord(
         name="conda",
         version="2.0",
@@ -369,10 +380,10 @@ def test_unlinking_conda_dependency_is_still_blocked(tmp_path, monkeypatch):
         depends=["missing-dep"],
     )
 
-    errors = _verify(
+    errors = remove_errors_for_prefix_change(
         prefix,
         link_precs=(replacement,),
-        unlink_precs=(_package("missing-dep"),),
+        unlink_precs=(named_package("missing-dep"),),
     )
 
     assert len(errors) == 1
