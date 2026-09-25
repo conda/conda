@@ -16,4 +16,4 @@
 
 ### Other
 
-* Speed up `test_dont_remove_conda_3` by checking transaction verification directly instead of installing conda and converting the checkout. (#16669)
+* Speed up `test_dont_remove_conda_3` by checking transaction verification directly instead of installing conda and converting the checkout. (#16669 via #16751)
