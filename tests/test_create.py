@@ -1214,6 +1214,32 @@ def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFix
         assert package_is_installed(prefix, PYTHON_SPEC)
 
 
+@pytest.mark.skipif(not on_linux, reason="sysroot_linux-64 depends on __linux")
+def test_install_remove_absolute_symlink_to_directory(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """Package contains ``x86_64-conda-linux-gnu/sysroot/usr -> /usr``."""
+    with tmp_env() as prefix:
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--override-channels",
+            "--channel=conda-forge/label/sysroot_dev",
+            "sysroot_linux-64=9999=hf2ff53a_0",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "sysroot_linux-64=9999")
+        link = prefix / "x86_64-conda-linux-gnu" / "sysroot" / "usr"
+        assert link.is_symlink()
+        assert os.readlink(link) == "/usr"
+
+        conda_cli("remove", f"--prefix={prefix}", "sysroot_linux-64", "--yes")
+        assert not package_is_installed(prefix, "sysroot_linux-64")
+        assert not os.path.lexists(link)
+        # removing the symlink must not touch its target
+        assert Path("/usr/bin").is_dir()
+
+
 def test_install_force_reinstall_flag(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
