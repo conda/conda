@@ -7,7 +7,17 @@ on:
   pull_request_target:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+  # Only share a concurrency group with runs that can actually perform the check
+  # (a `pull_request_target` event, or an `issue_comment` that is a `@conda-bot check`
+  # request). Every other `issue_comment` (bot noise, unrelated comments, etc.) is
+  # skipped by the job's `if:` below anyway, but without this it would still join the
+  # same group and cancel an in-progress, legitimate CLA check.
+  group: >-
+    ${{ github.workflow }}-${{
+      (github.event_name == 'pull_request_target' || github.event.comment.body == '@conda-bot check')
+      && (github.event.pull_request.number || github.event.issue.number)
+      || github.run_id
+    }}
   cancel-in-progress: true
 
 permissions:
