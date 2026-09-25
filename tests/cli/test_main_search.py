@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 import pytest
@@ -248,6 +249,59 @@ def test_search_inflexible(conda_cli: CondaCLIFixture):
         )
     # check that failure wasn't from flexible mode
     assert "*r-rcpparmadill*" not in str(excinfo.value)
+
+
+@pytest.mark.parametrize("json_output", (False, True))
+def test_flexible_search_spinner_covers_query_and_deferred_results(
+    mocker, conda_cli: CondaCLIFixture, json_output: bool
+):
+    active_spinner = None
+    events = []
+    record = PackageRecord.from_objects(
+        {"name": "missing-example", "version": "1.0", "build": "0", "build_number": 0}
+    )
+
+    @contextmanager
+    def spinner(message):
+        nonlocal active_spinner
+        previous_spinner = active_spinner
+        active_spinner = message
+        try:
+            yield
+        finally:
+            active_spinner = previous_spinner
+
+    def query_all(spec, channel_urls, subdirs):
+        name = spec.get_raw_value("name")
+        events.append(("query", name, active_spinner))
+        if spec.get_exact_value("name") == "missing":
+            return iter(())
+
+        def deferred_results():
+            events.append(("iterate", name, active_spinner))
+            yield record
+
+        return deferred_results()
+
+    mocker.patch("conda.reporters.get_spinner", side_effect=spinner)
+    mocker.patch("conda.core.subdir_data.query_all", side_effect=query_all)
+
+    args = ("search", "missing", "--override-channels", "--channel=defaults")
+    stdout, stderr, code = conda_cli(*args, *(("--json",) if json_output else ()))
+
+    assert code == 0, stderr
+    assert events[0] == ("query", "missing", "Loading channels")
+    assert [event[:2] for event in events[1:]] == [
+        ("query", "*missing*"),
+        ("iterate", "*missing*"),
+    ]
+    assert events[1][2]
+    assert events[2][2] == events[1][2]
+    if json_output:
+        assert json.loads(stdout)["missing-example"][0]["name"] == "missing-example"
+    else:
+        assert "No match found for: missing" in stdout
+        assert "missing-example" in stdout
 
 
 @pytest.mark.parametrize(

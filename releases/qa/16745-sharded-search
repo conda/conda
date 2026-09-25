@@ -1,0 +1,48 @@
+### Title
+Search a large sharded channel after an exact-name miss.
+
+### Why
+Wildcard searches previously constructed a package record for every name in the
+shard index. A typo against `conda-pypi` could spend tens of seconds on the CPU
+without showing progress during the fuzzy fallback.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- Network access to `conda-pypi`.
+- Hyperfine to compare the same commands before and after the fix.
+
+### Steps
+1. Warm the cache with an exact-name hit:
+
+   ```console
+   conda search --override-channels -c conda-pypi --repodata-use-shards ab5
+   ```
+
+2. Run the miss in a terminal and check progress during the fuzzy fallback:
+
+   ```console
+   conda search --override-channels -c conda-pypi --repodata-use-shards abccc
+   ```
+
+3. Compare the two miss paths before and after the fix, using the same machine
+   and Python version:
+
+   ```console
+   hyperfine --warmup 1 --runs 5 --ignore-failure "conda search --override-channels -c conda-pypi --repodata-use-shards abccc" "conda search --override-channels -c conda-pypi --repodata-use-shards '*abccc*'"
+   ```
+
+### Pass criteria
+- The exact hit lists `ab5` builds.
+- The fuzzy fallback displays progress until the search finishes.
+- Both miss paths report that the package was not found, without spending
+  tens of seconds on a warmed-cache name scan.
+- Hyperfine shows a substantial reduction in the miss-path runtime.
+
+### Out of scope / notes
+Missing platform subdirectories can still produce repodata 404s. Automated
+tests cover name filtering, selective shard loading, record construction,
+and progress while consuming deferred search results.
