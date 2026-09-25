@@ -398,6 +398,13 @@ class Context(Configuration):
         expandvars=True,
     )
     channel_priority = ParameterLoader(PrimitiveParameter(ChannelPriority.FLEXIBLE))
+    channel_relations_max_depth = ParameterLoader(
+        PrimitiveParameter(
+            10,
+            element_type=int,
+            validation=lambda value: value >= 0 or "must be non-negative",
+        )
+    )
     _channels = ParameterLoader(
         SequenceParameter(PrimitiveParameter("", element_type=str), default=()),
         aliases=(
@@ -1340,6 +1347,7 @@ class Context(Configuration):
             "channel_priority",
             "channels",
             "channel_settings",
+            "channel_relations_max_depth",
             "custom_channels",
             "custom_multichannels",
             "deps_modifier",
@@ -1363,6 +1371,7 @@ class Context(Configuration):
             "channels",
             "channel_alias",
             "channel_settings",
+            "channel_relations_max_depth",
             "default_channels",
             "override_channels_enabled",
             "allowlist_channels",
@@ -2032,6 +2041,13 @@ class Context(Configuration):
                 """
                 A list of features that are tracked by default. An entry here is similar to
                 adding an entry to the create_default_packages list.
+                """
+            ),
+            channel_relations_max_depth=dals(
+                """
+                Maximum depth when following channel relations in repodata (CEP 42).
+                The default is 10. Set to 0 to disable automatic relation resolution.
+                Related channels remain subject to allowlist_channels and denylist_channels.
                 """
             ),
             repodata_fns=dals(
