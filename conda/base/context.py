@@ -16,6 +16,7 @@ import sys
 import sysconfig
 import warnings
 from contextlib import contextmanager, suppress
+from copy import copy
 from errno import ENOENT
 from functools import cache, cached_property
 from itertools import chain
@@ -564,15 +565,70 @@ class Context(Configuration):
         argparse_args: Namespace | None = None,
         **kwargs,
     ):
+        self._configuration_search_path = tuple(
+            SEARCH_PATH if search_path is None else search_path
+        )
+        self._configuration_argparse_args = copy(argparse_args)
         super().__init__(argparse_args=argparse_args)
 
         self._set_search_path(
-            SEARCH_PATH if search_path is None else search_path,
+            self._configuration_search_path,
             # for proper search_path templating when --name/--prefix is used
             CONDA_PREFIX=determine_target_prefix(self, argparse_args),
         )
         self._set_env_vars(APP_NAME)
         self._set_argparse_args(argparse_args)
+
+    def reload(self) -> Context:
+        """Reload configuration while preserving the parsed invocation and search paths.
+
+        Newly created files and directory entries in the original search specification
+        are discovered. The current configuration stays intact if validation fails.
+        Loaded plugins are retained. Installing plugins requires a fresh process.
+
+        Returns:
+            This context after its configuration has been replaced.
+        """
+        from ..common.serialize import yaml
+
+        YamlRawParameter.cache_clear()
+        for path in self._expand_search_path(
+            self._configuration_search_path,
+            CONDA_PREFIX=determine_target_prefix(
+                self, self._configuration_argparse_args
+            ),
+        ):
+            # Unlike initial startup, an explicit reload must not ignore a malformed file.
+            try:
+                YamlRawParameter.make_raw_parameters_from_file(path)
+            except yaml.YAMLError as error:
+                raise ConfigurationLoadError(
+                    path, "invalid YAML configuration"
+                ) from error
+        candidate = type(self)(
+            search_path=self._configuration_search_path,
+            argparse_args=copy(self._configuration_argparse_args),
+        )
+        candidate.validate_all()
+        candidate.plugins.validate_all()
+
+        callbacks = self._reset_callbacks
+        self.__dict__.clear()
+        self.__dict__.update(candidate.__dict__)
+        self._reset_callbacks.update(callbacks)
+        self._reset_cache()
+
+        from ..gateways.connection.session import CondaSession
+        from ..models.channel import Channel
+        from ..reporters import _get_render_func
+
+        Channel._reset_state()
+        CondaSession.cache_clear()
+        self.plugin_manager.get_cached_solver_backend.cache_clear()
+        self.plugin_manager.get_cached_session_headers.cache_clear()
+        self.plugin_manager.get_cached_request_headers.cache_clear()
+        _get_render_func.cache_clear()
+        return self
 
     def post_build_validation(self) -> list[ValidationError]:
         errors = []
