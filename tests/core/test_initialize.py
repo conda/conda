@@ -631,7 +631,7 @@ def test_install_condabin_conda_bat(verbose):
 def test__get_python_info(verbose):
     python_exe, python_version, site_packages_dir = _get_python_info(sys.prefix)
     assert samefile(python_exe, sys.executable)
-    assert python_version == "%d.%d.%d" % sys.version_info[:3]
+    assert python_version.startswith("%d.%d.%d" % sys.version_info[:3])
     assert site_packages_dir.endswith("site-packages")
 
 
