@@ -119,8 +119,8 @@ class SimpleEnvironment:
         """Turn record into data, to be written in the JSON environment/repo files."""
         data = {
             key: (",".join(value) if key in ("features", "track_features") else value)
-            for key, value in vars(record).items()
-            if key in self.REPO_DATA_KEYS
+            for key in self.REPO_DATA_KEYS
+            if (value := getattr(record, key, None)) is not None
         }
         if "subdir" not in data:
             data["subdir"] = context.subdir
