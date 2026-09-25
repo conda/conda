@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Match sharded search queries against package names before constructing records and show progress during the fuzzy fallback. (#16745)

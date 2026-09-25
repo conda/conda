@@ -42,6 +42,7 @@ from conda.common.compat import on_win
 from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
 
 from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
@@ -474,7 +475,49 @@ def test_query_all_sharded_search(
         )
 
 
-@pytest.mark.parametrize("search_spec", ["pyfig", "*"])
+@pytest.mark.parametrize(
+    "search_spec,expected_created,expected_results",
+    [
+        ("*xyz*", [], set()),
+        ("bar*", ["bar"], {"bar"}),
+        ("*ar*", ["bar"], {"bar"}),
+        ("BAR*", ["bar"], {"bar"}),
+        ("^b.*$", ["bar"], {"bar"}),
+        ("bar* >1", ["bar"], set()),
+        ("bar* 1 other", ["bar"], set()),
+    ],
+)
+def test_sharded_search_constructs_only_matching_names(
+    http_server_shards,
+    search_spec,
+    expected_created,
+    expected_results,
+    monkeypatch,
+    mocker,
+    tmp_path,
+):
+    """Select names before loading shards and constructing records."""
+    from conda.core.subdir_data import query_all
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    record_init = mocker.spy(PackageRecord, "__init__")
+    visit_shard = mocker.spy(Shards, "visit_shard")
+
+    results = query_all(MatchSpec(search_spec), [channel], subdirs=["noarch"])
+
+    assert {record.name for record in results} == expected_results
+    assert [
+        call.kwargs["name"] for call in record_init.call_args_list
+    ] == expected_created
+    assert {call.args[1] for call in visit_shard.call_args_list} == set(
+        expected_created
+    )
+
+
+@pytest.mark.parametrize("search_spec", ["pyfig", "*", None])
 def test_query_all_monolithic_v3_search(
     search_spec,
     http_test_server,

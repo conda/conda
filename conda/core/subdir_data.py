@@ -787,16 +787,11 @@ def _search_package_via_shards(
     subset_dict = fetch_channels(channels, require_shards=False) or {}
 
     if not spec.get_exact_value("name"):
-        # Needed if MatchSpec() includes a wildcard, otherwise root_packages =
-        # [spec.name] would be sufficient. Adds about 1s on conda-forge compared
-        # to exact-name shortcut.
         packages: set[str] = set()
         for shard_base in subset_dict.values():
             if shard_base is not None:
                 packages.update(shard_base.package_names)
 
-        # MatchSpec.match(dict) does create a new PackageRecord(), match against
-        # name only to defer version etc. filter until later.
         raw_name = spec.get_raw_value("name")
         if raw_name == "*" and any(
             isinstance(shard_base, Shards) for shard_base in subset_dict.values()
@@ -807,17 +802,12 @@ def _search_package_via_shards(
                 "Cannot search for bare '*'. Please include package name in search."
             )  # TODO improve error message
         name_only = MatchSpec(raw_name)  # type: ignore[assign]
+        # Avoid constructing a PackageRecord for every name in the shard index.
+        name_matcher = name_only._match_components.get("name")
         root_packages = [
             name
             for name in packages
-            if name_only.match(
-                {
-                    "name": name,
-                    "version": "",
-                    "build": "",
-                    "build_number": 0,
-                }
-            )
+            if name_matcher is None or name_matcher.match(name)
         ]
     else:
         root_packages = [spec.name]
