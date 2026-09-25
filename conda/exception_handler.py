@@ -210,12 +210,16 @@ class ExceptionHandler:
                     "If you suspect this error is being caused by a malfunctioning plugin,",
                     "consider using the --no-plugins option to turn off plugins.",
                     "",
-                    "Example: conda --no-plugins install <package>",
+                    "Example: conda --no-plugins info",
                     "",
                     "Alternatively, you can set the CONDA_NO_PLUGINS environment variable on",
                     "the command line to run the command without plugins enabled.",
                     "",
-                    "Example: CONDA_NO_PLUGINS=true conda install <package>",
+                    "Example: CONDA_NO_PLUGINS=true conda info",
+                    "",
+                    "For commands that need a solver, keep an installed solver plugin enabled:",
+                    "",
+                    "Example: conda --no-plugins --enable-plugins conda-libmamba-solver install --solver=libmamba <package>",
                     "",
                 ]
             )

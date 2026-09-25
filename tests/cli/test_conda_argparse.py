@@ -37,6 +37,76 @@ def test_parser_basics():
     assert args.verbosity == 2
 
 
+@pytest.mark.parametrize(
+    "options", (["--no-plugins"], ["--no-plugins", "--no-plugins"])
+)
+def test_parse_no_plugins(options: list[str]):
+    args = generate_parser().parse_args([*options, "info"])
+
+    assert args.cmd == "info"
+    assert args.no_plugins is True
+    assert args.disabled_plugins == []
+
+
+@pytest.mark.parametrize(
+    "options,disabled_plugins",
+    [
+        (["--disable-plugins=plugin-a, plugin-b"], ["plugin-a", "plugin-b"]),
+        (["--disable-plugins", "plugin-a"], ["plugin-a"]),
+        (["--disable-plugins", "plugin-a, plugin-b"], ["plugin-a", "plugin-b"]),
+        (
+            ["--disable-plugins=plugin-a", "--disable-plugins=plugin-b"],
+            ["plugin-a", "plugin-b"],
+        ),
+        (
+            ["--disable-plugins", "plugin-a", "--disable-plugins", "plugin-b"],
+            ["plugin-a", "plugin-b"],
+        ),
+        (["--disable-plugins", "info"], ["info"]),
+    ],
+)
+def test_parse_disabled_plugins(options: list[str], disabled_plugins: list[str]):
+    args = generate_parser().parse_args([*options, "info"])
+
+    assert args.cmd == "info"
+    assert args.disabled_plugins == disabled_plugins
+
+
+@pytest.mark.parametrize("command", ("install", "run"))
+def test_parse_bare_no_plugins_with_command_arguments(command: str):
+    args = generate_parser().parse_args(["--no-plugins", command, "package"])
+
+    assert args.cmd == command
+    assert args.no_plugins is True
+    assert args.disabled_plugins == []
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        ["--enable-plugins=plugin-a, plugin-b"],
+        ["--enable-plugins", "plugin-a, plugin-b"],
+        ["--enable-plugins=plugin-a", "--enable-plugins=plugin-b"],
+    ],
+)
+def test_parse_enabled_plugins(options: list[str]):
+    args = generate_parser().parse_args([*options, "info"])
+
+    assert args.cmd == "info"
+    assert args.enabled_plugins == ["plugin-a", "plugin-b"]
+
+
+@pytest.mark.parametrize("separator", ([], ["--"]))
+@pytest.mark.parametrize(
+    "option", ("--no-plugins", "--disable-plugins", "--enable-plugins")
+)
+def test_parse_run_no_plugins(separator: list[str], option: str):
+    executable_call = ["echo", option, "info"]
+    args = generate_parser().parse_args(["run", *separator, *executable_call])
+
+    assert args.executable_call == [*separator, *executable_call]
+
+
 def test_parse_clobber(subtests: Subtests):
     # setup
     p = generate_parser()
