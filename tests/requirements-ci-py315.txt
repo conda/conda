@@ -6,7 +6,7 @@ pexpect
 pip
 pytest
 pytest-benchmark
-pytest-cov
+pytest-cov >=7.0
 pytest-mock
 pytest-rerunfailures
 pytest-split
