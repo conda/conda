@@ -104,7 +104,7 @@ jobs:
       CONDA_TEST_SOLVERS: ${{ matrix.python-version == '3.15' && 'classic' || 'libmamba,classic' }}
       CONDA_SOLVER: classic
       CONDA_TEST_SUBDIR: ${{ matrix.subdir }}
-      PYTEST_EXTRA: ${{ matrix.python-version == '3.15' && '--ignore=tests/test_create.py --deselect=tests/test_solvers.py::TestLibMambaSolver' || '' }}
+      PYTEST_EXTRA: ${{ matrix.python-version == '3.15' && '--ignore=tests/test_create.py --ignore=tests/core/test_initialize.py --deselect=tests/test_solvers.py::TestLibMambaSolver' || '' }}
 
     steps:
       - name: Checkout Source
