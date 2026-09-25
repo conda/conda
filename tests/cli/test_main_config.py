@@ -801,6 +801,62 @@ def test_config_write_preserves_permissions(tmp_path: Path) -> None:
     assert path.read_text() == "changeps1: false\n"
 
 
+@pytest.mark.skipif(not on_win, reason="Windows file security")
+def test_config_write_preserves_windows_security(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    from subprocess import run
+
+    from conda.common._os.windows import get_file_security
+
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    run(
+        ["icacls", str(path), "/inheritance:d", "/deny", "*S-1-5-7:(R)"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    with path.open() as source:
+        before = get_file_security(source.fileno())
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    fsync = os.fsync
+
+    def check_staged_security(fd: int) -> None:
+        assert get_file_security(fd) == before
+        fsync(fd)
+
+    mocker.patch("os.fsync", side_effect=check_staged_security)
+    config.write()
+
+    with path.open() as source:
+        assert get_file_security(source.fileno()) == before
+    assert path.read_text() == "changeps1: false\n"
+
+
+@pytest.mark.skipif(not on_win, reason="Windows file security")
+def test_config_write_rejects_windows_security_change(tmp_path: Path) -> None:
+    from subprocess import run
+
+    path = tmp_path / ".condarc"
+    original = "changeps1: true\n"
+    path.write_text(original)
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    run(
+        ["icacls", str(path), "/deny", "*S-1-5-7:(R)"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    with pytest.raises(conda.exceptions.CondaError, match="file changed after reading"):
+        config.write()
+
+    assert path.read_text() == original
+
+
 @pytest.mark.skipif(not on_mac, reason="macOS file ACLs")
 def test_config_write_preserves_macos_acl(
     tmp_path: Path, mocker: MockerFixture
@@ -1132,11 +1188,17 @@ def test_config_write_rejects_same_content_replacement_during_write(
         os.replace(replacement, path)
 
     mocker.patch("os.fsync", side_effect=replace_source)
-    with pytest.raises(conda.exceptions.CondaError, match="file changed while writing"):
+    match = "PermissionError" if on_win else "file changed while writing"
+    with pytest.raises(conda.exceptions.CondaError, match=match) as exc_info:
         config.write()
 
     assert path.read_text() == original
-    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}
+    remaining = {path, tmp_path / ".condarc.lock"}
+    if on_win:
+        # The open source descriptor prevents replacement on Windows.
+        assert isinstance(exc_info.value.__context__, PermissionError)
+        remaining.add(tmp_path / "replacement")
+    assert set(tmp_path.iterdir()) == remaining
 
 
 @pytest.mark.skipif(on_win, reason="Replacing an open temporary file requires POSIX")
@@ -1300,6 +1362,7 @@ def test_config_write_after_fork_with_lock_held_by_thread(tmp_path: Path) -> Non
         child.close()
 
 
+@pytest.mark.skipif(not on_win, reason="Windows timestamps and security")
 def test_config_write_accepts_windows_timestamps_finalized_on_close(
     tmp_path: Path, mocker: MockerFixture
 ) -> None:
