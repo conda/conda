@@ -28,6 +28,7 @@ if TYPE_CHECKING:
         CondaExceptionObserver,
         CondaHealthCheck,
         CondaPackageExtractor,
+        CondaPackageVerifier,
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
@@ -831,6 +832,47 @@ class CondaSpecs:
                     default_filenames=("environment.toml",),
                     export=export_toml,
                 )
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_package_verifiers(self) -> Iterable[CondaPackageVerifier]:
+        """
+        Register package verifiers that run before package extraction.
+
+        Conda validates the recorded size and strongest available package digest
+        before invoking these hooks. Every registered verifier receives the selected
+        package record or explicit match specification, the package archive path,
+        and its computed SHA-256. A verifier rejects the archive by raising
+        :class:`conda.CondaError` or a subclass. Verifiers run in name order for
+        each archive, but different archives may be verified concurrently, so
+        callbacks must be thread-safe. Conda may verify the same archive more than
+        once during a command, so callbacks must also be idempotent. Callbacks must
+        not mutate the package record, explicit match specification, or archive.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda import plugins
+            from conda.exceptions import CondaVerificationError
+
+
+            def verify_package(record_or_spec, package_path, sha256):
+                if not is_allowed(record_or_spec, package_path, sha256):
+                    raise CondaVerificationError("Package verification failed")
+
+
+            @plugins.hookimpl
+            def conda_package_verifiers():
+                yield plugins.types.CondaPackageVerifier(
+                    name="example-verifier",
+                    verify=verify_package,
+                )
+
+        Returns:
+            An iterable of :class:`~conda.plugins.types.CondaPackageVerifier`
+            entries.
         """
         yield from ()
 
