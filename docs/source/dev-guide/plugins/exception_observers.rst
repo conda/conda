@@ -8,11 +8,13 @@ useful for telemetry, logging, and demand tracking -- for example,
 reporting which packages users tried to install but could not find in
 the configured channels.
 
-Exception observer plugins are **purely observational** (modelled after
-CPython's :func:`sys.excepthook`): they cannot suppress, modify, or
-redirect the exception. Their return value is ignored. Any exception
-raised inside an observer is caught and logged at DEBUG level, so a
-buggy plugin can never disrupt conda.
+Exception observer plugins are **purely observational** for control flow
+(modelled after CPython's :func:`sys.excepthook`): they cannot suppress or
+redirect the exception. Their return value is ignored. The one supported
+mutation is calling :meth:`~conda.CondaError.append_hint` on a
+``CondaError`` instance to attach structured next-step hints before conda
+renders the error. Any other exception raised inside an observer is caught
+and logged at DEBUG level, so a buggy plugin can never disrupt conda.
 
 Observers fire for every exception conda handles: ``CondaError`` and
 its subclasses, ``MemoryError``, ``KeyboardInterrupt``, ``SystemExit``,
@@ -90,6 +92,43 @@ For non-``CondaError`` exceptions, the conda runtime fields on
 below).
 
 .. _MRO: https://docs.python.org/3/glossary.html#term-method-resolution-order
+
+Adding error hints
+------------------
+
+Plugins that want to contribute user-facing next steps for expected
+``CondaError`` failures should call
+:meth:`~conda.CondaError.append_hint` from an exception observer.
+Observers run before conda renders terminal or ``--json`` output, so hints
+added this way appear in the normal guidance model (``Next steps`` in the
+terminal, ``guidance.hints`` in JSON).
+
+.. code-block:: python
+   :caption: conda_channel_hints/plugin.py
+
+   from conda import plugins
+   from conda.exceptions import PackagesNotFoundInChannelsError
+
+
+   def add_channel_hint(event):
+       error = event.exc_value
+       if isinstance(error, PackagesNotFoundInChannelsError):
+           error.append_hint(
+               "Try installing from the recommended channel.",
+               "anaconda_channel_suggestion",
+           )
+
+
+   @plugins.hookimpl
+   def conda_exception_observers():
+       yield plugins.types.CondaExceptionObserver(
+           name="channel-hints",
+           hook=add_channel_hint,
+           watch_for={"PackagesNotFoundInChannelsError"},
+       )
+
+Use a stable ``hint_code`` in snake_case. When the same code is appended
+more than once, the latest hint wins.
 
 Choosing a ``watch_for`` scope
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -258,8 +297,10 @@ when the runtime is available (meaning no environment is active):
 Design notes
 -------------
 
-- **Observational only** -- observers cannot change conda's behavior.
-  This follows CPython's :func:`sys.excepthook` model.
+- **Observational only** -- observers cannot suppress or redirect errors.
+  Plugins may call :meth:`~conda.CondaError.append_hint` on ``CondaError``
+  instances to attach structured hints before rendering.
+  This follows CPython's :func:`sys.excepthook` model for everything else.
 - **All exception types** -- dispatch happens at the top of
   :meth:`~conda.exception_handler.ExceptionHandler.handle_exception`,
   before conda's own error-report dispatch, so observers see every
