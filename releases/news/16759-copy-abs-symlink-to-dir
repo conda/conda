@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `IsADirectoryError` when installing a package that contains an absolute symlink to a directory. (#TBD)
+* Fix `IsADirectoryError` when installing a package that contains an absolute symlink to a directory. (#16759)
 
 ### Deprecations
 
