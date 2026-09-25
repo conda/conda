@@ -247,8 +247,8 @@ def copy(src, dst):
     # on unix, make sure relative symlinks stay symlinks
     if not on_win and islink(src):
         src_points_to = readlink(src)
-        if not src_points_to.startswith("/"):
-            # copy relative symlinks as symlinks
+        if not src_points_to.startswith("/") or isdir(src):
+            # copy relative symlinks and symlinks to directories as symlinks
             log.log(TRACE, "soft linking %s => %s", src, dst)
             symlink(src_points_to, dst)
             return
