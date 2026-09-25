@@ -19,3 +19,4 @@ setuptools >=60.0.0
 setuptools_scm  # for devenv version detection
 tqdm >=4
 zstandard >=0.15
+conda-launchers
