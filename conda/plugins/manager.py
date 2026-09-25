@@ -604,7 +604,18 @@ class CondaPluginManager(pluggy.PluginManager):
             return type(
                 f"Partial{solver_plugin.backend.__name__}",
                 (solver_plugin.backend,),
-                {"__init__": new_init},
+                {
+                    "__init__": new_init,
+                    "supports_exclude_newer_global": (
+                        solver_plugin.backend.supports_exclude_newer_global
+                    ),
+                    "supports_exclude_newer_channel": (
+                        solver_plugin.backend.supports_exclude_newer_channel
+                    ),
+                    "supports_exclude_newer_package": (
+                        solver_plugin.backend.supports_exclude_newer_package
+                    ),
+                },
             )
 
         return solver_plugin.backend

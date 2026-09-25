@@ -104,6 +104,9 @@ jobs:
             subdir: win-64
           # template-files-endif
           # template-files-if
+          - runs-on: windows-11-arm
+            subdir: win-arm64
+          # template-files-endif
           # template-files-endif
     runs-on: ${{ matrix.runs-on }}
     steps:
@@ -169,6 +172,9 @@ jobs:
           subdir: ${{ matrix.subdir }}
           base-architecture: ${{ matrix.subdir == 'win-arm64' && 'x64' || '' }}
           # template-files-if
+          conda-build-arguments: >-
+            ${{ matrix.subdir == 'win-arm64' && '--override-channels -c conda-forge' || '' }}
+          # template-files-endif
           anaconda-org-channel: conda-canary
           anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
           anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
