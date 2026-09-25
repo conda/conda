@@ -1227,6 +1227,8 @@ def test_install_remove_absolute_symlink_to_directory(
             "--channel=conda-forge/label/sysroot_dev",
             "sysroot_linux-64=9999=hf2ff53a_0",
             "--yes",
+            "--platform",
+            "linux-64",
         )
         assert package_is_installed(prefix, "sysroot_linux-64=9999")
         link = prefix / "x86_64-conda-linux-gnu" / "sysroot" / "usr"
