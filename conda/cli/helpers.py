@@ -246,7 +246,8 @@ def add_output_and_prompt_options(p: ArgumentParser) -> _ArgumentGroup:
         action="store_true",
         default=NULL,
         help="Sets any confirmation values to 'yes' automatically. "
-        "Users will not be asked to confirm any adding, deleting, backups, etc.",
+        "Users will not be asked to confirm any adding, deleting, backups, etc."
+        " Can also be used to force the creation of a new environment over an existing one.",
     )
     return output_and_prompt_options
 
