@@ -164,7 +164,7 @@ jobs:
           Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
 
       - name: Create & Upload
-        uses: conda/actions/canary-release@9d24f559de1480d4759dee5500dfe4b24ac93992 # v26.9.3
+        uses: conda/actions/canary-release@ade1a3a5e5b7d3d124a03bf5d8c841645fb92a37 # v26.9.4
         env:
           _CONDA_BUILD_ISOLATED_ACTIVATION: 1
         with:

@@ -25,7 +25,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Prepare Authors
-        uses: conda/actions/prepare-authors@210fa69f0b174ee4ea463a3a5402ec5a1d95d6db # v26.9.0
+        uses: conda/actions/prepare-authors@ade1a3a5e5b7d3d124a03bf5d8c841645fb92a37 # v26.9.4
         with:
           token: ${{ secrets.SYNC_TOKEN }}
           since: tag
