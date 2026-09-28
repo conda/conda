@@ -31,6 +31,7 @@ from conda.core.path_actions import (
     CreatePythonEntryPointAction,
     LinkPathAction,
     PrefixReplaceLinkAction,
+    UnlinkPathAction,
     UpdateHistoryAction,
 )
 from conda.core.portability import batch_codesign_calls
@@ -433,6 +434,73 @@ def test_simple_LinkPathAction_softlink(prefix: Path, pkgs_dir: Path):
     assert lexists(source_full_path)
 
 
+@pytest.mark.skipif(on_win, reason="symlinks are copied as files on Windows")
+@pytest.mark.parametrize("absolute", [False, True])
+def test_link_path_action_reverse_directory_symlink(
+    prefix: Path, pkgs_dir: Path, tmp_path: Path, absolute: bool
+):
+    external = tmp_path / "external"
+    external.mkdir()
+    sentinel = external / "sentinel"
+    sentinel.write_text("preserve me")
+    link_target = str(external) if absolute else "../external"
+    source = pkgs_dir / "dirlink"
+    source.symlink_to(link_target, target_is_directory=True)
+    destination = prefix / "dirlink"
+    axn = LinkPathAction(
+        {},
+        None,
+        pkgs_dir,
+        "dirlink",
+        prefix,
+        "dirlink",
+        LinkType.copy,
+        PathDataV1(_path="dirlink", path_type=PathEnum.softlink),
+    )
+
+    axn.verify()
+    axn.execute()
+    assert destination.is_symlink()
+    assert os.readlink(destination) == link_target
+
+    axn.reverse()
+    assert not lexists(destination)
+    assert source.is_symlink()
+    assert sentinel.read_text() == "preserve me"
+
+
+@pytest.mark.skipif(on_win, reason="symlinks require privileges on Windows")
+@pytest.mark.parametrize("absolute", [False, True])
+def test_unlink_path_action_directory_symlink(
+    prefix: Path, tmp_path: Path, absolute: bool
+):
+    external = tmp_path / "external"
+    external.mkdir()
+    sentinel = external / "sentinel"
+    sentinel.write_text("preserve me")
+    link_target = str(external) if absolute else "../external"
+    target = prefix / "dirlink"
+    target.symlink_to(link_target, target_is_directory=True)
+    axn = UnlinkPathAction({}, None, prefix, "dirlink")
+
+    axn.verify()
+    axn.execute()
+    assert not lexists(target)
+    assert islink(axn.holding_full_path)
+    assert os.readlink(axn.holding_full_path) == link_target
+
+    axn.reverse()
+    assert target.is_symlink()
+    assert os.readlink(target) == link_target
+    assert not lexists(axn.holding_full_path)
+
+    axn.execute()
+    axn.cleanup()
+    assert not lexists(target)
+    assert not lexists(axn.holding_full_path)
+    assert sentinel.read_text() == "preserve me"
+
+
 def test_simple_LinkPathAction_directory(prefix: Path):
     target_short_path = join("a", "nested", "directory")
     axn = LinkPathAction(
@@ -456,6 +524,49 @@ def test_simple_LinkPathAction_directory(prefix: Path):
     assert lexists(axn.target_full_path)
     assert lexists(dirname(axn.target_full_path))
     assert lexists(dirname(dirname(axn.target_full_path)))
+
+
+@pytest.mark.skipif(on_win, reason="symlinks require privileges on Windows")
+def test_link_directory_action_reverse_preserves_symlink(prefix: Path, tmp_path: Path):
+    external = tmp_path / "external"
+    external.mkdir()
+    sentinel = external / "sentinel"
+    sentinel.write_text("preserve me")
+    target = prefix / "directory"
+    target.symlink_to(external, target_is_directory=True)
+    axn = LinkPathAction(
+        {}, None, None, None, prefix, "directory", LinkType.directory, None
+    )
+
+    axn.verify()
+    axn.execute()
+    axn.reverse()
+    assert target.is_symlink()
+    assert os.readlink(target) == str(external)
+    assert sentinel.read_text() == "preserve me"
+
+
+@pytest.mark.skipif(on_win, reason="symlinks require privileges on Windows")
+def test_unlink_directory_action_cleanup_preserves_symlink(
+    prefix: Path, tmp_path: Path
+):
+    external = tmp_path / "external"
+    external.mkdir()
+    sentinel = external / "sentinel"
+    sentinel.write_text("preserve me")
+    target = prefix / "directory"
+    target.mkdir()
+    sibling = prefix / "directory.c~"
+    sibling.symlink_to(external, target_is_directory=True)
+    axn = UnlinkPathAction({}, None, prefix, "directory", LinkType.directory)
+
+    axn.verify()
+    axn.execute()
+    axn.cleanup()
+    assert target.is_dir()
+    assert sibling.is_symlink()
+    assert os.readlink(sibling) == str(external)
+    assert sentinel.read_text() == "preserve me"
 
 
 def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):

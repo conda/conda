@@ -25,6 +25,7 @@ import pytest
 from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
+    CONDA_TEMP_EXTENSION,
     PACKAGE_CACHE_MAGIC_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_PINNED_FILE,
@@ -1219,7 +1220,7 @@ def test_install_remove_absolute_symlink_to_directory(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
     """Package contains ``x86_64-conda-linux-gnu/sysroot/usr -> /usr``."""
-    with tmp_env() as prefix:
+    with tmp_env("--platform", "linux-64") as prefix:
         conda_cli(
             "install",
             f"--prefix={prefix}",
@@ -1227,8 +1228,6 @@ def test_install_remove_absolute_symlink_to_directory(
             "--channel=conda-forge/label/sysroot_dev",
             "sysroot_linux-64=9999=hf2ff53a_0",
             "--yes",
-            "--platform",
-            "linux-64",
         )
         assert package_is_installed(prefix, "sysroot_linux-64=9999")
         link = prefix / "x86_64-conda-linux-gnu" / "sysroot" / "usr"
@@ -1238,8 +1237,7 @@ def test_install_remove_absolute_symlink_to_directory(
         conda_cli("remove", f"--prefix={prefix}", "sysroot_linux-64", "--yes")
         assert not package_is_installed(prefix, "sysroot_linux-64")
         assert not os.path.lexists(link)
-        # removing the symlink must not touch its target
-        assert Path("/usr/bin").is_dir()
+        assert not os.path.lexists(f"{link}{CONDA_TEMP_EXTENSION}")
 
 
 def test_install_force_reinstall_flag(

@@ -539,7 +539,9 @@ class LinkPathAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.log(TRACE, "reversing link creation %s", self.target_prefix)
-            if not isdir(self.target_full_path):
+            if not isdir(self.target_full_path) or (
+                self.link_type != LinkType.directory and islink(self.target_full_path)
+            ):
                 rm_rf(self.target_full_path, clean_empty_parents=True)
 
 
@@ -1242,7 +1244,9 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
             backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        if not isdir(self.holding_full_path):
+        if not isdir(self.holding_full_path) or (
+            self.link_type != LinkType.directory and islink(self.holding_full_path)
+        ):
             rm_rf(self.holding_full_path, clean_empty_parents=True)
 
 
