@@ -1,0 +1,26 @@
+### Title
+Win-arm64 upgrade from the launcher-patched release to a canary build.
+
+### Why
+The win-arm64 build of conda 26.7.2 (build 1) ships a feedstock-only patch that copies native ARM64 launcher files into conda's own package at build time (AnacondaRecipes/conda-feedstock#94), predating conda's own runtime dependency on `conda-launchers` (#16488). Upgrading that release to a newer build changes how launcher files are sourced; confirm the upgrade does not break existing entry points on native ARM64.
+
+### Platforms
+- [x] Windows (win-arm64)
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+A PC with native win-arm64 Windows 11 machine and the patched conda 26.7.2 build 1 already installed, and a newer conda available on `conda-canary/label/dev`.
+
+### Steps
+1. On a win-arm64 machine, confirm `conda.exe` and an installed console entry point (e.g. `pip.exe`) run and show as `ARM64` (not `x64` or `x64 (emulated)`) in Task Manager's Architecture column.
+2. Upgrade conda in place: `conda update -n base -c conda-canary/label/dev conda --yes`.
+3. Confirm the upgrade finishes without errors and that `conda-launchers` is now listed in `conda list -n base`.
+4. Repeat step 1's checks after the upgrade: `conda.exe` and the same entry point must still run and still show as native `ARM64`.
+5. Run `conda init` again and confirm activation still works in both PowerShell and cmd.
+
+### Pass criteria
+The upgrade finishes successfully. Executables such as `conda.exe` and package entry points function afterward and are still reported as native ARM64, never x64 nor x64(emulated). `conda-launchers` is present after the upgrade.
+
+### Out of scope / notes
+Does not repeat the general x64/ARM64 launcher testing already covered by `16293-conda-launchers`; this snippet only covers the win-arm64 upgrade path from the pre-#16488 feedstock-patched release.
