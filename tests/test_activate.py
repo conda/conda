@@ -30,7 +30,7 @@ from conda.base.constants import (
     ROOT_ENV_NAME,
 )
 from conda.base.context import context, reset_context
-from conda.cli.main import main_sourced
+from conda.cli.main import main, main_sourced
 from conda.common.compat import on_win
 from conda.common.path.windows import win_path_to_unix
 from conda.exceptions import (
@@ -693,29 +693,39 @@ def test_build_activate_shlvl_1(
     }
 
 
-def test_build_activate_raises_when_shlvl_set_but_prefix_unset(
+@pytest.mark.parametrize("old_prefix", [None, ""], ids=["unset", "empty"])
+@pytest.mark.parametrize("old_shlvl", ["1", "2"])
+@pytest.mark.parametrize(
+    "stack_args,auto_stack",
+    [((), 0), (("--stack",), 0), ((), 2)],
+    ids=["no-stack", "stack", "auto-stack"],
+)
+def test_activate_missing_prefix_reports_handled_error(
     monkeypatch: MonkeyPatch,
     env_activate: tuple[str, str, str],
+    capsys: CaptureFixture[str],
+    old_prefix: str | None,
+    old_shlvl: str,
+    stack_args: tuple[str, ...],
+    auto_stack: int,
 ):
-    """Regression test for the TypeError from `_get_deactivate_scripts(None)`.
-
-    With ``CONDA_SHLVL >= 1`` but ``CONDA_PREFIX`` unset, _build_activate_stack
-    used to fall through to ``self._get_deactivate_scripts(old_conda_prefix)``
-    on the ``not stack`` branch, which crashes inside ``ntpath.join(None, …)``
-    with ``TypeError: expected str, bytes or os.PathLike object, not NoneType``.
-    Reported via xonsh on Windows where conflicting init blocks (cmd.exe +
-    xonsh) leave the env partially activated — see xonsh/xonsh#3676.
-    """
     prefix, _, _ = env_activate
-    monkeypatch.setenv("CONDA_SHLVL", "1")
-    monkeypatch.delenv("CONDA_PREFIX", raising=False)
+    monkeypatch.setenv("CONDA_SHLVL", old_shlvl)
+    if old_prefix is None:
+        monkeypatch.delenv("CONDA_PREFIX", raising=False)
+    else:
+        monkeypatch.setenv("CONDA_PREFIX", old_prefix)
+    monkeypatch.setenv("CONDA_AUTO_STACK", str(auto_stack))
+    monkeypatch.setenv("CONDA_REPORT_ERRORS", "false")
 
-    activator = PosixActivator()
-    with pytest.raises(
-        ValueError,
-        match=r"CONDA_SHLVL is 1 but CONDA_PREFIX is empty",
-    ):
-        activator.build_activate(prefix)
+    rc = main("shell.posix", "activate", *stack_args, prefix)
+    stdout, stderr = capsys.readouterr()
+
+    assert rc == 1, stderr
+    assert not stdout
+    assert f"CondaValueError: CONDA_SHLVL is {old_shlvl}" in stderr
+    assert "CONDA_PREFIX" in stderr
+    assert "ERROR REPORT" not in stderr
 
 
 @skip_unsupported_posix_path

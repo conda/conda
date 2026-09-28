@@ -355,20 +355,10 @@ class _Activator(metaclass=abc.ABCMeta):
         old_conda_prefix = os.getenv("CONDA_PREFIX")
 
         if old_conda_shlvl > 0 and not old_conda_prefix:
-            # Symmetric to the CONDA_PREFIX_<n> guard in build_deactivate:
-            # CONDA_SHLVL claims an active env but CONDA_PREFIX is empty, so
-            # the upcoming _get_deactivate_scripts(old_conda_prefix) on the
-            # `not stack` branch would crash inside ntpath.join with
-            # "TypeError: expected str, bytes or os.PathLike object, not NoneType".
-            # That broken state usually comes from mixing shell-init blocks
-            # (e.g. cmd.exe + xonsh on Windows, see xonsh/xonsh#3676) or an
-            # interrupted deactivation.
-            raise ValueError(
-                "CONDA_SHLVL is %s but CONDA_PREFIX is empty. This indicates "
-                "a broken activation state, often caused by mixing shell-init "
-                "blocks across shells or an interrupted deactivation. Try "
-                "restarting your shell; if it persists, check your shell "
-                "profile for the conflicting init block." % old_conda_shlvl
+            raise CondaValueError(
+                f"CONDA_SHLVL is {old_conda_shlvl} but CONDA_PREFIX is unset or empty. "
+                "Check your shell initialization and any parent process that modifies "
+                "conda environment variables."
             )
 
         # if the prior active prefix is this prefix we are actually doing a reactivate
