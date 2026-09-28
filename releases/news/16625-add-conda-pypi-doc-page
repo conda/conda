@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Add new page covering the `conda-pypi` channel, workflows, and additional commands, along with security considerations and limitations. (#16625)
+* Add new page covering the `conda-pypi` channel, workflows, and additional commands, along with security considerations and limitations. (#16475 via #16625 and #16756)
 
 ### Other
 

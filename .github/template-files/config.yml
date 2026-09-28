@@ -19,6 +19,9 @@ conda/infrastructure:
   # [optional] canary build workflow
   - src: templates/workflows/build.yml
     dst: .github/workflows/build.yml
+    with:
+      win_arm64: true
+      conda_build_arguments: ${{ matrix.subdir == 'win-arm64' && '--override-channels -c conda-forge' || '' }}
   # For noarch packages, add:
   #   with:
   #     noarch: true
@@ -104,3 +107,9 @@ conda/infrastructure:
     dst: rever.xsh
   - src: templates/releases/TEMPLATE
     dst: releases/news/TEMPLATE
+
+  # [optional] stable git archive (scm version detection + checksummed release uploads)
+  - src: templates/.git_archival.txt
+    dst: .git_archival.txt
+  - src: templates/workflows/upload.yml
+    dst: .github/workflows/upload.yml

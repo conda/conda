@@ -31,7 +31,7 @@ from conda.base.constants import (
     ROOT_ENV_NAME,
 )
 from conda.base.context import context, reset_context
-from conda.cli.main import main_sourced
+from conda.cli.main import main, main_sourced
 from conda.common.compat import on_win
 from conda.common.path.windows import win_path_to_unix
 from conda.exceptions import (
@@ -692,6 +692,41 @@ def test_build_activate_shlvl_1(
         "export_vars": export_vars,
         "activate_scripts": (),
     }
+
+
+@pytest.mark.parametrize("old_prefix", [None, ""], ids=["unset", "empty"])
+@pytest.mark.parametrize("old_shlvl", ["1", "2"])
+@pytest.mark.parametrize(
+    "stack_args,auto_stack",
+    [((), 0), (("--stack",), 0), ((), 2)],
+    ids=["no-stack", "stack", "auto-stack"],
+)
+def test_activate_missing_prefix_reports_handled_error(
+    monkeypatch: MonkeyPatch,
+    env_activate: tuple[str, str, str],
+    capsys: CaptureFixture[str],
+    old_prefix: str | None,
+    old_shlvl: str,
+    stack_args: tuple[str, ...],
+    auto_stack: int,
+):
+    prefix, _, _ = env_activate
+    monkeypatch.setenv("CONDA_SHLVL", old_shlvl)
+    if old_prefix is None:
+        monkeypatch.delenv("CONDA_PREFIX", raising=False)
+    else:
+        monkeypatch.setenv("CONDA_PREFIX", old_prefix)
+    monkeypatch.setenv("CONDA_AUTO_STACK", str(auto_stack))
+    monkeypatch.setenv("CONDA_REPORT_ERRORS", "false")
+
+    rc = main("shell.posix", "activate", *stack_args, prefix)
+    stdout, stderr = capsys.readouterr()
+
+    assert rc == 1, stderr
+    assert not stdout
+    assert f"CondaValueError: CONDA_SHLVL is {old_shlvl}" in stderr
+    assert "CONDA_PREFIX" in stderr
+    assert "ERROR REPORT" not in stderr
 
 
 @skip_unsupported_posix_path

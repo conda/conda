@@ -9,6 +9,7 @@ source:
   folder: conda-src
 
 build:
+  skip: true  # [win and arm64 and py < 314]
   script: {{ PYTHON }} -m pip install conda-src/ --no-deps --no-build-isolation -vv && {{ PYTHON }} -m conda init --install
   # These are present when the new environment is created
   # so we have to exempt them from the list of initial files

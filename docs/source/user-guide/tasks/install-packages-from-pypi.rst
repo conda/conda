@@ -64,7 +64,7 @@ The ``conda-pypi`` workflow requires the following:
       conda config --set solver rattler
 
 Setting up the conda-pypi channel
-----------------------------------
+---------------------------------
 
 To make supported packages from PyPI available to conda, add the
 ``conda-pypi`` channel to your conda configuration (``.condarc``) file.
@@ -127,40 +127,8 @@ You can also use ``conda create`` with packages from PyPI:
 
    conda create --name myenv python=3.12 <conda-forge-package> <conda-pypi-package>
 
-Install with extras support
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Extras are named groups of optional dependencies. When you request an extra,
-its dependencies are resolved together with the package's regular dependencies.
-For full details, see `CEP 44 <https://conda.org/learn/ceps/cep-0044>`_.
-
-Use the following syntax to request extras:
-
-.. code-block:: bash
-
-   # Single extra
-   conda install 'package[extras="EXTRA"]'
-
-   # Multiple extras (comma-separated string)
-   conda install 'package[extras="EXTRA1,EXTRA2"]'
-
-   # Multiple extras (list syntax)
-   conda install 'package[extras=["EXTRA1","EXTRA2"]]'
-
-For example, to install ``httpx`` with its ``http2`` and ``cli`` extras:
-
-.. code-block:: bash
-
-   conda install 'httpx[extras="http2,cli"]'
-
-.. note::
-
-   Extra names are case-sensitive and must match the pattern
-   ``[a-z0-9_.+-]{1,64}``. Requesting an extra that is not defined in a
-   package has no effect and doesn't produce an error.
-
 Disable the conda-pypi workflow
----------------------------------
+-------------------------------
 
 If you want to stop using the ``conda-pypi`` channel, remove it from your
 configuration:
@@ -170,7 +138,7 @@ configuration:
    conda config --remove channels conda-pypi
 
 Suppress the conda-pypi suggestion tip
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To suppress the suggestion about the ``conda-pypi`` channel shown when
 conda newly installs pip into an environment, set the following

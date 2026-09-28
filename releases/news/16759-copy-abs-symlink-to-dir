@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix `IsADirectoryError` when installing a package that contains an absolute symlink to a directory. (#16759)
+* Remove directory symlinks during package removal and installation rollback. (#16759)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
