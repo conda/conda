@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
 
       - name: Check News
-        uses: conda/actions/check-news@ade1a3a5e5b7d3d124a03bf5d8c841645fb92a37 # v26.9.4
+        uses: conda/actions/check-news@c8ad4261cc1d49709cb774289c68e63663bdc9d5 # v26.9.5
         with:
           skip-label: no-news
           require-pr-number: true
