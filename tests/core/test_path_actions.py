@@ -494,7 +494,7 @@ def test_unlink_path_action_directory_symlink(
     external.mkdir()
     sentinel = external / "sentinel"
     sentinel.write_text("preserve me")
-    link_target = str(external) if absolute else "../external"
+    link_target = str(external) if absolute else join("..", "external")
     target = prefix / "dirlink"
     directory_symlink(target, link_target)
     assert target.samefile(external)
