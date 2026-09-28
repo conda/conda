@@ -28,22 +28,32 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
 
 
 @pytest.mark.skipif(on_win, reason="symlinks are copied as files on Windows")
-@pytest.mark.parametrize("target_is_dir", [True, False])
-def test_copy_absolute_symlink(tmp_path: Path, target_is_dir: bool) -> None:
+@pytest.mark.parametrize(
+    "absolute,target_is_dir,expected_symlink",
+    [
+        pytest.param(False, False, True, id="relative-file"),
+        pytest.param(False, True, True, id="relative-directory"),
+        pytest.param(True, False, False, id="absolute-file"),
+        pytest.param(True, True, True, id="absolute-directory"),
+    ],
+)
+def test_copy_symlink(
+    tmp_path: Path, absolute: bool, target_is_dir: bool, expected_symlink: bool
+) -> None:
     target = tmp_path / "target"
     if target_is_dir:
         target.mkdir()
     else:
         target.write_text("content")
     src = tmp_path / "src"
-    src.symlink_to(target)
+    link_target = str(target) if absolute else target.name
+    src.symlink_to(link_target)
     dst = tmp_path / "dst"
 
     create.copy(str(src), str(dst))
 
-    # symlinks to directories are kept; symlinks to files are dereferenced
-    assert dst.is_symlink() == target_is_dir
-    if target_is_dir:
-        assert os.readlink(dst) == str(target)
-    else:
+    assert dst.is_symlink() == expected_symlink
+    if expected_symlink:
+        assert os.readlink(dst) == link_target
+    if not target_is_dir:
         assert dst.read_text() == "content"
