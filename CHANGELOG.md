@@ -1,5 +1,18 @@
 [//]: # (current developments)
 
+## 26.7.3 (2026-09-29)
+
+### Bug fixes
+
+* Ensure v3 packages are available when mixing sharded and unsharded repos. (#16676 via #16688)
+* Keep cached package archive paths consistent with their recorded filenames and checksums when both archive formats are present. (#9674)
+
+### Contributors
+
+* @jezdez
+
+
+
 ## 26.7.2 (2026-09-03)
 
 ### Bug fixes
