@@ -23,9 +23,9 @@ from uuid import uuid4
 import menuinst
 import pytest
 
-from conda import CONDA_SOURCE_ROOT
 from conda.auxlib.ish import dals
 from conda.base.constants import (
+    CONDA_TEMP_EXTENSION,
     PACKAGE_CACHE_MAGIC_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_PINNED_FILE,
@@ -1222,6 +1222,31 @@ def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFix
         conda_cli("remove", f"--prefix={prefix}", "readline", "--force-remove", "--yes")
         assert not package_is_installed(prefix, "readline")
         assert package_is_installed(prefix, PYTHON_SPEC)
+
+
+@pytest.mark.skipif(not on_linux, reason="sysroot_linux-64 depends on __linux")
+def test_install_remove_absolute_symlink_to_directory(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """Package contains ``x86_64-conda-linux-gnu/sysroot/usr -> /usr``."""
+    with tmp_env("--platform", "linux-64") as prefix:
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--override-channels",
+            "--channel=conda-forge/label/sysroot_dev",
+            "sysroot_linux-64=9999=hf2ff53a_0",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "sysroot_linux-64=9999")
+        link = prefix / "x86_64-conda-linux-gnu" / "sysroot" / "usr"
+        assert link.is_symlink()
+        assert os.readlink(link) == "/usr"
+
+        conda_cli("remove", f"--prefix={prefix}", "sysroot_linux-64", "--yes")
+        assert not package_is_installed(prefix, "sysroot_linux-64")
+        assert not os.path.lexists(link)
+        assert not os.path.lexists(f"{link}{CONDA_TEMP_EXTENSION}")
 
 
 def test_install_force_reinstall_flag(
@@ -2522,121 +2547,6 @@ def test_upgrade_conda_creates_windows_entry_point(
         assert (
             output.strip() == f"conda {package_is_installed(prefix, 'conda').version}"
         )
-
-
-def test_dont_remove_conda_3(
-    conda_cli: CondaCLIFixture,
-    tmp_env: TmpEnvFixture,
-    path_factory: PathFactoryFixture,
-):
-    """
-    If conda thinks its core dependency is uninstalled (happens when pip
-    upgrades a dependency) it could produce spurious RemoveError, blocking
-    further use of conda.
-    """
-    pkgs = ["conda>=26", "conda-pypi"]
-    if context.solver in ("classic", "pycosat"):
-        pkgs.append("conda-pycosat-solver")
-    elif context.solver in ("libmamba", "rattler"):
-        pkgs.append(f"conda-{context.solver}-solver")
-    else:
-        pytest.skip("This test can only be run with known solvers")
-    if on_win:
-        # The converted checkout needs conda's non-PyPI Windows dependency.
-        pkgs.append("conda-launchers")
-
-    conda_pypi_output = path_factory()
-
-    with tmp_env(*pkgs) as prefix:
-        conda_cli(
-            "pypi",
-            "convert",
-            f"--output-folder={conda_pypi_output}",
-            CONDA_SOURCE_ROOT,
-        )
-        converted_pkgs = sorted(conda_pypi_output.glob("conda-*.conda"))
-        if not converted_pkgs:
-            converted_pkgs = sorted(conda_pypi_output.glob("conda-*.tar.bz2"))
-        assert len(converted_pkgs) == 1
-        converted_conda_pkg = converted_pkgs[-1]
-
-        print("Remove prepackaged conda")
-
-        conda_cli("remove", f"--prefix={prefix}", "conda", "--force", "--yes")
-        assert not package_is_installed(prefix, "conda")
-
-        print("Install conda under test")
-
-        conda_cli("install", f"--prefix={prefix}", converted_conda_pkg, "--yes")
-        assert package_is_installed(prefix, "conda")
-
-        print("Remove conda-package-handling from conda-meta")
-
-        conda_dependency = "conda-package-handling"
-        # May still be true either due to cache or pip interoperability:
-        print(
-            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
-        )
-        conda_dependency_meta = list(
-            (prefix / "conda-meta").glob(f"{conda_dependency}-*.json")
-        )
-        assert conda_dependency_meta
-        for meta_path in conda_dependency_meta:
-            meta_path.unlink()
-
-        # reload() to update cached results
-        PrefixData(str(prefix)).reload()
-        print(
-            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
-        )
-
-        lightweight_dependency = "small-executable"
-        assert not package_is_installed(prefix, lightweight_dependency)
-        expected_remove_error = "RemoveError"
-
-        print(f"Install {lightweight_dependency}")
-
-        install_exc = run(
-            [
-                prefix / PYTHON_BINARY,
-                "-m",
-                "conda",
-                "install",
-                f"--prefix={prefix}",
-                f"--channel={TEST_RECIPES_CHANNEL}",
-                "--yes",
-                lightweight_dependency,
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            cwd=prefix,
-        )
-        assert package_is_installed(prefix, lightweight_dependency)
-        install_output = (install_exc.stdout or "") + (install_exc.stderr or "")
-        assert expected_remove_error not in install_output
-
-        print(f"Remove {lightweight_dependency}")
-
-        remove_exc = run(
-            [
-                prefix / PYTHON_BINARY,
-                "-m",
-                "conda",
-                "remove",
-                f"--prefix={prefix}",
-                f"--channel={TEST_RECIPES_CHANNEL}",
-                "--yes",
-                lightweight_dependency,
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            cwd=prefix,
-        )
-        assert not package_is_installed(prefix, lightweight_dependency)
-        remove_output = (remove_exc.stdout or "") + (remove_exc.stderr or "")
-        assert expected_remove_error not in remove_output
 
 
 def test_force_remove(

@@ -8,6 +8,39 @@ This page contains recent additions to `conda` worth your attention, including f
 {bdg-warning}`Beta` — Opt in to test, not recommended for production. We want your feedback!
 
 ---
+## Native win-arm64 platform support
+
+::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
+
+{bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
+
+Conda has introduced native support for **win-arm64**, the Windows on ARM platform, and can now resolve and install packages natively for the win-arm64 architecture. This means you no longer need to rely on workarounds like WSL2, x86-64 emulation, or manual compilation to run your Python data science toolchain on ARM hardware.
+
+**At the command line**, use the `--platform` flag with `conda create`:
+
+```bash
+# Create a win-64 environment
+# Create a win-64 environment
+conda create --platform win-64 --name myenv-x64 python
+
+# Create a win-arm64 environment
+conda create --platform win-arm64 --name myenv-arm64 python
+
+**As a persistent setting**, configure the `subdir` key in your `.condarc`:
+
+```bash
+# Switch to win-64
+conda config --set subdir win-64
+
+# Switch to win-arm64
+conda config --set subdir win-arm64
+
+# Restore the default (auto-detected from your system)
+conda config --remove-key subdir
+```
+::::
+
 ## Faster solves with Rattler solver
 
 ::::{card}
@@ -45,11 +78,19 @@ conda config --remove-key solver
 
 {bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
 
-The `--exclude-newer` flag excludes packages published after a configured cutoff from environment solves and `conda search` results. This gives new releases a cooldown period before they are adopted in your environment. This setting can be used to:
+The `--exclude-newer` flag excludes package records with timestamps after a configured cutoff from environment solves. A configured `exclude_newer` policy also filters `conda search` results. This setting can be used to:
 
  - avoid pulling in brand-new package releases before regressions or malicious versions have had time to surface and be pulled
- - pin solves to a past date for reproducibility
+ - support reproducible resolution with time-based cutoffs
  - reduce the number of packages the solver considers while creating your environment, causing faster solve times
+
+Conda prefers the channel-provided `indexed_timestamp`, which is intended to record when a package first became available in the channel index. If it is absent or zero, conda falls back to the builder-controlled `timestamp`, which records build time rather than publication time. Records without a usable timestamp remain eligible.
+
+For artifacts predating [CEP 47](https://conda.org/learn/ceps/cep-0047/#channel-server-requirements), channels may seed `indexed_timestamp` from build timestamps or other historical signals. These values may not reflect the exact time a package became available.
+
+The fallback can still reduce exposure to newly built malicious packages when build timestamps are accurate, giving time for detection and removal. This is a best-effort security benefit, not a reliable full cooldown after publication. An old build uploaded today can pass the cutoff, and a malicious publisher can backdate the build timestamp. A cutoff can also delay legitimate security fixes.
+
+Timestamp filtering does not guarantee package safety. It can support reproducible resolution, but does not by itself guarantee an exact reconstruction of a channel's past state.
 
 The flag works with `conda create`, `conda install`, and `conda update`. It can also be used as a global setting or per-channel override in your `.condarc` file. Accepted values include durations (`7d`, `3d12h`, `1w`), ISO 8601 durations (`P7D`), RFC 3339 timestamps, and date-only values (`2026-04-01`).
 
@@ -75,7 +116,7 @@ exclude_newer_package:
 
 Package overrides take precedence over channel overrides, which take precedence over the global cutoff.
 
-For more information, see {ref}`Installing packages with an upload cutoff <installing-packages-with-an-upload-cutoff>`.
+For more information, see {ref}`Installing packages with a timestamp cutoff <installing-packages-with-an-upload-cutoff>`.
 
 ::::
 

@@ -1096,6 +1096,46 @@ def test_shardlike():
     assert len(repodata["packages.conda"]) == 3
 
 
+def test_shardlike_distributes_v3_packages():
+    """
+    ShardLike must distribute repodata["v3"] records into per-package shards,
+    just like "packages" and "packages.conda", so that monolithic channels
+    with only v3 records are not invisible when mixed with sharded
+    channels.
+    """
+    repodata = {
+        "info": {"subdir": "noarch", "base_url": ""},
+        "packages": {},
+        "packages.conda": {},
+        "v3": {
+            "whl": {
+                "mypkg-whl-1.0-py312_none_any_0": {
+                    "name": "mypkg-whl",
+                    "fn": "mypkg-whl-1.0-py312-none-any.whl",
+                }
+            },
+            "conda": {"foo-1.0-0": {"name": "foo", "fn": "foo-1.0-0.conda"}},
+            "tar.bz2": {"bar-1.0-0": {"name": "bar", "fn": "bar-1.0-0.tar.bz2"}},
+        },
+        "repodata_version": 3,
+    }
+
+    as_shards = ShardLike(repodata)
+
+    shard = as_shards.visit_package("mypkg-whl")
+    as_shards.visit_package("foo")
+    as_shards.visit_package("bar")
+    assert (
+        shard["v3"]["whl"]["mypkg-whl-1.0-py312_none_any_0"]["fn"]
+        == "mypkg-whl-1.0-py312-none-any.whl"
+    )
+
+    records = dict(as_shards.iter_records())
+    assert "mypkg-whl-1.0-py312_none_any_0" in records
+    assert "foo-1.0-0" in records
+    assert "bar-1.0-0" in records
+
+
 def test_iter_records_classic():
     shardlike = ShardLike(
         {
@@ -1168,6 +1208,7 @@ def test_iter_records_includes_v3():
                         "fn": "mypkg-1.0-py312-none-any.whl",
                     }
                 },
+                "conda": {"foo-1.0-0": {"name": "foo", "fn": "foo-1.0-0.conda"}},
             },
         },
     )
@@ -1175,6 +1216,8 @@ def test_iter_records_includes_v3():
     records = dict(shardlike.iter_records())
     assert "mypkg-1.0-py312_none_any_0" in records
     assert records["mypkg-1.0-py312_none_any_0"]["fn"] == "mypkg-1.0-py312-none-any.whl"
+    assert "foo-1.0-0" in records
+    assert records["foo-1.0-0"]["fn"] == "foo-1.0-0.conda"
 
 
 def test_shardlike_repr():
@@ -1332,7 +1375,8 @@ def test_shards_connections(monkeypatch):
     monkeypatch.setattr("conda._private.shards.misc.SHARDS_CONNECTIONS_DEFAULT", 7)
     assert _shards_connections() == 7
 
-    monkeypatch.setattr(context, "_repodata_threads", 4)
+    monkeypatch.setenv("CONDA_REPODATA_THREADS", "4")
+    reset_context()
     assert _shards_connections() == 4
 
 

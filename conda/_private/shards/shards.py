@@ -386,6 +386,13 @@ class ShardLike(ShardBase):
                 name = record["name"]
                 shards[name][group_name][package] = record
 
+        for section_name, group in repodata.get("v3", {}).items():
+            for key, record in group.items():
+                name = record["name"]
+                shards[name].setdefault("v3", {}).setdefault(section_name, {})[key] = (
+                    record
+                )
+
         # defaultdict behavior no longer wanted
         self.shards: dict[str, ShardDict] = dict(shards)  # type: ignore
 
@@ -792,18 +799,21 @@ def batch_retrieve_from_network(wanted: list[ShardFetch]):
     ShardFetch.fetch_batch(wanted)
 
 
-def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] | None:
+def fetch_channels(
+    url_to_channel: dict[str, Channel], *, require_shards: bool = True
+) -> dict[str, ShardBase] | None:
     """
     Args:
         url_to_channel: not modified, must already be expanded to subdirs.
+        require_shards: Return None unless at least one channel provides shards.
 
     Attempt to fetch the sharded index first and then fall back to retrieving a
     monolithic `repodata.json` file.
 
     Returns:
-        A dict mapping channel URLs to `Shard` or `ShardLike` objects. None if
-        no channels have shards. This dict preserves the key order of the input
-        `url_to_channel`.
+        A dict mapping channel URLs to `Shard` or `ShardLike` objects. If
+        `require_shards` is true, return None when no channels have shards.
+        This dict preserves the key order of the input `url_to_channel`.
     """
     # copy incoming dict to retain order:
     channel_data: dict[str, ShardBase | None] = {url: None for url in url_to_channel}
@@ -831,7 +841,7 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        if all(value is None for value in channel_data.values()):
+        if require_shards and all(value is None for value in channel_data.values()):
             return None  # caller should interpret this as falling back to the older code path
 
         # Latency penalty launching these requests here instead of when we

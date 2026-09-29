@@ -262,9 +262,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         flex_spec = MatchSpec(spec, name=f"*{spec.name}*")
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
-        matches = exclude_newer_policy.filter_records(
-            query_all(flex_spec, channel_urls, subdirs)
-        )
+        with get_spinner("Searching for similar names"):
+            matches = exclude_newer_policy.filter_records(
+                query_all(flex_spec, channel_urls, subdirs)
+            )
     if not matches:
         from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls

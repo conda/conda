@@ -583,12 +583,10 @@ better option may be to pin them. For more information, see
 
 .. versionadded:: 26.9.0
 
-Exclude packages published more recently than the configured cutoff. This can
-reduce exposure to newly uploaded packages while allowing older package records
-to remain available to the solver. For a one-off solve, the same value can be
-provided with the ``--exclude-newer`` option for ``conda create``, ``conda
-install``, or ``conda update``. A configured ``exclude_newer`` policy also
-filters ``conda search`` results.
+Exclude package records with timestamps after the configured cutoff. For a
+one-off solve, the same value can be provided with the ``--exclude-newer``
+option for ``conda create``, ``conda install``, or ``conda update``. A configured
+``exclude_newer`` policy also filters ``conda search`` results.
 
 Values may be compact durations such as ``7d``, ``3d12h``, or ``1w``,
 ISO 8601 durations such as ``P7D``, RFC 3339 timestamps such as
@@ -597,8 +595,13 @@ plain number of seconds. Date-only values are interpreted as the start of the
 next day in UTC. Set this value to ``0`` for no delay, using the current time as
 the cutoff. Leave it empty to disable the policy, which is the default.
 
-Packages without an ``indexed_timestamp`` or ``timestamp`` value are included
-for compatibility.
+Conda prefers the channel-provided ``indexed_timestamp`` and falls back to
+``timestamp`` if ``indexed_timestamp`` is absent or zero. The fallback is a
+builder-controlled build time, not a publication time. Accurate build timestamps
+can still delay newly built malicious packages, but cannot enforce a reliable
+full cooldown after publication. Records without a usable timestamp remain
+eligible. See :ref:`installing-packages-with-an-upload-cutoff` for security
+benefits, tradeoffs, and limitations.
 
 **Example:**
 

@@ -42,6 +42,7 @@ from conda.common.compat import on_win
 from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
 
 from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
@@ -472,6 +473,105 @@ def test_query_all_sharded_search(
         assert len(results) == 0, (
             f"Expected no results for {search_spec}, but found {results}"
         )
+
+
+@pytest.mark.parametrize(
+    "search_spec,expected_created,expected_results",
+    [
+        ("*xyz*", [], set()),
+        ("bar*", ["bar"], {"bar"}),
+        ("*ar*", ["bar"], {"bar"}),
+        ("BAR*", ["bar"], {"bar"}),
+        ("^b.*$", ["bar"], {"bar"}),
+        ("bar* >1", ["bar"], set()),
+        ("bar* 1 other", ["bar"], set()),
+    ],
+)
+def test_sharded_search_constructs_only_matching_names(
+    http_server_shards,
+    search_spec,
+    expected_created,
+    expected_results,
+    monkeypatch,
+    mocker,
+    tmp_path,
+):
+    """Select names before loading shards and constructing records."""
+    from conda.core.subdir_data import query_all
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    record_init = mocker.spy(PackageRecord, "__init__")
+    visit_shard = mocker.spy(Shards, "visit_shard")
+
+    results = query_all(MatchSpec(search_spec), [channel], subdirs=["noarch"])
+
+    assert {record.name for record in results} == expected_results
+    assert [
+        call.kwargs["name"] for call in record_init.call_args_list
+    ] == expected_created
+    assert {call.args[1] for call in visit_shard.call_args_list} == set(
+        expected_created
+    )
+
+
+@pytest.mark.parametrize("search_spec", ["pyfig", "*", None])
+def test_query_all_monolithic_v3_search(
+    search_spec,
+    http_test_server,
+    monkeypatch,
+    mocker,
+    tmp_path,
+):
+    """Search v3 records when no channel provides sharded repodata."""
+    from conda.core import subdir_data
+
+    noarch = http_test_server.directory / "noarch"
+    noarch.mkdir(parents=True)
+    (noarch / "repodata.json").write_text(
+        json.dumps(
+            {
+                "info": {"subdir": "noarch"},
+                "packages": {},
+                "packages.conda": {},
+                "v3": {
+                    "whl": {
+                        "pyfig-1.0.2-py3_none_any_0": {
+                            "name": "pyfig",
+                            "version": "1.0.2",
+                            "build": "py3_none_any_0",
+                            "build_number": 0,
+                            "fn": "pyfig-1.0.2-py3-none-any.whl",
+                            "depends": [],
+                        }
+                    }
+                },
+                "repodata_version": 3,
+            }
+        )
+    )
+    channel = Channel.from_url(http_test_server.get_url("noarch"))
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    reset_context()
+    classic_search = mocker.spy(subdir_data, "_search_package")
+
+    results = subdir_data.query_all(
+        MatchSpec(search_spec), [channel], subdirs=["noarch"]
+    )
+
+    classic_search.assert_not_called()
+    assert len(results) == 1
+    assert results[0].name == "pyfig"
+    assert results[0].version == "1.0.2"
+    assert results[0].build == "py3_none_any_0"
+    assert results[0].fn == "pyfig-1.0.2-py3-none-any.whl"
+    assert results[0].subdir == "noarch"
+    assert results[0].url == http_test_server.get_url(
+        "noarch/pyfig-1.0.2-py3-none-any.whl"
+    )
 
 
 class TestAddPipAsPythonDependency:
