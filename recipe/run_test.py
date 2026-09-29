@@ -14,6 +14,7 @@ from tempfile import TemporaryDirectory
 
 from conda.base.context import context
 from conda.core.prefix_data import PrefixData
+from conda.models.channel import Channel
 
 
 def test_windows_arm64_upgrade():
@@ -63,7 +64,7 @@ def test_windows_arm64_upgrade():
             "--yes",
             "--override-channels",
             "-c",
-            candidate.channel.base_url,
+            Channel(candidate.url).base_url,
             "-c",
             "https://repo.anaconda.com/pkgs/main",
             f"conda={candidate.version}={candidate.build}",
