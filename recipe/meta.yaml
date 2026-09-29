@@ -66,11 +66,11 @@ requirements:
     - tqdm >=4
     - truststore >=0.8.0
     # Plugins to bundle with conda
-    - conda-libmamba-solver >=26.4.1
-    - conda-lockfiles >=0.2.0
-    - conda-pypi >=0.10.1
-    - conda-rattler-solver >=0.1.1
-    - conda-self >=0.2.0
+    - conda-libmamba-solver >=26.7.0
+    - conda-lockfiles >=0.2.2
+    - conda-pypi >=0.13.0
+    - conda-rattler-solver >=0.2.0
+    - conda-self >=0.3.0
   run_constrained:
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed
