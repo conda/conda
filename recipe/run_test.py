@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Check upgrades with the built package and the released ARM64 installer."""
+"""Check that released Windows ARM64 conda can upgrade to the built package."""
 
-# conda-build automatically runs this file against the installed, built package.
+# conda-build automatically runs this extra upgrade check for canary builds.
 # ruff: noqa: S101
 
 import os
