@@ -11,9 +11,10 @@ from typing import TYPE_CHECKING
 
 import pluggy
 import pytest
+from packaging.metadata import Metadata
 from packaging.version import Version
 
-from conda import plugins
+from conda import CondaError, plugins
 from conda.base.context import reset_context
 from conda.common.url import urlparse
 from conda.core import solve
@@ -23,6 +24,7 @@ from conda.plugins.types import CondaPlugin
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
     from typing import Any
 
     from pytest import MonkeyPatch
@@ -148,6 +150,95 @@ def test_load_entrypoints_success(plugin_manager: CondaPluginManager):
     assert plugin_manager.list_name_plugin()[0][0] == "test_plugin.success"
 
 
+def test_get_installed_plugins(plugin_manager: CondaPluginManager):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    expected = [
+        {
+            "name": "conda-test-plugin",
+            "version": "1.0",
+            "canonical_name": "test_plugin.success",
+            "status": "active",
+            "hooks": ["solvers"],
+        }
+    ]
+    assert plugin_manager.get_installed_plugins() == expected
+
+    plugin_manager.disable_external_plugins()
+    expected[0]["status"] = "disabled"
+
+    assert plugin_manager.get_installed_plugins() == expected
+
+
+@pytest.mark.parametrize(
+    "name",
+    ("conda-test-plugin", "conda_test_plugin", "test_plugin.success"),
+)
+@pytest.mark.parametrize("disabled", (False, True))
+def test_get_installed_plugin_info(
+    name: str, disabled: bool, plugin_manager: CondaPluginManager
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    if disabled:
+        plugin_manager.disable_external_plugins()
+
+    assert plugin_manager.get_installed_plugin_info(name) == {
+        "name": "conda-test-plugin",
+        "version": "1.0",
+        "canonical_name": "test_plugin.success",
+        "status": "disabled" if disabled else "active",
+        "hooks": ["solvers"],
+        "summary": "A test plugin",
+        "license": "",
+        "homepage": "https://example.com/legacy-home",
+        "project_urls": [
+            {"label": "Home", "url": "https://example.com/home"},
+            {"label": "Documentation", "url": "https://example.com/docs"},
+        ],
+    }
+
+
+def test_get_installed_plugin_info_tolerates_invalid_optional_metadata(
+    plugin_manager: CondaPluginManager,
+    mocker: MockerFixture,
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    metadata = Metadata.from_email(
+        """\
+Metadata-Version: 2.1
+Name: conda-test-plugin
+Version: 1.0
+Summary: first line
+ second line
+Project-URL: Homepage, https://example.com/home
+Project-URL: Empty,
+""",
+        validate=False,
+    )
+    mocker.patch(
+        "conda.plugins.manager.Metadata.from_email",
+        return_value=metadata,
+    )
+
+    plugin = plugin_manager.get_installed_plugin_info("conda-test-plugin")
+
+    assert plugin["summary"] == ""
+    assert plugin["homepage"] == "https://example.com/home"
+    assert plugin["project_urls"] == [
+        {"label": "Homepage", "url": "https://example.com/home"}
+    ]
+
+
+def test_get_installed_plugin_info_not_found(plugin_manager: CondaPluginManager):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    with pytest.raises(
+        CondaValueError,
+        match="No installed conda plugin found matching 'missing'.",
+    ):
+        plugin_manager.get_installed_plugin_info("missing")
+
+
 def test_load_entrypoints_importerror(
     plugin_manager: CondaPluginManager,
     mocker: MockerFixture,
@@ -201,14 +292,34 @@ def test_known_solver(plugin_manager: CondaPluginManager):
 
 
 @pytest.mark.parametrize("use_shards", [True, False])
+@pytest.mark.parametrize(
+    "capabilities",
+    [
+        (False, False, False),
+        (True, False, False),
+        (False, True, False),
+        (False, False, True),
+        (True, True, True),
+    ],
+)
 def test_solver_with_repodata_subset(
-    use_shards: bool, plugin_manager: CondaPluginManager, monkeypatch: MonkeyPatch
+    use_shards: bool,
+    capabilities: tuple[bool, bool, bool],
+    plugin_manager: CondaPluginManager,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
 ):
     """
     Cover getting a solver that uses sharded repodata api
     """
 
     class TestSolver(solve.Solver):
+        (
+            supports_exclude_newer_global,
+            supports_exclude_newer_channel,
+            supports_exclude_newer_package,
+        ) = capabilities
+
         def __init__(
             self,
             build_repodata_subset=None,
@@ -232,11 +343,22 @@ def test_solver_with_repodata_subset(
             yield TestCondaSolver
 
     monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
+    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "1d")
     reset_context()
 
     assert plugin_manager.load_plugins(TestSolverPlugin) == 1
     solver = plugin_manager.get_solver_backend("test-classic")
     assert solver.user_agent() == "test-solver/1.0"
+    assert (
+        solver.supports_exclude_newer_global,
+        solver.supports_exclude_newer_channel,
+        solver.supports_exclude_newer_package,
+    ) == capabilities
+    if capabilities[0]:
+        solver(prefix=str(tmp_path))
+    else:
+        with pytest.raises(CondaError, match="global cutoff"):
+            solver(prefix=str(tmp_path))
 
 
 def test_get_canonical_name_object(plugin_manager: CondaPluginManager):

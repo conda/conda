@@ -1,9 +1,8 @@
 package:
   name: failing_post_link
-  version: 1.0.0
+  version: 1.0
 
 build:
-  number: 0
   noarch: generic
   script:
     # create failing post-link scripts
@@ -16,4 +15,4 @@ build:
     - echo "exit 1" > ${PREFIX}/Scripts/.failing_post_link-post-link.bat
 
 about:
-  summary: Test that post link failures are handled correctly
+  summary: Post-link script that always fails

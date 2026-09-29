@@ -9,7 +9,9 @@ Tasks
    manage-conda
    manage-environments
    manage-channels
+   authenticated-channels
    manage-pkgs
+   install-packages-from-pypi
    manage-python
    manage-virtual
    create-custom-channels
@@ -22,7 +24,7 @@ you can do with conda.
 Common Tasks
 ============
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Managing conda <manage-conda>`
         Everything necessary to know about managing your installation of conda
@@ -33,8 +35,14 @@ Common Tasks
     :doc:`Managing channels <manage-channels>`
         Information about channels and how they are searched through when installing packages
 
+    :doc:`Using authenticated channels <authenticated-channels>`
+        Learn how to log in to private or protected channels that require HTTP basic authentication or token authentication
+
     :doc:`Managing packages <manage-pkgs>`
         Details related to how to find, install, remove, and update packages in a given environment
+
+    :doc:`Installing packages from PyPI <install-packages-from-pypi>`
+        How to install packages from PyPI with conda, including extras support and environment management
 
     :doc:`Managing python <manage-python>`
         Supported versions of Python and tips for updating and using multiple Python versions
@@ -49,7 +57,7 @@ Common Tasks
 Tutorials
 =========
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Creating custom channels <create-custom-channels>`
         Tutorial walking you through how to create a custom channel and serve it from your local computer

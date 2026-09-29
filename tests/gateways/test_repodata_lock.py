@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context, reset_context
-from conda.common.compat import on_win
 from conda.gateways.repodata import RepodataCache, lock
 
 if TYPE_CHECKING:
@@ -76,24 +75,3 @@ def test_lock_no_lock(tmp_path: Path, monkeypatch: MonkeyPatch, no_lock: bool) -
             assert isinstance(qin.get(timeout=13), OSError)
         p.join(1)
         assert p.exitcode == 0
-
-
-@pytest.mark.skipif(on_win, reason="emulate windows behavior for code coverage")
-def test_lock_rename(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
-    class PunyPath(type(tmp_path)):
-        def rename(self, path):
-            if path.exists():
-                raise FileExistsError()
-            return super().rename(path)
-
-    monkeypatch.setenv("CONDA_EXPERIMENTAL", "lock")
-    reset_context()
-    assert "lock" in context.experimental
-
-    cache = RepodataCache(tmp_path / "lockme", "puny.json")
-    cache.save("{}")
-    # RepodataCache first argument is the name of the cache file without an
-    # extension, doesn't create tmp_path/lockme as a directory.
-    puny = PunyPath(tmp_path, "puny.json.tmp")
-    puny.write_text('{"info":{}}')
-    cache.replace(puny)

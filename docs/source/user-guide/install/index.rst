@@ -5,9 +5,9 @@ Installing conda
 To install conda, you must first pick the right installer for you.
 The following are the most popular installers currently available:
 
-.. glossary::
+.. nav-glossary::
 
-    `Miniconda <https://docs.anaconda.com/miniconda/>`__
+    `Miniconda <https://www.anaconda.com/download>`__
         Miniconda is a minimal installer provided by Anaconda. Use this installer
         if you want to install most packages yourself.
 
@@ -85,8 +85,8 @@ Cryptographic hash verification
 ===============================
 
 SHA-256 checksums are available for
-`Miniconda <https://docs.anaconda.com/miniconda/>`__ and
-`Anaconda Distribution <https://docs.anaconda.com/anaconda/hashes/>`__.
+`Miniconda <https://repo.anaconda.com/miniconda>`__ and
+`Anaconda Distribution <https://repo.anaconda.com/archive>`__.
 We do not recommend using MD5 verification as SHA-256 is more secure.
 
 Download the installer file and, before installing, verify it as follows:

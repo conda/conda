@@ -434,7 +434,7 @@ Install using the ``--force`` option.
 
 Download and install the appropriate Miniconda
 for your operating system from the `Miniconda download page
-<https://docs.anaconda.com/miniconda/>`__ using the force option
+<https://anaconda.com/download>`__ using the force option
 ``--force`` or ``-f``:
 
 .. code-block::

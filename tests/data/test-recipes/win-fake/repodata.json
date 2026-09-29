@@ -2,49 +2,49 @@
   "info": {
     "subdir": "win-fake"
   },
-  "packages": {
-    "arch-package-1.0-0.tar.bz2": {
+  "packages": {},
+  "packages.conda": {
+    "arch-package-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [],
-      "md5": "2417f38a084bcb628757edb1a5da4b5c",
+      "md5": "0f0e5463820be2e26383381fbaffd0f0",
       "name": "arch-package",
-      "sha256": "9afa189d78e0bd1e761f180ab9b85d52fd36b257e2cece9333da32a787c790d7",
-      "size": 2513,
+      "sha256": "71d49626e586bd28e15c5d418d3001a6dff62a571cacf5c88fd37ad48666ab65",
+      "size": 3748,
       "subdir": "win-fake",
-      "timestamp": 1703010608204,
+      "timestamp": 1785276613264,
       "version": "1.0"
     },
-    "virtualdep-package-1.0-0.tar.bz2": {
+    "virtualdep-package-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [
         "__win"
       ],
-      "md5": "ef4af6b4ba6b15d11068c21f40500b67",
+      "md5": "f980937fb0f5ca706b62115685e77953",
       "name": "virtualdep-package",
-      "sha256": "f5a0ab3daf66160af478ba82e74f38a0b346ceceaf4426f1ca1e33184d155f4e",
-      "size": 2952,
+      "sha256": "76d95a540971928964e37a4c4a12aa336b62b7aa1d8c517f6fae0501686a29ad",
+      "size": 3951,
       "subdir": "win-fake",
-      "timestamp": 1703010608204,
+      "timestamp": 1785276732654,
       "version": "1.0"
     },
-    "virtualdep-package-2.0-0.tar.bz2": {
+    "virtualdep-package-2.0-0.conda": {
       "build": "0",
       "build_number": 0,
       "depends": [
         "__win"
       ],
-      "md5": "e83a2ea1ab3ff3773710dd71a800c4a2",
+      "md5": "3bd81cfecb9303e742bf77dc16e5f416",
       "name": "virtualdep-package",
-      "sha256": "30b1bfe3c7c18b7cca70558cb46914f396c97ad43e8b190a1cd0babbb27dba82",
-      "size": 2957,
+      "sha256": "31c284b986d5b00c278b68472a46765f5abcd9bd2b0eeba58ef3ccb531abc021",
+      "size": 3946,
       "subdir": "win-fake",
-      "timestamp": 1703010608204,
+      "timestamp": 1785276732116,
       "version": "2.0"
     }
   },
-  "packages.conda": {},
   "removed": [],
   "repodata_version": 1
 }

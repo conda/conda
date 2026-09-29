@@ -59,6 +59,9 @@ def env_ok(tmp_path: Path, request) -> Iterable[EnvFixture]:
     empty_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
     PACKAGE_JSON = {
+        "name": package,
+        "version": "1.0",
+        "build": "0",
         "files": [bin_file, lib_file, ignored_file],
         "paths_data": {
             "paths": [

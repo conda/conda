@@ -12,11 +12,10 @@ import pytest
 
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as CONDA_VERSION
-from conda.base.context import context
 from conda.common.compat import on_mac, on_win
 from conda.common.path import win_path_to_unix
 
-from . import activate, deactivate, dev_arg, install
+from . import activate, deactivate, install
 
 if TYPE_CHECKING:
     from . import InteractiveShell, Shell
@@ -133,11 +132,9 @@ def test_basic_integration(
         assert _CE_CONDA == _CE_CONDA2
 
         sh.sendline("env | sort")
-        # When CONDA_SHLVL==2 fails it usually means that conda activate failed. We that fails it is
-        # usually because you forgot to pass `--dev` to the *previous* activate so CONDA_EXE changed
-        # from python to conda, which is then found on PATH instead of using the dev sources. When it
-        # goes to use this old conda to generate the activation script for the newly activated env.
-        # it is running the old code (or at best, a mix of new code and old scripts).
+        # When CONDA_SHLVL==2 fails it usually means that conda activate failed. That often happens
+        # when CONDA_EXE flipped to a different launcher and the next activate is not using the
+        # checkout on PYTHONPATH.
         sh.assert_env_var("CONDA_SHLVL", "2")
         CONDA_PREFIX = sh.get_env_var("CONDA_PREFIX", "")
         # We get C: vs c: differences on Windows.
@@ -194,7 +191,7 @@ def test_basic_integration(
         sh.expect(is_a_function(sh))
 
         # see tests/test-recipes/small-executable
-        sh.sendline(f"conda run {dev_arg} small")
+        sh.sendline("conda run small")
         sh.expect_exact("Hello!")
 
         # regression test for #6840
@@ -228,13 +225,11 @@ def test_basic_integration(
         sh.sendline(f"conda {deactivate}")
         sh.assert_env_var("CONDA_SHLVL", "0")
 
-        # When fully deactivated, CONDA_EXE, _CE_M and _CE_CONDA must be retained
-        # because the conda shell scripts use them and if they are unset activation
-        # is not possible.
+        # When fully deactivated, CONDA_EXE must be retained because the conda shell
+        # scripts use it and if it is unset activation is not possible.
         CONDA_EXED = case(sh.get_env_var("CONDA_EXE"))
         assert CONDA_EXED, (
-            "A fully deactivated conda shell must retain CONDA_EXE (and _CE_M and _CE_CONDA in dev)\n"
-            "  as the shell scripts refer to them."
+            "A fully deactivated conda shell must retain CONDA_EXE as the shell scripts refer to it."
         )
 
         PATH0 = sh.get_env_var("PATH")
@@ -296,7 +291,6 @@ def test_bash_activate_error(
     shell_wrapper_integration: tuple[str, str, str],
     shell: Shell,
 ) -> None:
-    context.dev = True
     with shell.interactive() as sh:
         sh.sendline("export CONDA_SHLVL=unaffected")
         if on_win:
@@ -338,7 +332,7 @@ def test_legacy_activate_deactivate_bash(
         prefix2_p = sh.path_conversion(prefix2)
         prefix3_p = sh.path_conversion(prefix3)
         sh.sendline(f"export _CONDA_ROOT='{CONDA_ROOT}/shell'")
-        sh.sendline(f'. "{activate}" {dev_arg} "{prefix2_p}"')
+        sh.sendline(f'. "{activate}" "{prefix2_p}"')
         PATH0 = sh.get_env_var("PATH")
         assert "charizard" in PATH0
 
@@ -348,7 +342,7 @@ def test_legacy_activate_deactivate_bash(
         sh.sendline("conda --version")
         sh.expect_exact(f"conda {CONDA_VERSION}")
 
-        sh.sendline(f'. "{activate}" {dev_arg} "{prefix3_p}"')
+        sh.sendline(f'. "{activate}" "{prefix3_p}"')
 
         PATH1 = sh.get_env_var("PATH")
         assert "venusaur" in PATH1

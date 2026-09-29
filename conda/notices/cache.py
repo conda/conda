@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
@@ -117,7 +118,11 @@ def get_notice_response_from_cache(
     """Retrieves a notice response object from cache if it exists."""
     cache_key = ChannelNoticeResponse.get_cache_key(url, cache_dir)
 
-    if os.path.isfile(cache_key):
+    if (
+        os.path.isfile(cache_key)
+        and time.time_ns() - cache_key.stat().st_mtime_ns
+        < NOTICES_DECORATOR_DISPLAY_INTERVAL_NS
+    ):
         with open(cache_key) as fp:
             data = json.load(fp)
         chn_ntc_resp = ChannelNoticeResponse(url, name, data)

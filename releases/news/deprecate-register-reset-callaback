@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.common.configuration.Configuration.register_reset_callaback` as pending deprecation. Use the correctly spelled `register_reset_callback` instead. (#16631)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

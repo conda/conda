@@ -14,7 +14,11 @@ from conda.base.context import context, reset_context
 from conda.cli.condarc import MISSING, ConfigurationFile
 from conda.cli.main_config import set_keys
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
-from conda.exceptions import CondaKeyError, EnvironmentLocationNotFound
+from conda.exceptions import (
+    CondaKeyError,
+    CouldntParseError,
+    EnvironmentLocationNotFound,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -207,6 +211,61 @@ def test_config_remove_item() -> None:
     # invalid
     with pytest.raises(CondaKeyError, match=r"'changeps1': invalid parameter"):
         config.remove_item("changeps1", None)
+
+
+def test_config_clear_key() -> None:
+    config = ConfigurationFile(
+        content={
+            "channels": ["defaults", "conda-forge"],
+            "aggressive_update_packages": ["ca-certificates", "certifi"],
+        }
+    )
+
+    config.clear_key("channels")
+    assert config.content["channels"] == []
+
+    config.clear_key("aggressive_update_packages")
+    assert config.content["aggressive_update_packages"] == []
+
+    # Clearing an undefined sequence explicitly creates an empty list.
+    config.clear_key("create_default_packages")
+    assert config.content["create_default_packages"] == []
+
+    # Clearing an already-empty sequence is idempotent.
+    config.clear_key("channels")
+    assert config.content["channels"] == []
+
+
+def test_config_clear_key_alias() -> None:
+    config = ConfigurationFile(content={"disallow": ["openssl"]})
+
+    config.clear_key("disallow")
+
+    assert "disallow" not in config.content
+    assert config.content["disallowed_packages"] == []
+
+
+def test_config_clear_key_invalid() -> None:
+    config = ConfigurationFile(content={"changeps1": True})
+
+    with pytest.raises(CondaKeyError, match=r"'unknown': unknown parameter"):
+        config.clear_key("unknown")
+
+    with pytest.raises(CondaKeyError, match=r"'changeps1': invalid parameter"):
+        config.clear_key("changeps1")
+
+    with pytest.raises(CondaKeyError, match=r"'proxy_servers': invalid parameter"):
+        config.clear_key("proxy_servers")
+
+
+def test_config_clear_key_invalid_value_type() -> None:
+    config = ConfigurationFile(content={"channels": "defaults"})
+
+    with pytest.raises(
+        CouldntParseError,
+        match=r"key 'channels' should be a list, not str",
+    ):
+        config.clear_key("channels")
 
 
 def test_config_remove_key() -> None:
@@ -664,3 +723,34 @@ def test_config_file_context_manager_exception(tmp_path: Path) -> None:
 
     # Verify file was NOT written (because exception occurred)
     assert not config_path.exists()
+
+
+@pytest.mark.parametrize(
+    "parameter,entry",
+    [("custom_channels", "science.v1"), ("proxy_servers", "https://example.org")],
+)
+def test_config_literal_dotted_map_key(parameter: str, entry: str) -> None:
+    config = ConfigurationFile(content={})
+    key = f"{parameter}.{entry}"
+    config.set_key(key, "https://example.net")
+
+    assert config.content == {parameter: {entry: "https://example.net"}}
+    assert config.get_key(key) == (key, "https://example.net")
+
+    config.remove_key(key)
+    assert config.content == {parameter: {}}
+
+
+def test_config_literal_map_key_precedes_nested_key() -> None:
+    config = ConfigurationFile(
+        content={"conda_build": {"foo.bar": 1, "foo": {"bar": 2}}}
+    )
+    key = "conda_build.foo.bar"
+
+    assert config.get_key(key) == (key, 1)
+    config.remove_key(key)
+    assert config.content == {"conda_build": {"foo": {"bar": 2}}}
+
+    assert config.get_key(key) == (key, 2)
+    config.remove_key(key)
+    assert config.content == {"conda_build": {"foo": {}}}

@@ -1,0 +1,5 @@
+### Docs
+
+* Add a developer guide page describing the process for planning, announcing, and shipping
+  breaking changes that are not public API removals (config default changes, default solver
+  changes, CLI removals), and link it from the Deprecations page and the dev-guide index. (#16570)

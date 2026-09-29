@@ -1,0 +1,71 @@
+### Title
+`CONDA_DEV`/`context.dev` config must persist across activate, stack, and reactivate
+
+### Why
+`conda activate`/hook used to force `context.dev = False` whenever `--dev` was
+absent, silently discarding dev-mode configured via `CONDA_DEV`/`dev: true`.
+This rewrote `CONDA_EXE` (and `_CE_M`/`_CE_CONDA`) back to the production
+launcher on every activate/stack/reactivate — on Windows this showed up as
+`CONDA_EXE` flipping to the pip-installed stub. Confirm the fix keeps dev-mode
+exports stable across these operations without ever passing `--dev`.
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+- A conda build that includes this fix (resolves #15696, via PR #16571).
+- `conda init` has been run for your shell so the `conda activate` shell
+  function/hook is available.
+- Two existing environments to stack, e.g.:
+  `conda create -y -n qa-env-a` and `conda create -y -n qa-env-b`.
+
+### Steps
+1. Open a fresh shell (bash/zsh, or PowerShell/cmd.exe on Windows) with conda
+   initialized.
+2. Enable dev mode via config instead of the `--dev` flag:
+   - POSIX: `export CONDA_DEV=1`
+   - PowerShell: `$Env:CONDA_DEV=1`
+   - cmd.exe: `set CONDA_DEV=1`
+3. `conda activate qa-env-a` (do **not** pass `--dev`).
+4. Print `CONDA_EXE`, `_CE_M`, `_CE_CONDA`:
+   - POSIX: `echo "$CONDA_EXE|$_CE_M|$_CE_CONDA"`
+   - PowerShell: `"$Env:CONDA_EXE|$Env:_CE_M|$Env:_CE_CONDA"`
+   - cmd.exe: `echo %CONDA_EXE%^|%_CE_M%^|%_CE_CONDA%`
+   Record the values.
+5. Stack a second environment:
+    - POSIX/cmd.exe: `conda activate --stack qa-env-b`
+    - PowerShell: `conda activate -stack qa-env-b` (known workaround)
+6. Repeat step 4's check. Values must be unchanged from step 4.
+7. `conda deactivate` then `conda activate qa-env-a` again (reactivate path).
+   Repeat step 4's check again. Values must still be unchanged.
+8. Unset dev mode and confirm default behavior is unaffected:
+   - POSIX: `unset CONDA_DEV`
+   - PowerShell: `Remove-Item Env:CONDA_DEV`
+   - cmd.exe: `set CONDA_DEV=`
+   Open a new shell (or fully `conda deactivate` and reactivate), run
+   `conda activate qa-env-a`, and repeat step 4's check once more.
+9. `conda deactivate`, then `conda remove -y -n qa-env-a --all` and
+   `conda remove -y -n qa-env-b --all`.
+
+### Pass criteria
+- Steps 4, 6, and 7: with `CONDA_DEV=1` set and `--dev` never passed,
+  `CONDA_EXE` is the Python interpreter path, `_CE_M` is `-m`, and
+  `_CE_CONDA` is `conda` — identically across the initial activate, the
+  `--stack`, and the deactivate/reactivate cycle. In particular, on Windows,
+  `CONDA_EXE` must **not** switch to the packaged/pip-installed `conda.exe`
+  during steps 5–7.
+- Step 8: with `CONDA_DEV` unset, `CONDA_EXE` resolves to the executable
+  from conda's installation and `_CE_M`/`_CE_CONDA` are unset —
+  confirming default (non-dev) behavior is unaffected by the fix.
+
+### Out of scope / notes
+- The pending-deprecation warnings added in the same PR for
+  `conda activate/create/install/remove --dev`, `conda init --dev`,
+  `context.dev`, and `conda.utils.wrap_subprocess_call(dev_mode)` are already
+  covered by pytest (`pytest.deprecated_call()` in `tests/base/test_context.py`,
+  `tests/cli/test_conda_argparse.py`, `tests/test_activate.py`,
+  `tests/test_utils.py`) and do not need manual QA.
+- ref: https://github.com/conda/conda/issues/15696,
+  https://github.com/conda/conda/pull/16571

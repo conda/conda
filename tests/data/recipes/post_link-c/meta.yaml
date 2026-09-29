@@ -1,0 +1,13 @@
+package:
+  name: post_link-c
+  version: 1.0
+
+build:
+  noarch: generic
+
+requirements:
+  run:
+    - post_link-b
+
+about:
+  summary: Post-link script that depends on post_link-b (link order)

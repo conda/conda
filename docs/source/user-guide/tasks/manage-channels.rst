@@ -11,6 +11,9 @@ from the `default channel`_. Read more about
 :doc:`conda channels <../concepts/channels>` and the various terms of service
 for their use.
 
+For private or protected channels that require credentials, see
+:doc:`Using authenticated channels <authenticated-channels>`.
+
 Different channels can have the same package, so conda must handle these
 channel collisions.
 

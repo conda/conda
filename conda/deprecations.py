@@ -83,7 +83,7 @@ class DeprecationHandler:
             try:
                 self._version_object = parse(self._version)  # type: ignore[arg-type]
             except (TypeError, InvalidVersion):
-                # Unparseable version (e.g. None): packaging <26 raised TypeError.
+                # Unparseable version (e.g. None): packaging <26 raised TypeError;
                 # packaging >=26.3 raises InvalidVersion.
                 self._version_object = parse("0.0.0.dev0+placeholder")
         return self._version_object < parse(version)

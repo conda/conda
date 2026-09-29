@@ -1,0 +1,138 @@
+### Title
+Fetch authenticated shard URLs using conda-quality.
+
+### Why
+Verify that the installed conda CLI preserves shard filenames when inserting a
+stored token. The regression in #16637 places the platform subdirectory after
+the filename, producing HTTP 404 responses.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- An installed conda build containing the fix for #16637.
+- A checkout of [conda-quality](https://github.com/conda-incubator/conda-quality)
+  and [pixi](https://pixi.sh).
+- Permission to start an HTTP server on the loopback interface.
+
+### Steps
+1. From the conda-quality repository root, run `pixi install`.
+2. Save the following as `tests/test_qa_16637.py` in that checkout. It reuses
+   conda-quality's `conda` fixture, isolated package cache, and command reporting.
+   The two embedded files contain compressed metadata for one test package, so
+   no additional harness dependencies are needed.
+
+   ```python
+   """Check stored-token insertion when conda fetches sharded repodata."""
+
+   from base64 import b64decode
+   from hashlib import sha256
+   from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+   from threading import Thread
+   from urllib.parse import quote_plus
+
+   # Compressed MessagePack for qa-shard-token 1.0, noarch, with no dependencies.
+   INDEX = b64decode(
+       "KLUv/SByVQMA5AWDp3ZlcnNpb24BpGluZm+DpnN1YmRpcqZub2FyY2ioYmFzZV91cmygr3NoYXJk"
+       "c1+mga5xYS0tdG9rZW7EIJlzmS2CikasFJL8Wsz7nEw0qdCg+GgYDOibEBPdYo5PAwA/hYLBgIq5"
+       "Bw=="
+   )
+   SHARD = b64decode(
+       "KLUv/SCeDQQAwkccIoC5OfMBB9mIsAG3P3xAb1tBS0KNpJUUUhJmgPzrD8wAQAzQ/oHvPQ26DJuC"
+       "QHH5zXc21+crc2mtkKN2y2SMAH32JAseS7EDJ1ljqWTB0MX+MyF/yoxEoMBUq6NWWipJfAY6aVuX"
+       "mJQQOcQryjRtHIgEAA6GBCoprrT3RlZ6"
+   )
+
+
+   def test_authenticated_shards(conda, tmp_path):
+       """Fetch both shard files through a stored dummy token."""
+       prefix = "/t/qa-token/qa-channel/noarch/"
+       files = {
+           prefix + "repodata_shards.msgpack.zst": INDEX,
+           prefix + sha256(SHARD).hexdigest() + ".msgpack.zst": SHARD,
+       }
+       requests = []
+
+       class Handler(BaseHTTPRequestHandler):
+           def do_GET(self) -> None:
+               body = files.get(self.path)
+               status = 200 if body is not None else 404
+               requests.append((self.path, status))
+               print(f"HTTP {status} {self.path}", flush=True)
+               self.send_response(status)
+               self.send_header("Content-Length", str(len(body or b"")))
+               self.end_headers()
+               self.wfile.write(body or b"")
+
+           def log_message(self, *_args: object) -> None:
+               pass
+
+       with ThreadingHTTPServer(("127.0.0.1", 0), Handler) as server:
+           origin = f"http://127.0.0.1:{server.server_port}"
+           tokens = tmp_path / "binstar" / "data"
+           tokens.mkdir(parents=True)
+           (tokens / (quote_plus(origin) + ".token")).write_text("qa-token")
+           worker = Thread(target=server.serve_forever, daemon=True)
+           worker.start()
+           try:
+               result = conda(
+                   "search",
+                   "--json",
+                   "--override-channels",
+                   "--channel",
+                   origin + "/qa-channel",
+                   "--subdir",
+                   "noarch",
+                   "--repodata-use-shards",
+                   "qa-shard-token",
+                   extra_env={
+                       "BINSTAR_CONFIG_DIR": str(tokens.parent),
+                       "CONDA_ADD_ANACONDA_TOKEN": "true",
+                       "NO_PROXY": "127.0.0.1,localhost",
+                       "no_proxy": "127.0.0.1,localhost",
+                   },
+                   timeout=60,
+               ).assert_ok()
+               assert result.json()["qa-shard-token"][0]["version"] == "1.0"
+               assert all((path, 200) in requests for path in files)
+           finally:
+               server.shutdown()
+               worker.join()
+   ```
+
+3. Run the test from the conda-quality repository root, replacing the executable
+   path with the conda build under test. The empty `--conda-version=` prevents an
+   update of that installation, including one requested through an environment
+   variable.
+
+   ```console
+   pixi run pytest tests/test_qa_16637.py --conda "<path-to-conda>" --conda-version= -v -s
+   ```
+
+4. Inspect the HTTP request lines and test result. The command's exit code and
+   output are also recorded in `reports/report.html`.
+5. Remove the temporary `tests/test_qa_16637.py` after recording the result.
+
+### Pass criteria
+- Pytest reports `1 passed`.
+- The server reports HTTP 200 for both paths:
+
+  ```text
+  /t/qa-token/qa-channel/noarch/repodata_shards.msgpack.zst
+  /t/qa-token/qa-channel/noarch/<sha256>.msgpack.zst
+  ```
+
+- The search returns `qa-shard-token` version `1.0`, as checked by the test.
+- Neither shard filename is followed by `/noarch`.
+
+### Out of scope / notes
+The channel URL passed to conda omits the token, so conda must read it from the
+isolated token store and insert it. Only the dummy token `qa-token` is used.
+The server supplies no monolithic repodata, so fallback cannot produce a passing
+result. Real account login, external channel permissions, and solver performance
+are outside this scenario.
+
+Automated parser and token-insertion coverage lives in
+`tests/models/test_channel.py` and `tests/gateways/test_connection.py`.

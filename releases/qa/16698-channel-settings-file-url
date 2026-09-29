@@ -1,0 +1,66 @@
+### Title
+`channel_settings` entry keyed by a `file://` URL no longer crashes conda.
+
+### Why
+`channel_settings` entries that identify their channel via a `file://` URL
+(rather than a bare channel name) used to raise an unhandled `TypeError` from
+`get_session()` for *any* command that fetched repodata from that channel,
+regardless of which channel_settings key was set (`exclude_newer`, `auth`,
+etc.).
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- conda installed
+
+### Steps
+1. Create a minimal local test channel:
+
+   ```bash
+   mkdir -p /tmp/repro-channel/noarch
+   cat > /tmp/repro-channel/noarch/repodata.json <<'EOF'
+   {"info": {"subdir": "noarch"}, "packages": {}, "packages.conda": {}, "removed": [], "repodata_version": 1}
+   EOF
+   ```
+
+2. Create a `.condarc` that identifies the channel in `channel_settings` by its
+   `file://` URL rather than a bare channel name:
+
+   ```bash
+   cat > /tmp/repro.condarc.yml <<'EOF'
+   channel_settings:
+     - channel: file:///tmp/repro-channel
+       exclude_newer: false
+   EOF
+   ```
+
+3. Run a search against that channel with the `.condarc` active:
+
+   ```bash
+    CONDARC=/tmp/repro.condarc.yml conda search --override-channels -c file:///tmp/repro-channel '*'
+   ```
+
+4. Repeat step 3 with a couple of URL variants to confirm the fix is not
+   narrowly specific to one shape:
+   - A `file://` channel with a trailing slash (`file:///tmp/repro-channel/`)
+     in `channel_settings`.
+   - A `channel_settings` entry keyed by an unrelated `file://` channel (e.g.
+     `file:///tmp/other-channel`) while searching `file:///tmp/repro-channel`,
+     to confirm non-matching `file://` entries also no longer crash.
+
+### Pass criteria
+- Each `conda search` command fails cleanly with `PackagesNotFoundInChannelsError`
+  (expected, since the test channel has no packages and `*` matches nothing)
+- No `TypeError: unsupported operand type(s) for +: 'NoneType' and 'str'`
+  (or any other unhandled Python traceback) is printed.
+
+### Out of scope / notes
+- This does not test `channel_settings` behavior over `http(s)://` or `s3://`
+  channels, which were not affected by this bug (those schemes always have a
+  real hostname).
+- Whether `exclude_newer` (or other channel_settings keys) is actually
+  *applied* correctly for a `file://` channel is a separate concern from this
+  crash fix and is not covered here.

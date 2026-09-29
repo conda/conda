@@ -1077,10 +1077,15 @@ def test_extrapolate_virtualdep_package(
         )
 
 
-def test_extrapolate(tmp_env: TmpEnvFixture):
+def test_extrapolate(tmp_env: TmpEnvFixture, monkeypatch: pytest.MonkeyPatch):
+    # Provide OS versions for the cross-platform solves.
+    monkeypatch.setenv("CONDA_OVERRIDE_GLIBC", "2.28")
+    monkeypatch.setenv("CONDA_OVERRIDE_OSX", "12.1")
+    reset_context()
+
     package_name = "zlib"
-    package_version = "1.2.12"
-    platforms = {"linux-64", "osx-arm64", "win-64"}
+    package_version = "1.3.2"
+    platforms = {"linux-64", "osx-arm64", "win-64", "win-arm64"}
     with tmp_env(f"{package_name}=={package_version}") as prefix:
         assert PrefixData(prefix).get(package_name).version == package_version
         env = Environment.from_prefix(prefix, None, context.subdir)

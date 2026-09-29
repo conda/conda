@@ -30,8 +30,12 @@ from conda.core.path_actions import (
     CompileMultiPycAction,
     CreatePythonEntryPointAction,
     LinkPathAction,
+    PrefixReplaceLinkAction,
+    UnlinkPathAction,
     UpdateHistoryAction,
 )
+from conda.core.portability import batch_codesign_calls
+from conda.exceptions import SafetyError
 from conda.gateways.disk.create import create_link, mkdir_p
 from conda.gateways.disk.delete import rm_rf
 from conda.gateways.disk.link import islink
@@ -39,12 +43,15 @@ from conda.gateways.disk.permissions import is_executable
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.disk.test import softlink_supported
 from conda.models.channel import Channel
-from conda.models.enums import LinkType, NoarchType, PathEnum
+from conda.models.enums import FileMode, LinkType, NoarchType, PathEnum
 from conda.models.package_info import Noarch, PackageInfo, PackageMetadata
 from conda.models.records import PackageRecord, PathDataV1, PathsData
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import PathFactoryFixture
 
@@ -77,6 +84,19 @@ def pkgs_dir(path_factory: PathFactoryFixture) -> Path:
     path = path_factory(infix=" ")
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+@pytest.fixture
+def directory_symlink() -> Callable[[Path, str | Path], None]:
+    def create(link: Path, target: str | Path) -> None:
+        try:
+            link.symlink_to(target, target_is_directory=True)
+        except OSError as error:
+            if on_win and getattr(error, "winerror", None) == 1314:
+                pytest.skip("directory symlinks require Windows privileges")
+            raise
+
+    return create
 
 
 def test_CompileMultiPycAction_generic(prefix: Path):
@@ -297,8 +317,10 @@ def test_CreatePythonEntryPointAction_noarch_python(prefix: Path):
         assert isfile(windows_exe_axn.target_full_path)
         assert is_executable(windows_exe_axn.target_full_path)
 
-        src = compute_sum(join(context.conda_prefix, "Scripts/conda.exe"), "md5")
-        assert src == compute_sum(windows_exe_axn.target_full_path, "md5")
+        assert (
+            compute_sum(windows_exe_axn.target_full_path, "sha256")
+            == windows_exe_axn.source_path_data.sha256
+        )
 
         windows_exe_axn.reverse()
         assert not isfile(windows_exe_axn.target_full_path)
@@ -426,8 +448,141 @@ def test_simple_LinkPathAction_softlink(prefix: Path, pkgs_dir: Path):
     assert lexists(source_full_path)
 
 
-def test_simple_LinkPathAction_directory(prefix: Path):
+@pytest.mark.skipif(on_win, reason="symlinks are copied as files on Windows")
+@pytest.mark.parametrize("absolute", [False, True], ids=["relative", "absolute"])
+def test_link_path_action_reverse_directory_symlink(
+    prefix: Path, pkgs_dir: Path, tmp_path: Path, absolute: bool
+):
+    external = tmp_path / "external"
+    external.mkdir()
+    sentinel = external / "sentinel"
+    sentinel.write_text("preserve me")
+    link_target = str(external) if absolute else "../external"
+    source = pkgs_dir / "dirlink"
+    source.symlink_to(link_target, target_is_directory=True)
+    destination = prefix / "dirlink"
+    axn = LinkPathAction(
+        {},
+        None,
+        pkgs_dir,
+        "dirlink",
+        prefix,
+        "dirlink",
+        LinkType.copy,
+        PathDataV1(_path="dirlink", path_type=PathEnum.softlink),
+    )
+
+    axn.verify()
+    axn.execute()
+    assert destination.is_symlink()
+    assert os.readlink(destination) == link_target
+
+    axn.reverse()
+    assert not lexists(destination)
+    assert source.is_symlink()
+    assert sentinel.read_text() == "preserve me"
+
+
+@pytest.mark.parametrize("absolute", [False, True], ids=["relative", "absolute"])
+def test_unlink_path_action_directory_symlink(
+    prefix: Path,
+    tmp_path: Path,
+    absolute: bool,
+    directory_symlink: Callable[[Path, str | Path], None],
+):
+    external = tmp_path / "external"
+    external.mkdir()
+    sentinel = external / "sentinel"
+    sentinel.write_text("preserve me")
+    link_target = str(external) if absolute else join("..", "external")
+    target = prefix / "dirlink"
+    directory_symlink(target, link_target)
+    assert target.samefile(external)
+    link_target = os.readlink(target)
+    axn = UnlinkPathAction({}, None, prefix, "dirlink")
+
+    axn.verify()
+    axn.execute()
+    assert not lexists(target)
+    assert islink(axn.holding_full_path)
+    assert os.readlink(axn.holding_full_path) == link_target
+
+    axn.reverse()
+    assert target.is_symlink()
+    assert os.readlink(target) == link_target
+    assert not lexists(axn.holding_full_path)
+
+    axn.execute()
+    axn.cleanup()
+    assert not lexists(target)
+    assert not lexists(axn.holding_full_path)
+    assert sentinel.read_text() == "preserve me"
+
+
+def test_link_path_action_reverse_preserves_replacement_directory(
+    prefix: Path, pkgs_dir: Path
+):
+    source = pkgs_dir / "file"
+    source.write_text("original")
+    axn = LinkPathAction(
+        {},
+        None,
+        pkgs_dir,
+        "file",
+        prefix,
+        "file",
+        LinkType.copy,
+        PathDataV1(_path="file", path_type=PathEnum.hardlink),
+    )
+    axn.verify()
+    axn.execute()
+
+    target = prefix / "file"
+    target.unlink()
+    target.mkdir()
+    sentinel = target / "sentinel"
+    sentinel.write_text("preserve me")
+
+    axn.reverse()
+    assert target.is_dir()
+    assert sentinel.read_text() == "preserve me"
+
+
+def test_unlink_path_action_cleanup_preserves_replacement_directory(prefix: Path):
+    target = prefix / "file"
+    target.mkdir()
+    (target / "sentinel").write_text("preserve me")
+    axn = UnlinkPathAction({}, None, prefix, "file")
+
+    axn.verify()
+    axn.execute()
+    axn.cleanup()
+    holding = prefix / axn.holding_short_path
+    assert not lexists(target)
+    assert holding.is_dir()
+    assert (holding / "sentinel").read_text() == "preserve me"
+
+
+@pytest.mark.parametrize(
+    "existing_symlink", [False, True], ids=["new-directory", "existing-symlink"]
+)
+def test_simple_LinkPathAction_directory(
+    prefix: Path,
+    tmp_path: Path,
+    existing_symlink: bool,
+    directory_symlink: Callable[[Path, str | Path], None],
+):
     target_short_path = join("a", "nested", "directory")
+    target = prefix / target_short_path
+    if existing_symlink:
+        external = tmp_path / "external"
+        external.mkdir()
+        sentinel = external / "sentinel"
+        sentinel.write_text("preserve me")
+        target.parent.mkdir(parents=True)
+        directory_symlink(target, external)
+        link_target = os.readlink(target)
+
     axn = LinkPathAction(
         {},
         None,
@@ -449,6 +604,35 @@ def test_simple_LinkPathAction_directory(prefix: Path):
     assert lexists(axn.target_full_path)
     assert lexists(dirname(axn.target_full_path))
     assert lexists(dirname(dirname(axn.target_full_path)))
+    if existing_symlink:
+        assert target.is_symlink()
+        assert os.readlink(target) == link_target
+        assert sentinel.read_text() == "preserve me"
+
+
+def test_unlink_directory_action_cleanup_preserves_symlink(
+    prefix: Path,
+    tmp_path: Path,
+    directory_symlink: Callable[[Path, str | Path], None],
+):
+    external = tmp_path / "external"
+    external.mkdir()
+    sentinel = external / "sentinel"
+    sentinel.write_text("preserve me")
+    target = prefix / "directory"
+    target.mkdir()
+    axn = UnlinkPathAction({}, None, prefix, "directory", LinkType.directory)
+    sibling = prefix / axn.holding_short_path
+    directory_symlink(sibling, external)
+    link_target = os.readlink(sibling)
+
+    axn.verify()
+    axn.execute()
+    axn.cleanup()
+    assert target.is_dir()
+    assert sibling.is_symlink()
+    assert os.readlink(sibling) == link_target
+    assert sentinel.read_text() == "preserve me"
 
 
 def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
@@ -486,6 +670,46 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
     axn.reverse()
     assert not lexists(axn.target_full_path)
+
+
+@pytest.mark.parametrize("tampered", [False, True])
+def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
+    tmp_path: Path, mocker: MockerFixture, tampered: bool
+):
+    source_path = tmp_path / "source" / "cli-arm64.exe"
+    source_path.parent.mkdir()
+    source_path.write_bytes(b"launcher")
+    digest = compute_sum(source_path, "sha256")
+    get_launcher = mocker.patch(
+        "conda.core.launchers.get_windows_launcher_stub",
+        return_value=(str(source_path), digest),
+    )
+    target_prefix = tmp_path / "target"
+    (target_prefix / "Scripts").mkdir(parents=True)
+    axn = LinkPathAction.create_python_entry_point_windows_exe_action(
+        {},
+        None,
+        target_prefix,
+        LinkType.copy,
+        "command=some.module:main",
+        source_package_infos=("conda-launchers-package-info",),
+    )
+    get_launcher.assert_called_once_with(
+        target_prefix,
+        source_prefixes=(context.conda_prefix,),
+        source_package_infos=("conda-launchers-package-info",),
+    )
+    assert axn.verify() is None
+    assert axn.prefix_path_data.sha256 == digest
+    if tampered:
+        # Corruption after preparation and verification must still prevent copying.
+        source_path.write_bytes(b"modified")
+        with pytest.raises(SafetyError, match="SHA-256 mismatch"):
+            axn.execute()
+        assert not (target_prefix / "Scripts/command.exe").exists()
+    else:
+        axn.execute()
+        assert (target_prefix / "Scripts/command.exe").read_bytes() == b"launcher"
 
 
 def test_create_file_link_actions(tmp_path):
@@ -607,3 +831,56 @@ def test_update_history_action_reverse_not_executed(prefix: Path):
     axn.reverse()
     assert history.is_file()
     assert history.read_text() == prior
+
+
+def test_prefix_replace_hashes_after_batched_codesign(
+    prefix: Path, pkgs_dir: Path, mocker
+):
+    mocker.patch("conda.core.portability.on_mac", True)
+
+    def fake_codesign(cmd, **kwargs):
+        for path in cmd[4:]:
+            with open(path, "ab") as fh:
+                fh.write(b"SIGN")
+
+    mocker.patch("conda.core.portability.subprocess.run", side_effect=fake_codesign)
+
+    placeholder = "/opt/" + "a" * 200
+    source_short_path = "tool"
+    source_full_path = join(pkgs_dir, source_short_path)
+    with open(source_full_path, "wb") as fh:
+        fh.write(b"\x7fELF" + placeholder.encode() + b"\0")
+
+    source_path_data = PathDataV1(
+        _path=source_short_path,
+        path_type=PathEnum.hardlink,
+        sha256=compute_sum(source_full_path, "sha256"),
+        size_in_bytes=getsize(source_full_path),
+    )
+    package_info = AttrDict(
+        extracted_package_dir=str(pkgs_dir),
+        repodata_record=AttrDict(name="testpkg", subdir="osx-arm64"),
+    )
+    axn = PrefixReplaceLinkAction(
+        {"temp_dir": join(str(prefix), "tmp")},
+        package_info,
+        str(pkgs_dir),
+        source_short_path,
+        str(prefix),
+        source_short_path,
+        LinkType.hardlink,
+        placeholder,
+        FileMode.binary,
+        source_path_data,
+    )
+    mkdir_p(axn.transaction_context["temp_dir"])
+
+    with batch_codesign_calls():
+        axn.verify()
+        before = compute_sum(axn.intermediate_path, "sha256")
+    axn.execute()
+
+    assert axn.prefix_path_data.sha256_in_prefix != before
+    assert axn.prefix_path_data.sha256_in_prefix == compute_sum(
+        axn.target_full_path, "sha256"
+    )

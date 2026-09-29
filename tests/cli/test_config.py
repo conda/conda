@@ -496,6 +496,58 @@ def test_add_invalid_key(conda_cli: CondaCLIFixture):
         assert _read_test_condarc(rc) == CONDARC_BASE
 
 
+def test_clear_key(conda_cli: CondaCLIFixture):
+    condarc = """\
+aggressive_update_packages:
+  - ca-certificates
+  - certifi
+"""
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr, _ = conda_cli(
+            "config",
+            "--file",
+            rc,
+            "--clear",
+            "aggressive_update_packages",
+        )
+
+        assert stdout == stderr == ""
+        assert _read_test_condarc(rc) == "aggressive_update_packages: []\n"
+
+
+def test_clear_unconfigured_key(conda_cli: CondaCLIFixture):
+    with make_temp_condarc("changeps1: true\n") as rc:
+        stdout, stderr, _ = conda_cli(
+            "config",
+            "--file",
+            rc,
+            "--clear",
+            "create_default_packages",
+        )
+
+        assert stdout == stderr == ""
+        assert _read_test_condarc(rc) == (
+            "changeps1: true\ncreate_default_packages: []\n"
+        )
+
+
+def test_clear_key_invalid_parameter(conda_cli: CondaCLIFixture):
+    with make_temp_condarc("changeps1: true\n") as rc:
+        with pytest.raises(
+            CondaKeyError,
+            match=r"'changeps1': invalid parameter",
+        ):
+            conda_cli(
+                "config",
+                "--file",
+                rc,
+                "--clear",
+                "changeps1",
+            )
+
+        assert _read_test_condarc(rc) == "changeps1: true\n"
+
+
 def test_remove_key(conda_cli: CondaCLIFixture):
     key, value = "changeps1", "false"
     with make_temp_condarc(CONDARC_BASE) as rc:

@@ -331,7 +331,7 @@ def test_get_module() -> None:
 def test_version_fallback(version: str | None) -> None:
     """Unparseable versions fall back so conda can still run.
 
-    packaging <26 raised TypeError for non-strings (e.g. None). packaging >=26.3
+    packaging <26 raised TypeError for non-strings (e.g. None); packaging >=26.3
     raises InvalidVersion instead (pypa/packaging#1319). Invalid strings have
     always raised InvalidVersion.
     """

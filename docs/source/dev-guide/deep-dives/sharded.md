@@ -3,12 +3,25 @@
 This document provides an overview on how `conda` implements
 [CEP-16 Sharded Repodata](https://conda.org/learn/ceps/cep-0016).
 
-Sharded repodata splits `repodata.json` into an index mapping package names to
-shard hashes in `repodata_shards.msgpack.zst`. A shard contains repodata for
-every package with a given name. Since shards are named after a hash of their
-contents, they can be cached without having to check the server for freshness.
-Individual shards only need to change when an individual package has changed, so
-only the much smaller index has to be re-fetched often.
+Sharded repodata is built around two kinds of files:
+
+**Shard index (`repodata_shards.msgpack.zst`)**
+: A zstandard-compressed [msgpack](https://msgpack.org/) file stored at
+  `<channel>/<subdir>/repodata_shards.msgpack.zst`. It contains a mapping from
+  package name to a SHA-256 hash that identifies the corresponding shard. This
+  file is small relative to `repodata.json` because it grows only when new
+  package *names* are added to the channel, not with every new package build.
+  It is served with a short-lived `Cache-Control` `max-age` (typically 60
+  seconds to an hour) so that clients pick up new packages promptly.
+
+**Individual shards (`<sha256>.msgpack.zst`)**
+: Each shard is a zstandard-compressed msgpack file stored at
+  `<shards_base_url><sha256>.msgpack.zst`. It contains the full repodata records
+  (equivalent to the relevant slice of `repodata.json`) for every build of a
+  single package name. Shards are content-addressable: the filename is the
+  lower-case hex SHA-256 hash of the shard's contents. Because the URL changes
+  whenever the content changes, shards can be served with
+  `Cache-Control: immutable` and cached indefinitely by CDNs and clients alike.
 
 ## Sharded Repodata in conda
 
@@ -151,3 +164,29 @@ the time spent generating a subset.
 
 :::{mermaid} shards_python.mmd
 :::
+
+## Shard hash validation
+
+CEP-16 specifies that shards are content-addressable: the SHA-256 hash in the
+shard's filename is derived from the hash of its contents. This makes it possible
+to verify integrity without a round-trip to the server.
+
+**Conda does not validate that a downloaded shard's contents match the SHA-256
+hash encoded in its filename.**
+
+This is a deliberate design decision for two reasons:
+
+1. **Performance.** A solve request can involve hundreds of shard fetches.
+   Hashing every shard after download would add measurable latency to each
+   operation, working against the performance goals that motivated CEP-16 in
+   the first place.
+
+2. **Compatibility with certain channel providers.** Some channel providers
+   serve sharded repodata in configurations where the content at a given shard
+   hash URL cannot be guaranteed to match that hash — for example, when multiple
+   upstream sources are aggregated and resolved transparently. Enforcing hash
+   validation would break compatibility with these providers.
+
+This behavior is intentional and should not be changed without careful
+consideration of both the performance impact and the downstream compatibility
+consequences.

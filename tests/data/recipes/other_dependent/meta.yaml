@@ -10,4 +10,4 @@ requirements:
     - dependent
 
 about:
-  summary: Other generic dependent
+  summary: Another dependent consumer for --only-deps and multi-spec ops

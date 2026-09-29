@@ -1,0 +1,22 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove `conda.env.env.Environment`. Use `conda.env.env.EnvironmentYaml` instead. (#16314)
+* Remove `conda.env.specs.yaml_file.YamlFileSpec.environment`. Use `env` instead. (#16314)
+* Remove the CEP-24 compliance warning when loading non-compliant environment files. (#16314)
+* Remove automatic fallback to the `environment.yml` environment specifier when auto-detection fails. (#16314)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

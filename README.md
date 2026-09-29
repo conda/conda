@@ -1,7 +1,7 @@
 [conda-logo]: https://s3.amazonaws.com/conda-dev/conda_logo.svg
 [tests-badge]: https://img.shields.io/github/actions/workflow/status/conda/conda/tests.yml?branch=main&event=schedule&logo=github&label=tests
 [codecov-badge]: https://img.shields.io/codecov/c/github/conda/conda/main?logo=codecov
-[codspeed-badge]: https://img.shields.io/endpoint?url=https://codspeed.io/badge.json
+[bencher-badge]: https://img.shields.io/badge/benchmarks-Bencher-blue
 [release-badge]: https://img.shields.io/github/v/release/conda/conda?logo=github
 [anaconda-badge]: https://img.shields.io/conda/vn/anaconda/conda?logo=anaconda
 [conda-forge-badge]: https://img.shields.io/conda/vn/conda-forge/conda?logo=conda-forge
@@ -16,7 +16,7 @@
 
 [![GitHub Scheduled Tests][tests-badge]](https://github.com/conda/conda/actions/workflows/tests.yml?query=branch%3Amain+event%3Aschedule)
 [![Codecov Status][codecov-badge]](https://codecov.io/gh/conda/conda/branch/main)
-[![CodSpeed Performance Benchmarks][codspeed-badge]](https://codspeed.io/conda/conda)
+[![Bencher Performance Benchmarks][bencher-badge]](https://bencher.dev/perf/conda-tdj8rt90)
 [![CalVer Versioning][calver-badge]](https://calver.org)
 [![GitHub Release][release-badge]](https://github.com/conda/conda/releases)
 [![Anaconda Package][anaconda-badge]](https://anaconda.org/anaconda/conda)

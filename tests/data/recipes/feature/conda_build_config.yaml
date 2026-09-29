@@ -1,0 +1,9 @@
+pkg_version:
+  - "1.0"
+  - "2.0"
+feature:
+  - track_feature1
+  - track_feature2
+zip_keys:
+  - - pkg_version
+    - feature

@@ -307,19 +307,38 @@ def test_conda_env_create_http(
     assert parsed[0].get("name") == "small-executable"
 
 
-@pytest.mark.integration
-def test_update(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
+def test_update(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """Update an environment by adding a package from an environment file."""
     prefix = path_factory()
-    create_env(ENVIRONMENT_CA_CERTIFICATES)
+    channel = str(test_recipes_channel)
+    create_env(
+        yaml.write(
+            {
+                "name": TEST_ENV1,
+                "dependencies": ["small-executable"],
+                "channels": [channel],
+            }
+        )
+    )
     conda_cli("env", "create", f"--prefix={prefix}")
 
-    create_env(ENVIRONMENT_CA_CERTIFICATES_ZLIB)
+    create_env(
+        yaml.write(
+            {
+                "name": TEST_ENV1,
+                "dependencies": ["small-executable", "dependency"],
+                "channels": [channel],
+            }
+        )
+    )
     conda_cli("env", "update", f"--prefix={prefix}")
 
-    stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "zlib", "--json")
-    parsed = json.loads(stdout)
-    assert parsed
-    assert json.loads(stdout)
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependency")
 
 
 @pytest.mark.integration
@@ -399,18 +418,37 @@ def test_conda_create_with_pip_json_output(
     assert output["actions"]["PIP"][0].startswith("click")
 
 
-@pytest.mark.integration
 def test_update_env_json_output(
-    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
 ):
     """
-    Update an environment by adding a conda package
-    Check the json output
+    Update an environment by adding a conda package.
+    Check the json output.
     """
     prefix = path_factory()
-    create_env(ENVIRONMENT_CA_CERTIFICATES)
+    channel = str(test_recipes_channel)
+    create_env(
+        yaml.write(
+            {
+                "name": TEST_ENV1,
+                "dependencies": ["small-executable"],
+                "channels": [channel],
+            }
+        )
+    )
     conda_cli("env", "create", f"--prefix={prefix}", "--json", "--yes")
-    create_env(ENVIRONMENT_CA_CERTIFICATES_ZLIB)
+
+    create_env(
+        yaml.write(
+            {
+                "name": TEST_ENV1,
+                "dependencies": ["small-executable", "dependency"],
+                "channels": [channel],
+            }
+        )
+    )
     stdout, _, _ = conda_cli("env", "update", f"--prefix={prefix}", "--quiet", "--json")
     output = json.loads(stdout)
     assert output["success"] is True
@@ -421,13 +459,15 @@ def test_update_env_json_output(
 @pytest.mark.integration
 @pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_update_env_only_pip_json_output(
-    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
+    wheelhouse: Path,
+    monkeypatch: MonkeyPatch,
 ):
     """
-    Update an environment by adding only a pip package
-    Check the json output
+    Update an environment by adding only a pip package.
+    Check the json output.
     """
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
@@ -436,26 +476,44 @@ def test_update_env_only_pip_json_output(
         pytest.mark.xfail(
             context.solver == "libmamba",
             reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
+            run=False,
         )
     )
-    prefix = path_factory()
-    create_env(ENVIRONMENT_PIP_CLICK)
-    conda_cli("env", "create", f"--prefix={prefix}", "--json", "--yes")
-    create_env(ENVIRONMENT_PIP_CLICK_ATTRS)
-    stdout, _, _ = conda_cli("env", "update", f"--prefix={prefix}", "--quiet", "--json")
-    output = json.loads(stdout)
-    assert output["success"] is True
-    # No conda actions (FETCH/LINK), only pip
-    assert list(output["actions"].keys()) == ["PIP"]
-    # Only attrs installed
-    assert len(output["actions"]["PIP"]) == 1
-    assert output["actions"]["PIP"][0].startswith("attrs")
+    wheel = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+
+    # Baseline: python + pip already installed (no environment.yml create)
+    with tmp_env("pip>=23") as prefix:
+        monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "1")
+
+        # Desired state: same conda deps + one local pip package
+        create_env(
+            yaml.write(
+                {
+                    "name": TEST_ENV1,
+                    "dependencies": [
+                        "pip>=23",
+                        {"pip": [str(wheel)]},
+                    ],
+                    "channels": context.channels,
+                }
+            )
+        )
+
+        stdout, _, _ = conda_cli(
+            "env", "update", f"--prefix={prefix}", "--quiet", "--json"
+        )
+        output = json.loads(stdout)
+
+        assert output["success"] is True
+        # No conda actions (FETCH/LINK), only pip
+        assert list(output["actions"].keys()) == ["PIP"]
+        assert len(output["actions"]["PIP"]) == 1
+        assert output["actions"]["PIP"][0].startswith("small-python-package")
 
 
 @pytest.mark.integration
-@pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
 def test_update_env_no_action_json_output(
-    path_factory: PathFactoryFixture,
+    tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     request: pytest.FixtureRequest,
 ):
@@ -465,18 +523,14 @@ def test_update_env_no_action_json_output(
     """
     if context.solver == "libmamba" and on_win and forward_to_subprocess(request):
         return
-    prefix = path_factory()
-    request.applymarker(
-        pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Known issue: https://github.com/conda/conda-libmamba-solver/issues/320",
+
+    with tmp_env("ca-certificates") as prefix:
+        create_env(ENVIRONMENT_CA_CERTIFICATES)
+        stdout, _, _ = conda_cli(
+            "env", "update", f"--prefix={prefix}", "--quiet", "--json"
         )
-    )
-    create_env(ENVIRONMENT_PIP_CLICK)
-    conda_cli("env", "create", f"--prefix={prefix}", "--json", "--yes")
-    stdout, _, _ = conda_cli("env", "update", f"--prefix={prefix}", "--quiet", "--json")
-    output = json.loads(stdout)
-    assert output["message"] == "All requested packages already installed."
+        output = json.loads(stdout)
+        assert output["message"] == "All requested packages already installed."
 
 
 @pytest.mark.integration

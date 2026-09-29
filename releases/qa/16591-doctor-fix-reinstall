@@ -1,0 +1,34 @@
+### Title
+`conda doctor --fix` reinstalls packages with missing files
+
+### Why
+`--fix` for missing/altered files previously built bad MatchSpecs and/or skipped reinstall (`All requested packages already installed`). Confirm a real env actually reinstalls and restores files.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- A conda build that includes this fix
+- Network access to install `openssl` from your usual channels
+
+### Steps
+1. `conda create -y -n repro openssl`
+2. Delete any file tracked by the `openssl` package, e.g.:
+   `rm ~/miniforge3/envs/repro/lib/pkgconfig/libcrypto.pc`
+   (Adjust the env root and path for your install layout / OS; any tracked file works.)
+3. `conda doctor missing-files -n repro -v`
+   Confirm it reports the missing file from step 2.
+4. `conda doctor missing-files -n repro --fix --yes`
+5. Confirm the deleted file is restored (same path as in step 2).
+6. `conda remove -n repro --all -y`
+
+### Pass criteria
+- Step 3 reports the deleted file as missing.
+- Step 4 does **not** fail with `PackagesNotFoundError` and does **not** stop with only `All requested packages already installed`.
+- The deleted file is present again after step 4.
+- Output shows a real reinstall of the affected package(s).
+
+### Out of scope / notes
+- Altered-files is the same fixer path; optional: modify a tracked file instead of deleting it and run `conda doctor altered-files -n repro --fix --yes`.

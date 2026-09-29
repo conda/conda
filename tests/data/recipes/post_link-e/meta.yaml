@@ -1,0 +1,9 @@
+package:
+  name: post_link-e
+  version: 1.0
+
+build:
+  noarch: generic
+
+about:
+  summary: Post-link script for link-order / post-link execution tests

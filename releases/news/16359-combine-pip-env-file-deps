@@ -1,0 +1,11 @@
+### Enhancements
+
+### Bug fixes
+
+* Install pip dependencies from multiple environment files in one pip invocation so pip resolves them together. (#16359)
+
+### Deprecations
+
+### Docs
+
+### Other

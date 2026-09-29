@@ -109,6 +109,8 @@ jobs:
               local after_clause=""
               [[ -n "$cursor" ]] && after_clause=", after: \"$cursor\""
 
+              # GraphQL variables ($owner, etc.) must stay literal inside single quotes
+              # shellcheck disable=SC2016
               response=$(gh api graphql -f query='
                 query($owner: String!, $repo: String!, $number: Int!) {
                   repository(owner: $owner, name: $repo) {
@@ -254,12 +256,14 @@ jobs:
               cat /tmp/slow-test-issue.md
               echo "::endgroup::"
               # Save for summary
-              echo "<details>" >> /tmp/dry_run_summary.md
-              echo "<summary>Would create: Review slow test: <code>$test_name</code></summary>" >> /tmp/dry_run_summary.md
-              echo "" >> /tmp/dry_run_summary.md
-              cat /tmp/slow-test-issue.md >> /tmp/dry_run_summary.md
-              echo "</details>" >> /tmp/dry_run_summary.md
-              echo "" >> /tmp/dry_run_summary.md
+              {
+                echo "<details>"
+                echo "<summary>Would create: Review slow test: <code>$test_name</code></summary>"
+                echo ""
+                cat /tmp/slow-test-issue.md
+                echo "</details>"
+                echo ""
+              } >> /tmp/dry_run_summary.md
             else
               # Create issue (returns URL like https://github.com/owner/repo/issues/123)
               issue_url=$(gh issue create \
@@ -273,6 +277,8 @@ jobs:
 
               # GraphQL mutation to add sub-issue to parent epic
               # (gh CLI doesn't support parent issue linking: https://github.com/cli/cli/issues/10298)
+              # GraphQL variables ($parent, $child) must stay literal inside single quotes
+              # shellcheck disable=SC2016
               gh api graphql -f query='
                 mutation($parent: ID!, $child: ID!) {
                   addSubIssue(input: {issueId: $parent, subIssueId: $child}) {
@@ -304,32 +310,34 @@ jobs:
           PLATFORMS_MISSING: ${{ steps.durations.outputs.platforms_missing }}
         run: |
           # template-files-raw
-          echo "## Slow Test Review Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [[ "${EPIC_MISSING}" == "true" ]]; then
-            echo "**Epic:** #${EPIC_NUMBER} (not found, running as dry run)" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "**Epic:** [#${EPIC_NUMBER}](${ISSUES_URL}/${EPIC_NUMBER})" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "**Platforms:** ${PLATFORMS_FETCHED}" >> $GITHUB_STEP_SUMMARY
-          if [[ -n "${PLATFORMS_MISSING}" ]]; then
-            echo "**Missing:** ${PLATFORMS_MISSING}" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "**Incomplete sub-issues before:** ${INCOMPLETE_COUNT}" >> $GITHUB_STEP_SUMMARY
-          echo "**Max allowed:** ${MAX_INCOMPLETE}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Slow Test Review Summary"
+            echo ""
+            if [[ "${EPIC_MISSING}" == "true" ]]; then
+              echo "**Epic:** #${EPIC_NUMBER} (not found, running as dry run)"
+            else
+              echo "**Epic:** [#${EPIC_NUMBER}](${ISSUES_URL}/${EPIC_NUMBER})"
+            fi
+            echo "**Platforms:** ${PLATFORMS_FETCHED}"
+            if [[ -n "${PLATFORMS_MISSING}" ]]; then
+              echo "**Missing:** ${PLATFORMS_MISSING}"
+            fi
+            echo "**Incomplete sub-issues before:** ${INCOMPLETE_COUNT}"
+            echo "**Max allowed:** ${MAX_INCOMPLETE}"
+            echo ""
 
-          if [[ "${CREATED_COUNT}" == "-1" ]]; then
-            echo "**Already at cap, no new sub-issues created**" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${CREATED_COUNT}" == "0" ]]; then
-            echo "**No untracked slow tests found**" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${DRY_RUN}" == "true" ]]; then
-            echo "**Dry run, would create ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            cat /tmp/dry_run_summary.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
-          else
-            echo "**Created ${CREATED_COUNT} new sub-issue(s)**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            cat /tmp/created_summary.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
-          fi
+            if [[ "${CREATED_COUNT}" == "-1" ]]; then
+              echo "**Already at cap, no new sub-issues created**"
+            elif [[ "${CREATED_COUNT}" == "0" ]]; then
+              echo "**No untracked slow tests found**"
+            elif [[ "${DRY_RUN}" == "true" ]]; then
+              echo "**Dry run, would create ${CREATED_COUNT} new sub-issue(s)**"
+              echo ""
+              cat /tmp/dry_run_summary.md 2>/dev/null || true
+            else
+              echo "**Created ${CREATED_COUNT} new sub-issue(s)**"
+              echo ""
+              cat /tmp/created_summary.md 2>/dev/null || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
           # template-files-endraw

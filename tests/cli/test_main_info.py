@@ -15,7 +15,7 @@ import pytest
 
 from conda.base.constants import PREFIX_FROZEN_FILE
 from conda.base.context import context
-from conda.cli.main_info import iter_info_components
+from conda.cli.main_info import get_installer_info, iter_info_components
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
@@ -162,6 +162,60 @@ def test_info_detail(conda_cli: CondaCLIFixture):
     assert DETAIL_KEYS <= set(parsed.keys())
     assert not stderr
     assert not err
+
+
+def test_info_installer(
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+) -> None:
+    installer = {
+        "name": "Miniconda3",
+        "version": "26.7.0",
+        "platform": "linux-64",
+        "type": "sh",
+    }
+    mocker.patch("conda.cli.main_info.get_installer_info", return_value=installer)
+
+    stdout, stderr, err = conda_cli("info")
+    assert "distribution : Miniconda3 26.7.0 (sh, linux-64)" in stdout
+    assert not stderr
+    assert not err
+
+    stdout, stderr, err = conda_cli("info", "--json")
+    assert json.loads(stdout)["installer"] == installer
+    assert not stderr
+    assert not err
+
+
+def test_get_installer_info(tmp_path: Path) -> None:
+    installer = {
+        "name": "Miniconda3",
+        "version": "26.7.0",
+        "platform": "linux-64",
+        "type": "sh",
+    }
+    Path(tmp_path, ".installer.info").write_text(json.dumps(installer))
+
+    assert get_installer_info(str(tmp_path)) == installer
+
+
+def test_get_installer_info_missing(tmp_path: Path) -> None:
+    assert get_installer_info(str(tmp_path)) is None
+
+
+@pytest.mark.parametrize(
+    "contents",
+    (
+        "not json",
+        "[]",
+        '{"name": "Miniconda3"}',
+        '{"name": "Miniconda3", "version": 1, "platform": "linux-64", "type": "sh"}',
+    ),
+)
+def test_get_installer_info_invalid(tmp_path: Path, contents: str) -> None:
+    Path(tmp_path, ".installer.info").write_text(contents)
+
+    assert get_installer_info(str(tmp_path)) is None
 
 
 # conda info --all [--json]

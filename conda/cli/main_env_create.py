@@ -113,6 +113,6 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         use_local=NULL,
         packages=[],
         repodata_fns=None,
-        yes=True,
+        env_create=True,
     )
     return p

@@ -1,5 +1,5 @@
 # keep packages
-!*.tar.bz2
+!*.conda
 
 # keep repodata
 !repodata.json

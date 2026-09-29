@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import os
 import sys
-from json import JSONEncoder  # noqa: TID251
 from os.path import abspath, dirname
 from typing import TYPE_CHECKING
 
@@ -84,11 +83,37 @@ class CondaError(Exception):
     def __init__(
         self,
         message: str | None,
+        *args: Any,
         caused_by: Any = None,
-        *,
         guidance: ErrorGuidance | ErrorGuidanceTypedDict | None = None,
         **kwargs,
     ):
+        if len(args) > 1:
+            raise TypeError(
+                f"{self.__class__.__name__}.__init__() takes from 1 to 2 positional "
+                f"arguments but {len(args) + 1} were given"
+            )
+        elif args:
+            from .deprecations import deprecated
+
+            deprecated.topic(
+                "27.3",
+                "27.9",
+                topic=(
+                    "Passing caused_by as a positional argument to "
+                    "conda.CondaError.__init__"
+                ),
+                addendum="Use the caused_by keyword argument instead.",
+                stack=1,
+            )
+
+            if caused_by is not None:
+                raise TypeError(
+                    f"{self.__class__.__name__}.__init__() got multiple values for "
+                    f"argument 'caused_by'"
+                )
+            caused_by = args[0]
+
         self.message = message or ""
         self._kwargs = kwargs
         self._caused_by = caused_by
@@ -203,32 +228,3 @@ def conda_signal_handler(signum: int, frame: Any):
     from .exceptions import CondaSignalInterrupt
 
     raise CondaSignalInterrupt(signum)
-
-
-def _default(self, obj):
-    from frozendict import frozendict
-
-    from .deprecations import deprecated
-
-    if isinstance(obj, frozendict):
-        deprecated.topic(
-            "26.3",
-            "26.9",
-            topic="Monkey-patching `json.JSONEncoder` to support `frozendict`",
-            addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-        )
-        return dict(obj)
-    elif hasattr(obj, "to_json"):
-        deprecated.topic(
-            "26.3",
-            "26.9",
-            topic="Monkey-patching `json.JSONEncoder` to support `obj.to_json()`",
-            addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-        )
-        return obj.to_json()
-    return _default.default(obj)
-
-
-# FUTURE: conda 26.3, remove the following monkey patching
-_default.default = JSONEncoder().default
-JSONEncoder.default = _default

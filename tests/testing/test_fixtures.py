@@ -2,12 +2,15 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.context import context, reset_context
+from conda.cli.main import main_subshell
 from conda.core.prefix_data import PrefixData
+from conda.reporters import _get_render_func, get_spinner
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -36,6 +39,36 @@ def test_session_conda_cli(session_conda_cli: CondaCLIFixture) -> None:
     assert not stdout
     assert not stderr
     assert not err
+
+
+def test_conda_cli_resets_context_after_unexpected_exception(
+    conda_cli: CondaCLIFixture, mocker
+) -> None:
+    def raise_pending_deprecation_warning(*args: str) -> int:
+        if args[0] == "install":
+            main_subshell("info")
+            get_spinner("Installing packages")
+            raise PendingDeprecationWarning
+        return main_subshell(*args)
+
+    mocker.patch(
+        "conda.testing.fixtures.main_subshell",
+        side_effect=raise_pending_deprecation_warning,
+    )
+
+    with pytest.raises(PendingDeprecationWarning):
+        conda_cli("install")
+
+    assert not context.json
+    assert not _get_render_func.cache_info().currsize
+
+    stdout, stderr, code = conda_cli("info", "--json")
+    assert code == 0, stderr
+    assert stdout
+    assert json.loads(stdout)
+    assert not stderr
+    assert context.json is False
+    assert not _get_render_func.cache_info().currsize
 
 
 def test_path_factory(path_factory: PathFactoryFixture) -> None:

@@ -1,0 +1,19 @@
+### Enhancements
+
+
+
+### Bug fixes
+
+
+
+### Deprecations
+
+
+
+### Docs
+
+
+
+### Other
+
+* Fix context cleanup in the shard connection test. (#16702)

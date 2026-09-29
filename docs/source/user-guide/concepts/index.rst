@@ -20,7 +20,7 @@ Concepts
 In this section, we provide you with detailed information about the fundamental concepts
 in conda, including information about packages, channels, environments, and plugins, among others.
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Commands <conda-commands>`
         Conda commands are your interface for interacting with everything

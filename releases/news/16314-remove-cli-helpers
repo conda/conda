@@ -1,0 +1,21 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Remove conda.cli.common.arg2spec. Use str(MatchSpec(arg)). (#16314)
+* Remove the `json` keyword from `specs_from_args` and `specs_from_url`. (#16314)
+* Remove `conda.cli.main_compare.get_packages`. Use PrefixData.map_records. (#16314)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
