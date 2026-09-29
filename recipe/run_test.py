@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Check upgrades with the built package and the released ARM64 installer."""
 
+# conda-build automatically runs this file against the installed, built package.
 # ruff: noqa: S101
 
 import os
