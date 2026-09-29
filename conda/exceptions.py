@@ -461,10 +461,16 @@ class LinkError(CondaError):
 
 
 class LinkSourceNotFoundError(CondaError):
-    """Raised when linking a path whose source is missing from the package cache.
+    """Raised when the source of a link does not exist.
 
-    Carries the missing ``src`` path so callers can remediate (e.g. remove the
-    corrupt package cache entry) without parsing the error message.
+    Carries the missing ``src`` path so callers can remediate without parsing
+    the error message.  Unlike :class:`PathNotFoundError`, the source is
+    expected to be an already-extracted package file, so a missing source
+    usually points at a corrupt package cache entry to clean up.
+
+    Raised by :func:`~conda.gateways.disk.create.create_link`, which is not
+    package-cache specific, so the ``conda clean --packages`` advice in the
+    message does not fit every caller.
     """
 
     def __init__(self, src: str, **kwargs):
