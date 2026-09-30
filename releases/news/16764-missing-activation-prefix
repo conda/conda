@@ -1,4 +1,0 @@
-### Bug fixes
-
-* Report an actionable error without a traceback when activating with a positive
-  `CONDA_SHLVL` and an unset or empty `CONDA_PREFIX`. (#15864, #16764 via #16064)

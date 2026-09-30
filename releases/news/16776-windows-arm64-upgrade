@@ -1,4 +1,0 @@
-### Bug fixes
-
-* Preserve the launcher needed by defaults conda 26.7.2 during native Windows ARM64 upgrades. (#16776 via #16777)
-* Report Python entry-point creation failures and use the existing transaction rollback handling. (#16776 via #16777)
