@@ -2643,6 +2643,59 @@ def test_transactional_rollback_upgrade_downgrade(
         assert (prefix / "conda-meta" / "history").is_file()
 
 
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "script",
+        pytest.param(
+            "launcher",
+            marks=pytest.mark.skipif(
+                not on_win, reason="Windows launcher verification"
+            ),
+        ),
+    ],
+)
+def test_entry_point_failure_rolls_back(
+    failure: str,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("conda-forge::pygments[subdir=noarch]") as prefix:
+        record = package_is_installed(prefix, "pygments")
+        paths = [
+            prefix / "conda-meta" / f"pygments-{record.version}-{record.build}.json",
+            prefix / "conda-meta" / "history",
+        ]
+        paths.extend(
+            prefix / BIN_DIRECTORY / name
+            for name in (
+                ("pygmentize.exe", "pygmentize-script.py")
+                if on_win
+                else ("pygmentize",)
+            )
+        )
+        original = {path: path.read_bytes() for path in paths}
+        target = (
+            "conda.core.path_actions.create_python_entry_point"
+            if failure == "script"
+            else "conda.core.launchers.verify_windows_launcher"
+        )
+        mocker.patch(target, side_effect=OSError("entry point failure"))
+
+        with pytest.raises(CondaMultiError, match="entry point failure"):
+            conda_cli(
+                "install",
+                f"--prefix={prefix}",
+                f"pygments={record.version}={record.build}[subdir=noarch]",
+                "--force-reinstall",
+                "--offline",
+                "--yes",
+            )
+
+        assert {path: path.read_bytes() for path in paths} == original
+
+
 def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFixture):
     (tmp_path / "tempfile.txt").write_text("hello world")
 
