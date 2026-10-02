@@ -36,6 +36,7 @@ from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
+    PREFIX_LAST_ACTIVATED_FILE,
     PREFIX_STATE_FILE,
     RESERVED_ENV_VARS,
 )
@@ -73,6 +74,21 @@ BUILTIN_COMMANDS = {
     "commands": GenericHelp("commands"),
     "reactivate": GenericHelp("reactivate"),
 }
+
+
+def _touch_last_activated(prefix: str) -> None:
+    """Record an activation by updating conda-meta/last_activated's mtime.
+
+    Best-effort: any failure (read-only or frozen envs, shared prefixes without
+    write permission, network mount errors) is silently ignored so activation
+    never fails because of tracking.
+    """
+    from .gateways.disk.update import touch
+
+    try:
+        touch(join(prefix, PREFIX_LAST_ACTIVATED_FILE))
+    except OSError:
+        pass
 
 
 class _Activator(metaclass=abc.ABCMeta):
