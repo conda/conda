@@ -353,64 +353,6 @@ class PrefixGraph:
                         parents.setdefault(conda_node)
 
 
-#     def dot_repr(self, title=None):  # pragma: no cover
-#         # graphviz DOT graph description language
-#
-#         builder = ['digraph g {']
-#         if title:
-#             builder.append('  labelloc="t";')
-#             builder.append('  label="%s";' % title)
-#         builder.append('  size="10.5,8";')
-#         builder.append('  rankdir=BT;')
-#         for node in self.get_nodes_ordered_from_roots():
-#             label = "%s %s" % (node.record.name, node.record.version)
-#             if node.specs:
-#                 # TODO: combine?
-#                 spec = next(iter(node.specs))
-#                 label += "\\n%s" % ("?%s" if spec.optional else "%s") % spec
-#             if node.is_orphan:
-#                 shape = "box"
-#             elif node.is_root:
-#                 shape = "invhouse"
-#             elif node.is_leaf:
-#                 shape = "house"
-#             else:
-#                 shape = "ellipse"
-#             builder.append('  "%s" [label="%s", shape=%s];' % (node.record.name, label, shape))
-#             for child in node.required_children:
-#                 builder.append('    "%s" -> "%s";' % (child.record.name, node.record.name))
-#             for child in node.optional_children:
-#                 builder.append('    "%s -> "%s" [color=lightgray];' % (child.record.name,
-#                                                                        node.record.name))
-#         builder.append('}')
-#         return '\n'.join(builder)
-#
-#     def format_url(self):  # pragma: no cover
-#         return "https://condaviz.glitch.me/%s" % url_quote(self.dot_repr())
-#
-#     def request_svg(self):  # pragma: no cover
-#         from tempfile import NamedTemporaryFile
-#         import requests
-#         from ..common.compat import ensure_binary
-#         response = requests.post("https://condaviz.glitch.me/post",
-#                                  data={"digraph": self.dot_repr()})
-#         response.raise_for_status()
-#         with NamedTemporaryFile(suffix='.svg', delete=False) as fh:
-#             fh.write(ensure_binary(response.text))
-#         print("saved to: %s" % fh.name, file=sys.stderr)
-#         return fh.name
-#
-#     def open_url(self):  # pragma: no cover
-#         import webbrowser
-#         from ..common.url import path_to_url
-#         location = self.request_svg()
-#         try:
-#             browser = webbrowser.get("safari")
-#         except webbrowser.Error:
-#             browser = webbrowser.get()
-#         browser.open_new_tab(path_to_url(location))
-
-
 @deprecated("27.3", "27.9")
 class GeneralGraph(PrefixGraph):
     """
