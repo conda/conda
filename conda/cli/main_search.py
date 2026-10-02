@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from argparse import SUPPRESS
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from .helpers import _ValidatePackages
@@ -338,7 +338,7 @@ def _pretty_record_format(record: PackageRecord) -> str:
     push_line("url", "url")
     push_line("md5", "md5")
     if record.timestamp and isinstance(record.timestamp, (int, float)):
-        date_str = datetime.fromtimestamp(record.timestamp, timezone.utc).strftime(
+        date_str = datetime.fromtimestamp(record.timestamp, UTC).strftime(
             "%Y-%m-%d %H:%M:%S %Z"
         )
         builder.append("%-12s: %s" % ("timestamp", date_str))
