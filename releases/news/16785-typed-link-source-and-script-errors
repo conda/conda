@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `LinkSourceNotFoundError` and `LinkScriptError` (a `LinkError` subclass) so callers can detect a missing package cache source and a failed pre-/post-link script with `isinstance` and inspect `src`, `action`, `prec` and `path` instead of parsing error messages. Error text is unchanged, and `LinkScriptError` remains catchable as `LinkError`, but code that matched the missing-source case against a bare `CondaError` now needs `LinkSourceNotFoundError`. (#16785 via #16747)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
