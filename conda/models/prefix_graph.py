@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from ..base.context import context
 from ..common.compat import on_win
+from ..deprecations import deprecated
 from ..exceptions import CyclicalDependencyError
 from .enums import NoarchType
 from .match_spec import MatchSpec
@@ -410,6 +411,7 @@ class PrefixGraph:
 #         browser.open_new_tab(path_to_url(location))
 
 
+@deprecated("27.3", "27.9")
 class GeneralGraph(PrefixGraph):
     """
     Compared with PrefixGraph, this class takes in more than one record of a given name,
