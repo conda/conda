@@ -16,16 +16,21 @@ from .deprecations import deprecated
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
-    from typing import Any, TypeVar
+    from typing import Any, ParamSpec, TypeVar
 
     T = TypeVar("T")
+    P = ParamSpec("P")
 
 log = getLogger(__name__)
 
 
 class ExceptionHandler:
-    # FUTURE: Python 3.10+, use typing.ParamSpec
-    def __call__(self, func: Callable[..., T], *args, **kwargs) -> T | int:
+    def __call__(
+        self,
+        func: Callable[P, T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T | int:
         try:
             return func(*args, **kwargs)
         except:

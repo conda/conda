@@ -6,14 +6,13 @@ requires = [
 ]
 
 [project]
-authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
+authors = [{ name = "Anaconda, Inc.", email = "conda@continuum.io" }]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -51,7 +50,7 @@ license = "BSD-3-Clause"
 license-files = ["LICENSE", "AUTHORS.md"]
 name = "conda"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.scripts]
 conda = "conda.cli.main_pip:main"
@@ -137,7 +136,7 @@ ignore_missing_imports = true
 implicit_reexport = false
 no_implicit_optional = true
 pretty = true
-python_version = "3.10"
+python_version = "3.11"
 show_column_numbers = true
 show_error_code_links = true
 show_error_codes = true
@@ -209,7 +208,7 @@ exclude = [
 show-fixes = true
 
 [tool.ruff.lint]
-flake8-type-checking = {exempt-modules = [], strict = true}
+flake8-type-checking = { exempt-modules = [], strict = true }
 ignore = [
   "D101",  # Missing docstring in public class
   "D102",  # Missing docstring in public method
@@ -223,7 +222,7 @@ ignore = [
   "E731",  # do not assign a lambda expression, use a def
   "UP031",  # do not fix printf-style string formatting
 ]
-pydocstyle = {convention = "google"}
+pydocstyle = { convention = "google" }
 # see https://docs.astral.sh/ruff/rules/
 select = [
   # Enable ANN locally for type hints linting

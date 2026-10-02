@@ -307,19 +307,38 @@ def test_conda_env_create_http(
     assert parsed[0].get("name") == "small-executable"
 
 
-@pytest.mark.integration
-def test_update(path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture):
+def test_update(
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+):
+    """Update an environment by adding a package from an environment file."""
     prefix = path_factory()
-    create_env(ENVIRONMENT_CA_CERTIFICATES)
+    channel = str(test_recipes_channel)
+    create_env(
+        yaml.write(
+            {
+                "name": TEST_ENV1,
+                "dependencies": ["small-executable"],
+                "channels": [channel],
+            }
+        )
+    )
     conda_cli("env", "create", f"--prefix={prefix}")
 
-    create_env(ENVIRONMENT_CA_CERTIFICATES_ZLIB)
+    create_env(
+        yaml.write(
+            {
+                "name": TEST_ENV1,
+                "dependencies": ["small-executable", "dependency"],
+                "channels": [channel],
+            }
+        )
+    )
     conda_cli("env", "update", f"--prefix={prefix}")
 
-    stdout, _, _ = conda_cli("list", f"--prefix={prefix}", "zlib", "--json")
-    parsed = json.loads(stdout)
-    assert parsed
-    assert json.loads(stdout)
+    assert package_is_installed(prefix, "small-executable")
+    assert package_is_installed(prefix, "dependency")
 
 
 @pytest.mark.integration
@@ -399,18 +418,37 @@ def test_conda_create_with_pip_json_output(
     assert output["actions"]["PIP"][0].startswith("click")
 
 
-@pytest.mark.integration
 def test_update_env_json_output(
-    path_factory: PathFactoryFixture, conda_cli: CondaCLIFixture
+    path_factory: PathFactoryFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
 ):
     """
-    Update an environment by adding a conda package
-    Check the json output
+    Update an environment by adding a conda package.
+    Check the json output.
     """
     prefix = path_factory()
-    create_env(ENVIRONMENT_CA_CERTIFICATES)
+    channel = str(test_recipes_channel)
+    create_env(
+        yaml.write(
+            {
+                "name": TEST_ENV1,
+                "dependencies": ["small-executable"],
+                "channels": [channel],
+            }
+        )
+    )
     conda_cli("env", "create", f"--prefix={prefix}", "--json", "--yes")
-    create_env(ENVIRONMENT_CA_CERTIFICATES_ZLIB)
+
+    create_env(
+        yaml.write(
+            {
+                "name": TEST_ENV1,
+                "dependencies": ["small-executable", "dependency"],
+                "channels": [channel],
+            }
+        )
+    )
     stdout, _, _ = conda_cli("env", "update", f"--prefix={prefix}", "--quiet", "--json")
     output = json.loads(stdout)
     assert output["success"] is True

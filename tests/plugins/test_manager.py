@@ -14,7 +14,7 @@ import pytest
 from packaging.metadata import Metadata
 from packaging.version import Version
 
-from conda import plugins
+from conda import CondaError, plugins
 from conda.base.context import reset_context
 from conda.common.url import urlparse
 from conda.core import solve
@@ -24,6 +24,7 @@ from conda.plugins.types import CondaPlugin
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
     from typing import Any
 
     from pytest import MonkeyPatch
@@ -291,14 +292,34 @@ def test_known_solver(plugin_manager: CondaPluginManager):
 
 
 @pytest.mark.parametrize("use_shards", [True, False])
+@pytest.mark.parametrize(
+    "capabilities",
+    [
+        (False, False, False),
+        (True, False, False),
+        (False, True, False),
+        (False, False, True),
+        (True, True, True),
+    ],
+)
 def test_solver_with_repodata_subset(
-    use_shards: bool, plugin_manager: CondaPluginManager, monkeypatch: MonkeyPatch
+    use_shards: bool,
+    capabilities: tuple[bool, bool, bool],
+    plugin_manager: CondaPluginManager,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
 ):
     """
     Cover getting a solver that uses sharded repodata api
     """
 
     class TestSolver(solve.Solver):
+        (
+            supports_exclude_newer_global,
+            supports_exclude_newer_channel,
+            supports_exclude_newer_package,
+        ) = capabilities
+
         def __init__(
             self,
             build_repodata_subset=None,
@@ -322,11 +343,22 @@ def test_solver_with_repodata_subset(
             yield TestCondaSolver
 
     monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
+    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "1d")
     reset_context()
 
     assert plugin_manager.load_plugins(TestSolverPlugin) == 1
     solver = plugin_manager.get_solver_backend("test-classic")
     assert solver.user_agent() == "test-solver/1.0"
+    assert (
+        solver.supports_exclude_newer_global,
+        solver.supports_exclude_newer_channel,
+        solver.supports_exclude_newer_package,
+    ) == capabilities
+    if capabilities[0]:
+        solver(prefix=str(tmp_path))
+    else:
+        with pytest.raises(CondaError, match="global cutoff"):
+            solver(prefix=str(tmp_path))
 
 
 def test_get_canonical_name_object(plugin_manager: CondaPluginManager):
