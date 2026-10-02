@@ -42,6 +42,7 @@ from .helpers import (  # noqa: F401
     add_parser_solver_mode,
     add_parser_update_modifiers,
     add_parser_verbose,
+    comma_separated_stripped,
 )
 
 log = getLogger(__name__)
@@ -275,7 +276,7 @@ def _configure_builtin_subcommand(sub_parsers, name: str) -> ArgumentParser:
     )
 
 
-def generate_pre_parser(**kwargs) -> ArgumentParser:
+def generate_pre_parser(*, with_plugins: bool = True, **kwargs) -> ArgumentParser:
     pre_parser = ArgumentParser(
         prog="conda",
         description="conda is a tool for managing and deploying applications,"
@@ -290,11 +291,32 @@ def generate_pre_parser(**kwargs) -> ArgumentParser:
         default=NULL,
         help=SUPPRESS,
     )
+    if not with_plugins:
+        return pre_parser
+
     pre_parser.add_argument(
         "--no-plugins",
         action="store_true",
         default=NULL,
         help="Disable all plugins that are not built into conda.",
+    )
+    pre_parser.add_argument(
+        "--disable-plugins",
+        dest="disabled_plugins",
+        action="extend",
+        default=[],
+        metavar="PLUGIN[,PLUGIN...]",
+        type=comma_separated_stripped,
+        help="Disable the listed plugins. Can be used multiple times.",
+    )
+    pre_parser.add_argument(
+        "--enable-plugins",
+        dest="enabled_plugins",
+        action="extend",
+        default=[],
+        metavar="PLUGIN[,PLUGIN...]",
+        type=comma_separated_stripped,
+        help="Keep the listed plugins enabled, overriding --no-plugins and CONDA_NO_PLUGINS.",
     )
 
     return pre_parser
