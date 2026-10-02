@@ -1,5 +1,16 @@
 [//]: # (current developments)
 
+## 26.9.1 (2026-10-02)
+
+### Bug fixes
+
+* Keep cached package archive paths consistent with their recorded filenames and checksums when both archive formats are present. Restore the fix from conda 26.7.3 that was missing in 26.9.0. (#9674 via #16793)
+
+### Contributors
+
+* @jezdez
+
+
 ## 26.9.0 (2026-09-29)
 
 ### Enhancements
