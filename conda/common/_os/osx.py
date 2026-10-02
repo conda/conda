@@ -4,6 +4,20 @@ import platform
 from subprocess import check_output
 
 
+def copy_acl(source_fd: int, destination_fd: int) -> None:
+    """Copy a file's access-control list between open file descriptors."""
+    from ctypes import CDLL, c_int, c_uint32, c_void_p, get_errno
+
+    fcopyfile = CDLL(None, use_errno=True).fcopyfile
+    fcopyfile.argtypes = (c_int, c_int, c_void_p, c_uint32)
+    fcopyfile.restype = c_int
+
+    copyfile_acl = 1
+    if fcopyfile(source_fd, destination_fd, None, copyfile_acl) != 0:
+        error = get_errno()
+        raise OSError(error, "Could not copy file ACL")
+
+
 def mac_ver() -> str:
     """
     Returns macOS version, without compatibility modes for 11.x.
