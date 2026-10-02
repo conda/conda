@@ -59,8 +59,8 @@ _TEST_INFRA = frozenset(
 def _clean_modules() -> None:
     """Remove all non-stdlib, non-test-infra modules from ``sys.modules``.
 
-    Uses ``sys.stdlib_module_names`` (Python 3.10+) to identify stdlib
-    packages, keeping those and the test runner intact.  Everything else
+    Uses ``sys.stdlib_module_names`` to identify stdlib packages, keeping
+    those and the test runner intact.  Everything else
     — conda and all its transitive dependencies regardless of how they
     were installed — gets removed so import benchmarks start clean.
     """
