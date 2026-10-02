@@ -1,0 +1,3 @@
+### Enhancements
+
+* Add a package verifier plugin hook that runs before package extraction. (#16515)
