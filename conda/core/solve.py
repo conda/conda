@@ -1421,7 +1421,17 @@ class Solver(BaseSolver):
             else:
                 # Preserve explicitly supplied records, including another prefix's records.
                 self._index = self._provided_index
-            self._r = Resolve(self._index, channels=self.channels)
+            if isinstance(self._index, Index) and "_data" not in self._index.__dict__:
+                self._index.resolve_channels()
+            self._r = Resolve(
+                self._index,
+                channels=(
+                    self._index.expanded_channels
+                    if isinstance(self._index, Index)
+                    and self._index._channel_relations_loaded
+                    else self.channels
+                ),
+            )
         else:
             # add in required channels that aren't explicitly given in the channels list
             # For correctness, we should probably add to additional_channels any channel that
@@ -1450,7 +1460,7 @@ class Solver(BaseSolver):
                 use_system=True,
                 exclude_newer_policy=self.exclude_newer_policy,
             )
-            self._r = Resolve(reduced_index, channels=self.channels)
+            self._r = Resolve(reduced_index, channels=reduced_index.expanded_channels)
 
         self._prepared = True
         return self._index, self._r
