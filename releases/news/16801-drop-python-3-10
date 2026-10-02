@@ -19,4 +19,4 @@
 * Raise the minimum Python version required to run conda to 3.11, following
   [conda-build#6176](https://github.com/conda/conda-build/issues/6176). Conda can still create
   and manage environments containing Python 3.10 and older; this only affects the interpreter
-  used to run conda itself. (#16795)
+  used to run conda itself. (#16795 via #16801)
