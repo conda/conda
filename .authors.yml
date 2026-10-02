@@ -632,7 +632,8 @@
   aliases:
   - Jacob
   alternate_emails:
-  - jhultman@novateurresearch.com
+  # [sic]
+  - jhultman@novateurresearch.comgit config --global user.email jhultman@novateurresearch.com
 - name: Stan Seibert
   email: stan.seibert@continuum.io
   num_commits: 7
