@@ -21,6 +21,7 @@ TARGETS = {
     ("Darwin", "x86_64"): "x86_64-apple-darwin",
     ("Darwin", "arm64"): "aarch64-apple-darwin",
     ("Windows", "AMD64"): "x86_64-pc-windows-msvc.exe",
+    ("Windows", "ARM64"): "aarch64-pc-windows-msvc.exe",
 }
 
 

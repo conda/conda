@@ -36,18 +36,21 @@ def package_archive(tmp_path):
     return create
 
 
+@pytest.mark.parametrize(
+    "subdir,python", [("linux-64", "3.12.*"), ("win-arm64", "3.14.*")]
+)
 @pytest.mark.parametrize("extension", [".conda", ".tar.bz2"])
 @pytest.mark.parametrize("published", [False, True])
 def test_prepare_runtime_uses_exact_archives(
-    tmp_path, package_archive, extension, published
+    tmp_path, package_archive, extension, published, subdir, python
 ):
-    conda = package_archive("conda", "linux-64", extension=extension)
+    conda = package_archive("conda", subdir, extension=extension)
     updater = package_archive("conda-runtime-updater", "noarch", extension=extension)
     release_url = "https://github.com/conda/conda/releases/download/26.9.0"
     local_channel = (tmp_path / "update-channel").as_uri()
     manifest_path = prepare_runtime(
         version="26.9.0",
-        subdir="linux-64",
+        subdir=subdir,
         packages_dir=tmp_path / "packages",
         output_dir=tmp_path / "runtime",
         release_url=release_url if published else None,
@@ -55,6 +58,7 @@ def test_prepare_runtime_uses_exact_archives(
     )
     manifest = tomllib.loads(manifest_path.read_text())
     dependencies = manifest["feature"]["ship"]["dependencies"]
+    assert dependencies["python"] == python
     for name, archive in (("conda", conda), ("conda-runtime-updater", updater)):
         assert dependencies[name] == {
             "url": f"{release_url}/{archive.name}" if published else archive.as_uri(),

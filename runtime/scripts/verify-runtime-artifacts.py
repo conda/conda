@@ -19,6 +19,7 @@ TARGETS = {
     "osx-64": "x86_64-apple-darwin",
     "osx-arm64": "aarch64-apple-darwin",
     "win-64": "x86_64-pc-windows-msvc.exe",
+    "win-arm64": "aarch64-pc-windows-msvc.exe",
 }
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 INSTALLER_TEMPLATES = {

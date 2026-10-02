@@ -273,6 +273,8 @@ def test_invalid_candidate_version_fails_before_prompt_or_stage(monkeypatch, tmp
 
 
 def test_direct_update_holds_lock_through_apply(monkeypatch, tmp_path, runtime):
+    notices = []
+    monkeypatch.setattr(plugin, "notify", notices.append)
     conda_context = context_for(
         tmp_path,
         pinned_packages=("python 3.12.*", "conda >=26"),
@@ -314,6 +316,7 @@ def test_direct_update_holds_lock_through_apply(monkeypatch, tmp_path, runtime):
     assert plugin._session is None
     assert lock.closed
     assert actions[-1] == ("apply", None)
+    assert notices == []
 
 
 def test_declined_prompt_releases_lock_without_retrying(monkeypatch, tmp_path, runtime):
@@ -466,4 +469,12 @@ def test_hook_registration_covers_root_solve_commands():
     assert pre[0].action is plugin.pre_solve
     assert len(post) == 1
     assert post[0].action is plugin.post_command
-    assert post[0].run_for == {"create", "env_update", "install", "update"}
+    assert post[0].run_for == {
+        "info",
+        "list",
+        "create",
+        "env_update",
+        "install",
+        "update",
+        "remove",
+    }

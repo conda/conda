@@ -34,6 +34,21 @@ If the inner transaction fails, the old executable remains usable. The next
 runtime invocation and update attempt recover or discard the interrupted
 state.
 
+The post-command hook checks for newer runtimes through conda-ship 0.10.0's
+advisory probe. Interactive commands check online at most once per day and use
+cached repodata offline or after network failures. A missing cache or an older
+executable without the probe leaves the command silent. Notifications do not
+stage updates, take the update lock, or run for quiet, JSON, dry-run, and
+noninteractive commands.
+
+Set `CONDA_PLUGINS_RUNTIME_UPDATE_NOTIFICATIONS=false` to disable runtime notifications.
+`CONDA_OFFLINE=true` keeps checks offline. The packaged
+`condarc.d/conda-runtime-updater.yaml` sets `notify_outdated_conda: false` to
+suppress conda's generic update warning. This default applies wherever the
+updater package is installed, including Windows. It does not disable update
+commands. User configuration and `CONDA_NOTIFY_OUTDATED_CONDA=true` can
+restore the generic warning.
+
 The plugin is packaged separately from conda and installed only in the managed
 prefixes of conda binaries. Its source lives in the [conda repository](https://github.com/conda/conda).
 
@@ -41,7 +56,7 @@ Run the focused tests with
 `pixi run --manifest-path runtime/updater/pyproject.toml --locked test`.
 The `lint` and `format-check` tasks check the same workspace.
 
-The development package version is `0.1.0`. Release builds set
+The development package version is `0.2.0`. Release builds set
 `CONDA_RUNTIME_VERSION` to the conda release version before running
 `rattler-build build --recipe runtime/recipes/conda-runtime-updater/recipe.yaml
 --channel conda-forge`. The recipe updates package metadata inside its temporary

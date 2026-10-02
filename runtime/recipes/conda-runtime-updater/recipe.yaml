@@ -1,5 +1,5 @@
 context:
-  version: ${{ env.get("CONDA_RUNTIME_VERSION", default="0.1.0") }}
+  version: ${{ env.get("CONDA_RUNTIME_VERSION", default="0.2.0") }}
   python_min: '3.10'
 
 package:
@@ -26,6 +26,7 @@ requirements:
   run:
     - python >=${{ python_min }}
     - conda >=26.1.1
+    - platformdirs >=3.10.0
 
 tests:
   - python:
@@ -34,6 +35,7 @@ tests:
         - conda_runtime_updater.helper
         - conda_runtime_updater.locking
         - conda_runtime_updater.metadata
+        - conda_runtime_updater.notifications
         - conda_runtime_updater.plugin
       pip_check: true
       python_version: ${{ python_min }}.*

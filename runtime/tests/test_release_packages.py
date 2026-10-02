@@ -158,6 +158,16 @@ def test_remote_metadata_must_match_local_package(
             },
         ),
         (
+            "win-arm64",
+            {
+                "platform": "win",
+                "arch": "arm64",
+                "machine": "arm64",
+                "operatingsystem": "win32",
+                "target-triplet": "arm64-any-win32",
+            },
+        ),
+        (
             "win-64",
             {
                 "platform": "win",
@@ -248,7 +258,7 @@ def test_discovery_rejects_unexpected_windows_package(tmp_path: Path):
     staged_packages(tmp_path, version)
     packages = release_packages.discover_packages(tmp_path, version)
 
-    assert len(packages) == 11
+    assert len(packages) == 13
     assert {package.name for package in packages} == {
         "conda",
         "conda-runtime",
@@ -395,7 +405,7 @@ def test_discovery_allows_source_checksum_manifest(tmp_path):
     staged_packages(tmp_path)
     manifest = tmp_path / "source-packages/SHA256SUMS.sources"
     manifest.write_text("source package checksums")
-    assert len(release_packages.discover_packages(tmp_path, "99.0.0")) == 11
+    assert len(release_packages.discover_packages(tmp_path, "99.0.0")) == 13
     manifest.rename(manifest.with_name("unexpected-manifest"))
     with pytest.raises(SystemExit, match="expected"):
         release_packages.discover_packages(tmp_path, "99.0.0")

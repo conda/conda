@@ -14,7 +14,7 @@ def main() -> None:
     version = os.environ["CONDA_RUNTIME_VERSION"]
     manifest = Path("pyproject.toml")
     contents = manifest.read_text(encoding="utf-8")
-    development_version = 'version = "0.1.0"'
+    development_version = 'version = "0.2.0"'
     if contents.count(development_version) != 1:
         raise SystemExit("updater metadata must contain one development version")
     manifest.write_text(

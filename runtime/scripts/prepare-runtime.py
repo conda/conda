@@ -13,7 +13,7 @@ from urllib.parse import quote, urlsplit
 
 from conda_package_streaming.package_streaming import stream_conda_info
 
-PLATFORMS = ("linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64")
+PLATFORMS = ("linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64", "win-arm64")
 CHANNEL = "https://conda.anaconda.org/conda/label/runtime"
 CONDA_FORGE = "https://conda.anaconda.org/conda-forge"
 
@@ -120,8 +120,8 @@ platforms = ["{subdir}"]
 channel-priority = "strict"
 
 [feature.ship.dependencies]
-python = "3.12.*"
-conda-self = ">=0.2.1"
+python = "{"3.14.*" if subdir == "win-arm64" else "3.12.*"}"
+conda-self = ">=0.3.0"
 {chr(10).join(dependencies)}
 
 [environments]

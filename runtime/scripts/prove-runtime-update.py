@@ -464,7 +464,7 @@ def package_update(
 def new_scenario(root: Path, binary: Path, platform: str) -> Scenario:
     if root.exists():
         raise RuntimeError(f"proof scenario already exists: {root}")
-    stable = root / "bin" / ("conda.exe" if platform == "win-64" else "conda")
+    stable = root / "bin" / ("conda.exe" if platform.startswith("win-") else "conda")
     stable.parent.mkdir(parents=True)
     shutil.copy2(binary, stable)
     return Scenario(

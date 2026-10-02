@@ -67,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-15, windows-latest]
+        os: [ubuntu-latest, macos-15, windows-latest, windows-11-arm]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -121,6 +121,8 @@ jobs:
             os: macos-15
           - subdir: win-64
             os: windows-latest
+          - subdir: win-arm64
+            os: windows-11-arm
     runs-on: ${{ matrix.os }}
     env:
       CONDA_CHANNELS: conda-forge
@@ -139,7 +141,7 @@ jobs:
       - name: Build conda from this source commit
         run: >-
           pixi run --manifest-path runtime/updater/pyproject.toml --locked
-          conda build recipe --python 3.12 --override-channels --channel conda-forge
+          conda build recipe --python ${{ matrix.subdir == 'win-arm64' && '3.14' || '3.12' }} --override-channels --channel conda-forge
           --no-anaconda-upload --output-folder source-packages
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -168,7 +170,7 @@ jobs:
         run: |
           mkdir -p source-packages/noarch
           cp collected/source-updater/*.conda source-packages/noarch/
-          for subdir in linux-64 linux-aarch64 osx-64 osx-arm64 win-64; do
+          for subdir in linux-64 linux-aarch64 osx-64 osx-arm64 win-64 win-arm64; do
             mkdir -p "source-packages/$subdir"
             cp "collected/source-conda-$subdir/"*.conda "source-packages/$subdir/"
           done
@@ -205,6 +207,8 @@ jobs:
             os: macos-15
           - subdir: win-64
             os: windows-latest
+          - subdir: win-arm64
+            os: windows-11-arm
     runs-on: ${{ matrix.os }}
     env:
       SOURCE_DATE_EPOCH: ${{ needs.prepare.outputs.timestamp }}
@@ -238,9 +242,9 @@ jobs:
           pixi lock --manifest-path runtime-build/pixi.toml
       - name: Build with released conda-ship
         id: ship
-        uses: conda-incubator/conda-ship@b556f2f36b17b0c629ab4a3806b05bb1915ec1bf # 0.9.2
+        uses: conda-incubator/conda-ship@f0d2e4c10629c28d5886f48d750e59df59915bf6 # 0.10.0
         with:
-          conda-ship-version: 0.9.2
+          conda-ship-version: 0.10.0
           root: runtime-build
       - name: Stage finalized executable and inventory
         shell: bash
@@ -258,6 +262,7 @@ jobs:
         env:
           BINARY: ${{ steps.ship.outputs.binary-path }}
           VERSION: ${{ needs.prepare.outputs.version }}
+          SUBDIR: ${{ matrix.subdir }}
           CONDA_OFFLINE: '1'
           CONDA_SHIP_PREFIX: ${{ runner.temp }}/runtime-smoke
           CONDA_PKGS_DIRS: ${{ runner.temp }}/runtime-smoke-pkgs
@@ -268,6 +273,20 @@ jobs:
             python -c 'import json, os; assert json.load(open("info.json"))["conda_version"] == os.environ["VERSION"]'
           "$BINARY" --version
           "$BINARY" self --help
+          if [ "$SUBDIR" = win-arm64 ]; then
+            "$CONDA_SHIP_PREFIX/python.exe" -I - <<'PYTHON'
+          import struct
+          import sys
+          import sysconfig
+          from pathlib import Path
+
+          assert sysconfig.get_platform() == "win-arm64"
+          launcher = (Path(sys.executable).parent / "Scripts" / "conda.exe").read_bytes()
+          offset = struct.unpack_from("<I", launcher, 0x3C)[0]
+          assert launcher[offset:offset + 6] == b"PE\0\0\x64\xaa"
+          print("Native ARM64 Python and conda launcher verified")
+          PYTHON
+          fi
       - name: Verify macOS signature
         if: runner.os == 'macOS'
         shell: bash
@@ -322,7 +341,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-15, windows-latest]
+        os: [ubuntu-latest, macos-15, windows-latest, windows-11-arm]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -351,6 +370,8 @@ jobs:
             os: macos-15
           - subdir: win-64
             os: windows-latest
+          - subdir: win-arm64
+            os: windows-11-arm
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -378,12 +399,13 @@ jobs:
           pixi run --manifest-path runtime/updater/pyproject.toml --locked \
             python runtime/scripts/prove-runtime-update.py prepare \
             --work "${RUNNER_TEMP}/runtime-proof" --platform "$SUBDIR" \
-            --gen2-root candidate
-      - name: Build baseline conda 26.5.2
+            --gen2-root candidate \
+            --baseline-version "${{ matrix.subdir == 'win-arm64' && '26.9.0' || '26.5.2' }}"
+      - name: Build baseline conda
         id: baseline
-        uses: conda-incubator/conda-ship@b556f2f36b17b0c629ab4a3806b05bb1915ec1bf # 0.9.2
+        uses: conda-incubator/conda-ship@f0d2e4c10629c28d5886f48d750e59df59915bf6 # 0.10.0
         with:
-          conda-ship-version: 0.9.2
+          conda-ship-version: 0.10.0
           root: ${{ runner.temp }}/runtime-proof/gen1
       - name: Preserve baseline executable
         id: preserve
@@ -399,9 +421,9 @@ jobs:
           echo "binary=$binary" >> "$GITHUB_OUTPUT"
       - name: Build current conda source
         id: current
-        uses: conda-incubator/conda-ship@b556f2f36b17b0c629ab4a3806b05bb1915ec1bf # 0.9.2
+        uses: conda-incubator/conda-ship@f0d2e4c10629c28d5886f48d750e59df59915bf6 # 0.10.0
         with:
-          conda-ship-version: 0.9.2
+          conda-ship-version: 0.10.0
           root: ${{ runner.temp }}/runtime-proof/gen2
       - name: Prove inner and outer updates and recovery
         shell: bash

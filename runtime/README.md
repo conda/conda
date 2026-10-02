@@ -2,7 +2,7 @@
 
 The `Conda binaries` workflow builds ready-to-use conda executables when a stable `X.Y.Z` GitHub release is published. It ports the executable distribution and updater from [conda-runtime](https://github.com/jezdez/conda-runtime).
 
-Each executable contains Python, conda built from the release tag, conda's packaged plugins, and `conda-runtime-updater`. The released conda-ship 0.9.2 builder and templates provide the executable and embedded bootstrap. Conda-ship is not installed in the managed prefix.
+Each executable contains Python, conda built from the release tag, conda's packaged plugins, and `conda-runtime-updater`. The released conda-ship 0.10.0 builder and templates provide the executable and embedded bootstrap. Conda-ship is not installed in the managed prefix.
 
 | Platform | Executable |
 | --- | --- |
@@ -11,6 +11,9 @@ Each executable contains Python, conda built from the release tag, conda's packa
 | macOS Intel | `conda-x86_64-apple-darwin` |
 | macOS Apple silicon | `conda-aarch64-apple-darwin` |
 | Windows x86-64 | `conda-x86_64-pc-windows-msvc.exe` |
+| Windows ARM64 | `conda-aarch64-pc-windows-msvc.exe` |
+
+Windows ARM64 uses Python 3.14. The other platforms use Python 3.12.
 
 ## Installation and updates
 
@@ -20,15 +23,17 @@ The first invocation extracts the embedded environment without network access. I
 
 The managed prefix uses `https://conda.anaconda.org/conda/label/runtime` followed by conda-forge with strict channel priority. The updater stages the matching `conda-runtime` package and holds its lock until the conda transaction and executable replacement finish. It preserves JSON output, quiet mode, dry runs, declined updates, and interruption recovery. Windows uses a deferred replacement worker. Externally owned installations retain their recorded update instructions.
 
+Interactive commands can report available runtime updates using the executable's advisory probe. Checks use cached repodata offline and after network failures. See the [updater settings](updater/README.md) for notification controls and the generic conda warning default.
+
 These binaries use a separate managed-prefix directory from the original conda-runtime distribution. Existing installations continue to use their recorded publisher and are not automatically migrated.
 
 ## Release sequence
 
 1. Build conda from the release tag with the existing recipe and build the updater once as a noarch package. Both use the release version. Canary builds keep their existing version scheme.
-2. Attest and attach those six packages to the existing GitHub release. Their permanent URLs and SHA256 digests become explicit dependencies in generated Pixi manifests, avoiding a feedstock publication dependency and preserving download URLs for recovery.
+2. Attest and attach those seven packages to the existing GitHub release. Their permanent URLs and SHA256 digests become explicit dependencies in generated Pixi manifests, avoiding a feedstock publication dependency and preserving download URLs for recovery.
 3. Lock each native environment, build with released conda-ship, exercise offline bootstrap, and verify macOS ad-hoc signatures. Preserve all generated manifests and locks in `conda-build-records.zip` alongside the release assets.
 4. Package the finalized executable bytes into native update packages, verify their payloads, render installers, validate the complete distribution, and calculate checksums.
-5. Exercise installers and two-generation updates on Linux, macOS, and Windows. The private-channel proof uses conda 26.5.2 as its baseline and covers dry runs, JSON, quiet mode, declined approval, inner failure, successful and repeated updates, external replacement, and Linux interruption recovery.
+5. Exercise installers and two-generation updates on Linux, macOS, and Windows. The private-channel proof uses conda 26.9.0 on Windows ARM64 and conda 26.5.2 elsewhere as its baseline and covers dry runs, JSON, quiet mode, declined approval, inner failure, successful and repeated updates, external replacement, and Linux interruption recovery.
 6. Attest and attach executables, SBOMs, installers, and checksums. Publish conda and updater packages to `conda/label/runtime`, verify visibility, then publish native update packages last.
 
 The workflow preserves release notes and source archives. Reruns accept an existing file only when its size and SHA256 match. They never replace release assets or conda packages. Changed published bytes require a new conda release version.
@@ -45,7 +50,7 @@ This draft proposes `conda/label/runtime` as the official update channel. Its pa
 
 ## Development and rehearsal
 
-The updater remains a separate Python distribution in `runtime/updater`, installed only in these binaries. Its development version is `0.1.0`. The recipe sets wheel and package versions from `CONDA_RUNTIME_VERSION` inside a copied build source.
+The updater remains a separate Python distribution in `runtime/updater`, installed only in these binaries. Its development version is `0.2.0`. The recipe sets wheel and package versions from `CONDA_RUNTIME_VERSION` inside a copied build source.
 
 Run focused tests from the repository root:
 

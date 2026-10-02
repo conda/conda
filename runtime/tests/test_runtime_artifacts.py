@@ -112,8 +112,8 @@ def test_complete_distribution_includes_sboms_in_checksums(tmp_path: Path):
     )
 
     checksum_lines = (root / "release-assets/SHA256SUMS").read_text().splitlines()
-    assert len(checksum_lines) == 13
-    assert sum(line.endswith(".cdx.json") for line in checksum_lines) == 5
+    assert len(checksum_lines) == 15
+    assert sum(line.endswith(".cdx.json") for line in checksum_lines) == 6
 
 
 def test_distribution_requires_every_platform_sbom(tmp_path: Path):
@@ -223,7 +223,7 @@ def test_build_records_archive_is_complete_and_deterministic(tmp_path: Path):
     archive_path = root / "release-assets/conda-build-records.zip"
     contents = archive_path.read_bytes()
     with ZipFile(archive_path) as archive:
-        assert len(archive.namelist()) == 15
+        assert len(archive.namelist()) == 18
         assert archive.namelist() == sorted(archive.namelist())
         for entry in archive.infolist():
             assert entry.date_time == (1980, 1, 1, 0, 0, 0)
