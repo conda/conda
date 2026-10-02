@@ -1,0 +1,40 @@
+### Title
+`build_repodata_subset` fetches only requested root-level extras from sharded repodata
+
+### Why
+New `root_extras` API option lets callers scope which CEP 44 `extra_depends` groups
+get fetched for root/user-requested packages when building a repodata subset from
+sharded channels. Confirm only the requested extras group(s) are fetched, and only
+for the root package(s) they were requested on (not recursively for dependencies).
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+A sharded channel (e.g. `conda-pypi`) hosting a package with multiple
+`extra_depends` groups, such as `httpx` (`cli`, `http2`, `socks`, ...).
+
+### Steps
+1. Using the shards API directly (or a script/plugin that calls
+   `conda._private.shards.subset.build_repodata_subset`), request a subset for
+   `httpx` with `root_extras={"httpx": ["cli"]}` against the sharded channel.
+2. Inspect the resulting repodata subset's packages.
+3. Repeat the request with `root_extras=None` (or omitted) for comparison.
+4. Repeat with `root_extras={"httpx": ["cli", "http2"]}` for comparison.
+
+### Pass criteria
+- Step 1's subset includes packages from the `cli` extras group (e.g. `click`)
+  but excludes packages that are only pulled in by other extras groups (e.g.
+  `http2`/`socks`-only dependencies) and excludes any extras that would come
+  from `cli`'s own dependencies' `extra_depends` (no recursion).
+- Step 3's subset (no `root_extras`) does not include the `cli`-only extras
+  packages.
+- Step 4's subset includes packages from both `cli` and `http2` groups.
+
+### Out of scope / notes
+- Automated coverage: `tests/shards/test_shards.py::test_shard_extra_depends_packages_*`
+  and `tests/shards/test_shards_subset.py`.
+- Not testing MatchSpec `extras=[...]` parsing/UI integration here, only the
+  `root_extras` shards API surface itself.
