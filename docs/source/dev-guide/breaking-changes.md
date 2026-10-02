@@ -8,10 +8,10 @@ sometimes the introduction of breaking changes cannot be avoided.
 For example, we may need to change a configuration default, update the solver,
 or remove/change a CLI subcommand or flag. While these changes are usually few and far between,
 it's important that we define the appropriate procedure to follow for our maintainers.
-Additionally, [CEP 9][cep9] defines the deprecation schedule
-for public API and behavior *removals*, but it does not by itself say how to plan, announce,
-and ship a user-visible breaking change that isn't a symbol removal. This page describes the
-process we use for that, building on CEP 9's schedule and [CEP 8][cep8]'s release cadence.
+This page applies [CEP 9][cep9]'s deprecation schedule to changes that break existing
+supported workflows, including changes to implicit defaults. It adds communication and
+rollout steps without shortening the notice period. [CEP 8][cep8] deliberately allows for
+users who update every three or four months, rather than installing every release.
 
 Read this together with {doc}`Deprecations <deprecations>` (the warning mechanics in code) and
 {doc}`Releasing <releasing>` (how a release actually gets cut).
@@ -19,9 +19,10 @@ Read this together with {doc}`Deprecations <deprecations>` (the warning mechanic
 ## Change categories
 
 **Config default changes and removals**
-: The setting itself stays supported; only its *implicit* default value changes (for example,
-  flipping `add_pip_as_python_dependency` from `true` to `false`), or the setting is removed
-  outright. Users who already set the value explicitly should see no behavior change.
+: A default change keeps the setting supported but changes its *implicit* value (for example,
+  flipping `add_pip_as_python_dependency` from `true` to `false`). Users who already set the
+  value explicitly should see no behavior change. Removing the setting itself is a separate
+  deprecation and must account for those explicit settings too.
 
 **Default solver (or other high-impact default) changes**
 : Swapping which plugin or implementation runs when the user hasn't chosen one, such as the
@@ -32,63 +33,79 @@ Read this together with {doc}`Deprecations <deprecations>` (the warning mechanic
 : Removing a subcommand, removing or renaming a flag, or changing what an existing invocation
   does — not just deprecating the Python API that backs it.
 
-Every category follows the same rollout tools in [Communication and rollout](#communication-and-rollout);
-they differ mainly in *how* conda warns users ahead of time.
+Every category follows the same notice requirements in
+[Communication and rollout](#communication-and-rollout). They differ mainly in how conda
+warns users ahead of time.
 
 ## Relation to CEP 9
 
-[CEP 9][cep9] and {doc}`Deprecations <deprecations>` give us the schedule (pending deprecation →
-deprecation → removal) and the tooling (`deprecated`, `deprecated.argument`, `deprecated.action`,
-`deprecated.constant`, `deprecated.module`, `deprecated.topic`, etc.) for deprecating a **symbol**.
+If a change requires users to modify an existing supported command, configuration, or
+workflow to keep it working, follow [CEP 9][cep9]'s pending, deprecated, and removal schedule.
+Keeping the old behavior available through an explicit setting does not shorten that
+schedule. For example, requiring users to request `pip` explicitly changes workflows that
+previously installed Python and then ran `python -m pip`.
 
-CEP 9 alone is not enough when:
+New opt-in features and implementation changes that preserve supported behavior do not
+need a deprecation period merely because they introduce a setting or change internals.
 
-- The change is a **default value**, not a symbol. There is no function or argument to decorate
-  with `@deprecated(...)`; instead, warn with `deprecated.topic(...)` at the point where conda
-  falls back to the implicit default — and only when the user hasn't set the value explicitly.
-- The change needs **rollout coordination** beyond a warning: a release-notes announcement, a
-  blog post, installer coordination, or a dedicated release. None of that is covered by CEP 9;
-  it's the subject of this page.
-- The behavior lives partly **outside conda's code**, e.g. an installer-level change (like
-  protected base environments) that ships through Miniconda/Miniforge rather than through a
-  `PendingDeprecationWarning`.
+Start the pending period in the release that first ships the notice and migration guidance,
+not when an issue is opened or a pull request merges. Keep the old behavior through at least
+two regular releases before active deprecation in the next March or September release.
+Change the behavior no earlier than the following deprecation release. Optional and hotfix
+releases do not count toward the required regular releases.
 
-If a change *is* a straightforward public symbol or behavior removal, use CEP 9's schedule and
-`conda.deprecations` as documented in {doc}`Deprecations <deprecations>` and stop there — this
-page only adds process for changes that need broader communication.
+The pending period is also time for users to raise concerns. Link to a public tracking issue,
+keep the dates provisional during this period, and resolve objections before confirming the
+change. Follow CEP 9's dispute process if maintainers cannot reach agreement.
+
+For example, a notice first shipped in 26.9 can become an active deprecation in 27.3 and
+change the default in 27.9, provided the required regular releases have shipped. If the
+notice or those releases are delayed, move the later stages to the next eligible releases.
+
+Use the tools described in {doc}`Deprecations <deprecations>` for warning mechanics. A
+default change can use `deprecated.topic(...)` where conda falls back to the implicit value.
+For installer-level changes, provide the notice through the installer and its release notes.
+The choice of warning mechanism does not change the notice period.
 
 ## Communication and rollout
 
-Not every change needs every one of these; use judgment based on blast radius.
+Every breaking change needs the notice period, release notes, and migration guidance below.
+Add CLI notices, blog posts, and installer previews as appropriate for the affected users.
 
 **Warn on the CLI when practical**
-: If conda can detect that a user is relying on the soon-to-change default, emit a warning with
-  `deprecated.topic(...)` (see the Topics section of {doc}`Deprecations <deprecations>`). Only
-  warn when the behavior was *not* explicitly requested — never warn a user who set
-  `solver: classic` or `add_pip_as_python_dependency: false` explicitly. Skip the warning
-  entirely for settings that are a plain user opt-in/opt-out with no implicit default to migrate
-  away from.
+: If conda can detect that an operation relies on the affected behavior, show a notice during
+  normal CLI use starting in the pending release. During pending deprecation, describe the
+  change as proposed and link to the discussion. Include the earliest target release and
+  migration steps in the notice. A normally hidden `PendingDeprecationWarning` alone is not
+  sufficient user-facing notice. Respect quiet and machine-readable output modes.
 
-**Announce in the *previous* release's notes**
-: Add a "Special announcement" section (see the 23.9.0 example below) or a clearly labeled
-  `releases/news/` entry describing what will change and when, in the release *before* the one
-  that ships the change. That gives users at least one release's notice in the changelog itself.
+  For a default change, do not warn when the user explicitly configured a value that remains
+  supported or explicitly requested the behavior, such as including `pip` in the package
+  specs. Removing an explicit setting later requires a separate deprecation.
+
+**Announce at the start of the notice period and repeat the reminder**
+: Add a "Special announcement" section or a clearly labeled `releases/news/` entry in the
+  first pending release. Describe the affected behavior, proposed dates, migration steps,
+  and where users can raise concerns. Repeat the reminder in intervening release notes,
+  including the release immediately before the change. That last announcement is a reminder,
+  not the start of the notice period.
 
 **Publish a [conda.org](https://conda.org) blog post for major changes**
 : For changes with a wide blast radius (default solver, protected base, etc.), a blog post
   reaches users who don't read `CHANGELOG.md`. Link it from the release notes. For extra
   impact, you can link directly to that blog post with an [announcement banner](https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/announcements.html).
 
-**Prefer a dedicated special release on an even month for the highest-impact default flips**
-: Deprecation releases land in March and September ([CEP 9][cep9]). Shipping a high-impact
-  default flip in its own release on an even month keeps it out of deprecation-heavy releases,
-  makes it easy to find in the changelog, and makes it easy to revert if needed. This is what we
-  did for the libmamba solver switch in 23.10.0.
+**A dedicated release may delay the change, not bring it forward**
+: A high-impact default change may ship in a dedicated even-month release after its notice
+  period is complete. For example, a change eligible for 27.9 may move to 27.10, not 26.10.
+  Record the later target in the notices and release notes. A dedicated release makes the
+  change easier to identify and revert, but does not replace time for users to prepare.
 
 **Provide a migration and opt-out path**
-: Document the config setting, CLI flag, or environment variable that restores the old behavior,
-  and keep it working for at least one full deprecation cycle. Repeat this guidance in both the
-  docs and the release notes announcing the change.
+: Document the config setting, CLI flag, or environment variable that restores the old behavior.
+  Keep it working for at least one full deprecation cycle after the default changes. Removing
+  that opt-back-in requires its own CEP 9 deprecation process. Repeat the migration guidance
+  in the docs and release notes.
 
 **Consider a beta installer for installer-coupled behavior**
 : When the behavior depends on how Miniconda/Miniforge are built (for example, protected base
@@ -97,7 +114,11 @@ Not every change needs every one of these; use judgment based on blast radius.
 
 ## Previous examples
 
-### Default solver switch: `conda-libmamba-solver` (23.9.0 → 23.10.0)
+### Default solver switch: `conda-libmamba-solver` (2023 rollout)
+
+- **July 2023**: the [rollout plan](https://conda.org/blog/2023-07-05-conda-libmamba-solver-rollout)
+  publicly announced the intended switch, with plans to include the plugin in installers
+  while keeping classic as the default and asking users to try it before the switch.
 
 - **23.9.0** shipped a "Special announcement" in the release notes stating the intent to switch,
   the opt-out flags (`--solver=classic`, `CONDA_SOLVER=classic`,
@@ -105,6 +126,9 @@ Not every change needs every one of these; use judgment based on blast radius.
   [rollout blog post](https://conda.org/blog/2023-07-05-conda-libmamba-solver-rollout).
 - **23.10.0** was dedicated to the switch itself: `solver: libmamba` became the new default
   ([#12984](https://github.com/conda/conda/issues/12984)), and the release notes restated the same opt-out paths.
+
+This example shows release coordination, not a minimum notice period for future changes.
+The 23.9 announcement was part of an existing rollout, not its first public notice.
 
 ### Config default removal: implicit `defaults` channel (24.9.0 → 25.9.0)
 
