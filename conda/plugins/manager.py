@@ -71,6 +71,7 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
+    from ..models.channel import Channel
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
     from .types import (
@@ -85,6 +86,7 @@ if TYPE_CHECKING:
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
+        CondaPreChannelFetch,
         CondaPreCommand,
         CondaPrefixDataLoader,
         CondaPrefixDataLoaderCallable,
@@ -420,6 +422,11 @@ class CondaPluginManager(pluggy.PluginManager):
 
     @overload
     def get_hook_results(
+        self, name: Literal["pre_channel_fetches"]
+    ) -> list[CondaPreChannelFetch]: ...
+
+    @overload
+    def get_hook_results(
         self, name: Literal["pre_commands"]
     ) -> list[CondaPreCommand]: ...
 
@@ -642,6 +649,11 @@ class CondaPluginManager(pluggy.PluginManager):
             config_param.name: config_param
             for config_param in self.get_hook_results("settings")
         }
+
+    def invoke_pre_channel_fetch(self, channel: Channel) -> None:
+        """Invoke provider checks before the shared resolver reads metadata."""
+        for hook in self.get_hook_results("pre_channel_fetches"):
+            hook.action(channel)
 
     def invoke_pre_commands(self, command: str) -> None:
         """
