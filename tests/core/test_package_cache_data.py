@@ -292,7 +292,7 @@ def test_get_entry_to_link_prefers_matching_target_prefix_device(
             )
         )
 
-    calculate_md5sum = mocker.spy(PackageCacheRecord, "_calculate_md5sum")
+    calculate_md5sum = mocker.spy(PackageCacheRecord, "calculate_md5sum")
     mocker.patch.object(
         PackageCacheData,
         "query_all",
