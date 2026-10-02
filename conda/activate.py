@@ -79,9 +79,9 @@ BUILTIN_COMMANDS = {
 def _touch_last_activated(prefix: str) -> None:
     """Record an activation by updating conda-meta/last_activated's mtime.
 
-    Best-effort: any failure (read-only or frozen envs, shared prefixes without
+    Best-effort activity: any failure (read-only or frozen envs, shared prefixes without
     write permission, network mount errors) is silently ignored so activation
-    never fails because of tracking.
+    never fails because of it can't create or modify the tracking file.
     """
     from .gateways.disk.update import touch
 

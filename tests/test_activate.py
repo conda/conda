@@ -27,6 +27,7 @@ from conda.activate import (
 from conda.base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
+    PREFIX_LAST_ACTIVATED_FILE,
     PREFIX_STATE_FILE,
     ROOT_ENV_NAME,
 )
@@ -275,6 +276,46 @@ def test_activate_environment_not_found(tmp_path: Path):
 
     with pytest.raises(EnvironmentNameNotFound):
         activator.build_activate("wontfindmeIdontexist_abc123")
+
+
+def test_build_activate_touches_last_activated(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
+        last_activated_file = prefix / PREFIX_LAST_ACTIVATED_FILE
+        assert not last_activated_file.exists()
+
+        PosixActivator().build_activate(str(prefix))
+        assert last_activated_file.exists()
+
+        os.utime(last_activated_file, (0, 0))
+        PosixActivator().build_activate(str(prefix))
+        assert last_activated_file.stat().st_mtime > 0
+
+
+def test_build_reactivate_touches_last_activated(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+):
+    with tmp_env() as prefix:
+        # Faking activated shell state with shell level 1
+        monkeypatch.setenv("CONDA_PREFIX", str(prefix))
+        monkeypatch.setenv("CONDA_SHLVL", "1")
+        # Triggering reactivation
+        PosixActivator().build_reactivate()
+        assert (prefix / PREFIX_LAST_ACTIVATED_FILE).exists()
+
+
+def test_build_activate_last_activated_failure_ignored(
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+):
+    # OS errors on the last activated shouldn't cause any failures.  This is nice to have info.
+    with tmp_env() as prefix:
+        mocker.patch(
+            "conda.gateways.disk.update.touch",
+            side_effect=OSError("read-only"),
+        )
+        PosixActivator().build_activate(str(prefix))
+        assert not (prefix / PREFIX_LAST_ACTIVATED_FILE).exists()
 
 
 def test_PS1(tmp_path: Path):
