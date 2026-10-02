@@ -79,9 +79,8 @@ BUILTIN_COMMANDS = {
 def _touch_last_activated(prefix: str) -> None:
     """Record an activation by updating conda-meta/last_activated's mtime.
 
-    Best-effort activity: any failure (read-only or frozen envs, shared prefixes without
-    write permission, network mount errors) is silently ignored so activation
-    never fails because of it can't create or modify the tracking file.
+    This is a best-effort activity and thus why we are wrapping the touch command
+    from gateways.disk.update to ignore any OS errors.
     """
     from .gateways.disk.update import touch
 
@@ -599,7 +598,6 @@ class _Activator(metaclass=abc.ABCMeta):
                 "deactivate_scripts": (),
                 "activate_scripts": (),
             }
-        _touch_last_activated(conda_prefix)
         conda_default_env = os.getenv(
             "CONDA_DEFAULT_ENV", self._default_env(conda_prefix)
         )

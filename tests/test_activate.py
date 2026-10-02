@@ -291,19 +291,6 @@ def test_build_activate_touches_last_activated(tmp_env: TmpEnvFixture):
         assert last_activated_file.stat().st_mtime > 0
 
 
-def test_build_reactivate_touches_last_activated(
-    monkeypatch: MonkeyPatch,
-    tmp_env: TmpEnvFixture,
-):
-    with tmp_env() as prefix:
-        # Faking activated shell state with shell level 1
-        monkeypatch.setenv("CONDA_PREFIX", str(prefix))
-        monkeypatch.setenv("CONDA_SHLVL", "1")
-        # Triggering reactivation
-        PosixActivator().build_reactivate()
-        assert (prefix / PREFIX_LAST_ACTIVATED_FILE).exists()
-
-
 def test_build_activate_last_activated_failure_ignored(
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
