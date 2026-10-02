@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
 
-import menuinst
 import pytest
 
 from conda import CondaError, CondaExitZero, CondaMultiError
@@ -139,7 +138,7 @@ def test_install_python_and_search(
         "conda-forge",
     )
     monkeypatch.setenv("CONDA_CHANNELS", ",".join(channels))
-    reset_context()
+    reset_context("")
     assert context.register_envs
     assert context.allow_non_channel_urls
     assert context.channels == channels
@@ -1659,6 +1658,8 @@ def test_menuinst_v2(
     conda_cli: CondaCLIFixture,
     request: FixtureRequest,
 ):
+    import menuinst
+
     install = mocker.spy(menuinst, "install")
 
     (tmp_path / ".nonadmin").touch()
