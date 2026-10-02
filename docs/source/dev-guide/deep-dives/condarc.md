@@ -37,13 +37,31 @@ The containing directory and its parent directories must be controlled by truste
 users. conda checks observed changes to the destination, lock file, and staged
 file, but these checks and replacement are separate operations. An editor that
 does not take the same lock can still modify or replace a file after a check.
-File timestamps also depend on the operating system and filesystem. In particular,
-Python 3.10 reports creation time as `st_ctime` on Windows, so checking it does not
-detect every Windows access-control change. These checks do not provide
+File timestamps also depend on the operating system and filesystem. On Windows,
+the read state also records the security descriptor because timestamps alone do
+not detect access-control changes. These checks do not provide
 conditional replacement against arbitrary writers or hostile directory changes.
 
 After replacement, the instance retains the contents and identity it committed.
 It does not adopt another writer's replacement as the baseline for its next edit.
+
+### Windows file protection
+
+When replacing an existing Windows file, conda applies the original owner, group,
+DACL, and integrity label to the empty staging file while holding it exclusively.
+It verifies these, resource attributes, and central access policy before writing
+configuration contents.
+If Windows cannot preserve the descriptor or its inheritance settings, the write
+fails and the original file remains in place. conda does not request elevated
+privileges or copy audit ACEs.
+
+For an EFS-encrypted file, conda copies the source's EFS metadata to the empty
+staging file and verifies encryption before writing contents. An unsupported EFS
+operation fails instead of staging plaintext. New configuration files inherit
+their directory's normal protection.
+
+The final rename uses `os.replace`. `ReplaceFileW` has partial-failure behavior
+that can remove or rename the original file even when it reports failure.
 
 ## Basic Usage
 
