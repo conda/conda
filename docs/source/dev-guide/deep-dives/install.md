@@ -244,6 +244,12 @@ trying to keep only the parts that it anticipates will be needed. More details c
 optimization step also takes longer the bigger the index gets.
 ```
 
+```{admonition} Note
+The classic solver, now named `pycosat` (`classic` remains a supported alias), is provided by the
+standalone [`conda-pycosat-solver`](https://github.com/conda/conda-pycosat-solver) plugin rather
+than being registered by conda itself.
+```
+
 ### Channel priorities
 
 `context.channels` returns an `IndexedSet` of `Channel` objects; essentially a list of unique
