@@ -499,10 +499,13 @@ class InfoRenderer:
                 created = created.isoformat()
             if last_modified := prefix_data.last_modified:
                 last_modified = last_modified.isoformat()
+            if last_activated := prefix_data.last_activated:
+                last_activated = last_activated.isoformat()
             result[prefix] = {
                 "name": prefix_data.name,
                 "created": created,
                 "last_modified": last_modified,
+                "last_activated": last_activated,
                 "active": prefix_data == active_prefix_data,
                 "base": prefix_data.is_base(),
                 "frozen": prefix_data.is_frozen(),

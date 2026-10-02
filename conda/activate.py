@@ -387,6 +387,7 @@ class _Activator(metaclass=abc.ABCMeta):
         stack: bool,
     ) -> dict[str, Any]:
         prefix = self._resolve_prefix(env_name_or_prefix)
+        _touch_last_activated(prefix)
 
         # get prior shlvl and prefix
         old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
@@ -598,6 +599,7 @@ class _Activator(metaclass=abc.ABCMeta):
                 "deactivate_scripts": (),
                 "activate_scripts": (),
             }
+        _touch_last_activated(conda_prefix)
         conda_default_env = os.getenv(
             "CONDA_DEFAULT_ENV", self._default_env(conda_prefix)
         )
