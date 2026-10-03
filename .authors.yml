@@ -1523,7 +1523,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 240
+  num_commits: 243
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -1961,7 +1961,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 640
+  num_commits: 641
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2726,3 +2726,21 @@
   github: carterbox
   num_commits: 1
   first_commit: 2026-07-25 15:16:56
+- name: Samartha
+  email: samarthat9@gmail.com
+  github: GruffElixir
+- name: Daniel
+  email: 55808718+codewithdaniel1@users.noreply.github.com
+  github: codewithdaniel1
+- name: paperbenni
+  email: paperbenni@gmail.com
+  github: paperbenni
+- name: Andre
+  email: andre.x.ruizloera@gmail.com
+  github: andreruizloera
+- name: Julien Jerphanion
+  email: git@jjerphan.xyz
+  github: jjerphan
+- name: Mike Taves
+  email: mwtoews@gmail.com
+  github: mwtoews

@@ -1,0 +1,32 @@
+# edit this in https://github.com/conda/infrastructure
+
+name: Prepare authors
+
+on:
+  # https://crontab.guru/#0_3_*_*_1
+  schedule:
+    - cron: '0 3 * * 1'
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    if: '!github.event.repository.fork'
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Prepare Authors
+        uses: conda/actions/prepare-authors@c8ad4261cc1d49709cb774289c68e63663bdc9d5 # v26.9.5
+        with:
+          token: ${{ secrets.SYNC_TOKEN }}
+          since: tag
+          base-branch: main

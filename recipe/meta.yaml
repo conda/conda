@@ -9,7 +9,13 @@ source:
   folder: conda-src
 
 build:
-  script: {{ PYTHON }} -m pip install conda-src/ --no-deps --no-build-isolation -vv && {{ PYTHON }} -m conda init --install
+  skip: true  # [win and arm64 and py < 314]
+  # conda-build applies selectors before parsing YAML, so the copy command is
+  # removed on non-Windows platforms before this string is folded.
+  script: >-
+    "{{ PYTHON }}" -m pip install conda-src/ --no-deps --no-build-isolation -vv
+    && copy /Y "%PREFIX%\share\conda-launchers\cli-arm64.exe" "%SP_DIR%\conda\shell\cli-arm64.exe"  # [win]
+    && "{{ PYTHON }}" -m conda init --install
   # These are present when the new environment is created
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
@@ -60,11 +66,11 @@ requirements:
     - tqdm >=4
     - truststore >=0.8.0
     # Plugins to bundle with conda
-    - conda-libmamba-solver >=26.4.1
-    - conda-lockfiles >=0.2.0
-    - conda-pypi >=0.10.1
-    - conda-rattler-solver >=0.1.1
-    - conda-self >=0.2.0
+    - conda-libmamba-solver >=26.7.0
+    - conda-lockfiles >=0.2.2
+    - conda-pypi >=0.13.0
+    - conda-rattler-solver >=0.2.0
+    - conda-self >=0.3.0
   run_constrained:
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed

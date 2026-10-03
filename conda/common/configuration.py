@@ -1419,7 +1419,13 @@ class Configuration(metaclass=ConfigurationType):
         # A future improvement would be to cache files that are already loaded.
         self.raw_data = {}
         self._cache_ = {}
-        self._reset_callbacks: dict[Callable, None] = {}
+        # We preserve callback registrations across re-initialisation.
+        # reset_context() re-runs __init__ on the context singleton, and
+        # callbacks registered at import time (such as Channel._reset_state)
+        # must survive it for _reset_cache() to stay a complete reset.
+        self._reset_callbacks: dict[Callable, None] = getattr(
+            self, "_reset_callbacks", {}
+        )
         self._validation_errors = defaultdict(list)
 
         self._set_search_path(search_path, **kwargs)
@@ -1680,6 +1686,17 @@ class Configuration(metaclass=ConfigurationType):
         return ()
 
     def collect_all(self) -> dict[str | Path, dict]:
+        """Collect all explicitly set parameters from all sources.  Do not include default values.
+
+        The possible sources are:
+          - Environment variables (constants.ENV_VARS_SOURCE, currently `envvars`)
+          - Command line arguments (constants.CMD_LINE_SOURCE, currently `cmd_line`)
+          - Configuration files (direct paths to the configuration files)
+
+        Returns:
+            dict[str | Path, dict]: A dictionary of all explicitly set parameters from all sources.
+            The keys are the source names, and the values are dictionaries of the parameters and their values.
+        """
         typed_values = {}
         validation_errors = {}
         for source in self.raw_data:

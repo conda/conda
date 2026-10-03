@@ -181,10 +181,10 @@ def test_create_env_default_packages(
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
-    # use "cheap" packages with no dependencies
-    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,zlib")
+    # Use small packages available on all test platforms.
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "more-itertools,zlib")
     reset_context()
-    assert context.create_default_packages == ("favicon", "zlib")
+    assert context.create_default_packages == ("more-itertools", "zlib")
 
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
@@ -197,7 +197,7 @@ def test_create_env_default_packages(
     assert prefix.exists()
     assert package_is_installed(prefix, "python")
     assert package_is_installed(prefix, "pytz")
-    assert package_is_installed(prefix, "favicon")
+    assert package_is_installed(prefix, "more-itertools")
     assert package_is_installed(prefix, "zlib")
 
 
@@ -207,10 +207,10 @@ def test_create_env_no_default_packages(
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
-    # use "cheap" packages with no dependencies
-    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,imagesize")
+    # Use small packages available on all test platforms.
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "more-itertools,imagesize")
     reset_context()
-    assert context.create_default_packages == ("favicon", "imagesize")
+    assert context.create_default_packages == ("more-itertools", "imagesize")
 
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
@@ -224,7 +224,7 @@ def test_create_env_no_default_packages(
     assert prefix.exists()
     assert package_is_installed(prefix, "python")
     assert package_is_installed(prefix, "pytz")
-    assert not package_is_installed(prefix, "favicon")
+    assert not package_is_installed(prefix, "more-itertools")
     assert not package_is_installed(prefix, "imagesize")
 
 

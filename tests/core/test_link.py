@@ -3,9 +3,12 @@
 
 import pytest
 
+from conda.base.context import context, reset_context
 from conda.core import link
-from conda.core.link import UnlinkLinkTransaction
+from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.path_actions import RemoveLinkedPackageRecordAction
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import RemoveError
 from conda.models.records import PackageRecord, PrefixRecord
 
 
@@ -305,3 +308,83 @@ def test_execute_failure_removes_created_prefixes(tmp_path, mocker):
     assert not created.exists()
     assert not temp_dir.exists()
     assert preexisting.exists()
+
+
+def named_package(name: str) -> PackageRecord:
+    """Build a package record whose only meaningful field is its name."""
+    return PackageRecord(name=name, version="1.0", build="0", build_number=0)
+
+
+def root_prefix_with_conda_record(
+    tmp_path, monkeypatch, depends: tuple[str, ...]
+) -> str:
+    """Create a prefix conda treats as the environment it is running from."""
+    prefix = tmp_path / "root"
+    (prefix / "conda-meta").mkdir(parents=True)
+    monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
+    reset_context()
+    prefix_str = context.root_prefix
+    PrefixData(prefix_str).insert(
+        PrefixRecord(
+            name="conda",
+            version="1.0",
+            build="0",
+            build_number=0,
+            channel="test",
+            subdir="noarch",
+            fn="conda-1.0-0.conda",
+            url="https://example.com/conda-1.0-0.conda",
+            depends=depends,
+        )
+    )
+    monkeypatch.setattr(
+        type(context),
+        "conda_prefix",
+        property(lambda self: prefix_str),
+    )
+    return prefix_str
+
+
+def remove_errors_for_prefix_change(
+    prefix: str, *, link_precs=(), unlink_precs=()
+) -> list:
+    """Return RemoveError results for one prefix change."""
+    setup = PrefixSetup(prefix, tuple(unlink_precs), tuple(link_precs), (), (), ())
+    return [
+        exc
+        for exc in UnlinkLinkTransaction._verify_transaction_level({prefix: setup})
+        if isinstance(exc, RemoveError)
+    ]
+
+
+def test_missing_conda_dependency_does_not_block_other_changes(tmp_path, monkeypatch):
+    """A conda dependency absent from conda-meta is not a removal (#14051)."""
+    prefix = root_prefix_with_conda_record(tmp_path, monkeypatch, ("missing-dep",))
+
+    assert (
+        remove_errors_for_prefix_change(
+            prefix, link_precs=(named_package("small-executable"),)
+        )
+        == []
+    )
+
+
+def test_unlinking_conda_dependency_is_still_blocked(tmp_path, monkeypatch):
+    """Replacing conda while dropping one of its dependencies is still rejected."""
+    prefix = root_prefix_with_conda_record(tmp_path, monkeypatch, ())
+    replacement = PackageRecord(
+        name="conda",
+        version="2.0",
+        build="0",
+        build_number=0,
+        depends=["missing-dep"],
+    )
+
+    errors = remove_errors_for_prefix_change(
+        prefix,
+        link_precs=(replacement,),
+        unlink_precs=(named_package("missing-dep"),),
+    )
+
+    assert len(errors) == 1
+    assert "missing-dep" in str(errors[0])

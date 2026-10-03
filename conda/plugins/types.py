@@ -752,18 +752,11 @@ class EnvironmentSpecBase(ABC):
         return self.env
 
 
-class EnvironmentFormat(enum.Enum):
-    """
-    Represents supported environment formats.
-
-    FUTURE: Python 3.11+, use enum.StrEnum
-    """
+class EnvironmentFormat(enum.StrEnum):
+    """Represents supported environment formats."""
 
     lockfile = "lockfile"
     environment = "environment"
-
-    def __str__(self) -> str:
-        return self.value
 
     @property
     def label(self) -> str:

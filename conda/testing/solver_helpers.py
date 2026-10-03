@@ -243,7 +243,7 @@ class SolverTests:
 
     def test_iopro_mkl(self, env):
         env.repo_packages = index_packages(1)
-        assert env.install("iopro 1.4*", "python 2.7*", "numpy 1.7*") == {
+        assert env.install("iopro 1.4.*", "python 2.7.*", "numpy 1.7.*") == {
             "test::iopro-1.4.3-np17py27_p0",
             "test::numpy-1.7.1-py27_0",
             "test::openssl-1.0.1c-0",
@@ -261,7 +261,10 @@ class SolverTests:
     def test_iopro_nomkl(self, env):
         env.repo_packages = index_packages(1)
         assert env.install(
-            "iopro 1.4*", "python 2.7*", "numpy 1.7*", MatchSpec(track_features="mkl")
+            "iopro 1.4.*",
+            "python 2.7.*",
+            "numpy 1.7.*",
+            MatchSpec(track_features="mkl"),
         ) == {
             "test::iopro-1.4.3-np17py27_p0",
             "test::mkl-rt-11.0-p0",
@@ -281,7 +284,7 @@ class SolverTests:
     def test_mkl(self, env):
         env.repo_packages = index_packages(1)
         assert env.install("mkl") == env.install(
-            "mkl 11*", MatchSpec(track_features="mkl")
+            "mkl 11.*", MatchSpec(track_features="mkl")
         )
 
     def test_accelerate(self, env):
@@ -294,8 +297,8 @@ class SolverTests:
         env.repo_packages = index_packages(1)
         records = env.install(
             "scipy",
-            "python 2.7*",
-            "numpy 1.7*",
+            "python 2.7.*",
+            "numpy 1.7.*",
             MatchSpec(track_features="mkl"),
             as_specs=True,
         )
@@ -309,14 +312,14 @@ class SolverTests:
 
     def test_anaconda_nomkl(self, env):
         env.repo_packages = index_packages(1)
-        records = env.install("anaconda 1.5.0", "python 2.7*", "numpy 1.7*")
+        records = env.install("anaconda 1.5.0", "python 2.7.*", "numpy 1.7.*")
         assert len(records) == 107
         assert "test::scipy-0.12.0-np17py27_0" in records
 
     def test_pseudo_boolean(self, env):
         env.repo_packages = index_packages(1)
         # The latest version of iopro, 1.5.0, was not built against numpy 1.5
-        assert env.install("iopro", "python 2.7*", "numpy 1.5*") == {
+        assert env.install("iopro", "python 2.7.*", "numpy 1.5.*") == {
             "test::iopro-1.4.3-np15py27_p0",
             "test::numpy-1.5.1-py27_4",
             "test::openssl-1.0.1c-0",
@@ -331,7 +334,7 @@ class SolverTests:
             "test::pip-1.3.1-py27_1",
         }
         assert env.install(
-            "iopro", "python 2.7*", "numpy 1.5*", MatchSpec(track_features="mkl")
+            "iopro", "python 2.7.*", "numpy 1.5.*", MatchSpec(track_features="mkl")
         ) == {
             "test::iopro-1.4.3-np15py27_p0",
             "test::mkl-rt-11.0-p0",
@@ -352,7 +355,7 @@ class SolverTests:
         env.repo_packages = index_packages(1)
 
         with pytest.raises(UnsatisfiableError) as exc_info:
-            env.install("numpy 1.5*", "scipy 0.12.0b1")
+            env.install("numpy 1.5.*", "scipy 0.12.0b1")
         self.assert_unsatisfiable(
             exc_info,
             [
@@ -362,7 +365,7 @@ class SolverTests:
         )
 
         with pytest.raises(UnsatisfiableError) as exc_info:
-            env.install("numpy 1.5*", "python 3*")
+            env.install("numpy 1.5.*", "python 3.*")
         self.assert_unsatisfiable(
             exc_info,
             [
@@ -375,7 +378,7 @@ class SolverTests:
         with pytest.raises(
             (ResolvePackageNotFound, PackagesNotFoundError, UnsatisfiableError)
         ) as exc_info:
-            env.install("numpy 1.5*", "numpy 1.6*")
+            env.install("numpy 1.5.*", "numpy 1.6.*")
         if exc_info.type is ResolvePackageNotFound:
             assert sorted(map(str, exc_info.value.bad_deps)) == [
                 "numpy[version='1.5.*,1.6.*']",
@@ -600,7 +603,7 @@ class SolverTests:
 
     def test_nonexistent(self, env):
         with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)):
-            env.install("notarealpackage 2.0*")
+            env.install("notarealpackage 2.0.*")
         with pytest.raises((ResolvePackageNotFound, PackagesNotFoundError)):
             env.install("numpy 1.5")
 
@@ -661,12 +664,12 @@ class SolverTests:
             helpers.record(
                 name="mypackage",
                 version="1.0",
-                depends=["nose", "python 3.3*", "notarealpackage 2.0*"],
+                depends=["nose", "python 3.3.*", "notarealpackage 2.0.*"],
             ),
             helpers.record(
                 name="mypackage",
                 version="1.1",
-                depends=["nose", "python 3.3*"],
+                depends=["nose", "python 3.3.*"],
             ),
             helpers.record(
                 name="anotherpackage",
@@ -730,12 +733,12 @@ class SolverTests:
             helpers.record(
                 name="mypackage",
                 version="1.0",
-                depends=["nose", "python 3.3*"],
+                depends=["nose", "python 3.3.*"],
             ),
             helpers.record(
                 name="mypackage",
                 version="1.1",
-                depends=["nose", "python 3.3*", "notarealpackage 2.0*"],
+                depends=["nose", "python 3.3.*", "notarealpackage 2.0.*"],
             ),
             helpers.record(
                 name="anotherpackage",
@@ -803,13 +806,13 @@ class SolverTests:
             helpers.record(
                 name="mypackage",
                 version="1.0",
-                depends=["python 3.3*"],
+                depends=["python 3.3.*"],
                 features="feature",
             ),
             helpers.record(
                 name="feature",
                 version="1.0",
-                depends=["python 3.3*"],
+                depends=["python 3.3.*"],
                 track_features="feature",
             ),
         ]
@@ -860,7 +863,7 @@ class SolverTests:
 
     def test_irrational_version(self, env):
         env.repo_packages = index_packages(1)
-        assert env.install("pytz 2012d", "python 3*") == {
+        assert env.install("pytz 2012d", "python 3.*") == {
             "test::distribute-0.6.36-py33_1",
             "test::openssl-1.0.1c-0",
             "test::pip-1.3.1-py33_1",
@@ -876,7 +879,7 @@ class SolverTests:
     def test_no_features(self, env):
         env.repo_packages = index_packages(1)
 
-        assert env.install("python 2.6*", "numpy 1.6*", "scipy 0.11*") == {
+        assert env.install("python 2.6.*", "numpy 1.6.*", "scipy 0.11.*") == {
             "test::distribute-0.6.36-py26_1",
             "test::numpy-1.6.2-py26_4",
             "test::openssl-1.0.1c-0",
@@ -890,7 +893,10 @@ class SolverTests:
             "test::zlib-1.2.7-0",
         }
         assert env.install(
-            "python 2.6*", "numpy 1.6*", "scipy 0.11*", MatchSpec(track_features="mkl")
+            "python 2.6.*",
+            "numpy 1.6.*",
+            "scipy 0.11.*",
+            MatchSpec(track_features="mkl"),
         ) == {
             "test::distribute-0.6.36-py26_1",
             "test::mkl-rt-11.0-p0",
@@ -913,8 +919,8 @@ class SolverTests:
                 build="np16py27_0",
                 depends=[
                     "dateutil",
-                    "numpy 1.6*",
-                    "python 2.7*",
+                    "numpy 1.6.*",
+                    "python 2.7.*",
                     "pytz",
                 ],
             ),
@@ -930,7 +936,7 @@ class SolverTests:
                 features="mkl",
             ),
         ]
-        assert env.install("pandas 0.12.0 np16py27_0", "python 2.7*") == {
+        assert env.install("pandas 0.12.0 np16py27_0", "python 2.7.*") == {
             "test::dateutil-2.1-py27_1",
             "test::distribute-0.6.36-py27_1",
             "test::numpy-1.6.2-py27_4",
@@ -947,7 +953,7 @@ class SolverTests:
             "test::zlib-1.2.7-0",
         }
         assert env.install(
-            "pandas 0.12.0 np16py27_0", "python 2.7*", MatchSpec(track_features="mkl")
+            "pandas 0.12.0 np16py27_0", "python 2.7.*", MatchSpec(track_features="mkl")
         ) == {
             "test::dateutil-2.1-py27_1",
             "test::distribute-0.6.36-py27_1",
@@ -989,17 +995,17 @@ class SolverTests:
         # it has a higher build version
         monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
         assert "channel-A::pandas-0.11.0-np16py27_0" in env.install(
-            "pandas", "python 2.7*", "numpy 1.6*"
+            "pandas", "python 2.7.*", "numpy 1.6.*"
         )
         monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "False")
         assert "channel-1::pandas-0.11.0-np16py27_1" in env.install(
-            "pandas", "python 2.7*", "numpy 1.6*"
+            "pandas", "python 2.7.*", "numpy 1.6.*"
         )
         # now lets revert the channels
         env.repo_packages = dict(reversed(env.repo_packages.items()))
         monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
         assert "channel-1::pandas-0.11.0-np16py27_1" in env.install(
-            "pandas", "python 2.7*", "numpy 1.6*"
+            "pandas", "python 2.7.*", "numpy 1.6.*"
         )
 
     @pytest.mark.xfail(reason="CONDA_CHANNEL_PRIORITY does not seem to have any effect")
@@ -1070,7 +1076,7 @@ class SolverTests:
     )
     def test_remove(self, env):
         env.repo_packages = index_packages(1)
-        records = env.install("pandas", "python 2.7*", as_specs=True)
+        records = env.install("pandas", "python 2.7.*", as_specs=True)
         assert package_string_set(records) == {
             "test::dateutil-2.1-py27_1",
             "test::distribute-0.6.36-py27_1",
