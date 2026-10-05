@@ -250,6 +250,18 @@ class PrefixData(metaclass=PrefixDataType):
         return paths_equal(str(self.prefix_path), context.root_prefix)
 
     @property
+    def is_active(self) -> bool:
+        """Whether this prefix is the currently active environment.
+
+        Though is_active isn't an on disk characteristic of an environment, it
+        is a nice to have when assessing the state of an environment.
+        """
+        return bool(
+            context.active_prefix
+            and paths_equal(self.prefix_path, context.active_prefix)
+        )
+
+    @property
     def is_writable(self) -> bool | None | _Null:
         """
         Check whether the configured path is writable. This is assessed by checking
