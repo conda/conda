@@ -236,14 +236,14 @@ class ConsoleReporterRenderer(ReporterRendererBase):
                 marker(env_prefix),
                 env_prefix.name,
                 rel(env_prefix.last_activated),
-                rel(env_prefix.last_modified),
+                rel(env_prefix.created),
             ]
             if show_size:
                 row.append(human_bytes(env_prefix.size()))
             row.append(display_path(env_prefix.prefix_path))
             rows.append(row)
 
-        headers = ["", "Name", "Last Active", "Modified"]
+        headers = ["", "Name", "Last Active", "Created"]
         right_aligned = set()
         if show_size:
             size_column = len(headers)
