@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timezone
 from errno import EPIPE, ESHUTDOWN
 from itertools import cycle
 from threading import Event, Thread
@@ -38,6 +37,7 @@ from ..types import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from datetime import datetime
     from typing import Any
 
     from ...common.path import PathType
@@ -226,12 +226,15 @@ class ConsoleReporterRenderer(ReporterRendererBase):
             """Return a marker indicating the environment status."""
             return "*" if prefix.is_active else "+" if prefix.is_frozen() else " "
 
+        def rel(dt: datetime | None) -> str:
+            """Provide relative time string or '-' if dt is None."""
+            return format_relative_time(dt) if dt else "-"
+
         rows = []
         for env_prefix in prefixes:
             if not isinstance(env_prefix, PrefixData):
                 env_prefix = PrefixData(env_prefix)
 
-            rel = lambda dt: format_relative_time(dt) if dt else "-"
             row = [
                 marker(env_prefix),
                 env_prefix.name,
@@ -257,7 +260,7 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         ]
 
         def format_row(row_data: list[str], right_aligned=frozenset()) -> str:
-            """Format table rowe with assumption path is the last column and unpadded."""
+            """Format a table row, assuming `Path` is the last column and unpadded."""
             formatted_cells = [cell.rjust(widths[i]) if i in right_aligned
                                else cell.ljust(widths[i])
                                for i, cell in enumerate(row_data[:-1])]
