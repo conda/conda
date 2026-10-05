@@ -1,0 +1,20 @@
+### Enhancements
+
+* Track the last time an environment was activated via user invocation. Activation modifies the mtime of `<prefix>/conda-meta/last_activated` (best-effort; failures are ignored). The timestamp is exposed `last_activated` in json output or under new `Last Active` heading in newly reformated `conda env list` table format. (#14308 via #16808)
+* `PrefixData` now has is_active property. (#14308 via #16808)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Added small explaination to documentation about json timestamps.
+
+### Other
+
+* <news item>
