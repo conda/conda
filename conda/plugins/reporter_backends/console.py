@@ -8,7 +8,9 @@ This reporter backend provides the default output for conda.
 
 from __future__ import annotations
 
+import os
 import sys
+from datetime import datetime, timezone
 from errno import EPIPE, ESHUTDOWN
 from itertools import cycle
 from threading import Event, Thread
@@ -19,6 +21,7 @@ from ...base.constants import (
     DEFAULT_CONSOLE_REPORTER_BACKEND,
 )
 from ...base.context import context
+from ...common.datetime import format_relative_time
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
 from ...common.terminal import is_tty, term_dumb
@@ -206,31 +209,73 @@ class ConsoleReporterRenderer(ReporterRendererBase):
     def envs_list(prefixes: Iterable[PathType | PrefixData], **kwargs) -> str:
         show_size = kwargs.get("show_size", False)
 
-        output = [
-            "# conda environments:",
-            "#",
-            "# * -> active",
-            "# + -> frozen",
-        ]
+        home = os.path.expanduser("~")
+        home_n = os.path.normcase(home)
 
-        def disp_env(prefix: PrefixData) -> str:
-            active = (
-                "*"
-                if context.active_prefix
-                and paths_equal(prefix.prefix_path, context.active_prefix)
-                else " "
-            )
-            frozen = "+" if prefix.is_frozen() else " "
-            if show_size:
-                size_str = human_bytes(prefix.size())
-                return f"{prefix.name:20} {active} {frozen} {size_str:>10} {prefix.prefix_path}"
-            else:
-                return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
+        def display_path(path: PathType) -> str:
+            """Shorten path if the home path is a part of the path"""
+            path = str(path)
+            path_n = os.path.normcase(path)
+            if path_n == home_n:
+                return "~"
+            if path_n.startswith(home_n + os.sep):
+                return "~" + path[len(home) :]
+            return path
 
+        def marker(prefix: PrefixData) -> str:
+            """Return a marker indicating the environment status."""
+            return "*" if prefix.is_active else "+" if prefix.is_frozen() else " "
+
+        rows = []
         for env_prefix in prefixes:
             if not isinstance(env_prefix, PrefixData):
                 env_prefix = PrefixData(env_prefix)
-            output.append(disp_env(env_prefix))
+
+            rel = lambda dt: format_relative_time(dt) if dt else "-"
+            row = [
+                marker(env_prefix),
+                env_prefix.name,
+                rel(env_prefix.last_activated),
+                rel(env_prefix.last_modified),
+            ]
+            if show_size:
+                row.append(human_bytes(env_prefix.size()))
+            row.append(display_path(env_prefix.prefix_path))
+            rows.append(row)
+
+        headers = ["", "Name", "Last Active", "Modified"]
+        right_aligned = set()
+        if show_size:
+            size_column = len(headers)
+            headers.append("Size")
+            right_aligned.add(size_column)
+        headers.append("Path")
+
+        widths = [
+            max(len(headers[i]), *(len(row[i]) for row in rows))
+            for i in range(len(headers))
+        ]
+
+        def format_row(row_data: list[str], right_aligned=frozenset()) -> str:
+            """Format table rowe with assumption path is the last column and unpadded."""
+            formatted_cells = [cell.rjust(widths[i]) if i in right_aligned
+                               else cell.ljust(widths[i])
+                               for i, cell in enumerate(row_data[:-1])]
+            formatted_cells.append(row_data[-1])
+
+            return "   ".join(formatted_cells)
+
+        header_line = format_row(headers)
+        formatted_rows = [format_row(row, right_aligned) for row in rows]
+        long_line = "-" * (len(header_line) + 10)
+
+        output = [
+            header_line,
+            long_line,
+            *formatted_rows,
+            "",
+            "* = Active, + = Frozen",
+        ]
 
         # leading and trailing newlines
         return "\n" + "\n".join(output) + "\n\n"
