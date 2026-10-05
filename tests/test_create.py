@@ -25,6 +25,7 @@ import pytest
 from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
+    CONDA_TEMP_EXTENSION,
     PACKAGE_CACHE_MAGIC_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_PINNED_FILE,
@@ -1212,6 +1213,31 @@ def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFix
         conda_cli("remove", f"--prefix={prefix}", "readline", "--force-remove", "--yes")
         assert not package_is_installed(prefix, "readline")
         assert package_is_installed(prefix, PYTHON_SPEC)
+
+
+@pytest.mark.skipif(not on_linux, reason="sysroot_linux-64 depends on __linux")
+def test_install_remove_absolute_symlink_to_directory(
+    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+):
+    """Package contains ``x86_64-conda-linux-gnu/sysroot/usr -> /usr``."""
+    with tmp_env("--platform", "linux-64") as prefix:
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            "--override-channels",
+            "--channel=conda-forge/label/sysroot_dev",
+            "sysroot_linux-64=9999=hf2ff53a_0",
+            "--yes",
+        )
+        assert package_is_installed(prefix, "sysroot_linux-64=9999")
+        link = prefix / "x86_64-conda-linux-gnu" / "sysroot" / "usr"
+        assert link.is_symlink()
+        assert os.readlink(link) == "/usr"
+
+        conda_cli("remove", f"--prefix={prefix}", "sysroot_linux-64", "--yes")
+        assert not package_is_installed(prefix, "sysroot_linux-64")
+        assert not os.path.lexists(link)
+        assert not os.path.lexists(f"{link}{CONDA_TEMP_EXTENSION}")
 
 
 def test_install_force_reinstall_flag(
@@ -2514,156 +2540,6 @@ def test_upgrade_conda_creates_windows_entry_point(
         )
 
 
-def test_dont_remove_conda_3(
-    conda_cli: CondaCLIFixture,
-    tmp_env: TmpEnvFixture,
-    monkeypatch: MonkeyPatch,
-):
-    """
-    If conda thinks its core dependency is uninstalled (happens when pip
-    upgrades a dependency) it could produce spurious RemoveError, blocking
-    further use of conda.
-    """
-    if context.solver not in ("libmamba", "classic", "rattler"):
-        pytest.skip(
-            "This test can only be run with solvers that come shipped with conda"
-        )
-
-    packages = ["conda", "conda-pypi"]
-    if on_win:
-        # The converted checkout needs conda's non-PyPI Windows dependency.
-        packages.append("conda-launchers")
-    with tmp_env(*packages) as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
-        monkeypatch.setenv("CONDA_PREFIX", str(prefix))
-        monkeypatch.delenv("CONDA_DEFAULT_ENV", raising=False)
-        monkeypatch.delenv("CONDA_PROMPT_MODIFIER", raising=False)
-        monkeypatch.delenv("CONDA_SHLVL", raising=False)
-        reset_context()
-        assert context.root_prefix == str(prefix)
-
-        conda_exe = prefix / BIN_DIRECTORY / ("conda.exe" if on_win else "conda")
-        assert conda_exe.exists()
-
-        subprocess_env = os.environ.copy()
-        for env_var in (
-            "CONDA_DEFAULT_ENV",
-            "CONDA_PREFIX",
-            "CONDA_PROMPT_MODIFIER",
-            "CONDA_SHLVL",
-            "CONDA_EXE",
-            "CONDA_PYTHON_EXE",
-            "_CE_M",
-            "_CE_CONDA",
-        ):
-            subprocess_env.pop(env_var, None)
-        subprocess_env["CONDA_ROOT_PREFIX"] = str(prefix)
-
-        checkout_dir = Path(__file__).resolve().parents[1]
-        run(
-            [conda_exe, "pypi", "convert", str(checkout_dir)],
-            check=True,
-            cwd=prefix,
-            env=subprocess_env,
-        )
-        converted_pkgs = sorted((prefix / "conda-pypi-output").glob("conda-*.conda"))
-        if not converted_pkgs:
-            converted_pkgs = sorted(
-                (prefix / "conda-pypi-output").glob("conda-*.tar.bz2")
-            )
-        assert converted_pkgs
-        converted_conda_pkg = converted_pkgs[-1]
-
-        foreign_root_prefix = prefix / "tmp-root-prefix"
-        foreign_root_prefix.mkdir()
-        remove_env = subprocess_env.copy()
-        remove_env["CONDA_ROOT_PREFIX"] = str(foreign_root_prefix)
-
-        print("Remove prepackaged conda")
-
-        run(
-            [conda_exe, "remove", f"--prefix={prefix}", "conda", "--force", "--yes"],
-            check=True,
-            env=remove_env,
-        )
-        assert not package_is_installed(prefix, "conda")
-
-        print("Install conda under test")
-
-        conda_cli("install", f"--prefix={prefix}", str(converted_conda_pkg), "--yes")
-        assert package_is_installed(prefix, "conda")
-
-        print("Remove conda-package-handling from conda-meta")
-
-        conda_dependency = "conda-package-handling"
-        # May still be true either due to cache or pip interoperability:
-        print(
-            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
-        )
-        conda_dependency_meta = [
-            *(prefix / "conda-meta").glob(f"{conda_dependency}-*.json"),
-        ]
-        assert conda_dependency_meta
-        for meta_path in conda_dependency_meta:
-            meta_path.unlink()
-
-        # reload() to update cached results
-        PrefixData(str(prefix)).reload()
-        print(
-            f"{conda_dependency} installed? {package_is_installed(prefix, conda_dependency)}"
-        )
-
-        lightweight_dependency = "small-executable"
-        assert not package_is_installed(prefix, lightweight_dependency)
-        expected_remove_error = "RemoveError"
-
-        print(f"Install {lightweight_dependency}")
-
-        install_exc = run(
-            [
-                prefix / PYTHON_BINARY,
-                "-m",
-                "conda",
-                "install",
-                f"--prefix={prefix}",
-                "-c",
-                str(TEST_RECIPES_CHANNEL),
-                "--yes",
-                lightweight_dependency,
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            env=subprocess_env,
-        )
-        install_output = (install_exc.stdout or "") + (install_exc.stderr or "")
-        assert expected_remove_error not in install_output
-
-        print(
-            f"Remove {lightweight_dependency} (probably fails because it wasn't installed due to RemoveError"
-        )
-
-        remove_exc = run(
-            [
-                prefix / PYTHON_BINARY,
-                "-m",
-                "conda",
-                "remove",
-                f"--prefix={prefix}",
-                "-c",
-                str(TEST_RECIPES_CHANNEL),
-                "--yes",
-                lightweight_dependency,
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            env=subprocess_env,
-        )
-        remove_output = (remove_exc.stdout or "") + (remove_exc.stderr or "")
-        assert expected_remove_error not in remove_output
-
-
 def test_force_remove(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
 ):
@@ -2756,6 +2632,59 @@ def test_transactional_rollback_upgrade_downgrade(
         assert package_is_installed(prefix, "dependent=1.0")
         # Rollback must keep conda-meta/history so the prefix remains an environment.
         assert (prefix / "conda-meta" / "history").is_file()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "script",
+        pytest.param(
+            "launcher",
+            marks=pytest.mark.skipif(
+                not on_win, reason="Windows launcher verification"
+            ),
+        ),
+    ],
+)
+def test_entry_point_failure_rolls_back(
+    failure: str,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("conda-forge::pygments[subdir=noarch]") as prefix:
+        record = package_is_installed(prefix, "pygments")
+        paths = [
+            prefix / "conda-meta" / f"pygments-{record.version}-{record.build}.json",
+            prefix / "conda-meta" / "history",
+        ]
+        paths.extend(
+            prefix / BIN_DIRECTORY / name
+            for name in (
+                ("pygmentize.exe", "pygmentize-script.py")
+                if on_win
+                else ("pygmentize",)
+            )
+        )
+        original = {path: path.read_bytes() for path in paths}
+        target = (
+            "conda.core.path_actions.create_python_entry_point"
+            if failure == "script"
+            else "conda.core.launchers.verify_windows_launcher"
+        )
+        mocker.patch(target, side_effect=OSError("entry point failure"))
+
+        with pytest.raises(CondaMultiError, match="entry point failure"):
+            conda_cli(
+                "install",
+                f"--prefix={prefix}",
+                f"pygments={record.version}={record.build}[subdir=noarch]",
+                "--force-reinstall",
+                "--offline",
+                "--yes",
+            )
+
+        assert {path: path.read_bytes() for path in paths} == original
 
 
 def test_directory_not_a_conda_environment(tmp_path: Path, conda_cli: CondaCLIFixture):

@@ -376,6 +376,13 @@ class _Activator(metaclass=abc.ABCMeta):
         old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
         old_conda_prefix = os.getenv("CONDA_PREFIX")
 
+        if old_conda_shlvl > 0 and not old_conda_prefix:
+            raise CondaValueError(
+                f"CONDA_SHLVL is {old_conda_shlvl} but CONDA_PREFIX is unset or empty. "
+                "Check your shell initialization and any parent process that modifies "
+                "conda environment variables."
+            )
+
         # if the prior active prefix is this prefix we are actually doing a reactivate
         if old_conda_prefix == prefix and old_conda_shlvl > 0:
             return self.build_reactivate()
