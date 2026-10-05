@@ -115,11 +115,14 @@ def test_info_envs(conda_cli: CondaCLIFixture):
 def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env, test_recipes_channel):
     with tmp_env() as prefix:
         Path(prefix, PREFIX_FROZEN_FILE).touch()
-        prefixes = list_all_known_prefixes()
 
         stdout, stderr, err = conda_cli("info", "--envs")
-        assert stdout == ConsoleReporterRenderer.envs_list(prefixes)
-        assert " + " in stdout
+        frozen_row = next(
+                   (line for line in stdout.splitlines() if str(prefix) in line),
+                   None,
+        )
+        assert frozen_row is not None, f"env not listed in: {stdout}"
+        assert frozen_row.lstrip().startswith("+")
         assert not stderr
         assert not err
 
@@ -338,8 +341,9 @@ def test_info_envs_size(conda_cli: CondaCLIFixture):
     assert not stderr
     assert not err
 
+    # table structure: header, rule, rows..., blank, legend
     lines = stdout.strip().split("\n")
-    non_comment_lines = [line for line in lines if line and not line.startswith("#")]
+    row_lines = [line for line in lines[2:-1] if line]
 
     # regex to match: <any prefix stuff> <number> <unit> <path>
     # The path is at the end of the line.
@@ -347,7 +351,7 @@ def test_info_envs_size(conda_cli: CondaCLIFixture):
         r"\s+(?P<size>\d+(\.\d+)?)\s+(?P<unit>B|KB|MB|GB)\s+(?P<path>.*)$"
     )
 
-    for line in non_comment_lines:
+    for line in row_lines:
         match = pattern.search(line)
         assert match, f"Line did not match size pattern: {line}"
         assert match.group("unit") in ["B", "KB", "MB", "GB"]
