@@ -112,19 +112,19 @@ def test_info_envs(conda_cli: CondaCLIFixture):
     assert not err
 
 
-def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env, test_recipes_channel):
-    with tmp_env() as prefix:
-        Path(prefix, PREFIX_FROZEN_FILE).touch()
+def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env, tmp_envs_dir):
+    with tmp_env(prefix=tmp_envs_dir / "frozen-env") as prefix:
+        (prefix / PREFIX_FROZEN_FILE).touch()
 
         stdout, stderr, err = conda_cli("info", "--envs")
-        frozen_row = next(
-                   (line for line in stdout.splitlines() if str(prefix) in line),
-                   None,
-        )
-        assert frozen_row is not None, f"env not listed in: {stdout}"
-        assert frozen_row.lstrip().startswith("+")
         assert not stderr
         assert not err
+        frozen_row = next(
+                    (line for line in stdout.splitlines() if str(prefix) in line),
+                    None,
+        )
+        assert frozen_row is not None, f"env: {prefix} not listed in: {stdout}"
+        assert frozen_row.lstrip().startswith("+")
 
 
 # conda info --system [--json]
