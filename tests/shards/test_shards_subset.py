@@ -650,6 +650,9 @@ def _root_extras_repodata() -> RepodataDict:
     Small hand-built repodata: "httpx" depends on "core-dep" and offers two
     CEP 44 extras groups ("cli" -> "cli-dep", "http2" -> "http2-dep"), each
     with no further dependencies of their own.
+
+    "core-dep" has its own `extras_depends` that we use to make sure we
+    don't recursively fetch all extras.
     """
     return {
         "info": {"base_url": ""},
@@ -672,6 +675,9 @@ def _root_extras_repodata() -> RepodataDict:
                 "build": "0",
                 "build_number": 0,
                 "depends": [],
+                "extra_depends": {
+                    "core-extra": ["core-extra-dep"],
+                },
             },
             "cli-dep-1.0-0.conda": {
                 "name": "cli-dep",
@@ -687,69 +693,81 @@ def _root_extras_repodata() -> RepodataDict:
                 "build_number": 0,
                 "depends": [],
             },
+            "core-extra-dep-1.0-0.conda": {
+                "name": "core-extra-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
         },
         "repodata_version": 2,
     }  # type: ignore[typeddict-item]
 
 
-class TestRootExtras:
-    """
-    Tests for root-only CEP 44 extras traversal, e.g. a root MatchSpec like
-    `httpx[extras=cli]` should also pull in shards for httpx's "cli"
-    extra_depends group, but not other, unrequested extras groups.
-    """
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_fetches_only_requested_group(algorithm):
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["cli"]})
 
-    @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
-    def test_root_extras_fetches_only_requested_group(self, algorithm):
-        shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
-        subset = RepodataSubset([shardlike])
-        subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["cli"]})
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "cli-dep" in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
 
-        assert "httpx" in shardlike.visited
-        assert "core-dep" in shardlike.visited
-        assert "cli-dep" in shardlike.visited
-        assert "http2-dep" not in shardlike.visited
 
-    @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
-    def test_no_root_extras_is_backward_compatible(self, algorithm):
-        """Omitting root_extras behaves exactly as before this feature."""
-        shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
-        subset = RepodataSubset([shardlike])
-        subset.reachable(["httpx"], strategy=algorithm)
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_no_root_extras_is_backward_compatible(algorithm):
+    """Omitting root_extras behaves exactly as before this feature."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm)
 
-        assert "httpx" in shardlike.visited
-        assert "core-dep" in shardlike.visited
-        assert "cli-dep" not in shardlike.visited
-        assert "http2-dep" not in shardlike.visited
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "cli-dep" not in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
 
-    @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
-    def test_root_extras_unknown_root_package_ignored(self, algorithm):
-        """root_extras for a package name absent from root_packages is a no-op."""
-        shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
-        subset = RepodataSubset([shardlike])
-        subset.reachable(
-            ["httpx"], strategy=algorithm, root_extras={"unrelated": ["cli"]}
-        )
 
-        assert "cli-dep" not in shardlike.visited
-        assert "http2-dep" not in shardlike.visited
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_unknown_root_package_ignored(algorithm):
+    """root_extras for a package name absent from root_packages is a no-op."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"unrelated": ["cli"]})
 
-    def test_build_repodata_subset_root_extras(self, monkeypatch):
-        """Cover the public build_repodata_subset() API, not just RepodataSubset."""
-        shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
-        monkeypatch.setattr(
-            shards_subset,
-            "fetch_channels",
-            lambda channels: {shardlike.url: shardlike},
-        )
+    assert "cli-dep" not in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
 
-        channel_data = build_repodata_subset(
-            ["httpx"], {}, root_extras={"httpx": ["cli"]}
-        )
 
-        assert channel_data is not None
-        assert "cli-dep" in shardlike.visited
-        assert "http2-dep" not in shardlike.visited
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_does_not_recurse(algorithm):
+    """Ensure extras for the requested package's dependencies are not fetched"""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["http2"]})
+
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "http2-dep" in shardlike.visited
+    assert "core-extra-dep" not in shardlike.visited
+
+
+def test_build_repodata_subset_root_extras(monkeypatch):
+    """Cover the public build_repodata_subset() API, not just RepodataSubset."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    monkeypatch.setattr(
+        shards_subset,
+        "fetch_channels",
+        lambda channels: {shardlike.url: shardlike},
+    )
+
+    channel_data = build_repodata_subset(["httpx"], {}, root_extras={"httpx": ["cli"]})
+
+    assert channel_data is not None
+    assert "cli-dep" in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
 
 
 def clean_cache(conda_cli: CondaCLIFixture):
