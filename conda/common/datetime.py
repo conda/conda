@@ -125,7 +125,10 @@ def normalize_timestamp_seconds(value: str | int | float) -> float:
 
 def format_relative_time(dt: datetime, now: datetime | None = None) -> str:
     """Format a datetime as relative time (``just now``, ``3m ago``, ``2d ago``)
-    less than 31 days, then as a date (``2026-09-14``)."""
+    less than 31 days, then as a date (``2026-09-14``).
+
+    `now` can be supplied, if not it will be calculated.
+    """
     now = now or datetime.now(tz=timezone.utc)
     delta = now - dt
     seconds = int(delta.total_seconds())
