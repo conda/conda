@@ -11,7 +11,12 @@ import pytest
 
 from conda.common.compat import on_win
 from conda.gateways.disk.create import TemporaryDirectory, create_link, mkdir_p
-from conda.gateways.disk.delete import backoff_rmdir, rm_rf, rmtree, unlink_or_rename_to_trash
+from conda.gateways.disk.delete import (
+    backoff_rmdir,
+    rm_rf,
+    rmtree,
+    unlink_or_rename_to_trash,
+)
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.test import softlink_supported
