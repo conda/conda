@@ -7,7 +7,7 @@ import json
 import os
 import re
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import datetime
 from os.path import isdir
 from pathlib import Path
 from types import SimpleNamespace

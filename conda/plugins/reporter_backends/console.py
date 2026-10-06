@@ -22,7 +22,6 @@ from ...base.constants import (
 from ...base.context import context
 from ...common.datetime import format_relative_time
 from ...common.io import swallow_broken_pipe
-from ...common.path import paths_equal
 from ...common.terminal import is_tty, term_dumb
 from ...core.prefix_data import PrefixData
 from ...exceptions import CondaError
