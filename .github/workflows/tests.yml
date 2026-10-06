@@ -81,17 +81,17 @@ jobs:
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         runs-on: [windows-latest, windows-11-arm]
-        python-version: ['3.10', '3.14']
+        python-version: ['3.11', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - default-channel: conda-forge
-            python-version: '3.10'
+            python-version: '3.11'
           - test-type: unit
             test-group: 3
           - runs-on: windows-11-arm
-            python-version: '3.10'
+            python-version: '3.11'
         include:
           - subdir: win-64
           - runs-on: windows-11-arm
@@ -235,21 +235,17 @@ jobs:
         runs-on:
           - ubuntu-latest  # linux-64
           - ubuntu-24.04-arm  # linux-aarch64
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
-          - python-version: '3.10'
-            default-channel: conda-forge
           - python-version: '3.11'
             default-channel: conda-forge
           - python-version: '3.12'
             default-channel: conda-forge
           - test-type: unit
             test-group: 3
-          - runs-on: ubuntu-24.04-arm
-            python-version: '3.10'
           - runs-on: ubuntu-24.04-arm
             python-version: '3.11'
           - runs-on: ubuntu-24.04-arm
@@ -758,7 +754,7 @@ jobs:
         runs-on:
           - macos-15-intel  # osx-64
           - macos-latest  # osx-arm64
-        python-version: ['3.10', '3.14']
+        python-version: ['3.11', '3.14']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -770,7 +766,7 @@ jobs:
           - runs-on: macos-15-intel
             test-type: integration
           - runs-on: macos-latest
-            python-version: '3.10'
+            python-version: '3.11'
           - runs-on: macos-latest
             default-channel: conda-forge
           - runs-on: macos-latest

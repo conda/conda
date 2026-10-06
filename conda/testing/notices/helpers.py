@@ -32,7 +32,7 @@ def get_test_notices(
     created_at: datetime.datetime | None = None,
     expired_at: datetime.datetime | None = None,
 ) -> dict:
-    created_at = created_at or datetime.datetime.now(datetime.timezone.utc)
+    created_at = created_at or datetime.datetime.now(datetime.UTC)
     expired_at = expired_at or created_at + datetime.timedelta(days=7)
 
     return {

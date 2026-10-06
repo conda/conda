@@ -8,7 +8,7 @@ import os
 import re
 import warnings
 from collections import UserDict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from logging import getLogger
 from os.path import basename, lexists
 from pathlib import Path
@@ -430,7 +430,7 @@ class PrefixData(metaclass=PrefixDataType):
                         creation_time = float(magicfile.read_text().strip())
                     except (OSError, ValueError, TypeError):
                         return None
-            return datetime.fromtimestamp(creation_time, tz=timezone.utc)
+            return datetime.fromtimestamp(creation_time, tz=UTC)
 
     @property
     def last_modified(self) -> datetime | None:
@@ -444,7 +444,7 @@ class PrefixData(metaclass=PrefixDataType):
         except FileNotFoundError:
             return None
         else:
-            return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+            return datetime.fromtimestamp(stat.st_mtime, tz=UTC)
 
     @property
     def last_activated(self) -> datetime | None:
@@ -754,9 +754,7 @@ class PrefixData(metaclass=PrefixDataType):
         Writes a .creation-time file in conda-meta with the current timestamp, meant
         to be used by .created property as a fallback.
         """
-        timestamp = (
-            self.created or self.last_modified or datetime.now(timezone.utc).timestamp()
-        )
+        timestamp = self.created or self.last_modified or datetime.now(UTC).timestamp()
         timestamp_file = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
         timestamp_file.parent.mkdir(parents=True, exist_ok=True)
         timestamp_file.write_text(str(timestamp))

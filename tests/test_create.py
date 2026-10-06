@@ -2794,32 +2794,69 @@ def test_remove_spellcheck(
         conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
 
 
-@pytest.mark.skipif(
-    context.subdir == "win-32", reason="dependencies not available for win-32"
-)
 def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Path):
-    # regression test for https://github.com/conda/conda/issues/8772
-    # conda-forge puts a run_constrains on libboost, which they don't have on conda-forge.
-    #   This is a way of forcing libboost to be removed.  It's a way that they achieve
-    #   mutual exclusivity with the boost from defaults that works differently.
+    # Regression for #8772: an impossible optional constraint must not
+    # make the constraining package uninstallable.
+    channel_packages = (
+        (
+            {"name": "app", "depends": ["engine >=1"]},
+            {"name": "engine", "constrains": ["old-engine <0"]},
+        ),
+        ({"name": "old-engine"},),
+    )
+    channels = []
 
-    # Keep the historical Boost metadata for this dry run on win-arm64.
-    platform_args = ("--platform=win-64",) if context.subdir == "win-arm64" else ()
-    # if this test passes, we'll hit the DryRunExit exception, instead of an UnsatisfiableError
-    with pytest.raises(DryRunExit):
-        conda_cli(
-            "create",
-            f"--prefix={tmp_path}",
-            "--dry-run",
-            "--override-channels",
-            "--channel=conda-forge",
-            "--channel=defaults",
-            *platform_args,
-            "python",
-            "boost==1.82.0",
-            "boost-cpp==1.82.0",
-            "--yes",
-        )
+    for channel_number, packages in enumerate(channel_packages):
+        channel = tmp_path / f"channel-{channel_number}"
+        records = {
+            f"{package['name']}-1.0-0.tar.bz2": {
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+                "subdir": "noarch",
+                "noarch": "generic",
+                **package,
+            }
+            for package in packages
+        }
+
+        for subdir in dict.fromkeys((context.subdir, "noarch")):
+            subdir_path = channel / subdir
+            subdir_path.mkdir(parents=True)
+            repodata = {
+                "info": {"subdir": subdir},
+                "packages": records if subdir == "noarch" else {},
+                "packages.conda": {},
+                "repodata_version": 1,
+            }
+            (subdir_path / "repodata.json").write_text(
+                json.dumps(repodata), encoding="utf-8"
+            )
+
+        channels.append(channel.as_uri())
+
+    stdout, _, _ = conda_cli(
+        "create",
+        f"--prefix={tmp_path / 'env'}",
+        "--dry-run",
+        "--json",
+        "--override-channels",
+        f"--channel={channels[0]}",
+        f"--channel={channels[1]}",
+        "--repodata-fn=repodata.json",
+        "app==1.0",
+        "engine==1.0",
+        "--yes",
+        raises=DryRunExit,
+    )
+
+    result = json.loads(stdout)
+    assert result["success"]
+    assert {package["name"] for package in result["actions"]["LINK"]} == {
+        "app",
+        "engine",
+    }
 
 
 # https://github.com/conda/conda/issues/9124
