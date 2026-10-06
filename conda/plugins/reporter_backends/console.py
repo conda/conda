@@ -260,9 +260,10 @@ class ConsoleReporterRenderer(ReporterRendererBase):
 
         def format_row(row_data: list[str], right_aligned=frozenset()) -> str:
             """Format a table row, assuming `Path` is the last column and unpadded."""
-            formatted_cells = [cell.rjust(widths[i]) if i in right_aligned
-                               else cell.ljust(widths[i])
-                               for i, cell in enumerate(row_data[:-1])]
+            formatted_cells = [
+                cell.rjust(widths[i]) if i in right_aligned else cell.ljust(widths[i])
+                for i, cell in enumerate(row_data[:-1])
+            ]
             formatted_cells.append(row_data[-1])
 
             return "   ".join(formatted_cells)

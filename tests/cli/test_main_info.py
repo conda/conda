@@ -120,8 +120,8 @@ def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env, tmp_envs_dir):
         assert not stderr
         assert not err
         frozen_row = next(
-                    (line for line in stdout.splitlines() if str(prefix) in line),
-                    None,
+            (line for line in stdout.splitlines() if str(prefix) in line),
+            None,
         )
         assert frozen_row is not None, f"env: {prefix} not listed in: {stdout}"
         assert frozen_row.lstrip().startswith("+")

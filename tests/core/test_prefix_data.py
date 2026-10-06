@@ -1089,9 +1089,7 @@ def test_last_activated(tmp_env: TmpEnvFixture):
 
         file = prefix / PREFIX_LAST_ACTIVATED_FILE
         file.touch()
-        assert pd.last_activated == datetime.fromtimestamp(
-            file.stat().st_mtime, tz=UTC
-        )
+        assert pd.last_activated == datetime.fromtimestamp(file.stat().st_mtime, tz=UTC)
 
         epoch = 1234567890.0
         os.utime(file, (epoch, epoch))
