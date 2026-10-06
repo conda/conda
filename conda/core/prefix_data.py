@@ -458,7 +458,7 @@ class PrefixData(metaclass=PrefixDataType):
         except FileNotFoundError:
             return None
         else:
-            return datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+            return datetime.fromtimestamp(stat.st_mtime, tz=UTC)
 
     def size(self) -> int:
         """

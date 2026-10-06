@@ -1090,12 +1090,12 @@ def test_last_activated(tmp_env: TmpEnvFixture):
         file = prefix / PREFIX_LAST_ACTIVATED_FILE
         file.touch()
         assert pd.last_activated == datetime.fromtimestamp(
-            file.stat().st_mtime, tz=timezone.utc
+            file.stat().st_mtime, tz=UTC
         )
 
         epoch = 1234567890.0
         os.utime(file, (epoch, epoch))
-        assert pd.last_activated == datetime.fromtimestamp(epoch, tz=timezone.utc)
+        assert pd.last_activated == datetime.fromtimestamp(epoch, tz=UTC)
 
 
 @pytest.mark.skipif(not on_win, reason="Windows only")

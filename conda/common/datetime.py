@@ -129,7 +129,7 @@ def format_relative_time(dt: datetime, now: datetime | None = None) -> str:
 
     `now` can be supplied, if not it will be calculated.
     """
-    now = now or datetime.now(tz=timezone.utc)
+    now = now or datetime.now(tz=UTC)
     delta = now - dt
     seconds = int(delta.total_seconds())
     if seconds < COMPACT_DURATION_UNITS["m"]:
