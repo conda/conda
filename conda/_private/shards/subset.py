@@ -112,7 +112,7 @@ class Node:
     channel: str = ""
     visited: bool = False
     shard_url: str = ""
-    # Packages requested via root level MatchSpec (e.g. package[extras=extras_group])
+    # Extras requested via root level MatchSpec (e.g. package[extras=extras_group])
     # Only every populated for root packages.
     requested_extras: frozenset[str] = frozenset()
 
