@@ -771,7 +771,7 @@ def PYTHONPATH():
 
 @pytest.fixture
 def context_testdata() -> None:
-    reset_context()
+    reset_context("")
     context._set_raw_data(
         {
             "testdata": YamlRawParameter.make_raw_parameters(
