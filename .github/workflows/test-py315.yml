@@ -75,7 +75,7 @@ jobs:
           - ubuntu-latest  # linux-64
           - ubuntu-24.04-arm  # linux-aarch64
         python-version: ['3.15']
-        default-channel: [conda-forge]  # TODO: add defaults
+        default-channel: [conda-forge, defaults]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
@@ -89,8 +89,10 @@ jobs:
       CONDA_SOLVER: classic
       # Skipping some tests:
       # - tests/test_solvers.py::TestLibMambaSolver - requires libmamba solver
-      # - tests/test_create.py::test_menuinst_v2 - requires menuinst
-      PYTEST_EXTRA: --deselect=tests/test_create.py::test_menuinst_v2 --deselect=tests/test_solvers.py::TestLibMambaSolver
+      # - tests/test_fetch.py - ignored on defaults until an updated version of responses is available
+      PYTEST_EXTRA: >-
+        --deselect=tests/test_solvers.py::TestLibMambaSolver
+        ${{ matrix.default-channel == 'defaults' && '--ignore=tests/test_fetch.py' || '' }}
 
     steps:
       - name: Checkout Source
@@ -132,8 +134,6 @@ jobs:
 
       - name: Install conda (in dev mode) and special deps
         run: |
-          # pycosat install here can be removed once https://github.com/conda-forge/pycosat-feedstock/pull/39 is merged
-          python -m pip install pycosat
           python -m pip install -e .  --no-deps
           # Ensure conda executable is available
           python -m conda --version
