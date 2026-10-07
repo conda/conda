@@ -36,7 +36,7 @@ def test_run_preserves_target_after_plugin_context_reset(
         monkeypatch.setenv("CONDA_ENVS_PATH", str(prefix.parent))
         monkeypatch.setenv("CONDA_NO_PLUGINS", "false")
         # Reproduce conda-build resetting context when its entry point is imported.
-        mocker.patch(
+        load_entrypoints = mocker.patch(
             "conda.plugins.manager.CondaPluginManager.load_entrypoints",
             side_effect=lambda *args, **kwargs: reset_context(),
         )
@@ -51,6 +51,7 @@ def test_run_preserves_target_after_plugin_context_reset(
         )
         assert rc == 0, stderr
         assert stdout.strip() == str(prefix)
+        load_entrypoints.assert_called()
 
 
 @pytest.mark.parametrize("option", ("--trace", "-v", "--debug", "--json"))
