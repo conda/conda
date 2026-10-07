@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -47,17 +47,17 @@ def test_parse_duration_returns_none_for_non_duration() -> None:
 
 
 def test_parse_datetime_to_timestamp_handles_date_only_as_next_utc_day() -> None:
-    expected = datetime(2026, 4, 2, tzinfo=timezone.utc).timestamp()
+    expected = datetime(2026, 4, 2, tzinfo=UTC).timestamp()
     assert parse_datetime_to_timestamp("2026-04-01") == expected
 
 
 def test_parse_datetime_to_timestamp_treats_naive_values_as_utc() -> None:
-    expected = datetime(2026, 4, 1, 12, 0, tzinfo=timezone.utc).timestamp()
+    expected = datetime(2026, 4, 1, 12, 0, tzinfo=UTC).timestamp()
     assert parse_datetime_to_timestamp("2026-04-01T12:00:00") == expected
 
 
 def test_parse_datetime_to_timestamp_honors_z_suffix_and_offsets() -> None:
-    expected = datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc).timestamp()
+    expected = datetime(2026, 4, 1, 10, 0, tzinfo=UTC).timestamp()
     assert parse_datetime_to_timestamp("2026-04-01T10:00:00Z") == expected
     assert parse_datetime_to_timestamp("2026-04-01T12:00:00+02:00") == expected
 

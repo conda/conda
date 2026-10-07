@@ -206,9 +206,7 @@ def list_fields_validation(value: Iterable[str]) -> str | Literal[True]:
 
 def ssl_verify_validation(value: str) -> str | Literal[True]:
     if isinstance(value, str):
-        if sys.version_info < (3, 10) and value == "truststore":
-            return "`ssl_verify: truststore` is only supported on Python 3.10 or later"
-        elif value != "truststore" and not exists(value):
+        if value != "truststore" and not exists(value):
             return (
                 f"ssl_verify value '{value}' must be a boolean, a path to a "
                 "certificate bundle file, a path to a directory containing "

@@ -1,7 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -26,7 +26,7 @@ def test_empty_notice_response_cache_expired():
 
 @pytest.mark.parametrize("field", ("expires_at", "expired_at"))
 def test_notice_response_expiration_field(field):
-    expires_at = datetime.now(timezone.utc) + timedelta(days=1)
+    expires_at = datetime.now(UTC) + timedelta(days=1)
     response = ChannelNoticeResponse(
         "https://conda.example.com/notices.json",
         "test",
@@ -39,7 +39,7 @@ def test_notice_response_expiration_field(field):
 
 def test_notice_response_cache_max_age(notices_cache_dir, mocker):
     url = "https://conda.example.com/notices.json"
-    expires_at = datetime.now(timezone.utc) + timedelta(days=90)
+    expires_at = datetime.now(UTC) + timedelta(days=90)
     response = ChannelNoticeResponse(
         url,
         "test",
