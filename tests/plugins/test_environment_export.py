@@ -9,9 +9,8 @@ from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
-import yaml
 
-from conda.common.serialize import yaml as yaml_serializer
+from conda.common.serialize import yaml
 from conda.exceptions import (
     CondaValueError,
     EnvironmentExporterNotDetected,
@@ -102,7 +101,7 @@ def test_env_with_explicit_packages():
 @pytest.mark.parametrize(
     "format_name,parser_func",
     [
-        (ENVIRONMENT_YAML_FORMAT, yaml.safe_load),
+        (ENVIRONMENT_YAML_FORMAT, yaml.loads),
         (ENVIRONMENT_JSON_FORMAT, json.loads),
     ],
 )
@@ -152,7 +151,7 @@ def test_yaml_exporter_explicit_packages_format(
 
     # Export the environment
     result = exporter.export(test_env_with_explicit_packages)
-    parsed = yaml.safe_load(result)
+    parsed = yaml.loads(result)
 
     # Verify dependencies use correct format: name=version=build (single equals throughout)
     dependencies = parsed["dependencies"]
@@ -188,7 +187,7 @@ def test_yaml_exporter_with_empty_env(
 
     # Export the environment
     result = exporter.export(test_empty_env)
-    parsed = yaml.safe_load(result)
+    parsed = yaml.loads(result)
 
     # Verify dependencies key included
     dependencies = parsed["dependencies"]
@@ -507,7 +506,7 @@ def test_yaml_exporter_handles_missing_name(
     result = exporter_config.export(env)
 
     # Parse YAML to verify structure instead of checking string format
-    parsed = yaml.safe_load(result)
+    parsed = yaml.loads(result)
 
     # Should have a name field (even if None/null)
     assert "name" in parsed
@@ -607,7 +606,7 @@ def test_single_platform_export(
     result = exporter.export(test_env)
     first, text = result.strip().split("\n", 1)
     assert first == "# This is a single-platform export"
-    parsed = yaml_serializer.loads(text)
+    parsed = yaml.loads(text)
     assert parsed["name"] == test_env.name
     assert parsed["single-platform"] == test_env.platform
     packages = iter(parsed["packages"])
@@ -632,7 +631,7 @@ def test_multi_platform_export(
     result = exporter.multiplatform_export([test_env, test_env])
     first, text = result.strip().split("\n", 1)
     assert first == "# This is a multi-platform export"
-    parsed = yaml_serializer.loads(text)
+    parsed = yaml.loads(text)
     assert parsed["name"] == test_env.name
     assert parsed["multi-platforms"] == [test_env.platform, test_env.platform]
     packages = iter(parsed["packages"])
