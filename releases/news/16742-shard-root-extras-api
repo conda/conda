@@ -3,7 +3,7 @@
 * Add a `root_extras` option to `conda._private.shards.subset.build_repodata_subset`
   (and the underlying `RepodataSubset.reachable*` methods) so callers can request
   CEP 44 `extra_depends` groups be fetched only for specific root/user-requested
-  packages, without recursing into extras of their dependencies. (#16742)
+  packages, without recursing into extras of their dependencies. (#16724 via #16742)
 
 ### Bug fixes
 
