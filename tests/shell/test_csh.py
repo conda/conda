@@ -15,6 +15,10 @@ if TYPE_CHECKING:
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(on_win, reason="unavailable on Windows"),
+    # setDaemon comes from the pexpect.spawn class, which is used by the Shell fixture.
+    pytest.mark.filterwarnings(
+        "ignore:setDaemon\\(\\) is deprecated:DeprecationWarning"
+    ),
 ]
 PARAMETRIZE_CSH = pytest.mark.parametrize(
     "shell",
