@@ -2102,6 +2102,21 @@ def test_flags_specs_match(match_spec_v3):
     assert not MatchSpec("pkg[flags=whatever]").match(record)
 
 
+def test_extras_specs_match_records(match_spec_v3):
+    def record(**kwargs):
+        return PackageRecord(
+            name="pkg", version="1", build="0", build_number=0, **kwargs
+        )
+
+    assert MatchSpec("pkg[extras=[cli]]").match(record(extras=["cli"]))
+    assert not MatchSpec("pkg[extras=[cli,http2]]").match(record(extras=["cli"]))
+    # records without extras default to an empty list and must not raise
+    assert not MatchSpec("pkg[extras=[cli]]").match(record())
+    assert not MatchSpec("pkg[extras=[cli]]").match(
+        PackageRecord(name="pkg", version="1", build="0", build_number=0)
+    )
+
+
 @pytest.mark.parametrize(
     "spec,parsed",
     [
