@@ -30,6 +30,7 @@ def test_fish_basic_integration(shell: Shell) -> None:
     """Test basic Fish shell integration with conda activation/deactivation."""
     import warnings
 
+    # This warning comes from within the pexpect library
     warnings.filterwarnings(
         "ignore", category=DeprecationWarning, message=".*forkpty.*"
     )
