@@ -7,17 +7,15 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context
+from conda.base.context import context, reset_context
 from conda.cli.main import main, main_sourced, main_subshell
 from conda.common.compat import on_win
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest import CaptureFixture
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 def test_main():
@@ -27,37 +25,32 @@ def test_main():
 
 @pytest.mark.parametrize("selector", ["--prefix", "--name"])
 def test_run_preserves_target_after_plugin_context_reset(
-    tmp_path: Path,
+    tmp_env: TmpEnvFixture,
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
     clear_plugin_manager_cache: None,
-    capsys: CaptureFixture[str],
+    conda_cli: CondaCLIFixture,
     selector: str,
 ):
-    from conda.base.context import reset_context
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_ENVS_PATH", str(prefix.parent))
+        monkeypatch.setenv("CONDA_NO_PLUGINS", "false")
+        # Reproduce conda-build resetting context when its entry point is imported.
+        mocker.patch(
+            "conda.plugins.manager.CondaPluginManager.load_entrypoints",
+            side_effect=lambda *args, **kwargs: reset_context(),
+        )
 
-    prefix = tmp_path / "target"
-    (prefix / "conda-meta").mkdir(parents=True)
-    (prefix / "conda-meta" / "history").touch()
-    monkeypatch.setenv("CONDA_ENVS_PATH", str(tmp_path))
-    monkeypatch.setenv("CONDA_NO_PLUGINS", "false")
-    # Reproduce conda-build resetting context when its entry point is imported.
-    mocker.patch(
-        "conda.plugins.manager.CondaPluginManager.load_entrypoints",
-        side_effect=lambda *args, **kwargs: reset_context(),
-    )
-
-    rc = main_subshell(
-        "run",
-        selector,
-        str(prefix) if selector == "--prefix" else prefix.name,
-        sys.executable,
-        "-c",
-        "import os; print(os.environ['CONDA_PREFIX'])",
-    )
-    stdout, stderr = capsys.readouterr()
-    assert rc == 0, stderr
-    assert stdout.strip() == str(prefix)
+        stdout, stderr, rc = conda_cli(
+            "run",
+            selector,
+            str(prefix) if selector == "--prefix" else prefix.name,
+            sys.executable,
+            "-c",
+            "import os; print(os.environ['CONDA_PREFIX'])",
+        )
+        assert rc == 0, stderr
+        assert stdout.strip() == str(prefix)
 
 
 @pytest.mark.parametrize("option", ("--trace", "-v", "--debug", "--json"))
