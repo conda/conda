@@ -104,6 +104,7 @@ if TYPE_CHECKING:
         PipCLIFixture,
         TmpChannelFixture,
         TmpEnvFixture,
+        TmpRepodataChannelFixture,
     )
 
 log = getLogger(__name__)
@@ -2832,7 +2833,7 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
 )
 @pytest.mark.usefixtures("tmp_pkgs_dir")
 def test_neutering_of_historic_specs(
-    tmp_path: Path,
+    tmp_repodata_channel: TmpRepodataChannelFixture,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     monkeypatch: MonkeyPatch,
@@ -2841,30 +2842,31 @@ def test_neutering_of_historic_specs(
     monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false")
     reset_context()
 
-    packages = (
-        ("python", "3.7.0", "0", []),
-        ("python", "3.6.0", "0", []),
-        ("psutil", "5.6.3", "py37_0", ["python >=3.7,<3.8"]),
-        ("psutil", "5.6.3", "py36_0", ["python >=3.6,<3.7"]),
-        ("imagesize", "1.0", "0", ["python >=3.6"]),
+    channel, channel_url = tmp_repodata_channel(
+        [
+            {"name": "python", "version": "3.7.0"},
+            {"name": "python", "version": "3.6.0"},
+            {
+                "name": "psutil",
+                "version": "5.6.3",
+                "build": "py37_0",
+                "depends": ["python >=3.7,<3.8"],
+            },
+            {
+                "name": "psutil",
+                "version": "5.6.3",
+                "build": "py36_0",
+                "depends": ["python >=3.6,<3.7"],
+            },
+            {"name": "imagesize", "depends": ["python >=3.6"]},
+        ],
+        subdir=context.subdir,
     )
-    channel = tmp_path / "channel"
     package_dir = channel / context.subdir
-    package_dir.mkdir(parents=True)
-    records = {}
+    repodata_path = package_dir / "repodata.json"
+    repodata = json.loads(repodata_path.read_text())
 
-    for name, package_version, build, depends in packages:
-        record = {
-            "name": name,
-            "version": package_version,
-            "build": build,
-            "build_number": 0,
-            "depends": depends,
-            "subdir": context.subdir,
-        }
-        filename = f"{name}-{package_version}-{build}.tar.bz2"
-        package_path = package_dir / filename
-
+    for filename, record in repodata["packages"].items():
         # Empty payloads still exercise extraction, linking, and history.
         metadata = {
             "info/index.json": json.dumps(record).encode("utf-8"),
@@ -2873,34 +2875,23 @@ def test_neutering_of_historic_specs(
                 "utf-8"
             ),
         }
+        package_path = package_dir / filename
         with tarfile.open(package_path, "w:bz2") as archive:
             for path, content in metadata.items():
                 member = tarfile.TarInfo(path)
                 member.size = len(content)
                 archive.addfile(member, BytesIO(content))
 
-        records[filename] = {
-            **record,
-            "size": package_path.stat().st_size,
-            "sha256": compute_sum(package_path, "sha256"),
-        }
-
-    for subdir in (context.subdir, "noarch"):
-        subdir_path = channel / subdir
-        subdir_path.mkdir(exist_ok=True)
-        repodata = {
-            "info": {"subdir": subdir},
-            "packages": records if subdir == context.subdir else {},
-            "packages.conda": {},
-            "repodata_version": 1,
-        }
-        (subdir_path / "repodata.json").write_text(
-            json.dumps(repodata), encoding="utf-8"
+        record.update(
+            size=package_path.stat().st_size,
+            sha256=compute_sum(package_path, "sha256"),
         )
+
+    repodata_path.write_text(json.dumps(repodata), encoding="utf-8")
 
     channel_args = (
         "--override-channels",
-        f"--channel={channel.as_uri()}",
+        f"--channel={channel_url}",
         "--repodata-fn=repodata.json",
     )
 
