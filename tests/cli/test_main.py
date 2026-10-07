@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
 import pytest
@@ -11,7 +12,10 @@ from conda.cli.main import main, main_sourced, main_subshell
 from conda.common.compat import on_win
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import CaptureFixture
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import CondaCLIFixture
 
@@ -19,6 +23,41 @@ if TYPE_CHECKING:
 def test_main():
     with pytest.raises(SystemExit):
         __import__("conda.__main__")
+
+
+@pytest.mark.parametrize("selector", ["--prefix", "--name"])
+def test_run_preserves_target_after_plugin_context_reset(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    clear_plugin_manager_cache: None,
+    capsys: CaptureFixture[str],
+    selector: str,
+):
+    from conda.base.context import reset_context
+
+    prefix = tmp_path / "target"
+    (prefix / "conda-meta").mkdir(parents=True)
+    (prefix / "conda-meta" / "history").touch()
+    monkeypatch.setenv("CONDA_ENVS_PATH", str(tmp_path))
+    monkeypatch.setenv("CONDA_NO_PLUGINS", "false")
+    # Reproduce conda-build resetting context when its entry point is imported.
+    mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.load_entrypoints",
+        side_effect=lambda *args, **kwargs: reset_context(),
+    )
+
+    rc = main_subshell(
+        "run",
+        selector,
+        str(prefix) if selector == "--prefix" else prefix.name,
+        sys.executable,
+        "-c",
+        "import os; print(os.environ['CONDA_PREFIX'])",
+    )
+    stdout, stderr = capsys.readouterr()
+    assert rc == 0, stderr
+    assert stdout.strip() == str(prefix)
 
 
 @pytest.mark.parametrize("option", ("--trace", "-v", "--debug", "--json"))
