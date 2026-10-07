@@ -86,7 +86,6 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: classic
-      CONDA_SOLVER: classic
       # Skipping some tests:
       # - tests/test_solvers.py::TestLibMambaSolver - requires libmamba solver
       # - tests/test_fetch.py - ignored on defaults until an updated version of responses is available
@@ -168,6 +167,8 @@ jobs:
           python -m conda init --all
 
       - name: Run Tests
+        env:
+          CONDA_SOLVER: classic
         run: >
           python -m pytest
           --cov=conda
