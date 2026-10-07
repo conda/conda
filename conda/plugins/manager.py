@@ -177,6 +177,7 @@ class CondaPluginManager(pluggy.PluginManager):
     def __init__(self, *args, **kwargs):
         super().__init__(APP_NAME, *args, **kwargs)
         self.plugin_aliases: dict[str, set[str]] = {}
+        self._distribution_aliases: dict[str, set[str]] = {}
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
@@ -400,6 +401,9 @@ class CondaPluginManager(pluggy.PluginManager):
                         self.plugin_aliases.setdefault(dist_name, set()).add(
                             plugin_name
                         )
+                        self._distribution_aliases.setdefault(
+                            canonicalize_name(dist_name), set()
+                        ).add(plugin_name)
         return count
 
     def _hookexec(
@@ -771,18 +775,9 @@ class CondaPluginManager(pluggy.PluginManager):
         for unrecognized names. Explicit exceptions take precedence and must
         match registered plugins.
         """
-        aliases = {name: {name} for name, _ in self.list_name_plugin()}
-        aliases.update(self.plugin_aliases)
-        distribution_aliases = {
-            canonicalize_name(dist.project_name): self.plugin_aliases[dist.project_name]
-            for _, dist in self.list_plugin_distinfo()
-            if dist.project_name in self.plugin_aliases
-        }
         enabled = set()
         for target in except_plugins:
-            canonical_names = aliases.get(
-                target, distribution_aliases.get(canonicalize_name(target), {target})
-            )
+            canonical_names = self._resolve_plugin_names(target)
             if not canonical_names or any(
                 not self.has_plugin(canonical) for canonical in canonical_names
             ):
@@ -793,23 +788,28 @@ class CondaPluginManager(pluggy.PluginManager):
             enabled.update(canonical_names)
 
         for target in names:
-            canonical_names = aliases.get(
-                target, distribution_aliases.get(canonicalize_name(target), {target})
-            )
+            canonical_names = self._resolve_plugin_names(target)
             for canonical in canonical_names:
                 if canonical.startswith(BUILTIN_PLUGIN_PREFIX):
                     raise PluginError(
                         f"Built-in plugin '{canonical}' cannot be disabled."
                     )
-                if canonical in enabled:
+                if canonical in enabled or self.is_blocked(canonical):
                     continue
-                if self.has_plugin(canonical) and not self.is_blocked(canonical):
+                if self.has_plugin(canonical):
                     self.set_blocked(canonical)
-                elif not self.has_plugin(canonical):
+                else:
                     log.warning(
                         "No registered plugin matching '%s' found to disable.",
                         target,
                     )
+
+    def _resolve_plugin_names(self, target: str) -> set[str]:
+        if target in self.plugin_aliases:
+            return self.plugin_aliases[target]
+        if self.has_plugin(target) or self.is_blocked(target):
+            return {target}
+        return self._distribution_aliases.get(canonicalize_name(target), {target})
 
     def get_subcommands(self) -> dict[str, CondaSubcommand]:
         return {
