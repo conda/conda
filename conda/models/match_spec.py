@@ -385,9 +385,11 @@ class MatchSpec(metaclass=MatchSpecType):
 
             rec = PackageRecord.from_objects(rec)
         for field_name, v in self._match_components.items():
-            if field_name == "when":
+            if field_name in ("when", "extras"):
                 # Conditions do not apply to check whether a record
-                # matches a given match spec.
+                # matches a given match spec. Extras select optional
+                # dependency groups (CEP 44) and are resolved by the
+                # solver.
                 continue
             if not self._match_individual(rec, field_name, v):
                 return False

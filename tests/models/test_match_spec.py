@@ -2103,18 +2103,13 @@ def test_flags_specs_match(match_spec_v3):
 
 
 def test_extras_specs_match_records(match_spec_v3):
+    # Extras select optional dependency groups (CEP 44); they are resolved by
+    # the solver and never disqualify a record, even one without extra_depends.
     def record(**kwargs):
-        return PackageRecord(
-            name="pkg", version="1", build="0", build_number=0, **kwargs
-        )
+        return PackageRecord(name="pkg", version="1", build="0", build_number=0, **kwargs)
 
-    assert MatchSpec("pkg[extras=[cli]]").match(record(extras=["cli"]))
-    assert not MatchSpec("pkg[extras=[cli,http2]]").match(record(extras=["cli"]))
-    # records without extras default to an empty list and must not raise
-    assert not MatchSpec("pkg[extras=[cli]]").match(record())
-    assert not MatchSpec("pkg[extras=[cli]]").match(
-        PackageRecord(name="pkg", version="1", build="0", build_number=0)
-    )
+    assert MatchSpec("pkg[extras=[cli]]").match(record())
+    assert MatchSpec("pkg[extras=[cli]]").match(record(extra_depends={"cli": ["dep"]}))
 
 
 @pytest.mark.parametrize(
