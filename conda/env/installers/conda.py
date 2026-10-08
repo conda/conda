@@ -13,7 +13,7 @@ from ...base.context import context
 from ...common.constants import NULL
 from ...common.iterators import unique
 from ...env.env import EnvironmentYaml
-from ...exceptions import CondaValueError, UnsatisfiableError
+from ...exceptions import UnsatisfiableError
 from ...models.channel import Channel, prioritize_channels
 
 if TYPE_CHECKING:
@@ -48,9 +48,7 @@ def _solve(
     channels = tuple(unique(Channel(url) for url in _channel_priority_map))
     subdirs = tuple(unique(basename(url) for url in _channel_priority_map))
 
-    solver_backend = context.plugin_manager.get_cached_solver_backend()
-    if solver_backend is None:
-        raise CondaValueError("No solver backend found")
+    solver_backend = solver_backend = context.plugin_manager.get_cached_solver_backend()
     solver = solver_backend(prefix, channels, subdirs, specs_to_add=specs)
     return solver
 
