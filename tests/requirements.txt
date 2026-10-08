@@ -5,6 +5,8 @@ charset-normalizer
 conda-launchers >=24.7.1  # [win]
 conda-libmamba-solver >=26.4.1
 conda-package-handling >=2.2.0
+conda-pycosat-solver >=0.1.0
+conda-pypi >=0.10.1
 distro >=1.5.0
 frozendict >=2.4.2
 menuinst >=2

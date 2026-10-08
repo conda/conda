@@ -70,6 +70,7 @@ requirements:
     - tqdm >=4
     - truststore >=0.8.0
     # Plugins to bundle with conda
+    - conda-pycosat-solver >=0.1.0
     - conda-libmamba-solver >=26.7.0
     - conda-lockfiles >=0.2.2
     - conda-pypi >=0.13.0
