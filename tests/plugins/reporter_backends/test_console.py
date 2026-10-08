@@ -56,11 +56,15 @@ def test_console_reporter_renderer_envs_list(mocker):
     """
     mock_context = mocker.patch("conda.core.prefix_data.context")
     mock_context.envs_dirs = ["/tmp"]
+    mock_context.active_prefix = None
     console_reporter_renderer = ConsoleReporterRenderer()
 
     output = console_reporter_renderer.envs_list(["/tmp/envs"])
 
-    assert f"envs                     {Path('/tmp/envs')}" in output
+    assert "Name" in output
+    assert "Last Active" in output
+    assert "envs" in output
+    assert str(Path("/tmp/envs")) in output
 
 
 def test_tqdm_progress_bar_os_error(mocker):

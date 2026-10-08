@@ -37,7 +37,7 @@ def test_render(capsys: CaptureFixture):
     render(["test-string"], style="envs_list")
 
     stdout, stderr = capsys.readouterr()
-    assert "conda environments" in stdout
+    assert "Name" in stdout
     assert "test-string" in stdout
     assert not stderr
 

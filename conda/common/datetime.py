@@ -121,3 +121,23 @@ def normalize_timestamp_seconds(value: str | int | float) -> float:
     if timestamp > MAX_SECONDS_TIMESTAMP:
         timestamp /= 1000
     return timestamp
+
+
+def format_relative_time(dt: datetime, now: datetime | None = None) -> str:
+    """Format a datetime as relative time (``just now``, ``3m ago``, ``2d ago``)
+    less than 31 days, then as a date (``2026-09-14``).
+
+    `now` can be supplied, if not it will be calculated.
+    """
+    now = now or datetime.now(tz=UTC)
+    delta = now - dt
+    seconds = int(delta.total_seconds())
+    if seconds < COMPACT_DURATION_UNITS["m"]:
+        return "just now"
+    if seconds < COMPACT_DURATION_UNITS["h"]:
+        return f"{seconds // COMPACT_DURATION_UNITS['m']}m ago"
+    if seconds < COMPACT_DURATION_UNITS["d"]:
+        return f"{seconds // COMPACT_DURATION_UNITS['h']}h ago"
+    if seconds < 31 * COMPACT_DURATION_UNITS["d"]:
+        return f"{seconds // COMPACT_DURATION_UNITS['d']}d ago"
+    return dt.date().isoformat()

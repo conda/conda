@@ -703,6 +703,23 @@ A list similar to the following is displayed:
 If this command is run by an administrator, a list of all environments
 belonging to all users will be displayed.
 
+The ``--json`` variants of these commands include per-environment details
+under ``envs_details``, which can help identify environments that are no
+longer in use:
+
+* ``created`` — when the environment was created.
+* ``last_modified`` — when packages were last installed, updated, or removed.
+* ``last_activated`` — when the environment was last activated via
+  ``conda activate`` (including automated activations such as ``conda run``).
+
+All timestamps are ISO 8601 UTC and may be ``null`` when the information is
+unavailable. In particular, ``last_activated`` is recorded on a best-effort
+basis: it is tracked via the modification time of
+``<prefix>/conda-meta/last_activated``, activations on read-only or frozen
+environments are silently skipped, and environments that have not been
+activated since this tracking was introduced report ``null``.
+
+
 Viewing a list of the packages in an environment
 ================================================
 
