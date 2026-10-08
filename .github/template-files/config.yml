@@ -58,6 +58,13 @@ conda/infrastructure:
     with:
       news_directory: releases/news
 
+  # [optional] push a connector branch and open a PR merging the release
+  # branch back into main after a release is published
+  - src: templates/workflows/merge-back.yml
+    dst: .github/workflows/merge-back.yml
+    with:
+      release_process_path: releases/RELEASE.md
+
   # [optional] keep .authors.yml current (weekly PR)
   - src: templates/workflows/prepare-authors.yml
     dst: .github/workflows/prepare-authors.yml
