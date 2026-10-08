@@ -21,8 +21,13 @@ if TYPE_CHECKING:
     from . import InteractiveShell, Shell
 
 log = getLogger(__name__)
-pytestmark = pytest.mark.integration
-
+pytestmark = [
+    pytest.mark.integration,
+    # setDaemon comes from the pexpect.spawn class, which is used by the Shell fixture.
+    pytest.mark.filterwarnings(
+        "ignore:setDaemon\\(\\) is deprecated:DeprecationWarning"
+    ),
+]
 PARAMETRIZE_POSIX = pytest.mark.parametrize(
     "shell",
     [

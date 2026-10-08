@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
 
-import menuinst
 import pytest
 
 from conda import CondaError, CondaExitZero, CondaMultiError
@@ -139,7 +138,7 @@ def test_install_python_and_search(
         "conda-forge",
     )
     monkeypatch.setenv("CONDA_CHANNELS", ",".join(channels))
-    reset_context()
+    reset_context("")
     assert context.register_envs
     assert context.allow_non_channel_urls
     assert context.channels == channels
@@ -1659,6 +1658,16 @@ def test_menuinst_v2(
     conda_cli: CondaCLIFixture,
     request: FixtureRequest,
 ):
+    import warnings
+
+    import menuinst
+
+    # This comes from the pytest_mock libary.This is fixed in newer versions
+    # of pytest_mock
+    warnings.filterwarnings(
+        "ignore", category=DeprecationWarning, message=".*asyncio.iscoroutinefunction.*"
+    )
+
     install = mocker.spy(menuinst, "install")
 
     (tmp_path / ".nonadmin").touch()
@@ -2558,7 +2567,15 @@ def test_force_remove(
 def test_download_only_flag(
     tmp_env: TmpEnvFixture, mocker: MockerFixture, conda_cli: CondaCLIFixture
 ):
+    import warnings
+
     from conda.core.link import UnlinkLinkTransaction
+
+    # This comes from the pytest_mock libary.This is fixed in newer versions
+    # of pytest_mock
+    warnings.filterwarnings(
+        "ignore", category=DeprecationWarning, message=".*asyncio.iscoroutinefunction.*"
+    )
 
     with tmp_env() as prefix:
         spy = mocker.spy(UnlinkLinkTransaction, "execute")
