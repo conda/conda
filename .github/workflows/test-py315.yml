@@ -121,14 +121,20 @@ jobs:
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
-      - name: Conda Install (Py3.15)
+      - name: Conda Install CI requirements (Py3.15)
+        run: >
+          conda install
+          --yes
+          --file tests/requirements-${{ runner.os }}.txt
+          --file tests/requirements-ci-py315.txt
+          --file tests/requirements-s3.txt
+          python=${{ matrix.python-version }}
+
+      - name: Conda Install conda requirements (Py3.15)
         run: >
           conda install
           --yes
           --file tests/requirements-py315.txt
-          --file tests/requirements-${{ runner.os }}.txt
-          --file tests/requirements-ci-py315.txt
-          --file tests/requirements-s3.txt
           python=${{ matrix.python-version }}
 
       - name: Install conda (in dev mode) and special deps
