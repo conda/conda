@@ -11,7 +11,12 @@ import pytest
 
 from conda.common.compat import on_win
 from conda.gateways.disk.create import TemporaryDirectory, create_link, mkdir_p
-from conda.gateways.disk.delete import backoff_rmdir, rm_rf, unlink_or_rename_to_trash
+from conda.gateways.disk.delete import (
+    backoff_rmdir,
+    rm_rf,
+    rmtree,
+    unlink_or_rename_to_trash,
+)
 from conda.gateways.disk.link import islink, symlink
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.test import softlink_supported
@@ -207,3 +212,39 @@ def test_unlink_to_rename_to_trash_win_fallback(
     # The counter suffix must have been applied; dest filename should end with .conda_trash_1
     call_args = mock_check_output.call_args[0][0]
     assert call_args[-1].endswith(".conda_trash_1")
+
+
+def test_rmtree_skips_shutil_when_windows_rd_already_removed(
+    mocker: MockerFixture,
+):
+    """Windows RD /S /Q removes the path; do not call shutil.rmtree on a missing dir (#16539)."""
+    mocker.patch("conda.gateways.disk.delete.on_win", True)
+    mocker.patch("conda.gateways.disk.delete.normpath", side_effect=lambda p: p)
+    mocker.patch(
+        "conda.gateways.disk.delete.check_output",
+        return_value=b"",
+    )
+    mocker.patch("conda.gateways.disk.delete.isdir", return_value=False)
+    mock_shutil_rmtree = mocker.patch("conda.gateways.disk.delete.shutil.rmtree")
+
+    rmtree(r"C:\temp\already-gone")
+
+    mock_shutil_rmtree.assert_not_called()
+
+
+def test_rmtree_falls_back_to_shutil_when_windows_path_remains(
+    mocker: MockerFixture,
+):
+    """If the Windows fast path leaves the directory, shutil.rmtree still runs."""
+    mocker.patch("conda.gateways.disk.delete.on_win", True)
+    mocker.patch("conda.gateways.disk.delete.normpath", side_effect=lambda p: p)
+    mocker.patch(
+        "conda.gateways.disk.delete.check_output",
+        return_value=b"",
+    )
+    mocker.patch("conda.gateways.disk.delete.isdir", return_value=True)
+    mock_shutil_rmtree = mocker.patch("conda.gateways.disk.delete.shutil.rmtree")
+
+    rmtree(r"C:\temp\still-there")
+
+    mock_shutil_rmtree.assert_called_once_with(r"C:\temp\still-there")

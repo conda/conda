@@ -12,8 +12,8 @@
 
 ### Docs
 
-* Update links to Miniconda information in documenation to be more accurate to context. (#16529)
+* <news item>
 
 ### Other
 
-* <news item>
+* Don't allow local condarc's to populate context_testdata fixture. (16797 via #16809)

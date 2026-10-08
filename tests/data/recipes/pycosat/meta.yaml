@@ -1,0 +1,10 @@
+package:
+  name: pycosat
+  version: 1.0
+
+build:
+  noarch: generic
+  string: "0"
+
+about:
+  summary: Stub conda dependency for root-prefix removal protection tests

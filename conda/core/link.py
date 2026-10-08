@@ -427,7 +427,8 @@ class UnlinkLinkTransaction:
         # TODO: figure out if this filter shouldn't be an assert not None
         prefix_recs_to_unlink = tuple(lpd for lpd in prefix_recs_to_unlink if lpd)
         pkg_cache_recs_to_link = tuple(
-            PackageCacheData.get_entry_to_link(prec) for prec in link_precs
+            PackageCacheData.get_entry_to_link(prec, target_prefix)
+            for prec in link_precs
         )
         if not all(pkg_cache_recs_to_link):
             raise SpecNotFoundInPackageCache("Some records cannot be found in cache.")
@@ -515,6 +516,7 @@ class UnlinkLinkTransaction:
                     target_prefix,
                     lt,
                     specs,
+                    packages_info_to_link,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -993,7 +995,9 @@ class UnlinkLinkTransaction:
                     # post link scripts may employ entry points.  Do them before post-link.
                     if install_side:
                         for axngroup in entry_point_actions:
-                            UnlinkLinkTransaction._execute_actions(axngroup)
+                            exc = UnlinkLinkTransaction._execute_actions(axngroup)
+                            if exc:
+                                exceptions.append(exc)
 
                     # Run post-link or post-unlink scripts and registering AFTER link/unlink,
                     #    because they may depend on files in the prefix.  Additionally, run
@@ -1279,6 +1283,7 @@ class UnlinkLinkTransaction:
         target_prefix,
         requested_link_type,
         requested_spec,
+        packages_info_to_link,
         link_action_groups,
     ):
         required_quad = (
@@ -1287,7 +1292,9 @@ class UnlinkLinkTransaction:
             target_prefix,
             requested_link_type,
         )
-        return CreatePythonEntryPointAction.create_actions(*required_quad)
+        return CreatePythonEntryPointAction.create_actions(
+            *required_quad, source_package_infos=packages_info_to_link
+        )
 
     @staticmethod
     def _make_compile_actions(
@@ -1645,7 +1652,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 ("@CALL", path),
             )
@@ -1657,7 +1664,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 (".", path),
             )

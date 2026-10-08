@@ -51,43 +51,6 @@ def initialize_logging(level=INFO):
     attach_stderr(level)
 
 
-# ``conda.common.serialize.json`` (and transitively ``frozendict``) stays
-# off the cold-start path; the factories below materialize it only when
-# one of the three deprecated names is actually accessed.
-def _json():
-    from ..common.serialize import json
-
-    return json
-
-
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "DumpEncoder",
-    factory=lambda: _json().CondaJSONEncoder,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "_DUMPS",
-    factory=lambda: _json().CondaJSONEncoder(
-        indent=2, ensure_ascii=False, sort_keys=True
-    ).encode,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead.",
-)
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "jsondumps",
-    factory=lambda: _json().CondaJSONEncoder(
-        indent=2, ensure_ascii=False, sort_keys=True
-    ).encode,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder(sort_keys=True).encode` instead.",
-)
-
-
-
 def fullname(obj):
     try:
         return obj.__module__ + "." + obj.__class__.__name__

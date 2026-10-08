@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-import sys
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -918,29 +917,10 @@ def test_conda_config_validate_sslverify_truststore(
         # test that we can set ssl_verify
         conda_cli("config", f"--file={condarc}", "--set", "ssl_verify", "truststore")
 
-        # test that truststore is valid for Python 3.10+
-        with (
-            pytest.raises(
-                CustomValidationError,
-                match=(
-                    truststore_error := (
-                        "`ssl_verify: truststore` is only supported on "
-                        "Python 3.10 or later"
-                    )
-                ),
-            )
-            if sys.version_info < (3, 10)
-            else nullcontext()
-        ):
-            assert context.ssl_verify == "truststore"
+        # test that truststore is a valid value
+        assert context.ssl_verify == "truststore"
 
-        # test that truststore is a valid value for Python 3.10+
-        with (
-            pytest.raises(CustomValidationError, match=truststore_error)
-            if sys.version_info < (3, 10)
-            else nullcontext()
-        ):
-            stdout, stderr, err = conda_cli("config", "--validate")
-            assert not stdout
-            assert not stderr
-            assert not err
+        stdout, stderr, err = conda_cli("config", "--validate")
+        assert not stdout
+        assert not stderr
+        assert not err

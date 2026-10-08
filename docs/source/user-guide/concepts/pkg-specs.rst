@@ -286,7 +286,7 @@ are described in `Command-line package specifications`_.
 Internally, conda translates command-line package specifications into
 canonical match specifications.
 
-EXAMPLE: python=3.9 is translated to python 3.9*.
+EXAMPLE: python=3.9 is translated to python 3.9.*.
 
 Command-line package specifications
 -----------------------------------
@@ -311,7 +311,7 @@ Common forms include:
    * - ``numpy=1.11``
      - Match the ``1.11`` release series. This is a fuzzy version match
        and is translated internally to a version pattern such as
-       ``numpy 1.11*``.
+       ``numpy 1.11.*``.
    * - ``numpy==1.11``
      - Exact match for version 1.11. This also matches 1.11.0 and 1.11.0.0, but not 1.11.1.
         Unlike numpy=1.11, it does not match the whole 1.11 series.
@@ -365,10 +365,20 @@ parts:
 
     EXAMPLE: ``1.0|1.2`` matches version 1.0 or 1.2
 
-  * \* matches 0 or more characters in the version string. In
-    terms of regular expressions, it is the same as ``r".*"``.
+  * \* at the end of a version is a fuzzy match. ``1.4*`` means the same
+    as ``1.4.*``: any version whose leading segments are ``1.4``. Conda
+    compares whole segments here, so ``1.4*`` does not match ``1.40`` or
+    ``14.0``. Use the ``.*`` form where you can, since it shows where the
+    segments end.
 
-    EXAMPLE: 1.0|1.4* matches 1.0, 1.4 and 1.4.1b2, but not 1.2.
+    EXAMPLE: ``1.0|1.4.*`` matches 1.0, 1.4, 1.4.1b2, and 1.4rc1, but not
+    1.2, 1.40, or 14.0.
+
+  * \* anywhere else in a version is a glob. Conda replaces each \* with
+    ``.*`` and matches the result against the whole version string as a
+    regular expression.
+
+    EXAMPLE: ``1.*.3`` matches 1.2.3 and 1.22.3, but not 1.3 or 1.2.30.
 
   * <, >, <=, >=, == and != are relational operators on versions,
     which are compared using
@@ -444,11 +454,11 @@ The following are all valid match specifications for
 numpy-1.8.1-py27_0:
 
 * numpy
-* numpy 1.8*
+* numpy 1.8.*
 * numpy 1.8.1
 * numpy >=1.8
 * numpy ==1.8.1
-* numpy 1.8|1.8*
+* numpy 1.8|1.8.*
 * numpy >=1.8,<2
 * numpy >=1.8,<2|1.9
 * numpy 1.8.1 py27_0

@@ -168,7 +168,7 @@ def test_stacking(
             sh.sendline(f'conda activate "{env.prefix}"')
         sh.clear()
 
-        sh.sendline(f'conda run --prefix="{run.prefix}" --dev {which}')
+        sh.sendline(f'conda run --prefix="{run.prefix}" {which}')
         if not expected:
             sh.expect_exact(f"'conda run {which}' failed")
         else:

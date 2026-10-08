@@ -31,7 +31,7 @@ from conda.gateways.repodata import (
 from conda.models.channel import Channel
 
 from ..zstd import capped_decompress
-from . import cache
+from . import cache, decompression
 from .misc import (
     _is_http_error_most_400_codes,
     _safe_urljoin_with_slash,
@@ -51,20 +51,6 @@ if TYPE_CHECKING:
     from conda.gateways.repodata import RepodataCache
 
     from .typing import RepodataDict, ShardDict, ShardsIndexDict
-
-ZSTD_MAX_SHARD_SIZE = (
-    2**20 * 16
-)  # maximum size necessary when compressed data has no size header
-
-
-ZSTD_MAX_SHARD_INDEX_SIZE = (
-    2**23 * 16
-)  # maximum size necessary when compressed data has no size header
-
-
-# For reference, the largest shard "conda-forge/linux-64/vim" is 2608283 bytes
-# or < 2**19*5 decompressed (486155 bytes compressed); the index is 575219 bytes
-# decompressed (514039 bytes compressed) and is mostly uncompressible hash data.
 
 
 class ShardFetch:
@@ -179,8 +165,10 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            capped_decompress(
-                fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
+            decompression.decompress_shard(
+                fetch_result.compressed_shard,
+                url=shards.url,
+                package=fetch_result.package,
             )
         )
         self.shard_cache.insert(fetch_result)
@@ -397,6 +385,13 @@ class ShardLike(ShardBase):
             for package, record in group.items():
                 name = record["name"]
                 shards[name][group_name][package] = record
+
+        for section_name, group in repodata.get("v3", {}).items():
+            for key, record in group.items():
+                name = record["name"]
+                shards[name].setdefault("v3", {}).setdefault(section_name, {})[key] = (
+                    record
+                )
 
         # defaultdict behavior no longer wanted
         self.shards: dict[str, ShardDict] = dict(shards)  # type: ignore
@@ -632,7 +627,10 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 def _shards_from_bytes(shards_data: bytes, shards_index_url: str) -> Shards:
     """Helper func to generate shards from shards byte data"""
     shards_index: ShardsIndexDict = msgpack.loads(
-        capped_decompress(shards_data, max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE)
+        capped_decompress(
+            shards_data,
+            max_output_size=decompression.ZSTD_MAX_SHARD_INDEX_SIZE,
+        )
     )  # type: ignore
     return Shards(shards_index, shards_index_url)
 
@@ -801,18 +799,21 @@ def batch_retrieve_from_network(wanted: list[ShardFetch]):
     ShardFetch.fetch_batch(wanted)
 
 
-def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] | None:
+def fetch_channels(
+    url_to_channel: dict[str, Channel], *, require_shards: bool = True
+) -> dict[str, ShardBase] | None:
     """
     Args:
         url_to_channel: not modified, must already be expanded to subdirs.
+        require_shards: Return None unless at least one channel provides shards.
 
     Attempt to fetch the sharded index first and then fall back to retrieving a
     monolithic `repodata.json` file.
 
     Returns:
-        A dict mapping channel URLs to `Shard` or `ShardLike` objects. None if
-        no channels have shards. This dict preserves the key order of the input
-        `url_to_channel`.
+        A dict mapping channel URLs to `Shard` or `ShardLike` objects. If
+        `require_shards` is true, return None when no channels have shards.
+        This dict preserves the key order of the input `url_to_channel`.
     """
     # copy incoming dict to retain order:
     channel_data: dict[str, ShardBase | None] = {url: None for url in url_to_channel}
@@ -840,7 +841,7 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        if all(value is None for value in channel_data.values()):
+        if require_shards and all(value is None for value in channel_data.values()):
             return None  # caller should interpret this as falling back to the older code path
 
         # Latency penalty launching these requests here instead of when we

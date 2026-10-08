@@ -10,12 +10,9 @@ so the check is immune to test-order bleed-through.
 
 from __future__ import annotations
 
-import importlib
 import subprocess
 import sys
 import textwrap
-
-import pytest
 
 
 def _sys_modules_after(import_stmt: str) -> set[str]:
@@ -47,40 +44,3 @@ def test_common_serialize_does_not_pull_in_json() -> None:
     """Importing conda.common.serialize must not import .json eagerly."""
     loaded = _sys_modules_after("import conda.common.serialize")
     assert "conda.common.serialize.json" not in loaded
-
-
-@pytest.mark.parametrize(
-    "module, name",
-    [
-        ("conda.auxlib.logz", "DumpEncoder"),
-        ("conda.auxlib.logz", "_DUMPS"),
-        ("conda.auxlib.logz", "jsondumps"),
-        ("conda.common.serialize", "EntityEncoder"),
-        ("conda.common.serialize", "json_load"),
-    ],
-)
-def test_deprecated_symbol_access_warns(module: str, name: str) -> None:
-    """Accessing a canonicalized deprecated symbol still emits a warning."""
-    mod = importlib.import_module(module)
-    with pytest.deprecated_call():
-        getattr(mod, name)
-
-
-@pytest.mark.parametrize(
-    "module, name",
-    [
-        ("conda.auxlib.logz", "DumpEncoder"),
-        ("conda.auxlib.logz", "_DUMPS"),
-        ("conda.auxlib.logz", "jsondumps"),
-        ("conda.common.serialize", "EntityEncoder"),
-        ("conda.common.serialize", "json_load"),
-    ],
-)
-def test_deprecated_symbol_identity_is_stable(module: str, name: str) -> None:
-    """Repeated access returns the same object (factory cached)."""
-    mod = importlib.import_module(module)
-    with pytest.deprecated_call():
-        first = getattr(mod, name)
-        second = getattr(mod, name)
-
-    assert first is second

@@ -1,7 +1,11 @@
 package:
   name: conda
-  # VERSION_OVERRIDE is used by the canary release workflow
-  version: {{ os.getenv("VERSION_OVERRIDE") or GIT_DESCRIBE_TAG }}.{{ GIT_DESCRIBE_NUMBER }}+{{ GIT_DESCRIBE_HASH }}
+  # VERSION_OVERRIDE is set by the canary release workflow to the exact
+  # version `conda.__version__` will self-report (see build.yml's "Detect
+  # Label" step), used verbatim with no extra suffix so the two always
+  # match. Falls back to the classic GIT_DESCRIBE_* composition for
+  # local/non-CI builds where it's unset.
+  version: {{ os.getenv("VERSION_OVERRIDE") or (GIT_DESCRIBE_TAG + "." + GIT_DESCRIBE_NUMBER + "+" + GIT_DESCRIBE_HASH) }}
 
 source:
   # git_url only captures committed code
@@ -9,7 +13,13 @@ source:
   folder: conda-src
 
 build:
-  script: {{ PYTHON }} -m pip install conda-src/ --no-deps --no-build-isolation -vv && {{ PYTHON }} -m conda init --install
+  skip: true  # [win and arm64 and py < 314]
+  # conda-build applies selectors before parsing YAML, so the copy command is
+  # removed on non-Windows platforms before this string is folded.
+  script: >-
+    "{{ PYTHON }}" -m pip install conda-src/ --no-deps --no-build-isolation -vv
+    && copy /Y "%PREFIX%\share\conda-launchers\cli-arm64.exe" "%SP_DIR%\conda\shell\cli-arm64.exe"  # [win]
+    && "{{ PYTHON }}" -m conda init --install
   # These are present when the new environment is created
   # so we have to exempt them from the list of initial files
   # for conda-build to realize they should be included.
@@ -29,40 +39,42 @@ requirements:
     - pip
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
+    - conda-launchers >=24.7.1  # [win]
     # for `conda init` in build/script above
     - boltons >=23.0.0
     - frozendict >=2.4.2
     - menuinst >=2
     - platformdirs >=3.10.0
     - requests >=2.28.0,<3
-    - ruamel.yaml >=0.11.14,<0.19
+    - ruamel.yaml >=0.11.14,<0.20
     - tqdm >=4
   run:
     - archspec >=0.2.3
     - backports.zstd >=1.3.0       # [py<314]
     - boltons >=23.0.0
     - charset-normalizer
+    - conda-launchers >=24.7.1  # [win]
     - conda-package-handling >=2.2.0
     - distro >=1.5.0
     - frozendict >=2.4.2
     - menuinst >=2
     - msgpack-python >=1.1.1
-    - packaging >=23.0
+    - packaging >=26.3
     - platformdirs >=3.10.0
     - pluggy >=1.6.0
     - pycosat >=0.6.3
     - python
     - requests >=2.28.0,<3
-    - ruamel.yaml >=0.11.14,<0.19
+    - ruamel.yaml >=0.11.14,<0.20
     - setuptools >=60.0.0
     - tqdm >=4
     - truststore >=0.8.0
     # Plugins to bundle with conda
-    - conda-libmamba-solver >=26.4.1
-    - conda-lockfiles >=0.2.0
-    - conda-pypi >=0.10.1
-    - conda-rattler-solver >=0.1.1
-    - conda-self >=0.2.0
+    - conda-libmamba-solver >=26.7.0
+    - conda-lockfiles >=0.2.2
+    - conda-pypi >=0.13.0
+    - conda-rattler-solver >=0.2.0
+    - conda-self >=0.3.0
   run_constrained:
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed

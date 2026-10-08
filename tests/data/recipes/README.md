@@ -13,27 +13,29 @@ Overview of package artifacts and their intended purpose.
 | `buildstring` | `1.0` | `noarch` | [[4]](#4-buildstring) |
 | `clobber-a` | `1.0` | `noarch` | [[5]](#5-clobber-a) |
 | `clobber-b` | `1.0` | `noarch` | [[6]](#6-clobber-b) |
-| `dependency` | `1.0`<br>`2.0` | `noarch` | [[7]](#7-dependency) |
-| `dependent` | `1.0`<br>`2.0` | `noarch` | [[8]](#8-dependent) |
-| `failing_post_link` | `1.0` | `noarch` | [[9]](#9-failing_post_link) |
-| `feature` | `1.0`<br>`2.0` | `noarch` | [[10]](#10-feature) |
-| `other_dependent` | `1.0` | `noarch` | [[11]](#11-other_dependent) |
-| `pip` | `99.99.99` | `noarch` | [[12]](#12-pip) |
-| `post_link-b` | `1.0` | `noarch` | [[13]](#13-post_link-b) |
-| `post_link-c` | `1.0` | `noarch` | [[14]](#14-post_link-c) |
-| `post_link-d` | `1.0` | `noarch` | [[15]](#15-post_link-d) |
-| `post_link-e` | `1.0` | `noarch` | [[16]](#16-post_link-e) |
-| `post_link_run_in_env_package` | `1.0` | `noarch` | [[17]](#17-post_link_run_in_env_package) |
-| `pre_link_messages_package` | `1.0` | `noarch` | [[18]](#18-pre_link_messages_package) |
-| `private-package` | `1.0` | `noarch` | [[19]](#19-private-package) |
-| `python` | `3.99.99` | `noarch` | [[20]](#20-python) |
-| `run_constrained` | `1.0` | `noarch` | [[21]](#21-run_constrained) |
-| `sample_noarch_python` | `1.0` | `noarch` | [[22]](#22-sample_noarch_python) |
-| `small-executable` | `1.0` | `noarch` | [[23]](#23-small-executable) |
-| `track_feature` | `1.0`<br>`2.0` | `noarch` | [[24]](#24-track_feature) |
-| `unsatisfiable` | `1.0` | `noarch` | [[25]](#25-unsatisfiable) |
-| `versioned` | `1.0`<br>`2.0` | `noarch` | [[26]](#26-versioned) |
-| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[27]](#27-virtualdep-package) |
+| `conda` | `1.0` | `noarch` | [[7]](#7-conda) |
+| `dependency` | `1.0`<br>`2.0` | `noarch` | [[8]](#8-dependency) |
+| `dependent` | `1.0`<br>`2.0` | `noarch` | [[9]](#9-dependent) |
+| `failing_post_link` | `1.0` | `noarch` | [[10]](#10-failing_post_link) |
+| `feature` | `1.0`<br>`2.0` | `noarch` | [[11]](#11-feature) |
+| `other_dependent` | `1.0` | `noarch` | [[12]](#12-other_dependent) |
+| `pip` | `99.99.99` | `noarch` | [[13]](#13-pip) |
+| `post_link-b` | `1.0` | `noarch` | [[14]](#14-post_link-b) |
+| `post_link-c` | `1.0` | `noarch` | [[15]](#15-post_link-c) |
+| `post_link-d` | `1.0` | `noarch` | [[16]](#16-post_link-d) |
+| `post_link-e` | `1.0` | `noarch` | [[17]](#17-post_link-e) |
+| `post_link_run_in_env_package` | `1.0` | `noarch` | [[18]](#18-post_link_run_in_env_package) |
+| `pre_link_messages_package` | `1.0` | `noarch` | [[19]](#19-pre_link_messages_package) |
+| `private-package` | `1.0` | `noarch` | [[20]](#20-private-package) |
+| `pycosat` | `1.0` | `noarch` | [[21]](#21-pycosat) |
+| `python` | `3.99.99` | `noarch` | [[22]](#22-python) |
+| `run_constrained` | `1.0` | `noarch` | [[23]](#23-run_constrained) |
+| `sample_noarch_python` | `1.0` | `noarch` | [[24]](#24-sample_noarch_python) |
+| `small-executable` | `1.0` | `noarch` | [[25]](#25-small-executable) |
+| `track_feature` | `1.0`<br>`2.0` | `noarch` | [[26]](#26-track_feature) |
+| `unsatisfiable` | `1.0` | `noarch` | [[27]](#27-unsatisfiable) |
+| `versioned` | `1.0`<br>`2.0` | `noarch` | [[28]](#28-versioned) |
+| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[29]](#29-virtualdep-package) |
 
 ## [1] activate_deactivate_package
 Activate/deactivate scripts that set environment variables
@@ -53,71 +55,77 @@ Ships bin/clobber-test-file (pair with the other clobber-* for path conflicts)
 ## [6] clobber-b
 Ships bin/clobber-test-file (pair with the other clobber-* for path conflicts)
 
-## [7] dependency
+## [7] conda
+Stub conda package for root-prefix removal protection tests
+
+## [8] dependency
 Depends on co-built dependency output; generic pin/remove fixture
 
-## [8] dependent
+## [9] dependent
 Depends on co-built dependency output; generic pin/remove fixture
 
-## [9] failing_post_link
+## [10] failing_post_link
 Post-link script that always fails
 
-## [10] feature
+## [11] feature
 ### `1.0` `noarch`
 Package declaring features: track_feature1
 ### `2.0` `noarch`
 Package declaring features: track_feature2
 
-## [11] other_dependent
+## [12] other_dependent
 Another dependent consumer for --only-deps and multi-spec ops
 
-## [12] pip
+## [13] pip
 Stub pip paired with fake python 3.99
 
-## [13] post_link-b
+## [14] post_link-b
 Dependency (no post-link) linked before post_link-c
 
-## [14] post_link-c
+## [15] post_link-c
 Post-link script that depends on post_link-b (link order)
 
-## [15] post_link-d
+## [16] post_link-d
 Post-link package depending on post_link-e
 
-## [16] post_link-e
+## [17] post_link-e
 Post-link script for link-order / post-link execution tests
 
-## [17] post_link_run_in_env_package
+## [18] post_link_run_in_env_package
 Post-link script that requires an activated env (TEST_VAR set by activate.d); fails if the post-link runs outside that env (e.g. base)
 
-## [18] pre_link_messages_package
+## [19] pre_link_messages_package
 Package with prelink_message files shown on install
 
-## [19] private-package
+## [20] private-package
 Stub for private-channel token search tests
 
-## [20] python
+## [21] pycosat
+Stub conda dependency for root-prefix removal protection tests
+
+## [22] python
 Stub python with custom python_site_packages_path
 
-## [21] run_constrained
+## [23] run_constrained
 Package with run_constrained: dependency>=2.0
 
-## [22] sample_noarch_python
+## [24] sample_noarch_python
 noarch: python package installing into $SP_DIR
 
-## [23] small-executable
+## [25] small-executable
 Tiny bin/Scripts entry point plus activate.d env vars
 
-## [24] track_feature
+## [26] track_feature
 ### `1.0` `noarch`
 Package with track_features: track_feature1
 ### `2.0` `noarch`
 Package with track_features: track_feature2
 
-## [25] unsatisfiable
+## [27] unsatisfiable
 Depends on impossible versioned <1.0 for UnsatisfiableError
 
-## [26] versioned
+## [28] versioned
 Versioned fixture for upgrade/update/conflict tests
 
-## [27] virtualdep-package
+## [29] virtualdep-package
 Architecture-specific package with a virtual dependency

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import warnings
 from inspect import isclass, isfunction
 from logging import getLogger
 from typing import TYPE_CHECKING
@@ -10,6 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.cli.conda_argparse import (
+    _PLUGIN_FREE_BUILTIN_COMMANDS,
     ArgumentParser,
     _GreedySubParsersAction,
     generate_parser,
@@ -33,6 +35,76 @@ def test_parser_basics():
 
     args = p.parse_args(["install", "-vv"])
     assert args.verbosity == 2
+
+
+@pytest.mark.parametrize(
+    "options", (["--no-plugins"], ["--no-plugins", "--no-plugins"])
+)
+def test_parse_no_plugins(options: list[str]):
+    args = generate_parser().parse_args([*options, "info"])
+
+    assert args.cmd == "info"
+    assert args.no_plugins is True
+    assert args.disabled_plugins == []
+
+
+@pytest.mark.parametrize(
+    "options,disabled_plugins",
+    [
+        (["--disable-plugins=plugin-a, plugin-b"], ["plugin-a", "plugin-b"]),
+        (["--disable-plugins", "plugin-a"], ["plugin-a"]),
+        (["--disable-plugins", "plugin-a, plugin-b"], ["plugin-a", "plugin-b"]),
+        (
+            ["--disable-plugins=plugin-a", "--disable-plugins=plugin-b"],
+            ["plugin-a", "plugin-b"],
+        ),
+        (
+            ["--disable-plugins", "plugin-a", "--disable-plugins", "plugin-b"],
+            ["plugin-a", "plugin-b"],
+        ),
+        (["--disable-plugins", "info"], ["info"]),
+    ],
+)
+def test_parse_disabled_plugins(options: list[str], disabled_plugins: list[str]):
+    args = generate_parser().parse_args([*options, "info"])
+
+    assert args.cmd == "info"
+    assert args.disabled_plugins == disabled_plugins
+
+
+@pytest.mark.parametrize("command", ("install", "run"))
+def test_parse_bare_no_plugins_with_command_arguments(command: str):
+    args = generate_parser().parse_args(["--no-plugins", command, "package"])
+
+    assert args.cmd == command
+    assert args.no_plugins is True
+    assert args.disabled_plugins == []
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        ["--enable-plugins=plugin-a, plugin-b"],
+        ["--enable-plugins", "plugin-a, plugin-b"],
+        ["--enable-plugins=plugin-a", "--enable-plugins=plugin-b"],
+    ],
+)
+def test_parse_enabled_plugins(options: list[str]):
+    args = generate_parser().parse_args([*options, "info"])
+
+    assert args.cmd == "info"
+    assert args.enabled_plugins == ["plugin-a", "plugin-b"]
+
+
+@pytest.mark.parametrize("separator", ([], ["--"]))
+@pytest.mark.parametrize(
+    "option", ("--no-plugins", "--disable-plugins", "--enable-plugins")
+)
+def test_parse_run_no_plugins(separator: list[str], option: str):
+    executable_call = ["echo", option, "info"]
+    args = generate_parser().parse_args(["run", *separator, *executable_call])
+
+    assert args.executable_call == [*separator, *executable_call]
 
 
 def test_parse_clobber(subtests: Subtests):
@@ -87,9 +159,32 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.add_parser_solver_mode", isfunction),
         ("conda.cli.conda_argparse.add_parser_update_modifiers", isfunction),
         ("conda.cli.conda_argparse.add_parser_verbose", isfunction),
-        # derived from argparse.ArgumentParser
         ("conda.cli.conda_argparse.ArgumentParser", isclass),
         ("conda.cli.conda_argparse.BUILTIN_COMMANDS", lambda x: isinstance(x, set)),
+        (
+            "conda.cli.conda_argparse.BUILTIN_SUBCOMMANDS",
+            lambda x: isinstance(x, dict),
+        ),
+        ("conda.cli.conda_argparse.configure_parser_plugins", isfunction),
+        ("conda.cli.conda_argparse.do_call", isfunction),
+        ("conda.cli.conda_argparse.ExtendConstAction", isclass),
+        ("conda.cli.conda_argparse.find_builtin_commands", isfunction),
+        ("conda.cli.conda_argparse.generate_parser", isfunction),
+        ("conda.cli.conda_argparse.generate_pre_parser", isfunction),
+        ("conda.cli.conda_argparse.NullCountAction", isclass),
+    ],
+)
+def test_imports(path: str, validate: Callable[[Any], bool]):
+    path, attr = path.rsplit(".", 1)
+    module = importlib.import_module(path)
+    assert hasattr(module, attr)
+    assert validate(getattr(module, attr))
+
+
+@pytest.mark.parametrize(
+    "path,validate",
+    [
+        # configure_parser_* functions moved to their own main_* modules (deprecated in 27.3)
         ("conda.cli.conda_argparse.configure_parser_clean", isfunction),
         ("conda.cli.conda_argparse.configure_parser_compare", isfunction),
         ("conda.cli.conda_argparse.configure_parser_config", isfunction),
@@ -100,29 +195,83 @@ def test_cli_args_as_strings(conda_cli: CondaCLIFixture):
         ("conda.cli.conda_argparse.configure_parser_list", isfunction),
         ("conda.cli.conda_argparse.configure_parser_notices", isfunction),
         ("conda.cli.conda_argparse.configure_parser_package", isfunction),
-        ("conda.cli.conda_argparse.configure_parser_plugins", isfunction),
         ("conda.cli.conda_argparse.configure_parser_remove", isfunction),
         ("conda.cli.conda_argparse.configure_parser_rename", isfunction),
         ("conda.cli.conda_argparse.configure_parser_run", isfunction),
         ("conda.cli.conda_argparse.configure_parser_search", isfunction),
         ("conda.cli.conda_argparse.configure_parser_update", isfunction),
-        ("conda.cli.conda_argparse.do_call", isfunction),
+        # rc_path variables moved to conda.base.context (deprecated in 27.3)
         ("conda.cli.conda_argparse.escaped_sys_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.escaped_user_rc_path", lambda x: isinstance(x, str)),
-        ("conda.cli.conda_argparse.ExtendConstAction", isclass),
-        ("conda.cli.conda_argparse.find_builtin_commands", isfunction),
-        ("conda.cli.conda_argparse.generate_parser", isfunction),
-        ("conda.cli.conda_argparse.generate_pre_parser", isfunction),
-        ("conda.cli.conda_argparse.NullCountAction", isclass),
         ("conda.cli.conda_argparse.sys_rc_path", lambda x: isinstance(x, str)),
         ("conda.cli.conda_argparse.user_rc_path", lambda x: isinstance(x, str)),
     ],
 )
-def test_imports(path: str, validate: Callable[[Any], bool]):
+def test_deprecated_imports(path: str, validate: Callable[[Any], bool]):
+    """Verify deprecated re-exports still work and warn on every access."""
     path, attr = path.rsplit(".", 1)
     module = importlib.import_module(path)
-    assert hasattr(module, attr)
-    assert validate(getattr(module, attr))
+    warning_types = (PendingDeprecationWarning, DeprecationWarning)
+    with pytest.warns(warning_types):
+        value = getattr(module, attr)
+    assert validate(value)
+    with pytest.warns(warning_types):
+        assert getattr(module, attr) is value
+
+
+def test_lazy_parser_map_cheap_introspection():
+    """keys/__iter__/__contains__ on the lazy parser map must not trigger
+    per-subcommand parser loading or plugin discovery.
+
+    argparse internals call these on the hot path (help formatting, error
+    messages, _check_value). Triggering ``configure_parser`` for every
+    subcommand or loading all plugins there would cancel out the whole point
+    of lazy subcommand loading.
+    """
+    parser = generate_parser()
+    action = parser._subparsers._group_actions[0]
+
+    # Snapshot state before any map-side introspection happens.
+    pending_before = set(action._lazy_loaders)
+    plugins_loaded_before = action._plugins_loaded
+    assert pending_before, "expected some builtin subcommands pending lazy load"
+
+    # keys()/__iter__/__contains__ for a known builtin must not load anything.
+    keys = set(action._name_parser_map.keys())
+    assert pending_before <= keys
+    assert set(iter(action._name_parser_map)) == keys
+    assert "install" in action._name_parser_map
+    assert "create" in action._name_parser_map
+
+    assert set(action._lazy_loaders) == pending_before, (
+        "__contains__/keys/__iter__ must not run configure_parser for builtins"
+    )
+    assert action._plugins_loaded is plugins_loaded_before, (
+        "__contains__/keys/__iter__ must not trigger plugin discovery for builtins"
+    )
+
+    # Unknown name: allowed to discover plugins once (to answer whether the
+    # name is a plugin-provided subcommand), but still must not load any
+    # builtin parsers.
+    assert "this-subcommand-does-not-exist" not in action._name_parser_map
+    assert set(action._lazy_loaders) == pending_before
+
+
+@pytest.mark.parametrize(
+    "args",
+    (["activate"], ["deactivate"], ["run", "python"]),
+)
+def test_plugin_free_builtin_commands_skip_discovery(
+    args: list[str],
+    clear_plugin_manager_cache: None,
+) -> None:
+    from conda.plugins.manager import get_plugin_manager
+
+    parser = generate_parser()
+    parser.parse_args(args)
+
+    assert args[0] in _PLUGIN_FREE_BUILTIN_COMMANDS
+    assert get_plugin_manager.cache_info().currsize == 0
 
 
 def test_sorted_commands_in_error(capsys: CaptureFixture):
@@ -157,3 +306,25 @@ def test_sorted_commands_in_error(capsys: CaptureFixture):
         )
     else:
         pytest.fail("Did not raise")
+
+
+@pytest.mark.parametrize("command", ["create", "install", "remove", "run"])
+def test_dev_flag_pending_deprecation(command: str) -> None:
+    parser = generate_parser()
+    with pytest.deprecated_call():
+        args = parser.parse_args([command, "--dev"])
+    assert args.dev
+
+
+def test_dev_flag_absent_is_not_deprecated() -> None:
+    parser = generate_parser()
+    args = parser.parse_args(["create", "-n", "x"])
+    assert not args.dev
+
+
+def test_init_dev_is_not_deprecated(conda_cli: CondaCLIFixture) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", PendingDeprecationWarning)
+        _, stderr, rc = conda_cli("init", "--dev", "--dry-run", "bash")
+
+    assert rc == 0, stderr

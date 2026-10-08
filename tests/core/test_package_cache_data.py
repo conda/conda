@@ -3,6 +3,7 @@
 import datetime
 import json
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from os.path import abspath, basename, dirname, join
 from pathlib import Path
 from threading import Event
@@ -28,7 +29,9 @@ from conda.core.path_actions import CacheUrlAction
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
+from conda.models.enums import LinkType
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PrefixRecord
 from conda.testing.helpers import CHANNEL_DIR_V1
 from conda.utils import url_path
 
@@ -88,6 +91,82 @@ def fresh_zlib_records():
     )
 
 
+def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
+    known_prefix = str(tmp_path / "known")
+    root_prefix = str(tmp_path / "root")
+    conda_prefix = str(tmp_path / "conda")
+    missing_target_prefix = str(tmp_path / "missing-target")
+    softlinked_source = tmp_path / "pkgs" / "softlinked"
+    untyped_source = tmp_path / "pkgs" / "untyped"
+    ignored_source = tmp_path / "pkgs" / "ignored"
+    records = {
+        known_prefix: (
+            SimpleNamespace(
+                link=SimpleNamespace(
+                    source=str(softlinked_source / ".." / "softlinked"),
+                    type=LinkType.softlink,
+                )
+            ),
+            SimpleNamespace(
+                link=SimpleNamespace(
+                    source=str(tmp_path / "pkgs" / "hardlinked"),
+                    type=LinkType.hardlink,
+                )
+            ),
+            PrefixRecord(
+                name="untyped",
+                version="1",
+                build="0",
+                build_number=0,
+                link={"source": str(untyped_source)},
+            ),
+            SimpleNamespace(link=None),
+        ),
+        missing_target_prefix: (
+            SimpleNamespace(
+                link=SimpleNamespace(
+                    source=str(ignored_source),
+                    type=LinkType.softlink,
+                )
+            ),
+        ),
+    }
+    mocker.patch(
+        "conda.core.envs_manager.list_all_known_prefixes",
+        return_value=[known_prefix],
+    )
+    prefix_data = mocker.patch("conda.core.prefix_data.PrefixData")
+    prefix_data.side_effect = lambda prefix, **kwargs: SimpleNamespace(
+        is_environment=lambda: prefix != missing_target_prefix,
+        iter_records=lambda: records.get(prefix, ()),
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "context",
+        SimpleNamespace(
+            root_prefix=root_prefix,
+            conda_prefix=conda_prefix,
+            active_prefix=None,
+            target_prefix=missing_target_prefix,
+        ),
+    )
+
+    assert package_cache_data.get_softlinked_package_dirs() == {
+        softlinked_source.resolve(),
+        untyped_source.resolve(),
+    }
+    assert {call.args[0] for call in prefix_data.call_args_list} == {
+        known_prefix,
+        root_prefix,
+        conda_prefix,
+        missing_target_prefix,
+    }
+    assert all(
+        call.kwargs == {"interoperability": False}
+        for call in prefix_data.call_args_list
+    )
+
+
 def test_process_extract_finishes_when_later_fetch_fails(mocker):
     extracted = Event()
     good = PackageRecord(name="good", version="1", build="0", build_number=0)
@@ -120,7 +199,7 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
     mocker.patch.object(
         package_cache_data,
         "extract_conda_package_archive",
-        side_effect=lambda *args: extracted.set(),
+        side_effect=lambda *args, **kwargs: extracted.set(),
     )
     mocker.patch.object(
         package_cache_data,
@@ -140,6 +219,199 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
     good_extract._finish_extract.assert_called_once_with()
     good_extract.cleanup.assert_called_once_with()
     bad_extract._finish_extract.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "requested_metadata,cached_metadata,prefer_local",
+    (
+        pytest.param({}, {}, True, id="matching"),
+        pytest.param({}, {"md5": "0" * 32}, False, id="different-md5"),
+        pytest.param({}, {"size": 1}, False, id="different-size"),
+        pytest.param(
+            {},
+            {
+                "fn": zlib_tar_bz2_prec.fn,
+                "md5": zlib_tar_bz2_prec.md5,
+                "size": zlib_tar_bz2_prec.size,
+            },
+            True,
+            id="legacy-format",
+        ),
+        pytest.param(
+            {}, {"md5": None, "size": None}, True, id="missing-cached-metadata"
+        ),
+        pytest.param(
+            {"md5": None, "size": None}, {}, True, id="missing-requested-metadata"
+        ),
+        pytest.param({"md5": None}, {"md5": None}, True, id="missing-md5"),
+        pytest.param(
+            {},
+            {"md5": "0" * 32, "size": None},
+            False,
+            id="different-md5-without-size",
+        ),
+        pytest.param(
+            {}, {"md5": None, "size": 1}, False, id="different-size-without-md5"
+        ),
+    ),
+)
+def test_get_entry_to_link_prefers_matching_target_prefix_device(
+    mocker, tmp_path: Path, requested_metadata, cached_metadata, prefer_local
+):
+    _, conda_prec = fresh_zlib_records()
+    metadata = conda_prec.dump()
+    requested_record = PackageRecord(
+        **{
+            key: value
+            for key, value in (metadata | requested_metadata).items()
+            if value is not None
+        }
+    )
+    target_prefix = tmp_path / "target"
+    target_prefix.mkdir()
+    entries = []
+    for cache_name, overrides in (
+        ("remote-cache", {}),
+        ("local-cache", cached_metadata),
+    ):
+        extracted_dir = tmp_path / cache_name / zlib_base_fn
+        info_dir = extracted_dir / "info"
+        info_dir.mkdir(parents=True)
+        (info_dir / "index.json").touch()
+        entries.append(
+            PackageCacheRecord(
+                **{
+                    key: value
+                    for key, value in (metadata | overrides).items()
+                    if value is not None
+                },
+                extracted_package_dir=str(extracted_dir),
+                package_tarball_full_path=str(
+                    extracted_dir.parent / overrides.get("fn", conda_prec.fn)
+                ),
+            )
+        )
+
+    calculate_md5sum = mocker.spy(PackageCacheRecord, "_calculate_md5sum")
+    mocker.patch.object(
+        PackageCacheData,
+        "query_all",
+        return_value=iter(entries),
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "paths_on_same_device",
+        lambda left, right: (
+            left == str(tmp_path / "local-cache") and right == str(target_prefix)
+        ),
+    )
+
+    assert (
+        PackageCacheData.get_entry_to_link(requested_record, str(target_prefix))
+        is entries[1 if prefer_local else 0]
+    )
+    if requested_record.md5 is None:
+        calculate_md5sum.assert_not_called()
+
+
+@pytest.mark.parametrize("with_target_prefix", (False, True))
+def test_get_entry_to_link_stops_after_first_usable_entry(
+    mocker, tmp_path: Path, with_target_prefix
+):
+    _, conda_prec = fresh_zlib_records()
+    extracted_dir = tmp_path / "cache" / zlib_base_fn
+    info_dir = extracted_dir / "info"
+    info_dir.mkdir(parents=True)
+    (info_dir / "index.json").touch()
+    entry = PackageCacheRecord.from_objects(
+        conda_prec,
+        extracted_package_dir=str(extracted_dir),
+        package_tarball_full_path=str(extracted_dir.parent / conda_prec.fn),
+    )
+
+    def entries():
+        yield entry
+        pytest.fail("Loaded another cache after finding a usable extracted entry")
+
+    mocker.patch.object(PackageCacheData, "query_all", return_value=entries())
+    mocker.patch.object(package_cache_data, "paths_on_same_device", return_value=True)
+    target_prefix = str(tmp_path / "target") if with_target_prefix else None
+
+    assert PackageCacheData.get_entry_to_link(conda_prec, target_prefix) is entry
+
+
+def test_get_entry_to_link_falls_back_to_first_extracted_entry(mocker, tmp_path: Path):
+    _, conda_prec = fresh_zlib_records()
+    entries = []
+    for cache_name in ("unextracted", "first-cache", "second-cache"):
+        extracted_dir = tmp_path / cache_name / zlib_base_fn
+        if cache_name != "unextracted":
+            info_dir = extracted_dir / "info"
+            info_dir.mkdir(parents=True)
+            (info_dir / "index.json").touch()
+        entries.append(
+            PackageCacheRecord.from_objects(
+                conda_prec,
+                extracted_package_dir=str(extracted_dir),
+                package_tarball_full_path=str(extracted_dir.parent / conda_prec.fn),
+            )
+        )
+    mocker.patch.object(PackageCacheData, "query_all", return_value=iter(entries))
+    mocker.patch.object(package_cache_data, "paths_on_same_device", return_value=False)
+
+    assert (
+        PackageCacheData.get_entry_to_link(conda_prec, str(tmp_path / "target"))
+        is entries[1]
+    )
+
+
+@pytest.mark.parametrize("error", (FileNotFoundError, NotImplementedError))
+def test_process_pool_unavailable_falls_back_to_threads(
+    mocker, tmp_pkgs_dir: Path, error
+):
+    process_pool = mocker.patch.object(
+        package_cache_data,
+        "ProcessPoolExecutor",
+        side_effect=error,
+    )
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    _, conda_prec = fresh_zlib_records()
+
+    ProgressiveFetchExtract((conda_prec,)).execute()
+
+    process_pool.assert_called_once()
+    assert isfile(join(tmp_pkgs_dir, zlib_base_fn, "info", "repodata_record.json"))
+
+
+def test_process_extract_logs_exception_cause(mocker, tmp_pkgs_dir: Path):
+    decode_error = TypeError("cannot deserialize extraction error")
+    pool_error = BrokenProcessPool("worker result unavailable")
+    pool_error.__cause__ = decode_error
+    log_debug = mocker.patch.object(package_cache_data.log, "debug")
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 2)
+    mocker.patch.object(
+        package_cache_data,
+        "extract_conda_package_archive",
+        side_effect=pool_error,
+    )
+    mocker.patch.object(
+        package_cache_data,
+        "ProcessPoolExecutor",
+        side_effect=lambda **kwargs: ThreadPoolExecutor(kwargs["max_workers"]),
+    )
+    mocker.patch.object(
+        context.plugin_manager,
+        "get_package_extractor",
+        return_value=SimpleNamespace(name="conda-package"),
+    )
+    _, conda_prec = fresh_zlib_records()
+
+    with pytest.raises(CondaMultiError) as exc_info:
+        ProgressiveFetchExtract((conda_prec,)).execute()
+
+    log_debug.assert_any_call("Package extraction failed.", exc_info=pool_error)
+    assert exc_info.value.errors == [pool_error]
+    assert pool_error.__cause__ is decode_error
 
 
 def test_ProgressiveFetchExtract_prefers_conda_v2_format(monkeypatch: MonkeyPatch):
@@ -645,6 +917,37 @@ def test_instantiating_package_cache_when_both_tar_bz2_and_conda_exist_read_only
     assert zlib_base_fn not in pkgs_dir_files
     assert zlib_tar_bz2_fn in pkgs_dir_files
     assert zlib_conda_fn in pkgs_dir_files
+
+
+@pytest.mark.parametrize("extracted_format", ("tar.bz2", "conda"))
+@pytest.mark.parametrize("archives", ("both", "other", "none"))
+@pytest.mark.parametrize("read_only", (False, True))
+def test_extracted_package_cache_record_matches_archive(
+    tmp_pkgs_dir: Path, extracted_format: str, archives: str, read_only: bool
+):
+    record, other = fresh_zlib_records()
+    if extracted_format == "conda":
+        record, other = other, record
+
+    pfe = ProgressiveFetchExtract((record,))
+    pfe.prepare()
+    pfe.execute()
+    copy(join(CHANNEL_DIR_V1, subdir, other.fn), tmp_pkgs_dir / other.fn)
+    if archives != "both":
+        (tmp_pkgs_dir / record.fn).unlink()
+    if archives == "none":
+        (tmp_pkgs_dir / other.fn).unlink()
+    if read_only:
+        make_read_only(tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE)
+
+    PackageCacheData._cache_.clear()
+    (cached,) = PackageCacheData(tmp_pkgs_dir).iter_records()
+
+    assert cached.package_tarball_full_path == str(tmp_pkgs_dir / record.fn)
+    assert cached.is_extracted
+    assert cached.is_fetched == (archives == "both")
+    for field in ("fn", "url", "md5", "sha256", "size"):
+        assert getattr(cached, field) == getattr(record, field)
 
 
 def test_instantiating_package_cache_when_unpacked_conda_exist(tmp_pkgs_dir: Path):

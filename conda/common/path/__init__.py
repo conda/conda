@@ -85,6 +85,7 @@ PATH_MATCH_REGEX = (
 KNOWN_REPODATA_EXTENSIONS = (
     ".json",
     ".json.zst",
+    ".msgpack.zst",
 )
 
 deprecated.constant(
@@ -182,7 +183,8 @@ def strip_pkg_extension(path: str) -> tuple[str, str | None]:
     Split path into (base, extension) for known extensions.
 
     Package extensions are determined dynamically from registered plugins.
-    Repodata extensions (.json, .json.zst) are also recognized.
+    Repodata extensions (.json, .json.zst, .msgpack.zst for sharded repodata)
+    are also recognized.
 
     Args:
         path: Path to split.
@@ -197,6 +199,8 @@ def strip_pkg_extension(path: str) -> tuple[str, str | None]:
         ('/path/_license-1.1-py27_1', '.conda')
         >>> strip_pkg_extension("/path/repodata.json")
         ('/path/repodata', '.json')
+        >>> strip_pkg_extension("/path/linux-64/45f2a9d0.msgpack.zst")
+        ('/path/linux-64/45f2a9d0', '.msgpack.zst')
         >>> strip_pkg_extension("/path/_license-1.1-py27_1")
         ('/path/_license-1.1-py27_1', None)
     """

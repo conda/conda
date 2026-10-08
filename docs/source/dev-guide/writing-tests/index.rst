@@ -15,6 +15,9 @@ This guide gives an overview of how to write integration tests using full
 command invocation. It also covers creating fixtures to use with these types
 of tests.
 
+:doc:`benchmarks`
+Guide for running and writing performance benchmarks, and interpreting Bencher results.
+
 :doc:`http-test-server`
 Guide for using the HTTP test server fixture to test scenarios requiring
 file serving (mock channels, remote files, etc.)
@@ -28,6 +31,7 @@ works correctly in these environments.
    :maxdepth: 1
 
    integration-tests
+   benchmarks
    http-test-server
    windows-applocker
 

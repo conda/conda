@@ -19,7 +19,9 @@ if TYPE_CHECKING:
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from ..deprecations import deprecated
     from .actions import NullCountAction
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import (
         add_parser_create_install_update,
         add_parser_frozen_env,
@@ -28,7 +30,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_update_modifiers,
     )
 
-    summary = "Install a list of packages into a specified conda environment."
+    summary = BUILTIN_SUBCOMMANDS["install"]["help"]
     description = dals(
         f"""
         {summary}
@@ -108,7 +110,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_update_modifiers(solver_mode_options)
     p.add_argument(
         "--dev",
-        action=NullCountAction,
+        action=deprecated.action(
+            "27.3",
+            "27.9",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
         "This is mainly for use during tests where we test new conda sources "
         "against old Python versions.",

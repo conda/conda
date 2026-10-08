@@ -16,16 +16,21 @@ from .deprecations import deprecated
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
-    from typing import Any, TypeVar
+    from typing import Any, ParamSpec, TypeVar
 
     T = TypeVar("T")
+    P = ParamSpec("P")
 
 log = getLogger(__name__)
 
 
 class ExceptionHandler:
-    # FUTURE: Python 3.10+, use typing.ParamSpec
-    def __call__(self, func: Callable[..., T], *args, **kwargs) -> T | int:
+    def __call__(
+        self,
+        func: Callable[P, T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T | int:
         try:
             return func(*args, **kwargs)
         except:
@@ -210,12 +215,16 @@ class ExceptionHandler:
                     "If you suspect this error is being caused by a malfunctioning plugin,",
                     "consider using the --no-plugins option to turn off plugins.",
                     "",
-                    "Example: conda --no-plugins install <package>",
+                    "Example: conda --no-plugins info",
                     "",
                     "Alternatively, you can set the CONDA_NO_PLUGINS environment variable on",
                     "the command line to run the command without plugins enabled.",
                     "",
-                    "Example: CONDA_NO_PLUGINS=true conda install <package>",
+                    "Example: CONDA_NO_PLUGINS=true conda info",
+                    "",
+                    "For commands that need a solver, keep an installed solver plugin enabled:",
+                    "",
+                    "Example: conda --no-plugins --enable-plugins conda-libmamba-solver install --solver=libmamba <package>",
                     "",
                 ]
             )

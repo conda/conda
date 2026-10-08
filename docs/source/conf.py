@@ -29,6 +29,7 @@ extensions = [
     "autoapi.extension",
     "conda_umls",
     "conda_sphinx_theme.version_anchors",
+    "nav_glossary",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
@@ -203,6 +204,9 @@ link_github = True
 # -- For sphinx_reredirects ------------------------------------------------
 
 redirects = {
+    # legacy specs/ pages now live under deep-dives/
+    "dev-guide/specs/index": "../deep-dives/index.html",
+    "dev-guide/specs/solver-state": "../deep-dives/solver-state.html",
     # internal redirects
     "admin": "user-guide/configuration/admin-multi-user-install.html",
     "api/api": "../dev-guide/api/conda/index.html",

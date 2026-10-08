@@ -25,6 +25,7 @@ from requests import Request, Response
 import conda.gateways.repodata
 from conda._private import zstd
 from conda._private.shards import cache as shards_cache
+from conda._private.shards import decompression as shard_decompression
 from conda._private.shards import shards
 from conda._private.shards import subset as shards_subset
 from conda._private.shards.shards import (
@@ -39,8 +40,9 @@ from conda._private.shards.shards import (
     shard_mentioned_packages,
 )
 from conda.base.context import context, reset_context
+from conda.cli.main import main
 from conda.core.subdir_data import SubdirData
-from conda.exceptions import UnavailableInvalidChannel
+from conda.exceptions import ChannelError, UnavailableInvalidChannel
 from conda.gateways.repodata import FORMAT_JSON, FORMAT_SHARDS
 from conda.models.channel import Channel
 
@@ -762,6 +764,99 @@ def test_shards_cache(tmp_path: Path):
     cache.close()
 
 
+def test_shard_size_limits():
+    assert shard_decompression.ZSTD_MAX_SHARD_SIZE == 64 * 2**20
+    assert shard_decompression.ZSTD_MAX_SHARD_INDEX_SIZE == 128 * 2**20
+
+
+def test_individual_shard_output_size_limit():
+    reported_shard_size = 48_984_766
+    compressed = zstd.compress(bytes(reported_shard_size))
+
+    decompressed = shard_decompression.decompress_shard(
+        compressed,
+        url="https://example.com/noarch/shards/hash",
+        package="large-package",
+    )
+
+    assert len(decompressed) == reported_shard_size
+
+
+def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(shard_decompression, "ZSTD_MAX_SHARD_SIZE", 1024)
+    shard = msgpack.dumps({"payload": b"x" * 2048})
+    annotated_shard = shards_cache.AnnotatedRawShard(
+        "https://user:password@example.com/t/secret/channel/noarch/shards/hash",
+        "large-package",
+        zstd.compress(shard),
+    )
+
+    with shards_cache.ShardCache(tmp_path) as cache:
+        cache.insert(annotated_shard)
+        with pytest.raises(ChannelError) as exc_info:
+            cache.retrieve(annotated_shard.url)
+
+    message = str(exc_info.value)
+    assert "package 'large-package'" in message
+    assert "https://example.com/t/<TOKEN>/channel/noarch/shards/hash" in message
+    assert f"decompressed output is {len(shard)} bytes" in message
+    assert "output and decoder window limit: 1024 bytes" in message
+    assert "user:password" not in message
+    assert "/t/secret/" not in message
+
+
+def test_individual_shard_size_error_cli(
+    shard_factory: ShardFactory,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    channel_url = shard_factory.http_server_shards("individual_shard_size_error_cli")
+    shard_size = len(msgpack.dumps(FAKE_SHARD))
+    max_output_size = shard_size - 1
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+            patch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+            patch.setenv("CONDA_TOKEN", "")
+            patch.setattr(
+                shard_decompression,
+                "ZSTD_MAX_SHARD_SIZE",
+                max_output_size,
+            )
+            reset_context()
+            capsys.readouterr()
+
+            return_code = main(
+                "search",
+                "foo",
+                "--subdir",
+                "noarch",
+                "--override-channels",
+                "--channel",
+                channel_url,
+            )
+
+            _, stderr = capsys.readouterr()
+    finally:
+        reset_context()
+
+    shard_url = f"{channel_url}noarch/repodata_shards.msgpack.zst"
+    expected = (
+        "ChannelError: repodata shard for package 'foo' "
+        f"from channel '{shard_url}': "
+        f"decompressed output is {shard_size} bytes, "
+        f"which exceeds the {max_output_size} byte limit "
+        f"(output and decoder window limit: {max_output_size} bytes)"
+    )
+    assert return_code == 1
+    assert stderr.rstrip().endswith(expected)
+    assert stderr.count("ChannelError:") == 1
+    assert "Traceback" not in stderr
+    assert "ERROR REPORT" not in stderr
+    assert "An unexpected error has occurred" not in stderr
+
+
 def test_shards_cache_recovery(tmp_path: Path):
     """
     Test that we can recover from a bad shards database.
@@ -1001,6 +1096,46 @@ def test_shardlike():
     assert len(repodata["packages.conda"]) == 3
 
 
+def test_shardlike_distributes_v3_packages():
+    """
+    ShardLike must distribute repodata["v3"] records into per-package shards,
+    just like "packages" and "packages.conda", so that monolithic channels
+    with only v3 records are not invisible when mixed with sharded
+    channels.
+    """
+    repodata = {
+        "info": {"subdir": "noarch", "base_url": ""},
+        "packages": {},
+        "packages.conda": {},
+        "v3": {
+            "whl": {
+                "mypkg-whl-1.0-py312_none_any_0": {
+                    "name": "mypkg-whl",
+                    "fn": "mypkg-whl-1.0-py312-none-any.whl",
+                }
+            },
+            "conda": {"foo-1.0-0": {"name": "foo", "fn": "foo-1.0-0.conda"}},
+            "tar.bz2": {"bar-1.0-0": {"name": "bar", "fn": "bar-1.0-0.tar.bz2"}},
+        },
+        "repodata_version": 3,
+    }
+
+    as_shards = ShardLike(repodata)
+
+    shard = as_shards.visit_package("mypkg-whl")
+    as_shards.visit_package("foo")
+    as_shards.visit_package("bar")
+    assert (
+        shard["v3"]["whl"]["mypkg-whl-1.0-py312_none_any_0"]["fn"]
+        == "mypkg-whl-1.0-py312-none-any.whl"
+    )
+
+    records = dict(as_shards.iter_records())
+    assert "mypkg-whl-1.0-py312_none_any_0" in records
+    assert "foo-1.0-0" in records
+    assert "bar-1.0-0" in records
+
+
 def test_iter_records_classic():
     shardlike = ShardLike(
         {
@@ -1073,6 +1208,7 @@ def test_iter_records_includes_v3():
                         "fn": "mypkg-1.0-py312-none-any.whl",
                     }
                 },
+                "conda": {"foo-1.0-0": {"name": "foo", "fn": "foo-1.0-0.conda"}},
             },
         },
     )
@@ -1080,6 +1216,8 @@ def test_iter_records_includes_v3():
     records = dict(shardlike.iter_records())
     assert "mypkg-1.0-py312_none_any_0" in records
     assert records["mypkg-1.0-py312_none_any_0"]["fn"] == "mypkg-1.0-py312-none-any.whl"
+    assert "foo-1.0-0" in records
+    assert records["foo-1.0-0"]["fn"] == "foo-1.0-0.conda"
 
 
 def test_shardlike_repr():
@@ -1237,7 +1375,8 @@ def test_shards_connections(monkeypatch):
     monkeypatch.setattr("conda._private.shards.misc.SHARDS_CONNECTIONS_DEFAULT", 7)
     assert _shards_connections() == 7
 
-    monkeypatch.setattr(context, "_repodata_threads", 4)
+    monkeypatch.setenv("CONDA_REPODATA_THREADS", "4")
+    reset_context()
     assert _shards_connections() == 4
 
 

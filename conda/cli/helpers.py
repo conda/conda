@@ -401,6 +401,18 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
         default=NULL,
         help="Ignore pinned file.",
     )
+    solver_mode_options.add_argument(
+        "--exclude-newer",
+        dest="exclude_newer",
+        default=NULL,
+        metavar="DURATION_OR_DATE",
+        help="Exclude packages published more recently than the given "
+        "duration (e.g. 7d, 3d12h, 1w) or date (e.g. 2026-04-01, "
+        "2026-04-01T12:00:00Z). Date-only values use the start of the next "
+        "UTC day. Supply 0 for no delay, using the current time as the cutoff. "
+        "Channel and per-package overrides can be set via channel_settings and "
+        "exclude_newer_package in .condarc.",
+    )
     return solver_mode_options
 
 
@@ -586,21 +598,36 @@ def add_parser_default_packages(p: ArgumentParser) -> None:
     )
 
 
-def add_parser_platform(parser):
-    from ..base.constants import KNOWN_SUBDIRS
+def add_parser_platform(
+    parser: ArgumentParser | _ArgumentGroup,
+    *,
+    help: str | None = None,
+    known_subdirs_only: bool = True,
+) -> None:
+    from ..base.context import context
     from ..common.constants import NULL
 
+    help = (
+        help
+        or (
+            "Use packages built for this platform. "
+            "The new environment will be configured to remember this choice. "
+        )
+    ).strip()
     parser.add_argument(
         "--subdir",
         "--platform",
         default=NULL,
         dest="subdir",
-        choices=[s for s in KNOWN_SUBDIRS if s != "noarch"],
+        choices=(
+            sorted(context.known_subdirs - {"noarch"}) if known_subdirs_only else None
+        ),
         metavar="SUBDIR",
-        help="Use packages built for this platform. "
-        "The new environment will be configured to remember this choice. "
-        "Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
-        "Defaults to the current (native) platform.",
+        help=(
+            f"{help}{' ' if help else ''}"
+            f"Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
+            f"Defaults to the current (native) platform."
+        ),
     )
 
 

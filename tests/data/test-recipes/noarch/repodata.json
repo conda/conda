@@ -105,6 +105,22 @@
       "timestamp": 1785276623744,
       "version": "1.0"
     },
+    "conda-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [
+        "dependency",
+        "pycosat"
+      ],
+      "md5": "6e1f6e59bdf98bf4cf1c9024ffcdbb51",
+      "name": "conda",
+      "noarch": "generic",
+      "sha256": "7f74fe030edfee5d3b5a70484c96505fede8008b971ec57321c62ccb174d2653",
+      "size": 3235,
+      "subdir": "noarch",
+      "timestamp": 1787554506222,
+      "version": "1.0"
+    },
     "dependency-1.0-0.conda": {
       "build": "0",
       "build_number": 0,
@@ -329,6 +345,19 @@
       "size": 4139,
       "subdir": "noarch",
       "timestamp": 1785276683552,
+      "version": "1.0"
+    },
+    "pycosat-1.0-0.conda": {
+      "build": "0",
+      "build_number": 0,
+      "depends": [],
+      "md5": "ceb60cd2a09d4dd62ebc61e73b46026c",
+      "name": "pycosat",
+      "noarch": "generic",
+      "sha256": "67c603d505b78400678a7e54c7e64f3305df02ad98cb8d0c26cbf6356dea5c6a",
+      "size": 3216,
+      "subdir": "noarch",
+      "timestamp": 1787554505059,
       "version": "1.0"
     },
     "python-3.99.99-0.conda": {

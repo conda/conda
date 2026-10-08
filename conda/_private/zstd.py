@@ -30,17 +30,29 @@ __all__ = [
 ]
 
 
-def capped_decompress(data: bytes, max_output_size: int) -> bytes:
+def capped_decompress(
+    data: bytes,
+    max_output_size: int,
+) -> bytes:
     """One-shot decompress of untrusted data with output and window bounds.
 
     Replaces ``zstandard.decompress(..., max_output_size=...)`` and
     ``ZstdDecompressor(max_window_size=...)`` (window cap was only in subset.py).
     """
+    decompressed_size = _zstd.get_frame_info(data).decompressed_size
+    if decompressed_size is not None and decompressed_size > max_output_size:
+        raise ZstdError(
+            f"decompressed output is {decompressed_size} bytes, "
+            f"which exceeds the {max_output_size} byte limit"
+        )
+
     window_log_max = max(10, math.ceil(math.log2(max(max_output_size, 1))))
     dctx = _zstd.ZstdDecompressor(
         options={_zstd.DecompressionParameter.window_log_max: window_log_max}
     )
     out = dctx.decompress(data, max_length=max_output_size)
-    if not dctx.eof and not dctx.needs_input:
+    if not dctx.eof:
+        if dctx.needs_input:
+            raise ZstdError("compressed input ended before the end of the frame")
         raise ZstdError(f"decompressed output exceeds {max_output_size} bytes")
     return out
