@@ -5,8 +5,6 @@
 from __future__ import annotations
 
 import copy
-import functools
-import inspect
 import sys
 from itertools import chain
 from logging import DEBUG, getLogger
@@ -26,7 +24,6 @@ from ..common.iterators import unique
 from ..common.path import get_major_minor_version, paths_equal
 from ..deprecations import deprecated
 from ..exceptions import (
-    CondaValueError,
     NoChannelsConfiguredError,
     PackagesNotFoundInChannelsError,
     PackagesNotFoundInPrefixError,
