@@ -1524,7 +1524,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 274
+  num_commits: 275
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -1962,7 +1962,7 @@
   first_commit: 2016-12-11 16:14:03
 - name: Ken Odegard
   email: kodegard@anaconda.com
-  num_commits: 651
+  num_commits: 652
   first_commit: 2016-09-27 18:04:21
   github: kenodegard
   aliases:
@@ -2010,7 +2010,7 @@
   github: dholth
   alternate_emails:
   - 208018+dholth@users.noreply.github.com
-  num_commits: 143
+  num_commits: 144
   first_commit: 2021-11-18 08:57:14
 - name: John Flavin
   email: flavinj@gmail.com
@@ -2048,7 +2048,7 @@
   first_commit: 2021-11-29 23:03:32
 - name: Conda Bot
   email: 18747875+conda-bot@users.noreply.github.com
-  num_commits: 248
+  num_commits: 249
   first_commit: 2022-01-17 20:22:29
   github: conda-bot
   aliases:
@@ -2584,7 +2584,7 @@
 - name: Dan Yeaw
   email: dan@yeaw.me
   github: danyeaw
-  num_commits: 38
+  num_commits: 39
   first_commit: 2025-09-26 10:42:03
 - name: Sumanth
   email: 33193748+sumanth-manchala@users.noreply.github.com
