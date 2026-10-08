@@ -63,6 +63,8 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
     del pre_args.disabled_plugins
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
+    # Plugin imports may reset context, so load them before applying parsed arguments.
+    context.plugin_manager
     context.__init__(argparse_args=args)
     init_loggers()
 
