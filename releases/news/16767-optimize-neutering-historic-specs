@@ -1,0 +1,12 @@
+### Enhancements
+
+### Bug fixes
+
+### Deprecations
+
+### Docs
+
+### Other
+
+* Add `tmp_repodata_channel` for constructing local test channels from in-memory package metadata. (#16807)
+* Replace production-channel inputs in `test_neutering_of_historic_specs` with a small local channel while preserving historical-spec regression coverage. (#16767 via #16807)

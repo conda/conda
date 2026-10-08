@@ -6,8 +6,10 @@ import os
 import platform
 import re
 import sys
+import tarfile
 from datetime import datetime
 from importlib.metadata import version
+from io import BytesIO
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
@@ -71,6 +73,7 @@ from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.subprocess import Response
+from conda.history import History
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
@@ -101,6 +104,7 @@ if TYPE_CHECKING:
         PipCLIFixture,
         TmpChannelFixture,
         TmpEnvFixture,
+        TmpRepodataChannelFixture,
     )
 
 log = getLogger(__name__)
@@ -2862,22 +2866,112 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
 # https://github.com/conda/conda/issues/9124
 @pytest.mark.skipif(
     context.subdir != "linux-64",
-    reason="lazy; package constraint here only valid on linux-64",
+    reason="historical-spec regression currently exercised on linux-64",
 )
+@pytest.mark.usefixtures("tmp_pkgs_dir")
 def test_neutering_of_historic_specs(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    tmp_repodata_channel: TmpRepodataChannelFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
 ):
-    with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
-        conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
-        # make sure we didn't lose psutil
-        PrefixData._cache_.clear()
-        assert PrefixData(prefix).get("psutil")
+    # These synthetic Python packages need no pip dependency.
+    monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false")
+    reset_context()
 
-        d = (prefix / PREFIX_MAGIC_FILE).read_text()
-        assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
-        # this would be unsatisfiable if the neutered specs were not being factored in correctly.
-        #    If this command runs successfully (does not raise), then all is well.
-        conda_cli("install", f"--prefix={prefix}", "imagesize", "--yes")
+    channel, channel_url = tmp_repodata_channel(
+        [
+            {"name": "python", "version": "3.7.0"},
+            {"name": "python", "version": "3.6.0"},
+            {
+                "name": "psutil",
+                "version": "5.6.3",
+                "build": "py37_0",
+                "depends": ["python >=3.7,<3.8"],
+            },
+            {
+                "name": "psutil",
+                "version": "5.6.3",
+                "build": "py36_0",
+                "depends": ["python >=3.6,<3.7"],
+            },
+            {"name": "imagesize", "depends": ["python >=3.6"]},
+        ],
+        subdir=context.subdir,
+    )
+    package_dir = channel / context.subdir
+    repodata_path = package_dir / "repodata.json"
+    repodata = json.loads(repodata_path.read_text())
+
+    for filename, record in repodata["packages"].items():
+        # Empty payloads still exercise extraction, linking, and history.
+        metadata = {
+            "info/index.json": json.dumps(record).encode("utf-8"),
+            "info/files": b"",
+            "info/paths.json": json.dumps({"paths_version": 1, "paths": []}).encode(
+                "utf-8"
+            ),
+        }
+        package_path = package_dir / filename
+        with tarfile.open(package_path, "w:bz2") as archive:
+            for path, content in metadata.items():
+                member = tarfile.TarInfo(path)
+                member.size = len(content)
+                archive.addfile(member, BytesIO(content))
+
+        record.update(
+            size=package_path.stat().st_size,
+            sha256=compute_sum(package_path, "sha256"),
+        )
+
+    repodata_path.write_text(json.dumps(repodata), encoding="utf-8")
+
+    channel_args = (
+        "--override-channels",
+        f"--channel={channel_url}",
+        "--repodata-fn=repodata.json",
+    )
+
+    with tmp_env(
+        *channel_args,
+        "--no-default-packages",
+        "psutil=5.6.3=py37_0",
+    ) as prefix:
+        installed = PrefixData(prefix)
+        installed.reload()
+        assert installed.get("python").version == "3.7.0"
+        assert installed.get("psutil").build == "py37_0"
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            *channel_args,
+            "python=3.6",
+            "--yes",
+        )
+
+        installed.reload()
+        assert installed.get("python").version == "3.6.0"
+        assert installed.get("psutil").build == "py36_0"
+
+        history = (prefix / PREFIX_MAGIC_FILE).read_text()
+        assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", history)
+        assert History(prefix).get_requested_specs_map()["psutil"] == MatchSpec(
+            "psutil==5.6.3"
+        )
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            *channel_args,
+            "imagesize",
+            "--yes",
+        )
+
+        installed.reload()
+        assert installed.get("imagesize").version == "1.0"
+        assert installed.get("python").version == "3.6.0"
+        assert installed.get("psutil").build == "py36_0"
 
 
 # https://github.com/conda/conda/issues/10116
