@@ -3,7 +3,11 @@
 
 .. note::
    The ``conda repoquery whoneeds`` command is provided by the ``conda-libmamba-solver``.
-   See https://conda.github.io/conda-libmamba-solver/user-guide/subcommands/ for more information.
+   For more information on the subcommands provided, see
+   `Subcommands <https://conda.github.io/conda-libmamba-solver/user-guide/subcommands/>`_.
+
+   For more information on the libmamba solver, see
+   :doc:`Solvers <../concepts/solvers>`.
 
 .. argparse::
    :module: conda.cli.conda_argparse
