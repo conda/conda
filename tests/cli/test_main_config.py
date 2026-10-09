@@ -88,6 +88,26 @@ def test_config_get_missing(
     assert Path(parsed["rc_path"]) == path
     assert parsed["success"]
     assert "warnings" in parsed
+    assert not path.exists()
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        pytest.param(("--get",), id="get"),
+        pytest.param(("--get", "channels"), id="key"),
+    ],
+)
+def test_config_get_does_not_modify_file(
+    conda_cli: CondaCLIFixture,
+    args: Iterable[str],
+    path_factory: PathFactoryFixture,
+):
+    path = path_factory()
+    content = "# my settings\nchannels:\n    - conda-forge   # comment\n"
+    path.write_text(content)
+    conda_cli("config", *args, "--file", path)
+    assert path.read_text() == content
 
 
 def test_config_show_sources_json(conda_cli: CondaCLIFixture):
