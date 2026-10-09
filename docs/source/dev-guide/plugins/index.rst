@@ -103,6 +103,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    environment_specifiers
    exception_observers
    health_checks
+   notices
    package_extractors
    post_commands
    pre_commands

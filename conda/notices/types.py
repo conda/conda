@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, NamedTuple
 
 from ..base.constants import NoticeLevel
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -35,16 +36,16 @@ class ChannelNotice(NamedTuple):
             "channel_name": self.channel_name,
             "message": self.message,
             "level": self.level.name.lower(),
-            "created_at": self.created_at.isoformat(),
-            "expired_at": self.expired_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "expired_at": self.expired_at.isoformat() if self.expired_at else None,
             "interval": self.interval,
         }
 
 
+@deprecated("27.3", "27.9", addendum="Use NoticeBus and show_notices directly.")
 class ChannelNoticeResultSet(NamedTuple):
     """
-    Represents a list of a channel notices, plus some accompanying
-    metadata such as `viewed_channel_notices`.
+    Deprecated: prefer using ``NoticeBus`` + ``show_notices`` directly.
     """
 
     channel_notices: Sequence[ChannelNotice]
