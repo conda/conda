@@ -1,0 +1,19 @@
+### Enhancements
+
+* Add `conda plugins install`, `conda plugins remove`, and `conda plugins update` subcommands for managing conda plugin packages with package validation. (#16354)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Document temporary channel selection for plugin installation before a `.condarc` exists. (#16354)
+
+### Other
+
+* <news item>
