@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-REPODATA_PICKLE_VERSION = 30
+REPODATA_PICKLE_VERSION = 31
 MAX_REPODATA_VERSION = 2
 REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
@@ -174,10 +174,16 @@ class SubdirData(metaclass=SubdirDataType):
         Returns:
             A tuple of `PackageRecord` objects.
         """
+        from .index import resolve_channels
+
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
             channels = context.channels
+        subdirs = tuple(subdirs) if subdirs is not None else None
+        channels = resolve_channels(
+            channels, subdirs, repodata_fn=repodata_fn, use_shards=False
+        )
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
 
         def subdir_query(url: str) -> tuple[PackageRecord, ...]:
@@ -277,6 +283,13 @@ class SubdirData(metaclass=SubdirDataType):
         self.RepoInterface = RepoInterface
         self._loaded = False
         self._key_mgr = None
+
+    @property
+    def channel_relations(self) -> dict[str, str]:
+        """The channel relations declared by this subdir's repodata (CEP 42)."""
+        if not self._loaded:
+            self.load()
+        return self._internal_state["channel_relations"]
 
     @property
     def _repo(self) -> RepoInterface:
@@ -628,6 +641,7 @@ class SubdirData(metaclass=SubdirDataType):
 
         _internal_state = {
             "channel": self.channel,
+            "channel_relations": repodata.get("info", {}).get("channel_relations", {}),
             "url_w_subdir": self.url_w_subdir,
             "url_w_credentials": self.url_w_credentials,
             "base_url": base_url,
@@ -776,9 +790,11 @@ def _search_package_via_shards(
     from ..base.context import context
     from ..models.channel import Channel, all_channel_urls
     from ..models.records import PackageRecord
+    from .index import resolve_channels
 
     if channel_urls is None:
         channel_urls = context.channels
+    channel_urls = resolve_channels(channel_urls, subdirs, use_shards=True)
     channel_urls = all_channel_urls(channel_urls, subdirs=subdirs)
     channels = {
         channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
