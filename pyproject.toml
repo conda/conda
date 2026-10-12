@@ -111,6 +111,7 @@ source = "vcs"
 
 [tool.hatch.version.raw-options]
 local_scheme = "dirty-tag"
+version_scheme = "semver-pep440-release-branch"
 
 [tool.mypy]
 check_untyped_defs = true
