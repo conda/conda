@@ -41,15 +41,15 @@ The following table summarizes the solvers that work with conda:
      - Package
      - Current status
      - Planned status
-   * - ``rattler``
+   * - :ref:`rattler <solvers-rattler>`
      - ``conda-rattler-solver``
      - Available as an optional plugin
      - Planned to become the default solver in conda 26.10.0
-   * - ``libmamba``
+   * - :ref:`libmamba <solvers-libmamba>`
      - ``conda-libmamba-solver``
      - Current default solver
      - Planned to be replaced as the default by ``rattler``
-   * - ``classic``
+   * - :ref:`classic <solvers-classic>`
      - ``conda-pycosat-solver``
      - Available as an optional plugin
      - 
@@ -59,6 +59,8 @@ The following table summarizes the solvers that work with conda:
    The default solver can change between conda releases. To see which solver
    your installation uses, follow the steps in
    :ref:`Check which solver is activated <solvers-check>`.
+
+.. _solvers-rattler:
 
 rattler
 -------
@@ -76,6 +78,8 @@ opt-in plugin for testing.
 .. TO DO: Add conda-rattler-solver GitHub documentation link
 .. (Issue: https://github.com/conda/conda-rattler-solver/issues/161)
 
+.. _solvers-libmamba:
+
 libmamba
 --------
 
@@ -85,7 +89,9 @@ solver in conda. This solver delegates to the C/C++ ``libsolv`` library,
 which gives it a low memory footprint, fast resolve times, and clear error
 messages that identify conflicting constraints directly.
 
-* `conda-libmamba-solver documentation <https://conda.github.io/conda-libmamba-solver>`_
+`conda-libmamba-solver documentation <https://conda.github.io/conda-libmamba-solver>`_
+
+.. _solvers-classic:
 
 classic
 -------
@@ -97,7 +103,7 @@ Python bindings for the PicoSAT library.
 Choose the classic solver when backwards compatibility with existing long-lived environments is
 important and you need solve results that match the original conda behavior exactly.
 
-* `conda-pycosat-solver documentation <https://conda.github.io/conda-pycosat-solver>`_
+`conda-pycosat-solver documentation <https://conda.github.io/conda-pycosat-solver>`_
 
 .. _solvers-check:
 
