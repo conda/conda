@@ -786,8 +786,7 @@ def test_env_list_size(conda_cli: CondaCLIFixture):
     assert not err
 
     lines = stdout.strip().split("\n")
-    # Header has three lines, footer has two
-    non_comment_lines = lines[3:-2]
+    non_comment_lines = [line for line in lines if line and not line.startswith("#")]
 
     # regex to match: <any prefix stuff> <number> <unit> <path>
     # The path is at the end of the line.
