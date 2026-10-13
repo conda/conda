@@ -715,7 +715,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         rc_config.remove_key(key)
 
     # config.rc_keys
-    if not args.get:
+    if args.get is None:
         rc_config.write()
 
     if context.json:
