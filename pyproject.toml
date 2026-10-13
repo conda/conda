@@ -6,7 +6,7 @@ requires = [
 ]
 
 [project]
-authors = [{ name = "Anaconda, Inc.", email = "conda@continuum.io" }]
+authors = [{name = "Anaconda, Inc.", email = "conda@continuum.io"}]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -209,7 +209,7 @@ exclude = [
 show-fixes = true
 
 [tool.ruff.lint]
-flake8-type-checking = { exempt-modules = [], strict = true }
+flake8-type-checking = {exempt-modules = [], strict = true}
 ignore = [
   "D101",  # Missing docstring in public class
   "D102",  # Missing docstring in public method
