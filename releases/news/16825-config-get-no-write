@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Fix `conda config --get` writing to the config file when no key is given. (#16825)
+* Fix `conda config --get` writing to the config file when no key is given. (#16825 via #16831)
 
 ### Deprecations
 
