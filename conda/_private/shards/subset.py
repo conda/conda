@@ -113,7 +113,7 @@ class Node:
     visited: bool = False
     shard_url: str = ""
     # Extras requested via root level MatchSpec (e.g. package[extras=extras_group])
-    # Only every populated for root packages.
+    # Only ever populated for root packages.
     requested_extras: frozenset[str] = frozenset()
 
     def to_id(self) -> NodeId:
