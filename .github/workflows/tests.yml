@@ -430,7 +430,7 @@ jobs:
         run: conda list --show-channel-urls | tee "$RUNNER_TEMP/benchmark_dependencies.txt"
 
       - name: Install Bencher diagnostics
-        uses: bencherdev/bencher@8d75325c3bc59403a2186a056b472c4f49d42838 # v0.6.12
+        uses: bencherdev/bencher@f80847436d7157936b40525db4c2a1064124f04a # v0.6.13
         with:
           version: 0.6.12
 
